@@ -11,6 +11,8 @@ import { addScrapeJob } from '../queues';
 import { processProductForRAG, batchProcessProducts, getProductChunkCount } from '../lib/knowledgeBase';
 import { validateBody, validateParams } from '../middleware/validation';
 import { createProductSchema, updateProductSchema, productIdSchema, CreateProductInput, UpdateProductInput, ProductIdParams } from '../schemas/products';
+import { getCachedProduct, setCachedProduct } from '../lib/cache';
+import { enforceStorageLimit } from '../lib/planLimits';
 
 const products = new Hono();
 
@@ -47,8 +49,8 @@ products.get('/:id', async (c) => {
   const productId = c.req.param('id');
   
   // Try cache first
-  const cached = await getCachedProduct(productId);
-  if (cached) {
+  const cached = await getCachedProduct(productId) as any;
+  if (cached && cached.merchant_id) {
     // Verify it belongs to this merchant
     if (cached.merchant_id === merchantId) {
       return c.json({ product: cached });
