@@ -29,6 +29,7 @@ import { securityHeadersMiddleware } from './middleware/securityHeaders';
 import { loggerMiddleware } from './middleware/logger';
 import { metricsMiddleware } from './middleware/metricsMiddleware';
 import { cacheMiddleware } from './middleware/cacheMiddleware';
+import { httpsMiddleware } from './middleware/https';
 import { register } from './lib/metrics';
 
 const app = new Hono();
