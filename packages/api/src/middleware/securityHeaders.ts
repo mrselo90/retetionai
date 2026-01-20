@@ -23,10 +23,17 @@ export async function securityHeadersMiddleware(c: Context, next: Next) {
 
   // HTTP Strict Transport Security (HSTS)
   // Force HTTPS for 1 year, include subdomains
-  c.header(
-    'Strict-Transport-Security',
-    'max-age=31536000; includeSubDomains; preload'
-  );
+  // Only in production with HTTPS
+  if (process.env.NODE_ENV === 'production') {
+    const protocol = c.req.header('X-Forwarded-Proto') || 
+                     (c.req.url.startsWith('https://') ? 'https' : 'http');
+    if (protocol === 'https') {
+      c.header(
+        'Strict-Transport-Security',
+        'max-age=63072000; includeSubDomains; preload'
+      );
+    }
+  }
 
   // Prevent clickjacking
   c.header('X-Frame-Options', 'DENY');
