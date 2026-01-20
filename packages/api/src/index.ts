@@ -37,6 +37,11 @@ const app = new Hono();
 // Logger middleware (apply first to capture all requests)
 app.use('/*', loggerMiddleware);
 
+// HTTPS enforcement (in production, before other middleware)
+if (process.env.NODE_ENV === 'production') {
+  app.use('/*', httpsMiddleware);
+}
+
 // Security headers
 app.use('/*', securityHeadersMiddleware);
 
