@@ -3,13 +3,13 @@
  */
 
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth.js';
 import {
   scheduleUserMessage,
   scheduleOrderMessages,
   cancelOrderMessages,
   getUserScheduledMessages,
-} from '../lib/messageScheduler';
+} from '../lib/messageScheduler.js';
 
 const messages = new Hono();
 

@@ -1,11 +1,10 @@
-/**
- * GlowGuide Workers
- * Background job processors for scheduled messages, scrape jobs, and analytics
- */
+import './loadEnv.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-import 'dotenv/config';
-import { getAllWorkers, closeAllWorkers } from './workers';
-import { closeAllQueues } from './queues';
+
+import { getAllWorkers, closeAllWorkers } from './workers.js';
+import { closeAllQueues } from './queues.js';
 import { closeRedisConnection, logger } from '@glowguide/shared';
 
 logger.info('🚀 GlowGuide Workers starting...');

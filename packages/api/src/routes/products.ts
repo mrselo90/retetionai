@@ -4,15 +4,15 @@
  */
 
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth.js';
 import { getSupabaseServiceClient } from '@glowguide/shared';
-import { scrapeProductPage } from '../lib/scraper';
-import { addScrapeJob } from '../queues';
-import { processProductForRAG, batchProcessProducts, getProductChunkCount } from '../lib/knowledgeBase';
-import { validateBody, validateParams } from '../middleware/validation';
-import { createProductSchema, updateProductSchema, productIdSchema, CreateProductInput, UpdateProductInput, ProductIdParams } from '../schemas/products';
-import { getCachedProduct, setCachedProduct } from '../lib/cache';
-import { enforceStorageLimit } from '../lib/planLimits';
+import { scrapeProductPage } from '../lib/scraper.js';
+import { addScrapeJob } from '../queues.js';
+import { processProductForRAG, batchProcessProducts, getProductChunkCount } from '../lib/knowledgeBase.js';
+import { validateBody, validateParams } from '../middleware/validation.js';
+import { createProductSchema, updateProductSchema, productIdSchema, productInstructionSchema, CreateProductInput, UpdateProductInput, ProductIdParams, ProductInstructionInput } from '../schemas/products.js';
+import { getCachedProduct, setCachedProduct } from '../lib/cache.js';
+import { enforceStorageLimit } from '../lib/planLimits.js';
 
 const products = new Hono();
 
@@ -38,6 +38,117 @@ products.get('/', async (c) => {
   }
 
   return c.json({ products });
+});
+
+/**
+ * List product instructions for merchant (for UI)
+ * GET /api/products/instructions/list
+ * Must be before /:id to avoid "instructions" as id
+ */
+products.get('/instructions/list', async (c) => {
+  const merchantId = c.get('merchantId');
+  const serviceClient = getSupabaseServiceClient();
+
+  const { data: rows, error } = await serviceClient
+    .from('product_instructions')
+    .select('product_id, usage_instructions, recipe_summary, created_at, updated_at, products(id, name, external_id)')
+    .eq('merchant_id', merchantId);
+
+  if (error) {
+    return c.json({ error: 'Failed to fetch instructions' }, 500);
+  }
+
+  const instructions = (rows || []).map((r: any) => ({
+    product_id: r.product_id,
+    product_name: r.products?.name,
+    external_id: r.products?.external_id,
+    usage_instructions: r.usage_instructions,
+    recipe_summary: r.recipe_summary,
+    created_at: r.created_at,
+    updated_at: r.updated_at,
+  }));
+
+  return c.json({ instructions });
+});
+
+/**
+ * Get product instruction (recipe & usage)
+ * GET /api/products/:id/instruction
+ */
+products.get('/:id/instruction', validateParams(productIdSchema), async (c) => {
+  const merchantId = c.get('merchantId');
+  const { id: productId } = c.get('validatedParams') as ProductIdParams;
+  const serviceClient = getSupabaseServiceClient();
+
+  const { data: product, error: productError } = await serviceClient
+    .from('products')
+    .select('id')
+    .eq('id', productId)
+    .eq('merchant_id', merchantId)
+    .single();
+
+  if (productError || !product) {
+    return c.json({ error: 'Product not found' }, 404);
+  }
+
+  const { data: instruction, error } = await serviceClient
+    .from('product_instructions')
+    .select('id, usage_instructions, recipe_summary, created_at, updated_at')
+    .eq('merchant_id', merchantId)
+    .eq('product_id', productId)
+    .maybeSingle();
+
+  if (error) {
+    return c.json({ error: 'Failed to fetch instruction' }, 500);
+  }
+
+  if (!instruction) {
+    return c.json({ instruction: null });
+  }
+
+  return c.json({ instruction });
+});
+
+/**
+ * Create or update product instruction (recipe & usage)
+ * PUT /api/products/:id/instruction
+ */
+products.put('/:id/instruction', validateParams(productIdSchema), validateBody(productInstructionSchema), async (c) => {
+  const merchantId = c.get('merchantId');
+  const { id: productId } = c.get('validatedParams') as ProductIdParams;
+  const body = c.get('validatedBody') as ProductInstructionInput;
+  const serviceClient = getSupabaseServiceClient();
+
+  const { data: product, error: productError } = await serviceClient
+    .from('products')
+    .select('id')
+    .eq('id', productId)
+    .eq('merchant_id', merchantId)
+    .single();
+
+  if (productError || !product) {
+    return c.json({ error: 'Product not found' }, 404);
+  }
+
+  const { data: instruction, error } = await serviceClient
+    .from('product_instructions')
+    .upsert(
+      {
+        merchant_id: merchantId,
+        product_id: productId,
+        usage_instructions: body.usage_instructions,
+        recipe_summary: body.recipe_summary ?? null,
+      },
+      { onConflict: 'merchant_id,product_id', ignoreDuplicates: false }
+    )
+    .select()
+    .single();
+
+  if (error) {
+    return c.json({ error: 'Failed to save instruction' }, 500);
+  }
+
+  return c.json({ instruction });
 });
 
 /**
@@ -83,7 +194,7 @@ products.get('/:id', async (c) => {
 products.post('/', validateBody(createProductSchema), async (c) => {
   const merchantId = c.get('merchantId');
   const validatedBody = c.get('validatedBody') as CreateProductInput;
-  const { name, url, external_id } = validatedBody;
+  const { name, url, external_id, raw_text } = validatedBody;
   const serviceClient = getSupabaseServiceClient();
 
   const { data: product, error } = await serviceClient
@@ -93,6 +204,7 @@ products.post('/', validateBody(createProductSchema), async (c) => {
       name,
       url,
       external_id: external_id || null,
+      raw_text: raw_text || null,
     })
     .select()
     .single();
@@ -135,6 +247,7 @@ products.put('/:id', validateParams(productIdSchema), validateBody(updateProduct
   if (validatedBody.name !== undefined) updateData.name = validatedBody.name;
   if (validatedBody.url !== undefined) updateData.url = validatedBody.url;
   if (validatedBody.external_id !== undefined) updateData.external_id = validatedBody.external_id;
+  if (validatedBody.raw_text !== undefined) updateData.raw_text = validatedBody.raw_text;
 
   // Check if there's anything to update
   if (Object.keys(updateData).length === 0) {

@@ -5,15 +5,23 @@
 
 import * as crypto from 'crypto';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
 const ALGORITHM = 'aes-256-gcm';
+
+function getEncryptionKeyHex(): string {
+  const key = process.env.ENCRYPTION_KEY;
+  if (key && /^[0-9a-fA-F]{64}$/.test(key)) {
+    return key;
+  }
+  // Fallback for local/dev/test convenience (still 32 bytes)
+  return crypto.randomBytes(32).toString('hex');
+}
 
 /**
  * Encrypt phone number
  */
 export function encryptPhone(phone: string): string {
   const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
+  const cipher = crypto.createCipheriv(ALGORITHM, Buffer.from(getEncryptionKeyHex(), 'hex'), iv);
 
   let encrypted = cipher.update(phone, 'utf8', 'hex');
   encrypted += cipher.final('hex');
@@ -39,7 +47,7 @@ export function decryptPhone(encryptedPhone: string): string {
 
   const decipher = crypto.createDecipheriv(
     ALGORITHM,
-    Buffer.from(ENCRYPTION_KEY, 'hex'),
+    Buffer.from(getEncryptionKeyHex(), 'hex'),
     iv
   );
   decipher.setAuthTag(authTag);

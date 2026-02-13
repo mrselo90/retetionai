@@ -4,8 +4,8 @@
  */
 
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth';
-import { processExternalEvents } from '../lib/orderProcessor';
+import { authMiddleware } from '../middleware/auth.js';
+import { processExternalEvents } from '../lib/orderProcessor.js';
 
 const events = new Hono();
 

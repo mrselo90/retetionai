@@ -4,23 +4,23 @@
  */
 
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth.js';
 import { getSupabaseServiceClient } from '@glowguide/shared';
-import { parseCSV } from '../lib/csvParser';
-import { generateIdempotencyKey } from '../lib/events';
-import { processNormalizedEvent } from '../lib/orderProcessor';
+import { parseCSV } from '../lib/csvParser.js';
+import { generateIdempotencyKey } from '../lib/events.js';
+import { processNormalizedEvent } from '../lib/orderProcessor.js';
 
 const csv = new Hono();
 
 // All routes require authentication
-csv.use('/*', authMiddleware);
+// csv.use('/*', authMiddleware); // Removed global middleware to avoid affecting nested routes
 
 /**
  * CSV Import endpoint
  * POST /api/integrations/:integrationId/import/csv
  * Uploads CSV file and imports orders/events
  */
-csv.post('/:integrationId/import/csv', async (c) => {
+csv.post('/:integrationId/import/csv', authMiddleware, async (c) => {
   const merchantId = c.get('merchantId');
   const integrationId = c.req.param('integrationId');
 
@@ -145,7 +145,7 @@ csv.post('/:integrationId/import/csv', async (c) => {
  * GET /api/integrations/csv/template
  * Returns a sample CSV template for download
  */
-csv.get('/csv/template', async (c) => {
+csv.get('/csv/template', authMiddleware, async (c) => {
   const template = `external_order_id,created_at,delivered_at,status,customer_phone,customer_name,product_name,product_url,product_external_id
 ORD-12345,2024-01-15T10:30:00Z,2024-01-18T14:20:00Z,delivered,+905551234567,Ahmet Yılmaz,Glow Serum,https://example.com/glow-serum,PROD-001
 ORD-12345,2024-01-15T10:30:00Z,2024-01-18T14:20:00Z,delivered,+905551234567,Ahmet Yılmaz,Night Cream,https://example.com/night-cream,PROD-002

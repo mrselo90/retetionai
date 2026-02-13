@@ -4,8 +4,8 @@
  */
 
 import { getSupabaseServiceClient } from '@glowguide/shared';
-import { decryptPhone, encryptPhone } from './encryption';
-import { normalizePhone } from './events';
+import { decryptPhone, encryptPhone } from './encryption.js';
+import { normalizePhone } from './events.js';
 
 export interface ConversationMessage {
   role: 'user' | 'assistant';
@@ -31,7 +31,12 @@ export async function findUserByPhone(
   const serviceClient = getSupabaseServiceClient();
 
   // Normalize phone
-  const normalizedPhone = normalizePhone(phone);
+  let normalizedPhone: string;
+  try {
+    normalizedPhone = normalizePhone(phone);
+  } catch {
+    return null;
+  }
   const encryptedPhone = encryptPhone(normalizedPhone);
 
   // Find user

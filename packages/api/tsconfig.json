@@ -5,8 +5,20 @@
     "rootDir": "./src",
     "composite": true
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/dist",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/test/**/*"
+  ],
   "references": [
-    { "path": "../shared" }
+    {
+      "path": "../shared"
+    }
   ]
 }

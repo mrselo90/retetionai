@@ -10,7 +10,32 @@
 **UI/UX**: ✅ **Production-Ready** - All pages modernized with toast notifications, fixed text colors, and improved UX  
 **Next**: Production deployment, optimizations, or additional features (WooCommerce, Ticimax, Billing)
 
-### 🎉 Latest Update (Jan 20, 2026)
+### 🎉 Latest Update (Feb 2026)
+
+**Guardrails (Settings)**
+- ✅ System guardrails (crisis, medical) read-only; custom guardrails add/edit/delete. Migration 008: `merchants.guardrail_settings`. Run 008 in Supabase for guardrails to work.
+
+**Auth & Login**
+- ✅ Email-not-confirmed handling (Turkish copy, resend button).
+- ✅ Google social login: “Google ile giriş yap” on login and signup; OAuth redirect to `/auth/callback`; merchant auto-created for first-time OAuth users.
+
+**Docker + Kubernetes + Ingress (local run)**
+- **Done**: Dockerfile fixed (builder output, optional deps). K8s: redis in-cluster, configmap REDIS_URL, scripts k8s-local/k8s-apply/k8s-create-cluster. NGINX Ingress via `scripts/k8s-ingress-install.sh`; `k8s/ingress.yaml` for localhost (/api-backend rewrite to API). API: no 301 for localhost, CORS for localhost; web: browser always same-origin (/api-backend), API client `status` on error; dashboard resilient (stats optional, retry on merchant fail). **Access**: http://localhost (port-forward ingress 80:80) or port-forward web 3000, api 3001.
+
+**Kubernetes + New Relic (In progress)**
+- **Done**: Phase 1–2 (New Relic agent in api/workers, Docker CMD); Phase 3.1 + 6.1 (runbook, required-secrets doc, `scripts/k8s-apply.sh`); Phase 4–5 doc (`docs/deployment/NEWRELIC_K8S_HELM_AND_ALERTS.md` — Helm install, NRQL, alerts/dashboard); optional CI (`.github/workflows/build-images.yml` — build/push images on tag).
+- **Docs**: `KUBERNETES_RUNBOOK.md`, `KUBERNETES_NEWRELIC_SPEC.md`, `KUBERNETES_NEWRELIC_DEVELOPMENT_STEPS.md`, `NEWRELIC_K8S_HELM_AND_ALERTS.md`. **Remaining**: Apply to cluster (3.2–3.5), Helm (4), alerts/dashboard in NR (5). See `memory-bank/tasks-kubernetes-newrelic.md`.
+
+**Shopify App Store submission**
+- Readiness report: `docs/shopify-app-store/SHOPIFY_APP_MARKET_READINESS_REPORT.md` — App Bridge + GraphQL confirmed (§6). Action tracker: `docs/shopify-app-store/SHOPIFY_SUBMISSION_ACTIONS.md` — 5 must-dos (icon 1200×1200, screenshots, demo video, dev store test, test credentials); Pre-Submit Checklist in report §4.
+
+**Integrations & Dashboard**
+- ✅ WhatsApp Business connection: Entegrasyonlar'da "WhatsApp Business" kartı; mağaza kendi numarasını bağlayabilir (Phone Number ID, Access Token, Verify Token). DB'de `integrations` provider=whatsapp; `getWhatsAppCredentials` önce DB sonra env.
+- ✅ Platform WhatsApp numarası (+905545736900): Entegrasyonlar banner + dashboard footer; `GET /api/config/platform-contact`; env: PLATFORM_WHATSAPP_NUMBER, NEXT_PUBLIC_PLATFORM_WHATSAPP_NUMBER.
+- ✅ Entegrasyon kartları "Bağlı" durumu: WhatsApp, Shopify, Manuel bağlıysa "✓ Bağlı" rozeti ve farklı buton metni.
+- ✅ Layout / web view: Header üstündeki boşluk kaldırıldı (html/body margin-padding 0, viewport-fit cover, flex layout, main padding azaltıldı).
+
+### Previous (Jan 20, 2026)
 
 **UI/UX COMPLETE OVERHAUL** - All pages modernized and production-ready
 - ✅ Toast notification system (replaced all alert() calls)
@@ -255,8 +280,9 @@ None - All issues resolved! ✅
 
 ## Next Steps
 
-1. Production deployment preparation
-2. Performance optimizations
-3. Additional integrations (WooCommerce, Ticimax)
-4. Billing & Plans (Faz 7)
-5. Advanced analytics features
+1. **Shopify Perfect Match** — See `memory-bank/roadmap-shopify-perfect-match.md` for full checklist (Phase 1: ProductInstruction schema + API → Phase 3: Consent + webhook → Phase 4: T+0 orchestrator → Phase 2: Mapping UI → Phase 5: Security & tests).
+2. Production deployment preparation
+3. Performance optimizations
+4. Additional integrations (WooCommerce, Ticimax)
+5. Billing & Plans (Faz 7)
+6. Advanced analytics features

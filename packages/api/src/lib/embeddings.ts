@@ -3,11 +3,7 @@
  * Uses OpenAI API to generate embeddings for text chunks
  */
 
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { getOpenAIClient } from './openaiClient.js';
 
 // Model configuration
 const EMBEDDING_MODEL = 'text-embedding-3-small'; // 1536 dimensions, cost-effective
@@ -29,6 +25,7 @@ export interface EmbeddingResult {
  */
 export async function generateEmbedding(text: string): Promise<EmbeddingResult> {
   try {
+    const openai = getOpenAIClient();
     const response = await openai.embeddings.create({
       model: EMBEDDING_MODEL,
       input: text,
@@ -54,6 +51,7 @@ export async function generateEmbeddingsBatch(
   chunks: TextChunk[]
 ): Promise<EmbeddingResult[]> {
   try {
+    const openai = getOpenAIClient();
     // OpenAI supports batch embedding (up to 2048 inputs)
     const texts = chunks.map((c) => c.text);
 

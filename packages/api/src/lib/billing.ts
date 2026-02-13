@@ -4,7 +4,7 @@
  */
 
 import { getSupabaseServiceClient, logger } from '@glowguide/shared';
-import { getCachedPlanLimits, setCachedPlanLimits, invalidatePlanLimitsCache } from './cache';
+import { getCachedPlanLimits, setCachedPlanLimits, invalidatePlanLimitsCache } from './cache.js';
 
 export type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'enterprise';
 export type SubscriptionStatus = 'trial' | 'active' | 'cancelled' | 'expired' | 'past_due';

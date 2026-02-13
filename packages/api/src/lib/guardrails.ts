@@ -1,14 +1,69 @@
 /**
  * Guardrails for AI responses
- * Safety checks and content filtering
+ * Safety checks and content filtering.
+ * System guardrails (crisis, medical) are read-only; merchants can add custom guardrails via settings.
  */
 
 export interface GuardrailResult {
   safe: boolean;
-  reason?: 'crisis_keyword' | 'medical_advice' | 'unsafe_content';
+  reason?: 'crisis_keyword' | 'medical_advice' | 'unsafe_content' | 'custom';
+  /** Set when reason is 'custom' (name of the custom guardrail that matched) */
+  customReason?: string;
   requiresHuman: boolean;
   suggestedResponse?: string;
 }
+
+/** Custom guardrail rule (stored per merchant, editable in settings) */
+export interface CustomGuardrail {
+  id: string;
+  name: string;
+  /** Optional description shown in UI */
+  description?: string;
+  /** When to apply: user message, AI response, or both */
+  apply_to: 'user_message' | 'ai_response' | 'both';
+  /** Match by keywords (any of) or single phrase (contains) */
+  match_type: 'keywords' | 'phrase';
+  /** Keywords array or single phrase string */
+  value: string[] | string;
+  /** block = replace with suggested response; escalate = same + flag for human */
+  action: 'block' | 'escalate';
+  suggested_response?: string;
+}
+
+/** Read-only system guardrail (shown in UI, cannot be edited/deleted) */
+export interface SystemGuardrailDefinition {
+  id: string;
+  name: string;
+  name_tr?: string;
+  description: string;
+  description_tr?: string;
+  apply_to: 'user_message' | 'ai_response' | 'both';
+  action: 'block' | 'escalate';
+  editable: false;
+}
+
+export const SYSTEM_GUARDRAILS: SystemGuardrailDefinition[] = [
+  {
+    id: 'crisis_keyword',
+    name: 'Crisis / emergency',
+    name_tr: 'Kriz / acil durum',
+    description: 'Triggers when the message contains crisis-related keywords (e.g. emergency, suicide, hospital, lawsuit). Conversation is escalated to human.',
+    description_tr: 'Mesajda kriz veya acil durum ifadeleri (acil, intihar, hastane, dava vb.) geçtiğinde tetiklenir. Konuşma insan temsilciye yönlendirilir.',
+    apply_to: 'both',
+    action: 'escalate',
+    editable: false,
+  },
+  {
+    id: 'medical_advice',
+    name: 'Medical advice',
+    name_tr: 'Tıbbi tavsiye',
+    description: 'Blocks requests for medical advice (e.g. treatment, diagnosis). Bot responds with a safe message and does not give health advice.',
+    description_tr: 'Tıbbi tavsiye taleplerini engeller (tedavi, teşhis vb.). Bot güvenli bir yanıt verir, sağlık tavsiyesi vermez.',
+    apply_to: 'both',
+    action: 'block',
+    editable: false,
+  },
+];
 
 /**
  * Crisis keywords (Turkish and English)
@@ -60,7 +115,9 @@ const CRISIS_KEYWORDS = [
   'death',
   'dying',
   'suicide',
+  'end my life',
   'kill myself',
+  'kill yourself',
   'poison',
   'poisoned',
   'allergy',
@@ -114,7 +171,11 @@ const MEDICAL_ADVICE_KEYWORDS = [
  */
 function containsCrisisKeywords(text: string): boolean {
   const lowerText = text.toLowerCase();
-  return CRISIS_KEYWORDS.some((keyword) => lowerText.includes(keyword));
+  return CRISIS_KEYWORDS.some((keyword) => {
+    // Use word boundary for exact word matching to avoid false positives (e.g. "acı" in "yardımcı")
+    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+    return regex.test(lowerText);
+  });
 }
 
 /**
@@ -122,16 +183,60 @@ function containsCrisisKeywords(text: string): boolean {
  */
 function requestsMedicalAdvice(text: string): boolean {
   const lowerText = text.toLowerCase();
-  return MEDICAL_ADVICE_KEYWORDS.some((keyword) => lowerText.includes(keyword));
+  return MEDICAL_ADVICE_KEYWORDS.some((keyword) => {
+    // Use word boundary for exact word matching
+    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+    return regex.test(lowerText);
+  });
+}
+
+export interface GuardrailCheckOptions {
+  customGuardrails?: CustomGuardrail[];
 }
 
 /**
- * Check guardrails for user message
+ * Check custom guardrail rules against text.
+ * Returns first matching rule (if any); applies_to must include applyTo.
+ */
+function checkCustomGuardrails(
+  text: string,
+  customGuardrails: CustomGuardrail[],
+  applyTo: 'user_message' | 'ai_response'
+): GuardrailResult | null {
+  const lowerText = text.toLowerCase();
+  for (const rule of customGuardrails) {
+    if (rule.apply_to !== applyTo && rule.apply_to !== 'both') continue;
+    let matched = false;
+    if (rule.match_type === 'keywords') {
+      const keywords = Array.isArray(rule.value) ? rule.value : [rule.value];
+      matched = keywords.some((k) => typeof k === 'string' && lowerText.includes((k as string).toLowerCase()));
+    } else {
+      const phrase = typeof rule.value === 'string' ? rule.value : (Array.isArray(rule.value) ? rule.value[0] : '');
+      matched = typeof phrase === 'string' && phrase.length > 0 && lowerText.includes(phrase.toLowerCase());
+    }
+    if (matched) {
+      return {
+        safe: false,
+        reason: 'custom',
+        customReason: rule.name,
+        requiresHuman: rule.action === 'escalate',
+        suggestedResponse:
+          rule.suggested_response?.trim() ||
+          'Bu konuda yardımcı olamam. Başka bir sorunuz varsa yanıtlamaktan mutluluk duyarım.',
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Check guardrails for user message (system + optional custom)
  */
 export function checkUserMessageGuardrails(
-  userMessage: string
+  userMessage: string,
+  options?: GuardrailCheckOptions
 ): GuardrailResult {
-  // Check for crisis keywords
+  // 1. System: crisis keywords
   if (containsCrisisKeywords(userMessage)) {
     return {
       safe: false,
@@ -142,7 +247,7 @@ export function checkUserMessageGuardrails(
     };
   }
 
-  // Check for medical advice requests
+  // 2. System: medical advice requests
   if (requestsMedicalAdvice(userMessage)) {
     return {
       safe: false,
@@ -153,6 +258,13 @@ export function checkUserMessageGuardrails(
     };
   }
 
+  // 3. Custom guardrails (user message)
+  const custom = options?.customGuardrails;
+  if (custom?.length) {
+    const result = checkCustomGuardrails(userMessage, custom, 'user_message');
+    if (result) return result;
+  }
+
   return {
     safe: true,
     requiresHuman: false,
@@ -160,12 +272,13 @@ export function checkUserMessageGuardrails(
 }
 
 /**
- * Check guardrails for AI-generated response
+ * Check guardrails for AI-generated response (system + optional custom)
  */
 export function checkAIResponseGuardrails(
-  aiResponse: string
+  aiResponse: string,
+  options?: GuardrailCheckOptions
 ): GuardrailResult {
-  // Check if AI response contains crisis-related content
+  // 1. System: crisis-related content in AI response
   if (containsCrisisKeywords(aiResponse)) {
     return {
       safe: false,
@@ -176,7 +289,7 @@ export function checkAIResponseGuardrails(
     };
   }
 
-  // Check if AI response gives medical advice
+  // 2. System: medical advice in AI response
   if (requestsMedicalAdvice(aiResponse)) {
     return {
       safe: false,
@@ -185,6 +298,13 @@ export function checkAIResponseGuardrails(
       suggestedResponse:
         'Ürün kullanımı hakkında sorularınız varsa size yardımcı olabilirim. Sağlık sorunları için lütfen bir sağlık uzmanına danışın.',
     };
+  }
+
+  // 3. Custom guardrails (AI response)
+  const custom = options?.customGuardrails;
+  if (custom?.length) {
+    const result = checkCustomGuardrails(aiResponse, custom, 'ai_response');
+    if (result) return result;
   }
 
   return {
@@ -202,10 +322,12 @@ export async function escalateToHuman(
   reason: string,
   message: string
 ): Promise<void> {
-  // TODO: Implement human escalation
-  // - Create escalation record in database
-  // - Notify merchant/admin
-  // - Flag conversation for review
+  // MVP Implementation: Escalations are logged to console for monitoring
+  // FUTURE Enhancements:
+  // - Create escalation record in database (escalations table)
+  // - Notify merchant/admin via email or dashboard notification
+  // - Flag conversation for review in dashboard
+  // - Add escalation management UI in dashboard
 
   console.log('🚨 Human escalation required:', {
     userId,
@@ -214,20 +336,26 @@ export async function escalateToHuman(
     message: message.substring(0, 100),
   });
 
-  // For MVP, just log
-  // In production, create escalation record and notify merchant
+  // For MVP, escalations are monitored via application logs
+  // In production, implement database tracking and merchant notifications
 }
 
 /**
- * Get safe response for blocked content
+ * Get safe response for blocked content (used when no suggestedResponse is provided)
  */
-export function getSafeResponse(reason: 'crisis_keyword' | 'medical_advice'): string {
-  const responses = {
+export function getSafeResponse(
+  reason: 'crisis_keyword' | 'medical_advice' | 'unsafe_content' | 'custom'
+): string {
+  const responses: Record<string, string> = {
     crisis_keyword:
       "Anladım, bu ciddi bir durum gibi görünüyor. Lütfen acil durumlar için 112'yi arayın veya en yakın acil servise başvurun. Size daha iyi yardımcı olabilmemiz için lütfen müşteri hizmetlerimizle iletişime geçin.",
     medical_advice:
       'Üzgünüm, tıbbi tavsiye veremem. Sağlık sorunlarınız için lütfen bir sağlık uzmanına danışın. Ürün kullanımı hakkında sorularınız varsa, size yardımcı olabilirim.',
+    unsafe_content:
+      'Bu konuda yardımcı olamam. Ürün kullanımı, siparişiniz veya genel sorularınızla ilgili başka bir sorunuz varsa memnuniyetle yardımcı olurum.',
+    custom:
+      'Bu konuda yardımcı olamam. Başka bir sorunuz varsa yanıtlamaktan mutluluk duyarım.',
   };
 
-  return responses[reason];
+  return responses[reason] ?? responses.custom;
 }

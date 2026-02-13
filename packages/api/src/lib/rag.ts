@@ -4,7 +4,13 @@
  */
 
 import { getSupabaseServiceClient } from '@glowguide/shared';
-import { generateEmbedding } from './embeddings';
+import { generateEmbedding } from './embeddings.js';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidUUID(s: string): boolean {
+  return typeof s === 'string' && UUID_REGEX.test(s.trim());
+}
 
 export interface RAGQueryOptions {
   merchantId: string;
@@ -41,10 +47,16 @@ export async function queryKnowledgeBase(
   const {
     merchantId,
     query,
-    productIds,
+    productIds: rawProductIds,
     topK = 5,
     similarityThreshold = 0.7,
   } = options;
+
+  // Only use product IDs that are valid UUIDs (avoids "invalid input syntax for type uuid" when query is pasted into Product IDs field)
+  const productIds =
+    rawProductIds && rawProductIds.length > 0
+      ? rawProductIds.filter(isValidUUID)
+      : undefined;
 
   // Generate embedding for query
   const { embedding: queryEmbedding } = await generateEmbedding(query);
@@ -73,7 +85,7 @@ export async function queryKnowledgeBase(
     )
     .eq('products.merchant_id', merchantId);
 
-  // Filter by product IDs if specified
+  // Filter by product IDs if specified (only valid UUIDs)
   if (productIds && productIds.length > 0) {
     sqlQuery = sqlQuery.in('product_id', productIds);
   }

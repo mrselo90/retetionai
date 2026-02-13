@@ -9,8 +9,11 @@ import * as crypto from 'crypto';
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
+// Only throw error in non-test environments
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables for auth');
+  if (process.env.NODE_ENV !== 'test') {
+    throw new Error('Missing Supabase environment variables for auth');
+  }
 }
 
 /**

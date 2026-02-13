@@ -4,11 +4,7 @@
  */
 
 import { getSupabaseServiceClient } from '@glowguide/shared';
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { getOpenAIClient } from './openaiClient.js';
 
 export interface SatisfactionResult {
   satisfied: boolean;
@@ -30,6 +26,7 @@ export async function detectSatisfaction(
   message: string
 ): Promise<SatisfactionResult> {
   try {
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini', // Fast and cheap for sentiment
       messages: [
@@ -127,6 +124,7 @@ export async function generateUpsellMessage(
     .join('\n');
 
   try {
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -157,14 +155,21 @@ Respond in Turkish unless the user writes in another language.`,
 }
 
 /**
- * Check if upsell should be sent
+ * Check if an upsell is eligible to be sent (does NOT check satisfaction)
  * Rules:
- * - User must be satisfied (positive sentiment)
  * - Order must be delivered (T+14 check-in)
  * - User hasn't opted out
  * - Not already sent upsell for this order
  */
-export async function shouldSendUpsell(
+export async function checkEligibility(
+  merchantId: string,
+  userId: string,
+  orderId: string
+): Promise<boolean> {
+  return isUpsellEligible(userId, orderId, merchantId);
+}
+
+async function isUpsellEligible(
   userId: string,
   orderId: string,
   merchantId: string
@@ -220,6 +225,58 @@ export async function shouldSendUpsell(
 }
 
 /**
+ * Decide whether to send an upsell for a given message.
+ * (Compatibility wrapper used by tests + higher-level flows.)
+ */
+export async function shouldSendUpsell(
+  merchantId: string,
+  userId: string,
+  orderId: string,
+  userMessage: string
+): Promise<boolean> {
+  const satisfaction = await detectSatisfaction(userMessage);
+  if (!satisfaction.satisfied || satisfaction.confidence < 0.7) {
+    return false;
+  }
+  return isUpsellEligible(userId, orderId, merchantId);
+}
+
+/**
+ * Generate an upsell package (message + recommendations).
+ * Note: This does not send or schedule; it only prepares content.
+ */
+export async function generateUpsell(
+  merchantId: string,
+  userId: string,
+  orderId: string
+): Promise<{ message: string; recommendations: ProductRecommendation[] }> {
+  // Eligibility check (no satisfaction here; caller decides)
+  const eligible = await isUpsellEligible(userId, orderId, merchantId);
+  if (!eligible) {
+    return { message: '', recommendations: [] };
+  }
+
+  const recommendations = await getComplementaryProducts(orderId, merchantId, 2);
+  if (recommendations.length === 0) {
+    return { message: '', recommendations: [] };
+  }
+
+  const { data: merchant } = await getSupabaseServiceClient()
+    .from('merchants')
+    .select('name, persona_settings')
+    .eq('id', merchantId)
+    .single();
+
+  const message = await generateUpsellMessage(
+    recommendations,
+    merchant?.name || 'Biz',
+    merchant?.persona_settings
+  );
+
+  return { message, recommendations };
+}
+
+/**
  * Process satisfaction check and trigger upsell if appropriate
  */
 export async function processSatisfactionCheck(
@@ -243,7 +300,7 @@ export async function processSatisfactionCheck(
   }
 
   // Check if upsell should be sent
-  const shouldSend = await shouldSendUpsell(userId, orderId, merchantId);
+  const shouldSend = await isUpsellEligible(userId, orderId, merchantId);
 
   if (!shouldSend) {
     return {

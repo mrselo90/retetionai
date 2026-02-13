@@ -6,10 +6,10 @@
 import { Hono } from 'hono';
 import { getSupabaseServiceClient } from '@glowguide/shared';
 import { getAuthClient, generateApiKey, hashApiKey } from '@glowguide/shared';
-import { authMiddleware } from '../middleware/auth';
-import { validateBody, validateParams } from '../middleware/validation';
-import { signupSchema, loginSchema, createApiKeySchema, revokeApiKeySchema, SignupInput, LoginInput } from '../schemas/auth';
-import { captureException, setUserContext } from '../lib/sentry';
+import { authMiddleware } from '../middleware/auth.js';
+import { validateBody, validateParams } from '../middleware/validation.js';
+import { signupSchema, loginSchema, createApiKeySchema, revokeApiKeySchema, SignupInput, LoginInput } from '../schemas/auth.js';
+import { captureException, setUserContext } from '../lib/sentry.js';
 import { logger } from '@glowguide/shared';
 import {
   createApiKeyObject,
@@ -19,7 +19,7 @@ import {
   getApiKeyByHash,
   isApiKeyExpired,
   isApiKeyExpiringSoon,
-} from '../lib/apiKeyManager';
+} from '../lib/apiKeyManager.js';
 import { z } from 'zod';
 
 const auth = new Hono();

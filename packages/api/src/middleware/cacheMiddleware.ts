@@ -4,7 +4,7 @@
  */
 
 import { Context, Next } from 'hono';
-import { getCachedApiResponse, setCachedApiResponse } from '../lib/cache';
+import { getCachedApiResponse, setCachedApiResponse } from '../lib/cache.js';
 
 /**
  * Cache middleware for GET requests

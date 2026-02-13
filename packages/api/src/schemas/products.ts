@@ -28,12 +28,19 @@ const externalIdSchema = z
   .optional();
 
 /**
+ * Raw text / description (e.g. from Shopify) for RAG / AI bot context
+ */
+const rawTextSchema = z.string().max(500_000).trim().optional();
+
+/**
  * Create product request schema
  */
 export const createProductSchema = z.object({
   name: productNameSchema,
   url: urlSchema,
   external_id: externalIdSchema,
+  /** Product description / body (e.g. from Shopify) – stored for RAG and AI responses */
+  raw_text: rawTextSchema,
 });
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;
@@ -45,6 +52,8 @@ export const updateProductSchema = z.object({
   name: productNameSchema.optional(),
   url: urlSchema.optional(),
   external_id: externalIdSchema,
+  /** Product description / body – stored for RAG and AI responses */
+  raw_text: rawTextSchema,
 });
 
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
@@ -57,3 +66,13 @@ export const productIdSchema = z.object({
 });
 
 export type ProductIdParams = z.infer<typeof productIdSchema>;
+
+/**
+ * Product instruction (recipe & usage) request schema
+ */
+export const productInstructionSchema = z.object({
+  usage_instructions: z.string().min(1, 'Usage instructions are required').max(50000, 'Max 50k characters').trim(),
+  recipe_summary: z.string().max(2000).trim().optional(),
+});
+
+export type ProductInstructionInput = z.infer<typeof productInstructionSchema>;

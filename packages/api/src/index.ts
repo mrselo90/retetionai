@@ -1,5 +1,6 @@
-import 'dotenv/config';
-import { initSentry } from './lib/sentry';
+import './loadEnv.js';
+
+import { initSentry } from './lib/sentry.js';
 
 // Initialize Sentry before anything else
 initSentry();
@@ -8,29 +9,29 @@ import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { swaggerUI } from '@hono/swagger-ui';
 import { getSupabaseClient, getRedisClient } from '@glowguide/shared';
-import authRoutes from './routes/auth';
-import merchantRoutes from './routes/merchants';
-import integrationRoutes from './routes/integrations';
-import shopifyRoutes from './routes/shopify';
-import webhookRoutes from './routes/webhooks';
-import eventRoutes from './routes/events';
-import csvRoutes from './routes/csv';
-import productRoutes from './routes/products';
-import ragRoutes from './routes/rag';
-import whatsappRoutes from './routes/whatsapp';
-import messageRoutes from './routes/messages';
-import conversationRoutes from './routes/conversations';
-import analyticsRoutes from './routes/analytics';
-import testRoutes from './routes/test';
-import gdprRoutes from './routes/gdpr';
-import billingRoutes from './routes/billing';
-import { rateLimitMiddleware } from './middleware/rateLimit';
-import { securityHeadersMiddleware } from './middleware/securityHeaders';
-import { loggerMiddleware } from './middleware/logger';
-import { metricsMiddleware } from './middleware/metricsMiddleware';
-import { cacheMiddleware } from './middleware/cacheMiddleware';
-import { httpsMiddleware } from './middleware/https';
-import { register } from './lib/metrics';
+import authRoutes from './routes/auth.js';
+import merchantRoutes from './routes/merchants.js';
+import integrationRoutes from './routes/integrations.js';
+import shopifyRoutes from './routes/shopify.js';
+import webhookRoutes from './routes/webhooks.js';
+import eventRoutes from './routes/events.js';
+import csvRoutes from './routes/csv.js';
+import productRoutes from './routes/products.js';
+import ragRoutes from './routes/rag.js';
+import whatsappRoutes from './routes/whatsapp.js';
+import messageRoutes from './routes/messages.js';
+import conversationRoutes from './routes/conversations.js';
+import analyticsRoutes from './routes/analytics.js';
+import testRoutes from './routes/test.js';
+import gdprRoutes from './routes/gdpr.js';
+import billingRoutes from './routes/billing.js';
+import { rateLimitMiddleware } from './middleware/rateLimit.js';
+import { securityHeadersMiddleware } from './middleware/securityHeaders.js';
+import { loggerMiddleware } from './middleware/logger.js';
+import { metricsMiddleware } from './middleware/metricsMiddleware.js';
+import { cacheMiddleware } from './middleware/cacheMiddleware.js';
+import { httpsMiddleware } from './middleware/https.js';
+import { register } from './lib/metrics.js';
 
 const app = new Hono();
 
@@ -48,42 +49,60 @@ app.use('/*', securityHeadersMiddleware);
 // CORS middleware (with environment-based origins)
 app.use('/*', async (c, next) => {
   const origin = c.req.header('Origin');
-  
+
   // Get allowed origins from environment variable
   // Format: "http://localhost:3000,https://app.glowguide.ai,https://staging.glowguide.ai"
   const allowedOriginsEnv = process.env.ALLOWED_ORIGINS;
   const allowedOrigins = allowedOriginsEnv
     ? allowedOriginsEnv.split(',').map((o) => o.trim())
-    : ['http://localhost:3000', 'http://localhost:3001']; // Default for development
-  
-  // Allow requests from allowed origins
-  if (origin && allowedOrigins.includes(origin)) {
-    c.header('Access-Control-Allow-Origin', origin);
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000']; // Default for development
+
+  // Always set CORS headers (even if origin is not in list for development)
+  // In production, only allow specific origins
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+
+  if (isDevelopment) {
+    // In development, allow any localhost origin
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      c.header('Access-Control-Allow-Origin', origin);
+    } else if (origin) {
+      c.header('Access-Control-Allow-Origin', origin);
+    } else {
+      // No origin header (e.g., Postman), allow all in dev
+      c.header('Access-Control-Allow-Origin', '*');
+    }
+  } else {
+    // In production: allow listed origins, or any localhost/127.0.0.1 (for local/ingress dev)
+    if (origin) {
+      if (allowedOrigins.includes(origin) || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        c.header('Access-Control-Allow-Origin', origin);
+      }
+    }
   }
-  
+
   // Allow credentials (cookies, authorization headers)
   c.header('Access-Control-Allow-Credentials', 'true');
-  
+
   // Allowed methods
   c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  
+
   // Allowed headers
   c.header(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-Api-Key, X-Requested-With'
+    'Content-Type, Authorization, X-Api-Key, X-Requested-With, Accept, Origin'
   );
-  
+
   // Exposed headers (for rate limiting)
   c.header(
     'Access-Control-Expose-Headers',
     'X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset'
   );
-  
+
   // Handle preflight requests
   if (c.req.method === 'OPTIONS') {
-    return new Response(null, { status: 204 });
+    return c.body(null, 204);
   }
-  
+
   await next();
 });
 
@@ -91,13 +110,13 @@ app.use('/*', async (c, next) => {
 // Skip rate limiting for health checks
 app.use('/*', async (c, next) => {
   const path = c.req.path;
-  
+
   // Skip rate limiting for health checks
   if (path === '/' || path === '/health') {
     await next();
     return;
   }
-  
+
   // Apply rate limiting to all other routes
   await rateLimitMiddleware(c, next);
 });
@@ -108,14 +127,14 @@ app.route('/api/auth', authRoutes);
 // Merchant routes
 app.route('/api/merchants', merchantRoutes);
 
+// Shopify-specific routes (Mount BEFORE generic integration routes)
+app.route('/api/integrations/shopify', shopifyRoutes);
+
 // Integration routes
 app.route('/api/integrations', integrationRoutes);
 
 // CSV import routes
 app.route('/api/integrations', csvRoutes);
-
-// Shopify-specific routes
-app.route('/api/integrations/shopify', shopifyRoutes);
 
 // Product routes
 app.route('/api/products', productRoutes);
@@ -150,7 +169,7 @@ app.route('/api/events', eventRoutes);
 app.route('/webhooks', webhookRoutes);
 
 // Swagger UI Documentation
-app.get('/api/docs', swaggerUI({ 
+app.get('/api/docs', swaggerUI({
   url: '/api/docs/openapi.json',
 }));
 
@@ -192,9 +211,15 @@ app.get('/api/docs/openapi.json', (c) => {
   });
 });
 
+// Platform contact (public, for dashboard footer / support display)
+app.get('/api/config/platform-contact', (c) => {
+  const whatsappNumber = process.env.PLATFORM_WHATSAPP_NUMBER || '+905545736900';
+  return c.json({ whatsapp_number: whatsappNumber });
+});
+
 // Health check endpoint
 app.get('/', (c) => {
-  return c.json({ 
+  return c.json({
     message: 'GlowGuide API',
     version: '0.1.0',
     status: 'ok'
@@ -230,15 +255,15 @@ app.get('/health', async (c) => {
     health.services.redis = 'error';
   }
 
-  const allHealthy = 
-    health.services.database === 'connected' && 
+  const allHealthy =
+    health.services.database === 'connected' &&
     health.services.redis === 'connected';
 
   return c.json(health, allHealthy ? 200 : 503);
 });
 
 // Schedule API key expiration cleanup (runs daily)
-import { scheduleApiKeyExpirationCleanup } from './lib/apiKeyExpirationScheduler';
+import { scheduleApiKeyExpirationCleanup } from './lib/apiKeyExpirationScheduler.js';
 import { logger } from '@glowguide/shared';
 scheduleApiKeyExpirationCleanup().catch((err) => {
   logger.error(err, 'Failed to schedule API key expiration cleanup');

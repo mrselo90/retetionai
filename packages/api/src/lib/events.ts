@@ -70,16 +70,38 @@ export function normalizeShopifyEvent(
       'orders/cancelled': 'order_cancelled',
     };
 
-    const eventType = eventTypeMap[topic] || 'order_updated';
+    let eventType = eventTypeMap[topic] || 'order_updated';
+
+    // orders/updated: treat as order_delivered when order is fulfilled (GDPR-aware trigger)
+    if (topic === 'orders/updated') {
+      const fulfillmentStatus = (order.fulfillment_status || '').toLowerCase();
+      const hasFulfillments = Array.isArray(order.fulfillments) && order.fulfillments.length > 0;
+      const fulfilledSuccess = hasFulfillments && order.fulfillments.some((f: any) => (f.status || '').toString() === 'success');
+      if (fulfillmentStatus === 'fulfilled' || fulfilledSuccess) {
+        eventType = 'order_delivered';
+      }
+    }
 
     // Extract customer phone (priority: shipping > billing > customer)
     let phone: string | undefined;
     if (order.shipping_address?.phone) {
-      phone = normalizePhone(order.shipping_address.phone);
+      try {
+        phone = normalizePhone(order.shipping_address.phone);
+      } catch {
+        phone = undefined;
+      }
     } else if (order.billing_address?.phone) {
-      phone = normalizePhone(order.billing_address.phone);
+      try {
+        phone = normalizePhone(order.billing_address.phone);
+      } catch {
+        phone = undefined;
+      }
     } else if (order.customer?.phone) {
-      phone = normalizePhone(order.customer.phone);
+      try {
+        phone = normalizePhone(order.customer.phone);
+      } catch {
+        phone = undefined;
+      }
     }
 
     // Extract customer name
@@ -96,10 +118,25 @@ export function normalizeShopifyEvent(
 
     // Extract delivery date (from fulfillments)
     let deliveredAt: string | undefined;
-    if (eventType === 'order_delivered' && order.fulfillments) {
-      const fulfilled = order.fulfillments.find((f: any) => f.status === 'success');
+    if (eventType === 'order_delivered' && order.fulfillments && order.fulfillments.length > 0) {
+      const fulfilled = order.fulfillments.find((f: any) => (f.status || '').toString() === 'success');
       if (fulfilled?.updated_at) {
         deliveredAt = fulfilled.updated_at;
+      } else if (order.updated_at) {
+        deliveredAt = order.updated_at;
+      }
+    }
+
+    // Extract marketing consent (GDPR/KVKK): Shopify customer.email_marketing_consent / sms_marketing_consent
+    let consent_status: 'opt_in' | 'opt_out' | 'pending' = 'pending';
+    const customer = order.customer;
+    if (customer) {
+      const emailState = (customer.email_marketing_consent?.state || '').toLowerCase();
+      const smsState = (customer.sms_marketing_consent?.state || '').toLowerCase();
+      if (emailState === 'subscribed' || smsState === 'subscribed') {
+        consent_status = 'opt_in';
+      } else if (emailState === 'not_subscribed' || smsState === 'not_subscribed') {
+        consent_status = 'opt_out';
       }
     }
 
@@ -126,6 +163,7 @@ export function normalizeShopifyEvent(
         delivered_at: deliveredAt,
       },
       items: items.length > 0 ? items : undefined,
+      consent_status,
     };
   } catch (error) {
     console.error('Error normalizing Shopify event:', error);
@@ -137,8 +175,13 @@ export function normalizeShopifyEvent(
  * Normalize phone number to E.164 format (basic)
  */
 export function normalizePhone(phone: string): string {
+  const input = (phone || '').trim();
+  if (!input) {
+    throw new Error('Invalid phone');
+  }
+
   // Remove all non-digit characters except +
-  let cleaned = phone.replace(/[^\d+]/g, '');
+  let cleaned = input.replace(/[^\d+]/g, '');
 
   // If starts with 0, replace with country code (Turkey: +90)
   if (cleaned.startsWith('0')) {
@@ -146,6 +189,12 @@ export function normalizePhone(phone: string): string {
   } else if (!cleaned.startsWith('+')) {
     // Assume Turkey if no country code
     cleaned = '+90' + cleaned;
+  }
+
+  // Basic validation: must be + and at least 10 digits afterwards
+  const digits = cleaned.replace(/[^\d]/g, '');
+  if (!cleaned.startsWith('+') || digits.length < 10) {
+    throw new Error('Invalid phone');
   }
 
   return cleaned;

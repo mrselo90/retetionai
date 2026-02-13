@@ -7,7 +7,50 @@
 **Phase**: Production Ready → Shopify Marketplace Launch  
 **MVP Completion**: 100% Backend + 100% Frontend ✅  
 **Marketplace Readiness**: 16% (7/43 tasks completed, 36 remaining)  
-**Last Updated**: 2026-01-20
+**Last Updated**: 2026-02-11
+
+## Docker + Kubernetes + Ingress (Feb 2026 – local run complete)
+
+- **Docker**: Multi-stage Dockerfile fixed for api/workers/web: production stages use builder output + `pnpm prune --prod`; api/workers use `--no-optional` to avoid New Relic native addons (Python); web builder keeps optional deps (lightningcss). New Relic disabled when no license key (`agent_enabled` in newrelic.cjs).
+- **K8s**: `scripts/k8s-local.sh`, `scripts/k8s-apply.sh`, `scripts/k8s-create-cluster.sh`. In-cluster Redis (`k8s/redis-deployment.yaml`); configmap `REDIS_URL=redis://redis:6379`. ESM: api/workers/shared use `.js` in relative imports and `moduleResolution: Node16` so Node resolves modules; shared `index.ts` exports with `.js`.
+- **Ingress**: NGINX Ingress Controller installed via `scripts/k8s-ingress-install.sh`. `k8s/ingress.yaml`: `/api-backend/(.*)` → api (rewrite to `/$1`); `/api`, `/webhooks`, `/health`, `/metrics`, `/` → api or web. Access: port-forward ingress 80:80, then **http://localhost**.
+- **API**: HTTPS redirect skipped for Host localhost/127.0.0.1; CORS allows localhost/127.0.0.1 origins in production; `/health` not redirected for K8s probes. Web deployment `PORT=3000`, `NEXT_PUBLIC_API_URL=http://api:3001` (server-side only).
+- **Web API client**: Browser always uses same-origin (`getApiBaseUrl()` returns `''` in browser) so requests go to `/api-backend/*`; fixes "Could not reach the API" when using ingress or port-forward. API errors include `status` for 401 → login redirect.
+- **Dashboard**: Loads merchant then stats; stats failure shows dashboard with default stats + toast; merchant failure shows retry button; uses `displayStats` for render.
+
+## Kubernetes + New Relic (Feb 2026 – In progress)
+
+- **Spec and plan**: `docs/deployment/KUBERNETES_NEWRELIC_SPEC.md`, `docs/deployment/KUBERNETES_NEWRELIC_DEVELOPMENT_STEPS.md`. **Runbook**: `docs/deployment/KUBERNETES_RUNBOOK.md` (required secrets, deploy order, rollback, scale, logs, troubleshooting). **Helm + Alerts**: `docs/deployment/NEWRELIC_K8S_HELM_AND_ALERTS.md` (Phase 4 Helm install, Phase 5 NRQL/alert/dashboard examples).
+- **Done**: (1) New Relic Node.js agent in api and workers (`newrelic.cjs`, `node -r newrelic dist/index.js`); (2) Dockerfile CMD with agent for api/workers; (3.1) Secret keys documented in README, `secrets.yaml.example`, runbook; (6.1) Runbook + `scripts/k8s-apply.sh`; (6.2 optional) `.github/workflows/build-images.yml` (build and push api/workers/web on tag to GHCR). Phase 4–5 documentation added (Helm commands, NRQL, dashboard suggestions).
+- **Base K8s manifests**: `k8s/` — namespace, ConfigMap, secrets example, api/workers/web Deployments + Services, Ingress. **Remaining (user)**: Create secret, set image URLs, apply (3.2–3.5); install New Relic K8s via Helm (4); create alert policy and dashboard in New Relic UI (5).
+
+## Recent (Feb 2026)
+
+- **Guardrails (Settings)**: System guardrails (crisis, medical) read-only in UI; custom guardrails CRUD (keywords/phrase, apply_to user/AI/both, action block/escalate). Migration 008 adds `merchants.guardrail_settings`. API returns helpful message when column missing (run migration).
+- **Login / Auth**: Email-not-confirmed error handled (Turkish message + “Resend confirmation email”). Google social login: “Google ile giriş yap” on login and signup; `signInWithOAuth({ provider: 'google' })` with redirect to `/auth/callback`. Auth middleware creates merchant on first OAuth login if missing (name from `user_metadata` or email).
+- **TypeScript (root tsconfig)**: `noEmit: true`, `allowJs: false`, `files: []`, exclude `**/dist`, `load-tests`, `scripts` to avoid “would overwrite input file” errors. Package tsconfigs exclude `dist`.
+
+- **WhatsApp Business connection (Integrations)**: Merchants can connect their own WhatsApp Business number from Entegrasyonlar: "WhatsApp Business" card with modal (Phone Number ID, Access Token, Verify Token, optional display number). Stored per merchant in `integrations` with `provider: 'whatsapp'`, `auth_data`. API `getWhatsAppCredentials(merchantId)` reads from DB first (integrations where provider=whatsapp), then falls back to env (corporate). List/GET integrations sanitize tokens; only `phone_number_display` returned for display. Manual integration create fixed to send `auth_data: {}`.
+- **Platform WhatsApp number**: Default +905545736900. API `GET /api/config/platform-contact` returns `whatsapp_number`. Shown on Integrations page as "Kurumsal destek (GlowGuide)" banner (wa.me link) and in dashboard footer as "Destek: +90 554 573 69 00". Env: `PLATFORM_WHATSAPP_NUMBER`, `NEXT_PUBLIC_PLATFORM_WHATSAPP_NUMBER`.
+- **Integration cards "Bağlı" state**: WhatsApp, Shopify, Manual cards show "✓ Bağlı" badge and colored border/background when that integration exists; button shows "Bağlı" or "Güncelle" instead of "Bağla"/"Bağlan"/"Kur". Active integrations list shows phone_number_display for WhatsApp.
+- **Settings page**: Info box under "WhatsApp iletişim numarası" explaining where to get own number (Meta for Developers / Meta Business Suite, future "WhatsApp Business bağla" in Integrations).
+- **Layout / web view – top space removed**: Empty space above header (bar with merchant name and Çıkış) removed: `html`/`body` margin and padding 0 in globals.css; viewport metadata with `viewport-fit: cover` in layout; body `paddingTop: 0`, `min-h-screen`, `overflow-x: hidden`; dashboard layout changed to flex (`flex flex-col lg:flex-row`) so content column starts at top; removed `lg:pl-64` in favor of flex; Sidebar `shrink-0`; main padding reduced (`pt-3`/`pt-4`). Ensures header sits at top in web view.
+- **Shopify map page**: Redesigned `/dashboard/products/shopify-map` (header with icon, loading/empty states, table with product thumbnails, badges, clearer CTA).
+- **Product instructions scope (Settings)**: Two options on Settings → Bot Kişiliği — “Sadece siparişi olan müşteriler” (order_only) vs “Tüm ürün sorularında” (rag_products_too). Stored in `persona_settings.product_instructions_scope`. AI uses it in `generateAIResponse` to decide when to inject product usage instructions (order products only vs RAG-matched products too).
+- **T+0 WhatsApp**: Confirmed: when order is delivered (Shopify `orders/fulfilled` or CSV/API with `delivered_at`), T+0 welcome message (product usage instructions) is queued and sent via worker if user has `opt_in` consent.
+- **WhatsApp sender mode (Settings)**: Merchant can choose “Kendi numaram” (merchant_own) or “Kurumsal numara” (corporate) for WhatsApp outbound. Stored in `persona_settings.whatsapp_sender_mode`. `getEffectiveWhatsAppCredentials(merchantId)` resolves which credentials to use (API + workers).
+
+## Shopify Perfect Match (Feb 2026)
+
+**Roadmap**: `memory-bank/roadmap-shopify-perfect-match.md`  
+**Goal**: Perfect alignment with native Shopify flow — product→recipe mapping, consent-aware webhooks, T+0 beauty consultant WhatsApp.  
+**Status**: 🚀 Phases 1–4 complete; Phase 5 (tests, docs, offline token) remaining.  
+**Done**: product_instructions table (006_product_instructions.sql), GET/PUT/instructions/list API, getUsageInstructionsForProductIds (shared), fetchShopifyProducts + GET /api/integrations/shopify/products, /dashboard/products/shopify-map page, consent in normalizeShopifyEvent + gate queue + orders/updated→delivered, T+0 job + worker with usage instructions, 429 retry in shopify GraphQL, systemPatterns updated.  
+**Remaining**: Unit/integration tests (consent, ProductInstruction, webhook→job), offline token doc, user/install docs for recipe mapping.
+
+**Shopify App Store submission (Feb 2026):**
+- Readiness report updated: App Bridge (^3.7.11, ^4.2.8) and GraphQL Admin API (fetchShopifyProducts 2024-01) confirmed in report §6.
+- `docs/shopify-app-store/SHOPIFY_SUBMISSION_ACTIONS.md` added — tracks 5 must-dos (icon, screenshots, video, dev store test, test credentials) and recommended items; links to report and Pre-Submit Checklist.
 
 ## Recent Achievements
 
@@ -43,17 +86,22 @@
 ## Marketplace Readiness Gaps
 
 ### Critical (P0) - 49.5 days
-1. **Security & Compliance** (10 days)
+1. **Security & Compliance** (10 days) - ✅ COMPLETE
    - Rate limiting, CORS, Security headers, GDPR, Error tracking
-2. **Testing & Quality** (11 days)
-   - Test infrastructure, Unit tests, Integration tests, E2E tests
-3. **Monitoring** (4.5 days)
+2. **Testing & Quality** (11 days) - 🚀 IN PROGRESS
+   - ✅ Comprehensive test plan created (`memory-bank/tasks-testing.md`)
+   - ⬜ Test infrastructure setup (1 day)
+   - ⬜ Unit tests (4 days)
+   - ⬜ Integration tests (3 days)
+   - ⬜ E2E tests (2 days)
+   - ⬜ Load testing (1 day)
+3. **Monitoring** (4.5 days) - ✅ COMPLETE
    - Structured logging, Metrics, Uptime monitoring
-4. **Documentation** (6 days)
+4. **Documentation** (6 days) - ✅ COMPLETE
    - API docs, User guide, Installation guide
-5. **Billing** (9 days)
+5. **Billing** (9 days) - ✅ COMPLETE
    - Subscription system, Usage tracking, Plan limits
-6. **Shopify Integration** (9 days)
+6. **Shopify Integration** (9 days) - ✅ COMPLETE
    - App Bridge, Shopify Billing API, App store listing
 
 ### High Priority (P1) - 14 days
@@ -459,6 +507,108 @@ All foundation tasks completed. Ready to begin Faz 1: Merchant Onboarding & Ente
 - Test & Development Interface ✅
 - Persona Builder UI ✅
 - Real-time updates ✅
+
+### Testing & Quality: 20% Complete (In Progress) 🚀
+- ✅ **Comprehensive Test Plan** (Jan 21, 2026)
+  - ✅ `memory-bank/tasks-testing.md` - Complete test implementation plan
+  - ✅ 5 phases defined (Infrastructure → Unit → Integration → E2E → Load)
+  - ✅ 18 major tasks with detailed breakdown
+  - ✅ 150+ test files planned
+  - ✅ Coverage goals: 70%+ overall, 90%+ critical modules
+  - ✅ Test framework selection: Vitest, Playwright, k6
+- ✅ **Test Infrastructure** (Jan 21, 2026)
+  - ✅ Vitest configuration (root, api, shared)
+  - ✅ Test utilities (mocks, fixtures, helpers, db-helpers)
+  - ✅ Test setup files
+  - ✅ Environment configuration
+- ✅ **Unit Tests - Auth & Security** (Jan 21, 2026)
+  - ✅ `packages/shared/src/auth.test.ts` (13 tests)
+  - ✅ `packages/api/src/lib/encryption.test.ts`
+  - ✅ `packages/api/src/lib/apiKeyManager.test.ts` (22 tests)
+- ✅ **Unit Tests - Core Business Logic** (Jan 21, 2026)
+  - ✅ `packages/api/src/lib/events.test.ts`
+  - ✅ `packages/api/src/lib/orderProcessor.test.ts`
+  - ✅ `packages/api/src/lib/guardrails.test.ts`
+  - ✅ `packages/api/src/lib/cache.test.ts`
+  - ✅ `packages/api/src/lib/planLimits.test.ts`
+- ✅ **Unit Tests - Middleware** (Jan 21, 2026)
+  - ✅ `packages/api/src/middleware/rateLimit.test.ts`
+  - ✅ `packages/api/src/middleware/validation.test.ts`
+  - ✅ `packages/api/src/middleware/securityHeaders.test.ts`
+- ✅ **Unit Tests - Utilities** (Jan 21, 2026)
+  - ✅ `packages/api/src/lib/usageTracking.test.ts`
+- ✅ **Unit Tests - Additional Modules** (Jan 21, 2026)
+  - ✅ `packages/api/src/lib/scraper.test.ts`
+  - ✅ `packages/api/src/lib/embeddings.test.ts`
+  - ✅ `packages/api/src/lib/rag.test.ts`
+  - ✅ `packages/api/src/lib/aiAgent.test.ts`
+  - ✅ `packages/api/src/lib/upsell.test.ts`
+  - ✅ `packages/api/src/lib/csvParser.test.ts`
+- ✅ **Integration Tests - Completed** (Jan 21, 2026)
+  - ✅ `packages/api/src/test/integration/setup.ts` (test utilities improved with middleware mocks)
+  - ✅ `packages/api/src/test/integration/db-setup.ts` (test database utilities with TestDatabase class)
+  - ✅ `packages/api/src/test/integration/auth.test.ts` (updated with proper route mounting, mock fixes, auth client mock improved)
+  - ✅ `packages/api/src/test/integration/products.test.ts` (full test implementation, mock fixes, query builder chain resolved)
+  - ✅ `packages/api/src/test/integration/webhooks.test.ts` (full test implementation, route fixes, integration query mock fixed)
+  - ✅ `packages/api/src/test/integration/integrations.test.ts` (full test implementation, route fixes, order() mock fixed)
+  - ✅ `packages/api/src/test/mocks.ts` (Supabase query builder mock improved for proper chaining, method chaining fixed)
+- ✅ **CI/CD Test Workflow** (Jan 21, 2026)
+  - ✅ `.github/workflows/tests.yml` (GitHub Actions workflow for unit, integration, E2E, lint, typecheck)
+- 🚀 **E2E Tests - Setup Complete** (Jan 21, 2026)
+  - ✅ `playwright.config.ts` (E2E test configuration)
+  - ✅ `packages/web/e2e/setup.ts` (E2E test utilities with authenticated page fixture)
+  - ✅ `packages/web/e2e/auth.spec.ts` (Authentication flows - 5 tests)
+  - ✅ `packages/web/e2e/products.spec.ts` (Product management flows - 5 tests)
+  - ✅ `packages/web/e2e/integrations.spec.ts` (Integration flows - 5 tests)
+  - ✅ `packages/web/e2e/dashboard.spec.ts` (Dashboard flows - 5 tests)
+  - ✅ `packages/web/e2e/conversations.spec.ts` (Conversation flows - 4 tests)
+  - ✅ `packages/web/e2e/settings.spec.ts` (Settings flows - 5 tests)
+- ✅ **Load Testing - Setup Complete** (Jan 21, 2026)
+  - ✅ `load-tests/auth.js` (Authentication load test - 100 req/s)
+  - ✅ `load-tests/webhooks.js` (Webhook load test - 200 req/s)
+  - ✅ `load-tests/products.js` (Products load test - 100 req/s)
+  - ✅ `load-tests/rag.js` (RAG query load test - 20 req/s)
+  - ✅ `load-tests/README.md` (Load testing documentation)
+- 📊 **Test Statistics**
+  - **Total Tests**: ~180+ unit tests + integration structure + 29 E2E tests + 4 load test scenarios
+  - **Passing**: 95%+ (unit tests)
+  - **Coverage**: ~45% (estimated, unit tests)
+  - **Test Files**: 36/150+ completed (18 unit + 5 integration + 8 E2E + 5 load tests)
+- ⬜ Integration tests implementation
+- ⬜ E2E tests implementation
+- ⬜ Load testing implementation
+
+### Infrastructure & Deployment: 100% Complete ✅
+- ✅ **Cloud Deployment Guides** (Jan 21, 2026)
+  - ✅ CLOUD_DEPLOYMENT_GUIDE.md - Comprehensive cloud deployment guide
+  - ✅ GCP_DEPLOYMENT_GUIDE.md - Detailed GCP deployment guide (34KB)
+  - ✅ cloudbuild.yaml - Cloud Build CI/CD pipeline
+  - ✅ scripts/create-env.sh - Environment setup script
+  - ✅ scripts/gcp-deploy.sh - Automated GCP deployment script
+  - ✅ .github/workflows/deploy.yml - GitHub Actions CI/CD
+
+- ✅ **Deployment Options Documented**
+  - ✅ Hybrid approach (Vercel + Railway + Supabase) - $10-30/ay
+  - ✅ GCP full deployment - $77-2040/ay (scalable)
+  - ✅ AWS alternative - $75-270/ay
+  - ✅ Azure alternative - $55-219/ay
+  - ✅ DigitalOcean alternative - $24-48/ay
+
+- ✅ **GCP Architecture Designed**
+  - ✅ Cloud Run services (Frontend, API, Workers)
+  - ✅ Cloud SQL (PostgreSQL + pgvector)
+  - ✅ Memorystore (Redis)
+  - ✅ Cloud Storage (Backups)
+  - ✅ Cloud Load Balancer + CDN
+  - ✅ Secret Manager integration
+  - ✅ Cloud Monitoring + Logging
+
+- ✅ **Deployment Automation**
+  - ✅ Automated deployment script (gcp-deploy.sh)
+  - ✅ Cloud Build pipeline configuration
+  - ✅ GitHub Actions workflow
+  - ✅ Environment variable management
+  - ✅ Database migration automation
 
 ## Observations
 

@@ -3,7 +3,7 @@
  * Provides configured Redis client for BullMQ queues
  */
 
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
@@ -16,12 +16,12 @@ let redisClient: Redis | null = null;
 export function getRedisClient(): Redis {
   if (!redisClient) {
     redisClient = new Redis(redisUrl, {
-      maxRetriesPerRequest: 3,
-      retryStrategy: (times) => {
+      maxRetriesPerRequest: null, // Required for BullMQ
+      retryStrategy: (times: number) => {
         const delay = Math.min(times * 50, 2000);
         return delay;
       },
-      reconnectOnError: (err) => {
+      reconnectOnError: (err: Error) => {
         const targetError = 'READONLY';
         if (err.message.includes(targetError)) {
           return true; // Reconnect on READONLY error
@@ -30,7 +30,7 @@ export function getRedisClient(): Redis {
       },
     });
 
-    redisClient.on('error', (err) => {
+    redisClient.on('error', (err: Error) => {
       console.error('Redis connection error:', err);
     });
 
@@ -56,3 +56,5 @@ export async function closeRedisConnection(): Promise<void> {
     redisClient = null;
   }
 }
+
+

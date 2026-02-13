@@ -148,9 +148,12 @@ export async function setCachedApiResponse(
 /**
  * Cache RAG query results
  */
-export async function getCachedRAGQuery(query: string, merchantId: string) {
+export async function getCachedRAGQuery(
+  query: string,
+  merchantId: string
+): Promise<{ results: any[]; totalResults: number } | null> {
   const key = `${merchantId}:${query}`;
-  return getCache('rag', key);
+  return getCache<{ results: any[]; totalResults: number }>('rag', key);
 }
 
 export async function setCachedRAGQuery(

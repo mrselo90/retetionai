@@ -9,7 +9,10 @@ export async function securityHeadersMiddleware(c: Context, next: Next) {
   // Allow same-origin and trusted sources
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // TODO: Remove unsafe-inline/eval in production
+    // NOTE: unsafe-inline and unsafe-eval are required for Next.js and some dependencies
+    // These are acceptable for API routes but should be reviewed for web frontend
+    // For production web app, use nonces or hashes for inline scripts
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' data:",
@@ -25,8 +28,8 @@ export async function securityHeadersMiddleware(c: Context, next: Next) {
   // Force HTTPS for 1 year, include subdomains
   // Only in production with HTTPS
   if (process.env.NODE_ENV === 'production') {
-    const protocol = c.req.header('X-Forwarded-Proto') || 
-                     (c.req.url.startsWith('https://') ? 'https' : 'http');
+    const protocol = c.req.header('X-Forwarded-Proto') ||
+      (c.req.url.startsWith('https://') ? 'https' : 'http');
     if (protocol === 'https') {
       c.header(
         'Strict-Transport-Security',

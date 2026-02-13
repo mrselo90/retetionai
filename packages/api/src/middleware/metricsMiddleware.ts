@@ -4,8 +4,8 @@
  */
 
 import { Context, Next } from 'hono';
-import { httpRequestDuration, httpRequestTotal, httpRequestErrors } from '../lib/metrics';
-import { incrementApiCallCount } from '../lib/usageTracking';
+import { httpRequestDuration, httpRequestTotal, httpRequestErrors } from '../lib/metrics.js';
+import { incrementApiCallCount } from '../lib/usageTracking.js';
 
 /**
  * Metrics middleware

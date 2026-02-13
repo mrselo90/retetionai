@@ -5,13 +5,13 @@
 
 import { Hono } from 'hono';
 import { getSupabaseServiceClient, logger } from '@glowguide/shared';
-import { verifyShopifyHmac } from '../lib/shopify';
+import { verifyShopifyHmac } from '../lib/shopify.js';
 import {
   normalizeShopifyEvent,
   generateIdempotencyKey,
   type NormalizedEvent,
-} from '../lib/events';
-import { processNormalizedEvent } from '../lib/orderProcessor';
+} from '../lib/events.js';
+import { processNormalizedEvent } from '../lib/orderProcessor.js';
 import * as crypto from 'crypto';
 
 const webhooks = new Hono();

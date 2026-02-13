@@ -121,6 +121,81 @@ lsof -ti:3000 | xargs kill -9
 cd packages/web && pnpm start > /tmp/web.log 2>&1 &
 ```
 
+## 🐳 Docker (Compose)
+
+Run the full stack (Postgres, Redis, API, Workers, Web) with Docker Compose:
+
+**Prerequisites:** Docker Desktop (or Docker Engine) running.
+
+1. **Create env file** (if you don’t have one):
+   ```bash
+   cp .env.production.example .env
+   # Edit .env and set SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY,
+   # OPENAI_API_KEY, SHOPIFY_API_KEY, SHOPIFY_API_SECRET, etc.
+   ```
+   For local Docker, you can leave Twilio/Sentry optional; Postgres and Redis are provided by Compose.
+
+2. **Build and start:**
+   ```bash
+   docker compose up --build -d
+   ```
+
+3. **Access:**
+   - **Web:** http://localhost:3000  
+   - **API:** http://localhost:3001  
+
+4. **Logs / stop:**
+   ```bash
+   docker compose logs -f
+   docker compose down
+   ```
+
+---
+
+## ☸️ Kubernetes
+
+Run the same stack on a local Kubernetes cluster (minikube, kind, or Docker Desktop K8s).
+
+**Prerequisites:** `kubectl`, a running cluster, and Docker.
+
+1. **Start a cluster** (pick one):
+   ```bash
+   minikube start
+   # or: kind create cluster
+   # or: enable Kubernetes in Docker Desktop
+   ```
+
+2. **Create env file** (if needed):
+   ```bash
+   cp .env.production.example .env.production
+   # Edit and set all required keys. REDIS_URL must be reachable from the cluster
+   # (e.g. host.docker.internal:6379 for Docker Desktop, or a Redis service in the cluster).
+   ```
+
+3. **Build images and deploy:**
+   ```bash
+   ./scripts/k8s-local.sh
+   ```
+   This builds API, Workers, and Web images, loads them into the cluster, creates the `glowguide` namespace and secret, and applies all manifests.
+
+4. **Port-forward and access:**
+   ```bash
+   kubectl port-forward svc/api 3001:3001 -n glowguide &
+   kubectl port-forward svc/web 3000:3000 -n glowguide
+   ```
+   - **Web:** http://localhost:3000  
+   - **API:** http://localhost:3001  
+
+5. **Inspect:**
+   ```bash
+   kubectl get pods -n glowguide
+   kubectl get svc -n glowguide
+   ```
+
+**Production:** Build and push images to your registry, create `glowguide-secrets` in the cluster, then run `./scripts/k8s-apply.sh`. See `k8s/README.md` and `docs/deployment/KUBERNETES_RUNBOOK.md`.
+
+---
+
 ## 📦 Production Deployment
 
 For actual production deployment:

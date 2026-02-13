@@ -3,10 +3,11 @@
  * Processes normalized events and upserts to orders/users tables
  */
 
-import { getSupabaseServiceClient } from '@glowguide/shared';
-import { encryptPhone } from './encryption';
-import type { NormalizedEvent } from './events';
-import { scheduleOrderMessages } from './messageScheduler';
+import { getSupabaseServiceClient, logger } from '@glowguide/shared';
+import { encryptPhone } from './encryption.js';
+import type { NormalizedEvent } from './events.js';
+import { scheduleOrderMessages } from './messageScheduler.js';
+import { scheduleMessage } from '../queues.js';
 
 /**
  * Process normalized event and upsert order/user
@@ -36,11 +37,14 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
     if (existingUser) {
       userId = existingUser.id;
 
-      // Update user name if provided and different
-      if (event.customer.name) {
+      // Update user name and consent when provided (sync from Shopify)
+      const updatePayload: { name?: string; consent_status?: string } = {};
+      if (event.customer.name) updatePayload.name = event.customer.name;
+      if (event.consent_status) updatePayload.consent_status = event.consent_status;
+      if (Object.keys(updatePayload).length > 0) {
         await serviceClient
           .from('users')
-          .update({ name: event.customer.name })
+          .update(updatePayload)
           .eq('id', userId);
       }
     } else {
@@ -130,15 +134,49 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
     created = true;
   }
 
-  // Schedule post-delivery messages if order is delivered
+  // Schedule post-delivery messages only when user has marketing consent (GDPR/KVKK)
   if (orderStatus === 'delivered' && event.order?.delivered_at) {
-    try {
-      const deliveryDate = new Date(event.order.delivered_at);
-      await scheduleOrderMessages(orderId, event.merchant_id, deliveryDate);
-      console.log(`✅ Scheduled post-delivery messages for order ${orderId}`);
-    } catch (error) {
-      console.error('Failed to schedule post-delivery messages:', error);
-      // Don't fail the order processing if message scheduling fails
+    const { data: user } = await serviceClient
+      .from('users')
+      .select('consent_status')
+      .eq('id', userId)
+      .eq('merchant_id', event.merchant_id)
+      .single();
+
+    if (user?.consent_status === 'opt_in') {
+      try {
+        const deliveryDate = new Date(event.order.delivered_at);
+        await scheduleOrderMessages(orderId, event.merchant_id, deliveryDate);
+        logger.info({ orderId }, 'Scheduled post-delivery messages for order');
+      } catch (error) {
+        logger.error({ error, orderId }, 'Failed to schedule post-delivery messages');
+        // Don't fail the order processing if message scheduling fails
+      }
+      // T+0 welcome: beauty consultant message with product usage instructions (worker builds prompt)
+      const productIds = (event.items ?? [])
+        .map((i) => i.external_product_id)
+        .filter((id): id is string => Boolean(id));
+      if (event.customer?.phone && productIds.length >= 0) {
+        try {
+          await scheduleMessage({
+            type: 'welcome',
+            userId,
+            orderId,
+            merchantId: event.merchant_id,
+            to: event.customer.phone,
+            scheduledFor: new Date().toISOString(),
+            productIds: productIds.length > 0 ? productIds : undefined,
+          });
+          logger.info({ orderId }, 'Queued T+0 welcome message for order');
+        } catch (error) {
+          logger.error({ error, orderId }, 'Failed to queue T+0 welcome message');
+        }
+      }
+    } else {
+      logger.info(
+        { orderId, userId, consent_status: user?.consent_status ?? 'pending' },
+        'Skipped scheduling post-delivery messages: no marketing consent'
+      );
     }
   }
 

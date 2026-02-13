@@ -4,9 +4,9 @@
  */
 
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth';
-import { queryKnowledgeBase, formatRAGResultsForLLM, getOrderProductContext } from '../lib/rag';
-import { getCachedRAGQuery, setCachedRAGQuery } from '../lib/cache';
+import { authMiddleware } from '../middleware/auth.js';
+import { queryKnowledgeBase, formatRAGResultsForLLM, getOrderProductContext } from '../lib/rag.js';
+import { getCachedRAGQuery, setCachedRAGQuery } from '../lib/cache.js';
 
 const rag = new Hono();
 

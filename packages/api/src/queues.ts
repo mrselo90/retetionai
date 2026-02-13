@@ -7,23 +7,37 @@ import { Queue } from 'bullmq';
 import { getRedisClient } from '@glowguide/shared';
 import { QUEUE_NAMES, ScheduledMessageJobData, ScrapeJobData, AnalyticsJobData } from '@glowguide/shared';
 
-const connection = getRedisClient();
+// Lazily create queue instances to avoid creating Redis connections at import time
+let scheduledMessagesQueue: Queue<ScheduledMessageJobData> | null = null;
+let scrapeJobsQueue: Queue<ScrapeJobData> | null = null;
+let analyticsQueue: Queue<AnalyticsJobData> | null = null;
 
-// Create queue instances for API (same as workers, but for adding jobs)
-const scheduledMessagesQueue = new Queue<ScheduledMessageJobData>(
-  QUEUE_NAMES.SCHEDULED_MESSAGES,
-  { connection }
-);
+function getScheduledMessagesQueue() {
+  if (!scheduledMessagesQueue) {
+    scheduledMessagesQueue = new Queue<ScheduledMessageJobData>(QUEUE_NAMES.SCHEDULED_MESSAGES, {
+      connection: getRedisClient(),
+    });
+  }
+  return scheduledMessagesQueue;
+}
 
-const scrapeJobsQueue = new Queue<ScrapeJobData>(
-  QUEUE_NAMES.SCRAPE_JOBS,
-  { connection }
-);
+function getScrapeJobsQueue() {
+  if (!scrapeJobsQueue) {
+    scrapeJobsQueue = new Queue<ScrapeJobData>(QUEUE_NAMES.SCRAPE_JOBS, {
+      connection: getRedisClient(),
+    });
+  }
+  return scrapeJobsQueue;
+}
 
-const analyticsQueue = new Queue<AnalyticsJobData>(
-  QUEUE_NAMES.ANALYTICS,
-  { connection }
-);
+function getAnalyticsQueue() {
+  if (!analyticsQueue) {
+    analyticsQueue = new Queue<AnalyticsJobData>(QUEUE_NAMES.ANALYTICS, {
+      connection: getRedisClient(),
+    });
+  }
+  return analyticsQueue;
+}
 
 /**
  * Schedule a message to be sent at a specific time
@@ -33,14 +47,14 @@ export async function scheduleMessage(data: ScheduledMessageJobData) {
   
   if (delay < 0) {
     // If scheduledFor is in the past, execute immediately
-    return await scheduledMessagesQueue.add(
+    return await getScheduledMessagesQueue().add(
       `message-${data.type}-${data.userId}`,
       data,
       { delay: 0 }
     );
   }
   
-  return await scheduledMessagesQueue.add(
+  return await getScheduledMessagesQueue().add(
     `message-${data.type}-${data.userId}`,
     data,
     { delay }
@@ -51,7 +65,7 @@ export async function scheduleMessage(data: ScheduledMessageJobData) {
  * Add a scrape job to the queue
  */
 export async function addScrapeJob(data: ScrapeJobData) {
-  return await scrapeJobsQueue.add(
+  return await getScrapeJobsQueue().add(
     `scrape-${data.productId}`,
     data,
     {
@@ -68,7 +82,7 @@ export async function addScrapeJob(data: ScrapeJobData) {
  * Add an analytics event to the queue
  */
 export async function addAnalyticsEvent(data: AnalyticsJobData) {
-  return await analyticsQueue.add(
+  return await getAnalyticsQueue().add(
     `analytics-${data.eventType}-${Date.now()}`,
     data,
     {

@@ -3,22 +3,21 @@
  * Intent classification, RAG retrieval, and LLM generation
  */
 
-import OpenAI from 'openai';
-import { queryKnowledgeBase, formatRAGResultsForLLM } from './rag';
-import { getOrderProductContext } from './rag';
-import { getSupabaseServiceClient, logger } from '@glowguide/shared';
-import type { ConversationMessage } from './conversation';
+import type OpenAI from 'openai';
+import { getOpenAIClient } from './openaiClient.js';
+import { queryKnowledgeBase, formatRAGResultsForLLM } from './rag.js';
+import { getOrderProductContext } from './rag.js';
+import { getSupabaseServiceClient, logger, getProductInstructionsByProductIds } from '@glowguide/shared';
+import type { ConversationMessage } from './conversation.js';
 import {
   checkUserMessageGuardrails,
   checkAIResponseGuardrails,
   escalateToHuman,
   getSafeResponse,
-} from './guardrails';
-import { processSatisfactionCheck } from './upsell';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+  type CustomGuardrail,
+} from './guardrails.js';
+import { processSatisfactionCheck } from './upsell.js';
+import { getMerchantBotInfo } from './botInfo.js';
 
 export type Intent = 'question' | 'complaint' | 'chat' | 'opt_out';
 
@@ -27,7 +26,9 @@ export interface AIResponse {
   response: string;
   ragContext?: string;
   guardrailBlocked?: boolean;
-  guardrailReason?: 'crisis_keyword' | 'medical_advice' | 'unsafe_content';
+  guardrailReason?: 'crisis_keyword' | 'medical_advice' | 'unsafe_content' | 'custom';
+  /** When guardrailReason is 'custom', the name of the custom guardrail that matched */
+  guardrailCustomName?: string;
   requiresHuman?: boolean;
   upsellTriggered?: boolean;
   upsellMessage?: string;
@@ -38,6 +39,7 @@ export interface AIResponse {
  */
 export async function classifyIntent(message: string): Promise<Intent> {
   try {
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini', // Faster and cheaper for classification
       messages: [
@@ -92,68 +94,108 @@ export async function generateAIResponse(
   conversationHistory: ConversationMessage[] = [],
   personaSettings?: any
 ): Promise<AIResponse> {
-  // Step 0: Check guardrails for user message
-  const userGuardrail = checkUserMessageGuardrails(message);
+  const openai = getOpenAIClient();
+
+  // Step 0: Get merchant (persona + guardrails) so we can run user guardrails with custom rules
+  const { data: merchant } = await getSupabaseServiceClient()
+    .from('merchants')
+    .select('name, persona_settings, guardrail_settings')
+    .eq('id', merchantId)
+    .single();
+
+  const guardrailSettings = (merchant?.guardrail_settings as { custom_guardrails?: unknown[] }) ?? {};
+  const customGuardrails: CustomGuardrail[] = Array.isArray(guardrailSettings.custom_guardrails)
+    ? (guardrailSettings.custom_guardrails as CustomGuardrail[])
+    : [];
+
+  // Step 1: Check guardrails for user message (system + custom)
+  const userGuardrail = checkUserMessageGuardrails(message, { customGuardrails });
 
   if (!userGuardrail.safe) {
-    // Escalate to human if required
     if (userGuardrail.requiresHuman) {
-      await escalateToHuman(userId, conversationId, userGuardrail.reason!, message);
+      await escalateToHuman(userId, conversationId, userGuardrail.reason ?? 'custom', message);
     }
 
     return {
-      intent: 'chat', // Default intent
-      response: userGuardrail.suggestedResponse || getSafeResponse(userGuardrail.reason!),
+      intent: 'chat',
+      response: userGuardrail.suggestedResponse || getSafeResponse(userGuardrail.reason ?? 'custom'),
       guardrailBlocked: true,
       guardrailReason: userGuardrail.reason,
+      guardrailCustomName: userGuardrail.customReason,
       requiresHuman: userGuardrail.requiresHuman,
     };
   }
 
-  // Step 1: Classify intent
+  // Step 2: Classify intent
   const intent = await classifyIntent(message);
-
-  // Step 2: Get RAG context if it's a question
-  let ragContext = '';
-  if (intent === 'question' && orderId) {
-    try {
-      // Get product context for the order
-      const productContext = await getOrderProductContext(orderId);
-      if (productContext.length > 0) {
-        // Query knowledge base with user's question
-        const ragResult = await queryKnowledgeBase({
-          merchantId,
-          query: message,
-          productIds: productContext.map((c) => c.productId),
-          topK: 3,
-          similarityThreshold: 0.7,
-        });
-
-        if (ragResult.results.length > 0) {
-          ragContext = formatRAGResultsForLLM(ragResult.results);
-        }
-      }
-    } catch (error) {
-      console.error('RAG retrieval error:', error);
-    }
-  }
-
-  // Step 3: Get merchant persona settings
-  const { data: merchant } = await getSupabaseServiceClient()
-    .from('merchants')
-    .select('name, persona_settings')
-    .eq('id', merchantId)
-    .single();
 
   const persona = merchant?.persona_settings || {};
   const merchantName = merchant?.name || 'Biz';
+  const botInfo = await getMerchantBotInfo(merchantId);
 
-  // Step 4: Build system prompt
+  // product_instructions_scope: 'order_only' | 'rag_products_too' (required from settings)
+  const productInstructionsScope = (persona?.product_instructions_scope === 'rag_products_too' ? 'rag_products_too' : 'order_only') as 'order_only' | 'rag_products_too';
+
+  // Step 3: Get RAG context if it's a question (knowledge_chunks + product_instructions)
+  let ragContext = '';
+  if (intent === 'question') {
+    try {
+      let orderProductIds: string[] | undefined;
+      if (orderId) {
+        const productContext = await getOrderProductContext(orderId);
+        orderProductIds = productContext.map((c) => c.productId);
+      }
+      // RAG: semantic search (order products if any, else all merchant products)
+      const ragResult = await queryKnowledgeBase({
+        merchantId,
+        query: message,
+        productIds: orderProductIds?.length ? orderProductIds : undefined,
+        topK: 5,
+        similarityThreshold: 0.6,
+      });
+
+      if (ragResult.results.length > 0) {
+        ragContext = formatRAGResultsForLLM(ragResult.results);
+      }
+
+      // Product IDs to fetch usage instructions for (depends on setting)
+      let instructionProductIds: string[] = [];
+      if (productInstructionsScope === 'order_only') {
+        if (orderId && orderProductIds && orderProductIds.length > 0) {
+          instructionProductIds = orderProductIds;
+        }
+      } else {
+        // rag_products_too: include order products and/or products that appeared in RAG results
+        const ragProductIds = [...new Set(ragResult.results.map((r) => r.productId))];
+        if (orderId && orderProductIds && orderProductIds.length > 0) {
+          instructionProductIds = [...new Set([...orderProductIds, ...ragProductIds])];
+        } else {
+          instructionProductIds = ragProductIds;
+        }
+      }
+
+      if (instructionProductIds.length > 0) {
+        const instructions = await getProductInstructionsByProductIds(merchantId, instructionProductIds);
+        if (instructions.length > 0) {
+          const recipeBlocks = instructions.map(
+            (r) =>
+              `[${r.product_name ?? 'Product'}]\nUsage / Recipe: ${r.usage_instructions}${r.recipe_summary ? `\nSummary: ${r.recipe_summary}` : ''}`
+          );
+          ragContext += (ragContext ? '\n\n' : '') + '--- Product usage instructions (recipes) ---\n' + recipeBlocks.join('\n\n');
+        }
+      }
+    } catch (error) {
+      logger.error({ error }, 'RAG retrieval error');
+    }
+  }
+
+  // Step 4: Build system prompt (persona + bot info + RAG context)
   const systemPrompt = buildSystemPrompt(
     merchantName,
     persona,
     intent,
-    ragContext
+    ragContext,
+    botInfo
   );
 
   // Step 5: Build conversation messages
@@ -182,7 +224,7 @@ export async function generateAIResponse(
   // Step 6: Generate response
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o', // Use GPT-4o for better responses
+      model: 'gpt-3.5-turbo', // Use GPT-3.5-Turbo as requested
       messages,
       temperature: persona.temperature || 0.7,
       max_tokens: 500,
@@ -190,16 +232,14 @@ export async function generateAIResponse(
 
     let aiResponse = response.choices[0]?.message?.content || '';
 
-    // Step 7: Check guardrails for AI response
-    const responseGuardrail = checkAIResponseGuardrails(aiResponse);
+    // Step 7: Check guardrails for AI response (system + custom)
+    const responseGuardrail = checkAIResponseGuardrails(aiResponse, { customGuardrails });
 
     if (!responseGuardrail.safe) {
-      // Replace with safe response
-      aiResponse = responseGuardrail.suggestedResponse || getSafeResponse(responseGuardrail.reason!);
+      aiResponse = responseGuardrail.suggestedResponse || getSafeResponse(responseGuardrail.reason ?? 'custom');
 
-      // Escalate if required
       if (responseGuardrail.requiresHuman) {
-        await escalateToHuman(userId, conversationId, responseGuardrail.reason!, aiResponse);
+        await escalateToHuman(userId, conversationId, responseGuardrail.reason ?? 'custom', aiResponse);
       }
 
       return {
@@ -208,6 +248,7 @@ export async function generateAIResponse(
         ragContext: ragContext || undefined,
         guardrailBlocked: true,
         guardrailReason: responseGuardrail.reason,
+        guardrailCustomName: responseGuardrail.customReason,
         requiresHuman: responseGuardrail.requiresHuman,
       };
     }
@@ -244,17 +285,35 @@ export async function generateAIResponse(
 }
 
 /**
- * Build system prompt with persona and context
+ * Build system prompt with persona, bot info (guidelines/boundaries/recipes), and RAG context
  */
 function buildSystemPrompt(
   merchantName: string,
   persona: any,
   intent: Intent,
-  ragContext?: string
+  ragContext?: string,
+  botInfo?: Record<string, string>
 ): string {
   let prompt = `You are a helpful customer service assistant for ${merchantName}.\n\n`;
 
-  // Add persona settings
+  // Merchant-defined bot info (brand guidelines, boundaries, recipe overview)
+  if (botInfo && Object.keys(botInfo).length > 0) {
+    const labels: Record<string, string> = {
+      brand_guidelines: 'Brand & guidelines',
+      bot_boundaries: 'How you should behave / boundaries',
+      recipe_overview: 'Recipes & usage overview',
+      custom_instructions: 'Additional instructions',
+    };
+    prompt += '--- Merchant instructions for this bot ---\n';
+    for (const [key, value] of Object.entries(botInfo)) {
+      if (value?.trim()) {
+        prompt += `${labels[key] || key}:\n${value.trim()}\n\n`;
+      }
+    }
+    prompt += '---\n\n';
+  }
+
+  // Persona settings
   if (persona.tone) {
     prompt += `Tone: ${persona.tone}\n`;
   }
@@ -262,11 +321,11 @@ function buildSystemPrompt(
     prompt += `Style: ${persona.style}\n`;
   }
 
-  // Add intent-specific instructions
+  // Intent-specific instructions
   switch (intent) {
     case 'question':
       prompt +=
-        '\nThe user is asking a question. Provide helpful, accurate information based on the product context provided.\n';
+        '\nThe user is asking a question. Provide helpful, accurate information based on the product context and recipes provided when available.\n';
       break;
     case 'complaint':
       prompt +=
@@ -281,11 +340,17 @@ function buildSystemPrompt(
       break;
   }
 
-  // Add RAG context if available
+  // RAG context (knowledge_chunks + product_instructions)
   if (ragContext) {
-    prompt += `\n\nProduct Information:\n${ragContext}\n\n`;
+    prompt += `\n\nProduct Information (use this to answer questions):\n${ragContext}\n\n`;
     prompt +=
-      'Use this information to answer questions accurately. If the information is not in the context, say you don\'t have that information.\n';
+      'Use this information to answer questions accurately. If the information is not in the context, say so politely and offer general help or suggest they contact support.\n';
+  } else if (intent === 'question') {
+    // No product info available — bot should still respond helpfully
+    prompt +=
+      "\n\nNo product information is available for this conversation (e.g. the product isn't in the knowledge base, or no order context). " +
+      "Respond in a friendly, helpful way: acknowledge their question, say you don't have specific details about that product, and offer alternatives " +
+      "(e.g. general usage tips, contacting customer service, checking the product name or packaging). Never invent product details, ingredients, or usage.\n";
   }
 
   prompt +=

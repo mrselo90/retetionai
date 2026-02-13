@@ -5,7 +5,7 @@
 
 import { getSupabaseServiceClient } from '@glowguide/shared';
 import { logger } from '@glowguide/shared';
-import type { SubscriptionPlan } from './billing';
+import type { SubscriptionPlan } from './billing.js';
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;

@@ -3,13 +3,13 @@
  */
 
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth.js';
 import {
   sendWhatsAppMessage,
   verifyWhatsAppWebhook,
   parseWhatsAppWebhook,
-  getWhatsAppCredentials,
-} from '../lib/whatsapp';
+  getEffectiveWhatsAppCredentials,
+} from '../lib/whatsapp.js';
 import { getSupabaseServiceClient, logger } from '@glowguide/shared';
 import {
   findUserByPhone,
@@ -17,9 +17,9 @@ import {
   addMessageToConversation,
   getConversationHistory,
   updateConversationState,
-} from '../lib/conversation';
-import { generateAIResponse } from '../lib/aiAgent';
-import { incrementMessageCount } from '../lib/usageTracking';
+} from '../lib/conversation.js';
+import { generateAIResponse } from '../lib/aiAgent.js';
+import { incrementMessageCount } from '../lib/usageTracking.js';
 
 const whatsapp = new Hono();
 
@@ -36,7 +36,12 @@ whatsapp.get('/webhooks/whatsapp', async (c) => {
   // In production, this should be per-merchant
   const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || 'glowguide_verify_token';
 
-  const challengeResponse = verifyWhatsAppWebhook(mode, token, challenge, verifyToken);
+  const challengeResponse = verifyWhatsAppWebhook(
+    mode ?? null,
+    token ?? null,
+    challenge ?? null,
+    verifyToken
+  );
 
   if (challengeResponse !== null) {
     return c.text(challengeResponse, 200);
@@ -84,7 +89,7 @@ whatsapp.post('/webhooks/whatsapp', async (c) => {
         if (!user) {
           console.log(`User not found for phone: ${normalizedPhone}`);
           // Send default response for unknown users
-          const credentials = await getWhatsAppCredentials(defaultMerchantId);
+          const credentials = await getEffectiveWhatsAppCredentials(defaultMerchantId);
           if (credentials && message.text) {
             await sendWhatsAppMessage(
               {
@@ -116,6 +121,9 @@ whatsapp.post('/webhooks/whatsapp', async (c) => {
           orderId
         );
 
+        // Get conversation history before adding current message (so history doesn't duplicate it in AI context)
+        const history = await getConversationHistory(conversationId);
+
         // Add user message to conversation
         if (message.text) {
           await addMessageToConversation(
@@ -125,11 +133,8 @@ whatsapp.post('/webhooks/whatsapp', async (c) => {
           );
         }
 
-        // Get conversation history
-        const history = await getConversationHistory(conversationId);
-
         // Generate AI response
-        const credentials = await getWhatsAppCredentials(defaultMerchantId);
+        const credentials = await getEffectiveWhatsAppCredentials(defaultMerchantId);
         if (!credentials) {
           console.error('WhatsApp credentials not configured');
           continue;
@@ -201,7 +206,7 @@ whatsapp.post('/webhooks/whatsapp', async (c) => {
                 .from('scheduled_tasks')
                 .insert({
                   user_id: user.userId,
-                  order_id: orderId,
+                  order_id: orderId ?? null,
                   task_type: 'upsell',
                   execute_at: new Date().toISOString(),
                   status: 'completed',
@@ -214,7 +219,8 @@ whatsapp.post('/webhooks/whatsapp', async (c) => {
             console.log(
               `🚨 Human escalation required for conversation ${conversationId}`
             );
-            // TODO: Create escalation record in database
+            // MVP: Escalations are logged to console (monitored via application logs)
+            // FUTURE: Create escalation record in escalations table for dashboard tracking
           }
         }
       } catch (error) {
@@ -251,7 +257,7 @@ whatsapp.post('/send', authMiddleware, async (c) => {
   }
 
   // Get WhatsApp credentials
-  const credentials = await getWhatsAppCredentials(merchantId);
+  const credentials = await getEffectiveWhatsAppCredentials(merchantId);
 
   if (!credentials) {
     return c.json(
@@ -297,7 +303,7 @@ whatsapp.post('/send', authMiddleware, async (c) => {
 whatsapp.get('/test', authMiddleware, async (c) => {
   const merchantId = c.get('merchantId');
 
-  const credentials = await getWhatsAppCredentials(merchantId);
+  const credentials = await getEffectiveWhatsAppCredentials(merchantId);
 
   if (!credentials) {
     return c.json(

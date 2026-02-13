@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: glowguide
+  labels:
+    app: glowguide-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: glowguide-web
+  template:
+    metadata:
+      labels:
+        app: glowguide-web
+    spec:
+      containers:
+        - name: web
+          image: glowguide-web:latest   # replace with your registry/image:tag
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - secretRef:
+                name: glowguide-secrets
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+            # Server-side rewrites proxy to API; use cluster-internal URL so web pod can reach api service
+            - name: NEXT_PUBLIC_API_URL
+              value: "http://api:3001"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

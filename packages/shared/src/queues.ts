@@ -34,6 +34,8 @@ export interface ScheduledMessageJobData {
   message?: string; // Message text (optional, can be generated)
   scheduledFor: string; // ISO timestamp
   messageTemplate?: string; // Optional custom message template
+  /** T+0 welcome: Shopify product IDs (external_product_id) for beauty-consultant prompt */
+  productIds?: string[];
 }
 
 /**

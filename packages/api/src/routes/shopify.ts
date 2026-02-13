@@ -4,14 +4,17 @@
 
 import { Hono } from 'hono';
 import { getSupabaseServiceClient } from '@glowguide/shared';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth.js';
 import {
   getShopifyAuthUrl,
   verifyShopifyHmac,
   exchangeCodeForToken,
   createWebhook,
   listWebhooks,
-} from '../lib/shopify';
+  fetchShopifyProducts,
+} from '../lib/shopify.js';
+import { verifyShopifySessionToken } from '../lib/shopifySession.js';
+import { logger } from '@glowguide/shared';
 import * as crypto from 'crypto';
 
 const shopify = new Hono();
@@ -36,18 +39,22 @@ shopify.get('/oauth/start', authMiddleware, async (c) => {
 
     // Generate state token (store merchant_id for callback)
     const state = crypto.randomBytes(32).toString('hex');
-    
+
     // Store state in database or Redis (for now, we'll encode merchant_id in state)
     // In production, use Redis with TTL
     const stateWithMerchant = `${merchantId}:${state}`;
 
-    // Required scopes for order and fulfillment webhooks
-    const scopes = [
+    // Required scopes: always include read_products and others; merge with env so env cannot drop them
+    const defaultScopes = [
+      'read_products',
       'read_orders',
       'read_fulfillments',
-      'read_products',
       'read_customers',
+      'write_webhooks',
     ];
+
+    const envScopes = process.env.SHOPIFY_SCOPES ? process.env.SHOPIFY_SCOPES.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    const scopes = Array.from(new Set([...defaultScopes, ...envScopes]));
 
     const authUrl = getShopifyAuthUrl(shop, scopes, stateWithMerchant);
 
@@ -65,12 +72,83 @@ shopify.get('/oauth/start', authMiddleware, async (c) => {
 });
 
 /**
- * Shopify OAuth callback
- * GET /api/integrations/shopify/oauth/callback?code=...&shop=...&state=...
+ * Alias for /oauth/start (for frontend compatibility)
+ * POST /api/integrations/shopify/auth
  */
-shopify.get('/oauth/callback', authMiddleware, async (c) => {
+shopify.post('/auth', authMiddleware, async (c) => {
   try {
     const merchantId = c.get('merchantId') as string;
+    const body = await c.req.json() as { shop: string };
+    const shop = body.shop;
+
+    if (!shop) {
+      return c.json({ error: 'shop parameter is required' }, 400);
+    }
+
+    // Validate shop domain format
+    if (!shop.match(/^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/)) {
+      return c.json({ error: 'Invalid shop domain format' }, 400);
+    }
+
+    // Generate state token
+    const state = crypto.randomBytes(32).toString('hex');
+    const stateWithMerchant = `${merchantId}:${state}`;
+
+    // Required scopes
+    const defaultScopes = [
+      'read_products', // Ensure this comes first
+      'read_orders',
+      'read_fulfillments',
+      'read_customers',
+      'write_webhooks',
+    ];
+
+    // Always ensure default scopes (especially read_products) are included
+    const envScopes = process.env.SHOPIFY_SCOPES ? process.env.SHOPIFY_SCOPES.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    const uniqueScopes = Array.from(new Set([...defaultScopes, ...envScopes]));
+    const scopes = uniqueScopes;
+
+    const authUrl = getShopifyAuthUrl(shop, scopes, stateWithMerchant);
+
+    return c.json({
+      authUrl,
+      shop,
+      state: stateWithMerchant,
+    });
+  } catch (error) {
+    return c.json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    }, 500);
+  }
+});
+
+/**
+ * Get the exact redirect URI this app uses for Shopify OAuth.
+ * No auth required – use this to copy the URL into Shopify Partner Dashboard.
+ * GET /api/integrations/shopify/oauth/redirect-uri
+ */
+shopify.get('/oauth/redirect-uri', (c) => {
+  const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const redirectUri = `${frontendUrl}/api/integrations/shopify/oauth/callback`;
+  const hasCredentials = !!(process.env.SHOPIFY_API_KEY && process.env.SHOPIFY_API_SECRET);
+  return c.json({
+    redirectUri,
+    hint: 'Add this exact URL to Shopify Partner Dashboard → Configuration → Allowed redirection URL(s)',
+    hasCredentials,
+    message: hasCredentials
+      ? 'Credentials are set. Ensure the URL above is in Shopify Partner Dashboard.'
+      : 'Set SHOPIFY_API_KEY and SHOPIFY_API_SECRET in .env (API) for OAuth to work.',
+  });
+});
+
+/**
+ * Shopify OAuth callback
+ * GET /api/integrations/shopify/oauth/callback?code=...&shop=...&state=...
+ * Note: This endpoint is called by Shopify directly, so it doesn't use authMiddleware
+ */
+shopify.get('/oauth/callback', async (c) => {
+  try {
     const query = c.req.query();
     const { code, shop, state, hmac } = query;
 
@@ -80,17 +158,18 @@ shopify.get('/oauth/callback', authMiddleware, async (c) => {
       return c.redirect(`${frontendUrl}/dashboard/integrations/shopify/callback?error=${encodeURIComponent('Missing required OAuth parameters')}`);
     }
 
-    // Verify HMAC
+    // Verify HMAC (must match Shopify Partner Dashboard Client secret)
     if (!verifyShopifyHmac(query as Record<string, string>)) {
+      logger.warn({ shop }, 'Shopify OAuth callback: HMAC verification failed – check SHOPIFY_API_SECRET matches Partner Dashboard Client secret');
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return c.redirect(`${frontendUrl}/dashboard/integrations/shopify/callback?error=${encodeURIComponent('Invalid HMAC signature')}`);
+      return c.redirect(`${frontendUrl}/dashboard/integrations/shopify/callback?error=${encodeURIComponent('Invalid HMAC signature – check SHOPIFY_API_SECRET matches Shopify Partner Dashboard Client secret')}`);
     }
 
     // Extract merchant_id from state
-    const [stateMerchantId, stateToken] = state.split(':');
-    if (stateMerchantId !== merchantId) {
+    const [merchantId, stateToken] = state.split(':');
+    if (!merchantId) {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return c.redirect(`${frontendUrl}/dashboard/integrations/shopify/callback?error=${encodeURIComponent('State mismatch')}`);
+      return c.redirect(`${frontendUrl}/dashboard/integrations?error=${encodeURIComponent('Invalid state parameter')}`);
     }
 
     // Validate shop domain
@@ -103,6 +182,7 @@ shopify.get('/oauth/callback', authMiddleware, async (c) => {
     let tokenData;
     try {
       tokenData = await exchangeCodeForToken(shop, code);
+      console.log('Shopify OAuth successful. Received scopes:', tokenData.scope);
     } catch (error) {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       return c.redirect(`${frontendUrl}/dashboard/integrations/shopify/callback?error=${encodeURIComponent(error instanceof Error ? error.message : 'Failed to exchange code for token')}`);
@@ -169,7 +249,7 @@ shopify.get('/oauth/callback', authMiddleware, async (c) => {
       // Support both standalone and embedded app redirects
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       const host = c.req.query('host'); // Shopify host parameter for embedded apps
-      
+
       if (host) {
         // Embedded app: redirect to Shopify admin
         return c.redirect(
@@ -272,6 +352,69 @@ shopify.post('/webhooks/subscribe', authMiddleware, async (c) => {
 });
 
 /**
+ * Get Shopify store products (Admin GraphQL) for product→recipe mapping
+ * GET /api/integrations/shopify/products?after=<cursor>&first=50
+ */
+shopify.get('/products', authMiddleware, async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const after = c.req.query('after');
+    const first = Math.min(parseInt(c.req.query('first') || '50', 10) || 50, 250);
+
+    const serviceClient = getSupabaseServiceClient();
+    const { data: integration, error: fetchError } = await serviceClient
+      .from('integrations')
+      .select('id, auth_data')
+      .eq('merchant_id', merchantId)
+      .eq('provider', 'shopify')
+      .eq('status', 'active')
+      .single();
+
+    if (fetchError || !integration) {
+      return c.json({ error: 'Shopify integration not found or inactive' }, 404);
+    }
+
+    const authData = integration.auth_data as { shop: string; access_token: string; scope?: string };
+    const shopDomain = authData?.shop;
+    const accessToken = authData?.access_token;
+    if (!shopDomain || !accessToken) {
+      return c.json({ error: 'Invalid integration auth data' }, 400);
+    }
+
+    // If stored scope is missing read_products, ask user to re-authorize (avoids opaque Shopify errors)
+    const scope = (authData.scope || '').toLowerCase();
+    if (scope && !scope.includes('read_products')) {
+      return c.json({
+        error: 'Shopify app is missing product access',
+        code: 'SHOPIFY_SCOPE_REQUIRED',
+        message: 'Reconnect your Shopify store and accept product access so we can load your products.',
+      }, 403);
+    }
+
+    const result = await fetchShopifyProducts(shopDomain, accessToken, first, after || undefined);
+    return c.json({
+      products: result.products,
+      hasNextPage: result.hasNextPage,
+      endCursor: result.endCursor,
+    });
+  } catch (error) {
+    const err = error as Error & { code?: string };
+    if (err.code === 'SHOPIFY_SCOPE_REQUIRED') {
+      return c.json({
+        error: 'Shopify product access required',
+        code: 'SHOPIFY_SCOPE_REQUIRED',
+        message: 'Reconnect your Shopify store and accept product access to load products.',
+      }, 403);
+    }
+    logger.error({ error }, 'Error fetching Shopify products');
+    return c.json({
+      error: 'Internal server error',
+      message: err.message || 'Unknown error',
+    }, 500);
+  }
+});
+
+/**
  * Verify Shopify session token (for App Bridge)
  * POST /api/integrations/shopify/verify-session
  */
@@ -287,8 +430,8 @@ shopify.post('/verify-session', async (c) => {
     const verification = await verifyShopifySessionToken(token, shop);
 
     if (!verification.valid) {
-      return c.json({ 
-        error: verification.error || 'Invalid session token' 
+      return c.json({
+        error: verification.error || 'Invalid session token'
       }, 401);
     }
 

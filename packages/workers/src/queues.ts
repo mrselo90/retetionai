@@ -5,7 +5,7 @@
 
 import { Queue, QueueOptions } from 'bullmq';
 import { getRedisClient } from '@glowguide/shared';
-import { QUEUE_NAMES, ScheduledMessageJobData, ScrapeJobData, AnalyticsJobData } from '@glowguide/shared/queues';
+import { QUEUE_NAMES, ScheduledMessageJobData, ScrapeJobData, AnalyticsJobData } from '@glowguide/shared';
 
 const connection = getRedisClient();
 

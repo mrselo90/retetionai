@@ -3,9 +3,10 @@
  * Shared types, utilities, and constants
  */
 
-export * from './types';
-export * from './supabase';
-export * from './redis';
-export * from './queues';
-export * from './auth';
-export * from './logger';
+export * from './types.js';
+export * from './supabase.js';
+export * from './redis.js';
+export * from './queues.js';
+export * from './productInstructions.js';
+export * from './auth.js';
+export * from './logger.js';

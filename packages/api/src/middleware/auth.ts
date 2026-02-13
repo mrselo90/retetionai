@@ -6,6 +6,12 @@
 import { Context, Next } from 'hono';
 import { getSupabaseServiceClient } from '@glowguide/shared';
 import { isValidApiKeyFormat, hashApiKey } from '@glowguide/shared';
+import {
+  normalizeApiKeys,
+  getApiKeyByHash,
+  isApiKeyExpired,
+  updateApiKeyLastUsed,
+} from '../lib/apiKeyManager.js';
 
 export interface AuthContext {
   merchantId: string;
@@ -28,25 +34,43 @@ function extractToken(header: string | undefined): string | null {
 }
 
 /**
- * Authenticate via JWT (Supabase Auth)
+ * Authenticate via JWT (Supabase Auth).
+ * For OAuth (e.g. Google) users: create merchant if missing (first-time social login).
  */
 async function authenticateJWT(token: string): Promise<string | null> {
   try {
     const supabase = getSupabaseServiceClient();
     const { data: { user }, error } = await supabase.auth.getUser(token);
-    
+
     if (error || !user) {
       return null;
     }
-    
-    // Verify merchant exists
-    const { data: merchant } = await supabase
+
+    let { data: merchant } = await supabase
       .from('merchants')
       .select('id')
       .eq('id', user.id)
       .single();
-    
-    return merchant?.id || null;
+
+    // First-time OAuth user: create merchant so they can use the app
+    if (!merchant) {
+      const name =
+        (user.user_metadata?.full_name as string) ||
+        (user.user_metadata?.name as string) ||
+        (user.email ?? 'Merchant');
+      const { data: inserted } = await supabase
+        .from('merchants')
+        .insert({
+          id: user.id,
+          name: typeof name === 'string' ? name.slice(0, 255) : 'Merchant',
+          api_keys: [],
+        })
+        .select('id')
+        .single();
+      merchant = inserted;
+    }
+
+    return merchant?.id ?? null;
   } catch {
     return null;
   }
@@ -92,18 +116,11 @@ async function authenticateApiKey(apiKey: string): Promise<string | null> {
     }
     
     // Update last used timestamp (async, don't wait)
-    updateApiKeyLastUsed(normalizedKeys, hashedKey).then((updatedKeys) => {
-      supabase
-        .from('merchants')
-        .update({ api_keys: updatedKeys })
-        .eq('id', merchant.id)
-        .then(() => {
-          // Silently update, don't log errors
-        })
-        .catch(() => {
-          // Silently fail
-        });
-    });
+    const updatedKeys = updateApiKeyLastUsed(normalizedKeys, hashedKey);
+    void supabase
+      .from('merchants')
+      .update({ api_keys: updatedKeys })
+      .eq('id', merchant.id);
     
     return merchant.id;
   } catch {

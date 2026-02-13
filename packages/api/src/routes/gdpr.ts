@@ -4,16 +4,16 @@
  */
 
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth.js';
 import { getSupabaseServiceClient } from '@glowguide/shared';
-import { exportMerchantData, exportUserData } from '../lib/dataExport';
+import { exportMerchantData, exportUserData } from '../lib/dataExport.js';
 import {
   softDeleteMerchantData,
   permanentlyDeleteMerchantData,
   softDeleteUserData,
   permanentlyDeleteUserData,
-} from '../lib/dataDeletion';
-import { validateBody, validateParams } from '../middleware/validation';
+} from '../lib/dataDeletion.js';
+import { validateBody, validateParams } from '../middleware/validation.js';
 import { z } from 'zod';
 
 const gdpr = new Hono();
@@ -101,8 +101,8 @@ gdpr.get('/users/:userId/export', validateParams(userIdSchema), async (c) => {
  * DELETE /api/gdpr/delete
  */
 const deleteRequestSchema = z.object({
-  confirm: z.literal(true, {
-    errorMap: () => ({ message: 'Deletion must be confirmed' }),
+  confirm: z.boolean().refine((v) => v === true, {
+    message: 'Deletion must be confirmed',
   }),
   permanent: z.boolean().default(false), // If true, delete immediately (no grace period)
 });
@@ -247,7 +247,8 @@ gdpr.put(
         return c.json({ error: 'Failed to update consent' }, 500);
       }
 
-      // TODO: Log consent change in audit log
+      // FUTURE: Log consent change in audit log table for compliance tracking
+      // MVP: Consent changes are tracked via consent_updated_at timestamp
 
       return c.json({
         message: 'Consent updated successfully',

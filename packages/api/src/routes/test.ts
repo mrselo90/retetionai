@@ -5,13 +5,15 @@
  */
 
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth.js';
 import { getSupabaseServiceClient } from '@glowguide/shared';
-import { normalizePhone } from '../lib/events';
-import { processNormalizedEvent } from '../lib/orderProcessor';
-import { findUserByPhone, getOrCreateConversation, addMessageToConversation, getConversationHistory } from '../lib/conversation';
-import { generateAIResponse } from '../lib/aiAgent';
-import { queryKnowledgeBase } from '../lib/rag';
+import { normalizePhone } from '../lib/events.js';
+import { processNormalizedEvent } from '../lib/orderProcessor.js';
+import { findUserByPhone, getOrCreateConversation, addMessageToConversation, getConversationHistory } from '../lib/conversation.js';
+import { generateAIResponse } from '../lib/aiAgent.js';
+import { queryKnowledgeBase, formatRAGResultsForLLM } from '../lib/rag.js';
+import { getMerchantBotInfo } from '../lib/botInfo.js';
+import { getOpenAIClient } from '../lib/openaiClient.js';
 import { getRedisClient } from '@glowguide/shared';
 import { Queue } from 'bullmq';
 
@@ -54,7 +56,13 @@ test.post('/events', async (c) => {
       occurred_at: new Date().toISOString(),
       external_order_id,
       customer: {
-        phone: normalizePhone(customer_phone),
+        phone: (() => {
+          try {
+            return normalizePhone(customer_phone);
+          } catch {
+            return customer_phone;
+          }
+        })(),
         name: customer_name,
       },
       order: {
@@ -153,13 +161,16 @@ test.post('/whatsapp', async (c) => {
 test.post('/rag', async (c) => {
   try {
     const merchantId = c.get('merchantId') as string;
-    const body = await c.req.json();
+    const body = await c.req.json().catch(() => ({}));
 
-    const { query, productIds, topK = 3 } = body;
+    const query = typeof body?.query === 'string' ? body.query.trim() : '';
+    const productIds = Array.isArray(body?.productIds) ? body.productIds : undefined;
+    const topK = typeof body?.topK === 'number' ? body.topK : 3;
 
     if (!query) {
       return c.json({
         error: 'Missing required field: query',
+        message: 'Provide a search query (e.g. "nasıl kullanılır?", "içindekiler").',
       }, 400);
     }
 
@@ -171,16 +182,120 @@ test.post('/rag', async (c) => {
       similarityThreshold: 0.7,
     });
 
+    const count = ragResult.results.length;
+    const hint =
+      count === 0
+        ? 'RAG searches product knowledge (embeddings). Empty results usually mean: (1) No products with embeddings yet — add products and run "Generate embeddings", or (2) Query does not match product content — try e.g. "nasıl kullanılır?", "içindekiler", or a product name.'
+        : undefined;
+
+    return c.json({
+      query,
+      results: ragResult.results,
+      count,
+      ...(hint && { hint }),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    const isEmbeddingError =
+      /embedding|openai|api_key|invalid key|rate limit/i.test(message);
+    return c.json(
+      {
+        error: isEmbeddingError
+          ? 'RAG requires OpenAI (embedding failed)'
+          : 'RAG test failed',
+        message: isEmbeddingError
+          ? 'Set OPENAI_API_KEY and ensure products have embeddings (Products → product → Generate embeddings).'
+          : message,
+      },
+      500
+    );
+  }
+});
+
+/**
+ * RAG + AI: ask a question and get an AI-generated answer using RAG context
+ * POST /api/test/rag/answer
+ * Same body as /rag; returns RAG results plus an AI answer.
+ */
+test.post('/rag/answer', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const body = await c.req.json().catch(() => ({}));
+
+    const query = typeof body?.query === 'string' ? body.query.trim() : '';
+    const productIds = Array.isArray(body?.productIds) ? body.productIds : undefined;
+    const topK = typeof body?.topK === 'number' ? body.topK : 5;
+
+    if (!query) {
+      return c.json({
+        error: 'Missing required field: query',
+        message: 'Provide a question (e.g. "Bu ürün nasıl kullanılır?").',
+      }, 400);
+    }
+
+    const ragResult = await queryKnowledgeBase({
+      merchantId,
+      query,
+      productIds,
+      topK,
+      similarityThreshold: 0.6,
+    });
+
+    const contextText = formatRAGResultsForLLM(ragResult.results);
+    const botInfo = await getMerchantBotInfo(merchantId);
+    const { data: merchant } = await getSupabaseServiceClient()
+      .from('merchants')
+      .select('name')
+      .eq('id', merchantId)
+      .single();
+
+    const merchantName = merchant?.name || 'Mağaza';
+    let systemPrompt = `Sen ${merchantName} müşteri hizmeti asistanısın. Kullanıcının sorusunu AŞAĞIDAKI ürün bilgisine dayanarak yanıtla. Bilgi bağlamda yoksa kibarca söyle ve genel yardım öner. Asla ürün detayı uydurma. Kısa, dostane ve yardımcı ol. Türkçe yanıtla.\n\n`;
+    if (botInfo && Object.keys(botInfo).length > 0) {
+      systemPrompt += '--- Marka / kurallar ---\n';
+      for (const [key, value] of Object.entries(botInfo)) {
+        if (value && typeof value === 'string' && value.trim()) {
+          systemPrompt += `${value.trim()}\n`;
+        }
+      }
+      systemPrompt += '\n';
+    }
+    systemPrompt += '--- Ürün bilgisi (buna göre cevap ver) ---\n' + contextText;
+
+    const openai = getOpenAIClient();
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: query },
+      ],
+      temperature: 0.5,
+      max_tokens: 500,
+    });
+
+    const answer = completion.choices[0]?.message?.content?.trim() || '';
+
     return c.json({
       query,
       results: ragResult.results,
       count: ragResult.results.length,
+      answer: answer || '(Cevap üretilemedi.)',
+      ...(ragResult.results.length === 0 && {
+        hint: 'RAG sonucu boş; AI genel bir cevap verebilir. Ürün ekleyip embedding ürettiğinizde daha iyi yanıt alırsınız.',
+      }),
     });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    }, 500);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    const isEmbeddingError = /embedding|openai|api_key|invalid key|rate limit/i.test(message);
+    return c.json(
+      {
+        error: isEmbeddingError ? 'RAG veya AI hatası' : 'RAG + AI testi başarısız',
+        message: isEmbeddingError
+          ? 'OPENAI_API_KEY doğru mu? Ürünlerde embedding var mı? (Ürünler → ürün → Embedding üret)'
+          : message,
+      },
+      500
+    );
   }
 });
 
@@ -329,6 +444,58 @@ test.get('/health', async (c) => {
       queueStatus = 'disconnected';
     }
 
+    // OpenAI API key: env check + live verification
+    const rawKey = process.env.OPENAI_API_KEY || '';
+    const placeholderPatterns = [
+      /^your[_-]?openai[_-]?api[_-]?key$/i,
+      /^sk-placeholder/i,
+      /^your[_-]?production[_-]?openai[_-]?key$/i,
+      /^your[_-]?openai[_-]?key$/i,
+    ];
+    const isPlaceholder =
+      !rawKey ||
+      placeholderPatterns.some((p) => p.test(rawKey.trim()));
+
+    let openai: { configured: boolean; status: string; message: string; verified?: boolean } = {
+      configured: !!rawKey && !isPlaceholder,
+      status: !rawKey ? 'missing' : isPlaceholder ? 'placeholder' : 'ok',
+      message: !rawKey
+        ? 'OPENAI_API_KEY is not set (set it in root .env)'
+        : isPlaceholder
+          ? 'OPENAI_API_KEY looks like a placeholder; set a real key in root .env'
+          : 'Checking…',
+    };
+
+    // Live check: call OpenAI with minimal request to verify key works
+    if (openai.configured) {
+      try {
+        const client = getOpenAIClient();
+        await client.embeddings.create({
+          model: 'text-embedding-3-small',
+          input: 'test',
+        });
+        openai = {
+          ...openai,
+          status: 'ok',
+          message: 'API key is working',
+          verified: true,
+        };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const isAuthError =
+          /invalid.*api.*key|incorrect.*api.*key|authentication|401|403/i.test(msg) ||
+          (typeof (err as { status?: number })?.status === 'number' && [(err as { status: number }).status === 401, (err as { status: number }).status === 403].some(Boolean));
+        openai = {
+          ...openai,
+          status: isAuthError ? 'invalid' : 'error',
+          message: isAuthError
+            ? 'API key is invalid or rejected by OpenAI. Check OPENAI_API_KEY in .env.'
+            : `OpenAI request failed: ${msg.slice(0, 120)}`,
+          verified: false,
+        };
+      }
+    }
+
     // Recent scheduled tasks
     let taskStats = { pending: 0, completed: 0, failed: 0 };
     if (userIds.length > 0) {
@@ -356,6 +523,97 @@ test.get('/health', async (c) => {
         redis: queueStatus,
       },
       tasks: taskStats,
+      openai,
+    });
+  } catch (error) {
+    return c.json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    }, 500);
+  }
+});
+
+/**
+ * Debug Shopify Integration
+ * GET /api/test/debug-shopify
+ * Returns current scopes and auth status for shopify integration
+ */
+test.get('/debug-shopify', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const serviceClient = getSupabaseServiceClient();
+
+    const { data: integration, error } = await serviceClient
+      .from('integrations')
+      .select('*')
+      .eq('merchant_id', merchantId)
+      .eq('provider', 'shopify')
+      .single();
+
+    if (error || !integration) {
+      return c.json({
+        error: 'Shopify integration not found',
+        dbError: error
+      }, 404);
+    }
+
+    // Mask sensitive data
+    const authData = integration.auth_data as any;
+    const maskedAuthData = {
+      ...authData,
+      access_token: authData?.access_token ? `${authData.access_token.substring(0, 10)}...` : null,
+      scope: authData?.scope || 'MISSING',
+    };
+
+    return c.json({
+      integration: {
+        id: integration.id,
+        status: integration.status,
+        updated_at: integration.updated_at,
+        auth_data: maskedAuthData,
+      },
+      required_scopes_in_env: process.env.SHOPIFY_SCOPES,
+    });
+  } catch (error) {
+    return c.json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    }, 500);
+  }
+});
+
+/**
+ * Debug Billing
+ * GET /api/test/debug-billing
+ * Returns merchant subscription info and available plans
+ */
+test.get('/debug-billing', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const serviceClient = getSupabaseServiceClient();
+
+    // Get merchant subscription
+    const { data: merchant, error: merchantError } = await serviceClient
+      .from('merchants')
+      .select('subscription_plan, subscription_status')
+      .eq('id', merchantId)
+      .single();
+
+    // Get all plans
+    const { data: plans, error: plansError } = await serviceClient
+      .from('subscription_plans')
+      .select('*')
+      .order('price_monthly');
+
+    return c.json({
+      merchant: {
+        id: merchantId,
+        subscription_plan: merchant?.subscription_plan,
+        subscription_status: merchant?.subscription_status,
+        error: merchantError,
+      },
+      available_plans: plans,
+      plans_error: plansError,
     });
   } catch (error) {
     return c.json({

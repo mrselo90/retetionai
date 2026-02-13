@@ -4,7 +4,7 @@
  */
 
 import { getSupabaseServiceClient, logger } from '@glowguide/shared';
-import { getCachedUsage, setCachedUsage, invalidateUsageCache } from './cache';
+import { getCachedUsage, setCachedUsage, invalidateUsageCache } from './cache.js';
 
 export interface UsageMetrics {
   messagesSent: number;
@@ -101,6 +101,15 @@ export async function incrementApiCallCount(merchantId: string, count: number = 
     // Invalidate usage cache
     await invalidateUsageCache(merchantId);
   }
+}
+
+/**
+ * Reset usage cache (test/dev utility)
+ * Note: Does not mutate DB counters; it only resets cached view.
+ */
+export async function resetUsage(merchantId: string): Promise<void> {
+  await invalidateUsageCache(merchantId);
+  await setCachedUsage(merchantId, { messagesSent: 0, apiCalls: 0, storageBytes: 0 }, 60);
 }
 
 /**

@@ -1,5 +1,5 @@
 import { getSupabaseServiceClient } from '@glowguide/shared';
-import { decryptPhone } from './encryption';
+import { decryptPhone } from './encryption.js';
 
 /**
  * Soft delete merchant data (30-day grace period)
@@ -30,8 +30,10 @@ export async function softDeleteMerchantData(merchantId: string): Promise<{
     throw new Error(`Failed to schedule deletion: ${error.message}`);
   }
 
-  // TODO: Schedule a background job to permanently delete after 30 days
-  // This should be handled by a worker process
+  // FUTURE: Schedule a background job to permanently delete after 30 days
+  // This should be handled by a worker process that runs daily to check for
+  // merchants with deleted_at > 30 days ago and calls permanentlyDeleteMerchantData()
+  // For MVP, permanent deletion can be triggered manually via GDPR endpoint
 
   return {
     deleted: true,

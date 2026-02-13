@@ -3,8 +3,8 @@
  * Checks and enforces subscription plan limits
  */
 
-import { getPlanLimits, isSubscriptionActive } from './billing';
-import { getCurrentUsage } from './usageTracking';
+import { getPlanLimits, isSubscriptionActive } from './billing.js';
+import { getCurrentUsage } from './usageTracking.js';
 import { logger } from '@glowguide/shared';
 
 export interface LimitCheckResult {

@@ -2,6 +2,8 @@
 
 > Strategic plan for Shopify Marketplace launch
 
+**Related**: For a detailed **Shopify Perfect Match** checklist (product→recipe mapping, consent-aware webhooks, T+0 AI consultant), see `memory-bank/roadmap-shopify-perfect-match.md`.
+
 ## Timeline Overview
 
 **Start Date**: January 20, 2026  
@@ -174,11 +176,95 @@
 ### Infrastructure (Week 6-8)
 **Tasks**: INFRA-7.1 to INFRA-7.5 (5.5 days)
 
-- [ ] CI/CD pipeline
-- [ ] Environment management (staging/production)
+- [x] CI/CD pipeline ✅ (Jan 21, 2026)
+  - ✅ GitHub Actions workflow (.github/workflows/deploy.yml)
+  - ✅ Cloud Build configuration (cloudbuild.yaml)
+  - ✅ Automated Docker build and push
+  - ✅ Automated Cloud Run deployment
+  - ✅ Database migration automation
+
+- [x] Environment management (staging/production) ✅ (Jan 21, 2026)
+  - ✅ Environment setup script (scripts/create-env.sh)
+  - ✅ Platform-specific environment files
+  - ✅ Secret management documentation
+  - ✅ GCP Secret Manager integration
+
 - [ ] Database migrations
-- [ ] Backup & recovery
+  - [ ] Automated migration pipeline
+  - [ ] Rollback procedures
+  - [ ] Migration testing
+
+- [x] Backup & recovery ✅ (Jan 21, 2026)
+  - ✅ GCP backup strategy documented
+  - ✅ Cloud SQL auto-backup configuration
+  - ✅ Cloud Storage backup bucket setup
+  - ✅ Point-in-time recovery procedures
+  - ✅ 90-day retention policy
+
 - [ ] SSL/TLS configuration
+  - [ ] Managed SSL certificates
+  - [ ] Custom domain setup
+  - [ ] Certificate auto-renewal
+
+### Cloud Deployment (Completed: Jan 21, 2026) ✅
+
+- [x] **Deployment Guides Created** ✅
+  - ✅ CLOUD_DEPLOYMENT_GUIDE.md - Multi-platform deployment guide
+  - ✅ GCP_DEPLOYMENT_GUIDE.md - Comprehensive GCP guide (34KB, 800+ lines)
+    - Architecture design
+    - Cost analysis ($77-2040/ay)
+    - Step-by-step setup (8 main steps)
+    - Monitoring & logging setup
+    - Scaling strategies
+    - Backup & recovery procedures
+    - Troubleshooting guide
+    - Best practices
+
+- [x] **GCP Infrastructure Design** ✅
+  - ✅ Cloud Run services (Frontend, API, Workers)
+  - ✅ Cloud SQL (PostgreSQL + pgvector)
+  - ✅ Memorystore (Redis)
+  - ✅ Cloud Storage (Backups)
+  - ✅ Cloud Load Balancer + CDN
+  - ✅ Secret Manager integration
+  - ✅ Cloud Monitoring + Logging
+
+- [x] **Deployment Automation** ✅
+  - ✅ Automated deployment script (scripts/gcp-deploy.sh)
+    - Interactive setup
+    - API activation
+    - Resource creation
+    - Service deployment
+    - Monitoring setup
+  - ✅ Cloud Build pipeline (cloudbuild.yaml)
+  - ✅ GitHub Actions workflow (.github/workflows/deploy.yml)
+
+- [x] **Deployment Options Documented** ✅
+  - ✅ Hybrid (Vercel + Railway + Supabase) - $10-30/ay
+  - ✅ GCP Full - $77-2040/ay (scalable)
+  - ✅ AWS Alternative - $75-270/ay
+  - ✅ Azure Alternative - $55-219/ay
+  - ✅ DigitalOcean Alternative - $24-48/ay
+
+- [x] **Cost Analysis** ✅
+  - ✅ Başlangıç seviyesi: $77/ay (0-100 kullanıcı)
+  - ✅ Orta seviye: $345/ay (100-1000 kullanıcı)
+  - ✅ Büyük ölçek: $2040/ay (1000+ kullanıcı)
+  - ✅ Maliyet optimizasyon stratejileri
+
+- [x] **Security Configuration** ✅
+  - ✅ VPC Connector (private networking)
+  - ✅ Cloud Armor (DDoS protection)
+  - ✅ IAM roles & permissions
+  - ✅ Secret Manager integration
+  - ✅ SSL/TLS configuration
+
+- [x] **Monitoring & Observability** ✅
+  - ✅ Cloud Monitoring dashboard setup
+  - ✅ Uptime checks configuration
+  - ✅ Alert policies
+  - ✅ Log-based metrics
+  - ✅ Cloud Logging integration
 
 ### Performance (Week 7-9)
 **Tasks**: PERF-8.1 to PERF-8.4 (6 days)

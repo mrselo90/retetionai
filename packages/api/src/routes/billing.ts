@@ -4,13 +4,13 @@
  */
 
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth';
-import { getMerchantSubscription, getPlanLimits, getAvailablePlans, updateMerchantSubscription, isSubscriptionActive } from '../lib/billing';
-import { getCurrentUsage, getUsageHistory } from '../lib/usageTracking';
-import { createShopifyRecurringCharge, cancelShopifyRecurringCharge, getPlanPrice, handleShopifyBillingWebhook } from '../lib/shopifyBilling';
+import { authMiddleware } from '../middleware/auth.js';
+import { getMerchantSubscription, getPlanLimits, getAvailablePlans, updateMerchantSubscription, isSubscriptionActive } from '../lib/billing.js';
+import { getCurrentUsage, getUsageHistory } from '../lib/usageTracking.js';
+import { createShopifyRecurringCharge, cancelShopifyRecurringCharge, getPlanPrice, handleShopifyBillingWebhook } from '../lib/shopifyBilling.js';
 import { getSupabaseServiceClient } from '@glowguide/shared';
 import { logger } from '@glowguide/shared';
-import { validateBody } from '../middleware/validation';
+import { validateBody } from '../middleware/validation.js';
 import { z } from 'zod';
 
 const billing = new Hono();

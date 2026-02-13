@@ -4,9 +4,9 @@
  */
 
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth.js';
 import { getSupabaseServiceClient } from '@glowguide/shared';
-import { decryptPhone } from '../lib/encryption';
+import { decryptPhone } from '../lib/encryption.js';
 
 const conversations = new Hono();
 

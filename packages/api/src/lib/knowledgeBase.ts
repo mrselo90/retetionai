@@ -4,7 +4,7 @@
  */
 
 import { getSupabaseServiceClient } from '@glowguide/shared';
-import { chunkText, generateEmbeddingsBatch, type TextChunk } from './embeddings';
+import { chunkText, generateEmbeddingsBatch, type TextChunk } from './embeddings.js';
 
 export interface ProcessProductResult {
   productId: string;

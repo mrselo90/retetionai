@@ -3,6 +3,8 @@
  * Handles sending messages and receiving webhooks
  */
 
+import { getSupabaseServiceClient } from '@glowguide/shared';
+
 export interface WhatsAppMessage {
   to: string; // E.164 phone number
   text: string;
@@ -62,18 +64,18 @@ export async function sendWhatsAppMessage(
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
+    const data = (await response.json()) as any;
 
     if (!response.ok) {
       return {
         success: false,
-        error: data.error?.message || `HTTP ${response.status}`,
+        error: data?.error?.message || `HTTP ${response.status}`,
       };
     }
 
     return {
       success: true,
-      messageId: data.messages?.[0]?.id,
+      messageId: data?.messages?.[0]?.id,
     };
   } catch (error) {
     console.error('WhatsApp send error:', error);
@@ -132,28 +134,72 @@ export function parseWhatsAppWebhook(body: any): WhatsAppWebhookMessage[] {
   return messages;
 }
 
+/** auth_data shape for integrations where provider = 'whatsapp' */
+export interface WhatsAppAuthData {
+  phone_number_id: string;
+  access_token: string;
+  verify_token: string;
+  phone_number_display?: string;
+}
+
 /**
- * Get WhatsApp access token from merchant settings
- * In production, this would be stored securely (encrypted)
+ * Get WhatsApp credentials: first from merchant's WhatsApp integration, else env (corporate).
  */
 export async function getWhatsAppCredentials(merchantId: string): Promise<{
   accessToken: string;
   phoneNumberId: string;
   verifyToken: string;
 } | null> {
-  // TODO: Fetch from database (merchants table or integrations table)
-  // For MVP, use environment variables
+  const serviceClient = getSupabaseServiceClient();
+  const { data: row } = await serviceClient
+    .from('integrations')
+    .select('auth_data')
+    .eq('merchant_id', merchantId)
+    .eq('provider', 'whatsapp')
+    .in('status', ['active', 'pending'])
+    .single();
+
+  const auth = row?.auth_data as WhatsAppAuthData | null;
+  if (auth?.access_token && auth?.phone_number_id && auth?.verify_token) {
+    return {
+      accessToken: auth.access_token,
+      phoneNumberId: auth.phone_number_id,
+      verifyToken: auth.verify_token,
+    };
+  }
+
+  // Fallback: platform env (corporate number)
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+  if (!accessToken || !phoneNumberId || !verifyToken) return null;
+  return { accessToken, phoneNumberId, verifyToken };
+}
 
-  if (!accessToken || !phoneNumberId || !verifyToken) {
-    return null;
-  }
+/** Merchant preference: use own WhatsApp number vs platform corporate number */
+export type WhatsAppSenderMode = 'merchant_own' | 'corporate';
 
-  return {
-    accessToken,
-    phoneNumberId,
-    verifyToken,
-  };
+/**
+ * Resolve which merchant's WhatsApp credentials to use for sending.
+ * Reads persona_settings.whatsapp_sender_mode: 'merchant_own' = this merchant; 'corporate' = DEFAULT_MERCHANT_ID.
+ */
+export async function getEffectiveWhatsAppCredentials(merchantId: string): Promise<{
+  accessToken: string;
+  phoneNumberId: string;
+  verifyToken: string;
+} | null> {
+  const serviceClient = getSupabaseServiceClient();
+  const { data: merchant } = await serviceClient
+    .from('merchants')
+    .select('persona_settings')
+    .eq('id', merchantId)
+    .single();
+
+  const mode = (merchant?.persona_settings as any)?.whatsapp_sender_mode;
+  const useCorporate = mode === 'corporate';
+  const effectiveMerchantId = useCorporate && process.env.DEFAULT_MERCHANT_ID
+    ? process.env.DEFAULT_MERCHANT_ID
+    : merchantId;
+
+  return getWhatsAppCredentials(effectiveMerchantId);
 }

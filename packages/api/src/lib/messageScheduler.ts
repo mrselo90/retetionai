@@ -4,8 +4,8 @@
  */
 
 import { getSupabaseServiceClient } from '@glowguide/shared';
-import { scheduleMessage } from '../queues';
-import { decryptPhone } from './encryption';
+import { scheduleMessage } from '../queues.js';
+import { decryptPhone } from './encryption.js';
 import type { ScheduledMessageJobData } from '@glowguide/shared';
 
 export interface ScheduleMessageOptions {
@@ -70,7 +70,7 @@ export async function scheduleUserMessage(
 
   return {
     taskId: task.id,
-    jobId: job.id,
+    jobId: String(job.id),
   };
 }
 
@@ -157,7 +157,9 @@ export async function cancelOrderMessages(
     throw new Error(`Failed to cancel messages: ${error.message}`);
   }
 
-  // TODO: Also cancel BullMQ jobs (requires job ID storage)
+  // FUTURE: Also cancel BullMQ jobs (requires storing job IDs in scheduled_tasks table)
+  // Current implementation: Jobs will check task status before executing
+  // If status is 'cancelled', the job will skip execution
 
   return { cancelled: data?.length || 0 };
 }

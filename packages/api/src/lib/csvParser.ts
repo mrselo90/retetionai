@@ -3,8 +3,8 @@
  * Parses CSV files and converts them to normalized events
  */
 
-import type { NormalizedEvent } from './events';
-import { normalizePhone } from './events';
+import type { NormalizedEvent } from './events.js';
+import { normalizePhone } from './events.js';
 
 export interface CSVRow {
   external_order_id: string;
@@ -131,7 +131,7 @@ export function parseCSV(
     let normalizedPhoneNumber: string;
     try {
       normalizedPhoneNumber = normalizePhone(firstRow.customer_phone);
-    } catch (error) {
+    } catch {
       errors.push({ 
         row: 0, 
         error: `Invalid phone number for order ${orderId}: ${firstRow.customer_phone}` 
