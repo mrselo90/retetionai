@@ -12,6 +12,7 @@ module.exports = {
       interpreter: 'node',
       env: { PORT: 3002, NODE_ENV: 'production' },
       instances: 1,
+      exec_mode: 'fork',
       autorestart: true,
       watch: false,
     },
@@ -26,6 +27,7 @@ module.exports = {
         INTERNAL_API_URL: 'http://127.0.0.1:3002'
       },
       instances: 1,
+      exec_mode: 'fork',
       autorestart: true,
       watch: false,
     },
@@ -36,6 +38,7 @@ module.exports = {
       interpreter: 'node',
       env: { NODE_ENV: 'production' },
       instances: 1,
+      exec_mode: 'fork',
       autorestart: true,
       watch: false,
     },
