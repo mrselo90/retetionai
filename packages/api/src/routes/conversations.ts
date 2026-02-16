@@ -6,7 +6,9 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
 import { getSupabaseServiceClient } from '@glowguide/shared';
-import { decryptPhone } from '../lib/encryption.js';
+import { decryptPhone, encryptPhone } from '../lib/encryption.js';
+import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from '../lib/whatsapp.js';
+import { addMessageToConversation } from '../lib/conversation.js';
 
 const conversations = new Hono();
 
@@ -38,7 +40,7 @@ conversations.get('/', async (c) => {
     // Get conversations
     const { data: conversationsData, error } = await serviceClient
       .from('conversations')
-      .select('id, user_id, order_id, updated_at, history, current_state')
+      .select('id, user_id, order_id, updated_at, history, current_state, conversation_status')
       .in('user_id', userIds)
       .order('updated_at', { ascending: false })
       .limit(100);
@@ -100,6 +102,7 @@ conversations.get('/', async (c) => {
         messageCount: history.length,
         lastMessageAt: conv.updated_at,
         status: conv.current_state || 'active',
+        conversationStatus: conv.conversation_status || 'ai',
         sentiment,
       };
     });
@@ -133,6 +136,9 @@ conversations.get('/:id', async (c) => {
         order_id,
         history,
         current_state,
+        conversation_status,
+        assigned_to,
+        escalated_at,
         created_at,
         updated_at,
         users!inner (
@@ -203,11 +209,168 @@ conversations.get('/:id', async (c) => {
         phone: phoneDisplay,
         history: (conversation.history as any[]) || [],
         status: conversation.current_state || 'active',
+        conversationStatus: conversation.conversation_status || 'ai',
+        assignedTo: conversation.assigned_to,
+        escalatedAt: conversation.escalated_at,
         createdAt: conversation.created_at,
         updatedAt: conversation.updated_at,
         order: orderInfo,
       },
     });
+  } catch (error) {
+    return c.json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    }, 500);
+  }
+});
+
+/**
+ * Reply to conversation (merchant sends message to user)
+ * POST /api/conversations/:id/reply
+ */
+conversations.post('/:id/reply', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const conversationId = c.req.param('id');
+    const { text } = await c.req.json();
+
+    if (!text) {
+      return c.json({ error: 'text is required' }, 400);
+    }
+
+    const serviceClient = getSupabaseServiceClient();
+
+    // Get conversation and verify ownership
+    const { data: conversation, error: convError } = await serviceClient
+      .from('conversations')
+      .select('id, user_id, conversation_status')
+      .eq('id', conversationId)
+      .single();
+
+    if (convError || !conversation) {
+      return c.json({ error: 'Conversation not found' }, 404);
+    }
+
+    // Verify conversation belongs to merchant's user
+    const { data: user, error: userError } = await serviceClient
+      .from('users')
+      .select('id, phone, merchant_id')
+      .eq('id', conversation.user_id)
+      .single();
+
+    if (userError || !user || user.merchant_id !== merchantId) {
+      return c.json({ error: 'Unauthorized' }, 403);
+    }
+
+    // Set conversation_status to 'human' if not already
+    if (conversation.conversation_status !== 'human') {
+      await serviceClient
+        .from('conversations')
+        .update({
+          conversation_status: 'human',
+          escalated_at: new Date().toISOString(),
+        })
+        .eq('id', conversationId);
+    }
+
+    // Add message to history as merchant
+    await addMessageToConversation(conversationId, 'merchant', text);
+
+    // Get user's phone (decrypt it)
+    const userPhone = decryptPhone(user.phone);
+
+    // Get WhatsApp credentials for merchant
+    const credentials = await getEffectiveWhatsAppCredentials(merchantId);
+    if (!credentials) {
+      return c.json({ error: 'WhatsApp not configured' }, 400);
+    }
+
+    // Send message via WhatsApp
+    const result = await sendWhatsAppMessage(
+      { to: userPhone, text },
+      credentials.accessToken,
+      credentials.phoneNumberId
+    );
+
+    if (!result.success) {
+      return c.json({ error: 'Failed to send message', details: result.error }, 500);
+    }
+
+    return c.json({ success: true, messageId: result.messageId });
+  } catch (error) {
+    return c.json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    }, 500);
+  }
+});
+
+/**
+ * Update conversation status
+ * PUT /api/conversations/:id/status
+ */
+conversations.put('/:id/status', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const conversationId = c.req.param('id');
+    const { status } = await c.req.json();
+
+    // Validate status
+    const validStatuses = ['ai', 'human', 'resolved'];
+    if (!status || !validStatuses.includes(status)) {
+      return c.json({ error: 'Invalid status. Must be one of: ai, human, resolved' }, 400);
+    }
+
+    const serviceClient = getSupabaseServiceClient();
+
+    // Get conversation and verify ownership
+    const { data: conversation, error: convError } = await serviceClient
+      .from('conversations')
+      .select('id, user_id')
+      .eq('id', conversationId)
+      .single();
+
+    if (convError || !conversation) {
+      return c.json({ error: 'Conversation not found' }, 404);
+    }
+
+    // Verify conversation belongs to merchant's user
+    const { data: user, error: userError } = await serviceClient
+      .from('users')
+      .select('id, merchant_id')
+      .eq('id', conversation.user_id)
+      .single();
+
+    if (userError || !user || user.merchant_id !== merchantId) {
+      return c.json({ error: 'Unauthorized' }, 403);
+    }
+
+    // Build update object
+    const updateData: Record<string, any> = {
+      conversation_status: status,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (status === 'human') {
+      updateData.escalated_at = new Date().toISOString();
+    }
+
+    if (status === 'ai' || status === 'resolved') {
+      updateData.assigned_to = null;
+    }
+
+    // Update conversation status
+    const { error: updateError } = await serviceClient
+      .from('conversations')
+      .update(updateData)
+      .eq('id', conversationId);
+
+    if (updateError) {
+      return c.json({ error: 'Failed to update status' }, 500);
+    }
+
+    return c.json({ success: true, status });
   } catch (error) {
     return c.json({
       error: 'Internal server error',

@@ -24,6 +24,20 @@
 - **Done**: (1) New Relic Node.js agent in api and workers (`newrelic.cjs`, `node -r newrelic dist/index.js`); (2) Dockerfile CMD with agent for api/workers; (3.1) Secret keys documented in README, `secrets.yaml.example`, runbook; (6.1) Runbook + `scripts/k8s-apply.sh`; (6.2 optional) `.github/workflows/build-images.yml` (build and push api/workers/web on tag to GHCR). Phase 4–5 documentation added (Helm commands, NRQL, dashboard suggestions).
 - **Base K8s manifests**: `k8s/` — namespace, ConfigMap, secrets example, api/workers/web Deployments + Services, Ingress. **Remaining (user)**: Create secret, set image URLs, apply (3.2–3.5); install New Relic K8s via Helm (4); create alert policy and dashboard in New Relic UI (5).
 
+## Enrichment Features (Feb 2026 — Migration 009)
+
+- **Human Handoff**: `conversations` gains `conversation_status` (ai/human/resolved), `assigned_to`, `escalated_at`. API: reply + status endpoints. WhatsApp webhook skips AI when human. Frontend: reply input, status badges/toggle.
+- **Team Management**: `merchant_members` table (owner/admin/agent/viewer). API CRUD + invite by email.
+- **ROI Dashboard**: `GET /api/analytics/roi` — saved returns, repeat purchases, resolved convs, msg total. ROI cards on analytics page.
+- **Customer 360**: `/dashboard/customers` page (list + detail). API with pagination, search, segment filter, 360 aggregated view.
+- **RFM Segmentation**: Daily worker (cron 2AM). Scores R/F/M 1–5, assigns segment on `users` table.
+- **Smart Send Timing**: `user_preferences` table. Infrastructure for read receipt tracking.
+- **Review/Feedback**: `feedback_requests` table. Worker sends WhatsApp review/NPS requests.
+- **Abandoned Cart**: `abandoned_carts` table. Worker sends WhatsApp reminder with recovery URL.
+- **Churn Prediction**: Weekly worker (Monday 3AM). Logistic-style scoring on RFM + engagement.
+- **AI Recommendations**: `product_recommendations` table. Weekly co-purchase scoring worker (Tuesday 4AM).
+- **White-Label**: `merchant_branding` table (domain, logo, colors).
+
 ## Recent (Feb 2026)
 
 - **Guardrails (Settings)**: System guardrails (crisis, medical) read-only in UI; custom guardrails CRUD (keywords/phrase, apply_to user/AI/both, action block/escalate). Migration 008 adds `merchants.guardrail_settings`. API returns helpful message when column missing (run migration).
@@ -39,6 +53,10 @@
 - **Product instructions scope (Settings)**: Two options on Settings → Bot Kişiliği — “Sadece siparişi olan müşteriler” (order_only) vs “Tüm ürün sorularında” (rag_products_too). Stored in `persona_settings.product_instructions_scope`. AI uses it in `generateAIResponse` to decide when to inject product usage instructions (order products only vs RAG-matched products too).
 - **T+0 WhatsApp**: Confirmed: when order is delivered (Shopify `orders/fulfilled` or CSV/API with `delivered_at`), T+0 welcome message (product usage instructions) is queued and sent via worker if user has `opt_in` consent.
 - **WhatsApp sender mode (Settings)**: Merchant can choose “Kendi numaram” (merchant_own) or “Kurumsal numara” (corporate) for WhatsApp outbound. Stored in `persona_settings.whatsapp_sender_mode`. `getEffectiveWhatsAppCredentials(merchantId)` resolves which credentials to use (API + workers).
+- **Deployment Fixes (Feb 16)**:
+  - Fixed invalid JSON structure in `packages/web/messages/tr.json` and `en.json` (Analytics object nested inside Settings).
+  - Fixed TypeScript error in Settings page (`days_until_expiration` potentially undefined).
+  - Successfully deployed to DigitalOcean (209.97.134.215) with `pm2 restart all --update-env`.
 
 ## Shopify Perfect Match (Feb 2026)
 

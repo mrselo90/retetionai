@@ -25,6 +25,8 @@ import analyticsRoutes from './routes/analytics.js';
 import testRoutes from './routes/test.js';
 import gdprRoutes from './routes/gdpr.js';
 import billingRoutes from './routes/billing.js';
+import customerRoutes from './routes/customers.js';
+import memberRoutes from './routes/members.js';
 import { rateLimitMiddleware } from './middleware/rateLimit.js';
 import { securityHeadersMiddleware } from './middleware/securityHeaders.js';
 import { loggerMiddleware } from './middleware/logger.js';
@@ -161,6 +163,12 @@ app.route('/api/test', testRoutes);
 
 // GDPR compliance routes
 app.route('/api/gdpr', gdprRoutes);
+
+// Customer 360 routes
+app.route('/api/customers', customerRoutes);
+
+// Team member routes
+app.route('/api/merchants/me/members', memberRoutes);
 
 // Event processing routes
 app.route('/api/events', eventRoutes);

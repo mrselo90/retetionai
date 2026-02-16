@@ -4,10 +4,46 @@
 
 ## Current Phase
 
-**Phase: ✅ Deployed & Live on DigitalOcean**  
+**Phase: ✅ Deployed & Live + Enrichment Features Implemented**  
 **Server**: 209.97.134.215  
 **URL**: http://209.97.134.215  
-**Date**: February 16, 2026
+**Date**: February 2026
+
+## Enrichment Roadmap (Feb 2026 - implemented)
+
+All features from the GlowGuide Enrichment Roadmap have been implemented:
+
+### Phase 1: Revenue Activation
+- **Human Handoff (1.2)**: Conversation status (`ai`/`human`/`resolved`), merchant reply via WhatsApp, status toggle in UI, reply input in conversation detail. WhatsApp webhook skips AI when status=`human`. Migration 009.
+- **Team Management (1.3)**: `merchant_members` table with roles (owner/admin/agent/viewer). API: list, invite, update role, remove. Route: `/api/merchants/me/members`.
+- **ROI Dashboard (1.4)**: `GET /api/analytics/roi` — saved returns (complaint→positive), repeat purchases, resolved conversations, messages total. ROI cards on analytics page.
+
+### Phase 2: Intelligence & Engagement
+- **Customer 360 (2.1)**: `/dashboard/customers` page with list + detail. Backend: `GET /api/customers` (pagination, search, segment filter), `GET /api/customers/:id` (orders, conversations, feedback, RFM, churn). Sidebar nav added.
+- **RFM Segmentation (2.2)**: Daily worker scores Recency/Frequency/Monetary (1–5 each), assigns segment (champions/loyal/promising/at_risk/lost/new). Columns on `users` table. Queue: `rfm-analysis`, cron `0 2 * * *`.
+- **Smart Send Timing (2.3)**: `user_preferences` table (optimal_send_hour, timezone, avg_response_time). Infrastructure ready for WhatsApp read receipt tracking.
+- **Review/Feedback (2.4)**: `feedback_requests` table (review/NPS). Worker sends WhatsApp review request or NPS survey. Queue: `feedback-request`.
+
+### Phase 3: Growth
+- **Abandoned Cart (3.1)**: `abandoned_carts` table. Worker sends WhatsApp reminder with product names + recovery URL. Queue: `abandoned-cart`. Infrastructure for Shopify `checkouts/create` webhook.
+- **Churn Prediction (3.2)**: Weekly worker scores churn probability (0–1) based on RFM + engagement. Columns: `users.churn_probability`, `churn_scored_at`. Queue: `churn-prediction`, cron `0 3 * * 1`.
+- **AI Recommendations (3.3)**: `product_recommendations` table with co-purchase scoring. Weekly worker builds recommendations. Queue: `product-recommendations`, cron `0 4 * * 2`.
+
+### Phase 4: Platform Maturity
+- **White-Label (4.1)**: `merchant_branding` table (domain, logo_url, primary_color, secondary_color). Migration 009.
+
+### Migration 009
+All schema changes in `supabase/migrations/009_enrichment_features.sql`:
+- `conversations`: + conversation_status, assigned_to, escalated_at
+- `users`: + email, rfm_score, segment, churn_probability, churn_scored_at
+- New tables: merchant_members, user_preferences, feedback_requests, abandoned_carts, product_recommendations, merchant_branding
+
+### New Files
+- `packages/api/src/routes/customers.ts` — Customer 360 API
+- `packages/api/src/routes/members.ts` — Team management API
+- `packages/workers/src/intelligenceWorkers.ts` — RFM, Churn, Recommendations, Abandoned Cart, Feedback workers
+- `packages/web/app/[locale]/dashboard/customers/page.tsx` — Customer list
+- `packages/web/app/[locale]/dashboard/customers/[id]/page.tsx` — Customer detail
 
 ## Deployment Status
 
@@ -53,7 +89,8 @@
 -   [x] Verified build success locally.
 
 ### Active Tasks
--   [ ] **Deploy changes** to DigitalOcean.
+-   [x] **Deploy changes** to DigitalOcean.
+-   [x] **Fix Build Errors**: Resolved invalid JSON in translation files and TypeScript error in Settings page.
 -   [ ] **Setup SSL** (Blocked: waiting for custom domain).
 -   [ ] Localize remaining dashboard pages (Products, Conversations, etc.) - *Post-deployment refinement*.
 

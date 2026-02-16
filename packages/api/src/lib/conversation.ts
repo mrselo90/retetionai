@@ -8,7 +8,7 @@ import { decryptPhone, encryptPhone } from './encryption.js';
 import { normalizePhone } from './events.js';
 
 export interface ConversationMessage {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'merchant';
   content: string;
   timestamp: string;
 }
@@ -108,7 +108,7 @@ export async function getOrCreateConversation(
  */
 export async function addMessageToConversation(
   conversationId: string,
-  role: 'user' | 'assistant',
+  role: 'user' | 'assistant' | 'merchant',
   content: string
 ): Promise<void> {
   const serviceClient = getSupabaseServiceClient();

@@ -44,8 +44,8 @@ cd /root/retetionai && git pull && pnpm install && cd packages/web && pnpm build
 | Nginx config | `/etc/nginx/sites-available/glowguide` |
 | PM2 config | `~/.pm2/dump.pm2` |
 
-### Next Steps
-1.  **Deployment:** Push i18n changes to the server.
-2.  **SSL/Domain:** Configure custom domain and Let's Encrypt SSL.
-3.  **Localization:** Finish localizing inner dashboard pages.
-4.  **Integrations:** Verify Shopify OAuth and WhatsApp API.
+47: ### Next Steps
+48: 1.  **Deployment:** ✅ Push i18n changes to the server (Build fixed & deployed).
+49: 2.  **SSL/Domain:** Configure custom domain and Let's Encrypt SSL.
+50: 3.  **Localization:** Finish localizing inner dashboard pages.
+51: 4.  **Integrations:** Verify Shopify OAuth and WhatsApp API.

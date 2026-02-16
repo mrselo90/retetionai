@@ -10,6 +10,11 @@ export const QUEUE_NAMES = {
   SCHEDULED_MESSAGES: 'scheduled-messages',
   SCRAPE_JOBS: 'scrape-jobs',
   ANALYTICS: 'analytics',
+  RFM_ANALYSIS: 'rfm-analysis',
+  CHURN_PREDICTION: 'churn-prediction',
+  PRODUCT_RECOMMENDATIONS: 'product-recommendations',
+  ABANDONED_CART: 'abandoned-cart',
+  FEEDBACK_REQUEST: 'feedback-request',
 } as const;
 
 /**

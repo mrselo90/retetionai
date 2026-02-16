@@ -7,7 +7,7 @@ import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
 
 interface ConversationMessage {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'merchant';
   content: string;
   timestamp: string;
 }
@@ -20,6 +20,9 @@ interface ConversationDetail {
   phone: string;
   history: ConversationMessage[];
   status: string;
+  conversationStatus: 'ai' | 'human' | 'resolved';
+  assignedTo?: string;
+  escalatedAt?: string;
   createdAt: string;
   updatedAt: string;
   order?: {
@@ -38,6 +41,9 @@ export default function ConversationDetailPage() {
 
   const [conversation, setConversation] = useState<ConversationDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [replyText, setReplyText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [togglingStatus, setTogglingStatus] = useState(false);
 
   useEffect(() => {
     if (conversationId) {
@@ -92,6 +98,48 @@ export default function ConversationDetailPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || sending) return;
+    setSending(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await authenticatedRequest(
+        `/api/conversations/${conversationId}/reply`,
+        session.access_token,
+        { method: 'POST', body: JSON.stringify({ text: replyText.trim() }) }
+      );
+      setReplyText('');
+      await loadConversation();
+      toast.success('Gönderildi', 'Mesajınız WhatsApp ile gönderildi');
+    } catch (err) {
+      console.error('Failed to send reply:', err);
+      toast.error('Hata', 'Mesaj gönderilemedi');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleToggleStatus = async (newStatus: 'ai' | 'human' | 'resolved') => {
+    setTogglingStatus(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await authenticatedRequest(
+        `/api/conversations/${conversationId}/status`,
+        session.access_token,
+        { method: 'PUT', body: JSON.stringify({ status: newStatus }) }
+      );
+      await loadConversation();
+      const labels = { ai: 'AI modu', human: 'İnsan modu', resolved: 'Çözüldü' };
+      toast.success('Durum güncellendi', labels[newStatus]);
+    } catch (err) {
+      toast.error('Hata', 'Durum güncellenemedi');
+    } finally {
+      setTogglingStatus(false);
+    }
   };
 
   if (loading) {
@@ -167,9 +215,61 @@ export default function ConversationDetailPage() {
                 )}
               </div>
             </div>
-            <div className="text-right text-sm text-zinc-600">
-              <p>Başlangıç: {formatDateTime(conversation.createdAt)}</p>
-              <p className="mt-1">Son güncelleme: {formatDateTime(conversation.updatedAt)}</p>
+            <div className="text-right space-y-3">
+              <div className="flex items-center gap-2 justify-end">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                  conversation.conversationStatus === 'human'
+                    ? 'bg-orange-100 text-orange-800'
+                    : conversation.conversationStatus === 'resolved'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {conversation.conversationStatus === 'human' ? 'İnsan Modu' :
+                   conversation.conversationStatus === 'resolved' ? 'Çözüldü' : 'AI Modu'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 justify-end">
+                {conversation.conversationStatus === 'ai' && (
+                  <button
+                    onClick={() => handleToggleStatus('human')}
+                    disabled={togglingStatus}
+                    className="px-3 py-1.5 text-xs font-medium bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                  >
+                    AI&apos;yi Durdur
+                  </button>
+                )}
+                {conversation.conversationStatus === 'human' && (
+                  <>
+                    <button
+                      onClick={() => handleToggleStatus('ai')}
+                      disabled={togglingStatus}
+                      className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    >
+                      AI&apos;yi Başlat
+                    </button>
+                    <button
+                      onClick={() => handleToggleStatus('resolved')}
+                      disabled={togglingStatus}
+                      className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                    >
+                      Çözüldü
+                    </button>
+                  </>
+                )}
+                {conversation.conversationStatus === 'resolved' && (
+                  <button
+                    onClick={() => handleToggleStatus('ai')}
+                    disabled={togglingStatus}
+                    className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    Yeniden Aç
+                  </button>
+                )}
+              </div>
+              <div className="text-sm text-zinc-600">
+                <p>Başlangıç: {formatDateTime(conversation.createdAt)}</p>
+                <p className="mt-1">Son güncelleme: {formatDateTime(conversation.updatedAt)}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -203,6 +303,8 @@ export default function ConversationDetailPage() {
                         className={`rounded-lg p-4 ${
                           message.role === 'user'
                             ? 'bg-zinc-100 text-zinc-900'
+                            : message.role === 'merchant'
+                            ? 'bg-teal-600 text-white'
                             : 'bg-blue-600 text-white'
                         }`}
                       >
@@ -211,7 +313,7 @@ export default function ConversationDetailPage() {
                       <div className={`flex items-center gap-2 mt-1 text-xs text-zinc-600 ${
                         message.role === 'user' ? 'justify-start' : 'justify-end'
                       }`}>
-                        <span>{message.role === 'user' ? 'Müşteri' : 'AI Bot'}</span>
+                        <span>{message.role === 'user' ? 'Müşteri' : message.role === 'merchant' ? 'Siz' : 'AI Bot'}</span>
                         <span>•</span>
                         <span>{formatTime(message.timestamp)}</span>
                       </div>
@@ -220,6 +322,33 @@ export default function ConversationDetailPage() {
                 ))}
                 <div ref={messagesEndRef} />
               </>
+            )}
+          </div>
+
+          {/* Reply Input */}
+          <div className="p-4 border-t border-zinc-200">
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }}
+                placeholder={conversation.conversationStatus === 'resolved' ? 'Konuşma çözüldü' : 'Müşteriye mesaj yaz...'}
+                disabled={sending || conversation.conversationStatus === 'resolved'}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-zinc-100 disabled:cursor-not-allowed text-sm"
+              />
+              <button
+                onClick={handleSendReply}
+                disabled={!replyText.trim() || sending || conversation.conversationStatus === 'resolved'}
+                className="px-5 py-2.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                {sending ? 'Gönderiliyor...' : 'Gönder'}
+              </button>
+            </div>
+            {conversation.conversationStatus === 'ai' && (
+              <p className="text-xs text-zinc-500 mt-2">
+                AI modu aktif. Mesaj gönderdiğinizde otomatik olarak insan moduna geçer.
+              </p>
             )}
           </div>
         </div>

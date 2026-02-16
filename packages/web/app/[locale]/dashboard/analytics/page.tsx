@@ -26,10 +26,23 @@ interface AnalyticsData {
   };
 }
 
+interface ROIData {
+  savedReturns: number;
+  repeatPurchases: number;
+  totalConversations: number;
+  resolvedConversations: number;
+  messagesTotal: number;
+  avgSentiment: number;
+  interactionRate: number;
+  usersWithConversations: number;
+  totalUsers: number;
+}
+
 export default function AnalyticsPage() {
   const t = useTranslations('Analytics');
   const locale = useLocale();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [roi, setRoi] = useState<ROIData | null>(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -48,11 +61,15 @@ export default function AnalyticsPage() {
         return;
       }
 
-      const response = await authenticatedRequest<AnalyticsData>(
-        `/api/analytics/dashboard?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-        session.access_token
-      );
-      setAnalytics(response);
+      const [analyticsRes, roiRes] = await Promise.all([
+        authenticatedRequest<AnalyticsData>(
+          `/api/analytics/dashboard?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
+          session.access_token
+        ),
+        authenticatedRequest<{ roi: ROIData }>('/api/analytics/roi', session.access_token).catch(() => null),
+      ]);
+      setAnalytics(analyticsRes);
+      if (roiRes) setRoi(roiRes.roi);
     } catch (err: any) {
       console.error('Failed to load analytics:', err);
       if (err.status === 401) {
@@ -189,6 +206,55 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* ROI Section */}
+          {roi && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="border-teal-200 bg-teal-50/50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Kurtarılan İadeler</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-teal-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-teal-700">{roi.savedReturns}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Şikayet → olumlu biten konuşmalar</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-blue-200 bg-blue-50/50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Tekrar Alım</CardTitle>
+                  <Users className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-700">{roi.repeatPurchases}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Konuşması olan tekrar alıcılar</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-violet-200 bg-violet-50/50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Çözülen Konuşmalar</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-violet-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-violet-700">{roi.resolvedConversations}</div>
+                  <p className="text-xs text-muted-foreground mt-1">/ {roi.totalConversations} toplam</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-amber-200 bg-amber-50/50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Toplam Mesaj</CardTitle>
+                  <BarChart3 className="h-4 w-4 text-amber-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-amber-700">{roi.messagesTotal}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{roi.usersWithConversations}/{roi.totalUsers} müşteri etkileşimde</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

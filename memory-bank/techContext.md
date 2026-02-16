@@ -23,6 +23,7 @@
 ### Workers (packages/workers)
 - **Queue**: BullMQ (Redis-backed)
 - **Jobs**: Order processing, scheduled messages, product scraping, analytics, API key expiration
+- **Intelligence Workers**: RFM analysis (daily 2AM), churn prediction (weekly Mon 3AM), product recommendations (weekly Tue 4AM), abandoned cart reminders, feedback/NPS requests
 
 ### Shared (packages/shared)
 - **Purpose**: Shared types, utilities, logger, database helpers
@@ -78,6 +79,49 @@ pnpm install
 cd packages/web && pnpm build
 pm2 restart all --update-env
 ```
+
+## Database Schema (Key Tables)
+
+### Core Tables
+- `merchants` — Merchant accounts, API keys, guardrail_settings
+- `users` — End users/customers with phone, consent, rfm_score (JSONB), segment, churn_probability
+- `orders` — Order records linked to merchants and users
+- `products` — Product catalog with embeddings (pgvector)
+- `conversations` — Chat history (JSONB), conversation_status (ai/human/resolved), assigned_to, escalated_at
+- `analytics_events` — DAU, message volume, sentiment tracking
+
+### Enrichment Tables (Migration 009)
+- `merchant_members` — Team management (owner/admin/agent/viewer roles)
+- `user_preferences` — Smart send timing (optimal_send_hour, timezone, avg_response_time)
+- `feedback_requests` — Review/NPS requests (type, status, rating)
+- `abandoned_carts` — Cart recovery (cart_data JSONB, recovery_url, status)
+- `product_recommendations` — Co-purchase recommendations (product_id, recommended_product_id, score)
+- `merchant_branding` — White-label (domain, logo_url, primary_color, secondary_color)
+
+## API Routes (Key Endpoints)
+
+- `/api/auth` — Login, signup, session
+- `/api/merchants` — Merchant CRUD, settings
+- `/api/merchants/me/members` — Team management CRUD + invite
+- `/api/conversations` — List, detail, reply, status change
+- `/api/customers` — Customer 360 (list with pagination/segment/search, detail)
+- `/api/analytics` — Dashboard metrics, ROI
+- `/api/products` — Product CRUD, RAG
+- `/api/whatsapp` — Webhook + message handling
+- `/api/integrations/shopify` — Shopify OAuth, webhooks
+- `/api/billing` — Shopify billing
+- `/api/gdpr` — GDPR compliance endpoints
+
+## BullMQ Queues
+
+- `scheduled-messages` — T+0/3/14/25 messages, upsell
+- `scrape-jobs` — Product URL scraping + embedding
+- `analytics` — Async analytics event processing
+- `rfm-analysis` — Daily RFM scoring (cron 0 2 * * *)
+- `churn-prediction` — Weekly churn scoring (cron 0 3 * * 1)
+- `product-recommendations` — Weekly co-purchase (cron 0 4 * * 2)
+- `abandoned-cart` — Cart recovery WhatsApp reminders
+- `feedback-request` — Review/NPS WhatsApp requests
 
 ## Environment Variables
 

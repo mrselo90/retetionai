@@ -12,6 +12,19 @@
 
 ### 🎉 Latest Update (Feb 2026)
 
+**Enrichment Features (Migration 009)** — ALL DONE
+- ✅ Human Handoff: conversation_status (ai/human/resolved), reply endpoint, frontend reply input + status controls
+- ✅ Team Management: merchant_members table, API CRUD + invite, roles (owner/admin/agent/viewer)
+- ✅ ROI Dashboard: /api/analytics/roi, colored ROI cards on analytics page
+- ✅ Customer 360: /dashboard/customers list + detail with RFM/churn/orders/conversations
+- ✅ RFM Segmentation: daily worker, R/F/M scores, segments
+- ✅ Smart Send Timing: user_preferences table
+- ✅ Review/Feedback: feedback_requests table, WhatsApp review/NPS worker
+- ✅ Abandoned Cart Recovery: abandoned_carts table, WhatsApp reminder worker
+- ✅ Churn Prediction: weekly worker, logistic-style scoring
+- ✅ AI Product Recommendations: product_recommendations table, weekly co-purchase worker
+- ✅ White-Label: merchant_branding table (domain, logo, colors)
+
 **Guardrails (Settings)**
 - ✅ System guardrails (crisis, medical) read-only; custom guardrails add/edit/delete. Migration 008: `merchants.guardrail_settings`. Run 008 in Supabase for guardrails to work.
 

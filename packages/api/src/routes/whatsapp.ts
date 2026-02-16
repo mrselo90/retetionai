@@ -121,8 +121,12 @@ whatsapp.post('/webhooks/whatsapp', async (c) => {
           orderId
         );
 
-        // Get conversation history before adding current message (so history doesn't duplicate it in AI context)
-        const history = await getConversationHistory(conversationId);
+        // Check conversation status - skip AI if in human mode
+        const { data: convData } = await serviceClient
+          .from('conversations')
+          .select('conversation_status')
+          .eq('id', conversationId)
+          .single();
 
         // Add user message to conversation
         if (message.text) {
@@ -132,6 +136,14 @@ whatsapp.post('/webhooks/whatsapp', async (c) => {
             message.text
           );
         }
+
+        if (convData?.conversation_status === 'human') {
+          logger.info({ conversationId }, 'Conversation in human mode, skipping AI response');
+          continue;
+        }
+
+        // Get conversation history before generating AI response
+        const history = await getConversationHistory(conversationId);
 
         // Generate AI response
         const credentials = await getEffectiveWhatsAppCredentials(defaultMerchantId);

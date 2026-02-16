@@ -27,6 +27,7 @@ interface Conversation {
   last_message_at: string;
   created_at: string;
   sentiment: 'positive' | 'neutral' | 'negative';
+  conversationStatus?: 'ai' | 'human' | 'resolved';
 }
 
 export default function ConversationsPage() {
@@ -35,6 +36,7 @@ export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'positive' | 'neutral' | 'negative'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'ai' | 'human' | 'resolved'>('all');
 
   useEffect(() => {
     loadConversations();
@@ -117,8 +119,9 @@ export default function ConversationsPage() {
   };
 
   const filteredConversations = conversations.filter((conv) => {
-    if (filter === 'all') return true;
-    return conv.sentiment === filter;
+    if (filter !== 'all' && conv.sentiment !== filter) return false;
+    if (statusFilter !== 'all' && conv.conversationStatus !== statusFilter) return false;
+    return true;
   });
 
   if (loading) {
@@ -164,6 +167,23 @@ export default function ConversationsPage() {
             {f.label}
           </Button>
         ))}
+
+        <span className="text-muted-foreground">|</span>
+        {[
+          { key: 'all' as const, label: 'Tümü' },
+          { key: 'human' as const, label: `İnsan (${conversations.filter((c) => c.conversationStatus === 'human').length})` },
+          { key: 'ai' as const, label: 'AI' },
+          { key: 'resolved' as const, label: 'Çözüldü' },
+        ].map((f) => (
+          <Button
+            key={`status-${f.key}`}
+            variant={statusFilter === f.key ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter(f.key)}
+          >
+            {f.label}
+          </Button>
+        ))}
       </div>
 
       {/* Conversations List */}
@@ -204,6 +224,12 @@ export default function ConversationsPage() {
                         <Badge variant={getSentimentBadgeVariant(conversation.sentiment)}>
                           {getSentimentIcon(conversation.sentiment)} {conversation.sentiment}
                         </Badge>
+                        {conversation.conversationStatus === 'human' && (
+                          <Badge variant="destructive" className="text-xs">İnsan Modu</Badge>
+                        )}
+                        {conversation.conversationStatus === 'resolved' && (
+                          <Badge className="text-xs bg-emerald-100 text-emerald-800">Çözüldü</Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground mb-1.5">
                         {conversation.user?.phone}
