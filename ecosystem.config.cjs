@@ -10,7 +10,7 @@ module.exports = {
       cwd: './packages/api',
       script: 'dist/index.js',
       interpreter: 'node',
-      interpreter_args: '-r dotenv/config -r newrelic',
+      interpreter_args: '-r newrelic',
       env: { PORT: 3002, NODE_ENV: 'production' },
       instances: 1,
       autorestart: true,

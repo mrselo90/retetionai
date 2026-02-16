@@ -277,7 +277,7 @@ scheduleApiKeyExpirationCleanup().catch((err) => {
   logger.error(err, 'Failed to schedule API key expiration cleanup');
 });
 
-const port = Number(process.env.PORT) || 3001;
+const port = Number(process.env.PORT) || 3002;
 logger.info({ port }, '🚀 GlowGuide API server starting');
 
 serve({
