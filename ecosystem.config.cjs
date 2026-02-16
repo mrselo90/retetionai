@@ -1,0 +1,40 @@
+/**
+ * PM2 ecosystem config for production.
+ * Run from repo root: pm2 start ecosystem.config.cjs
+ * Nginx: /api/ and /health -> API (3000), / -> Web (3001)
+ */
+module.exports = {
+  apps: [
+    {
+      name: 'api',
+      cwd: './packages/api',
+      script: 'dist/index.js',
+      interpreter: 'node',
+      interpreter_args: '-r dotenv/config -r newrelic',
+      env: { PORT: 3000, NODE_ENV: 'production' },
+      instances: 1,
+      autorestart: true,
+      watch: false,
+    },
+    {
+      name: 'web',
+      cwd: './packages/web',
+      script: 'node_modules/.bin/next',
+      args: 'start',
+      env: { PORT: 3001, NODE_ENV: 'production' },
+      instances: 1,
+      autorestart: true,
+      watch: false,
+    },
+    {
+      name: 'workers',
+      cwd: './packages/workers',
+      script: 'dist/index.js',
+      interpreter: 'node',
+      env: { NODE_ENV: 'production' },
+      instances: 1,
+      autorestart: true,
+      watch: false,
+    },
+  ],
+};
