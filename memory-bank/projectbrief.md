@@ -18,7 +18,7 @@
 
 1. **Proactive, not reactive**: System triggers automatically when order is delivered
 2. **Product-aware AI**: RAG-based system that understands specific product details
-3. **Multi-platform integration**: Shopify, WooCommerce, Ticimax, and manual options
+3. **Multi-platform integration**: Shopify (OAuth), WooCommerce, Ticimax, and manual options
 4. **White-label SaaS**: Fully customizable persona and branding
 
 ## Success Metrics (MVP)
@@ -30,12 +30,30 @@
 
 ## Project Status
 
-- **Phase**: Pre-development (Documentation Complete)
-- **Next Step**: Sprint 1 - Foundation Setup (BE-0.1, FE-0.1)
+- **Phase**: ✅ Deployed & Live
+- **Deployment**: DigitalOcean Droplet (209.97.134.215)
+- **URL**: http://209.97.134.215
+- **Process Manager**: PM2 (auto-start on reboot)
+- **Reverse Proxy**: Nginx
+
+## Repository Structure
+
+```
+retention-agent-ai/
+├── packages/
+│   ├── api/          # Backend API (Hono + TypeScript)
+│   ├── web/          # Frontend (Next.js 16 App Router)
+│   ├── workers/      # Background workers (BullMQ)
+│   └── shared/       # Shared types & utilities
+├── supabase/         # Database migrations
+├── memory-bank/      # Project documentation
+├── docs/             # Guides & API docs
+└── scripts/          # Utility scripts
+```
 
 ## Related Documents
 
-- `01_product_requirements.md` - Full PRD
-- `02_technical_architecture.md` - Technical specifications
-- `03_ux_design_guidelines.md` - UX/UI guidelines
-- `04_development_tasks.md` - Detailed task breakdown
+- `memory-bank/techContext.md` - Technical specifications
+- `memory-bank/systemPatterns.md` - Architecture & patterns
+- `memory-bank/activeContext.md` - Current development focus
+- `memory-bank/productContext.md` - Product modules & flows
