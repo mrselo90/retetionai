@@ -868,7 +868,7 @@ export default function SettingsPage() {
                         )}
                         {key.is_expiring_soon && !key.is_expired && (
                           <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded font-medium">
-                            {t('apiKeys.expiresIn', { days: key.days_until_expiration })}
+                            {t('apiKeys.expiresIn', { days: key.days_until_expiration ?? 0 })}
                           </span>
                         )}
                       </div>
