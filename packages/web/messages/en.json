@@ -595,7 +595,8 @@
                 "cancel": "Cancel",
                 "deleting": "Deleting..."
             }
-        },
+        }
+    },
     "Analytics": {
         "title": "Analytics",
         "description": "System performance and metrics",

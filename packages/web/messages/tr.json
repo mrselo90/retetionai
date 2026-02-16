@@ -595,7 +595,8 @@
                 "cancel": "İptal",
                 "deleting": "Siliniyor..."
             }
-        },
+        }
+    },
     "Analytics": {
         "title": "Analitik",
         "description": "Sistem performansı ve metrikler",
