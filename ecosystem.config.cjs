@@ -18,7 +18,7 @@ module.exports = {
     {
       name: 'web',
       cwd: './packages/web',
-      script: '/root/retetionai/packages/web/node_modules/.bin/next',
+      script: '/usr/bin/pnpm',
       args: 'start',
       env: {
         NODE_ENV: 'production',
