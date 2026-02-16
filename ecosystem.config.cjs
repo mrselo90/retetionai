@@ -18,7 +18,7 @@ module.exports = {
     {
       name: 'web',
       cwd: './packages/web',
-      script: 'npm',
+      script: '/root/retetionai/packages/web/node_modules/.bin/next',
       args: 'start',
       env: {
         NODE_ENV: 'production',
