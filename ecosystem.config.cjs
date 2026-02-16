@@ -18,9 +18,12 @@ module.exports = {
     {
       name: 'web',
       cwd: './packages/web',
-      script: 'node_modules/.bin/next',
-      args: ['start', '-p', '3001'],
-      env: { NODE_ENV: 'production' },
+      script: 'npm',
+      args: 'start',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3001
+      },
       instances: 1,
       autorestart: true,
       watch: false,
