@@ -277,7 +277,9 @@ scheduleApiKeyExpirationCleanup().catch((err) => {
   logger.error(err, 'Failed to schedule API key expiration cleanup');
 });
 
-const port = Number(process.env.PORT) || 3002;
+// Production: Nginx proxies to API on 3002; avoid 3000 (conflict with web)
+const rawPort = Number(process.env.PORT) || 3002;
+const port = rawPort === 3000 ? 3002 : rawPort;
 logger.info({ port }, '🚀 GlowGuide API server starting');
 
 serve({
