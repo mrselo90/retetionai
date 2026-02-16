@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, X, Trash2, Pencil, Plug, Upload, Code, MessageSquare, ShoppingBag } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 
 interface Integration {
   id: string;
@@ -21,6 +22,8 @@ interface Integration {
 }
 
 export default function IntegrationsPage() {
+  const t = useTranslations('Integrations');
+  const locale = useLocale();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [showShopifyModal, setShowShopifyModal] = useState(false);
@@ -89,9 +92,10 @@ export default function IntegrationsPage() {
     } catch (err: any) {
       console.error('Failed to load integrations:', err);
       if (err.status === 401) {
+        toast.error(t('toasts.sessionExpired.title'), t('toasts.sessionExpired.message'));
         window.location.href = '/login';
       } else {
-        toast.error('Entegrasyonlar yüklenirken bir hata oluştu');
+        toast.error(t('toasts.loadError.title'), t('toasts.loadError.message'));
       }
     } finally {
       setLoading(false);
@@ -100,7 +104,7 @@ export default function IntegrationsPage() {
 
   const handleConnectShopify = async () => {
     if (!shopifyShop) {
-      toast.warning('Eksik Bilgi', 'Lütfen Shopify mağaza adresini girin');
+      toast.warning(t('toasts.missingShop.title'), t('toasts.missingShop.message'));
       return;
     }
 
@@ -123,7 +127,7 @@ export default function IntegrationsPage() {
       window.location.href = response.authUrl;
     } catch (err: any) {
       console.error('Failed to connect Shopify:', err);
-      toast.error('Hata', err.message || 'Shopify bağlantısı başarısız');
+      toast.error(t('toasts.shopifyError.title'), err.message || t('toasts.shopifyError.message'));
       setConnectingShopify(false);
     }
   };
@@ -133,12 +137,12 @@ export default function IntegrationsPage() {
     if (!file) return;
 
     setCsvFile(file);
-    toast.info('Dosya Seçildi', file.name);
+    toast.info(t('toasts.fileSelected.title'), t('toasts.fileSelected.message', { name: file.name }));
   };
 
   const handleImportCsv = async () => {
     if (!csvFile) {
-      toast.warning('Eksik Dosya', 'Lütfen bir CSV dosyası seçin');
+      toast.warning(t('toasts.missingFile.title'), t('toasts.missingFile.message'));
       return;
     }
 
@@ -164,14 +168,14 @@ export default function IntegrationsPage() {
       }
 
       const result = await response.json();
-      toast.success('Başarılı!', `${result.imported} etkinlik içe aktarıldı`);
+      toast.success(t('toasts.importSuccess.title'), t('toasts.importSuccess.message', { count: result.imported }));
 
       setShowCsvModal(false);
       setCsvFile(null);
       await loadIntegrations();
     } catch (err: any) {
       console.error('Failed to import CSV:', err);
-      toast.error('Hata', err.message || 'CSV içe aktarma başarısız');
+      toast.error(t('toasts.importError.title'), err.message || t('toasts.importError.message'));
     } finally {
       setImporting(false);
     }
@@ -195,12 +199,12 @@ export default function IntegrationsPage() {
         }
       );
 
-      toast.success('Oluşturuldu', 'Manuel entegrasyon başarıyla oluşturuldu');
+      toast.success(t('toasts.manualSuccess.title'), t('toasts.manualSuccess.message'));
       setShowManualModal(false);
       await loadIntegrations();
     } catch (err: any) {
       console.error('Failed to create manual integration:', err);
-      toast.error('Hata', err.message || 'Manuel entegrasyon oluşturulamadı');
+      toast.error(t('toasts.manualError.title'), err.message || t('toasts.manualError.message'));
     }
   };
 
@@ -223,7 +227,7 @@ export default function IntegrationsPage() {
 
   const handleSaveWhatsApp = async () => {
     if (!whatsappPhoneNumberId.trim() || !whatsappAccessToken.trim() || !whatsappVerifyToken.trim()) {
-      toast.warning('Eksik Bilgi', 'Phone Number ID, Access Token ve Verify Token zorunludur');
+      toast.warning(t('toasts.missingWhatsapp.title'), t('toasts.missingWhatsapp.message'));
       return;
     }
     try {
@@ -242,7 +246,7 @@ export default function IntegrationsPage() {
           session.access_token,
           { method: 'PUT', body: JSON.stringify({ auth_data, status: 'active' }) }
         );
-        toast.success('Güncellendi', 'WhatsApp bağlantısı güncellendi');
+        toast.success(t('toasts.whatsappUpdateSuccess.title'), t('toasts.whatsappUpdateSuccess.message'));
       } else {
         await authenticatedRequest(
           '/api/integrations',
@@ -256,7 +260,7 @@ export default function IntegrationsPage() {
             }),
           }
         );
-        toast.success('Bağlandı', 'WhatsApp Business bağlantısı oluşturuldu');
+        toast.success(t('toasts.whatsappSuccess.title'), t('toasts.whatsappSuccess.message'));
       }
       setShowWhatsAppModal(false);
       setEditingWhatsAppId(null);
@@ -266,7 +270,7 @@ export default function IntegrationsPage() {
       setWhatsappVerifyToken('');
       await loadIntegrations();
     } catch (err: any) {
-      toast.error('Hata', err.message || 'WhatsApp bağlantısı kaydedilemedi');
+      toast.error(t('toasts.whatsappError.title'), err.message || t('toasts.whatsappError.message'));
     } finally {
       setConnectingWhatsApp(false);
     }
@@ -285,11 +289,11 @@ export default function IntegrationsPage() {
         }
       );
 
-      toast.success('Silindi', 'Entegrasyon başarıyla silindi');
+      toast.success(t('toasts.deleteSuccess.title'), t('toasts.deleteSuccess.message'));
       await loadIntegrations();
     } catch (err: any) {
       console.error('Failed to delete integration:', err);
-      toast.error('Hata', err.message || 'Entegrasyon silinemedi');
+      toast.error(t('toasts.deleteError.title'), err.message || t('toasts.deleteError.message'));
     }
   };
 
@@ -313,15 +317,15 @@ export default function IntegrationsPage() {
   const getProviderName = (provider: string) => {
     switch (provider) {
       case 'shopify':
-        return 'Shopify';
+        return t('providers.shopify.title');
       case 'woocommerce':
         return 'WooCommerce';
       case 'ticimax':
         return 'Ticimax';
       case 'manual':
-        return 'Manuel / API';
+        return t('providers.manual.title');
       case 'whatsapp':
-        return 'WhatsApp Business';
+        return t('providers.whatsapp.title');
       default:
         return provider;
     }
@@ -349,13 +353,13 @@ export default function IntegrationsPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'active':
-        return 'Aktif';
+        return t('active.status.active');
       case 'error':
-        return 'Hata';
+        return t('active.status.error');
       case 'pending':
-        return 'Bekliyor';
+        return t('active.status.pending');
       case 'disabled':
-        return 'Devre Dışı';
+        return t('active.status.disabled');
       default:
         return status;
     }
@@ -380,9 +384,9 @@ export default function IntegrationsPage() {
   return (
     <div className="space-y-6 animate-fade-in pb-8">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Entegrasyonlar</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground">
-          E-ticaret platformlarınızı bağlayın ve siparişleri otomatik takip edin
+          {t('description')}
         </p>
       </div>
 
@@ -392,8 +396,8 @@ export default function IntegrationsPage() {
           <div className="flex items-center gap-3">
             <span className="text-2xl">💬</span>
             <div>
-              <p className="font-medium text-zinc-900">Kurumsal destek (GlowGuide)</p>
-              <p className="text-sm text-zinc-600">WhatsApp ile bize ulaşın</p>
+              <p className="font-medium text-zinc-900">{t('platformSupport.title')}</p>
+              <p className="text-sm text-zinc-600">{t('platformSupport.subtitle')}</p>
             </div>
           </div>
           <a
@@ -414,19 +418,19 @@ export default function IntegrationsPage() {
           <div className="text-center relative">
             {hasWhatsApp && (
               <span className="absolute top-0 right-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                ✓ Bağlı
+                ✓ {t('active.connected')}
               </span>
             )}
             <div className="text-5xl mb-4">💬</div>
-            <h3 className="text-xl font-bold text-zinc-900 mb-2">WhatsApp Business</h3>
+            <h3 className="text-xl font-bold text-zinc-900 mb-2">{t('providers.whatsapp.title')}</h3>
             <p className="text-sm text-zinc-600 mb-6">
-              {hasWhatsApp ? 'Kendi numaranız bağlı. Güncellemek için tıklayın.' : 'Müşterilere mesaj göndermek için kendi WhatsApp Business numaranızı bağlayın'}
+              {hasWhatsApp ? t('providers.whatsapp.connected') : t('providers.whatsapp.description')}
             </p>
             <Button
               onClick={() => openWhatsAppModal(integrations.find((i) => i.provider === 'whatsapp'))}
               className="w-full"
             >
-              {hasWhatsApp ? 'Güncelle' : 'Bağla'}
+              {hasWhatsApp ? t('providers.whatsapp.action.update') : t('providers.whatsapp.action.connect')}
             </Button>
           </div>
         </div>
@@ -436,20 +440,20 @@ export default function IntegrationsPage() {
           <div className="text-center relative">
             {hasShopify && (
               <span className="absolute top-0 right-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                ✓ Bağlı
+                ✓ {t('active.connected')}
               </span>
             )}
             <div className="text-5xl mb-4">🛍️</div>
-            <h3 className="text-xl font-bold text-zinc-900 mb-2">Shopify</h3>
+            <h3 className="text-xl font-bold text-zinc-900 mb-2">{t('providers.shopify.title')}</h3>
             <p className="text-sm text-zinc-600 mb-6">
-              {hasShopify ? 'Mağazanız bağlı. Yeniden bağlamak için tıklayın.' : 'Shopify mağazanızı OAuth ile bağlayın'}
+              {hasShopify ? t('providers.shopify.connected') : t('providers.shopify.description')}
             </p>
             <Button
               onClick={() => setShowShopifyModal(true)}
               variant={hasShopify ? 'outline' : 'default'}
               className="w-full"
             >
-              {hasShopify ? 'Bağlı' : 'Bağlan'}
+              {hasShopify ? t('providers.shopify.action.connected') : t('providers.shopify.action.connect')}
             </Button>
           </div>
         </div>
@@ -458,16 +462,16 @@ export default function IntegrationsPage() {
         <div className="bg-white border border-zinc-200/80 rounded-xl shadow-sm p-6">
           <div className="text-center">
             <div className="text-5xl mb-4">📊</div>
-            <h3 className="text-xl font-bold text-zinc-900 mb-2">CSV İçe Aktar</h3>
+            <h3 className="text-xl font-bold text-zinc-900 mb-2">{t('providers.csv.title')}</h3>
             <p className="text-sm text-zinc-600 mb-6">
-              Sipariş verilerinizi CSV ile yükleyin
+              {t('providers.csv.description')}
             </p>
             <Button
               onClick={() => setShowCsvModal(true)}
               className="w-full"
             >
               <Upload className="w-4 h-4 mr-2" />
-              İçe Aktar
+              {t('providers.csv.action')}
             </Button>
           </div>
         </div>
@@ -477,13 +481,13 @@ export default function IntegrationsPage() {
           <div className="text-center relative">
             {hasManual && (
               <span className="absolute top-0 right-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                ✓ Bağlı
+                ✓ {t('active.connected')}
               </span>
             )}
             <div className="text-5xl mb-4">📝</div>
-            <h3 className="text-xl font-bold text-zinc-900 mb-2">Manuel / API</h3>
+            <h3 className="text-xl font-bold text-zinc-900 mb-2">{t('providers.manual.title')}</h3>
             <p className="text-sm text-zinc-600 mb-6">
-              {hasManual ? 'API entegrasyonu kurulu.' : 'API webhook ile kendi sisteminizi entegre edin'}
+              {hasManual ? t('providers.manual.connected') : t('providers.manual.description')}
             </p>
             <Button
               onClick={() => setShowManualModal(true)}
@@ -491,7 +495,7 @@ export default function IntegrationsPage() {
               className="w-full"
             >
               <Code className="w-4 h-4 mr-2" />
-              {hasManual ? 'Bağlı' : 'Kur'}
+              {hasManual ? t('providers.manual.action.connected') : t('providers.manual.action.setup')}
             </Button>
           </div>
         </div>
@@ -499,7 +503,7 @@ export default function IntegrationsPage() {
 
       {/* Active Integrations */}
       <div className="pt-1">
-        <h2 className="text-xl font-bold tracking-tight mb-3">Aktif Entegrasyonlar</h2>
+        <h2 className="text-xl font-bold tracking-tight mb-3">{t('active.title')}</h2>
         {integrations.length > 0 ? (
           <Card>
             <div className="divide-y">
@@ -518,7 +522,7 @@ export default function IntegrationsPage() {
                           )}
                         </h3>
                         <p className="text-sm text-zinc-600 mt-1">
-                          Oluşturulma: {new Date(integration.created_at).toLocaleDateString('tr-TR')}
+                          {locale === 'tr' ? 'Oluşturulma:' : 'Created:'} {new Date(integration.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
                         </p>
                       </div>
                     </div>
@@ -531,7 +535,7 @@ export default function IntegrationsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => openWhatsAppModal(integration)}
-                          title="Güncelle"
+                          title={t('providers.whatsapp.action.update')}
                         >
                           <Pencil className="w-4 h-4" />
                         </Button>
@@ -541,7 +545,7 @@ export default function IntegrationsPage() {
                         size="sm"
                         className="text-destructive hover:text-destructive"
                         onClick={() => {
-                          if (confirm('Bu entegrasyonu silmek istediğinizden emin misiniz?')) {
+                          if (confirm('Are you sure you want to delete this integration?')) {
                             handleDeleteIntegration(integration.id);
                           }
                         }}
@@ -561,23 +565,23 @@ export default function IntegrationsPage() {
                 <Plug className="w-8 h-8 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold mb-2">
-                Henüz entegrasyon yok
+                {t('active.empty.title')}
               </h3>
               <p className="text-muted-foreground mb-6">
-                Yukarıdaki seçeneklerden birini kullanarak ilk entegrasyonunuzu oluşturun
+                {t('active.empty.description')}
               </p>
               <div className="flex justify-center gap-3">
                 <Button onClick={() => setShowShopifyModal(true)}>
                   <ShoppingBag className="w-4 h-4 mr-2" />
-                  Shopify Bağla
+                  {t('modals.shopify.title')}
                 </Button>
                 <Button variant="outline" onClick={() => setShowCsvModal(true)}>
                   <Upload className="w-4 h-4 mr-2" />
-                  CSV İçe Aktar
+                  {t('modals.csv.title')}
                 </Button>
                 <Button variant="outline" onClick={() => setShowManualModal(true)}>
                   <Code className="w-4 h-4 mr-2" />
-                  API Kurulumu
+                  {t('modals.manual.title')}
                 </Button>
               </div>
             </CardContent>
@@ -591,7 +595,7 @@ export default function IntegrationsPage() {
           <Card className="max-w-md w-full animate-slide-up shadow-2xl">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Shopify Bağla</CardTitle>
+                <CardTitle>{t('modals.shopify.title')}</CardTitle>
                 <button
                   onClick={() => !connectingShopify && setShowShopifyModal(false)}
                   disabled={connectingShopify}
@@ -604,28 +608,28 @@ export default function IntegrationsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <label className="form-label">
-                  Shopify Mağaza Adresi
+                  {t('modals.shopify.shopLabel')}
                 </label>
                 <Input
                   type="text"
                   value={shopifyShop}
                   onChange={(e) => setShopifyShop(e.target.value)}
-                  placeholder="example.myshopify.com"
+                  placeholder={t('modals.shopify.shopPlaceholder')}
                   disabled={connectingShopify}
                   className="h-11"
                 />
                 <p className="form-helper">
-                  Shopify mağazanızın tam adresi (.myshopify.com ile)
+                  {t('modals.shopify.helper')}
                 </p>
               </div>
 
               <div className="flex gap-3 pt-2">
                 <Button variant="outline" className="flex-1" onClick={() => setShowShopifyModal(false)} disabled={connectingShopify}>
-                  İptal
+                  {t('modals.shopify.cancel')}
                 </Button>
                 <Button className="flex-1" onClick={handleConnectShopify} disabled={connectingShopify}>
                   {connectingShopify && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  {connectingShopify ? 'Bağlanıyor...' : 'Bağlan'}
+                  {connectingShopify ? t('modals.shopify.connecting') : t('modals.shopify.connect')}
                 </Button>
               </div>
             </CardContent>
@@ -639,7 +643,7 @@ export default function IntegrationsPage() {
           <Card className="max-w-md w-full animate-slide-up shadow-2xl">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>CSV İçe Aktar</CardTitle>
+                <CardTitle>{t('modals.csv.title')}</CardTitle>
                 <button
                   onClick={() => !importing && setShowCsvModal(false)}
                   disabled={importing}
@@ -652,7 +656,7 @@ export default function IntegrationsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <label className="form-label">
-                  CSV Dosyası
+                  {t('modals.csv.fileLabel')}
                 </label>
                 <input
                   type="file"
@@ -663,25 +667,24 @@ export default function IntegrationsPage() {
                 />
                 {csvFile && (
                   <p className="text-sm text-emerald-600">
-                    ✓ {csvFile.name} seçildi
+                    {t('modals.csv.fileSelected', { name: csvFile.name })}
                   </p>
                 )}
               </div>
 
               <div className="bg-muted/50 border border-border rounded-lg p-4">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Format:</strong> CSV dosyanız şu sütunları içermelidir:
-                  order_id, customer_phone, customer_name, status, delivery_date
+                  <strong>{t('modals.csv.format')}</strong>
                 </p>
               </div>
 
               <div className="flex gap-3 pt-2">
                 <Button variant="outline" className="flex-1" onClick={() => setShowCsvModal(false)} disabled={importing}>
-                  İptal
+                  {t('modals.csv.cancel')}
                 </Button>
                 <Button className="flex-1" onClick={handleImportCsv} disabled={importing || !csvFile}>
                   {importing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  {importing ? 'İçe Aktarılıyor...' : 'İçe Aktar'}
+                  {importing ? t('modals.csv.importing') : t('modals.csv.import')}
                 </Button>
               </div>
             </CardContent>
@@ -695,7 +698,7 @@ export default function IntegrationsPage() {
           <Card className="max-w-2xl w-full animate-slide-up shadow-2xl">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Manuel / API Entegrasyonu</CardTitle>
+                <CardTitle>{t('modals.manual.title')}</CardTitle>
                 <button
                   onClick={() => setShowManualModal(false)}
                   className="text-muted-foreground hover:text-foreground transition-colors"
@@ -707,19 +710,19 @@ export default function IntegrationsPage() {
             <CardContent className="space-y-4">
               <div className="bg-muted/50 border border-border rounded-lg p-4">
                 <p className="text-sm font-medium mb-2">
-                  API Webhook URL:
+                  {t('modals.manual.webhookLabel')}
                 </p>
                 <code className="block bg-white px-3 py-2 rounded border text-sm font-mono">
                   {getApiBaseUrlForDisplay()}/api/webhooks/manual
                 </code>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Bu URL'e POST request göndererek sipariş etkinliklerini gönderebilirsiniz.
+                  {t('modals.manual.webhookHelper')}
                 </p>
               </div>
 
               {apiKeys.length > 0 && (
                 <div className="space-y-2">
-                  <p className="form-label">API Key (Settings'ten alın):</p>
+                  <p className="form-label">{t('modals.manual.apiKeyLabel')}</p>
                   <code className="block bg-muted px-3 py-2 rounded border text-sm font-mono">
                     {apiKeys[0]?.hash.substring(0, 20)}...
                   </code>
@@ -728,10 +731,10 @@ export default function IntegrationsPage() {
 
               <div className="flex gap-3 pt-2">
                 <Button variant="outline" className="flex-1" onClick={() => setShowManualModal(false)}>
-                  İptal
+                  {t('modals.manual.cancel')}
                 </Button>
                 <Button className="flex-1" onClick={handleCreateManualIntegration}>
-                  Entegrasyonu Oluştur
+                  {t('modals.manual.create')}
                 </Button>
               </div>
             </CardContent>
@@ -746,7 +749,7 @@ export default function IntegrationsPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>
-                  {editingWhatsAppId ? 'WhatsApp Bağlantısını Güncelle' : 'WhatsApp Business Bağla'}
+                  {editingWhatsAppId ? t('modals.whatsapp.updateTitle') : t('modals.whatsapp.title')}
                 </CardTitle>
                 <button
                   onClick={() => !connectingWhatsApp && setShowWhatsAppModal(false)}
@@ -759,49 +762,49 @@ export default function IntegrationsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Meta for Developers üzerinden aldığınız Phone Number ID, Access Token ve Verify Token bilgilerini girin.
+                {t('modals.whatsapp.description')}
               </p>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="form-label">Görünen numara (isteğe bağlı)</label>
+                  <label className="form-label">{t('modals.whatsapp.displayLabel')}</label>
                   <Input
                     type="text"
                     value={whatsappPhoneDisplay}
                     onChange={(e) => setWhatsappPhoneDisplay(e.target.value)}
-                    placeholder="+90 555 123 45 67"
+                    placeholder={t('modals.whatsapp.displayPlaceholder')}
                     disabled={connectingWhatsApp}
                     className="h-11"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">Phone Number ID *</label>
+                  <label className="form-label">{t('modals.whatsapp.phoneIdLabel')}</label>
                   <Input
                     type="text"
                     value={whatsappPhoneNumberId}
                     onChange={(e) => setWhatsappPhoneNumberId(e.target.value)}
-                    placeholder="Meta API Setup'tan alın"
+                    placeholder={t('modals.whatsapp.phoneIdPlaceholder')}
                     disabled={connectingWhatsApp}
                     className="h-11 font-mono text-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">Access Token *</label>
+                  <label className="form-label">{t('modals.whatsapp.tokenLabel')}</label>
                   <Input
                     type="password"
                     value={whatsappAccessToken}
                     onChange={(e) => setWhatsappAccessToken(e.target.value)}
-                    placeholder="Meta'dan alınan token"
+                    placeholder={t('modals.whatsapp.tokenPlaceholder')}
                     disabled={connectingWhatsApp}
                     className="h-11 font-mono text-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="form-label">Verify Token (webhook) *</label>
+                  <label className="form-label">{t('modals.whatsapp.verifyLabel')}</label>
                   <Input
                     type="text"
                     value={whatsappVerifyToken}
                     onChange={(e) => setWhatsappVerifyToken(e.target.value)}
-                    placeholder="Webhook doğrulama için"
+                    placeholder={t('modals.whatsapp.verifyPlaceholder')}
                     disabled={connectingWhatsApp}
                     className="h-11 font-mono text-sm"
                   />
@@ -809,15 +812,14 @@ export default function IntegrationsPage() {
               </div>
               <div className="flex gap-3 pt-4">
                 <Button variant="outline" className="flex-1" onClick={() => setShowWhatsAppModal(false)} disabled={connectingWhatsApp}>
-                  İptal
+                  {t('modals.whatsapp.cancel')}
                 </Button>
                 <Button
                   className="flex-1"
                   onClick={handleSaveWhatsApp}
                   disabled={connectingWhatsApp || !whatsappPhoneNumberId.trim() || !whatsappAccessToken.trim() || !whatsappVerifyToken.trim()}
                 >
-                  {connectingWhatsApp && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  {connectingWhatsApp ? 'Kaydediliyor...' : editingWhatsAppId ? 'Güncelle' : 'Bağla'}
+                  {connectingWhatsApp ? t('modals.whatsapp.saving') : editingWhatsAppId ? t('modals.whatsapp.update') : t('modals.whatsapp.save')}
                 </Button>
               </div>
             </CardContent>

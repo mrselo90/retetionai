@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import Link from 'next/link';
+import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MessageSquare, User, ShoppingBag, Clock } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 
 interface Conversation {
   id: string;
@@ -29,6 +30,8 @@ interface Conversation {
 }
 
 export default function ConversationsPage() {
+  const t = useTranslations('Conversations');
+  const locale = useLocale();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'positive' | 'neutral' | 'negative'>('all');
@@ -61,9 +64,10 @@ export default function ConversationsPage() {
     } catch (err: any) {
       console.error('Failed to load conversations:', err);
       if (err.status === 401) {
+        toast.error(t('toasts.sessionExpired.title'), t('toasts.sessionExpired.message'));
         window.location.href = '/login';
       } else {
-        toast.error('Konuşmalar yüklenirken bir hata oluştu');
+        toast.error(t('toasts.loadError.title'), t('toasts.loadError.message'));
       }
     } finally {
       setLoading(false);
@@ -78,12 +82,12 @@ export default function ConversationsPage() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Şimdi';
-    if (diffMins < 60) return `${diffMins} dakika önce`;
-    if (diffHours < 24) return `${diffHours} saat önce`;
-    if (diffDays < 7) return `${diffDays} gün önce`;
+    if (diffMins < 1) return t('list.time.now');
+    if (diffMins < 60) return t('list.time.minutesAgo', { m: diffMins });
+    if (diffHours < 24) return t('list.time.hoursAgo', { h: diffHours });
+    if (diffDays < 7) return t('list.time.daysAgo', { d: diffDays });
 
-    return date.toLocaleDateString('tr-TR', {
+    return date.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -137,19 +141,19 @@ export default function ConversationsPage() {
     <div className="space-y-8 animate-fade-in pb-8">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Konuşmalar</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground">
-          Müşterilerinizle yapılan tüm WhatsApp konuşmaları
+          {t('description')}
         </p>
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap overflow-x-auto pb-2">
         {[
-          { key: 'all' as const, label: `Tümü (${conversations.length})` },
-          { key: 'positive' as const, label: `😊 Pozitif (${conversations.filter((c) => c.sentiment === 'positive').length})` },
-          { key: 'neutral' as const, label: `😐 Nötr (${conversations.filter((c) => c.sentiment === 'neutral').length})` },
-          { key: 'negative' as const, label: `😞 Negatif (${conversations.filter((c) => c.sentiment === 'negative').length})` },
+          { key: 'all' as const, label: `${t('filters.all')} (${conversations.length})` },
+          { key: 'positive' as const, label: `${t('filters.positive')} (${conversations.filter((c) => c.sentiment === 'positive').length})` },
+          { key: 'neutral' as const, label: `${t('filters.neutral')} (${conversations.filter((c) => c.sentiment === 'neutral').length})` },
+          { key: 'negative' as const, label: `${t('filters.negative')} (${conversations.filter((c) => c.sentiment === 'negative').length})` },
         ].map((f) => (
           <Button
             key={f.key}
@@ -169,9 +173,9 @@ export default function ConversationsPage() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
               <MessageSquare className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Henüz konuşma yok</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('list.empty.title')}</h3>
             <p className="text-muted-foreground">
-              Müşterileriniz mesaj gönderdiğinde burada görünecek
+              {t('list.empty.description')}
             </p>
           </CardContent>
         </Card>
@@ -195,7 +199,7 @@ export default function ConversationsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="text-base font-semibold">
-                          {conversation.user?.name || 'Misafir'}
+                          {conversation.user?.name || t('list.guest')}
                         </h3>
                         <Badge variant={getSentimentBadgeVariant(conversation.sentiment)}>
                           {getSentimentIcon(conversation.sentiment)} {conversation.sentiment}
@@ -207,7 +211,7 @@ export default function ConversationsPage() {
                       {conversation.order && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <ShoppingBag className="w-3.5 h-3.5" />
-                          <span>Sipariş: #{conversation.order.external_order_id}</span>
+                          <span>{t('list.order')}: #{conversation.order.external_order_id}</span>
                           <Badge variant={conversation.order.status === 'delivered' ? 'default' : 'secondary'} className="text-xs">
                             {conversation.order.status}
                           </Badge>
@@ -223,7 +227,7 @@ export default function ConversationsPage() {
                       {formatDateTime(conversation.last_message_at)}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {conversation.message_count} mesaj
+                      {conversation.message_count} {t('list.messages')}
                     </p>
                   </div>
                 </div>

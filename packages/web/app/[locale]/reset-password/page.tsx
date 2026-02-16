@@ -1,44 +1,65 @@
 'use client';
 
-import { useState } from 'react';
-import { Link, useRouter } from '@/i18n/routing';
+import { useState, useEffect } from 'react';
+import { useRouter, Link } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-export default function ForgotPasswordPage() {
-  const t = useTranslations('ForgotPassword');
+export default function ResetPasswordPage() {
+  const t = useTranslations('ResetPassword');
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    // Check if we have a session (Supabase handles the hash/recovery token automatically)
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        // If no session, it might mean the link is invalid or expired
+        // But for PKCE/Implicit flow, the session might be established by the client
+        // after parsing the URL hash/query.
+      }
+    };
+    checkSession();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSuccess(false);
+
+    if (password !== confirmPassword) {
+      setError(t('errors.passwordMismatch'));
+      return;
+    }
+
+    if (password.length < 6) {
+      setError(t('errors.passwordLength'));
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Get current locale from pathname
-      const locale = typeof window !== 'undefined' ? window.location.pathname.split('/')[1] || 'en' : 'en';
-      
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/${locale}/reset-password`,
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password,
       });
 
-      if (resetError) {
-        setError(resetError.message);
+      if (updateError) {
+        setError(updateError.message);
         return;
       }
 
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('error'));
+      setError(err instanceof Error ? err.message : t('errors.default'));
     } finally {
       setLoading(false);
     }
@@ -54,14 +75,13 @@ export default function ForgotPasswordPage() {
             </div>
             <CardTitle className="text-2xl font-bold">{t('successTitle')}</CardTitle>
             <CardDescription>
-              {t('successMessage', { email })}
+              {t('successMessage')}
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex justify-center">
             <Link href="/login" className="w-full">
-              <Button variant="outline" className="w-full h-11">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {t('backToLogin')}
+              <Button className="w-full h-11">
+                {t('goToLogin')}
               </Button>
             </Link>
           </CardFooter>
@@ -89,16 +109,33 @@ export default function ForgotPasswordPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium leading-none">
-                {t('emailLabel')}
+              <label htmlFor="password" className="text-sm font-medium leading-none">
+                {t('passwordLabel')}
               </label>
               <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
-                placeholder="you@example.com"
+                minLength={6}
+                placeholder="••••••••"
+                className="h-11"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="text-sm font-medium leading-none">
+                {t('confirmPasswordLabel')}
+              </label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+                placeholder="••••••••"
                 className="h-11"
               />
             </div>
@@ -113,12 +150,6 @@ export default function ForgotPasswordPage() {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <Link href="/login" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
-            <ArrowLeft className="w-4 h-4" />
-            {t('backToLogin')}
-          </Link>
-        </CardFooter>
       </Card>
     </div>
   );

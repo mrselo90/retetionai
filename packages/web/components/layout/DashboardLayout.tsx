@@ -30,13 +30,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserEmail(user.email || null);
-      } else {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUserEmail(user.email || null);
+          setLoading(false);
+        } else {
+          router.push('/login');
+        }
+      } catch (err) {
+        console.error('Auth check error:', err);
         router.push('/login');
       }
     };
@@ -56,6 +63,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: t('integrations'), href: '/dashboard/integrations', icon: Puzzle },
     { name: t('settings'), href: '/dashboard/settings', icon: Settings },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50/50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50/50 flex">

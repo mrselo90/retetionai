@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Settings, Bot, Shield, Key, Database, Loader2, Plus, Copy, Trash2, Pencil, X, Download, AlertTriangle, ExternalLink } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 
 export type ProductInstructionsScope = 'order_only' | 'rag_products_too';
 
@@ -65,6 +66,8 @@ interface ApiKey {
 }
 
 export default function SettingsPage() {
+  const t = useTranslations('Settings');
+  const locale = useLocale();
   const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,7 +123,7 @@ export default function SettingsPage() {
       setMerchantName(merchantResponse.merchant.name);
 
       const persona = merchantResponse.merchant.persona_settings || {};
-      setBotName(persona.bot_name || 'Asistan');
+      setBotName(persona.bot_name || t('botPersona.namePlaceholder'));
       setTone(persona.tone || 'friendly');
       setEmoji(persona.emoji !== false);
       setResponseLength(persona.response_length || 'medium');
@@ -138,7 +141,6 @@ export default function SettingsPage() {
       );
       setApiKeys(keysResponse.apiKeys);
 
-      // Load guardrails separately so a missing column or API error doesn't break the whole page
       try {
         const guardrailsResponse = await authenticatedRequest<{
           system_guardrails: SystemGuardrailDefinition[];
@@ -150,14 +152,14 @@ export default function SettingsPage() {
         console.warn('Guardrails load failed (migration 008 may not be run):', guardrailsErr);
         setSystemGuardrails([]);
         setCustomGuardrails([]);
-        toast.error('Güvenlik kuralları yüklenemedi. Veritabanı migration\'ını (008_merchant_guardrails) çalıştırın.');
+        toast.error(t('toasts.saveError.title'), t('toasts.saveError.message'));
       }
     } catch (err: any) {
       console.error('Failed to load settings:', err);
       if (err.status === 401) {
         window.location.href = '/login';
       } else {
-        toast.error('Ayarlar yüklenirken bir hata oluştu');
+        toast.error(t('toasts.saveError.title'), t('toasts.saveError.message'));
       }
     } finally {
       setLoading(false);
@@ -190,11 +192,11 @@ export default function SettingsPage() {
         }
       );
 
-      toast.success('Bot ayarları başarıyla güncellendi');
+      toast.success(t('toasts.saveSuccess.title'), t('toasts.saveSuccess.message'));
       await loadData();
     } catch (err: any) {
       console.error('Failed to save persona:', err);
-      toast.error(err.message || 'Ayarlar kaydedilemedi');
+      toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
     } finally {
       setSaving(false);
     }
@@ -232,12 +234,12 @@ export default function SettingsPage() {
   const handleSaveGuardrail = async () => {
     const name = guardrailName.trim();
     if (!name) {
-      toast.error('Kural adı gerekli');
+      toast.error(t('toasts.guardrailError.title'), t('guardrails.modal.nameLabel'));
       return;
     }
     const valueStr = guardrailValue.trim();
     if (!valueStr) {
-      toast.error('Anahtar kelimeler veya ifade gerekli');
+      toast.error(t('toasts.guardrailError.title'), t('guardrails.modal.valueLabel'));
       return;
     }
     const value: string[] | string =
@@ -245,7 +247,7 @@ export default function SettingsPage() {
         ? valueStr
         : valueStr.split(',').map((s) => s.trim()).filter(Boolean);
     if (guardrailMatchType === 'keywords' && Array.isArray(value) && value.length === 0) {
-      toast.error('En az bir anahtar kelime girin');
+      toast.error(t('toasts.guardrailError.title'), t('guardrails.modal.valueLabel'));
       return;
     }
     try {
@@ -286,17 +288,17 @@ export default function SettingsPage() {
         body: JSON.stringify({ custom_guardrails: next }),
       });
       setCustomGuardrails(next);
-      toast.success(editingGuardrail ? 'Kural güncellendi' : 'Kural eklendi');
+      toast.success(t('toasts.guardrailSuccess.title'), t('toasts.guardrailSuccess.message'));
       closeGuardrailModal();
     } catch (err: any) {
-      toast.error(err.message || 'Kural kaydedilemedi');
+      toast.error(t('toasts.guardrailError.title'), err.message || t('toasts.guardrailError.message'));
     } finally {
       setSavingGuardrails(false);
     }
   };
 
   const handleDeleteGuardrail = async (id: string) => {
-    if (!confirm('Bu kuralı silmek istediğinize emin misiniz?')) return;
+    if (!confirm(t('guardrails.delete'))) return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -307,9 +309,9 @@ export default function SettingsPage() {
         body: JSON.stringify({ custom_guardrails: next }),
       });
       setCustomGuardrails(next);
-      toast.success('Kural silindi');
+      toast.success(t('toasts.guardrailSuccess.title'), t('toasts.guardrailSuccess.message'));
     } catch (err: any) {
-      toast.error(err.message || 'Kural silinemedi');
+      toast.error(t('toasts.guardrailError.title'), err.message || t('toasts.guardrailError.message'));
     } finally {
       setSavingGuardrails(false);
     }
@@ -335,7 +337,7 @@ export default function SettingsPage() {
       await loadData();
     } catch (err: any) {
       console.error('Failed to create API key:', err);
-      toast.error(err.message || 'API key oluşturulamadı');
+      toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
     } finally {
       setCreatingKey(false);
     }
@@ -343,7 +345,7 @@ export default function SettingsPage() {
 
   const handleCopyApiKey = (keyHash: string) => {
     navigator.clipboard.writeText(keyHash);
-    toast.success('API key panoya kopyalandı');
+    toast.success(t('toasts.copySuccess.title'), t('toasts.copySuccess.message'));
   };
 
   const handleRevokeApiKey = async (keyId: number) => {
@@ -359,18 +361,18 @@ export default function SettingsPage() {
         }
       );
 
-      toast.success('API key başarıyla iptal edildi');
+      toast.success(t('toasts.apiKeyRevokeSuccess.title'), t('toasts.apiKeyRevokeSuccess.message'));
       await loadData();
     } catch (err: any) {
       console.error('Failed to revoke API key:', err);
-      toast.error(err.message || 'API key iptal edilemedi');
+      toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
     }
   };
 
   const copyApiKey = () => {
     if (newApiKey) {
       navigator.clipboard.writeText(newApiKey);
-      toast.success('API key panoya kopyalandı');
+      toast.success(t('toasts.copySuccess.title'), t('toasts.copySuccess.message'));
     }
   };
 
@@ -399,10 +401,10 @@ export default function SettingsPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success('Verileriniz indirildi');
+      toast.success(t('toasts.exportSuccess.title'), t('toasts.exportSuccess.message'));
     } catch (err: any) {
       console.error('Failed to export data:', err);
-      toast.error(err.message || 'Veri export edilemedi');
+      toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
     } finally {
       setExportingData(false);
     }
@@ -424,21 +426,21 @@ export default function SettingsPage() {
       );
 
       if (permanent) {
-        toast.warning('Verileriniz kalıcı olarak silindi');
+        toast.warning(t('toasts.deletePermanent.title'), t('toasts.deletePermanent.message'));
         // Redirect to home after 2 seconds
         setTimeout(() => {
           window.location.href = '/';
         }, 2000);
       } else {
         toast.error(
-          `Veri silme planlandı. Kalıcı silme: ${new Date(response.permanent_deletion_at || '').toLocaleDateString()}`,
-          'info'
+          t('toasts.deleteScheduled.title'),
+          t('toasts.deleteScheduled.message', { date: new Date(response.permanent_deletion_at || '').toLocaleDateString() })
         );
       }
       setShowDeleteConfirm(false);
     } catch (err: any) {
       console.error('Failed to delete data:', err);
-      toast.error(err.message || 'Veri silinemedi');
+      toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
     } finally {
       setDeletingData(false);
     }
@@ -461,11 +463,11 @@ export default function SettingsPage() {
     <div className="space-y-8 animate-fade-in pb-8">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Ayarlar</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground">
-          Bot davranışını ve API erişimini yönetin.{' '}
+          {t('description')}{' '}
           <a href="#guardrails" className="text-primary hover:underline font-medium">
-            Güvenlik Kuralları (Guardrails) →
+            {t('guardrailsLink')}
           </a>
         </p>
       </div>
@@ -478,11 +480,11 @@ export default function SettingsPage() {
               <Bot className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <CardTitle>Bot Kişiliği</CardTitle>
+              <CardTitle>{t('botPersona.title')}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                AI botunuzun müşterilerle nasıl konuşacağını belirleyin.{' '}
+                {t('botPersona.description')}{' '}
                 <Link href="/dashboard/settings/bot-info" className="text-primary hover:underline font-medium">
-                  Bot Bilgisi (AI Kuralları) →
+                  {t('botPersona.botInfoLink')}
                 </Link>
               </p>
             </div>
@@ -493,13 +495,13 @@ export default function SettingsPage() {
           {/* Bot Name */}
           <div className="space-y-2">
             <label className="form-label">
-              Bot Adı
+              {t('botPersona.nameLabel')}
             </label>
             <Input
               type="text"
               value={botName}
               onChange={(e) => setBotName(e.target.value)}
-              placeholder="Asistan"
+              placeholder={t('botPersona.namePlaceholder')}
               className="h-11"
             />
           </div>
@@ -507,22 +509,19 @@ export default function SettingsPage() {
           {/* Tone */}
           <div>
             <label className="form-label block mb-2">
-              Ton
+              {t('botPersona.toneLabel')}
             </label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {(['friendly', 'professional', 'casual', 'formal'] as const).map((t) => (
+              {(['friendly', 'professional', 'casual', 'formal'] as const).map((tKey) => (
                 <button
-                  key={t}
-                  onClick={() => setTone(t)}
-                  className={`px-4 py-3 rounded-lg border-2 transition-colors font-medium ${tone === t
+                  key={tKey}
+                  onClick={() => setTone(tKey)}
+                  className={`px-4 py-3 rounded-lg border-2 transition-colors font-medium ${tone === tKey
                     ? 'border-blue-600 bg-blue-50 text-blue-900'
                     : 'border-zinc-300 text-zinc-700 hover:border-zinc-400'
                     }`}
                 >
-                  {t === 'friendly' && '😊 Samimi'}
-                  {t === 'professional' && '👔 Profesyonel'}
-                  {t === 'casual' && '😎 Rahat'}
-                  {t === 'formal' && '🎩 Resmi'}
+                  {t(`botPersona.tones.${tKey}`)}
                 </button>
               ))}
             </div>
@@ -531,8 +530,8 @@ export default function SettingsPage() {
           {/* Emoji */}
           <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-lg">
             <div>
-              <p className="font-medium text-zinc-900">Emoji Kullan</p>
-              <p className="text-sm text-zinc-600">Mesajlarda emoji kullanılsın mı?</p>
+              <p className="font-medium text-zinc-900">{t('botPersona.emojiLabel')}</p>
+              <p className="text-sm text-zinc-600">{t('botPersona.emojiDesc')}</p>
             </div>
             <button
               onClick={() => setEmoji(!emoji)}
@@ -549,7 +548,7 @@ export default function SettingsPage() {
           {/* Response Length */}
           <div>
             <label className="form-label block mb-2">
-              Yanıt Uzunluğu
+              {t('botPersona.responseLengthLabel')}
             </label>
             <div className="grid grid-cols-3 gap-3">
               {(['short', 'medium', 'long'] as const).map((length) => (
@@ -561,9 +560,7 @@ export default function SettingsPage() {
                     : 'border-zinc-300 text-zinc-700 hover:border-zinc-400'
                     }`}
                 >
-                  {length === 'short' && 'Kısa'}
-                  {length === 'medium' && 'Orta'}
-                  {length === 'long' && 'Uzun'}
+                  {t(`botPersona.lengths.${length}`)}
                 </button>
               ))}
             </div>
@@ -572,7 +569,7 @@ export default function SettingsPage() {
           {/* Temperature */}
           <div>
             <label className="form-label block mb-2">
-              Yaratıcılık (Temperature): {temperature.toFixed(1)}
+              {t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
             </label>
             <input
               type="range"
@@ -584,19 +581,19 @@ export default function SettingsPage() {
               className="w-full"
             />
             <div className="flex justify-between text-xs text-zinc-600 mt-1">
-              <span>Tutarlı (0.0)</span>
-              <span>Dengeli (0.7)</span>
-              <span>Yaratıcı (1.0)</span>
+              <span>{t('botPersona.tempLabels.consistent')}</span>
+              <span>{t('botPersona.tempLabels.balanced')}</span>
+              <span>{t('botPersona.tempLabels.creative')}</span>
             </div>
           </div>
 
           {/* Product instructions scope (WhatsApp answers) — one must be chosen */}
           <div className="pt-2 border-t border-zinc-200">
             <label className="form-label block mb-2">
-              Ürün talimatları (WhatsApp yanıtları)
+              {t('botPersona.productScopeLabel')}
             </label>
             <p className="text-sm text-zinc-600 mb-3">
-              Kullanım talimatları (Shopify → Kullanım Talimatı sayfasındaki metinler) hangi durumlarda AI yanıtına eklensin?
+              {t('botPersona.productScopeDesc')}
             </p>
             <div className="space-y-3">
               <label
@@ -614,9 +611,9 @@ export default function SettingsPage() {
                   className="mt-1 h-4 w-4 text-teal-600 border-zinc-300 focus:ring-teal-500"
                 />
                 <div>
-                  <span className="font-medium text-zinc-900">Sadece siparişi olan müşteriler</span>
+                  <span className="font-medium text-zinc-900">{t('botPersona.productScopes.orderOnly.label')}</span>
                   <p className="text-sm text-zinc-600 mt-0.5">
-                    Kullanım talimatları yalnızca siparişi olan müşterilere gösterilir. Siparişi olmayan sorularda sadece ürün açıklaması (RAG) kullanılır.
+                    {t('botPersona.productScopes.orderOnly.desc')}
                   </p>
                 </div>
               </label>
@@ -635,9 +632,9 @@ export default function SettingsPage() {
                   className="mt-1 h-4 w-4 text-teal-600 border-zinc-300 focus:ring-teal-500"
                 />
                 <div>
-                  <span className="font-medium text-zinc-900">Tüm ürün sorularında</span>
+                  <span className="font-medium text-zinc-900">{t('botPersona.productScopes.ragProductsToo.label')}</span>
                   <p className="text-sm text-zinc-600 mt-0.5">
-                    Siparişi olmasa bile, soru hangi ürüne denk geliyorsa o ürünün kullanım talimatları da yanıta eklenir (RAG ile eşleşen ürünler).
+                    {t('botPersona.productScopes.ragProductsToo.desc')}
                   </p>
                 </div>
               </label>
@@ -647,10 +644,10 @@ export default function SettingsPage() {
           {/* WhatsApp sender: merchant's number vs corporate number — one must be chosen */}
           <div className="pt-2 border-t border-zinc-200">
             <label className="form-label block mb-2">
-              WhatsApp iletişim numarası
+              {t('botPersona.whatsappSenderLabel')}
             </label>
             <p className="text-sm text-zinc-600 mb-3">
-              Müşterilere gönderilen WhatsApp mesajları (yanıtlar, T+0 hoş geldin, T+3/T+14) hangi numaradan gitsin?
+              {t('botPersona.whatsappSenderDesc')}
             </p>
             <div className="space-y-3">
               <label
@@ -668,9 +665,9 @@ export default function SettingsPage() {
                   className="mt-1 h-4 w-4 text-teal-600 border-zinc-300 focus:ring-teal-500"
                 />
                 <div>
-                  <span className="font-medium text-zinc-900">Kendi numaram (mağaza)</span>
+                  <span className="font-medium text-zinc-900">{t('botPersona.whatsappSenders.merchantOwn.label')}</span>
                   <p className="text-sm text-zinc-600 mt-0.5">
-                    Entegrasyonlarda bağladığınız WhatsApp Business numaranız kullanılır. Müşteriler sizin mağaza numaranızdan yanıt alır.
+                    {t('botPersona.whatsappSenders.merchantOwn.desc')}
                   </p>
                 </div>
               </label>
@@ -689,17 +686,17 @@ export default function SettingsPage() {
                   className="mt-1 h-4 w-4 text-teal-600 border-zinc-300 focus:ring-teal-500"
                 />
                 <div>
-                  <span className="font-medium text-zinc-900">Kurumsal numara (GlowGuide)</span>
+                  <span className="font-medium text-zinc-900">{t('botPersona.whatsappSenders.corporate.label')}</span>
                   <p className="text-sm text-zinc-600 mt-0.5">
-                    Platformun kurumsal WhatsApp numarası kullanılır. Tüm mesajlar bu numaradan gider.
+                    {t('botPersona.whatsappSenders.corporate.desc')}
                   </p>
                 </div>
               </label>
             </div>
             <div className="mt-3 p-3 rounded-lg bg-zinc-100/80 border border-zinc-200">
-              <p className="text-sm font-medium text-zinc-800 mb-1">Kendi numaramı nereden alacağım?</p>
+              <p className="text-sm font-medium text-zinc-800 mb-1">{t('botPersona.whatsappHelpTitle')}</p>
               <p className="text-sm text-zinc-600">
-                WhatsApp Business API numaranızı <strong>Meta for Developers</strong> (developers.facebook.com) veya <strong>Meta Business Suite</strong> üzerinden alırsınız: WhatsApp Business hesabı oluşturup bir telefon numarası eklediğinizde Meta size bir <em>Phone Number ID</em> verir; bu numara mesajların gönderileceği numaradır. İleride dashboard’da <strong>Entegrasyonlar</strong> sayfasından &quot;WhatsApp Business bağla&quot; ile bu bilgileri bağlayabileceksiniz.
+                {t('botPersona.whatsappHelpText')}
               </p>
             </div>
           </div>
@@ -711,7 +708,7 @@ export default function SettingsPage() {
               disabled={saving}
             >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {saving ? 'Kaydediliyor...' : 'Ayarları Kaydet'}
+              {saving ? t('botPersona.saving') : t('botPersona.saveButton')}
             </Button>
           </div>
         </div>
@@ -726,34 +723,37 @@ export default function SettingsPage() {
                 <Shield className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <CardTitle>Güvenlik Kuralları (Guardrails)</CardTitle>
+                <CardTitle>{t('guardrails.title')}</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Botun hangi mesajlara yanıt vermeyeceğini veya yönlendireceğini belirleyin.
+                  {t('guardrails.description')}
                 </p>
               </div>
             </div>
             <Button onClick={openAddGuardrail}>
               <Plus className="w-4 h-4 mr-2" />
-              Yeni Kural
+              {t('guardrails.addButton')}
             </Button>
           </div>
         </CardHeader>
         <div className="p-6 space-y-6">
           {/* System guardrails (read-only) */}
           <div>
-            <h3 className="text-sm font-semibold text-zinc-700 mb-2">Sistem kuralları (düzenlenemez)</h3>
+            <h3 className="text-sm font-semibold text-zinc-700 mb-2">{t('guardrails.systemTitle')}</h3>
             <ul className="space-y-3">
               {systemGuardrails.map((g) => (
                 <li
                   key={g.id}
                   className="flex items-start gap-3 p-4 rounded-lg border border-zinc-200 bg-zinc-50/80"
                 >
-                  <span className="text-zinc-500 mt-0.5" title="Düzenlenemez">🔒</span>
+                  <span className="text-zinc-500 mt-0.5" title={t('guardrails.locked')}>🔒</span>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-zinc-900">{g.name_tr ?? g.name}</p>
-                    <p className="text-sm text-zinc-600 mt-1">{g.description_tr ?? g.description}</p>
+                    <p className="font-medium text-zinc-900">{locale === 'tr' ? (g.name_tr ?? g.name) : g.name}</p>
+                    <p className="text-sm text-zinc-600 mt-1">{locale === 'tr' ? (g.description_tr ?? g.description) : g.description}</p>
                     <p className="text-xs text-zinc-500 mt-2">
-                      Uygulama: {g.apply_to === 'both' ? 'Kullanıcı + AI yanıtı' : g.apply_to === 'user_message' ? 'Kullanıcı mesajı' : 'AI yanıtı'} · {g.action === 'escalate' ? 'İnsan yönlendirme' : 'Engelle'}
+                      {t('guardrails.application', {
+                        type: g.apply_to === 'both' ? t('guardrails.types.both') : g.apply_to === 'user_message' ? t('guardrails.types.user_message') : t('guardrails.types.ai_response'),
+                        action: g.action === 'escalate' ? t('guardrails.actions.escalate') : t('guardrails.actions.block')
+                      })}
                     </p>
                   </div>
                 </li>
@@ -762,9 +762,9 @@ export default function SettingsPage() {
           </div>
           {/* Custom guardrails */}
           <div>
-            <h3 className="text-sm font-semibold text-zinc-700 mb-2">Özel kurallarınız</h3>
+            <h3 className="text-sm font-semibold text-zinc-700 mb-2">{t('guardrails.customTitle')}</h3>
             {customGuardrails.length === 0 ? (
-              <p className="text-sm text-zinc-500 py-4">Henüz özel kural eklenmedi. &quot;+ Yeni Kural&quot; ile ekleyin.</p>
+              <p className="text-sm text-zinc-500 py-4">{t('guardrails.empty')}</p>
             ) : (
               <ul className="space-y-3">
                 {customGuardrails.map((g) => (
@@ -779,10 +779,13 @@ export default function SettingsPage() {
                       )}
                       <p className="text-xs text-zinc-500 mt-2">
                         {g.match_type === 'keywords'
-                          ? `Anahtar kelimeler: ${Array.isArray(g.value) ? g.value.join(', ') : g.value}`
-                          : `İfade: ${typeof g.value === 'string' ? g.value : (Array.isArray(g.value) ? g.value[0] : '')}`}
+                          ? `${t('guardrails.modal.matchTypes.keywords')}: ${Array.isArray(g.value) ? g.value.join(', ') : g.value}`
+                          : `${t('guardrails.modal.matchTypes.phrase')}: ${typeof g.value === 'string' ? g.value : (Array.isArray(g.value) ? g.value[0] : '')}`}
                         {' · '}
-                        {g.apply_to === 'both' ? 'Kullanıcı + AI' : g.apply_to === 'user_message' ? 'Kullanıcı' : 'AI'} · {g.action === 'escalate' ? 'İnsan yönlendir' : 'Engelle'}
+                        {t('guardrails.application', {
+                          type: g.apply_to === 'both' ? t('guardrails.types.both') : g.apply_to === 'user_message' ? t('guardrails.types.user_message') : t('guardrails.types.ai_response'),
+                          action: g.action === 'escalate' ? t('guardrails.actions.escalate') : t('guardrails.actions.block')
+                        })}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -791,7 +794,7 @@ export default function SettingsPage() {
                         onClick={() => openEditGuardrail(g)}
                         className="text-sm text-teal-600 hover:text-teal-700 font-medium"
                       >
-                        Düzenle
+                        {t('guardrails.edit')}
                       </button>
                       <button
                         type="button"
@@ -799,7 +802,7 @@ export default function SettingsPage() {
                         disabled={savingGuardrails}
                         className="text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
                       >
-                        Sil
+                        {t('guardrails.delete')}
                       </button>
                     </div>
                   </li>
@@ -819,9 +822,9 @@ export default function SettingsPage() {
                 <Key className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <CardTitle>API Keys</CardTitle>
+                <CardTitle>{t('apiKeys.title')}</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  API entegrasyonları için kullanılır (Max 5)
+                  {t('apiKeys.description')}
                 </p>
               </div>
             </div>
@@ -830,7 +833,7 @@ export default function SettingsPage() {
               disabled={creatingKey || apiKeys.length >= 5}
             >
               {creatingKey ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              {creatingKey ? 'Oluşturuluyor...' : 'Yeni Key'}
+              {creatingKey ? t('apiKeys.creating') : t('apiKeys.createButton')}
             </Button>
           </div>
         </CardHeader>
@@ -838,7 +841,7 @@ export default function SettingsPage() {
         <CardContent>
           {apiKeys.length === 0 ? (
             <div className="text-center py-8 text-zinc-500">
-              <p>Henüz API key oluşturulmamış</p>
+              <p>{t('apiKeys.empty')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -860,20 +863,20 @@ export default function SettingsPage() {
                         )}
                         {key.is_expired && (
                           <span className="text-xs text-red-700 bg-red-100 px-2 py-1 rounded font-medium">
-                            Expired
+                            {t('apiKeys.expired')}
                           </span>
                         )}
                         {key.is_expiring_soon && !key.is_expired && (
                           <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded font-medium">
-                            Expires in {key.days_until_expiration} days
+                            {t('apiKeys.expiresIn', { days: key.days_until_expiration })}
                           </span>
                         )}
                       </div>
                       <div className="mt-2 text-xs text-zinc-600 space-y-1">
-                        <p>Created: {new Date(key.created_at).toLocaleDateString()}</p>
+                        <p>{t('apiKeys.created', { date: new Date(key.created_at).toLocaleDateString() })}</p>
                         {key.expires_at && (
                           <p>
-                            Expires: {new Date(key.expires_at).toLocaleDateString()}
+                            {t('apiKeys.expires', { date: new Date(key.expires_at).toLocaleDateString() })}
                             {key.days_until_expiration !== null && (
                               <span className="ml-2">
                                 ({key.days_until_expiration} days)
@@ -882,27 +885,27 @@ export default function SettingsPage() {
                           </p>
                         )}
                         {key.last_used_at && (
-                          <p>Last used: {new Date(key.last_used_at).toLocaleDateString()}</p>
+                          <p>{t('apiKeys.lastUsed', { date: new Date(key.last_used_at).toLocaleDateString() })}</p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 ml-4">
                       <Button variant="ghost" size="sm" onClick={() => handleCopyApiKey(keyHash)}>
                         <Copy className="w-3.5 h-3.5 mr-1" />
-                        Kopyala
+                        {t('apiKeys.copy')}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         className="text-destructive hover:text-destructive"
                         onClick={() => {
-                          if (confirm('Bu API key\'i iptal etmek istediğinizden emin misiniz?')) {
+                          if (confirm('Are you sure you want to revoke this API key?')) {
                             handleRevokeApiKey(key.id);
                           }
                         }}
                       >
                         <Trash2 className="w-3.5 h-3.5 mr-1" />
-                        İptal Et
+                        {t('apiKeys.revoke')}
                       </Button>
                     </div>
                   </div>
@@ -921,9 +924,9 @@ export default function SettingsPage() {
               <Database className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <CardTitle>GDPR & Veri Yönetimi</CardTitle>
+              <CardTitle>{t('gdpr.title')}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Verilerinizi export edin veya silin (GDPR hakları)
+                {t('gdpr.description')}
               </p>
             </div>
           </div>
@@ -933,9 +936,9 @@ export default function SettingsPage() {
           <div className="p-4 border border-border rounded-lg">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h3 className="font-medium mb-1">Verilerinizi İndirin</h3>
+                <h3 className="font-medium mb-1">{t('gdpr.exportTitle')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Tüm verilerinizi JSON formatında indirin (GDPR - Right to Data Portability)
+                  {t('gdpr.exportDesc')}
                 </p>
               </div>
               <Button
@@ -945,7 +948,7 @@ export default function SettingsPage() {
                 className="ml-4"
               >
                 {exportingData ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                {exportingData ? 'İndiriliyor...' : 'İndir'}
+                {exportingData ? t('gdpr.exporting') : t('gdpr.exportButton')}
               </Button>
             </div>
           </div>
@@ -954,13 +957,13 @@ export default function SettingsPage() {
           <div className="p-4 border border-destructive/20 rounded-lg bg-destructive/5">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h3 className="font-medium text-destructive mb-1">Hesabınızı Silin</h3>
+                <h3 className="font-medium text-destructive mb-1">{t('gdpr.deleteTitle')}</h3>
                 <p className="text-sm text-destructive/80">
-                  Tüm verilerinizi silin (GDPR - Right to Erasure). Bu işlem geri alınamaz!
+                  {t('gdpr.deleteDesc')}
                 </p>
                 <p className="text-xs text-destructive/70 mt-2 flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" />
-                  Veriler 30 gün içinde kalıcı olarak silinir.
+                  {t('gdpr.deleteWarning')}
                 </p>
               </div>
               <Button
@@ -970,7 +973,7 @@ export default function SettingsPage() {
                 className="ml-4"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Sil
+                {t('gdpr.deleteButton')}
               </Button>
             </div>
           </div>
@@ -979,13 +982,13 @@ export default function SettingsPage() {
           <div className="pt-4 border-t">
             <div className="flex flex-wrap gap-4 text-sm">
               <a href="/privacy-policy" target="_blank" className="text-primary hover:underline flex items-center gap-1">
-                <ExternalLink className="w-3 h-3" /> Privacy Policy
+                <ExternalLink className="w-3 h-3" /> {t('gdpr.links.privacy')}
               </a>
               <a href="/terms-of-service" target="_blank" className="text-primary hover:underline flex items-center gap-1">
-                <ExternalLink className="w-3 h-3" /> Terms of Service
+                <ExternalLink className="w-3 h-3" /> {t('gdpr.links.terms')}
               </a>
               <a href="/cookie-policy" target="_blank" className="text-primary hover:underline flex items-center gap-1">
-                <ExternalLink className="w-3 h-3" /> Cookie Policy
+                <ExternalLink className="w-3 h-3" /> {t('gdpr.links.cookie')}
               </a>
             </div>
           </div>
@@ -997,81 +1000,81 @@ export default function SettingsPage() {
         <div className="modal-overlay">
           <Card className="max-w-lg w-full animate-slide-up shadow-2xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-zinc-900 mb-4">
-              {editingGuardrail ? 'Kuralı düzenle' : 'Yeni güvenlik kuralı'}
+              {editingGuardrail ? t('guardrails.modal.titleEdit') : t('guardrails.modal.titleAdd')}
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">Kural adı *</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.nameLabel')}</label>
                 <input
                   type="text"
                   value={guardrailName}
                   onChange={(e) => setGuardrailName(e.target.value)}
-                  placeholder="Örn: Rekabet içeriği"
+                  placeholder="e.g. Competitor mention"
                   className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">Açıklama (isteğe bağlı)</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.descLabel')}</label>
                 <input
                   type="text"
                   value={guardrailDescription}
                   onChange={(e) => setGuardrailDescription(e.target.value)}
-                  placeholder="Kuralın ne yaptığını kısaca yazın"
+                  placeholder="Brief description of the rule"
                   className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">Uygulama</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.applyToLabel')}</label>
                 <select
                   value={guardrailApplyTo}
                   onChange={(e) => setGuardrailApplyTo(e.target.value as 'user_message' | 'ai_response' | 'both')}
                   className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
-                  <option value="both">Kullanıcı mesajı + AI yanıtı</option>
-                  <option value="user_message">Sadece kullanıcı mesajı</option>
-                  <option value="ai_response">Sadece AI yanıtı</option>
+                  <option value="both">{t('guardrails.types.both')}</option>
+                  <option value="user_message">{t('guardrails.types.user_message')}</option>
+                  <option value="ai_response">{t('guardrails.types.ai_response')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">Eşleşme türü</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.matchTypeLabel')}</label>
                 <select
                   value={guardrailMatchType}
                   onChange={(e) => setGuardrailMatchType(e.target.value as 'keywords' | 'phrase')}
                   className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
-                  <option value="keywords">Anahtar kelimeler (virgülle ayırın)</option>
-                  <option value="phrase">Tek ifade (metin içinde geçince tetiklenir)</option>
+                  <option value="keywords">{t('guardrails.modal.matchTypes.keywords')}</option>
+                  <option value="phrase">{t('guardrails.modal.matchTypes.phrase')}</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-1">
-                  {guardrailMatchType === 'keywords' ? 'Anahtar kelimeler *' : 'İfade *'}
+                  {t('guardrails.modal.valueLabel')}
                 </label>
                 <input
                   type="text"
                   value={guardrailValue}
                   onChange={(e) => setGuardrailValue(e.target.value)}
-                  placeholder={guardrailMatchType === 'keywords' ? 'rakip, fiyat, indirim' : 'Bu ürün iyileştirir'}
+                  placeholder={guardrailMatchType === 'keywords' ? 'competitor, price, discount' : 'This product cures'}
                   className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">Eylem</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.actionLabel')}</label>
                 <select
                   value={guardrailAction}
                   onChange={(e) => setGuardrailAction(e.target.value as 'block' | 'escalate')}
                   className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
-                  <option value="block">Engelle (güvenli yanıt göster)</option>
-                  <option value="escalate">Engelle + insan yönlendir</option>
+                  <option value="block">{t('guardrails.actions.block')}</option>
+                  <option value="escalate">{t('guardrails.actions.escalate')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">Önerilen yanıt (isteğe bağlı)</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.responseLabel')}</label>
                 <textarea
                   value={guardrailSuggestedResponse}
                   onChange={(e) => setGuardrailSuggestedResponse(e.target.value)}
-                  placeholder="Kural tetiklenince gösterilecek metin. Boş bırakılırsa varsayılan metin kullanılır."
+                  placeholder="Text to show when rule is triggered"
                   rows={2}
                   className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
@@ -1083,14 +1086,14 @@ export default function SettingsPage() {
                 disabled={savingGuardrails}
               >
                 {savingGuardrails && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {savingGuardrails ? 'Kaydediliyor...' : (editingGuardrail ? 'Güncelle' : 'Ekle')}
+                {savingGuardrails ? t('guardrails.modal.saving') : (editingGuardrail ? t('guardrails.modal.save') : t('guardrails.modal.save'))}
               </Button>
               <Button
                 variant="outline"
                 onClick={closeGuardrailModal}
                 disabled={savingGuardrails}
               >
-                İptal
+                {t('guardrails.modal.cancel')}
               </Button>
             </div>
           </Card>
@@ -1104,18 +1107,18 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="text-destructive flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5" />
-                Hesap Silme Onayı
+                {t('gdpr.modal.title')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
                 <p className="text-sm text-destructive font-medium mb-2">
-                  Bu işlem geri alınamaz!
+                  {t('gdpr.modal.warning')}
                 </p>
                 <ul className="text-sm text-destructive/80 space-y-1 list-disc list-inside">
-                  <li>Tüm verileriniz silinecek</li>
-                  <li>30 gün içinde kalıcı olarak silinir</li>
-                  <li>Bu süre içinde destek ekibine ulaşarak iptal edebilirsiniz</li>
+                  <li>{t('gdpr.modal.list.all')}</li>
+                  <li>{t('gdpr.modal.list.permanent')}</li>
+                  <li>{t('gdpr.modal.list.cancel')}</li>
                 </ul>
               </div>
 
@@ -1127,7 +1130,7 @@ export default function SettingsPage() {
                   disabled={deletingData}
                 >
                   {deletingData && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  {deletingData ? 'Siliniyor...' : '30 Gün Sonra Sil (Önerilen)'}
+                  {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.softDelete')}
                 </Button>
                 <Button
                   variant="destructive"
@@ -1135,7 +1138,7 @@ export default function SettingsPage() {
                   onClick={() => handleDeleteData(true)}
                   disabled={deletingData}
                 >
-                  {deletingData ? 'Siliniyor...' : 'Hemen Kalıcı Olarak Sil'}
+                  {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.hardDelete')}
                 </Button>
                 <Button
                   variant="outline"
@@ -1143,7 +1146,7 @@ export default function SettingsPage() {
                   onClick={() => setShowDeleteConfirm(false)}
                   disabled={deletingData}
                 >
-                  İptal
+                  {t('gdpr.modal.cancel')}
                 </Button>
               </div>
             </CardContent>
@@ -1158,18 +1161,18 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Key className="w-5 h-5 text-primary" />
-                API Key Oluşturuldu!
+                {t('apiKeys.modal.title')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <p className="text-sm text-amber-800">
-                  <strong>Önemli:</strong> Bu key sadece bir kez gösterilir. Güvenli bir yere kaydedin!
+                  <strong>{t('apiKeys.modal.important')}</strong> {t('apiKeys.modal.warning')}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <label className="form-label">API Key</label>
+                <label className="form-label">{t('apiKeys.modal.label')}</label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="text"
@@ -1179,7 +1182,7 @@ export default function SettingsPage() {
                   />
                   <Button onClick={copyApiKey}>
                     <Copy className="w-4 h-4 mr-2" />
-                    Kopyala
+                    {t('apiKeys.copy')}
                   </Button>
                 </div>
               </div>
@@ -1192,7 +1195,7 @@ export default function SettingsPage() {
                   setNewApiKey(null);
                 }}
               >
-                Kapat
+                {t('apiKeys.modal.close')}
               </Button>
             </CardContent>
           </Card>

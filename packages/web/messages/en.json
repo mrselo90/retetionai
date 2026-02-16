@@ -116,5 +116,519 @@
             "resendError": "Could not send email.",
             "invalidCredentials": "Invalid login credentials."
         }
+    },
+    "ForgotPassword": {
+        "title": "Reset your password",
+        "description": "Enter your email address and we'll send you a link to reset your password.",
+        "emailLabel": "Email",
+        "submitButton": "Send reset link",
+        "submitting": "Sending...",
+        "backToLogin": "Back to Login",
+        "successTitle": "Check your email",
+        "successMessage": "We've sent a password reset link to {email}",
+        "error": "An error occurred."
+    },
+    "ResetPassword": {
+        "title": "Set new password",
+        "description": "Enter your new password below.",
+        "passwordLabel": "New Password",
+        "confirmPasswordLabel": "Confirm New Password",
+        "submitButton": "Update password",
+        "submitting": "Updating...",
+        "successTitle": "Password Updated",
+        "successMessage": "Your password has been reset successfully.",
+        "goToLogin": "Go to Login",
+        "errors": {
+            "passwordMismatch": "Passwords do not match",
+            "passwordLength": "Password must be at least 6 characters",
+            "default": "Reset failed."
+        }
+    },
+    "Products": {
+        "title": "Products",
+        "description": "Manage your products and prepare them for RAG.",
+        "shopifyMapButton": "Shopify Product Mapping",
+        "addProductButton": "Add New Product",
+        "empty": {
+            "title": "No products yet",
+            "description": "Start by adding your first product.",
+            "button": "Add New Product"
+        },
+        "card": {
+            "scraped": "Scraped",
+            "chunks": "chunks",
+            "edit": "Edit",
+            "deleteConfirm": "Are you sure you want to delete this product?"
+        },
+        "addModal": {
+            "title": "Add New Product",
+            "nameLabel": "Product Name",
+            "namePlaceholder": "e.g. Premium Skin Care Cream",
+            "urlLabel": "Product URL",
+            "urlPlaceholder": "https://example.com/product",
+            "urlHelper": "The product page will be automatically scraped and prepared for RAG.",
+            "cancel": "Cancel",
+            "submit": "Add and Scrape",
+            "scraping": {
+                "creating": "Creating product...",
+                "scraping": "Scraping product page...",
+                "embeddings": "Generating embeddings...",
+                "completed": "Completed!",
+                "wait": "This process may take a few minutes..."
+            }
+        },
+        "toasts": {
+            "missingInfo": {
+                "title": "Missing Information",
+                "message": "Please enter product name and URL"
+            },
+            "addSuccess": {
+                "title": "Success!",
+                "message": "Product added and scraped successfully"
+            },
+            "addError": {
+                "title": "Error",
+                "message": "Failed to add product"
+            },
+            "deleteSuccess": {
+                "title": "Deleted",
+                "message": "Product deleted successfully"
+            },
+            "deleteError": {
+                "title": "Error",
+                "message": "Failed to delete product"
+            },
+            "loadError": {
+                "title": "Error",
+                "message": "Failed to load products"
+            },
+            "sessionExpired": {
+                "title": "Session Expired",
+                "message": "Please login again"
+            }
+        }
+    },
+    "ProductMapping": {
+        "title": "Shopify Product Mapping",
+        "description": "Map your Shopify products to usage instructions and recipes.",
+        "backButton": "Back to Products",
+        "refreshButton": "Refresh Products",
+        "saveButton": "Save All Changes",
+        "table": {
+            "product": "Product",
+            "status": "Status",
+            "instructions": "Usage Instructions & Recipe",
+            "actions": "Actions",
+            "placeholder": "Enter usage instructions and cosmetic recipe here..."
+        },
+        "status": {
+            "active": "Active",
+            "archived": "Archived",
+            "draft": "Draft"
+        },
+        "empty": "No products found. Please ensure your Shopify integration is active.",
+        "loading": "Loading Shopify products...",
+        "saving": "Saving...",
+        "toasts": {
+            "loadError": {
+                "title": "Error",
+                "message": "Failed to load Shopify products"
+            },
+            "saveSuccess": {
+                "title": "Success",
+                "message": "Product instructions saved"
+            },
+            "saveError": {
+                "title": "Error",
+                "message": "Failed to save instructions"
+            }
+        }
+    },
+    "Conversations": {
+        "title": "Conversations",
+        "description": "All WhatsApp conversations with your customers",
+        "filters": {
+            "all": "All",
+            "positive": "😊 Positive",
+            "neutral": "😐 Neutral",
+            "negative": "😞 Negative"
+        },
+        "list": {
+            "empty": {
+                "title": "No conversations yet",
+                "description": "Conversations will appear here when customers message you"
+            },
+            "guest": "Guest",
+            "order": "Order",
+            "messages": "messages",
+            "time": {
+                "now": "Just now",
+                "minutesAgo": "{m} minutes ago",
+                "hoursAgo": "{h} hours ago",
+                "daysAgo": "{d} days ago"
+            }
+        },
+        "toasts": {
+            "loadError": {
+                "title": "Error",
+                "message": "Failed to load conversations"
+            },
+            "sessionExpired": {
+                "title": "Session Expired",
+                "message": "Please login again"
+            }
+        }
+    },
+    "Integrations": {
+        "title": "Integrations",
+        "description": "Connect your e-commerce platforms and automate order tracking",
+        "platformSupport": {
+            "title": "Corporate support (GlowGuide)",
+            "subtitle": "Contact us via WhatsApp"
+        },
+        "providers": {
+            "whatsapp": {
+                "title": "WhatsApp Business",
+                "description": "Connect your own WhatsApp Business number to send messages to customers",
+                "connected": "Your number is connected. Click to update.",
+                "action": {
+                    "connect": "Connect",
+                    "update": "Update"
+                }
+            },
+            "shopify": {
+                "title": "Shopify",
+                "description": "Connect your Shopify store via OAuth",
+                "connected": "Your store is connected. Click to reconnect.",
+                "action": {
+                    "connect": "Connect",
+                    "connected": "Connected"
+                }
+            },
+            "csv": {
+                "title": "Import CSV",
+                "description": "Upload your order data via CSV",
+                "action": "Import"
+            },
+            "manual": {
+                "title": "Manual / API",
+                "description": "Integrate your own system with API webhooks",
+                "connected": "API integration installed.",
+                "action": {
+                    "setup": "Setup",
+                    "connected": "Connected"
+                }
+            }
+        },
+        "active": {
+            "title": "Active Integrations",
+            "empty": {
+                "title": "No integrations yet",
+                "description": "Create your first integration using the options above"
+            },
+            "status": {
+                "active": "Active",
+                "error": "Error",
+                "pending": "Pending",
+                "disabled": "Disabled"
+            },
+            "connected": "Connected"
+        },
+        "modals": {
+            "shopify": {
+                "title": "Connect Shopify",
+                "shopLabel": "Shopify Store Address",
+                "shopPlaceholder": "example.myshopify.com",
+                "helper": "Your full Shopify store address (with .myshopify.com)",
+                "cancel": "Cancel",
+                "connect": "Connect",
+                "connecting": "Connecting..."
+            },
+            "csv": {
+                "title": "Import CSV",
+                "fileLabel": "CSV File",
+                "fileSelected": "✓ {name} selected",
+                "format": "Format: Your CSV file must include: order_id, customer_phone, customer_name, status, delivery_date",
+                "cancel": "Cancel",
+                "import": "Import",
+                "importing": "Importing..."
+            },
+            "manual": {
+                "title": "Manual / API Integration",
+                "webhookLabel": "API Webhook URL:",
+                "webhookHelper": "Send POST requests to this URL for order events.",
+                "apiKeyLabel": "API Key (get from Settings):",
+                "cancel": "Cancel",
+                "create": "Create Integration"
+            },
+            "whatsapp": {
+                "title": "Connect WhatsApp Business",
+                "updateTitle": "Update WhatsApp Connection",
+                "description": "Enter Phone Number ID, Access Token, and Verify Token from Meta for Developers.",
+                "displayLabel": "Display Number (optional)",
+                "displayPlaceholder": "+90 555 123 45 67",
+                "phoneIdLabel": "Phone Number ID *",
+                "phoneIdPlaceholder": "From Meta API Setup",
+                "tokenLabel": "Access Token *",
+                "tokenPlaceholder": "Token from Meta",
+                "verifyLabel": "Verify Token (webhook) *",
+                "verifyPlaceholder": "For webhook verification",
+                "cancel": "Cancel",
+                "save": "Connect",
+                "saving": "Saving...",
+                "update": "Update"
+            }
+        },
+        "toasts": {
+            "loadError": {
+                "title": "Error",
+                "message": "Failed to load integrations"
+            },
+            "missingShop": {
+                "title": "Missing Information",
+                "message": "Please enter Shopify store address"
+            },
+            "shopifyError": {
+                "title": "Error",
+                "message": "Shopify connection failed"
+            },
+            "fileSelected": {
+                "title": "File Selected",
+                "message": "{name}"
+            },
+            "missingFile": {
+                "title": "Missing File",
+                "message": "Please select a CSV file"
+            },
+            "importSuccess": {
+                "title": "Success!",
+                "message": "{count} events imported"
+            },
+            "importError": {
+                "title": "Error",
+                "message": "CSV import failed"
+            },
+            "manualSuccess": {
+                "title": "Created",
+                "message": "Manual integration created successfully"
+            },
+            "manualError": {
+                "title": "Error",
+                "message": "Failed to create manual integration"
+            },
+            "missingWhatsapp": {
+                "title": "Missing Information",
+                "message": "Phone Number ID, Access Token, and Verify Token are required"
+            },
+            "whatsappSuccess": {
+                "title": "Connected",
+                "message": "WhatsApp Business connection created"
+            },
+            "whatsappUpdateSuccess": {
+                "title": "Updated",
+                "message": "WhatsApp connection updated"
+            },
+            "whatsappError": {
+                "title": "Error",
+                "message": "Failed to save WhatsApp connection"
+            },
+            "deleteSuccess": {
+                "title": "Deleted",
+                "message": "Integration deleted successfully"
+            },
+            "deleteError": {
+                "title": "Error",
+                "message": "Failed to delete integration"
+            },
+            "sessionExpired": {
+                "title": "Session Expired",
+                "message": "Please login again"
+            }
+        }
+    },
+    "Settings": {
+        "title": "Settings",
+        "description": "Manage bot behavior and API access.",
+        "guardrailsLink": "Guardrails →",
+        "botPersona": {
+            "title": "Bot Persona",
+            "description": "Define how your AI bot speaks to customers.",
+            "botInfoLink": "Bot Info (AI Guidelines) →",
+            "nameLabel": "Bot Name",
+            "namePlaceholder": "Assistant",
+            "toneLabel": "Tone",
+            "tones": {
+                "friendly": "😊 Friendly",
+                "professional": "👔 Professional",
+                "casual": "😎 Casual",
+                "formal": "🎩 Formal"
+            },
+            "emojiLabel": "Use Emojis",
+            "emojiDesc": "Should the bot use emojis in messages?",
+            "responseLengthLabel": "Response Length",
+            "lengths": {
+                "short": "Short",
+                "medium": "Medium",
+                "long": "Long"
+            },
+            "temperatureLabel": "Creativity (Temperature): {value}",
+            "tempLabels": {
+                "consistent": "Consistent (0.0)",
+                "balanced": "Balanced (0.7)",
+                "creative": "Creative (1.0)"
+            },
+            "productScopeLabel": "Product instructions (WhatsApp)",
+            "productScopeDesc": "When should usage instructions be included in AI responses?",
+            "productScopes": {
+                "orderOnly": {
+                    "label": "Only customers with orders",
+                    "desc": "Instructions shown only to customers who bought the product."
+                },
+                "ragProductsToo": {
+                    "label": "All product questions",
+                    "desc": "Instructions included for any product question (matched via RAG)."
+                }
+            },
+            "whatsappSenderLabel": "WhatsApp Sender Number",
+            "whatsappSenderDesc": "Which number should be used for outgoing messages?",
+            "whatsappSenders": {
+                "merchantOwn": {
+                    "label": "My own number (store)",
+                    "desc": "Uses your connected WhatsApp Business number."
+                },
+                "corporate": {
+                    "label": "Corporate number (GlowGuide)",
+                    "desc": "Uses the platform's shared number."
+                }
+            },
+            "whatsappHelpTitle": "Where do I get my own number?",
+            "whatsappHelpText": "You can get a WhatsApp Business API number from Meta for Developers. Once you have a Phone Number ID, connect it in the Integrations page.",
+            "saveButton": "Save Settings",
+            "saving": "Saving..."
+        },
+        "guardrails": {
+            "title": "Guardrails",
+            "description": "Define rules for what the bot should not say or how it should react.",
+            "addButton": "New Rule",
+            "systemTitle": "System Rules (Read-only)",
+            "customTitle": "Your Custom Rules",
+            "empty": "No custom rules yet. Add one!",
+            "locked": "Locked",
+            "application": "Applies to: {type} · {action}",
+            "types": {
+                "both": "User + AI",
+                "user_message": "User only",
+                "ai_response": "AI only"
+            },
+            "actions": {
+                "block": "Block",
+                "escalate": "Escalate"
+            },
+            "edit": "Edit",
+            "delete": "Delete",
+            "modal": {
+                "titleAdd": "New Guardrail",
+                "titleEdit": "Edit Guardrail",
+                "nameLabel": "Rule Name *",
+                "descLabel": "Description (optional)",
+                "applyToLabel": "Apply To",
+                "matchTypeLabel": "Match Type",
+                "matchTypes": {
+                    "keywords": "Keywords (comma separated)",
+                    "phrase": "Exact Phrase"
+                },
+                "valueLabel": "Keywords / Phrase *",
+                "actionLabel": "Action",
+                "responseLabel": "Suggested Response (optional)",
+                "cancel": "Cancel",
+                "save": "Save",
+                "saving": "Saving..."
+            }
+        },
+        "apiKeys": {
+            "title": "API Keys",
+            "description": "Manage API keys for integrations (Max 5)",
+            "createButton": "New Key",
+            "creating": "Creating...",
+            "empty": "No API keys yet",
+            "expired": "Expired",
+            "expiresIn": "Expires in {days} days",
+            "created": "Created: {date}",
+            "expires": "Expires: {date}",
+            "lastUsed": "Last used: {date}",
+            "copy": "Copy",
+            "revoke": "Revoke",
+            "modal": {
+                "title": "API Key Created!",
+                "important": "Important:",
+                "warning": "This key is shown only once. Save it securely!",
+                "label": "API Key",
+                "close": "Close"
+            }
+        },
+        "gdpr": {
+            "title": "GDPR & Data Management",
+            "description": "Export or delete your data.",
+            "exportTitle": "Download Data",
+            "exportDesc": "Download all your data in JSON format.",
+            "exportButton": "Download",
+            "exporting": "Downloading...",
+            "deleteTitle": "Delete Account",
+            "deleteDesc": "Delete all your data (Right to Erasure). This cannot be undone!",
+            "deleteWarning": "Data will be permanently deleted in 30 days.",
+            "deleteButton": "Delete",
+            "links": {
+                "privacy": "Privacy Policy",
+                "terms": "Terms of Service",
+                "cookie": "Cookie Policy"
+            },
+            "modal": {
+                "title": "Confirm Account Deletion",
+                "warning": "This action cannot be undone!",
+                "list": {
+                    "all": "All data will be deleted",
+                    "permanent": "Permanently deleted in 30 days",
+                    "cancel": "Can be cancelled within 30 days by support"
+                },
+                "softDelete": "Delete in 30 Days (Recommended)",
+                "hardDelete": "Delete Immediately",
+                "cancel": "Cancel",
+                "deleting": "Deleting..."
+            }
+        },
+    "Analytics": {
+        "title": "Analytics",
+        "description": "System performance and metrics",
+        "metrics": {
+            "avgSentiment": "Avg. Sentiment",
+            "interactionRate": "Interaction Rate",
+            "returnRate": "Return Rate",
+            "totalUsers": "Total Users",
+            "totalOrders": "Total Orders",
+            "activeUsers": "active users",
+            "orders": "total orders"
+        },
+        "charts": {
+            "dau": {
+                "title": "Daily Active Users (DAU)",
+                "users": "users"
+            },
+            "volume": {
+                "title": "Message Volume",
+                "sent": "Sent",
+                "received": "Received"
+            }
+        },
+        "empty": {
+            "title": "No analytics data yet",
+            "description": "Metrics will appear here once the system is in use",
+            "addProduct": "Add Product",
+            "setupIntegration": "Setup Integration"
+        },
+        "sentiment": {
+            "positive": "Positive",
+            "neutral": "Neutral",
+            "negative": "Negative"
+        }
     }
 }

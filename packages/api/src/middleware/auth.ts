@@ -19,18 +19,18 @@ export interface AuthContext {
 }
 
 /**
- * Extract token from Authorization header
+ * Extract token from Authorization or X-Api-Key header
  */
-function extractToken(header: string | undefined): string | null {
-  if (!header) return null;
-  
-  // Bearer token format
-  if (header.startsWith('Bearer ')) {
-    return header.substring(7);
+function extractToken(c: Context): string | null {
+  const authHeader = c.req.header('Authorization');
+  if (authHeader) {
+    if (authHeader.startsWith('Bearer ')) {
+      return authHeader.substring(7);
+    }
+    return authHeader;
   }
   
-  // API key format (can be in header or as Bearer)
-  return header;
+  return c.req.header('X-Api-Key') || null;
 }
 
 /**
@@ -43,14 +43,22 @@ async function authenticateJWT(token: string): Promise<string | null> {
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
+      if (error) {
+        console.warn('JWT Verification failed:', error.message);
+      }
       return null;
     }
 
-    let { data: merchant } = await supabase
+    const { data: merchant, error: fetchError } = await supabase
       .from('merchants')
       .select('id')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error('Merchant lookup error:', fetchError.message);
+      return null;
+    }
 
     // First-time OAuth user: create merchant so they can use the app
     if (!merchant) {
@@ -58,7 +66,10 @@ async function authenticateJWT(token: string): Promise<string | null> {
         (user.user_metadata?.full_name as string) ||
         (user.user_metadata?.name as string) ||
         (user.email ?? 'Merchant');
-      const { data: inserted } = await supabase
+      
+      console.info(`Creating merchant record for user ${user.id} (${name})`);
+      
+      const { data: inserted, error: insertError } = await supabase
         .from('merchants')
         .insert({
           id: user.id,
@@ -67,11 +78,18 @@ async function authenticateJWT(token: string): Promise<string | null> {
         })
         .select('id')
         .single();
-      merchant = inserted;
+
+      if (insertError) {
+        console.error('Failed to create merchant record:', insertError.message);
+        return null;
+      }
+      
+      return inserted?.id ?? null;
     }
 
-    return merchant?.id ?? null;
-  } catch {
+    return merchant.id;
+  } catch (err) {
+    console.error('JWT Authentication exception:', err);
     return null;
   }
 }
@@ -89,14 +107,15 @@ async function authenticateApiKey(apiKey: string): Promise<string | null> {
     const hashedKey = hashApiKey(apiKey);
     
     // Query merchants where api_keys array contains the hashed key
-    // Using JSONB contains operator (@>)
+    // Supports both legacy string format ["hash"] and new object format [{"hash": "hash"}]
     const { data: merchants, error } = await supabase
       .from('merchants')
       .select('id, api_keys')
-      .contains('api_keys', [hashedKey])
+      .or(`api_keys.cs.["${hashedKey}"],api_keys.cs.[{"hash":"${hashedKey}"}]`)
       .limit(1);
     
     if (error || !merchants || merchants.length === 0) {
+      if (error) console.error('API key lookup error:', error.message);
       return null;
     }
     
@@ -123,7 +142,8 @@ async function authenticateApiKey(apiKey: string): Promise<string | null> {
       .eq('id', merchant.id);
     
     return merchant.id;
-  } catch {
+  } catch (err) {
+    console.error('API Key Authentication exception:', err);
     return null;
   }
 }
@@ -133,8 +153,7 @@ async function authenticateApiKey(apiKey: string): Promise<string | null> {
  * Supports both JWT (Supabase Auth) and API key authentication
  */
 export async function authMiddleware(c: Context, next: Next) {
-  const authHeader = c.req.header('Authorization');
-  const token = extractToken(authHeader);
+  const token = extractToken(c);
   
   if (!token) {
     return c.json({ error: 'Unauthorized: Missing authentication' }, 401);
@@ -166,8 +185,7 @@ export async function authMiddleware(c: Context, next: Next) {
  * Useful for public endpoints that can optionally use auth
  */
 export async function optionalAuthMiddleware(c: Context, next: Next) {
-  const authHeader = c.req.header('Authorization');
-  const token = extractToken(authHeader);
+  const token = extractToken(c);
   
   if (token) {
     // Try to authenticate

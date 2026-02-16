@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import Link from 'next/link';
+import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Package, Plus, Trash2, ExternalLink, FileText, CheckCircle, Loader2, X, ArrowRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface Product {
   id: string;
@@ -26,6 +27,7 @@ interface ProductWithChunks extends Product {
 }
 
 export default function ProductsPage() {
+  const t = useTranslations('Products');
   const [products, setProducts] = useState<ProductWithChunks[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -69,10 +71,10 @@ export default function ProductsPage() {
     } catch (err: any) {
       console.error('Failed to load products:', err);
       if (err.message?.includes('Unauthorized') || err.message?.includes('401')) {
-        toast.error('Oturum süresi doldu', 'Lütfen tekrar giriş yapın');
+        toast.error(t('toasts.sessionExpired.title'), t('toasts.sessionExpired.message'));
         window.location.href = '/login';
       } else {
-        toast.error('Ürünler yüklenirken bir hata oluştu');
+        toast.error(t('toasts.loadError.title'), t('toasts.loadError.message'));
       }
     } finally {
       setLoading(false);
@@ -81,7 +83,7 @@ export default function ProductsPage() {
 
   const handleAddProduct = async () => {
     if (!newProductUrl || !newProductName) {
-      toast.warning('Eksik Bilgi', 'Lütfen ürün adı ve URL girin');
+      toast.warning(t('toasts.missingInfo.title'), t('toasts.missingInfo.message'));
       return;
     }
 
@@ -90,7 +92,7 @@ export default function ProductsPage() {
       if (!session) return;
 
       setScraping(true);
-      setScrapeProgress('Ürün oluşturuluyor...');
+      setScrapeProgress(t('addModal.scraping.creating'));
 
       const createResponse = await authenticatedRequest<{ product: Product }>(
         '/api/products',
@@ -104,7 +106,7 @@ export default function ProductsPage() {
         }
       );
 
-      setScrapeProgress('Ürün sayfası taranıyor...');
+      setScrapeProgress(t('addModal.scraping.scraping'));
 
       await authenticatedRequest<{
         message: string;
@@ -115,7 +117,7 @@ export default function ProductsPage() {
         { method: 'POST' }
       );
 
-      setScrapeProgress('Embedding\'ler oluşturuluyor...');
+      setScrapeProgress(t('addModal.scraping.embeddings'));
 
       try {
         await authenticatedRequest(
@@ -127,8 +129,8 @@ export default function ProductsPage() {
         console.error('Embedding generation failed:', err);
       }
 
-      setScrapeProgress('Tamamlandı!');
-      toast.success('Başarılı!', 'Ürün başarıyla eklendi ve tarandı');
+      setScrapeProgress(t('addModal.scraping.completed'));
+      toast.success(t('toasts.addSuccess.title'), t('toasts.addSuccess.message'));
 
       await loadProducts();
 
@@ -139,7 +141,7 @@ export default function ProductsPage() {
       setScrapeProgress('');
     } catch (err: any) {
       console.error('Failed to add product:', err);
-      toast.error('Hata', err.message || 'Ürün eklenirken bir hata oluştu');
+      toast.error(t('toasts.addError.title'), err.message || t('toasts.addError.message'));
       setScraping(false);
       setScrapeProgress('');
     }
@@ -156,11 +158,11 @@ export default function ProductsPage() {
         { method: 'DELETE' }
       );
 
-      toast.success('Silindi', 'Ürün başarıyla silindi');
+      toast.success(t('toasts.deleteSuccess.title'), t('toasts.deleteSuccess.message'));
       await loadProducts();
     } catch (err) {
       console.error('Failed to delete product:', err);
-      toast.error('Hata', 'Ürün silinirken bir hata oluştu');
+      toast.error(t('toasts.deleteError.title'), t('toasts.deleteError.message'));
     }
   };
 
@@ -185,18 +187,18 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Ürünler</h1>
-          <p className="text-muted-foreground">Ürün bilgilerinizi yönetin ve RAG için hazırlayın</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <Button variant="outline" asChild>
             <Link href="/dashboard/products/shopify-map">
-              Shopify Ürün Eşleme
+              {t('shopifyMapButton')}
             </Link>
           </Button>
           <Button onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            Yeni Ürün Ekle
+            {t('addProductButton')}
           </Button>
         </div>
       </div>
@@ -208,11 +210,11 @@ export default function ProductsPage() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
               <Package className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Henüz ürün yok</h3>
-            <p className="text-muted-foreground mb-6">İlk ürününüzü ekleyerek başlayın</p>
+            <h3 className="text-lg font-semibold mb-2">{t('empty.title')}</h3>
+            <p className="text-muted-foreground mb-6">{t('empty.description')}</p>
             <Button onClick={() => setShowAddModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Yeni Ürün Ekle
+              {t('empty.button')}
             </Button>
           </CardContent>
         </Card>
@@ -225,7 +227,7 @@ export default function ProductsPage() {
                   <CardTitle className="text-base line-clamp-2 pr-2">{product.name}</CardTitle>
                   <button
                     onClick={() => {
-                      if (confirm('Bu ürünü silmek istediğinizden emin misiniz?')) {
+                      if (confirm(t('card.deleteConfirm'))) {
                         handleDeleteProduct(product.id);
                       }
                     }}
@@ -249,12 +251,12 @@ export default function ProductsPage() {
                 <div className="flex items-center gap-3">
                   <Badge variant="secondary" className="gap-1">
                     <FileText className="w-3 h-3" />
-                    {product.chunkCount || 0} chunks
+                    {product.chunkCount || 0} {t('card.chunks')}
                   </Badge>
                   {product.raw_text && (
                     <Badge variant="default" className="gap-1 bg-emerald-600 hover:bg-emerald-700">
                       <CheckCircle className="w-3 h-3" />
-                      Tarandı
+                      {t('card.scraped')}
                     </Badge>
                   )}
                 </div>
@@ -262,7 +264,7 @@ export default function ProductsPage() {
                 <Button variant="outline" className="w-full" asChild>
                   <Link href={`/dashboard/products/${product.id}`}>
                     <ArrowRight className="w-4 h-4 mr-2" />
-                    Düzenle
+                    {t('card.edit')}
                   </Link>
                 </Button>
               </CardContent>
@@ -277,7 +279,7 @@ export default function ProductsPage() {
           <Card className="max-w-md w-full animate-slide-up shadow-2xl">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Yeni Ürün Ekle</CardTitle>
+                <CardTitle>{t('addModal.title')}</CardTitle>
                 <button
                   onClick={() => !scraping && setShowAddModal(false)}
                   disabled={scraping}
@@ -292,41 +294,41 @@ export default function ProductsPage() {
                 <div className="py-8 text-center">
                   <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary" />
                   <p className="text-lg font-semibold">{scrapeProgress}</p>
-                  <p className="text-sm text-muted-foreground mt-2">Bu işlem birkaç dakika sürebilir...</p>
+                  <p className="text-sm text-muted-foreground mt-2">{t('addModal.scraping.wait')}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="form-label">Ürün Adı</label>
+                    <label className="form-label">{t('addModal.nameLabel')}</label>
                     <Input
                       type="text"
                       value={newProductName}
                       onChange={(e) => setNewProductName(e.target.value)}
-                      placeholder="Örn: Premium Cilt Bakım Kremi"
+                      placeholder={t('addModal.namePlaceholder')}
                       className="h-11"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="form-label">Ürün URL</label>
+                    <label className="form-label">{t('addModal.urlLabel')}</label>
                     <Input
                       type="url"
                       value={newProductUrl}
                       onChange={(e) => setNewProductUrl(e.target.value)}
-                      placeholder="https://example.com/product"
+                      placeholder={t('addModal.urlPlaceholder')}
                       className="h-11"
                     />
                     <p className="form-helper">
-                      Ürün sayfası otomatik olarak taranacak ve RAG için hazırlanacak
+                      {t('addModal.urlHelper')}
                     </p>
                   </div>
 
                   <div className="flex gap-3 pt-2">
                     <Button variant="outline" className="flex-1" onClick={() => setShowAddModal(false)}>
-                      İptal
+                      {t('addModal.cancel')}
                     </Button>
                     <Button className="flex-1" onClick={handleAddProduct}>
-                      Ekle ve Tara
+                      {t('addModal.submit')}
                     </Button>
                   </div>
                 </div>

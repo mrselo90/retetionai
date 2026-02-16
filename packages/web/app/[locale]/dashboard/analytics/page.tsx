@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
-import Link from 'next/link';
+import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, TrendingUp, TrendingDown, Users, Package, Calendar, ArrowRight } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 
 interface AnalyticsData {
   period: {
@@ -26,6 +27,8 @@ interface AnalyticsData {
 }
 
 export default function AnalyticsPage() {
+  const t = useTranslations('Analytics');
+  const locale = useLocale();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState({
@@ -67,9 +70,9 @@ export default function AnalyticsPage() {
   };
 
   const getSentimentLabel = (score: number) => {
-    if (score >= 4) return 'Pozitif';
-    if (score >= 3) return 'Nötr';
-    return 'Negatif';
+    if (score >= 4) return t('sentiment.positive');
+    if (score >= 3) return t('sentiment.neutral');
+    return t('sentiment.negative');
   };
 
   const getSentimentBadgeVariant = (score: number): 'default' | 'secondary' | 'destructive' => {
@@ -103,8 +106,8 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-muted-foreground">Sistem performansı ve metrikler</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
         </div>
         <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg p-1">
           <div className="flex items-center gap-2 px-2">
@@ -134,7 +137,7 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Ortalama Sentiment</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('metrics.avgSentiment')}</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -151,38 +154,38 @@ export default function AnalyticsPage() {
 
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Etkileşim Oranı</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('metrics.interactionRate')}</CardTitle>
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{analytics.metrics.interactionRate}%</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {analytics.metrics.totalUsers} toplam kullanıcı
+                  {analytics.metrics.totalUsers} {t('metrics.activeUsers')}
                 </p>
               </CardContent>
             </Card>
 
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">İade Oranı</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('metrics.returnRate')}</CardTitle>
                 <TrendingDown className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-500">{analytics.metrics.returnRate}%</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {analytics.metrics.totalOrders} toplam sipariş
+                  {analytics.metrics.totalOrders} {t('metrics.orders')}
                 </p>
               </CardContent>
             </Card>
 
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Toplam Kullanıcı</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('metrics.totalUsers')}</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{analytics.metrics.totalUsers}</div>
-                <p className="text-xs text-muted-foreground mt-1">Aktif kullanıcılar</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('metrics.activeUsers')}</p>
               </CardContent>
             </Card>
           </div>
@@ -192,7 +195,7 @@ export default function AnalyticsPage() {
             {/* DAU Chart */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Günlük Aktif Kullanıcılar (DAU)</CardTitle>
+                <CardTitle className="text-lg">{t('charts.dau.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-56 flex items-end gap-[2px]">
@@ -207,7 +210,7 @@ export default function AnalyticsPage() {
                         />
                         <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
                           <div className="bg-zinc-900 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
-                            {new Date(day.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} · {day.count} kullanıcı
+                            {new Date(day.date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })} · {day.count} {t('charts.dau.users')}
                           </div>
                         </div>
                       </div>
@@ -217,8 +220,8 @@ export default function AnalyticsPage() {
                 <div className="flex justify-between text-xs text-muted-foreground mt-3 px-1">
                   {analytics.dau.length > 0 && (
                     <>
-                      <span>{new Date(analytics.dau[0].date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
-                      <span>{new Date(analytics.dau[analytics.dau.length - 1].date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
+                      <span>{new Date(analytics.dau[0].date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })}</span>
+                      <span>{new Date(analytics.dau[analytics.dau.length - 1].date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })}</span>
                     </>
                   )}
                 </div>
@@ -228,7 +231,7 @@ export default function AnalyticsPage() {
             {/* Message Volume Chart */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Mesaj Hacmi</CardTitle>
+                <CardTitle className="text-lg">{t('charts.volume.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-56 flex items-end gap-[2px]">
@@ -251,7 +254,7 @@ export default function AnalyticsPage() {
                         />
                         <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
                           <div className="bg-zinc-900 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
-                            Gönderilen: {day.sent} · Alınan: {day.received}
+                            {t('charts.volume.sent')}: {day.sent} · {t('charts.volume.received')}: {day.received}
                           </div>
                         </div>
                       </div>
@@ -261,11 +264,11 @@ export default function AnalyticsPage() {
                 <div className="flex items-center gap-6 mt-4 justify-center">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-emerald-500 rounded-sm" />
-                    <span className="text-xs text-muted-foreground">Gönderilen</span>
+                    <span className="text-xs text-muted-foreground">{t('charts.volume.sent')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-primary/70 rounded-sm" />
-                    <span className="text-xs text-muted-foreground">Alınan</span>
+                    <span className="text-xs text-muted-foreground">{t('charts.volume.received')}</span>
                   </div>
                 </div>
               </CardContent>
@@ -278,21 +281,21 @@ export default function AnalyticsPage() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
               <BarChart3 className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Henüz analitik veri yok</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('empty.title')}</h3>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Sistem kullanılmaya başladığında burada metrikler görünecek
+              {t('empty.description')}
             </p>
             <div className="flex justify-center gap-3">
               <Button asChild>
                 <Link href="/dashboard/products">
                   <Package className="w-4 h-4 mr-2" />
-                  Ürün Ekle
+                  {t('empty.addProduct')}
                 </Link>
               </Button>
               <Button variant="outline" asChild>
                 <Link href="/dashboard/integrations">
                   <ArrowRight className="w-4 h-4 mr-2" />
-                  Entegrasyon Kur
+                  {t('empty.setupIntegration')}
                 </Link>
               </Button>
             </div>

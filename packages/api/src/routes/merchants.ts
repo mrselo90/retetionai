@@ -280,7 +280,7 @@ merchants.put('/me/bot-info', async (c) => {
 /**
  * Get Merchant API Keys (Protected)
  * GET /api/merchants/me/api-keys
- * Returns list of API key hashes (for display purposes, not the actual keys)
+ * Returns list of API key metadata (hashes for display, not the actual keys)
  */
 merchants.get('/me/api-keys', async (c) => {
   try {
@@ -297,14 +297,30 @@ merchants.get('/me/api-keys', async (c) => {
       return c.json({ error: 'Merchant not found' }, 404);
     }
 
-    const apiKeys = (merchant.api_keys as string[]) || [];
-
-    // Return key count and last 8 chars of each hash for identification
-    const keyList = apiKeys.map((hash, index) => ({
-      id: index,
-      hash: hash.substring(0, 8) + '...', // Show only first 8 chars
-      created_at: null, // Not tracked in current schema
-    }));
+    // Support both legacy string array and new object array
+    const rawKeys = (merchant.api_keys as any[]) || [];
+    
+    const keyList = rawKeys.map((key, index) => {
+      if (typeof key === 'string') {
+        // Legacy format
+        return {
+          id: index,
+          hash: key.substring(0, 8) + '...',
+          name: 'Legacy Key',
+          created_at: null,
+          expires_at: null,
+        };
+      }
+      // New object format
+      return {
+        id: index,
+        hash: key.hash.substring(0, 8) + '...',
+        name: key.name || 'Unnamed Key',
+        created_at: key.created_at,
+        expires_at: key.expires_at,
+        last_used_at: key.last_used_at,
+      };
+    });
 
     return c.json({
       apiKeys: keyList,
