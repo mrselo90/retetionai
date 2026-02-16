@@ -49,7 +49,7 @@ All schema changes in `supabase/migrations/009_enrichment_features.sql`:
 
 | Service | Status | PM2 Name | Port |
 |---------|--------|----------|------|
-| API (Hono) | ✅ Online | api | 3000 |
+| API (Hono) | ✅ Online | api | 3002 |
 | Frontend (Next.js) | ✅ Online | web | 3001 |
 | Workers (BullMQ) | ✅ Online | workers | - |
 | Redis | ✅ Connected | system | 6379 |
@@ -60,7 +60,7 @@ All schema changes in `supabase/migrations/009_enrichment_features.sql`:
 - `NODE_ENV=development` — HTTPS redirect disabled (no SSL certificate yet)
 - `ALLOWED_ORIGINS=http://209.97.134.215,http://localhost:3001`
 - Supabase keys validated and working
-- Nginx proxies `/api/*` → port 3000, `/*` → port 3001
+- Nginx proxies `/api/*` → port 3002, `/*` → port 3001
 
 ## What's Working
 

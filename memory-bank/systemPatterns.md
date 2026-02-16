@@ -97,8 +97,8 @@ All sources map to:
 
 ```
 Internet → Nginx (port 80)
-  ├─→ /api/*    → API (PM2, port 3000)
-  ├─→ /health   → API (PM2, port 3000)
+  ├─→ /api/*    → API (PM2, port 3002)
+  ├─→ /health   → API (PM2, port 3002)
   └─→ /*        → Frontend (PM2, port 3001)
                     ↓
               ├─→ Workers (PM2, BullMQ)
