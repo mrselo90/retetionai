@@ -66,7 +66,7 @@ customers.get('/', async (c) => {
 
     const formattedCustomers = (users || []).map((u: any) => {
       let phoneDisplay = '***';
-      try { if (u.phone) phoneDisplay = decryptPhone(u.phone); } catch {}
+      try { if (u.phone) phoneDisplay = decryptPhone(u.phone); } catch { /* ignore decryption error */ }
       return {
         id: u.id,
         name: u.name || 'İsimsiz',
@@ -114,7 +114,7 @@ customers.get('/:id', async (c) => {
     }
 
     let phoneDisplay = '***';
-    try { if (user.phone) phoneDisplay = decryptPhone(user.phone); } catch {}
+    try { if (user.phone) phoneDisplay = decryptPhone(user.phone); } catch { /* ignore decryption error */ }
 
     // Get orders
     const { data: orders } = await serviceClient
