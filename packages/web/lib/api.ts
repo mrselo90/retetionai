@@ -10,7 +10,7 @@ function getApiBaseUrl(): string {
   // points to api:3001 or localhost:3001 which the browser cannot reach.
   if (typeof window !== 'undefined') return '';
   // Server-side (SSR, rewrites): use env or default
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  return process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 }
 
 /** Full URL for an API endpoint (uses proxy in dev when NEXT_PUBLIC_API_URL is unset). */
@@ -70,12 +70,12 @@ export async function apiRequest<T>(
       error = text
         ? (JSON.parse(text) as ApiError)
         : {
-            error: 'Request failed',
-            message:
-              response.status === 404
-                ? 'API not found. Is the backend running on the correct port?'
-                : `Request failed (${response.status})`,
-          };
+          error: 'Request failed',
+          message:
+            response.status === 404
+              ? 'API not found. Is the backend running on the correct port?'
+              : `Request failed (${response.status})`,
+        };
     } catch {
       // Response was HTML or non-JSON (e.g. 404 page, proxy error)
       error = {

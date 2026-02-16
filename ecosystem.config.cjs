@@ -22,7 +22,8 @@ module.exports = {
       args: 'start',
       env: {
         NODE_ENV: 'production',
-        PORT: 3001
+        PORT: 3001,
+        INTERNAL_API_URL: 'http://localhost:3002'
       },
       instances: 1,
       autorestart: true,
