@@ -1,0 +1,69 @@
+/**
+ * Settings E2E Tests
+ * Tests for settings and configuration flows
+ */
+
+import { test, expect } from './setup';
+
+test.describe('Settings', () => {
+  test('should display settings page', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/dashboard/settings');
+    
+    await expect(authenticatedPage.locator('h1, h2')).toContainText(/Settings|Ayarlar/i);
+  });
+
+  test('should update persona settings', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/dashboard/settings');
+    
+    // Find persona settings inputs
+    const botNameInput = authenticatedPage.locator('input[name="bot_name"], input[placeholder*="bot name" i]');
+    
+    if (await botNameInput.count() > 0) {
+      await botNameInput.fill('Test Bot');
+      
+      // Click save button
+      await authenticatedPage.click('button:has-text("Save"), button:has-text("Kaydet")');
+      
+      // Should show success message
+      await expect(authenticatedPage.locator('text=/success|başarı/i')).toBeVisible({ timeout: 5000 });
+    }
+  });
+
+  test('should display API keys section', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/dashboard/settings');
+    
+    // Should show API keys section
+    await expect(authenticatedPage.locator('text=/API Key|API Anahtarı/i')).toBeVisible();
+  });
+
+  test('should generate new API key', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/dashboard/settings');
+    
+    // Click generate API key button
+    const generateButton = authenticatedPage.locator('button:has-text("Generate"), button:has-text("Oluştur")');
+    
+    if (await generateButton.count() > 0) {
+      await generateButton.click();
+      
+      // Should show API key (may be masked)
+      await expect(authenticatedPage.locator('text=/gg_live_/')).toBeVisible({ timeout: 5000 });
+    }
+  });
+
+  test('should revoke API key', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/dashboard/settings');
+    
+    // Look for revoke/delete buttons
+    const revokeButton = authenticatedPage.locator('button:has-text("Revoke"), button:has-text("Sil")');
+    
+    if (await revokeButton.count() > 0) {
+      await revokeButton.first().click();
+      
+      // Should confirm deletion
+      await authenticatedPage.click('button:has-text("Confirm"), button:has-text("Onayla")');
+      
+      // Should show success message
+      await expect(authenticatedPage.locator('text=/success|başarı/i')).toBeVisible({ timeout: 5000 });
+    }
+  });
+});

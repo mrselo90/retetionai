@@ -1,0 +1,120 @@
+{
+    "Landing": {
+        "title": "GlowGuide Retention Agent",
+        "subtitle": "Sipariş sonrası müşteri destek ve satış artırım için yapay zeka asistanı.",
+        "description": "Ürün rehberi, kullanım talimatları ve proaktif mesajlarla iade oranını düşürün, LTV'yi yükseltin.",
+        "login": "Giriş Yap",
+        "signup": "Kayıt Ol",
+        "privacy": "Gizlilik",
+        "terms": "Kullanım Koşulları"
+    },
+    "Signup": {
+        "title": "Hesap Oluştur",
+        "description": "İşletmeniz için yeni bir hesap oluşturun",
+        "businessName": "İşletme Adı",
+        "email": "E-posta",
+        "password": "Şifre",
+        "confirmPassword": "Şifre Tekrar",
+        "passwordMinLength": "En az 6 karakter",
+        "submit": "Kayıt Ol",
+        "submitting": "Hesap oluşturuluyor...",
+        "or": "veya",
+        "googleSignup": "Google ile giriş yap",
+        "googleRedirecting": "Yönlendiriliyor...",
+        "alreadyHaveAccount": "Zaten hesabınız var mı?",
+        "login": "Giriş yapın",
+        "backToHome": "← Ana sayfaya dön",
+        "successTitle": "🎉 Hesabınız Oluşturuldu!",
+        "successMessage": "Hesap oluşturuldu! Lütfen e-postanızı ({email}) kontrol edin ve aktivasyon linkine tıklayın.",
+        "apiKeyModal": {
+            "title": "🎉 Hesabınız Oluşturuldu!",
+            "important": "Önemli:",
+            "warning": "API anahtarınızı güvenli bir yere kaydedin. Bu anahtar sadece bir kez gösterilir ve tekrar görüntülenemez.",
+            "label": "API Key",
+            "savedCheckbox": "API anahtarını kaydettim",
+            "goToDashboard": "Dashboard'a Git"
+        },
+        "errors": {
+            "passwordMismatch": "Şifreler eşleşmiyor",
+            "passwordLength": "Şifre en az 6 karakter olmalı",
+            "googleDisabled": "Google ile giriş şu an etkin değil. Lütfen e-posta ile kayıt olun.",
+            "default": "Kayıt başarısız."
+        }
+    },
+    "Dashboard": {
+        "sidebar": {
+            "dashboard": "Dashboard",
+            "products": "Ürünler",
+            "conversations": "Konuşmalar",
+            "analytics": "Analitik",
+            "integrations": "Entegrasyon",
+            "settings": "Ayarlar",
+            "signOut": "Çıkış Yap"
+        },
+        "home": {
+            "greeting": "Günaydın, {name}! 👋",
+            "summary": "Bugün <bold>{activeUsers}</bold> müşterinle etkileşimdeyiz · Yanıt oranı: <bold>{responseRate}%</bold>",
+            "actionRequired": "Aksiyon Gerekli",
+            "kpi": {
+                "totalOrders": "Toplam Sipariş",
+                "lifetime": "Ömür boyu işlem",
+                "activeUsers": "Aktif Kullanıcı",
+                "last30Days": "Son 30 gün içinde",
+                "messagesSent": "Gönderilen Mesaj",
+                "autoManual": "Otomatik & Manuel",
+                "responseRate": "Yanıt Oranı",
+                "feedback": "Müşteri geri dönüşü"
+            },
+            "recentOrders": {
+                "title": "Son Siparişler",
+                "viewAll": "Tümünü Gör",
+                "empty": "Henüz sipariş bulunmuyor"
+            },
+            "recentConversations": {
+                "title": "Son Konuşmalar",
+                "viewAll": "Tümünü Gör",
+                "empty": "Henüz konuşma yok"
+            },
+            "quickActions": {
+                "title": "Hızlı İşlemler",
+                "addProduct": "Ürün Ekle",
+                "addProductDesc": "Kataloğa yeni ürün gir",
+                "integration": "Entegrasyon",
+                "integrationDesc": "Shopify veya CSV",
+                "settings": "Ayarlar",
+                "settingsDesc": "Bot ve hesap ayarları"
+            },
+            "loading": "Dashboard yükleniyor...",
+            "loadError": "Dashboard yüklenirken bir hata oluştu.",
+            "retry": "Tekrar dene"
+        }
+    },
+    "AuthCallback": {
+        "loggingIn": "Giriş işlemi tamamlanıyor...",
+        "error": "Giriş hatası"
+    },
+    "Login": {
+        "title": "GlowGuide'a Giriş Yap",
+        "description": "Hesabınızla giriş yaparak devam edin",
+        "emailLabel": "E-posta",
+        "passwordLabel": "Şifre",
+        "forgotPassword": "Şifremi unuttum",
+        "emailPlaceholder": "ornek@firma.com",
+        "submitButton": "Giriş Yap",
+        "submitting": "Giriş yapılıyor...",
+        "or": "veya",
+        "googleLogin": "Google ile giriş yap",
+        "googleRedirecting": "Yönlendiriliyor...",
+        "noAccount": "Hesabınız yok mu?",
+        "register": "Kayıt olun",
+        "errors": {
+            "default": "Giriş başarısız.",
+            "googleDisabled": "Google ile giriş şu an etkin değil. Lütfen e-posta ve şifre ile giriş yapın.",
+            "emailNotConfirmed": "E-posta adresinizi henüz doğrulamadınız. Gelen kutunuzdaki (ve spam klasöründeki) doğrulama bağlantısına tıklayın.",
+            "resendVerification": "Doğrulama e-postasını tekrar gönder",
+            "resendSuccess": "Doğrulama e-postası tekrar gönderildi. Gelen kutunuzu kontrol edin.",
+            "resendError": "E-posta gönderilemedi.",
+            "invalidCredentials": "Giriş bilgileri hatalı."
+        }
+    }
+}

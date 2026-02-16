@@ -1,0 +1,120 @@
+{
+    "Landing": {
+        "title": "GlowGuide Retention Agent",
+        "subtitle": "AI assistant for post-purchase customer support and sales uplift.",
+        "description": "Reduce return rates and increase LTV with product guides, usage instructions, and proactive messages.",
+        "login": "Login",
+        "signup": "Sign Up",
+        "privacy": "Privacy",
+        "terms": "Terms of Service"
+    },
+    "Signup": {
+        "title": "Create Account",
+        "description": "Create a new account for your business",
+        "businessName": "Business Name",
+        "email": "Email",
+        "password": "Password",
+        "confirmPassword": "Confirm Password",
+        "passwordMinLength": "At least 6 characters",
+        "submit": "Sign Up",
+        "submitting": "Creating account...",
+        "or": "or",
+        "googleSignup": "Sign up with Google",
+        "googleRedirecting": "Redirecting...",
+        "alreadyHaveAccount": "Already have an account?",
+        "login": "Login",
+        "backToHome": "← Back to Home",
+        "successTitle": "Account Created!",
+        "successMessage": "Account created! Please check your email ({email}) and click the confirmation link to activate your account.",
+        "apiKeyModal": {
+            "title": "🎉 Account Created!",
+            "important": "Important:",
+            "warning": "Save your API key in a safe place. It is shown only once and cannot be viewed again.",
+            "label": "API Key",
+            "savedCheckbox": "I have saved the API key",
+            "goToDashboard": "Go to Dashboard"
+        },
+        "errors": {
+            "passwordMismatch": "Passwords do not match",
+            "passwordLength": "Password must be at least 6 characters",
+            "googleDisabled": "Google signup is currently disabled. Please sign up with email.",
+            "default": "Signup failed."
+        }
+    },
+    "Dashboard": {
+        "sidebar": {
+            "dashboard": "Dashboard",
+            "products": "Products",
+            "conversations": "Conversations",
+            "analytics": "Analytics",
+            "integrations": "Integrations",
+            "settings": "Settings",
+            "signOut": "Sign Out"
+        },
+        "home": {
+            "greeting": "Good morning, {name}! 👋",
+            "summary": "Interacting with <bold>{activeUsers}</bold> customers today · Response rate: <bold>{responseRate}%</bold>",
+            "actionRequired": "Action Required",
+            "kpi": {
+                "totalOrders": "Total Orders",
+                "lifetime": "Lifetime transactions",
+                "activeUsers": "Active Users",
+                "last30Days": "In last 30 days",
+                "messagesSent": "Messages Sent",
+                "autoManual": "Auto & Manual",
+                "responseRate": "Response Rate",
+                "feedback": "Customer feedback"
+            },
+            "recentOrders": {
+                "title": "Recent Orders",
+                "viewAll": "View All",
+                "empty": "No orders yet"
+            },
+            "recentConversations": {
+                "title": "Recent Conversations",
+                "viewAll": "View All",
+                "empty": "No conversations yet"
+            },
+            "quickActions": {
+                "title": "Quick Actions",
+                "addProduct": "Add Product",
+                "addProductDesc": "Enter new product to catalog",
+                "integration": "Integrations",
+                "integrationDesc": "Shopify or CSV",
+                "settings": "Settings",
+                "settingsDesc": "Bot and account settings"
+            },
+            "loading": "Loading dashboard...",
+            "loadError": "Error loading dashboard.",
+            "retry": "Try again"
+        }
+    },
+    "AuthCallback": {
+        "loggingIn": "Logging in...",
+        "error": "Login error"
+    },
+    "Login": {
+        "title": "Login to GlowGuide",
+        "description": "Continue by logging in to your account",
+        "emailLabel": "Email",
+        "passwordLabel": "Password",
+        "forgotPassword": "Forgot password?",
+        "emailPlaceholder": "example@company.com",
+        "submitButton": "Login",
+        "submitting": "Logging in...",
+        "or": "or",
+        "googleLogin": "Login with Google",
+        "googleRedirecting": "Redirecting...",
+        "noAccount": "Don't have an account?",
+        "register": "Sign up",
+        "errors": {
+            "default": "Login failed.",
+            "googleDisabled": "Google login is currently disabled. Please use email and password.",
+            "emailNotConfirmed": "You haven't confirmed your email address yet. Please check your inbox (and spam folder) for the verification link.",
+            "resendVerification": "Resend verification email",
+            "resendSuccess": "Verification email resent. Check your inbox.",
+            "resendError": "Could not send email.",
+            "invalidCredentials": "Invalid login credentials."
+        }
+    }
+}
