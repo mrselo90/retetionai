@@ -23,7 +23,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3001,
-        INTERNAL_API_URL: 'http://localhost:3002'
+        INTERNAL_API_URL: 'http://127.0.0.1:3002'
       },
       instances: 1,
       autorestart: true,
