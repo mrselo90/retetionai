@@ -5,6 +5,11 @@ import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import Link from 'next/link';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
+import { Link2, ArrowLeft, Package, Image, Loader2, Save, ArrowRight } from 'lucide-react';
 
 interface ShopifyProductVariant {
   id: string;
@@ -153,7 +158,15 @@ export default function ShopifyMapPage() {
           recipe_summary: edit.recipe_summary?.trim() || undefined,
         }),
       });
-      toast.success('Kullanım talimatı kaydedildi');
+      toast.success('Kullanım talimatı kaydedildi', 'Değişiklikler başarıyla kaydedildi');
+      
+      // Add success highlight animation
+      const row = document.querySelector(`tr[data-product-id="${shopifyProduct.id}"]`);
+      if (row) {
+        row.classList.add('bg-success/10');
+        setTimeout(() => row.classList.remove('bg-success/10'), 1000);
+      }
+      
       await loadData();
     } catch (err: any) {
       toast.error('Kaydetme hatası', err.message);
@@ -163,135 +176,159 @@ export default function ShopifyMapPage() {
   };
 
   return (
-    
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-teal-100 text-teal-600 shrink-0" aria-hidden>
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-            </div>
-            <div className="space-y-1 min-w-0">
-              <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Shopify → Kullanım Talimatı</h1>
-              <p className="text-sm text-zinc-600 max-w-xl">
-                Her Shopify ürünü için tarif ve kullanım talimatı girin; AI asistan cevaplarında bu bilgiyi kullanır.
-              </p>
-              {!loading && shopifyProducts.length > 0 && (
-                <p className="text-xs text-zinc-500">{shopifyProducts.length} ürün listeleniyor</p>
-              )}
-            </div>
+    <div className="space-y-6 animate-fade-in pb-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary shrink-0 shadow-sm">
+            <Link2 className="w-6 h-6" />
           </div>
-          <Link
-            href="/dashboard/products"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition-colors shrink-0"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+          <div className="space-y-1.5 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Shopify → Kullanım Talimatı
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground font-medium max-w-xl">
+              Her Shopify ürünü için tarif ve kullanım talimatı girin; AI asistan cevaplarında bu bilgiyi kullanır.
+            </p>
+            {!loading && shopifyProducts.length > 0 && (
+              <Badge variant="outline-primary" size="sm" className="font-bold">
+                {shopifyProducts.length} ürün listeleniyor
+              </Badge>
+            )}
+          </div>
+        </div>
+        <Button variant="outline" size="lg" asChild className="shrink-0">
+          <Link href="/dashboard/products">
+            <ArrowLeft className="w-5 h-5 mr-2" />
             Ürünlere dön
           </Link>
-        </div>
+        </Button>
+      </div>
 
-        {loading ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-12 text-center">
-            <div className="inline-block h-10 w-10 animate-spin rounded-full border-2 border-teal-200 border-t-teal-600" />
-            <p className="mt-4 text-sm font-medium text-zinc-600">Shopify ürünleri yükleniyor…</p>
-            <p className="mt-1 text-xs text-zinc-500">Mağaza bağlantısı kontrol ediliyor</p>
+      {/* Loading State */}
+      {loading ? (
+        <div className="space-y-6 animate-fade-in">
+          <div className="space-y-3">
+            <div className="h-10 w-56 bg-gradient-to-r from-zinc-200 to-zinc-100 rounded-xl animate-pulse" />
+            <div className="h-5 w-96 bg-gradient-to-r from-zinc-100 to-zinc-50 rounded-lg animate-pulse" />
           </div>
-        ) : shopifyProducts.length === 0 ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
-            <div className="p-10 sm:p-12 text-center">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-zinc-100 flex items-center justify-center text-3xl" aria-hidden>
-                🛍️
-              </div>
-              <h2 className="mt-4 text-lg font-semibold text-zinc-900">Ürün bulunamadı</h2>
-              <p className="mt-2 text-sm text-zinc-600 max-w-md mx-auto">
-                Shopify mağazanızdan henüz ürün çekilmedi veya entegrasyon kurulmamış. Önce Entegrasyonlar sayfasından Shopify bağlayın.
-              </p>
-              <Link
-                href="/dashboard/integrations"
-                className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors shadow-sm"
-              >
+          <Card className="overflow-hidden shadow-lg">
+            {[1, 2, 3].map((i) => (
+              <div 
+                key={i} 
+                className="h-32 bg-white border-b-2 border-zinc-100 animate-pulse" 
+                style={{ animationDelay: `${i * 100}ms` }}
+              />
+            ))}
+          </Card>
+        </div>
+      ) : shopifyProducts.length === 0 ? (
+        /* Empty State */
+        <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors shadow-lg">
+          <CardContent className="p-16 text-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center shadow-inner">
+              <Package className="w-10 h-10 text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold mb-3">Ürün bulunamadı</h2>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto text-base">
+              Shopify mağazanızdan henüz ürün çekilmedi veya entegrasyon kurulmamış. Önce Entegrasyonlar sayfasından Shopify bağlayın.
+            </p>
+            <Button size="lg" asChild className="shadow-lg hover:shadow-xl">
+              <Link href="/dashboard/integrations">
                 Shopify bağla
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
+                <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-zinc-200 bg-white shadow-md overflow-hidden">
-            <div className="px-4 py-3 bg-zinc-50 border-b border-zinc-200">
-              <p className="text-xs font-medium text-zinc-600 uppercase tracking-wider">
-                Her satırda talimat yazıp <strong>Kaydet</strong> ile AI bağlamına ekleyin
-              </p>
-            </div>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        /* Products Table */
+        <Card hover className="overflow-hidden shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent border-b py-4">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Her satırda talimat yazıp <strong className="text-primary">Kaydet</strong> ile AI bağlamına ekleyin
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-zinc-200">
-                <thead className="bg-zinc-50/80">
+              <table className="min-w-full divide-y divide-border" aria-label="Shopify ürünleri ve kullanım talimatları">
+                <thead className="bg-muted/30">
                   <tr>
-                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-zinc-600 uppercase tracking-wider w-[min(220px,30%)]">
+                    <th scope="col" className="px-5 py-4 text-left text-xs font-bold text-foreground uppercase tracking-wider w-[min(240px,30%)]">
                       Ürün (Shopify)
                     </th>
-                    <th className="px-4 py-3.5 text-left text-xs font-semibold text-zinc-600 uppercase tracking-wider">
+                    <th scope="col" className="px-5 py-4 text-left text-xs font-bold text-foreground uppercase tracking-wider">
                       Kullanım talimatı / Tarif
                     </th>
-                    <th className="px-4 py-3.5 text-right text-xs font-semibold text-zinc-600 uppercase tracking-wider w-28">
+                    <th scope="col" className="px-5 py-4 text-right text-xs font-bold text-foreground uppercase tracking-wider w-32">
                       İşlem
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100 bg-white">
-                  {shopifyProducts.map((p) => (
-                    <tr key={p.id} className="hover:bg-zinc-50/80 transition-colors">
-                      <td className="px-4 py-4 align-top">
-                        <div className="flex gap-3">
+                <tbody className="divide-y divide-border bg-card">
+                  {shopifyProducts.map((p, idx) => (
+                    <tr 
+                      key={p.id}
+                      data-product-id={p.id}
+                      className="hover:bg-gradient-to-r hover:from-muted/30 hover:to-transparent transition-all duration-200 group animate-fade-in"
+                      style={{ animationDelay: `${idx * 50}ms` }}
+                    >
+                      {/* Product Info */}
+                      <td className="px-5 py-5 align-top">
+                        <div className="flex gap-4">
                           {p.featuredImageUrl ? (
-                            <img
-                              src={p.featuredImageUrl}
-                              alt=""
-                              className="w-12 h-12 rounded-lg object-cover bg-zinc-100 shrink-0"
-                            />
+                            <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-muted shrink-0 group-hover:scale-105 transition-transform shadow-sm">
+                              <img
+                                src={p.featuredImageUrl}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
                           ) : (
-                            <div className="w-12 h-12 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-400 shrink-0" aria-hidden>
-                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
-                              </svg>
+                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center text-muted-foreground shrink-0 shadow-inner">
+                              <Image className="w-7 h-7" />
                             </div>
                           )}
-                          <div className="min-w-0">
-                            <p className="font-medium text-zinc-900 truncate" title={p.title}>{p.title}</p>
-                            <p className="text-xs text-zinc-500 mt-0.5">{p.handle}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold text-foreground truncate mb-1" title={p.title}>{p.title}</p>
+                            <p className="text-xs text-muted-foreground font-medium mb-2">{p.handle}</p>
                             {(p.productType || p.vendor || (p.variants?.length && p.variants[0])) && (
-                              <div className="mt-2 flex flex-wrap gap-1.5">
+                              <div className="flex flex-wrap gap-2">
                                 {p.productType && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 text-xs font-medium">
+                                  <Badge variant="outline-primary" size="sm">
                                     {p.productType}
-                                  </span>
+                                  </Badge>
                                 )}
                                 {p.vendor && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-600 text-xs">
+                                  <Badge variant="outline" size="sm">
                                     {p.vendor}
-                                  </span>
+                                  </Badge>
                                 )}
                                 {p.variants?.[0]?.price != null && (
-                                  <span className="text-xs text-zinc-600 font-medium">{p.variants[0].price}</span>
+                                  <Badge variant="secondary" size="sm" className="font-bold">
+                                    {p.variants[0].price}
+                                  </Badge>
                                 )}
                               </div>
                             )}
                             {p.descriptionHtml && (
-                              <p className="mt-1.5 text-xs text-zinc-400 line-clamp-2 max-w-xs" title={stripHtmlForRag(p.descriptionHtml) ?? ''}>
+                              <p className="mt-2 text-xs text-muted-foreground/80 line-clamp-2 max-w-xs" title={stripHtmlForRag(p.descriptionHtml) ?? ''}>
                                 {stripHtmlForRag(p.descriptionHtml)?.slice(0, 100)}…
                               </p>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 align-top">
-                        <label className="sr-only">Kullanım talimatı: {p.title}</label>
+
+                      {/* Usage Instructions Textarea */}
+                      <td className="px-5 py-5 align-top">
+                        <label htmlFor={`instruction-${p.id}`} className="sr-only">
+                          Kullanım talimatı: {p.title}
+                        </label>
                         <textarea
-                          className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm min-h-[88px] placeholder:text-zinc-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-shadow"
+                          id={`instruction-${p.id}`}
+                          aria-label={`Kullanım talimatı: ${p.title}`}
+                          className="w-full rounded-xl border-2 border-input bg-background px-4 py-3 text-sm min-h-[88px] placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 outline-none transition-all duration-200 hover:border-border/80 font-medium resize-none"
                           rows={3}
                           placeholder="Örn: Cildi temizledikten sonra ince bir tabaka sürün. Günde 1–2 kez kullanılabilir."
                           value={editing[p.id]?.usage_instructions ?? ''}
@@ -303,31 +340,36 @@ export default function ShopifyMapPage() {
                           }
                         />
                       </td>
-                      <td className="px-4 py-4 text-right align-top">
-                        <button
-                          type="button"
-                          disabled={saving === p.id}
+
+                      {/* Save Button */}
+                      <td className="px-5 py-5 text-right align-top">
+                        <Button
                           onClick={() => handleSave(p)}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                          disabled={saving === p.id}
+                          size="lg"
+                          className="shadow-lg hover:shadow-xl"
                         >
                           {saving === p.id ? (
                             <>
-                              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                               Kaydediliyor…
                             </>
                           ) : (
-                            'Kaydet'
+                            <>
+                              <Save className="w-4 h-4 mr-2" />
+                              Kaydet
+                            </>
                           )}
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
-      </div>
-    
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
