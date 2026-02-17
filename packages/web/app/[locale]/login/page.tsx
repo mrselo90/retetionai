@@ -155,27 +155,36 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
-      <Card className="w-full max-w-md animate-fade-in shadow-lg border-muted/60">
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold tracking-tight">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-50 via-white to-primary/5 px-4 py-12 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMxNGI4YTYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djItaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bS0yIDJ2LTJoLTJ2Mmgyem0tNCAydi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bTI4IDMydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptLTIgMnYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-50"></div>
+      
+      <Card className="w-full max-w-md animate-scale-in shadow-2xl border-2 relative z-10 overflow-hidden">
+        {/* Card Header Gradient */}
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-primary via-primary/80 to-primary"></div>
+        
+        <CardHeader className="space-y-2 text-center pt-8 pb-6">
+          <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-lg">
+            <span className="text-3xl font-extrabold">G</span>
+          </div>
+          <CardTitle className="text-3xl font-extrabold tracking-tight">
             {t('title')}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-base font-medium">
             {t('description')}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5 px-8 pb-8">
           {error && (
-            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md flex items-start gap-2 text-sm text-destructive animate-accordion-down">
-              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-              <div className="flex-1">{error}</div>
+            <div className="p-4 bg-destructive/10 border-2 border-destructive/30 rounded-xl flex items-start gap-3 text-sm text-destructive animate-slide-down shadow-sm">
+              <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
+              <div className="flex-1 font-medium">{error}</div>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2.5">
+              <label htmlFor="email" className="text-sm font-bold leading-none text-foreground">
                 {t('emailLabel')}
               </label>
               <Input
@@ -185,16 +194,16 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder={t('emailPlaceholder')}
-                className="h-11"
+                className="h-12"
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                <label htmlFor="password" className="text-sm font-bold leading-none text-foreground">
                   {t('passwordLabel')}
                 </label>
-                <I18nLink href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
+                <I18nLink href="/forgot-password" className="text-sm font-bold text-primary hover:text-primary/80 transition-colors">
                   {t('forgotPassword')}
                 </I18nLink>
               </div>
@@ -205,26 +214,27 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="h-11"
+                className="h-12"
               />
             </div>
 
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 text-base"
+              className="w-full h-12 text-base font-bold shadow-lg hover:shadow-xl"
+              size="lg"
             >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               {loading ? t('submitting') : t('submitButton')}
             </Button>
           </form>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
+              <span className="w-full border-t-2 border-border" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
+              <span className="bg-background px-3 text-muted-foreground font-bold">
                 {t('or')}
               </span>
             </div>
@@ -235,7 +245,8 @@ export default function LoginPage() {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={googleLoading || loading}
-            className="w-full h-11"
+            className="w-full h-12 border-2 font-bold hover:border-primary/30 hover:shadow-md"
+            size="lg"
           >
             {googleLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -250,10 +261,10 @@ export default function LoginPage() {
             {googleLoading ? t('googleRedirecting') : t('googleLogin')}
           </Button>
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-muted-foreground">
+        <CardFooter className="flex justify-center pb-8 px-8">
+          <p className="text-sm text-muted-foreground font-medium">
             {t('noAccount')}{' '}
-            <I18nLink href="/signup" className="font-medium text-primary hover:underline">
+            <I18nLink href="/signup" className="font-bold text-primary hover:text-primary/80 transition-colors">
               {t('register')}
             </I18nLink>
           </p>

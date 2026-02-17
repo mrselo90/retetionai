@@ -119,30 +119,30 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in pb-8">
+    <div className="space-y-6 animate-fade-in pb-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-          <p className="text-muted-foreground">{t('description')}</p>
+        <div className="space-y-1.5">
+          <h1 className="text-3xl font-extrabold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground text-base font-medium">{t('description')}</p>
         </div>
-        <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg p-1">
-          <div className="flex items-center gap-2 px-2">
+        <div className="flex items-center gap-2 bg-white border-2 border-zinc-200 rounded-xl p-1.5 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 px-3">
             <Calendar className="w-4 h-4 text-muted-foreground" />
             <input
               type="date"
               value={dateRange.startDate}
               onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-              className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 py-1.5"
+              className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 py-2 font-medium"
             />
           </div>
-          <span className="text-muted-foreground text-sm">–</span>
-          <div className="flex items-center px-2">
+          <span className="text-muted-foreground text-sm font-bold">–</span>
+          <div className="flex items-center px-3">
             <input
               type="date"
               value={dateRange.endDate}
               onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-              className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 py-1.5"
+              className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 py-2 font-medium"
             />
           </div>
         </div>
@@ -151,106 +151,122 @@ export default function AnalyticsPage() {
       {/* Key Metrics */}
       {analytics ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t('metrics.avgSentiment')}</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <Card hover className="group overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-semibold text-muted-foreground">{t('metrics.avgSentiment')}</CardTitle>
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
+                  <TrendingUp className="h-5 w-5 text-success" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${getSentimentColor(analytics.metrics.avgSentiment)}`}>
+                <div className={`text-3xl font-bold tracking-tight ${getSentimentColor(analytics.metrics.avgSentiment)}`}>
                   {analytics.metrics.avgSentiment.toFixed(2)}
                 </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant={getSentimentBadgeVariant(analytics.metrics.avgSentiment)}>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant={getSentimentBadgeVariant(analytics.metrics.avgSentiment)} size="sm">
                     {getSentimentLabel(analytics.metrics.avgSentiment)}
                   </Badge>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t('metrics.interactionRate')}</CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <Card hover className="group overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-semibold text-muted-foreground">{t('metrics.interactionRate')}</CardTitle>
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center group-hover:bg-info/20 transition-colors">
+                  <BarChart3 className="h-5 w-5 text-info" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{analytics.metrics.interactionRate}%</div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <div className="text-3xl font-bold tracking-tight text-info">{analytics.metrics.interactionRate}%</div>
+                <p className="text-xs text-muted-foreground mt-2 font-medium">
                   {analytics.metrics.totalUsers} {t('metrics.activeUsers')}
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t('metrics.returnRate')}</CardTitle>
-                <TrendingDown className="h-4 w-4 text-muted-foreground" />
+            <Card hover className="group overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-semibold text-muted-foreground">{t('metrics.returnRate')}</CardTitle>
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center group-hover:bg-destructive/20 transition-colors">
+                  <TrendingDown className="h-5 w-5 text-destructive" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-500">{analytics.metrics.returnRate}%</div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <div className="text-3xl font-bold tracking-tight text-destructive">{analytics.metrics.returnRate}%</div>
+                <p className="text-xs text-muted-foreground mt-2 font-medium">
                   {analytics.metrics.totalOrders} {t('metrics.orders')}
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t('metrics.totalUsers')}</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+            <Card hover className="group overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-semibold text-muted-foreground">{t('metrics.totalUsers')}</CardTitle>
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{analytics.metrics.totalUsers}</div>
-                <p className="text-xs text-muted-foreground mt-1">{t('metrics.activeUsers')}</p>
+                <div className="text-3xl font-bold tracking-tight">{analytics.metrics.totalUsers}</div>
+                <p className="text-xs text-muted-foreground mt-2 font-medium">{t('metrics.activeUsers')}</p>
               </CardContent>
             </Card>
           </div>
 
           {/* ROI Section */}
           {roi && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="border-teal-200 bg-teal-50/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Kurtarılan İadeler</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-teal-600" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+              <Card hover className="border-2 border-success/20 bg-gradient-to-br from-success/5 to-transparent overflow-hidden group">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-semibold">Kurtarılan İadeler</CardTitle>
+                  <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
+                    <TrendingUp className="h-5 w-5 text-success" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-teal-700">{roi.savedReturns}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Şikayet → olumlu biten konuşmalar</p>
+                  <div className="text-3xl font-bold text-success tracking-tight">{roi.savedReturns}</div>
+                  <p className="text-xs text-muted-foreground mt-2 font-medium">Şikayet → olumlu biten konuşmalar</p>
                 </CardContent>
               </Card>
 
-              <Card className="border-blue-200 bg-blue-50/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Tekrar Alım</CardTitle>
-                  <Users className="h-4 w-4 text-blue-600" />
+              <Card hover className="border-2 border-info/20 bg-gradient-to-br from-info/5 to-transparent overflow-hidden group">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-semibold">Tekrar Alım</CardTitle>
+                  <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center group-hover:bg-info/20 transition-colors">
+                    <Users className="h-5 w-5 text-info" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-700">{roi.repeatPurchases}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Konuşması olan tekrar alıcılar</p>
+                  <div className="text-3xl font-bold text-info tracking-tight">{roi.repeatPurchases}</div>
+                  <p className="text-xs text-muted-foreground mt-2 font-medium">Konuşması olan tekrar alıcılar</p>
                 </CardContent>
               </Card>
 
-              <Card className="border-violet-200 bg-violet-50/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Çözülen Konuşmalar</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-violet-600" />
+              <Card hover className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent overflow-hidden group">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-semibold">Çözülen Konuşmalar</CardTitle>
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-violet-700">{roi.resolvedConversations}</div>
-                  <p className="text-xs text-muted-foreground mt-1">/ {roi.totalConversations} toplam</p>
+                  <div className="text-3xl font-bold text-primary tracking-tight">{roi.resolvedConversations}</div>
+                  <p className="text-xs text-muted-foreground mt-2 font-medium">/ {roi.totalConversations} toplam</p>
                 </CardContent>
               </Card>
 
-              <Card className="border-amber-200 bg-amber-50/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Toplam Mesaj</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-amber-600" />
+              <Card hover className="border-2 border-warning/20 bg-gradient-to-br from-warning/5 to-transparent overflow-hidden group">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-semibold">Toplam Mesaj</CardTitle>
+                  <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center group-hover:bg-warning/20 transition-colors">
+                    <BarChart3 className="h-5 w-5 text-warning" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-amber-700">{roi.messagesTotal}</div>
-                  <p className="text-xs text-muted-foreground mt-1">{roi.usersWithConversations}/{roi.totalUsers} müşteri etkileşimde</p>
+                  <div className="text-3xl font-bold text-warning tracking-tight">{roi.messagesTotal}</div>
+                  <p className="text-xs text-muted-foreground mt-2 font-medium">{roi.usersWithConversations}/{roi.totalUsers} müşteri etkileşimde</p>
                 </CardContent>
               </Card>
             </div>
@@ -259,23 +275,23 @@ export default function AnalyticsPage() {
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* DAU Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t('charts.dau.title')}</CardTitle>
+            <Card hover className="overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-muted/30 to-transparent pb-4">
+                <CardTitle className="text-lg font-bold">{t('charts.dau.title')}</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-56 flex items-end gap-[2px]">
+              <CardContent className="pt-6">
+                <div className="h-64 flex items-end gap-[2px]">
                   {analytics.dau.map((day, index) => {
                     const maxCount = Math.max(...analytics.dau.map((d) => d.count), 1);
                     const height = (day.count / maxCount) * 100;
                     return (
                       <div key={index} className="flex-1 group relative">
                         <div
-                          className="w-full bg-primary/80 rounded-t-sm transition-all group-hover:bg-primary"
-                          style={{ height: `${Math.max(height, 2)}%` }}
+                          className="w-full bg-gradient-to-t from-primary to-primary/60 rounded-t-md transition-all group-hover:from-primary group-hover:to-primary/80 shadow-sm"
+                          style={{ height: `${Math.max(height, 3)}%` }}
                         />
-                        <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
-                          <div className="bg-zinc-900 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
+                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block z-10 animate-scale-in">
+                          <div className="bg-zinc-900 text-white text-xs px-3 py-2 rounded-lg shadow-xl whitespace-nowrap font-medium">
                             {new Date(day.date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })} · {day.count} {t('charts.dau.users')}
                           </div>
                         </div>
@@ -283,7 +299,7 @@ export default function AnalyticsPage() {
                     );
                   })}
                 </div>
-                <div className="flex justify-between text-xs text-muted-foreground mt-3 px-1">
+                <div className="flex justify-between text-xs text-muted-foreground mt-4 px-1 font-medium">
                   {analytics.dau.length > 0 && (
                     <>
                       <span>{new Date(analytics.dau[0].date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })}</span>

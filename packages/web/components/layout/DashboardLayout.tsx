@@ -73,11 +73,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50/50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-zinc-50/50 to-primary/5 flex">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -85,21 +85,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:block",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-white/95 backdrop-blur-xl border-r border-zinc-200/80 shadow-xl transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:block",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="h-full flex flex-col">
           {/* Logo */}
-          <div className="h-16 flex items-center px-6 border-b border-zinc-100">
-            <Link href="/dashboard" className="flex items-center gap-2 font-bold text-xl tracking-tight text-zinc-900">
-              <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
-                <span className="text-lg">G</span>
+          <div className="h-20 flex items-center px-6 border-b border-zinc-100 bg-gradient-to-r from-primary/5 to-transparent">
+            <Link href="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-zinc-900 group">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <span className="text-xl font-extrabold">G</span>
               </div>
-              GlowGuide
+              <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">GlowGuide</span>
             </Link>
             <button
-              className="ml-auto lg:hidden text-zinc-500 hover:text-zinc-700"
+              className="ml-auto lg:hidden text-zinc-500 hover:text-zinc-700 p-2 rounded-lg hover:bg-zinc-100 transition-colors"
               onClick={() => setIsSidebarOpen(false)}
             >
               <X className="w-5 h-5" />
@@ -107,7 +107,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           {/* Nav Items */}
-          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto scrollbar-thin">
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
               const Icon = item.icon;
@@ -117,14 +117,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+                    "relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group",
                     isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                      ? "bg-gradient-to-r from-primary/10 to-primary/5 text-primary shadow-sm"
+                      : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                   )}
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  <Icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-zinc-500")} />
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"></div>
+                  )}
+                  <Icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", isActive ? "text-primary" : "text-zinc-500")} />
                   {item.name}
                 </Link>
               );
@@ -132,24 +135,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </nav>
 
           {/* User Profile */}
-          <div className="p-4 border-t border-zinc-100 bg-zinc-50/50">
-            <div className="flex items-center gap-3 mb-3">
-              <Avatar>
-                <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${userEmail || 'User'}`} />
-                <AvatarFallback>U</AvatarFallback>
+          <div className="p-4 border-t border-zinc-100 bg-gradient-to-r from-muted/20 to-transparent">
+            <div className="flex items-center gap-3 mb-3 p-3 rounded-xl bg-white border border-zinc-100 shadow-sm">
+              <Avatar className="ring-2 ring-primary/20">
+                <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${userEmail || 'User'}&backgroundColor=14b8a6`} />
+                <AvatarFallback className="bg-primary text-primary-foreground font-semibold">U</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-zinc-900 truncate">
+                <p className="text-sm font-semibold text-zinc-900 truncate">
                   {userEmail?.split('@')[0] || 'User'}
                 </p>
-                <p className="text-xs text-zinc-500 truncate">
+                <p className="text-xs text-zinc-500 truncate font-medium">
                   {userEmail || 'Loading...'}
                 </p>
               </div>
             </div>
             <Button
               variant="outline"
-              className="w-full justify-start text-zinc-600 hover:text-red-600 hover:bg-red-50 border-zinc-200"
+              className="w-full justify-start text-zinc-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 border-zinc-200 font-semibold"
               onClick={handleSignOut}
             >
               <LogOut className="w-4 h-4 mr-2" />
@@ -162,18 +165,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile Header */}
-        <header className="lg:hidden h-16 bg-white border-b border-zinc-200 flex items-center px-4 justify-between">
-          <Link href="/dashboard" className="font-bold text-lg text-zinc-900">
+        <header className="lg:hidden h-16 bg-white/95 backdrop-blur-xl border-b border-zinc-200/80 flex items-center px-4 justify-between shadow-sm sticky top-0 z-30">
+          <Link href="/dashboard" className="font-bold text-lg text-zinc-900 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow">
+              <span className="text-base font-extrabold">G</span>
+            </div>
             GlowGuide
           </Link>
-          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)}>
+          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="hover:bg-primary/10">
             <Menu className="w-6 h-6" />
           </Button>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          <div className="max-w-7xl mx-auto animate-fade-in">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 scrollbar-thin">
+          <div className="max-w-7xl mx-auto">
             {children}
           </div>
         </main>

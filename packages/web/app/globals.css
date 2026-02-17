@@ -90,38 +90,81 @@
 }
 
 :root {
+  /* Base colors */
   --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
+  --foreground: 222 47% 11%;
 
+  /* Card colors */
   --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
+  --card-foreground: 222 47% 11%;
 
+  /* Popover colors */
   --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
+  --popover-foreground: 222 47% 11%;
 
-  --primary: 240 5.9% 10%;
-  --primary-foreground: 0 0% 98%;
+  /* Primary brand colors - Enhanced teal/cyan palette */
+  --primary: 174 62% 47%;
+  --primary-foreground: 0 0% 100%;
+  --primary-hover: 174 62% 42%;
+  --primary-light: 174 62% 95%;
 
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
+  /* Secondary colors */
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 222 47% 11%;
 
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
+  /* Muted colors */
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
 
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
+  /* Accent colors */
+  --accent: 174 62% 47%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 0 0% 98%;
+  /* Destructive colors */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
 
-  --success: 142.1 76.2% 36.3%;
-  --success-foreground: 355.7 100% 97.3%;
+  /* Success colors */
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 100%;
+  --success-light: 142 71% 95%;
 
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: 240 10% 3.9%;
+  /* Warning colors */
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 100%;
+  --warning-light: 38 92% 95%;
 
-  --radius: 0.5rem;
+  /* Info colors */
+  --info: 217 91% 60%;
+  --info-foreground: 0 0% 100%;
+  --info-light: 217 91% 95%;
+
+  /* Border and input */
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 174 62% 47%;
+
+  /* Radius system */
+  --radius: 0.75rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Spacing scale */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
 }
 
 .dark {
@@ -162,19 +205,97 @@
     border-color: theme(--color-border);
   }
 
+  html {
+    margin: 0;
+    padding: 0;
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* Enhanced Typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl;
+  }
+
+  h2 {
+    @apply text-3xl;
+  }
+
+  h3 {
+    @apply text-2xl;
+  }
+
+  h4 {
+    @apply text-xl;
+  }
+
+  h5 {
+    @apply text-lg;
+  }
+
+  h6 {
+    @apply text-base;
+  }
+
+  /* Focus Styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Selection Styles */
+  ::selection {
+    @apply bg-primary/20;
   }
 }
 
-/* Consistent page-level animations */
+/* Enhanced Animations */
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out;
+  animation: fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .animate-slide-up {
-  animation: slide-up 0.3s ease-out;
+  animation: slide-up 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-slide-down {
+  animation: slide-down 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Form utility classes used across pages */
@@ -209,5 +330,85 @@
 .modal-overlay {
   @apply fixed inset-0 z-50 flex items-center justify-center p-4;
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  animation: fade-in 0.2s ease-out;
+}
+
+/* Enhanced Card Styles */
+.card-hover {
+  @apply transition-all duration-200;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Gradient Backgrounds */
+.gradient-primary {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-hover)) 100%);
+}
+
+.gradient-success {
+  background: linear-gradient(135deg, hsl(var(--success)) 0%, hsl(142 71% 40%) 100%);
+}
+
+.gradient-muted {
+  background: linear-gradient(135deg, hsl(var(--muted)) 0%, hsl(220 14% 93%) 100%);
+}
+
+/* Glass Morphism */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Button Enhancements */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shine::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.btn-shine:hover::before {
+  left: 100%;
+}
+
+/* Loading Skeleton */
+.skeleton {
+  @apply animate-pulse bg-muted rounded;
+}
+
+/* Stat Card Enhancements */
+.stat-card {
+  @apply bg-white rounded-xl border border-border p-6 transition-all duration-200;
+}
+
+.stat-card:hover {
+  @apply shadow-md border-primary/20;
+}
+
+/* Badge Enhancements */
+.badge-glow {
+  box-shadow: 0 0 12px -2px currentColor;
+}
+
+/* Divider */
+.divider {
+  @apply h-px bg-border;
+}
+
+.divider-vertical {
+  @apply w-px bg-border;
 }
