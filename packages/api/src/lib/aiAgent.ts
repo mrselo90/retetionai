@@ -224,7 +224,7 @@ export async function generateAIResponse(
   // Step 6: Generate response
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo', // Use GPT-3.5-Turbo as requested
+      model: 'gpt-4o-mini', // Use GPT-4o-mini for better logic and reasoning
       messages,
       temperature: persona.temperature || 0.7,
       max_tokens: 500,
@@ -294,7 +294,17 @@ function buildSystemPrompt(
   ragContext?: string,
   botInfo?: Record<string, string>
 ): string {
-  let prompt = `You are a helpful customer service assistant for ${merchantName}.\n\n`;
+  const botName = persona?.bot_name || 'GlowGuide Asistan';
+  
+  let prompt = `You are ${botName}, a professional and helpful customer service assistant for ${merchantName}.\n\n`;
+  
+  prompt += `IMPORTANT RULES:
+- Always be logical, clear, and helpful in your responses
+- Use the provided product information and context to give accurate answers
+- If you don't have information, admit it clearly and suggest alternatives
+- Be concise but complete - explain things step by step when needed
+- Show empathy and understanding in complaints
+- Never make up facts or product details\n\n`;
 
   // Merchant-defined bot info (brand guidelines, boundaries, recipe overview)
   if (botInfo && Object.keys(botInfo).length > 0) {
@@ -314,47 +324,89 @@ function buildSystemPrompt(
   }
 
   // Persona settings
+  const toneMap: Record<string, string> = {
+    friendly: 'friendly and warm',
+    professional: 'professional and courteous',
+    casual: 'casual and relaxed',
+    formal: 'formal and respectful'
+  };
+  
   if (persona.tone) {
-    prompt += `Tone: ${persona.tone}\n`;
+    prompt += `Communication style: Be ${toneMap[persona.tone] || persona.tone}.\n`;
   }
-  if (persona.style) {
-    prompt += `Style: ${persona.style}\n`;
+  
+  if (persona.emoji === true) {
+    prompt += `Use appropriate emojis to make messages more engaging.\n`;
+  } else if (persona.emoji === false) {
+    prompt += `Do not use emojis in responses.\n`;
   }
+  
+  const lengthMap: Record<string, string> = {
+    short: 'Keep responses brief (1-2 sentences when possible)',
+    medium: 'Keep responses moderate (2-4 sentences typically)',
+    long: 'Provide detailed responses (3-6 sentences with full explanations)'
+  };
+  
+  if (persona.response_length) {
+    prompt += `Response length: ${lengthMap[persona.response_length] || 'medium'}.\n`;
+  }
+  
+  prompt += '\n';
 
   // Intent-specific instructions
   switch (intent) {
     case 'question':
       prompt +=
-        '\nThe user is asking a question. Provide helpful, accurate information based on the product context and recipes provided when available.\n';
+        'USER INTENT: The user is asking a question.\n' +
+        '- Answer based on the product information provided below\n' +
+        '- Be clear and specific with step-by-step instructions when appropriate\n' +
+        '- If information is missing, explain what you cannot answer and suggest alternatives\n\n';
       break;
     case 'complaint':
       prompt +=
-        '\nThe user has a complaint. Be empathetic, apologize if appropriate, and offer solutions.\n';
+        'USER INTENT: The user has a complaint or problem.\n' +
+        '- Show empathy and acknowledge their concern first\n' +
+        '- Apologize if appropriate\n' +
+        '- Offer practical solutions or next steps\n' +
+        '- Be professional and solution-focused\n\n';
       break;
     case 'chat':
-      prompt += '\nThe user is having a casual conversation. Be friendly and engaging.\n';
+      prompt += 
+        'USER INTENT: The user is having a casual conversation.\n' +
+        '- Be friendly and engaging\n' +
+        '- Keep the conversation natural and helpful\n' +
+        '- Look for opportunities to assist\n\n';
       break;
     case 'opt_out':
       prompt +=
-        '\nThe user wants to opt out. Respect their choice and confirm the opt-out.\n';
+        'USER INTENT: The user wants to opt out or stop receiving messages.\n' +
+        '- Respect their choice immediately\n' +
+        '- Confirm the opt-out clearly\n' +
+        '- Thank them politely\n\n';
       break;
   }
 
   // RAG context (knowledge_chunks + product_instructions)
   if (ragContext) {
-    prompt += `\n\nProduct Information (use this to answer questions):\n${ragContext}\n\n`;
+    prompt += `--- PRODUCT INFORMATION (Use this to answer) ---\n${ragContext}\n\n`;
     prompt +=
-      'Use this information to answer questions accurately. If the information is not in the context, say so politely and offer general help or suggest they contact support.\n';
+      'IMPORTANT: Base your answer ONLY on the information above. ' +
+      'If the answer is not in the context, clearly say "I don\'t have specific information about that" and offer to help in another way.\n\n';
   } else if (intent === 'question') {
     // No product info available — bot should still respond helpfully
     prompt +=
-      "\n\nNo product information is available for this conversation (e.g. the product isn't in the knowledge base, or no order context). " +
-      "Respond in a friendly, helpful way: acknowledge their question, say you don't have specific details about that product, and offer alternatives " +
-      "(e.g. general usage tips, contacting customer service, checking the product name or packaging). Never invent product details, ingredients, or usage.\n";
+      '--- NO PRODUCT INFORMATION AVAILABLE ---\n' +
+      'The product information is not in the knowledge base yet. ' +
+      'Acknowledge their question politely, explain you don\'t have specific details, ' +
+      'and suggest alternatives (check packaging, contact support, etc.). ' +
+      'NEVER invent product details, ingredients, or usage instructions.\n\n';
   }
 
   prompt +=
-    '\nKeep responses concise, friendly, and helpful. Respond in Turkish unless the user writes in another language.';
+    'RESPONSE FORMAT:\n' +
+    '- Respond in Turkish unless the user writes in another language\n' +
+    '- Be natural and conversational\n' +
+    '- Focus on being helpful and solving the customer\'s need\n';
 
   return prompt;
 }
