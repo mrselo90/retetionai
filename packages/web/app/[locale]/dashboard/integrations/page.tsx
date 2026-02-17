@@ -367,14 +367,14 @@ export default function IntegrationsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-8 animate-fade-in">
-        <div className="space-y-2">
-          <div className="h-8 w-40 bg-zinc-200 rounded-lg animate-pulse" />
-          <div className="h-4 w-64 bg-zinc-100 rounded animate-pulse" />
+      <div className="space-y-6 animate-fade-in">
+        <div className="space-y-3">
+          <div className="h-10 w-48 bg-gradient-to-r from-zinc-200 to-zinc-100 rounded-xl animate-pulse" />
+          <div className="h-5 w-96 bg-gradient-to-r from-zinc-100 to-zinc-50 rounded-lg animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-48 bg-white border border-zinc-200 rounded-xl animate-pulse" />
+            <div key={i} className="h-56 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" style={{ animationDelay: `${i * 100}ms` }} />
           ))}
         </div>
       </div>
@@ -383,28 +383,28 @@ export default function IntegrationsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-8">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-        <p className="text-muted-foreground">
+      <div className="space-y-1.5">
+        <h1 className="text-3xl font-extrabold tracking-tight">{t('title')}</h1>
+        <p className="text-muted-foreground text-base font-medium">
           {t('description')}
         </p>
       </div>
 
       {/* Platform support number */}
       {platformWhatsApp && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">💬</span>
+        <div className="rounded-xl border-2 border-success/30 bg-gradient-to-r from-success/10 to-success/5 p-6 flex items-center justify-between gap-4 shadow-lg animate-scale-in">
+          <div className="flex items-center gap-4">
+            <div className="text-4xl">💬</div>
             <div>
-              <p className="font-medium text-zinc-900">{t('platformSupport.title')}</p>
-              <p className="text-sm text-zinc-600">{t('platformSupport.subtitle')}</p>
+              <p className="font-bold text-zinc-900 text-lg">{t('platformSupport.title')}</p>
+              <p className="text-sm text-zinc-600 font-medium">{t('platformSupport.subtitle')}</p>
             </div>
           </div>
           <a
             href={`https://wa.me/${platformWhatsApp.replace(/^\+/, '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium text-sm whitespace-nowrap"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-success to-success/90 text-success-foreground rounded-xl hover:shadow-xl transition-all font-bold text-sm whitespace-nowrap hover:scale-105"
           >
             {platformWhatsApp}
           </a>
@@ -412,23 +412,24 @@ export default function IntegrationsPage() {
       )}
 
       {/* Integration Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* WhatsApp Business */}
-        <div className={`rounded-xl shadow-sm p-6 ${hasWhatsApp ? 'bg-emerald-50/80 border-2 border-emerald-300' : 'bg-white border border-zinc-200/80'}`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">{/* WhatsApp Business */}
+        <div className={`rounded-xl shadow-lg p-7 transition-all duration-300 hover:scale-105 ${hasWhatsApp ? 'bg-gradient-to-br from-success/15 to-success/5 border-2 border-success/40 shadow-success/20' : 'bg-white border-2 border-zinc-200/80 hover:border-success/30'}`}>
           <div className="text-center relative">
             {hasWhatsApp && (
-              <span className="absolute top-0 right-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+              <span className="absolute -top-2 -right-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-success text-success-foreground shadow-lg animate-scale-in">
                 ✓ {t('active.connected')}
               </span>
             )}
-            <div className="text-5xl mb-4">💬</div>
-            <h3 className="text-xl font-bold text-zinc-900 mb-2">{t('providers.whatsapp.title')}</h3>
-            <p className="text-sm text-zinc-600 mb-6">
+            <div className="text-6xl mb-5">💬</div>
+            <h3 className="text-xl font-extrabold text-zinc-900 mb-3">{t('providers.whatsapp.title')}</h3>
+            <p className="text-sm text-zinc-600 mb-6 font-medium min-h-[40px]">
               {hasWhatsApp ? t('providers.whatsapp.connected') : t('providers.whatsapp.description')}
             </p>
             <Button
               onClick={() => openWhatsAppModal(integrations.find((i) => i.provider === 'whatsapp'))}
-              className="w-full"
+              className="w-full shadow-lg"
+              size="lg"
+              variant={hasWhatsApp ? 'outline' : 'default'}
             >
               {hasWhatsApp ? t('providers.whatsapp.action.update') : t('providers.whatsapp.action.connect')}
             </Button>
@@ -436,22 +437,23 @@ export default function IntegrationsPage() {
         </div>
 
         {/* Shopify */}
-        <div className={`rounded-xl shadow-sm p-6 ${hasShopify ? 'bg-green-50/80 border-2 border-green-300' : 'bg-white border border-zinc-200/80'}`}>
+        <div className={`rounded-xl shadow-lg p-7 transition-all duration-300 hover:scale-105 ${hasShopify ? 'bg-gradient-to-br from-green-100/80 to-green-50/50 border-2 border-green-400/40 shadow-green-200/50' : 'bg-white border-2 border-zinc-200/80 hover:border-green-300'}`}>
           <div className="text-center relative">
             {hasShopify && (
-              <span className="absolute top-0 right-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              <span className="absolute -top-2 -right-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-600 text-white shadow-lg animate-scale-in">
                 ✓ {t('active.connected')}
               </span>
             )}
-            <div className="text-5xl mb-4">🛍️</div>
-            <h3 className="text-xl font-bold text-zinc-900 mb-2">{t('providers.shopify.title')}</h3>
-            <p className="text-sm text-zinc-600 mb-6">
+            <div className="text-6xl mb-5">🛍️</div>
+            <h3 className="text-xl font-extrabold text-zinc-900 mb-3">{t('providers.shopify.title')}</h3>
+            <p className="text-sm text-zinc-600 mb-6 font-medium min-h-[40px]">
               {hasShopify ? t('providers.shopify.connected') : t('providers.shopify.description')}
             </p>
             <Button
               onClick={() => setShowShopifyModal(true)}
               variant={hasShopify ? 'outline' : 'default'}
-              className="w-full"
+              className="w-full shadow-lg"
+              size="lg"
             >
               {hasShopify ? t('providers.shopify.action.connected') : t('providers.shopify.action.connect')}
             </Button>
@@ -459,42 +461,44 @@ export default function IntegrationsPage() {
         </div>
 
         {/* CSV Import */}
-        <div className="bg-white border border-zinc-200/80 rounded-xl shadow-sm p-6">
+        <div className="bg-white border-2 border-zinc-200/80 rounded-xl shadow-lg p-7 hover:scale-105 transition-all duration-300 hover:border-primary/30">
           <div className="text-center">
-            <div className="text-5xl mb-4">📊</div>
-            <h3 className="text-xl font-bold text-zinc-900 mb-2">{t('providers.csv.title')}</h3>
-            <p className="text-sm text-zinc-600 mb-6">
+            <div className="text-6xl mb-5">📊</div>
+            <h3 className="text-xl font-extrabold text-zinc-900 mb-3">{t('providers.csv.title')}</h3>
+            <p className="text-sm text-zinc-600 mb-6 font-medium min-h-[40px]">
               {t('providers.csv.description')}
             </p>
             <Button
               onClick={() => setShowCsvModal(true)}
-              className="w-full"
+              className="w-full shadow-lg"
+              size="lg"
             >
-              <Upload className="w-4 h-4 mr-2" />
+              <Upload className="w-5 h-5 mr-2" />
               {t('providers.csv.action')}
             </Button>
           </div>
         </div>
 
         {/* Manual / API */}
-        <div className={`rounded-xl shadow-sm p-6 ${hasManual ? 'bg-purple-50/80 border-2 border-purple-300' : 'bg-white border border-zinc-200/80'}`}>
+        <div className={`rounded-xl shadow-lg p-7 transition-all duration-300 hover:scale-105 ${hasManual ? 'bg-gradient-to-br from-purple-100/80 to-purple-50/50 border-2 border-purple-400/40 shadow-purple-200/50' : 'bg-white border-2 border-zinc-200/80 hover:border-purple-300'}`}>
           <div className="text-center relative">
             {hasManual && (
-              <span className="absolute top-0 right-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+              <span className="absolute -top-2 -right-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-purple-600 text-white shadow-lg animate-scale-in">
                 ✓ {t('active.connected')}
               </span>
             )}
-            <div className="text-5xl mb-4">📝</div>
-            <h3 className="text-xl font-bold text-zinc-900 mb-2">{t('providers.manual.title')}</h3>
-            <p className="text-sm text-zinc-600 mb-6">
+            <div className="text-6xl mb-5">📝</div>
+            <h3 className="text-xl font-extrabold text-zinc-900 mb-3">{t('providers.manual.title')}</h3>
+            <p className="text-sm text-zinc-600 mb-6 font-medium min-h-[40px]">
               {hasManual ? t('providers.manual.connected') : t('providers.manual.description')}
             </p>
             <Button
               onClick={() => setShowManualModal(true)}
               variant={hasManual ? 'outline' : 'default'}
-              className="w-full"
+              className="w-full shadow-lg"
+              size="lg"
             >
-              <Code className="w-4 h-4 mr-2" />
+              <Code className="w-5 h-5 mr-2" />
               {hasManual ? t('providers.manual.action.connected') : t('providers.manual.action.setup')}
             </Button>
           </div>
@@ -502,32 +506,32 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Active Integrations */}
-      <div className="pt-1">
-        <h2 className="text-xl font-bold tracking-tight mb-3">{t('active.title')}</h2>
+      <div className="pt-2">
+        <h2 className="text-2xl font-extrabold tracking-tight mb-4">{t('active.title')}</h2>
         {integrations.length > 0 ? (
-          <Card>
-            <div className="divide-y">
-              {integrations.map((integration) => (
-                <div key={integration.id} className="p-6">
+          <Card className="overflow-hidden shadow-lg">
+            <div className="divide-y divide-border">
+              {integrations.map((integration, idx) => (
+                <div key={integration.id} className="p-7 hover:bg-gradient-to-r hover:from-muted/30 hover:to-transparent transition-all group" style={{ animationDelay: `${idx * 50}ms` }}>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="text-4xl">{getProviderIcon(integration.provider)}</div>
+                    <div className="flex items-center gap-5">
+                      <div className="text-5xl group-hover:scale-110 transition-transform">{getProviderIcon(integration.provider)}</div>
                       <div>
-                        <h3 className="text-lg font-semibold text-zinc-900">
+                        <h3 className="text-xl font-bold text-zinc-900">
                           {getProviderName(integration.provider)}
                           {integration.provider === 'whatsapp' && integration.phone_number_display && (
-                            <span className="ml-2 text-sm font-normal text-zinc-500">
+                            <span className="ml-3 text-base font-medium text-zinc-500">
                               — {integration.phone_number_display}
                             </span>
                           )}
                         </h3>
-                        <p className="text-sm text-zinc-600 mt-1">
+                        <p className="text-sm text-zinc-600 mt-2 font-medium">
                           {locale === 'tr' ? 'Oluşturulma:' : 'Created:'} {new Date(integration.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Badge variant={integration.status === 'active' ? 'default' : integration.status === 'error' ? 'destructive' : 'secondary'}>
+                      <Badge variant={integration.status === 'active' ? 'success' : integration.status === 'error' ? 'destructive' : 'secondary'} size="lg" className="shadow-sm font-bold">
                         {getStatusText(integration.status)}
                       </Badge>
                       {integration.provider === 'whatsapp' && (
@@ -536,6 +540,7 @@ export default function IntegrationsPage() {
                           size="sm"
                           onClick={() => openWhatsAppModal(integration)}
                           title={t('providers.whatsapp.action.update')}
+                          className="hover:bg-primary/10"
                         >
                           <Pencil className="w-4 h-4" />
                         </Button>
@@ -543,7 +548,7 @@ export default function IntegrationsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => {
                           if (confirm('Are you sure you want to delete this integration?')) {
                             handleDeleteIntegration(integration.id);
@@ -559,28 +564,28 @@ export default function IntegrationsPage() {
             </div>
           </Card>
         ) : (
-          <Card className="border-dashed">
-            <CardContent className="p-12 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                <Plug className="w-8 h-8 text-muted-foreground" />
+          <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors">
+            <CardContent className="p-16 text-center">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center shadow-inner">
+                <Plug className="w-10 h-10 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">
+              <h3 className="text-2xl font-bold mb-3">
                 {t('active.empty.title')}
               </h3>
-              <p className="text-muted-foreground mb-6">
+              <p className="text-muted-foreground mb-8 max-w-md mx-auto text-base">
                 {t('active.empty.description')}
               </p>
-              <div className="flex justify-center gap-3">
-                <Button onClick={() => setShowShopifyModal(true)}>
-                  <ShoppingBag className="w-4 h-4 mr-2" />
+              <div className="flex justify-center gap-3 flex-wrap">
+                <Button onClick={() => setShowShopifyModal(true)} size="lg" className="shadow-lg">
+                  <ShoppingBag className="w-5 h-5 mr-2" />
                   {t('modals.shopify.title')}
                 </Button>
-                <Button variant="outline" onClick={() => setShowCsvModal(true)}>
-                  <Upload className="w-4 h-4 mr-2" />
+                <Button variant="outline" onClick={() => setShowCsvModal(true)} size="lg">
+                  <Upload className="w-5 h-5 mr-2" />
                   {t('modals.csv.title')}
                 </Button>
-                <Button variant="outline" onClick={() => setShowManualModal(true)}>
-                  <Code className="w-4 h-4 mr-2" />
+                <Button variant="outline" onClick={() => setShowManualModal(true)} size="lg">
+                  <Code className="w-5 h-5 mr-2" />
                   {t('modals.manual.title')}
                 </Button>
               </div>

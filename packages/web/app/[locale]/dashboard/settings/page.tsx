@@ -448,42 +448,42 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-8 animate-fade-in">
-        <div className="space-y-2">
-          <div className="h-8 w-32 bg-zinc-200 rounded-lg animate-pulse" />
-          <div className="h-4 w-64 bg-zinc-100 rounded animate-pulse" />
+      <div className="space-y-6 animate-fade-in">
+        <div className="space-y-3">
+          <div className="h-10 w-40 bg-gradient-to-r from-zinc-200 to-zinc-100 rounded-xl animate-pulse" />
+          <div className="h-5 w-80 bg-gradient-to-r from-zinc-100 to-zinc-50 rounded-lg animate-pulse" />
         </div>
-        <div className="h-64 bg-white border border-zinc-200 rounded-xl animate-pulse" />
-        <div className="h-48 bg-white border border-zinc-200 rounded-xl animate-pulse" />
+        <div className="h-80 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" />
+        <div className="h-64 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 animate-fade-in pb-8">
+    <div className="space-y-6 animate-fade-in pb-8">
       {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-        <p className="text-muted-foreground">
+      <div className="space-y-1.5">
+        <h1 className="text-3xl font-extrabold tracking-tight">{t('title')}</h1>
+        <p className="text-muted-foreground text-base font-medium">
           {t('description')}{' '}
-          <a href="#guardrails" className="text-primary hover:underline font-medium">
+          <a href="#guardrails" className="text-primary hover:text-primary/80 font-bold transition-colors">
             {t('guardrailsLink')}
           </a>
         </p>
       </div>
 
       {/* Bot Persona Settings */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Bot className="w-5 h-5 text-primary" />
+      <Card hover className="overflow-hidden shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
+              <Bot className="w-6 h-6" />
             </div>
             <div>
-              <CardTitle>{t('botPersona.title')}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
+              <CardTitle className="text-2xl">{t('botPersona.title')}</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1.5 font-medium">
                 {t('botPersona.description')}{' '}
-                <Link href="/dashboard/settings/bot-info" className="text-primary hover:underline font-medium">
+                <Link href="/dashboard/settings/bot-info" className="text-primary hover:text-primary/80 font-bold transition-colors">
                   {t('botPersona.botInfoLink')}
                 </Link>
               </p>
@@ -493,8 +493,8 @@ export default function SettingsPage() {
 
         <div className="p-6 space-y-6">
           {/* Bot Name */}
-          <div className="space-y-2">
-            <label className="form-label">
+          <div className="space-y-2.5">
+            <label className="text-sm font-bold text-foreground">
               {t('botPersona.nameLabel')}
             </label>
             <Input
@@ -502,13 +502,13 @@ export default function SettingsPage() {
               value={botName}
               onChange={(e) => setBotName(e.target.value)}
               placeholder={t('botPersona.namePlaceholder')}
-              className="h-11"
+              className="h-12"
             />
           </div>
 
           {/* Tone */}
           <div>
-            <label className="form-label block mb-2">
+            <label className="text-sm font-bold text-foreground block mb-3">
               {t('botPersona.toneLabel')}
             </label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -516,9 +516,9 @@ export default function SettingsPage() {
                 <button
                   key={tKey}
                   onClick={() => setTone(tKey)}
-                  className={`px-4 py-3 rounded-lg border-2 transition-colors font-medium ${tone === tKey
-                    ? 'border-blue-600 bg-blue-50 text-blue-900'
-                    : 'border-zinc-300 text-zinc-700 hover:border-zinc-400'
+                  className={`px-5 py-4 rounded-xl border-2 transition-all duration-200 font-bold ${tone === tKey
+                    ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 text-primary shadow-md scale-105'
+                    : 'border-zinc-200 text-zinc-700 hover:border-primary/30 hover:bg-zinc-50'
                     }`}
                 >
                   {t(`botPersona.tones.${tKey}`)}
@@ -528,18 +528,18 @@ export default function SettingsPage() {
           </div>
 
           {/* Emoji */}
-          <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-lg">
+          <div className="flex items-center justify-between p-5 bg-gradient-to-r from-muted/50 to-transparent rounded-xl border border-border">
             <div>
-              <p className="font-medium text-zinc-900">{t('botPersona.emojiLabel')}</p>
-              <p className="text-sm text-zinc-600">{t('botPersona.emojiDesc')}</p>
+              <p className="font-bold text-zinc-900 text-base">{t('botPersona.emojiLabel')}</p>
+              <p className="text-sm text-zinc-600 mt-1">{t('botPersona.emojiDesc')}</p>
             </div>
             <button
               onClick={() => setEmoji(!emoji)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${emoji ? 'bg-blue-600' : 'bg-zinc-300'
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-200 shadow-inner ${emoji ? 'bg-primary' : 'bg-zinc-300'
                 }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${emoji ? 'translate-x-6' : 'translate-x-1'
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md ${emoji ? 'translate-x-8' : 'translate-x-1'
                   }`}
               />
             </button>
@@ -547,7 +547,7 @@ export default function SettingsPage() {
 
           {/* Response Length */}
           <div>
-            <label className="form-label block mb-2">
+            <label className="text-sm font-bold text-foreground block mb-3">
               {t('botPersona.responseLengthLabel')}
             </label>
             <div className="grid grid-cols-3 gap-3">
@@ -555,9 +555,9 @@ export default function SettingsPage() {
                 <button
                   key={length}
                   onClick={() => setResponseLength(length)}
-                  className={`px-4 py-3 rounded-lg border-2 transition-colors font-medium ${responseLength === length
-                    ? 'border-blue-600 bg-blue-50 text-blue-900'
-                    : 'border-zinc-300 text-zinc-700 hover:border-zinc-400'
+                  className={`px-5 py-4 rounded-xl border-2 transition-all duration-200 font-bold ${responseLength === length
+                    ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 text-primary shadow-md scale-105'
+                    : 'border-zinc-200 text-zinc-700 hover:border-primary/30 hover:bg-zinc-50'
                     }`}
                 >
                   {t(`botPersona.lengths.${length}`)}
@@ -568,7 +568,7 @@ export default function SettingsPage() {
 
           {/* Temperature */}
           <div>
-            <label className="form-label block mb-2">
+            <label className="text-sm font-bold text-foreground block mb-3">
               {t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
             </label>
             <input
@@ -578,9 +578,9 @@ export default function SettingsPage() {
               step="0.1"
               value={temperature}
               onChange={(e) => setTemperature(parseFloat(e.target.value))}
-              className="w-full"
+              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
             />
-            <div className="flex justify-between text-xs text-zinc-600 mt-1">
+            <div className="flex justify-between text-xs text-zinc-600 mt-2 font-semibold">
               <span>{t('botPersona.tempLabels.consistent')}</span>
               <span>{t('botPersona.tempLabels.balanced')}</span>
               <span>{t('botPersona.tempLabels.creative')}</span>
@@ -702,12 +702,14 @@ export default function SettingsPage() {
           </div>
 
           {/* Save Button */}
-          <div className="pt-4">
+          <div className="pt-6 border-t border-border">
             <Button
               onClick={handleSavePersona}
               disabled={saving}
+              size="lg"
+              className="shadow-lg hover:shadow-xl"
             >
-              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {saving && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
               {saving ? t('botPersona.saving') : t('botPersona.saveButton')}
             </Button>
           </div>
@@ -715,22 +717,22 @@ export default function SettingsPage() {
       </Card>
 
       {/* Guardrails */}
-      <Card id="guardrails" className="scroll-mt-4">
-        <CardHeader>
+      <Card id="guardrails" hover className="scroll-mt-4 overflow-hidden shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-success/5 to-transparent">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Shield className="w-5 h-5 text-primary" />
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-success to-success/80 text-success-foreground shadow-lg">
+                <Shield className="w-6 h-6" />
               </div>
               <div>
-                <CardTitle>{t('guardrails.title')}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
+                <CardTitle className="text-2xl">{t('guardrails.title')}</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1.5 font-medium">
                   {t('guardrails.description')}
                 </p>
               </div>
             </div>
-            <Button onClick={openAddGuardrail}>
-              <Plus className="w-4 h-4 mr-2" />
+            <Button onClick={openAddGuardrail} size="lg" variant="success" className="shadow-lg">
+              <Plus className="w-5 h-5 mr-2" />
               {t('guardrails.addButton')}
             </Button>
           </div>
@@ -814,16 +816,16 @@ export default function SettingsPage() {
       </Card>
 
       {/* API Keys */}
-      <Card>
-        <CardHeader>
+      <Card hover className="overflow-hidden shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-warning/5 to-transparent">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Key className="w-5 h-5 text-primary" />
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-warning to-warning/80 text-warning-foreground shadow-lg">
+                <Key className="w-6 h-6" />
               </div>
               <div>
-                <CardTitle>{t('apiKeys.title')}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
+                <CardTitle className="text-2xl">{t('apiKeys.title')}</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1.5 font-medium">
                   {t('apiKeys.description')}
                 </p>
               </div>
@@ -831,48 +833,55 @@ export default function SettingsPage() {
             <Button
               onClick={handleCreateApiKey}
               disabled={creatingKey || apiKeys.length >= 5}
+              size="lg"
+              variant="warning"
+              className="shadow-lg"
             >
-              {creatingKey ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+              {creatingKey ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Plus className="w-5 h-5 mr-2" />}
               {creatingKey ? t('apiKeys.creating') : t('apiKeys.createButton')}
             </Button>
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="p-6">
           {apiKeys.length === 0 ? (
-            <div className="text-center py-8 text-zinc-500">
-              <p>{t('apiKeys.empty')}</p>
+            <div className="text-center py-12 text-zinc-500">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
+                <Key className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="font-medium">{t('apiKeys.empty')}</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {apiKeys.map((key) => {
-                const keyHash = key.hash; // Display hash as-is
+              {apiKeys.map((key, idx) => {
+                const keyHash = key.hash;
 
                 return (
                   <div
                     key={key.id}
-                    className="flex items-center justify-between p-4 border rounded-lg border-zinc-200"
+                    className="flex items-center justify-between p-5 border-2 rounded-xl border-border hover:border-primary/20 transition-all bg-gradient-to-r from-muted/20 to-transparent"
+                    style={{ animationDelay: `${idx * 50}ms` }}
                   >
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <code className="text-sm font-mono text-zinc-900">{key.hash}</code>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <code className="text-sm font-mono text-zinc-900 bg-white px-3 py-1.5 rounded-lg border font-bold">{key.hash}</code>
                         {key.name && (
-                          <span className="text-xs text-zinc-600 bg-zinc-100 px-2 py-1 rounded">
+                          <Badge variant="outline" size="sm">
                             {key.name}
-                          </span>
+                          </Badge>
                         )}
                         {key.is_expired && (
-                          <span className="text-xs text-red-700 bg-red-100 px-2 py-1 rounded font-medium">
+                          <Badge variant="destructive" size="sm">
                             {t('apiKeys.expired')}
-                          </span>
+                          </Badge>
                         )}
                         {key.is_expiring_soon && !key.is_expired && (
-                          <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded font-medium">
+                          <Badge variant="warning" size="sm">
                             {t('apiKeys.expiresIn', { days: key.days_until_expiration ?? 0 })}
-                          </span>
+                          </Badge>
                         )}
                       </div>
-                      <div className="mt-2 text-xs text-zinc-600 space-y-1">
+                      <div className="mt-3 text-xs text-zinc-600 space-y-1 font-medium">
                         <p>{t('apiKeys.created', { date: new Date(key.created_at).toLocaleDateString() })}</p>
                         {key.expires_at && (
                           <p>
@@ -891,20 +900,20 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex items-center gap-2 ml-4">
                       <Button variant="ghost" size="sm" onClick={() => handleCopyApiKey(keyHash)}>
-                        <Copy className="w-3.5 h-3.5 mr-1" />
+                        <Copy className="w-4 h-4 mr-1.5" />
                         {t('apiKeys.copy')}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => {
                           if (confirm('Are you sure you want to revoke this API key?')) {
                             handleRevokeApiKey(key.id);
                           }
                         }}
                       >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" />
+                        <Trash2 className="w-4 h-4 mr-1.5" />
                         {t('apiKeys.revoke')}
                       </Button>
                     </div>
@@ -917,15 +926,15 @@ export default function SettingsPage() {
       </Card>
 
       {/* GDPR & Data Management */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Database className="w-5 h-5 text-primary" />
+      <Card hover className="overflow-hidden shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-info/5 to-transparent">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-info to-info/80 text-info-foreground shadow-lg">
+              <Database className="w-6 h-6" />
             </div>
             <div>
-              <CardTitle>{t('gdpr.title')}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
+              <CardTitle className="text-2xl">{t('gdpr.title')}</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1.5 font-medium">
                 {t('gdpr.description')}
               </p>
             </div>

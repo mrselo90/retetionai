@@ -126,14 +126,14 @@ export default function ConversationsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-8 animate-fade-in">
-        <div className="space-y-2">
-          <div className="h-8 w-40 bg-zinc-200 rounded-lg animate-pulse" />
-          <div className="h-4 w-64 bg-zinc-100 rounded animate-pulse" />
-        </div>
+      <div className="space-y-6 animate-fade-in">
         <div className="space-y-3">
+          <div className="h-10 w-48 bg-gradient-to-r from-zinc-200 to-zinc-100 rounded-xl animate-pulse" />
+          <div className="h-5 w-96 bg-gradient-to-r from-zinc-100 to-zinc-50 rounded-lg animate-pulse" />
+        </div>
+        <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 bg-white border border-zinc-200 rounded-xl animate-pulse" />
+            <div key={i} className="h-28 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" style={{ animationDelay: `${i * 100}ms` }} />
           ))}
         </div>
       </div>
@@ -141,17 +141,17 @@ export default function ConversationsPage() {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in pb-8">
+    <div className="space-y-6 animate-fade-in pb-8">
       {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-        <p className="text-muted-foreground">
+      <div className="space-y-1.5">
+        <h1 className="text-3xl font-extrabold tracking-tight">{t('title')}</h1>
+        <p className="text-muted-foreground text-base font-medium">
           {t('description')}
         </p>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-2 flex-wrap overflow-x-auto pb-2">
+      <div className="flex items-center gap-3 flex-wrap overflow-x-auto pb-2">
         {[
           { key: 'all' as const, label: `${t('filters.all')} (${conversations.length})` },
           { key: 'positive' as const, label: `${t('filters.positive')} (${conversations.filter((c) => c.sentiment === 'positive').length})` },
@@ -161,14 +161,15 @@ export default function ConversationsPage() {
           <Button
             key={f.key}
             variant={filter === f.key ? 'default' : 'outline'}
-            size="sm"
+            size="lg"
             onClick={() => setFilter(f.key)}
+            className="shadow-sm font-bold"
           >
             {f.label}
           </Button>
         ))}
 
-        <span className="text-muted-foreground">|</span>
+        <div className="w-px h-8 bg-border"></div>
         {[
           { key: 'all' as const, label: 'Tümü' },
           { key: 'human' as const, label: `İnsan (${conversations.filter((c) => c.conversationStatus === 'human').length})` },
@@ -177,9 +178,10 @@ export default function ConversationsPage() {
         ].map((f) => (
           <Button
             key={`status-${f.key}`}
-            variant={statusFilter === f.key ? 'default' : 'outline'}
-            size="sm"
+            variant={statusFilter === f.key ? 'info' : 'outline'}
+            size="lg"
             onClick={() => setStatusFilter(f.key)}
+            className="shadow-sm font-bold"
           >
             {f.label}
           </Button>
@@ -188,57 +190,58 @@ export default function ConversationsPage() {
 
       {/* Conversations List */}
       {filteredConversations.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="p-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-              <MessageSquare className="w-8 h-8 text-muted-foreground" />
+        <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors">
+          <CardContent className="p-16 text-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-info/10 to-info/5 flex items-center justify-center shadow-inner">
+              <MessageSquare className="w-10 h-10 text-info" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">{t('list.empty.title')}</h3>
-            <p className="text-muted-foreground">
+            <h3 className="text-2xl font-bold mb-3">{t('list.empty.title')}</h3>
+            <p className="text-muted-foreground max-w-md mx-auto text-base">
               {t('list.empty.description')}
             </p>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <div className="divide-y">
-            {filteredConversations.map((conversation) => (
+        <Card className="overflow-hidden shadow-lg">
+          <div className="divide-y divide-border">
+            {filteredConversations.map((conversation, idx) => (
               <Link
                 key={conversation.id}
                 href={`/dashboard/conversations/${conversation.id}`}
-                className="block p-5 hover:bg-muted/50 transition-colors"
+                className="block p-6 hover:bg-gradient-to-r hover:from-muted/30 hover:to-transparent transition-all duration-200 group"
+                style={{ animationDelay: `${idx * 50}ms` }}
               >
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4 flex-1">
                     {/* Avatar */}
-                    <div className="w-11 h-11 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-primary" />
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm">
+                      <User className="w-6 h-6 text-primary" />
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-base font-semibold">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <h3 className="text-lg font-bold">
                           {conversation.user?.name || t('list.guest')}
                         </h3>
-                        <Badge variant={getSentimentBadgeVariant(conversation.sentiment)}>
+                        <Badge variant={getSentimentBadgeVariant(conversation.sentiment) === 'default' ? 'success' : getSentimentBadgeVariant(conversation.sentiment)} size="sm" className="shadow-sm">
                           {getSentimentIcon(conversation.sentiment)} {conversation.sentiment}
                         </Badge>
                         {conversation.conversationStatus === 'human' && (
-                          <Badge variant="destructive" className="text-xs">İnsan Modu</Badge>
+                          <Badge variant="destructive" size="sm" className="shadow-sm font-bold">İnsan Modu</Badge>
                         )}
                         {conversation.conversationStatus === 'resolved' && (
-                          <Badge className="text-xs bg-emerald-100 text-emerald-800">Çözüldü</Badge>
+                          <Badge variant="success" size="sm" className="shadow-sm font-bold">Çözüldü</Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mb-1.5">
+                      <p className="text-sm text-muted-foreground mb-2 font-medium">
                         {conversation.user?.phone}
                       </p>
                       {conversation.order && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <ShoppingBag className="w-3.5 h-3.5" />
-                          <span>{t('list.order')}: #{conversation.order.external_order_id}</span>
-                          <Badge variant={conversation.order.status === 'delivered' ? 'default' : 'secondary'} className="text-xs">
+                          <ShoppingBag className="w-4 h-4" />
+                          <span className="font-medium">{t('list.order')}: #{conversation.order.external_order_id}</span>
+                          <Badge variant={conversation.order.status === 'delivered' ? 'success' : 'secondary'} size="sm">
                             {conversation.order.status}
                           </Badge>
                         </div>
@@ -247,14 +250,14 @@ export default function ConversationsPage() {
                   </div>
 
                   {/* Meta */}
-                  <div className="text-right flex-shrink-0 ml-4 space-y-1">
-                    <p className="text-sm text-muted-foreground flex items-center gap-1.5 justify-end">
-                      <Clock className="w-3.5 h-3.5" />
+                  <div className="text-right flex-shrink-0 ml-4 space-y-2">
+                    <p className="text-sm text-muted-foreground flex items-center gap-2 justify-end font-medium">
+                      <Clock className="w-4 h-4" />
                       {formatDateTime(conversation.last_message_at)}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <Badge variant="outline" size="sm" className="font-bold">
                       {conversation.message_count} {t('list.messages')}
-                    </p>
+                    </Badge>
                   </div>
                 </div>
               </Link>

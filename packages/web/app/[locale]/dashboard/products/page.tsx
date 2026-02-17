@@ -175,14 +175,14 @@ export default function ProductsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-8 animate-fade-in">
-        <div className="space-y-2">
-          <div className="h-8 w-32 bg-zinc-200 rounded-lg animate-pulse" />
-          <div className="h-4 w-64 bg-zinc-100 rounded animate-pulse" />
+      <div className="space-y-6 animate-fade-in">
+        <div className="space-y-3">
+          <div className="h-10 w-40 bg-gradient-to-r from-zinc-200 to-zinc-100 rounded-xl animate-pulse" />
+          <div className="h-5 w-72 bg-gradient-to-r from-zinc-100 to-zinc-50 rounded-lg animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-48 bg-white border border-zinc-200 rounded-xl animate-pulse" />
+            <div key={i} className="h-56 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" style={{ animationDelay: `${i * 100}ms` }} />
           ))}
         </div>
       </div>
@@ -190,21 +190,22 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in pb-8">
+    <div className="space-y-6 animate-fade-in pb-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-          <p className="text-muted-foreground">{t('description')}</p>
+        <div className="space-y-1.5">
+          <h1 className="text-3xl font-extrabold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground text-base font-medium">{t('description')}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <Button variant="outline" asChild>
+          <Button variant="outline" size="lg" asChild>
             <Link href="/dashboard/products/shopify-map">
+              <ArrowRight className="w-4 h-4 mr-2" />
               {t('shopifyMapButton')}
             </Link>
           </Button>
-          <Button onClick={() => setShowAddModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
+          <Button size="lg" onClick={() => setShowAddModal(true)} className="shadow-lg hover:shadow-xl">
+            <Plus className="w-5 h-5 mr-2" />
             {t('addProductButton')}
           </Button>
         </div>
@@ -212,45 +213,46 @@ export default function ProductsPage() {
 
       {/* Products Grid */}
       {products.length === 0 && !loading ? (
-        <Card className="border-dashed">
-          <CardContent className="p-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-              <Package className="w-8 h-8 text-muted-foreground" />
+        <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors">
+          <CardContent className="p-16 text-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center shadow-inner">
+              <Package className="w-10 h-10 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">{t('empty.title')}</h3>
-            <p className="text-muted-foreground mb-6">{t('empty.description')}</p>
+            <h3 className="text-2xl font-bold mb-3">{t('empty.title')}</h3>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto text-base">{t('empty.description')}</p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
               <Button
                 variant="outline"
+                size="lg"
                 onClick={() => {
                   setLoading(true);
                   loadProducts();
                 }}
               >
-                <Loader2 className="w-4 h-4 mr-2" />
+                <Loader2 className="w-5 h-5 mr-2" />
                 {t('empty.refresh')}
               </Button>
-              <Button onClick={() => setShowAddModal(true)}>
-                <Plus className="w-4 h-4 mr-2" />
+              <Button size="lg" onClick={() => setShowAddModal(true)} className="shadow-lg hover:shadow-xl">
+                <Plus className="w-5 h-5 mr-2" />
                 {t('empty.button')}
               </Button>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {products.map((product) => (
-            <Card key={product.id} className="hover:shadow-md transition-shadow group">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-base line-clamp-2 pr-2">{product.name}</CardTitle>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {products.map((product, idx) => (
+            <Card key={product.id} hover className="group overflow-hidden" style={{ animationDelay: `${idx * 50}ms` }}>
+              <CardHeader className="pb-4 bg-gradient-to-r from-muted/20 to-transparent">
+                <div className="flex items-start justify-between gap-3">
+                  <CardTitle className="text-lg line-clamp-2 pr-2 font-bold">{product.name}</CardTitle>
                   <button
                     onClick={() => {
                       if (confirm(t('card.deleteConfirm'))) {
                         handleDeleteProduct(product.id);
                       }
                     }}
-                    className="text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                    className="flex-shrink-0 p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -261,28 +263,28 @@ export default function ProductsPage() {
                   href={product.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline line-clamp-1 flex items-center gap-1"
+                  className="text-sm text-primary hover:text-primary/80 line-clamp-1 flex items-center gap-2 font-medium transition-colors group/link"
                 >
-                  <ExternalLink className="w-3 h-3 shrink-0" />
+                  <ExternalLink className="w-4 h-4 shrink-0 group-hover/link:scale-110 transition-transform" />
                   <span className="truncate">{product.url}</span>
                 </a>
 
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="gap-1">
-                    <FileText className="w-3 h-3" />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline-primary" size="sm" className="gap-1.5">
+                    <FileText className="w-3.5 h-3.5" />
                     {product.chunkCount || 0} {t('card.chunks')}
                   </Badge>
                   {product.raw_text && (
-                    <Badge variant="default" className="gap-1 bg-emerald-600 hover:bg-emerald-700">
-                      <CheckCircle className="w-3 h-3" />
+                    <Badge variant="success" size="sm" className="gap-1.5 shadow-sm">
+                      <CheckCircle className="w-3.5 h-3.5" />
                       {t('card.scraped')}
                     </Badge>
                   )}
                 </div>
 
-                <Button variant="outline" className="w-full" asChild>
+                <Button variant="outline" className="w-full group/btn" asChild size="lg">
                   <Link href={`/dashboard/products/${product.id}`}>
-                    <ArrowRight className="w-4 h-4 mr-2" />
+                    <ArrowRight className="w-4 h-4 mr-2 group-hover/btn:translate-x-1 transition-transform" />
                     {t('card.edit')}
                   </Link>
                 </Button>
@@ -295,58 +297,70 @@ export default function ProductsPage() {
       {/* Add Product Modal */}
       {showAddModal && (
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget && !scraping) setShowAddModal(false); }}>
-          <Card className="max-w-md w-full animate-slide-up shadow-2xl">
-            <CardHeader>
+          <Card className="max-w-lg w-full animate-scale-in shadow-2xl border-2 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-primary via-primary/80 to-primary"></div>
+            <CardHeader className="pt-6">
               <div className="flex items-center justify-between">
-                <CardTitle>{t('addModal.title')}</CardTitle>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-lg">
+                    <Plus className="w-6 h-6" />
+                  </div>
+                  <CardTitle className="text-2xl">{t('addModal.title')}</CardTitle>
+                </div>
                 <button
                   onClick={() => !scraping && setShowAddModal(false)}
                   disabled={scraping}
-                  className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                  className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 p-2 rounded-lg hover:bg-muted"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-6 pb-6">
               {scraping ? (
-                <div className="py-8 text-center">
-                  <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary" />
-                  <p className="text-lg font-semibold">{scrapeProgress}</p>
-                  <p className="text-sm text-muted-foreground mt-2">{t('addModal.scraping.wait')}</p>
+                <div className="py-12 text-center">
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                  </div>
+                  <p className="text-xl font-bold mb-2">{scrapeProgress}</p>
+                  <p className="text-sm text-muted-foreground font-medium">{t('addModal.scraping.wait')}</p>
+                  <div className="mt-6 w-full max-w-xs mx-auto bg-muted rounded-full h-2 overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-primary to-primary/80 animate-pulse rounded-full" style={{ width: '60%' }}></div>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="form-label">{t('addModal.nameLabel')}</label>
+                <div className="space-y-5">
+                  <div className="space-y-2.5">
+                    <label className="text-sm font-bold text-foreground">{t('addModal.nameLabel')}</label>
                     <Input
                       type="text"
                       value={newProductName}
                       onChange={(e) => setNewProductName(e.target.value)}
                       placeholder={t('addModal.namePlaceholder')}
-                      className="h-11"
+                      className="h-12"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="form-label">{t('addModal.urlLabel')}</label>
+                  <div className="space-y-2.5">
+                    <label className="text-sm font-bold text-foreground">{t('addModal.urlLabel')}</label>
                     <Input
                       type="url"
                       value={newProductUrl}
                       onChange={(e) => setNewProductUrl(e.target.value)}
                       placeholder={t('addModal.urlPlaceholder')}
-                      className="h-11"
+                      className="h-12"
                     />
-                    <p className="form-helper">
+                    <p className="text-xs text-muted-foreground font-medium">
                       {t('addModal.urlHelper')}
                     </p>
                   </div>
 
-                  <div className="flex gap-3 pt-2">
-                    <Button variant="outline" className="flex-1" onClick={() => setShowAddModal(false)}>
+                  <div className="flex gap-3 pt-4">
+                    <Button variant="outline" size="lg" className="flex-1" onClick={() => setShowAddModal(false)}>
                       {t('addModal.cancel')}
                     </Button>
-                    <Button className="flex-1" onClick={handleAddProduct}>
+                    <Button size="lg" className="flex-1 shadow-lg" onClick={handleAddProduct}>
+                      <Plus className="w-5 h-5 mr-2" />
                       {t('addModal.submit')}
                     </Button>
                   </div>
