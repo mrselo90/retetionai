@@ -152,7 +152,8 @@
         "empty": {
             "title": "No products yet",
             "description": "Start by adding your first product.",
-            "button": "Add New Product"
+            "button": "Add New Product",
+            "refresh": "Refresh list"
         },
         "card": {
             "scraped": "Scraped",

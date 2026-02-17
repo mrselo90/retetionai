@@ -42,19 +42,26 @@ export default function ProductsPage() {
 
   const loadProducts = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      let { data: { session } } = await supabase.auth.getSession();
+      // Give Supabase a moment to restore session from storage on first navigation
+      if (!session) {
+        await new Promise((r) => setTimeout(r, 400));
+        const next = await supabase.auth.getSession();
+        session = next.data.session;
+      }
       if (!session) {
         window.location.href = '/login';
         return;
       }
 
-      const response = await authenticatedRequest<{ products: Product[] }>(
+      const response = await authenticatedRequest<{ products?: Product[] }>(
         '/api/products',
         session.access_token
       );
 
+      const list = response?.products ?? [];
       const productsWithChunks = await Promise.all(
-        response.products.map(async (product) => {
+        list.map(async (product) => {
           try {
             const chunksResponse = await authenticatedRequest<{ chunkCount: number }>(
               `/api/products/${product.id}/chunks`,
@@ -204,7 +211,7 @@ export default function ProductsPage() {
       </div>
 
       {/* Products Grid */}
-      {products.length === 0 ? (
+      {products.length === 0 && !loading ? (
         <Card className="border-dashed">
           <CardContent className="p-12 text-center">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
@@ -212,10 +219,22 @@ export default function ProductsPage() {
             </div>
             <h3 className="text-lg font-semibold mb-2">{t('empty.title')}</h3>
             <p className="text-muted-foreground mb-6">{t('empty.description')}</p>
-            <Button onClick={() => setShowAddModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              {t('empty.button')}
-            </Button>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setLoading(true);
+                  loadProducts();
+                }}
+              >
+                <Loader2 className="w-4 h-4 mr-2" />
+                {t('empty.refresh')}
+              </Button>
+              <Button onClick={() => setShowAddModal(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                {t('empty.button')}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (

@@ -152,7 +152,8 @@
         "empty": {
             "title": "Henüz ürün yok",
             "description": "İlk ürününüzü ekleyerek başlayın.",
-            "button": "Yeni Ürün Ekle"
+            "button": "Yeni Ürün Ekle",
+            "refresh": "Listeyi yenile"
         },
         "card": {
             "scraped": "Tarandı",
