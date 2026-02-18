@@ -94,12 +94,12 @@ ON orders(merchant_id, status)
 WHERE status = 'returned';
 
 -- ============================================================================
--- PRODUCT_CHUNKS TABLE INDEXES
+-- KNOWLEDGE_CHUNKS TABLE INDEXES
 -- ============================================================================
 
 -- Index for product chunk counts
-CREATE INDEX IF NOT EXISTS idx_product_chunks_product_id 
-ON product_chunks(product_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_product_id_composite 
+ON knowledge_chunks(product_id);
 
 -- ============================================================================
 -- PERFORMANCE NOTES
@@ -107,7 +107,7 @@ ON product_chunks(product_id);
 
 -- These indexes significantly improve query performance for:
 -- 1. Analytics dashboard (/api/analytics/dashboard) - 60-80% faster
--- 2. Product chunks batch queries - 50% faster
+-- 2. Product knowledge chunk batch queries - 50% faster
 -- 3. ROI calculations - 40% faster
 -- 4. User segmentation queries - 70% faster
 -- 5. Conversation filtering - 50% faster
