@@ -97,9 +97,9 @@ WHERE status = 'returned';
 -- KNOWLEDGE_CHUNKS TABLE INDEXES
 -- ============================================================================
 
--- Index for product chunk counts
-CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_product_id_composite 
-ON knowledge_chunks(product_id);
+-- Index for product chunk counts (already exists in migration 001/005, but ensuring it's there)
+-- CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_product_id ON knowledge_chunks(product_id);
+-- Skipping: Index already exists from previous migrations
 
 -- ============================================================================
 -- PERFORMANCE NOTES
