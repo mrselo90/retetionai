@@ -3,7 +3,6 @@
  */
 
 import * as Sentry from '@sentry/node';
-import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
 /**
  * Initialize Sentry for backend
@@ -20,23 +19,20 @@ export function initSentry() {
   Sentry.init({
     dsn,
     environment,
-    integrations: [
-      // Profiling integration (optional, for performance monitoring)
-      nodeProfilingIntegration(),
-    ],
-    
+    integrations: [],
+
     // Performance monitoring
     tracesSampleRate: environment === 'production' ? 0.1 : 1.0, // 10% in prod, 100% in dev
-    
+
     // Profiling sample rate
     profilesSampleRate: environment === 'production' ? 0.1 : 1.0,
-    
+
     // Release tracking
     release: process.env.APP_VERSION || '0.1.0',
-    
+
     // Filter out health check endpoints
     ignoreTransactions: ['GET /health', 'GET /'] as string[],
-    
+
     // Before send hook - filter sensitive data
     beforeSend(event, hint) {
       // Remove sensitive data from event
@@ -50,18 +46,18 @@ export function initSentry() {
             }
           });
         }
-        
+
         // Remove sensitive query params
         if (event.request.query_string) {
-          const queryString = typeof event.request.query_string === 'string' 
-            ? event.request.query_string 
+          const queryString = typeof event.request.query_string === 'string'
+            ? event.request.query_string
             : String(event.request.query_string);
           if (queryString.includes('api_key') || queryString.includes('token')) {
             event.request.query_string = '[REDACTED]';
           }
         }
       }
-      
+
       return event;
     },
   });

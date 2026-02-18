@@ -50,15 +50,15 @@
 ### Service Ports
 | Service | Port | PM2 Name |
 |---------|------|----------|
-| API     | 3002 | api      |
-| Frontend| 3001 | web      |
+| API     | 3001 | api      |
+| Frontend| 3000 | web      |
 | Workers | -    | workers  |
 | Redis   | 6379 | system   |
 
 ### Nginx Configuration
-- `/` → Frontend (localhost:3001)
-- `/api/` → API (localhost:3002/api/)
-- `/health` → API (localhost:3002/health)
+- `/` → Frontend (localhost:3000)
+- `/api/` → API (localhost:3001/api/)
+- `/health` → API (localhost:3001/health)
 
 ### PM2 Commands
 ```bash

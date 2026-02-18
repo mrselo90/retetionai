@@ -29,7 +29,7 @@ function extractToken(c: Context): string | null {
     }
     return authHeader;
   }
-  
+
   return c.req.header('X-Api-Key') || null;
 }
 
@@ -66,9 +66,9 @@ async function authenticateJWT(token: string): Promise<string | null> {
         (user.user_metadata?.full_name as string) ||
         (user.user_metadata?.name as string) ||
         (user.email ?? 'Merchant');
-      
+
       console.info(`Creating merchant record for user ${user.id} (${name})`);
-      
+
       const { data: inserted, error: insertError } = await supabase
         .from('merchants')
         .insert({
@@ -83,7 +83,7 @@ async function authenticateJWT(token: string): Promise<string | null> {
         console.error('Failed to create merchant record:', insertError.message);
         return null;
       }
-      
+
       return inserted?.id ?? null;
     }
 
@@ -101,11 +101,11 @@ async function authenticateApiKey(apiKey: string): Promise<string | null> {
   if (!isValidApiKeyFormat(apiKey)) {
     return null;
   }
-  
+
   try {
     const supabase = getSupabaseServiceClient();
     const hashedKey = hashApiKey(apiKey);
-    
+
     // Query merchants where api_keys array contains the hashed key
     // Supports both legacy string format ["hash"] and new object format [{"hash": "hash"}]
     const { data: merchants, error } = await supabase
@@ -113,34 +113,34 @@ async function authenticateApiKey(apiKey: string): Promise<string | null> {
       .select('id, api_keys')
       .or(`api_keys.cs.["${hashedKey}"],api_keys.cs.[{"hash":"${hashedKey}"}]`)
       .limit(1);
-    
+
     if (error || !merchants || merchants.length === 0) {
       if (error) console.error('API key lookup error:', error.message);
       return null;
     }
-    
+
     const merchant = merchants[0];
-    
+
     // Normalize and check if key is expired
     const normalizedKeys = normalizeApiKeys((merchant.api_keys as any) || []);
     const keyObject = getApiKeyByHash(normalizedKeys, hashedKey);
-    
+
     if (!keyObject) {
       return null;
     }
-    
+
     // Check if key is expired
     if (isApiKeyExpired(keyObject)) {
       return null;
     }
-    
+
     // Update last used timestamp (async, don't wait)
     const updatedKeys = updateApiKeyLastUsed(normalizedKeys, hashedKey);
     void supabase
       .from('merchants')
       .update({ api_keys: updatedKeys })
       .eq('id', merchant.id);
-    
+
     return merchant.id;
   } catch (err) {
     console.error('API Key Authentication exception:', err);
@@ -149,34 +149,82 @@ async function authenticateApiKey(apiKey: string): Promise<string | null> {
 }
 
 /**
+ * Authenticate via Shopify Session Token
+ */
+async function authenticateShopifyToken(token: string): Promise<string | null> {
+  // Quick check: Shopify tokens are JWTs usually starting with ey...
+  // We rely on verifyShopifySessionToken to do the heavy lifting
+  // We need to import verifyShopifySessionToken dynamically or move it to shared to avoid circular deps?
+  // Actually verifyShopifySessionToken is in lib/shopifySession.ts which is fine to import.
+
+  // Note: We need a 'shop' to verify the token fully (signature depends on secret, but shop claim check is good).
+  // verifyShopifySessionToken takes (token, shop).
+  // But we don't have 'shop' in the request params here easily (it might be in header?).
+  // Actually, we can decode the token unverified first to get the dest (shop), then verify.
+
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf-8'));
+    if (!payload.dest || !payload.dest.startsWith('https://')) return null;
+
+    const shop = payload.dest.replace('https://', '');
+
+    // Import dynamically to ensure no circular deps issues if any
+    const { verifyShopifySessionToken } = await import('../lib/shopifySession.js');
+
+    const verification = await verifyShopifySessionToken(token, shop);
+    if (!verification.valid) return null;
+
+    // If we have a merchantId, return it
+    if (verification.merchantId) return verification.merchantId;
+
+    // If valid but no merchant (new install), we can't authenticate them for *general* API usage yet.
+    // They must hit the /verify-session endpoint to create the account first.
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+
+/**
  * Auth middleware
  * Supports both JWT (Supabase Auth) and API key authentication
  */
 export async function authMiddleware(c: Context, next: Next) {
   const token = extractToken(c);
-  
+
   if (!token) {
     return c.json({ error: 'Unauthorized: Missing authentication' }, 401);
   }
-  
+
   // Try JWT first (Supabase Auth)
   let merchantId = await authenticateJWT(token);
   let authMethod: 'jwt' | 'api_key' = 'jwt';
-  
+
   // If JWT fails, try API key
   if (!merchantId) {
     merchantId = await authenticateApiKey(token);
     authMethod = 'api_key';
   }
-  
+
+  // If API key fails, try Shopify Session Token
+  if (!merchantId) {
+    merchantId = await authenticateShopifyToken(token);
+    // treated as jwt for simplicity, or we could add 'shopify_token'
+    authMethod = 'jwt';
+  }
+
   if (!merchantId) {
     return c.json({ error: 'Unauthorized: Invalid token or API key' }, 401);
   }
-  
+
   // Add merchant context to request
   c.set('merchantId', merchantId);
   c.set('authMethod', authMethod);
-  
+
   await next();
 }
 
@@ -186,22 +234,22 @@ export async function authMiddleware(c: Context, next: Next) {
  */
 export async function optionalAuthMiddleware(c: Context, next: Next) {
   const token = extractToken(c);
-  
+
   if (token) {
     // Try to authenticate
     let merchantId = await authenticateJWT(token);
     let authMethod: 'jwt' | 'api_key' = 'jwt';
-    
+
     if (!merchantId) {
       merchantId = await authenticateApiKey(token);
       authMethod = 'api_key';
     }
-    
+
     if (merchantId) {
       c.set('merchantId', merchantId);
       c.set('authMethod', authMethod);
     }
   }
-  
+
   await next();
 }

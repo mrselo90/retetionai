@@ -66,7 +66,8 @@ export async function verifyShopifySessionToken(
       .single();
 
     if (!integration) {
-      return { valid: false, error: 'Shopify integration not found' };
+      // Valid token, but no integration yet (new install)
+      return { valid: true };
     }
 
     return {

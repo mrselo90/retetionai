@@ -97,6 +97,45 @@ export async function exchangeCodeForToken(
 }
 
 /**
+ * Exchange session token for access token (Token Exchange)
+ */
+export async function exchangeSessionToken(
+  shop: string,
+  sessionToken: string
+): Promise<{ access_token: string; scope: string }> {
+  if (!SHOPIFY_API_KEY || !SHOPIFY_API_SECRET) {
+    throw new Error('Shopify API credentials not configured');
+  }
+
+  // Token Exchange endpoint
+  // https://{shop}.myshopify.com/admin/oauth/access_token
+  const response = await fetch(`https://${shop}/admin/oauth/access_token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      client_id: SHOPIFY_API_KEY,
+      client_secret: SHOPIFY_API_SECRET,
+      grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+      subject_token: sessionToken,
+      subject_token_type: 'urn:ietf:params:oauth:token-type:id_token',
+      requested_token_type: 'urn:shopify:params:oauth:token-type:offline-access-token',
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to exchange session token: ${error}`);
+  }
+
+  const data = await response.json();
+  console.log('Shopify Session Token Exchange Successful');
+  return data as { access_token: string; scope: string };
+}
+
+/**
  * Shopify API client (authenticated requests)
  */
 export async function shopifyApiRequest<T>(

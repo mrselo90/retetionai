@@ -1,0 +1,29 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "SHOPIFY_API_KEY"
+name = "Recete Retention Agent"
+application_url = "https://recete.ai"
+embedded = true
+
+[access_scopes]
+# Scopes required for the app's functionality
+scopes = "read_products,read_orders,read_fulfillments,read_customers,write_webhooks"
+
+[auth]
+redirect_urls = [
+  "https://recete.ai/api/integrations/shopify/oauth/callback"
+]
+
+[webhooks]
+api_version = "2024-01"
+
+  [[webhooks.subscriptions]]
+  topics = [
+    "orders/create",
+    "orders/fulfilled",
+    "orders/updated"
+  ]
+  uri = "/webhooks/commerce/shopify"
+
+[pos]
+embedded = false

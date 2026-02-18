@@ -1,32 +1,41 @@
 'use client';
-
-/**
- * Shopify App Bridge Provider
- * Wraps the app with Shopify App Bridge context
- * Note: Shopify App Bridge is optional - app works without it
- */
-
 import { useEffect, useState } from 'react';
-import { getAppBridgeConfig } from '../lib/shopifyAppBridge';
+import { Provider } from '@shopify/app-bridge-react';
 
 interface ShopifyProviderProps {
   children: React.ReactNode;
 }
 
 export function ShopifyProvider({ children }: ShopifyProviderProps) {
-  const [config, setConfig] = useState<{ apiKey: string; shop?: string } | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Get config from URL if available (standard for embedded apps)
+  const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY;
+  const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const shop = urlParams?.get('shop') || undefined;
+  const host = urlParams?.get('host') || undefined;
 
   useEffect(() => {
-    try {
-      const appConfig = getAppBridgeConfig();
-      setConfig(appConfig);
-    } catch (error) {
-      // Not in Shopify context, continue without App Bridge
-      // This is expected when running locally
-    }
+    setMounted(true);
   }, []);
 
-  // Always render children - Shopify App Bridge integration is optional
-  // The app works fine without it for local development
+  // If we have API key and host/shop (embedded context), initialize App Bridge
+  // Otherwise render children directly (standalone / local dev)
+  if (mounted && apiKey && (host || shop)) {
+    return (
+      <Provider
+        apiKey={apiKey}
+        i18n={{}}
+        config={{
+          apiKey,
+          host: host || btoa(shop || ''),
+          forceRedirect: false // Don't redirect locally during dev
+        }}
+      >
+        {children}
+      </Provider>
+    );
+  }
+
   return <>{children}</>;
 }

@@ -1,0 +1,5 @@
+name = "Retention Agent Embed"
+type = "theme"
+
+[theme]
+name = "Retention Agent Theme Extension"

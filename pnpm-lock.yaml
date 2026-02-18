@@ -68,9 +68,6 @@ importers:
       '@sentry/node':
         specifier: ^10.35.0
         version: 10.35.0
-      '@sentry/profiling-node':
-        specifier: ^10.35.0
-        version: 10.35.0
       bullmq:
         specifier: ^5.4.0
         version: 5.66.5
@@ -185,8 +182,11 @@ importers:
         specifier: ^3.7.11
         version: 3.7.11
       '@shopify/app-bridge-react':
-        specifier: ^4.2.8
-        version: 4.2.8(react-dom@19.2.3)(react@19.2.3)
+        specifier: ^4.2.10
+        version: 4.2.10(react-dom@19.2.3)(react@19.2.3)
+      '@shopify/app-bridge-types':
+        specifier: ^0.7.0
+        version: 0.7.0
       '@supabase/supabase-js':
         specifier: ^2.90.1
         version: 2.90.1
@@ -3197,15 +3197,6 @@ packages:
       '@sentry/core': 10.35.0
     dev: false
 
-  /@sentry-internal/node-cpu-profiler@2.2.0:
-    resolution: {integrity: sha512-oLHVYurqZfADPh5hvmQYS5qx8t0UZzT2u6+/68VXsFruQEOnYJTODKgU3BVLmemRs3WE6kCJjPeFdHVYOQGSzQ==}
-    engines: {node: '>=18'}
-    requiresBuild: true
-    dependencies:
-      detect-libc: 2.1.2
-      node-abi: 3.87.0
-    dev: false
-
   /@sentry-internal/replay-canvas@10.35.0:
     resolution: {integrity: sha512-efaz8ETDLd0rSpoqX4m8fMnq7abzUJAdqeChz9Jdq6OgvHeBgM6tTfqWSes6sFnSCvFUVkdFngZQfgmBxWGuEA==}
     engines: {node: '>=18'}
@@ -3492,18 +3483,6 @@ packages:
       '@sentry/core': 10.35.0
     dev: false
 
-  /@sentry/profiling-node@10.35.0:
-    resolution: {integrity: sha512-HR5dvM4D04hUB4HQObLwpXrMe1b5BXSR35FWsUCZHHLSA+DIG6ccvbGocjQrkNK/NTN6Ugnec8joNX9mVzZvLw==}
-    engines: {node: '>=18'}
-    hasBin: true
-    dependencies:
-      '@sentry-internal/node-cpu-profiler': 2.2.0
-      '@sentry/core': 10.35.0
-      '@sentry/node': 10.35.0
-    transitivePeerDependencies:
-      - supports-color
-    dev: false
-
   /@sentry/react@10.35.0(react@19.2.3):
     resolution: {integrity: sha512-RJsJVZRVe646euf1HLlhbjeAHn2ABd54Y7Zpy4XUJaL4FdKqaaFmqeHKi6IxXFf6IE35onk/kn8CfR7xWBhe2g==}
     engines: {node: '>=18'}
@@ -3543,19 +3522,19 @@ packages:
     resolution: {integrity: sha512-bMbiGTivxS8hY86eLUe9xdO+BsZPkMZDPXiGmGYfnvXnInr01w9w/UcD02oU4zbA49GO09aCYYcJlo7pQu6VBA==}
     dev: false
 
-  /@shopify/app-bridge-react@4.2.8(react-dom@19.2.3)(react@19.2.3):
-    resolution: {integrity: sha512-SvCXPiNFhNkICPoh2eRUOaC1VSWdLKKxpeevfciMTh/j7JzDvrb8zokWpg+YCsLe5oP7r97TCs3svOVqk+Qo4Q==}
+  /@shopify/app-bridge-react@4.2.10(react-dom@19.2.3)(react@19.2.3):
+    resolution: {integrity: sha512-/VhfsxIvWcK7w5rBY97WdSTApLEg+Z2dT9Zc+idAUiAi48R64nYalXDUG8ar5xRoINHFC/w+9WxYViAazpgfew==}
     peerDependencies:
       react: '*'
       react-dom: '*'
     dependencies:
-      '@shopify/app-bridge-types': 0.5.3
+      '@shopify/app-bridge-types': 0.7.0
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
     dev: false
 
-  /@shopify/app-bridge-types@0.5.3:
-    resolution: {integrity: sha512-wj5pPqk4bQsFU6AQUo6SwyQ3zqBgodvxt7fWzRYakeHGG/YWeDv1uoNYjhSVm0jT80Wy18EObSMQTocUSgpqPA==}
+  /@shopify/app-bridge-types@0.7.0:
+    resolution: {integrity: sha512-A/DiGIjCBdd45ijMDKLgXrrGG68so3d25Yaeo0lv8ruWeljHGn3sA+UU1o/5BptSPkikDkgPPl8EQDxe4/KShw==}
     dependencies:
       '@standard-schema/spec': 1.1.0
     dev: false
@@ -7411,9 +7390,11 @@ packages:
   /node-abi@3.87.0:
     resolution: {integrity: sha512-+CGM1L1CgmtheLcBuleyYOn7NWPVu0s0EJH2C4puxgEZb9h8QpR9G2dBfZJOAUhi7VQxuBPMd0hiISWcTyiYyQ==}
     engines: {node: '>=10'}
+    requiresBuild: true
     dependencies:
       semver: 7.7.3
     dev: false
+    optional: true
 
   /node-abort-controller@3.1.1:
     resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
