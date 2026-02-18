@@ -21,6 +21,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "GlowGuide Retention Agent",
   description: "AI-powered post-purchase customer retention platform",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export const viewport = {

@@ -8,11 +8,12 @@ Track actions required before submitting GlowGuide for App Store review. Full co
 
 | # | Action | Owner | Status | Notes |
 |---|--------|--------|--------|-------|
-| 1 | **App icon 1200×1200** | Design | ⬜ | JPEG or PNG; upload in Partner Dashboard → App setup; use same in listing. |
-| 2 | **Screenshots (5+)** | Product/Marketing | ⬜ | Min 1280×720 px. Suggested: Dashboard, Integrations, Shopify map, Conversations, Settings. No pricing in images. |
-| 3 | **Demo video (2–3 min)** | Product | ⬜ | Key flows: install → OAuth, connect WhatsApp, product mapping, conversation. |
-| 4 | **Full test on dev store** | QA/Dev | ⬜ | Install → OAuth → product map → webhook (order fulfilled + consent) → T+0 message; billing upgrade/downgrade; no 404/500 on main paths. |
-| 5 | **Test credentials for review** | Dev | ⬜ | Dev store URL, test WhatsApp (or instructions), admin access; document for review form. |
+| 0 | **HTTPS in production** | Dev/Ops | ⬜ | App URL and OAuth/webhook URLs must use valid TLS. See [SSL_TLS.md](../deployment/SSL_TLS.md). |
+| 1 | **App icon 1200×1200** | Design | ⬜ | JPEG or PNG; upload in Partner Dashboard → App setup; use same in listing. See [MEDIA_ASSETS_CHECKLIST.md](./MEDIA_ASSETS_CHECKLIST.md). |
+| 2 | **Screenshots (5+)** | Product/Marketing | ⬜ | Min 1280×720 px. Suggested: Dashboard, Integrations, Shopify map, Conversations, Settings. No pricing in images. See [MEDIA_ASSETS_CHECKLIST.md](./MEDIA_ASSETS_CHECKLIST.md). |
+| 3 | **Demo video (2–3 min)** | Product | ⬜ | Key flows: install → OAuth, connect WhatsApp, product mapping, conversation. See [MEDIA_ASSETS_CHECKLIST.md](./MEDIA_ASSETS_CHECKLIST.md). |
+| 4 | **Full test on dev store** | QA/Dev | ⬜ | Use [DEV_STORE_TEST_CHECKLIST.md](./DEV_STORE_TEST_CHECKLIST.md). |
+| 5 | **Test credentials for review** | Dev | ⬜ | Use [REVIEW_CREDENTIALS_TEMPLATE.md](./REVIEW_CREDENTIALS_TEMPLATE.md); document for review form. |
 
 ---
 
@@ -33,6 +34,10 @@ Track actions required before submitting GlowGuide for App Store review. Full co
 - **Pre-submit checklist**: Report [Section 4](./SHOPIFY_APP_MARKET_READINESS_REPORT.md#4-submission-checklist-pre-submit)
 - **Listing copy**: [APP_LISTING.md](./APP_LISTING.md)
 - **Review checklist**: [REVIEW_CHECKLIST.md](./REVIEW_CHECKLIST.md)
+- **Media assets (icon, screenshots, video)**: [MEDIA_ASSETS_CHECKLIST.md](./MEDIA_ASSETS_CHECKLIST.md)
+- **Dev store test steps**: [DEV_STORE_TEST_CHECKLIST.md](./DEV_STORE_TEST_CHECKLIST.md)
+- **Review credentials template**: [REVIEW_CREDENTIALS_TEMPLATE.md](./REVIEW_CREDENTIALS_TEMPLATE.md)
+- **HTTPS setup**: [SSL_TLS.md](../deployment/SSL_TLS.md)
 - **Shopify**: [App Store requirements](https://shopify.dev/docs/apps/launch/shopify-app-store/app-store-requirements) · [Submit for review](https://shopify.dev/docs/apps/launch/app-store-review/submit-app-for-review)
 
 ---

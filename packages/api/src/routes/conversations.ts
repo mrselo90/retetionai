@@ -200,6 +200,25 @@ conversations.get('/:id', async (c) => {
       }
     }
 
+    // Check for return prevention attempt on this conversation
+    let returnPreventionAttempt = null;
+    const { data: rpa } = await serviceClient
+      .from('return_prevention_attempts')
+      .select('id, outcome, trigger_message, created_at')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (rpa) {
+      returnPreventionAttempt = {
+        id: rpa.id,
+        outcome: rpa.outcome,
+        triggerMessage: rpa.trigger_message,
+        createdAt: rpa.created_at,
+      };
+    }
+
     return c.json({
       conversation: {
         id: conversation.id,
@@ -215,6 +234,7 @@ conversations.get('/:id', async (c) => {
         createdAt: conversation.created_at,
         updatedAt: conversation.updated_at,
         order: orderInfo,
+        returnPreventionAttempt,
       },
     });
   } catch (error) {

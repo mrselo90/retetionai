@@ -4,6 +4,10 @@
 
 This guide covers SSL/TLS certificate setup and HTTPS configuration for GlowGuide Retention Agent.
 
+### Shopify App Store requirement
+
+**Valid TLS (HTTPS) is required** for Shopify App Store submission. The app URL (and OAuth redirect / webhook URLs) must be served over HTTPS with a valid certificate. Complete the checklist at the end of this document before submitting to the App Store.
+
 ## Certificate Options
 
 ### 1. Let's Encrypt (Recommended - Free)
@@ -344,6 +348,7 @@ openssl verify -CAfile /etc/letsencrypt/live/api.glowguide.ai/chain.pem \
 - [ ] SSL Labs test passed (A or A+)
 - [ ] Mixed content issues resolved
 - [ ] Monitoring for expiration
+- [ ] **Shopify App Store:** App URL and OAuth/webhook URLs use HTTPS (required for submission)
 
 ## Resources
 

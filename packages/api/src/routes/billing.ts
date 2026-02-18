@@ -7,7 +7,8 @@ import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
 import { getMerchantSubscription, getPlanLimits, getAvailablePlans, updateMerchantSubscription, isSubscriptionActive } from '../lib/billing.js';
 import { getCurrentUsage, getUsageHistory } from '../lib/usageTracking.js';
-import { createShopifyRecurringCharge, cancelShopifyRecurringCharge, getPlanPrice, handleShopifyBillingWebhook } from '../lib/shopifyBilling.js';
+import { createShopifyRecurringCharge, cancelShopifyRecurringCharge, getShopifyRecurringCharge, getPlanPrice, handleShopifyBillingWebhook } from '../lib/shopifyBilling.js';
+import { ADDON_DEFINITIONS, getMerchantAddons, activateAddon, deactivateAddon } from '../lib/addons.js';
 import { getSupabaseServiceClient } from '@glowguide/shared';
 import { logger } from '@glowguide/shared';
 import { validateBody } from '../middleware/validation.js';
@@ -260,6 +261,208 @@ billing.post('/webhooks/shopify', async (c) => {
     logger.error({ error }, 'Error processing Shopify billing webhook');
     return c.json({ error: 'Internal server error' }, 500);
   }
+});
+
+// ============================================================================
+// ADD-ON MODULE ROUTES
+// ============================================================================
+
+/**
+ * List available add-ons with merchant's current status
+ * GET /api/billing/addons
+ */
+billing.get('/addons', async (c) => {
+  const merchantId = c.get('merchantId');
+  const subscription = await getMerchantSubscription(merchantId);
+  const merchantAddons = await getMerchantAddons(merchantId);
+
+  const addonStatusMap = new Map(merchantAddons.map((a) => [a.addon_key, a]));
+
+  const addons = Object.values(ADDON_DEFINITIONS).map((def) => {
+    const merchantAddon = addonStatusMap.get(def.key);
+    const planAllowed = subscription ? def.requiredPlan.includes(subscription.plan) : false;
+
+    return {
+      ...def,
+      status: merchantAddon?.status || 'inactive',
+      activatedAt: merchantAddon?.activated_at || null,
+      planAllowed,
+    };
+  });
+
+  return c.json({ addons });
+});
+
+/**
+ * Subscribe to an add-on (creates a separate Shopify RecurringApplicationCharge)
+ * POST /api/billing/addons/:key/subscribe
+ */
+billing.post('/addons/:key/subscribe', async (c) => {
+  const merchantId = c.get('merchantId');
+  const addonKey = c.req.param('key');
+
+  const definition = ADDON_DEFINITIONS[addonKey];
+  if (!definition) {
+    return c.json({ error: 'Add-on not found' }, 404);
+  }
+
+  const subscription = await getMerchantSubscription(merchantId);
+  if (!subscription || !definition.requiredPlan.includes(subscription.plan)) {
+    return c.json({
+      error: 'Plan not eligible',
+      message: `This add-on requires one of: ${definition.requiredPlan.join(', ')}`,
+    }, 403);
+  }
+
+  const serviceClient = getSupabaseServiceClient();
+  const { data: integration } = await serviceClient
+    .from('integrations')
+    .select('auth_data')
+    .eq('merchant_id', merchantId)
+    .eq('provider', 'shopify')
+    .eq('status', 'active')
+    .single();
+
+  if (!integration) {
+    return c.json({ error: 'Shopify integration not found' }, 400);
+  }
+
+  const authData = integration.auth_data as any;
+  const shop = authData?.shop;
+  const accessToken = authData?.access_token;
+
+  if (!shop || !accessToken) {
+    return c.json({ error: 'Shopify credentials not found' }, 400);
+  }
+
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const returnUrl = `${frontendUrl}/dashboard/settings?addon=${addonKey}&action=confirm`;
+
+  const chargeResult = await createShopifyRecurringCharge(
+    shop,
+    accessToken,
+    'starter',
+    `Add-on: ${definition.name}`,
+    definition.priceMonthly,
+    returnUrl
+  );
+
+  if (!chargeResult) {
+    return c.json({ error: 'Failed to create billing charge' }, 500);
+  }
+
+  return c.json({
+    confirmationUrl: chargeResult.confirmationUrl,
+    chargeId: chargeResult.chargeId,
+  });
+});
+
+/**
+ * Confirm add-on activation after Shopify approval
+ * GET /api/billing/addons/:key/confirm?charge_id=...
+ */
+billing.get('/addons/:key/confirm', async (c) => {
+  const merchantId = c.get('merchantId');
+  const addonKey = c.req.param('key');
+  const chargeId = c.req.query('charge_id');
+
+  const definition = ADDON_DEFINITIONS[addonKey];
+  if (!definition) {
+    return c.json({ error: 'Add-on not found' }, 404);
+  }
+
+  if (!chargeId) {
+    return c.json({ error: 'charge_id is required' }, 400);
+  }
+
+  const serviceClient = getSupabaseServiceClient();
+  const { data: integration } = await serviceClient
+    .from('integrations')
+    .select('auth_data')
+    .eq('merchant_id', merchantId)
+    .eq('provider', 'shopify')
+    .eq('status', 'active')
+    .single();
+
+  if (!integration) {
+    return c.json({ error: 'Shopify integration not found' }, 400);
+  }
+
+  const authData = integration.auth_data as any;
+  const shop = authData?.shop;
+  const accessToken = authData?.access_token;
+
+  if (!shop || !accessToken) {
+    return c.json({ error: 'Shopify credentials not found' }, 400);
+  }
+
+  const charge = await getShopifyRecurringCharge(shop, accessToken, parseInt(chargeId));
+
+  if (!charge || charge.status !== 'active') {
+    return c.json({
+      error: 'Charge not active',
+      message: `Charge status: ${charge?.status || 'unknown'}`,
+    }, 400);
+  }
+
+  const activated = await activateAddon(merchantId, addonKey, chargeId, definition.priceMonthly);
+
+  if (!activated) {
+    return c.json({ error: 'Failed to activate add-on' }, 500);
+  }
+
+  return c.json({ message: 'Add-on activated', addon: addonKey });
+});
+
+/**
+ * Cancel an add-on subscription
+ * POST /api/billing/addons/:key/cancel
+ */
+billing.post('/addons/:key/cancel', async (c) => {
+  const merchantId = c.get('merchantId');
+  const addonKey = c.req.param('key');
+
+  const definition = ADDON_DEFINITIONS[addonKey];
+  if (!definition) {
+    return c.json({ error: 'Add-on not found' }, 404);
+  }
+
+  const merchantAddons = await getMerchantAddons(merchantId);
+  const addon = merchantAddons.find((a) => a.addon_key === addonKey);
+
+  if (!addon || addon.status !== 'active') {
+    return c.json({ error: 'Add-on is not active' }, 400);
+  }
+
+  if (addon.billing_charge_id) {
+    const serviceClient = getSupabaseServiceClient();
+    const { data: integration } = await serviceClient
+      .from('integrations')
+      .select('auth_data')
+      .eq('merchant_id', merchantId)
+      .eq('provider', 'shopify')
+      .eq('status', 'active')
+      .single();
+
+    if (integration) {
+      const authData = integration.auth_data as any;
+      if (authData?.shop && authData?.access_token) {
+        await cancelShopifyRecurringCharge(
+          authData.shop,
+          authData.access_token,
+          parseInt(addon.billing_charge_id)
+        );
+      }
+    }
+  }
+
+  const deactivated = await deactivateAddon(merchantId, addonKey);
+
+  if (!deactivated) {
+    return c.json({ error: 'Failed to deactivate add-on' }, 500);
+  }
+
+  return c.json({ message: 'Add-on cancelled', addon: addonKey });
 });
 
 export default billing;

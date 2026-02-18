@@ -99,6 +99,21 @@ All schema changes in `supabase/migrations/009_enrichment_features.sql`:
 1. **SSL/HTTPS**: Set up Let's Encrypt for HTTPS (then change NODE_ENV back to production)
 2. **Custom Domain**: Point a domain name to 209.97.134.215
 3. **Shopify App Store**: Complete submission (media assets, dev store test)
+
+## Return Prevention Module (Feb 2026 — Implemented)
+
+Optional paid add-on module. Detects return intent in customer messages via AI, serves product-specific usage guides/videos to prevent returns.
+
+### Components Implemented
+- **Migration 011**: `merchant_addons` table, `return_prevention_attempts` table, extended `product_instructions` with `video_url` and `prevention_tips`
+- **Add-on Billing**: Separate `RecurringApplicationCharge` per add-on (independent from main subscription). Routes: `GET /api/billing/addons`, `POST /subscribe`, `POST /cancel`, `GET /confirm`
+- **AI Agent**: New `return_intent` intent type. Prevention flow: check addon active → detect repeat intent → fetch product content (video_url, tips, RAG) → build prevention prompt → log attempt → escalate if insisting
+- **Product Instructions**: Extended with `video_url` and `prevention_tips` fields (schema, API, frontend form)
+- **Analytics**: `GET /api/analytics/return-prevention` endpoint. ROI `savedReturns` now uses structured `return_prevention_attempts` data instead of keyword matching
+- **Settings UI**: Modules section with toggle, pricing note, confirmation dialog, plan gate
+- **Conversation Detail**: Return prevention badge with outcome (Prevented/Returned/Escalated/Pending)
+- **Translations**: Full `ReturnPrevention` namespace in `en.json` and `tr.json`
+
 ## Current Phase: Localization & Refinement
 **Focus:** Internationalization (English/Turkish), Deployment, SSL Setup.
 
@@ -108,12 +123,13 @@ All schema changes in `supabase/migrations/009_enrichment_features.sql`:
 -   [x] **Localized** Landing, Login, Signup, and Dashboard Home pages.
 -   [x] Created English (`en`) and Turkish (`tr`) locales.
 -   [x] Verified build success locally.
+-   [x] **Full dashboard localization** (Feb 17, 2026): Application is localized for **English (default)** and **Turkish**. All user-visible strings use `useTranslations()` and `t()` from `next-intl`. Translation namespaces added/used: **ShopifyMap**, **Conversations**, **Analytics** (ROI), **Customers**, **CustomerDetail**, **ConversationDetail**, **BotInfo**, **ProductDetail**, **Test**, **Sidebar**, **ShopifyCallback**, **Integrations** (createdLabel). Pages updated: shopify-map, conversations (list + detail), analytics, integrations, sidebar, customers (list + detail), settings/bot-info, products/[id], dashboard/test, integrations/shopify/callback. Build passes with zero errors.
 
 ### Active Tasks
 -   [x] **Deploy changes** to DigitalOcean.
 -   [x] **Fix Build Errors**: Resolved invalid JSON in translation files and TypeScript error in Settings page.
+-   [x] **Localize remaining dashboard pages** — Products, Conversations, Analytics, Customers, Integrations, Shopify callback, Bot Info, Test page; all use `en`/`tr` keys.
 -   [ ] **Setup SSL** (Blocked: waiting for custom domain).
--   [ ] Localize remaining dashboard pages (Products, Conversations, etc.) - *Post-deployment refinement*.
 
 ## Completed Phases (Historical)
 

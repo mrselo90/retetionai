@@ -240,7 +240,6 @@ analytics.get('/roi', async (c) => {
       .select('id, history, current_state, conversation_status')
       .in('user_id', userIds);
 
-    let savedReturns = 0;
     let totalMessageCount = 0;
     const conversationsTotal = allConversations?.length || 0;
     const resolvedCount = allConversations?.filter((cv: any) => cv.conversation_status === 'resolved').length || 0;
@@ -248,21 +247,14 @@ analytics.get('/roi', async (c) => {
     (allConversations || []).forEach((conv: any) => {
       const history = (conv.history as any[]) || [];
       totalMessageCount += history.length;
-
-      // A "saved return" is a conversation that contains complaint keywords early
-      // but ends with positive keywords
-      if (history.length >= 2) {
-        const firstUserMsg = history.find((m: any) => m.role === 'user');
-        const lastUserMsg = [...history].reverse().find((m: any) => m.role === 'user');
-        if (firstUserMsg && lastUserMsg) {
-          const first = (firstUserMsg.content || '').toLowerCase();
-          const last = (lastUserMsg.content || '').toLowerCase();
-          const hadComplaint = first.includes('kötü') || first.includes('şikayet') || first.includes('problem') || first.includes('iade');
-          const endedPositive = last.includes('teşekkür') || last.includes('sağol') || last.includes('harika') || last.includes('anladım');
-          if (hadComplaint && endedPositive) savedReturns++;
-        }
-      }
     });
+
+    // Saved returns: use structured return_prevention_attempts data
+    const { count: savedReturns } = await serviceClient
+      .from('return_prevention_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('merchant_id', merchantId)
+      .eq('outcome', 'prevented');
 
     // Repeat purchases: users with conversations who have >1 order
     const { data: repeatData } = await serviceClient
@@ -300,7 +292,7 @@ analytics.get('/roi', async (c) => {
 
     return c.json({
       roi: {
-        savedReturns,
+        savedReturns: savedReturns || 0,
         repeatPurchases,
         totalConversations: conversationsTotal,
         resolvedConversations: resolvedCount,
@@ -310,6 +302,104 @@ analytics.get('/roi', async (c) => {
         usersWithConversations: usersWithConvs.size,
         totalUsers: userIds.length,
       },
+    });
+  } catch (error) {
+    return c.json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    }, 500);
+  }
+});
+
+/**
+ * Return Prevention Analytics
+ * GET /api/analytics/return-prevention
+ */
+analytics.get('/return-prevention', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const serviceClient = getSupabaseServiceClient();
+
+    const { data: attempts, error } = await serviceClient
+      .from('return_prevention_attempts')
+      .select('id, outcome, product_id, order_id')
+      .eq('merchant_id', merchantId);
+
+    if (error) {
+      return c.json({ error: 'Failed to fetch prevention data' }, 500);
+    }
+
+    const all = attempts || [];
+    const prevented = all.filter((a: any) => a.outcome === 'prevented').length;
+    const returned = all.filter((a: any) => a.outcome === 'returned').length;
+    const escalated = all.filter((a: any) => a.outcome === 'escalated').length;
+    const pending = all.filter((a: any) => a.outcome === 'pending').length;
+    const totalAttempts = all.length;
+    const preventionRate = totalAttempts > 0 ? Math.round((prevented / totalAttempts) * 1000) / 10 : 0;
+
+    // Compute average order value for prevented revenue estimate
+    let averageOrderValue = 0;
+    let preventedRevenue = 0;
+
+    const { data: orderStats } = await serviceClient
+      .from('orders')
+      .select('id')
+      .eq('merchant_id', merchantId);
+
+    const totalOrders = orderStats?.length || 0;
+
+    // If we can get order amounts from external_events, use them; otherwise use count-based estimate
+    // For now, use a simple count and let the frontend display it
+    if (totalOrders > 0) {
+      // Estimate: average order value from merchant's total revenue / orders
+      // Since we don't store order amounts directly, we use a placeholder
+      averageOrderValue = 0;
+      preventedRevenue = 0;
+    }
+
+    // Top products by prevention attempts
+    const productAttempts = new Map<string, { attempts: number; prevented: number }>();
+    all.forEach((a: any) => {
+      if (a.product_id) {
+        const existing = productAttempts.get(a.product_id) || { attempts: 0, prevented: 0 };
+        existing.attempts++;
+        if (a.outcome === 'prevented') existing.prevented++;
+        productAttempts.set(a.product_id, existing);
+      }
+    });
+
+    const productIds = [...productAttempts.keys()];
+    let topProducts: Array<{ productId: string; productName: string; attempts: number; prevented: number }> = [];
+
+    if (productIds.length > 0) {
+      const { data: products } = await serviceClient
+        .from('products')
+        .select('id, name')
+        .in('id', productIds);
+
+      const productNameMap = new Map((products || []).map((p: any) => [p.id, p.name]));
+
+      topProducts = [...productAttempts.entries()]
+        .map(([id, stats]) => ({
+          productId: id,
+          productName: productNameMap.get(id) || 'Unknown',
+          attempts: stats.attempts,
+          prevented: stats.prevented,
+        }))
+        .sort((a, b) => b.attempts - a.attempts)
+        .slice(0, 10);
+    }
+
+    return c.json({
+      totalAttempts,
+      prevented,
+      returned,
+      escalated,
+      pending,
+      preventionRate,
+      preventedRevenue,
+      averageOrderValue,
+      topProducts,
     });
   } catch (error) {
     return c.json({

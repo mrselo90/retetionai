@@ -23,7 +23,7 @@
 - [x] Installation instructions
 - [x] Support information
 - [x] Pricing information
-- [ ] App icon (512x512px) - **TODO: Create**
+- [ ] App icon (1200x1200px, JPEG or PNG) - **TODO: Create** — [Shopify requirement](https://shopify.dev/changelog/changes-to-the-required-app-icon-size-in-the-partner-dashboard)
 - [ ] Screenshots (5 minimum, 1280x720px) - **TODO: Create**
 - [ ] Demo video (2-3 minutes) - **TODO: Create**
 
@@ -94,7 +94,7 @@
 ## Submission Steps
 
 1. **Prepare Media Assets**
-   - Create app icon (512x512px)
+   - Create app icon (1200x1200px, JPEG or PNG)
    - Take screenshots (5+ images, 1280x720px)
    - Record demo video (2-3 minutes)
    - Create promotional images

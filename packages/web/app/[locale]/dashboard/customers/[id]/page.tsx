@@ -13,11 +13,8 @@ import {
   Users, ShoppingBag, MessageSquare, TrendingUp, Calendar,
   ArrowLeft, AlertTriangle, Star,
 } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 
-const SEGMENT_LABELS: Record<string, string> = {
-  champions: 'Şampiyon', loyal: 'Sadık', promising: 'Umut Vaat Eden',
-  at_risk: 'Risk Altında', lost: 'Kayıp', new: 'Yeni',
-};
 const SEGMENT_COLORS: Record<string, string> = {
   champions: 'bg-emerald-100 text-emerald-800', loyal: 'bg-blue-100 text-blue-800',
   promising: 'bg-violet-100 text-violet-800', at_risk: 'bg-orange-100 text-orange-800',
@@ -47,6 +44,8 @@ interface CustomerDetail {
 }
 
 export default function CustomerDetailPage() {
+  const t = useTranslations('CustomerDetail');
+  const locale = useLocale();
   const params = useParams();
   const router = useRouter();
   const customerId = params.id as string;
@@ -66,7 +65,7 @@ export default function CustomerDetailPage() {
       );
       setCustomer(response.customer);
     } catch (err) {
-      toast.error('Hata', 'Müşteri bilgileri yüklenemedi');
+      toast.error(t('toasts.loadError.title'), t('toasts.loadError.message'));
       router.push('/dashboard/customers');
     } finally {
       setLoading(false);
@@ -74,14 +73,14 @@ export default function CustomerDetailPage() {
   };
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+    new Date(d).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
   if (loading) {
     return <div className="space-y-6 animate-fade-in"><div className="h-8 w-48 bg-zinc-200 rounded animate-pulse" /><div className="h-96 bg-zinc-200 rounded animate-pulse" /></div>;
   }
 
   if (!customer) {
-    return <div className="text-center py-12"><p>Müşteri bulunamadı</p></div>;
+    return <div className="text-center py-12"><p>{t('notFound')}</p></div>;
   }
 
   const rfm = customer.rfmScore || { recency: 0, frequency: 0, monetary: 0 };
@@ -91,7 +90,7 @@ export default function CustomerDetailPage() {
       {/* Header */}
       <div>
         <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/customers')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-1" /> Müşterilere Dön
+          <ArrowLeft className="w-4 h-4 mr-1" /> {t('backToCustomers')}
         </Button>
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
@@ -101,14 +100,14 @@ export default function CustomerDetailPage() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">{customer.name}</h1>
               <Badge className={SEGMENT_COLORS[customer.segment] || SEGMENT_COLORS.new}>
-                {SEGMENT_LABELS[customer.segment] || customer.segment}
+                {t(`segment.${customer.segment}`) || customer.segment}
               </Badge>
               {customer.churnProbability > 0.6 && (
-                <Badge variant="destructive"><AlertTriangle className="w-3 h-3 mr-1" />Kayıp riski {Math.round(customer.churnProbability * 100)}%</Badge>
+                <Badge variant="destructive"><AlertTriangle className="w-3 h-3 mr-1" />{t('churnRisk')} {Math.round(customer.churnProbability * 100)}%</Badge>
               )}
             </div>
             <p className="text-muted-foreground">{customer.phone}{customer.email ? ` • ${customer.email}` : ''}</p>
-            <p className="text-xs text-muted-foreground mt-1">Kayıt: {formatDate(customer.createdAt)} • Onay: {customer.consent}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('registered')}: {formatDate(customer.createdAt)} • {t('consent')}: {customer.consent}</p>
           </div>
         </div>
       </div>
@@ -147,7 +146,7 @@ export default function CustomerDetailPage() {
           <CardContent className="p-4 text-center">
             <Calendar className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
             <p className="text-2xl font-bold">{customer.metrics.lastOrderDate ? formatDate(customer.metrics.lastOrderDate) : '—'}</p>
-            <p className="text-xs text-muted-foreground">Son Sipariş</p>
+            <p className="text-xs text-muted-foreground">{t('lastOrder')}</p>
           </CardContent>
         </Card>
       </div>
@@ -155,10 +154,10 @@ export default function CustomerDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Orders */}
         <Card>
-          <CardHeader><CardTitle className="text-lg">Siparişler ({customer.orders.length})</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">{t('ordersCount', { count: customer.orders.length })}</CardTitle></CardHeader>
           <CardContent>
             {customer.orders.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Sipariş yok</p>
+              <p className="text-muted-foreground text-sm">{t('noOrders')}</p>
             ) : (
               <div className="space-y-3">
                 {customer.orders.slice(0, 10).map((order) => (
@@ -177,10 +176,10 @@ export default function CustomerDetailPage() {
 
         {/* Conversations */}
         <Card>
-          <CardHeader><CardTitle className="text-lg">Konuşmalar ({customer.conversations.length})</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">{t('conversationsCount', { count: customer.conversations.length })}</CardTitle></CardHeader>
           <CardContent>
             {customer.conversations.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Konuşma yok</p>
+              <p className="text-muted-foreground text-sm">{t('noConversations')}</p>
             ) : (
               <div className="space-y-3">
                 {customer.conversations.slice(0, 10).map((conv) => (
@@ -191,7 +190,7 @@ export default function CustomerDetailPage() {
                         <p className="text-xs text-muted-foreground">{formatDate(conv.updatedAt)}</p>
                       </div>
                       <Badge variant={conv.status === 'human' ? 'destructive' : conv.status === 'resolved' ? 'default' : 'secondary'}>
-                        {conv.status === 'human' ? 'İnsan' : conv.status === 'resolved' ? 'Çözüldü' : 'AI'}
+                        {conv.status === 'human' ? t('statusHuman') : conv.status === 'resolved' ? t('statusResolved') : t('statusAi')}
                       </Badge>
                     </div>
                   </Link>
@@ -211,7 +210,7 @@ export default function CustomerDetailPage() {
               {customer.feedback.map((fb) => (
                 <div key={fb.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <div>
-                    <p className="font-medium text-sm">{fb.type === 'nps' ? 'NPS' : 'Yorum İsteği'}</p>
+                    <p className="font-medium text-sm">{fb.type === 'nps' ? t('feedbackNps') : t('feedbackReview')}</p>
                     <p className="text-xs text-muted-foreground">{formatDate(fb.createdAt)}</p>
                   </div>
                   <div className="flex items-center gap-2">

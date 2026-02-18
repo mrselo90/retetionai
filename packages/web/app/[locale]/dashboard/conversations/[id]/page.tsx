@@ -5,11 +5,19 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { useTranslations, useLocale } from 'next-intl';
 
 interface ConversationMessage {
   role: 'user' | 'assistant' | 'merchant';
   content: string;
   timestamp: string;
+}
+
+interface ReturnPreventionAttempt {
+  id: string;
+  outcome: 'pending' | 'prevented' | 'returned' | 'escalated';
+  triggerMessage: string;
+  createdAt: string;
 }
 
 interface ConversationDetail {
@@ -31,9 +39,13 @@ interface ConversationDetail {
     status: string;
     deliveryDate?: string;
   };
+  returnPreventionAttempt?: ReturnPreventionAttempt;
 }
 
 export default function ConversationDetailPage() {
+  const t = useTranslations('ConversationDetail');
+  const rp = useTranslations('ReturnPrevention');
+  const locale = useLocale();
   const params = useParams();
   const router = useRouter();
   const conversationId = params.id as string;
@@ -76,7 +88,7 @@ export default function ConversationDetailPage() {
       setConversation(response.conversation);
     } catch (err) {
       console.error('Failed to load conversation:', err);
-      toast.error('Hata', 'Konuşma yüklenirken bir hata oluştu');
+      toast.error(t('toasts.loadError.title'), t('toasts.loadError.message'));
       router.push('/dashboard/conversations');
     } finally {
       setLoading(false);
@@ -84,7 +96,7 @@ export default function ConversationDetailPage() {
   };
 
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('tr-TR', {
+    return new Date(dateString).toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -94,7 +106,7 @@ export default function ConversationDetailPage() {
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('tr-TR', {
+    return new Date(dateString).toLocaleTimeString(locale === 'tr' ? 'tr-TR' : 'en-US', {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -113,10 +125,10 @@ export default function ConversationDetailPage() {
       );
       setReplyText('');
       await loadConversation();
-      toast.success('Gönderildi', 'Mesajınız WhatsApp ile gönderildi');
+      toast.success(t('toasts.sent.title'), t('toasts.sent.message'));
     } catch (err) {
       console.error('Failed to send reply:', err);
-      toast.error('Hata', 'Mesaj gönderilemedi');
+      toast.error(t('toasts.sendError.title'), t('toasts.sendError.message'));
     } finally {
       setSending(false);
     }
@@ -133,10 +145,10 @@ export default function ConversationDetailPage() {
         { method: 'PUT', body: JSON.stringify({ status: newStatus }) }
       );
       await loadConversation();
-      const labels = { ai: 'AI modu', human: 'İnsan modu', resolved: 'Çözüldü' };
-      toast.success('Durum güncellendi', labels[newStatus]);
+      const statusLabels: Record<string, string> = { ai: t('statusAiLabel'), human: t('statusHumanLabel'), resolved: t('statusResolvedLabel') };
+      toast.success(t('toasts.statusUpdated'), statusLabels[newStatus]);
     } catch (err) {
-      toast.error('Hata', 'Durum güncellenemedi');
+      toast.error(t('toasts.statusError.title'), t('toasts.statusError.message'));
     } finally {
       setTogglingStatus(false);
     }
@@ -160,12 +172,12 @@ export default function ConversationDetailPage() {
       
         <div className="space-y-6">
           <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-zinc-600">Konuşma bulunamadı</p>
+            <p className="text-zinc-600">{t('notFound')}</p>
             <button
               onClick={() => router.push('/dashboard/conversations')}
               className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Konuşmalara Dön
+              {t('backToConversations')}
             </button>
           </div>
         </div>
@@ -185,7 +197,7 @@ export default function ConversationDetailPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Konuşmalara Dön
+            {t('backToConversations')}
           </button>
 
           <div className="flex items-start justify-between">
@@ -203,7 +215,7 @@ export default function ConversationDetailPage() {
                     <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
-                    <span className="text-zinc-900 font-medium">Sipariş: #{conversation.order.externalOrderId}</span>
+                    <span className="text-zinc-900 font-medium">{t('order')}: #{conversation.order.externalOrderId}</span>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       conversation.order.status === 'delivered'
                         ? 'bg-green-100 text-green-800'
@@ -224,9 +236,27 @@ export default function ConversationDetailPage() {
                     ? 'bg-green-100 text-green-800'
                     : 'bg-blue-100 text-blue-800'
                 }`}>
-                  {conversation.conversationStatus === 'human' ? 'İnsan Modu' :
-                   conversation.conversationStatus === 'resolved' ? 'Çözüldü' : 'AI Modu'}
+                  {conversation.conversationStatus === 'human' ? t('statusHuman') :
+                   conversation.conversationStatus === 'resolved' ? t('statusResolved') : t('statusAi')}
                 </span>
+                {conversation.returnPreventionAttempt && (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                    conversation.returnPreventionAttempt.outcome === 'prevented'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : conversation.returnPreventionAttempt.outcome === 'returned'
+                      ? 'bg-red-100 text-red-800'
+                      : conversation.returnPreventionAttempt.outcome === 'escalated'
+                      ? 'bg-orange-100 text-orange-800'
+                      : 'bg-zinc-100 text-zinc-600'
+                  }`}>
+                    🛡️ {rp('badgeLabel')} · {
+                      conversation.returnPreventionAttempt.outcome === 'prevented' ? rp('outcomePrevented') :
+                      conversation.returnPreventionAttempt.outcome === 'returned' ? rp('outcomeReturned') :
+                      conversation.returnPreventionAttempt.outcome === 'escalated' ? rp('outcomeEscalated') :
+                      rp('outcomePending')
+                    }
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2 justify-end">
                 {conversation.conversationStatus === 'ai' && (
@@ -235,7 +265,7 @@ export default function ConversationDetailPage() {
                     disabled={togglingStatus}
                     className="px-3 py-1.5 text-xs font-medium bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
                   >
-                    AI&apos;yi Durdur
+                    {t('stopAi')}
                   </button>
                 )}
                 {conversation.conversationStatus === 'human' && (
@@ -245,14 +275,14 @@ export default function ConversationDetailPage() {
                       disabled={togglingStatus}
                       className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
                     >
-                      AI&apos;yi Başlat
+                      {t('startAi')}
                     </button>
                     <button
                       onClick={() => handleToggleStatus('resolved')}
                       disabled={togglingStatus}
                       className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                     >
-                      Çözüldü
+                      {t('resolved')}
                     </button>
                   </>
                 )}
@@ -262,13 +292,13 @@ export default function ConversationDetailPage() {
                     disabled={togglingStatus}
                     className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
                   >
-                    Yeniden Aç
+                    {t('reopen')}
                   </button>
                 )}
               </div>
               <div className="text-sm text-zinc-600">
-                <p>Başlangıç: {formatDateTime(conversation.createdAt)}</p>
-                <p className="mt-1">Son güncelleme: {formatDateTime(conversation.updatedAt)}</p>
+                <p>{t('started')}: {formatDateTime(conversation.createdAt)}</p>
+                <p className="mt-1">{t('lastUpdate')}: {formatDateTime(conversation.updatedAt)}</p>
               </div>
             </div>
           </div>
@@ -277,9 +307,9 @@ export default function ConversationDetailPage() {
         {/* Chat Messages */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-6 border-b border-zinc-200">
-            <h2 className="text-lg font-semibold text-zinc-900">Mesaj Geçmişi</h2>
+            <h2 className="text-lg font-semibold text-zinc-900">{t('messageHistory')}</h2>
             <p className="text-sm text-zinc-600 mt-1">
-              {conversation.history.length} mesaj • Otomatik güncelleniyor
+              {t('messageCount', { count: conversation.history.length })}
             </p>
           </div>
 
@@ -289,7 +319,7 @@ export default function ConversationDetailPage() {
                 <svg className="mx-auto h-12 w-12 text-zinc-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
-                <p>Henüz mesaj yok</p>
+                <p>{t('noMessages')}</p>
               </div>
             ) : (
               <>
@@ -313,7 +343,7 @@ export default function ConversationDetailPage() {
                       <div className={`flex items-center gap-2 mt-1 text-xs text-zinc-600 ${
                         message.role === 'user' ? 'justify-start' : 'justify-end'
                       }`}>
-                        <span>{message.role === 'user' ? 'Müşteri' : message.role === 'merchant' ? 'Siz' : 'AI Bot'}</span>
+                        <span>{message.role === 'user' ? t('customer') : message.role === 'merchant' ? t('you') : t('aiBot')}</span>
                         <span>•</span>
                         <span>{formatTime(message.timestamp)}</span>
                       </div>
@@ -333,7 +363,7 @@ export default function ConversationDetailPage() {
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }}
-                placeholder={conversation.conversationStatus === 'resolved' ? 'Konuşma çözüldü' : 'Müşteriye mesaj yaz...'}
+                placeholder={conversation.conversationStatus === 'resolved' ? t('placeholderResolved') : t('placeholderReply')}
                 disabled={sending || conversation.conversationStatus === 'resolved'}
                 className="flex-1 px-4 py-2.5 rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-zinc-100 disabled:cursor-not-allowed text-sm"
               />
@@ -342,12 +372,12 @@ export default function ConversationDetailPage() {
                 disabled={!replyText.trim() || sending || conversation.conversationStatus === 'resolved'}
                 className="px-5 py-2.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
-                {sending ? 'Gönderiliyor...' : 'Gönder'}
+                {sending ? t('sending') : t('send')}
               </button>
             </div>
             {conversation.conversationStatus === 'ai' && (
               <p className="text-xs text-zinc-500 mt-2">
-                AI modu aktif. Mesaj gönderdiğinizde otomatik olarak insan moduna geçer.
+                {t('humanModeNote')}
               </p>
             )}
           </div>
@@ -377,7 +407,7 @@ export default function ConversationDetailPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-zinc-600">Müşteri Mesajı</p>
+                <p className="text-sm text-zinc-600">{t('customerMessage')}</p>
                 <p className="text-2xl font-bold text-zinc-900">
                   {conversation.history.filter((m) => m.role === 'user').length}
                 </p>
@@ -393,7 +423,7 @@ export default function ConversationDetailPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-zinc-600">Bot Yanıtı</p>
+                <p className="text-sm text-zinc-600">{t('botResponse')}</p>
                 <p className="text-2xl font-bold text-zinc-900">
                   {conversation.history.filter((m) => m.role === 'assistant').length}
                 </p>

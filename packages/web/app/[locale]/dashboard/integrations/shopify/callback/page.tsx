@@ -4,8 +4,10 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
+import { useTranslations } from 'next-intl';
 
 function ShopifyCallbackContent() {
+  const t = useTranslations('ShopifyCallback');
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -23,7 +25,7 @@ function ShopifyCallbackContent() {
 
     if (success === 'true') {
       setStatus('success');
-      setMessage(message || 'Shopify entegrasyonu başarıyla tamamlandı!');
+      setMessage(message || t('successMessage'));
       
       // Redirect to integrations page after 2 seconds
       setTimeout(() => {
@@ -35,7 +37,7 @@ function ShopifyCallbackContent() {
     } else {
       // No parameters - might be direct access
       setStatus('error');
-      setMessage('Geçersiz callback. Lütfen entegrasyon sayfasından tekrar deneyin.');
+      setMessage(t('invalidCallback'));
     }
   };
 
@@ -46,8 +48,8 @@ function ShopifyCallbackContent() {
           {status === 'loading' && (
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <h2 className="text-2xl font-bold text-zinc-900 mb-2">Shopify Bağlanıyor...</h2>
-              <p className="text-zinc-600">Lütfen bekleyin, entegrasyon tamamlanıyor.</p>
+              <h2 className="text-2xl font-bold text-zinc-900 mb-2">{t('connecting')}</h2>
+              <p className="text-zinc-600">{t('pleaseWait')}</p>
             </div>
           )}
 
@@ -68,9 +70,9 @@ function ShopifyCallbackContent() {
                   />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-zinc-900 mb-2">Başarılı!</h2>
+              <h2 className="text-2xl font-bold text-zinc-900 mb-2">{t('success')}</h2>
               <p className="text-zinc-600 mb-4">{message}</p>
-              <p className="text-sm text-zinc-600">Entegrasyonlar sayfasına yönlendiriliyorsunuz...</p>
+              <p className="text-sm text-zinc-600">{t('redirecting')}</p>
             </div>
           )}
 
@@ -97,7 +99,7 @@ function ShopifyCallbackContent() {
                 onClick={() => router.push('/dashboard/integrations')}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Entegrasyonlara Dön
+                {t('backToIntegrations')}
               </button>
             </div>
           )}

@@ -171,10 +171,10 @@ export default function ConversationsPage() {
 
         <div className="w-px h-8 bg-border"></div>
         {[
-          { key: 'all' as const, label: 'Tümü' },
-          { key: 'human' as const, label: `İnsan (${conversations.filter((c) => c.conversationStatus === 'human').length})` },
+          { key: 'all' as const, label: t('filters.all') },
+          { key: 'human' as const, label: t('filters.humanCount', { count: conversations.filter((c) => c.conversationStatus === 'human').length }) },
           { key: 'ai' as const, label: 'AI' },
-          { key: 'resolved' as const, label: 'Çözüldü' },
+          { key: 'resolved' as const, label: t('filters.resolved') },
         ].map((f) => (
           <Button
             key={`status-${f.key}`}
@@ -228,10 +228,10 @@ export default function ConversationsPage() {
                           {getSentimentIcon(conversation.sentiment)} {conversation.sentiment}
                         </Badge>
                         {conversation.conversationStatus === 'human' && (
-                          <Badge variant="destructive" size="sm" className="shadow-sm font-bold">İnsan Modu</Badge>
+                          <Badge variant="destructive" size="sm" className="shadow-sm font-bold">{t('statusBadge.human')}</Badge>
                         )}
                         {conversation.conversationStatus === 'resolved' && (
-                          <Badge variant="success" size="sm" className="shadow-sm font-bold">Çözüldü</Badge>
+                          <Badge variant="success" size="sm" className="shadow-sm font-bold">{t('statusBadge.resolved')}</Badge>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground mb-2 font-medium">

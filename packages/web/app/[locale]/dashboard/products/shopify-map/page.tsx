@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Link2, ArrowLeft, Package, Image, Loader2, Save, ArrowRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface ShopifyProductVariant {
   id: string;
@@ -46,6 +47,7 @@ interface InstructionRow {
 }
 
 export default function ShopifyMapPage() {
+  const t = useTranslations('ShopifyMap');
   const [shopifyProducts, setShopifyProducts] = useState<ShopifyProduct[]>([]);
   const [localProducts, setLocalProducts] = useState<LocalProduct[]>([]);
   const [instructions, setInstructions] = useState<Record<string, InstructionRow>>({});
@@ -92,9 +94,9 @@ export default function ShopifyMapPage() {
       setEditing(initialEdit);
     } catch (err: any) {
       if (err.message?.includes('Shopify integration not found') || err.message?.includes('404')) {
-        toast.warning('Shopify bağlantısı yok', 'Önce Entegrasyonlar sayfasından Shopify bağlayın.');
+        toast.warning(t('toasts.shopifyNotConnected.title'), t('toasts.shopifyNotConnected.message'));
       } else {
-        toast.error('Veriler yüklenirken hata oluştu', err.message);
+        toast.error(t('toasts.loadError.title'), err.message);
       }
     } finally {
       setLoading(false);
@@ -123,7 +125,7 @@ export default function ShopifyMapPage() {
     if (!token) return;
     const edit = editing[shopifyProduct.id];
     if (!edit?.usage_instructions?.trim()) {
-      toast.warning('Kullanım talimatı girin');
+      toast.warning(t('toasts.enterInstruction'));
       return;
     }
     setSaving(shopifyProduct.id);
@@ -143,7 +145,7 @@ export default function ShopifyMapPage() {
         productId = createRes.product?.id;
         if (productId) setLocalProducts((prev) => [...prev, { id: productId!, name: shopifyProduct.title, external_id: shopifyProduct.id }]);
       }
-      if (!productId) throw new Error('Ürün oluşturulamadı');
+      if (!productId) throw new Error(t('toasts.productCreateError'));
       const descriptionForRag = stripHtmlForRag(shopifyProduct.descriptionHtml);
       if (descriptionForRag) {
         await authenticatedRequest(`/api/products/${productId}`, token, {
@@ -158,7 +160,7 @@ export default function ShopifyMapPage() {
           recipe_summary: edit.recipe_summary?.trim() || undefined,
         }),
       });
-      toast.success('Kullanım talimatı kaydedildi', 'Değişiklikler başarıyla kaydedildi');
+      toast.success(t('toasts.saveSuccess.title'), t('toasts.saveSuccess.message'));
       
       // Add success highlight animation
       const row = document.querySelector(`tr[data-product-id="${shopifyProduct.id}"]`);
@@ -169,7 +171,7 @@ export default function ShopifyMapPage() {
       
       await loadData();
     } catch (err: any) {
-      toast.error('Kaydetme hatası', err.message);
+      toast.error(t('toasts.saveError.title'), err.message);
     } finally {
       setSaving(null);
     }
@@ -185,14 +187,14 @@ export default function ShopifyMapPage() {
           </div>
           <div className="space-y-1.5 min-w-0">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Shopify → Kullanım Talimatı
+              {t('title')}
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground font-medium max-w-xl">
-              Her Shopify ürünü için tarif ve kullanım talimatı girin; AI asistan cevaplarında bu bilgiyi kullanır.
+              {t('description')}
             </p>
             {!loading && shopifyProducts.length > 0 && (
               <Badge variant="outline-primary" size="sm" className="font-bold">
-                {shopifyProducts.length} ürün listeleniyor
+                {t('productCount', { count: shopifyProducts.length })}
               </Badge>
             )}
           </div>
@@ -200,7 +202,7 @@ export default function ShopifyMapPage() {
         <Button variant="outline" size="lg" asChild className="shrink-0">
           <Link href="/dashboard/products">
             <ArrowLeft className="w-5 h-5 mr-2" />
-            Ürünlere dön
+            {t('backToProducts')}
           </Link>
         </Button>
       </div>
@@ -229,13 +231,13 @@ export default function ShopifyMapPage() {
             <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center shadow-inner">
               <Package className="w-10 h-10 text-primary" />
             </div>
-            <h2 className="text-2xl font-bold mb-3">Ürün bulunamadı</h2>
+            <h2 className="text-2xl font-bold mb-3">{t('empty.title')}</h2>
             <p className="text-muted-foreground mb-8 max-w-md mx-auto text-base">
-              Shopify mağazanızdan henüz ürün çekilmedi veya entegrasyon kurulmamış. Önce Entegrasyonlar sayfasından Shopify bağlayın.
+              {t('empty.description')}
             </p>
             <Button size="lg" asChild className="shadow-lg hover:shadow-xl">
               <Link href="/dashboard/integrations">
-                Shopify bağla
+                {t('empty.connectButton')}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
@@ -246,22 +248,22 @@ export default function ShopifyMapPage() {
         <Card hover className="overflow-hidden shadow-lg">
           <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent border-b py-4">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Her satırda talimat yazıp <strong className="text-primary">Kaydet</strong> ile AI bağlamına ekleyin
+              {t('table.hint')} <strong className="text-primary">{t('table.hintSave')}</strong>.
             </p>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-border" aria-label="Shopify ürünleri ve kullanım talimatları">
+              <table className="min-w-full divide-y divide-border" aria-label={t('table.ariaLabel')}>
                 <thead className="bg-muted/30">
                   <tr>
                     <th scope="col" className="px-5 py-4 text-left text-xs font-bold text-foreground uppercase tracking-wider w-[min(240px,30%)]">
-                      Ürün (Shopify)
+                      {t('table.product')}
                     </th>
                     <th scope="col" className="px-5 py-4 text-left text-xs font-bold text-foreground uppercase tracking-wider">
-                      Kullanım talimatı / Tarif
+                      {t('table.instructions')}
                     </th>
                     <th scope="col" className="px-5 py-4 text-right text-xs font-bold text-foreground uppercase tracking-wider w-32">
-                      İşlem
+                      {t('table.action')}
                     </th>
                   </tr>
                 </thead>
@@ -323,14 +325,14 @@ export default function ShopifyMapPage() {
                       {/* Usage Instructions Textarea */}
                       <td className="px-5 py-5 align-top">
                         <label htmlFor={`instruction-${p.id}`} className="sr-only">
-                          Kullanım talimatı: {p.title}
+                          {t('instructionLabel', { title: p.title })}
                         </label>
                         <textarea
                           id={`instruction-${p.id}`}
-                          aria-label={`Kullanım talimatı: ${p.title}`}
+                          aria-label={t('instructionLabel', { title: p.title })}
                           className="w-full rounded-xl border-2 border-input bg-background px-4 py-3 text-sm min-h-[88px] placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 outline-none transition-all duration-200 hover:border-border/80 font-medium resize-none"
                           rows={3}
-                          placeholder="Örn: Cildi temizledikten sonra ince bir tabaka sürün. Günde 1–2 kez kullanılabilir."
+                          placeholder={t('placeholder')}
                           value={editing[p.id]?.usage_instructions ?? ''}
                           onChange={(e) =>
                             setEditing((prev) => ({
@@ -352,12 +354,12 @@ export default function ShopifyMapPage() {
                           {saving === p.id ? (
                             <>
                               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Kaydediliyor…
+                              {t('saving')}
                             </>
                           ) : (
                             <>
                               <Save className="w-4 h-4 mr-2" />
-                              Kaydet
+                              {t('save')}
                             </>
                           )}
                         </Button>

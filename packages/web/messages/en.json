@@ -250,9 +250,16 @@
         "description": "All WhatsApp conversations with your customers",
         "filters": {
             "all": "All",
+            "human": "Human",
+            "humanCount": "Human ({count})",
+            "resolved": "Resolved",
             "positive": "😊 Positive",
             "neutral": "😐 Neutral",
             "negative": "😞 Negative"
+        },
+        "statusBadge": {
+            "human": "Human Mode",
+            "resolved": "Resolved"
         },
         "list": {
             "empty": {
@@ -321,6 +328,7 @@
                 }
             }
         },
+        "createdLabel": "Created:",
         "active": {
             "title": "Active Integrations",
             "empty": {
@@ -610,6 +618,18 @@
             "activeUsers": "active users",
             "orders": "total orders"
         },
+        "roi": {
+            "savedReturns": "Saved Returns",
+            "savedReturnsDesc": "Complaint → positive outcome conversations",
+            "repeatPurchases": "Repeat Purchases",
+            "repeatPurchasesDesc": "Customers with conversations who bought again",
+            "resolvedConversations": "Resolved Conversations",
+            "resolvedDesc": "Conversations marked resolved",
+            "resolvedTotalDesc": "/ {total} total",
+            "messagesTotalLabel": "Total Messages",
+            "interactionRate": "Interaction Rate",
+            "interactionRateDesc": "{withConv}/{total} customers in conversation"
+        },
         "charts": {
             "dau": {
                 "title": "Daily Active Users (DAU)",
@@ -632,5 +652,272 @@
             "neutral": "Neutral",
             "negative": "Negative"
         }
+    },
+    "ShopifyMap": {
+        "title": "Shopify → Usage Instructions",
+        "description": "Enter usage instructions and recipe for each Shopify product; the AI assistant uses this in responses.",
+        "productCount": "{count} products listed",
+        "backToProducts": "Back to Products",
+        "empty": {
+            "title": "No products found",
+            "description": "No products have been pulled from your Shopify store yet, or integration is not set up. Connect Shopify from the Integrations page first.",
+            "connectButton": "Connect Shopify"
+        },
+        "table": {
+            "hint": "Enter instructions per row and add to AI context with",
+            "hintSave": "Save",
+            "product": "Product (Shopify)",
+            "instructions": "Usage instructions / Recipe",
+            "action": "Action",
+            "ariaLabel": "Shopify products and usage instructions"
+        },
+        "placeholder": "e.g. Apply a thin layer after cleansing. Can be used 1–2 times daily.",
+        "save": "Save",
+        "saving": "Saving…",
+        "instructionLabel": "Usage instructions: {title}",
+        "toasts": {
+            "shopifyNotConnected": { "title": "Shopify not connected", "message": "Connect Shopify from the Integrations page first." },
+            "loadError": { "title": "Error loading data", "message": "An error occurred while loading." },
+            "enterInstruction": "Please enter usage instructions",
+            "saveSuccess": { "title": "Usage instructions saved", "message": "Changes saved successfully." },
+            "saveError": { "title": "Save error", "message": "Failed to save." },
+            "productCreateError": "Product could not be created"
+        }
+    },
+    "Customers": {
+        "title": "Customers",
+        "subtitle": "All your customers and details ({total} customers)",
+        "searchPlaceholder": "Search by name...",
+        "filterAll": "All",
+        "segment": {
+            "champions": "Champions",
+            "loyal": "Loyal",
+            "promising": "Promising",
+            "at_risk": "At Risk",
+            "lost": "Lost",
+            "new": "New"
+        },
+        "empty": {
+            "title": "No customers found",
+            "description": "No customer records yet or no results match the filter."
+        },
+        "orders": "orders",
+        "conversations": "conversations",
+        "previous": "Previous",
+        "next": "Next",
+        "toasts": { "loadError": { "title": "Error", "message": "Failed to load customers." } }
+    },
+    "CustomerDetail": {
+        "segment": {
+            "champions": "Champion",
+            "loyal": "Loyal",
+            "promising": "Promising",
+            "at_risk": "At Risk",
+            "lost": "Lost",
+            "new": "New"
+        },
+        "backToCustomers": "Back to Customers",
+        "notFound": "Customer not found",
+        "toasts": { "loadError": { "title": "Error", "message": "Failed to load customer." } },
+        "churnRisk": "Churn risk",
+        "registered": "Registered",
+        "consent": "Consent",
+        "order": "Order",
+        "conversation": "Conversation",
+        "lastOrder": "Last Order",
+        "ordersCount": "Orders ({count})",
+        "noOrders": "No orders",
+        "conversationsCount": "Conversations ({count})",
+        "noConversations": "No conversations",
+        "statusHuman": "Human",
+        "statusResolved": "Resolved",
+        "statusAi": "AI",
+        "feedbackNps": "NPS",
+        "feedbackReview": "Review Request"
+    },
+    "ConversationDetail": {
+        "backToConversations": "Back to Conversations",
+        "notFound": "Conversation not found",
+        "order": "Order",
+        "messageHistory": "Message History",
+        "messageCount": "{count} messages · Auto-updating",
+        "noMessages": "No messages yet",
+        "customer": "Customer",
+        "you": "You",
+        "aiBot": "AI Bot",
+        "placeholderResolved": "Conversation resolved",
+        "placeholderReply": "Type message to customer...",
+        "send": "Send",
+        "sending": "Sending…",
+        "humanModeNote": "Human mode active. Sending a message will switch to human mode.",
+        "startAi": "Start AI",
+        "stopAi": "Stop AI",
+        "resolved": "Resolved",
+        "reopen": "Reopen",
+        "started": "Started",
+        "lastUpdate": "Last update",
+        "customerMessage": "Customer Message",
+        "botResponse": "Bot Response",
+        "toasts": {
+            "loadError": { "title": "Error", "message": "Error loading conversation." },
+            "sent": { "title": "Sent", "message": "Your message was sent via WhatsApp." },
+            "sendError": { "title": "Error", "message": "Failed to send message." },
+            "statusUpdated": "Status updated",
+            "statusError": { "title": "Error", "message": "Failed to update status." }
+        },
+        "statusHuman": "Human Mode",
+        "statusResolved": "Resolved",
+        "statusAi": "AI Mode",
+        "statusHumanLabel": "Human mode",
+        "statusResolvedLabel": "Resolved",
+        "statusAiLabel": "AI mode"
+    },
+    "BotInfo": {
+        "title": "Bot Info (AI Guidelines)",
+        "description": "Brand rules, boundaries, and recipe info the AI assistant uses when answering customer questions.",
+        "backToSettings": "← Back to Settings",
+        "loading": "Loading…",
+        "saveAll": "Save All",
+        "saving": "Saving…",
+        "sections": {
+            "brand_guidelines": { "label": "Brand & Guidelines", "placeholder": "Your brand voice, values, how to address customers…" },
+            "bot_boundaries": { "label": "Bot Boundaries", "placeholder": "What the bot should / should not do, no medical advice, human handoff rules…" },
+            "recipe_overview": { "label": "Recipe & Usage Overview", "placeholder": "General cosmetic recipe info, usage summary…" },
+            "custom_instructions": { "label": "Additional Instructions", "placeholder": "Other custom rules or instructions…" }
+        },
+        "toasts": {
+            "loadError": { "title": "Error", "message": "Error loading bot info." },
+            "saveError": { "title": "Save error", "message": "Failed to save." }
+        }
+    },
+    "ProductDetail": {
+        "backToProducts": "Back to Products",
+        "notFound": "Product not found",
+        "editProduct": "Edit Product",
+        "editDescription": "Edit product details",
+        "rescan": "Rescan",
+        "rescanning": "Rescanning…",
+        "save": "Save",
+        "saving": "Saving…",
+        "productName": "Product Name",
+        "productUrl": "Product URL",
+        "openPage": "Open page",
+        "toasts": {
+            "loadError": { "title": "Error", "message": "Error loading product." },
+            "saved": { "title": "Saved", "message": "Product updated successfully." },
+            "saveError": { "title": "Error", "message": "Failed to save product." },
+            "rescanSuccess": { "title": "Success!", "message": "Product rescraped and embeddings created." },
+            "rescanError": { "title": "Error", "message": "Error rescraping product." }
+        }
+    },
+    "Test": {
+        "customerName": "Test User",
+        "testProduct": "Test Product",
+        "chatMessage": "How do I use this product?",
+        "ragQuery": "How do I use this product?",
+        "toasts": {
+            "orderError": "Order could not be created",
+            "orderSuccess": { "title": "Order created", "message": "You can now trigger the delivery event." },
+            "deliveryError": "Delivery event could not be created",
+            "deliverySuccess": { "title": "Delivery event sent", "message": "You can now chat with the customer." },
+            "messageError": "Message could not be sent",
+            "noResponse": "No response received",
+            "messageSent": "Message sent",
+            "resetSuccess": { "title": "Test reset", "message": "You can start a new test." },
+            "tasksLoadError": "Failed to load tasks",
+            "taskTriggered": { "title": "Task triggered", "message": "Worker will process shortly." },
+            "ragError": "RAG test failed",
+            "ragAiError": "Failed to get RAG + AI response"
+        },
+        "healthLoadError": "Failed to load system health",
+        "subtitle": "Create an order and test the system by chatting with the bot",
+        "createOrder": "Create Order",
+        "step1Title": "Step 1: Create Order",
+        "step1Desc": "Create a test order. It will be saved to the database and a customer profile will be created.",
+        "customerPhone": "Customer Phone",
+        "customerNameLabel": "Customer Name",
+        "orderId": "Order ID",
+        "products": "Products",
+        "addProduct": "Add Product",
+        "productNamePlaceholder": "Product name",
+        "productIdPlaceholder": "Product ID",
+        "productUrlPlaceholder": "Product URL",
+        "creating": "Creating…",
+        "step2Title": "Step 2: Trigger Delivery Event",
+        "step2Desc": "Simulate order delivered. This will trigger the AI agent and send a WhatsApp message to the customer.",
+        "orderDetails": "Order Details",
+        "orderIdLabel": "Order ID",
+        "customerLabel": "Customer",
+        "productCount": "Product count",
+        "sendDelivery": "Send Delivery Event",
+        "sending": "Sending…",
+        "step3Title": "Step 3: Chat with the Bot",
+        "step3Desc": "Chat as the customer. The AI agent will respond with product and order history.",
+        "messagePlaceholder": "Type your message... (Press Enter to send)",
+        "sendMessage": "Send Message",
+        "advancedTools": "Advanced Test Tools",
+        "ragPlaceholder": "Question about product...",
+        "ragEmptyHint": "Leave empty to search all products",
+        "ragOnly": "RAG Only",
+        "ragAndAi": "RAG + AI Response",
+        "processing": "Processing…",
+        "aiResponse": "AI Response",
+        "noResults": "No results found",
+        "refresh": "Refresh",
+        "loading": "Loading…",
+        "loadFailed": "Failed to load",
+        "noScheduledTasks": "No scheduled tasks yet",
+        "resetTest": "Reset test"
+    },
+    "Sidebar": {
+        "mainMenu": "Main Menu"
+    },
+    "ShopifyCallback": {
+        "connecting": "Connecting to Shopify...",
+        "pleaseWait": "Please wait, integration is completing.",
+        "success": "Success!",
+        "successMessage": "Shopify integration completed successfully!",
+        "redirecting": "Redirecting to Integrations...",
+        "invalidCallback": "Invalid callback. Please try again from the Integrations page.",
+        "backToIntegrations": "Back to Integrations"
+    },
+    "ReturnPrevention": {
+        "moduleTitle": "Return Prevention Module",
+        "moduleDescription": "AI-powered return prevention. Detects return intent and helps customers get value from their products with usage guides and video tutorials.",
+        "priceNote": "+${price}/month",
+        "enableConfirmTitle": "Enable Return Prevention?",
+        "enableConfirmMessage": "This will add ${price}/month to your billing. The AI will proactively help customers before they return products.",
+        "enableConfirmButton": "Enable & Subscribe",
+        "disableConfirmTitle": "Disable Return Prevention?",
+        "disableConfirmMessage": "The module will be deactivated. You can re-enable it at any time.",
+        "disableConfirmButton": "Disable Module",
+        "planGateMessage": "Available on Starter plan and above.",
+        "statusActive": "Active",
+        "statusInactive": "Inactive",
+        "cancel": "Cancel",
+        "videoUrl": "Tutorial Video URL",
+        "videoUrlPlaceholder": "https://youtube.com/watch?v=...",
+        "videoUrlDescription": "Link to a product usage or tutorial video",
+        "preventionTips": "Return Prevention Tips",
+        "preventionTipsPlaceholder": "Tips to help customers when they want to return (e.g. Most customers see results after 2 weeks...)",
+        "preventionTipsDescription": "Tips shown to customers expressing return intent",
+        "analyticsTitle": "Return Prevention",
+        "preventedRevenue": "Prevented Revenue",
+        "returnsPrevented": "Returns Prevented",
+        "preventionRate": "Prevention Rate",
+        "topProducts": "Top At-Risk Products",
+        "totalAttempts": "Total Attempts",
+        "escalated": "Escalated",
+        "returned": "Returned",
+        "pending": "Pending",
+        "prevented": "Prevented",
+        "noData": "No return prevention data yet",
+        "badgeLabel": "Return Prevention",
+        "outcomePrevented": "Prevented",
+        "outcomeReturned": "Returned",
+        "outcomeEscalated": "Escalated",
+        "outcomePending": "Pending",
+        "attempts": "attempts",
+        "product": "Product"
     }
 }

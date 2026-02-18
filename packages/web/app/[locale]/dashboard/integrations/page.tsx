@@ -526,7 +526,7 @@ export default function IntegrationsPage() {
                           )}
                         </h3>
                         <p className="text-sm text-zinc-600 mt-2 font-medium">
-                          {locale === 'tr' ? 'Oluşturulma:' : 'Created:'} {new Date(integration.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
+                          {t('createdLabel')} {new Date(integration.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
                         </p>
                       </div>
                     </div>

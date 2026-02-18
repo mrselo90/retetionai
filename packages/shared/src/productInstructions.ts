@@ -11,6 +11,8 @@ export interface ProductInstructionRow {
   external_id?: string;
   usage_instructions: string;
   recipe_summary: string | null;
+  video_url?: string | null;
+  prevention_tips?: string | null;
 }
 
 /**
@@ -70,7 +72,7 @@ export async function getProductInstructionsByProductIds(
 
   const { data: instructions, error } = await serviceClient
     .from('product_instructions')
-    .select('product_id, usage_instructions, recipe_summary')
+    .select('product_id, usage_instructions, recipe_summary, video_url, prevention_tips')
     .eq('merchant_id', merchantId)
     .in('product_id', productIds);
 
@@ -84,7 +86,7 @@ export async function getProductInstructionsByProductIds(
 
   const productMap = new Map((products || []).map((p: { id: string; name?: string; external_id?: string }) => [p.id, p]));
 
-  return instructions.map((row: { product_id: string; usage_instructions: string; recipe_summary: string | null }) => {
+  return instructions.map((row: any) => {
     const product = productMap.get(row.product_id);
     return {
       product_id: row.product_id,
@@ -92,6 +94,8 @@ export async function getProductInstructionsByProductIds(
       external_id: product?.external_id ?? undefined,
       usage_instructions: row.usage_instructions,
       recipe_summary: row.recipe_summary ?? null,
+      video_url: row.video_url ?? null,
+      prevention_tips: row.prevention_tips ?? null,
     };
   });
 }

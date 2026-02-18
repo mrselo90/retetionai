@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users, Search, ShoppingBag, MessageSquare, AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface Customer {
   id: string;
@@ -23,15 +24,6 @@ interface Customer {
   createdAt: string;
 }
 
-const SEGMENT_LABELS: Record<string, string> = {
-  champions: 'Şampiyon',
-  loyal: 'Sadık',
-  promising: 'Umut Vaat Eden',
-  at_risk: 'Risk Altında',
-  lost: 'Kayıp',
-  new: 'Yeni',
-};
-
 const SEGMENT_COLORS: Record<string, string> = {
   champions: 'bg-emerald-100 text-emerald-800',
   loyal: 'bg-blue-100 text-blue-800',
@@ -42,6 +34,7 @@ const SEGMENT_COLORS: Record<string, string> = {
 };
 
 export default function CustomersPage() {
+  const t = useTranslations('Customers');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -66,7 +59,7 @@ export default function CustomersPage() {
       setCustomers(response.customers);
       setTotal(response.total);
     } catch (err) {
-      toast.error('Hata', 'Müşteriler yüklenemedi');
+      toast.error(t('toasts.loadError.title'), t('toasts.loadError.message'));
     } finally {
       setLoading(false);
     }
@@ -93,8 +86,8 @@ export default function CustomersPage() {
   return (
     <div className="space-y-8 animate-fade-in pb-8">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Müşteriler</h1>
-        <p className="text-muted-foreground">Tüm müşterileriniz ve detayları ({total} müşteri)</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+        <p className="text-muted-foreground">{t('subtitle', { total })}</p>
       </div>
 
       {/* Search + Segment Filter */}
@@ -105,7 +98,7 @@ export default function CustomersPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="İsim ile ara..."
+            placeholder={t('searchPlaceholder')}
             className="w-full pl-10 pr-4 py-2 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
           />
         </div>
@@ -117,7 +110,7 @@ export default function CustomersPage() {
               size="sm"
               onClick={() => { setSegment(s); setPage(1); }}
             >
-              {s === 'all' ? 'Tümü' : SEGMENT_LABELS[s]}
+              {s === 'all' ? t('filterAll') : t(`segment.${s}`)}
             </Button>
           ))}
         </div>
@@ -128,8 +121,8 @@ export default function CustomersPage() {
         <Card className="border-dashed">
           <CardContent className="p-12 text-center">
             <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">Müşteri bulunamadı</h3>
-            <p className="text-muted-foreground">Henüz müşteri kaydı yok veya filtreye uygun sonuç bulunamadı.</p>
+            <h3 className="text-lg font-semibold mb-2">{t('empty.title')}</h3>
+            <p className="text-muted-foreground">{t('empty.description')}</p>
           </CardContent>
         </Card>
       ) : (
@@ -150,7 +143,7 @@ export default function CustomersPage() {
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold">{customer.name}</h3>
                         <Badge className={SEGMENT_COLORS[customer.segment] || SEGMENT_COLORS.new}>
-                          {SEGMENT_LABELS[customer.segment] || customer.segment}
+                          {t(`segment.${customer.segment}`) || customer.segment}
                         </Badge>
                         {customer.churnProbability > 0.6 && (
                           <Badge variant="destructive" className="text-xs">
@@ -165,11 +158,11 @@ export default function CustomersPage() {
                   <div className="flex items-center gap-6 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1.5">
                       <ShoppingBag className="w-4 h-4" />
-                      <span>{customer.orderCount} sipariş</span>
+                      <span>{customer.orderCount} {t('orders')}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <MessageSquare className="w-4 h-4" />
-                      <span>{customer.conversationCount} konuşma</span>
+                      <span>{customer.conversationCount} {t('conversations')}</span>
                     </div>
                   </div>
                 </div>
@@ -183,11 +176,11 @@ export default function CustomersPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-            Önceki
+            {t('previous')}
           </Button>
           <span className="text-sm text-muted-foreground">Sayfa {page} / {totalPages}</span>
           <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-            Sonraki
+            {t('next')}
           </Button>
         </div>
       )}

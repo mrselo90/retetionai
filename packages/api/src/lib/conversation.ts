@@ -16,7 +16,7 @@ export interface ConversationMessage {
 export interface ConversationState {
   userId: string;
   orderId?: string;
-  currentIntent?: 'question' | 'complaint' | 'chat' | 'opt_out';
+  currentIntent?: 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent';
   lastMessageAt: string;
   messageCount: number;
 }
@@ -172,7 +172,7 @@ export async function getConversationHistory(
  */
 export async function updateConversationState(
   conversationId: string,
-  intent?: 'question' | 'complaint' | 'chat' | 'opt_out'
+  intent?: 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent'
 ): Promise<void> {
   const serviceClient = getSupabaseServiceClient();
 

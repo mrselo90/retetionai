@@ -7,7 +7,7 @@ import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BarChart3, TrendingUp, TrendingDown, Users, Package, Calendar, ArrowRight } from 'lucide-react';
+import { BarChart3, TrendingUp, TrendingDown, Users, Package, Calendar, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
 interface AnalyticsData {
@@ -38,11 +38,24 @@ interface ROIData {
   totalUsers: number;
 }
 
+interface PreventionData {
+  totalAttempts: number;
+  prevented: number;
+  returned: number;
+  escalated: number;
+  pending: number;
+  preventionRate: number;
+  preventedRevenue: number;
+  topProducts: Array<{ productId: string; productName: string; attempts: number; prevented: number }>;
+}
+
 export default function AnalyticsPage() {
   const t = useTranslations('Analytics');
+  const rp = useTranslations('ReturnPrevention');
   const locale = useLocale();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [roi, setRoi] = useState<ROIData | null>(null);
+  const [prevention, setPrevention] = useState<PreventionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -61,15 +74,17 @@ export default function AnalyticsPage() {
         return;
       }
 
-      const [analyticsRes, roiRes] = await Promise.all([
+      const [analyticsRes, roiRes, preventionRes] = await Promise.all([
         authenticatedRequest<AnalyticsData>(
           `/api/analytics/dashboard?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
           session.access_token
         ),
         authenticatedRequest<{ roi: ROIData }>('/api/analytics/roi', session.access_token).catch(() => null),
+        authenticatedRequest<PreventionData>('/api/analytics/return-prevention', session.access_token).catch(() => null),
       ]);
       setAnalytics(analyticsRes);
       if (roiRes) setRoi(roiRes.roi);
+      if (preventionRes) setPrevention(preventionRes);
     } catch (err: any) {
       console.error('Failed to load analytics:', err);
       if (err.status === 401) {
@@ -220,55 +235,138 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
               <Card hover className="border-2 border-success/20 bg-gradient-to-br from-success/5 to-transparent overflow-hidden group">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-semibold">Kurtarılan İadeler</CardTitle>
+                  <CardTitle className="text-sm font-semibold">{t('roi.savedReturns')}</CardTitle>
                   <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
                     <TrendingUp className="h-5 w-5 text-success" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-success tracking-tight">{roi.savedReturns}</div>
-                  <p className="text-xs text-muted-foreground mt-2 font-medium">Şikayet → olumlu biten konuşmalar</p>
+                  <p className="text-xs text-muted-foreground mt-2 font-medium">{t('roi.savedReturnsDesc')}</p>
                 </CardContent>
               </Card>
 
               <Card hover className="border-2 border-info/20 bg-gradient-to-br from-info/5 to-transparent overflow-hidden group">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-semibold">Tekrar Alım</CardTitle>
+                  <CardTitle className="text-sm font-semibold">{t('roi.repeatPurchases')}</CardTitle>
                   <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center group-hover:bg-info/20 transition-colors">
                     <Users className="h-5 w-5 text-info" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-info tracking-tight">{roi.repeatPurchases}</div>
-                  <p className="text-xs text-muted-foreground mt-2 font-medium">Konuşması olan tekrar alıcılar</p>
+                  <p className="text-xs text-muted-foreground mt-2 font-medium">{t('roi.repeatPurchasesDesc')}</p>
                 </CardContent>
               </Card>
 
               <Card hover className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent overflow-hidden group">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-semibold">Çözülen Konuşmalar</CardTitle>
+                  <CardTitle className="text-sm font-semibold">{t('roi.resolvedConversations')}</CardTitle>
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                     <TrendingUp className="h-5 w-5 text-primary" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-primary tracking-tight">{roi.resolvedConversations}</div>
-                  <p className="text-xs text-muted-foreground mt-2 font-medium">/ {roi.totalConversations} toplam</p>
+                  <p className="text-xs text-muted-foreground mt-2 font-medium">{t('roi.resolvedTotalDesc', { total: roi.totalConversations })}</p>
                 </CardContent>
               </Card>
 
               <Card hover className="border-2 border-warning/20 bg-gradient-to-br from-warning/5 to-transparent overflow-hidden group">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-semibold">Toplam Mesaj</CardTitle>
+                  <CardTitle className="text-sm font-semibold">{t('roi.messagesTotalLabel')}</CardTitle>
                   <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center group-hover:bg-warning/20 transition-colors">
                     <BarChart3 className="h-5 w-5 text-warning" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-warning tracking-tight">{roi.messagesTotal}</div>
-                  <p className="text-xs text-muted-foreground mt-2 font-medium">{roi.usersWithConversations}/{roi.totalUsers} müşteri etkileşimde</p>
+                  <p className="text-xs text-muted-foreground mt-2 font-medium">{t('roi.interactionRateDesc', { withConv: roi.usersWithConversations, total: roi.totalUsers })}</p>
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {/* Return Prevention Section */}
+          {prevention && prevention.totalAttempts > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="w-6 h-6 text-amber-600" />
+                <h2 className="text-xl font-bold">{rp('analyticsTitle')}</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <Card hover className="border-2 border-success/20 bg-gradient-to-br from-success/5 to-transparent overflow-hidden group">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-semibold">{rp('returnsPrevented')}</CardTitle>
+                    <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
+                      <ShieldCheck className="h-5 w-5 text-success" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-success tracking-tight">{prevention.prevented}</div>
+                    <p className="text-xs text-muted-foreground mt-2 font-medium">
+                      {prevention.totalAttempts} {rp('totalAttempts').toLowerCase()}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card hover className="border-2 border-info/20 bg-gradient-to-br from-info/5 to-transparent overflow-hidden group">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-semibold">{rp('preventionRate')}</CardTitle>
+                    <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-info" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-info tracking-tight">{prevention.preventionRate}%</div>
+                  </CardContent>
+                </Card>
+
+                <Card hover className="border-2 border-warning/20 bg-gradient-to-br from-warning/5 to-transparent overflow-hidden group">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-semibold">{rp('escalated')}</CardTitle>
+                    <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                      <Users className="h-5 w-5 text-warning" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-warning tracking-tight">{prevention.escalated}</div>
+                  </CardContent>
+                </Card>
+
+                <Card hover className="border-2 border-destructive/20 bg-gradient-to-br from-destructive/5 to-transparent overflow-hidden group">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-semibold">{rp('returned')}</CardTitle>
+                    <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+                      <TrendingDown className="h-5 w-5 text-destructive" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-destructive tracking-tight">{prevention.returned}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {prevention.topProducts.length > 0 && (
+                <Card hover className="overflow-hidden">
+                  <CardHeader>
+                    <CardTitle className="text-lg">{rp('topProducts')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="divide-y divide-zinc-100">
+                      {prevention.topProducts.map((product) => (
+                        <div key={product.productId} className="flex items-center justify-between py-3">
+                          <span className="font-medium text-sm">{product.productName}</span>
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-muted-foreground">{product.attempts} {rp('attempts')}</span>
+                            <Badge variant="default" size="sm">{product.prevented} {rp('prevented')}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
 

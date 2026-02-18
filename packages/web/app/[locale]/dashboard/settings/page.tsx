@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Bot, Shield, Key, Database, Loader2, Plus, Copy, Trash2, Pencil, X, Download, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Settings, Bot, Shield, Key, Database, Loader2, Plus, Copy, Trash2, Pencil, X, Download, AlertTriangle, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
 export type ProductInstructionsScope = 'order_only' | 'rag_products_too';
@@ -67,6 +67,7 @@ interface ApiKey {
 
 export default function SettingsPage() {
   const t = useTranslations('Settings');
+  const rp = useTranslations('ReturnPrevention');
   const locale = useLocale();
   const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
@@ -88,6 +89,11 @@ export default function SettingsPage() {
   const [temperature, setTemperature] = useState(0.7);
   const [productInstructionsScope, setProductInstructionsScope] = useState<ProductInstructionsScope>('order_only');
   const [whatsappSenderMode, setWhatsappSenderMode] = useState<'merchant_own' | 'corporate'>('merchant_own');
+
+  // Add-ons
+  const [addons, setAddons] = useState<Array<{ key: string; name: string; description: string; priceMonthly: number; status: string; planAllowed: boolean }>>([]);
+  const [showAddonConfirm, setShowAddonConfirm] = useState<string | null>(null);
+  const [addonAction, setAddonAction] = useState<'enable' | 'disable'>('enable');
 
   // Guardrails
   const [systemGuardrails, setSystemGuardrails] = useState<SystemGuardrailDefinition[]>([]);
@@ -154,6 +160,17 @@ export default function SettingsPage() {
         setCustomGuardrails([]);
         toast.error(t('toasts.saveError.title'), t('toasts.saveError.message'));
       }
+
+      try {
+        const addonsResponse = await authenticatedRequest<{ addons: any[] }>(
+          '/api/billing/addons',
+          session.access_token
+        );
+        setAddons(addonsResponse.addons || []);
+      } catch {
+        console.warn('Addons load failed (migration 011 may not be run)');
+        setAddons([]);
+      }
     } catch (err: any) {
       console.error('Failed to load settings:', err);
       if (err.status === 401) {
@@ -199,6 +216,51 @@ export default function SettingsPage() {
       toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAddonToggle = async (addonKey: string, currentStatus: string) => {
+    if (currentStatus === 'active') {
+      setAddonAction('disable');
+      setShowAddonConfirm(addonKey);
+    } else {
+      setAddonAction('enable');
+      setShowAddonConfirm(addonKey);
+    }
+  };
+
+  const handleAddonConfirm = async () => {
+    const addonKey = showAddonConfirm;
+    if (!addonKey) return;
+    setShowAddonConfirm(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      if (addonAction === 'enable') {
+        const response = await authenticatedRequest<{ confirmationUrl?: string }>(
+          `/api/billing/addons/${addonKey}/subscribe`,
+          session.access_token,
+          { method: 'POST' }
+        );
+        if (response.confirmationUrl) {
+          window.location.href = response.confirmationUrl;
+          return;
+        }
+        // If no confirmation URL (e.g. manual billing), just reload
+        await loadData();
+      } else {
+        await authenticatedRequest(
+          `/api/billing/addons/${addonKey}/cancel`,
+          session.access_token,
+          { method: 'POST' }
+        );
+        await loadData();
+      }
+    } catch (err: any) {
+      console.error('Addon action failed:', err);
+      toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
     }
   };
 
@@ -715,6 +777,97 @@ export default function SettingsPage() {
           </div>
         </div>
       </Card>
+
+      {/* Add-on Modules */}
+      <Card id="modules" hover className="scroll-mt-4 overflow-hidden shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-warning/5 to-transparent">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-warning to-warning/80 text-warning-foreground shadow-lg">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <div>
+              <CardTitle className="text-2xl">Modules</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1.5 font-medium">
+                Optional paid modules to enhance your AI capabilities
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6 space-y-4">
+          {addons.map((addon) => (
+            <div
+              key={addon.key}
+              className={`flex items-center justify-between p-5 rounded-xl border transition-all ${
+                addon.status === 'active'
+                  ? 'bg-gradient-to-r from-success/5 to-transparent border-success/30'
+                  : 'bg-gradient-to-r from-muted/50 to-transparent border-border'
+              }`}
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <p className="font-bold text-zinc-900 text-base">{rp('moduleTitle')}</p>
+                  <Badge variant={addon.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                    {addon.status === 'active' ? rp('statusActive') : rp('statusInactive')}
+                  </Badge>
+                </div>
+                <p className="text-sm text-zinc-600 mt-1">{rp('moduleDescription')}</p>
+                <p className="text-sm font-semibold text-primary mt-1.5">
+                  +${addon.priceMonthly}/month
+                </p>
+                {!addon.planAllowed && (
+                  <p className="text-xs text-amber-600 mt-1">{rp('planGateMessage')}</p>
+                )}
+              </div>
+              <button
+                onClick={() => handleAddonToggle(addon.key, addon.status)}
+                disabled={!addon.planAllowed}
+                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-200 shadow-inner ${
+                  addon.status === 'active' ? 'bg-primary' : 'bg-zinc-300'
+                } ${!addon.planAllowed ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md ${
+                    addon.status === 'active' ? 'translate-x-8' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          ))}
+          {addons.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">No modules available</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add-on confirmation dialog */}
+      {showAddonConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+            <h3 className="text-xl font-bold text-zinc-900">
+              {addonAction === 'enable' ? rp('enableConfirmTitle') : rp('disableConfirmTitle')}
+            </h3>
+            <p className="text-zinc-600 mt-3">
+              {addonAction === 'enable' ? rp('enableConfirmMessage') : rp('disableConfirmMessage')}
+            </p>
+            <div className="flex gap-3 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setShowAddonConfirm(null)}
+                className="flex-1"
+              >
+                {rp('cancel')}
+              </Button>
+              <Button
+                onClick={handleAddonConfirm}
+                variant={addonAction === 'enable' ? 'default' : 'destructive'}
+                className="flex-1"
+              >
+                {addonAction === 'enable' ? rp('enableConfirmButton') : rp('disableConfirmButton')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Guardrails */}
       <Card id="guardrails" hover className="scroll-mt-4 overflow-hidden shadow-lg">

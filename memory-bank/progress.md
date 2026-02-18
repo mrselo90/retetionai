@@ -57,6 +57,22 @@
   - Fixed invalid JSON structure in `packages/web/messages/tr.json` and `en.json` (Analytics object nested inside Settings).
   - Fixed TypeScript error in Settings page (`days_until_expiration` potentially undefined).
   - Successfully deployed to DigitalOcean (209.97.134.215) with `pm2 restart all --update-env`.
+- **Localization (Feb 17)**:
+  - Application is English (default) and Turkish. All dashboard UI uses `next-intl` with `en.json` and `tr.json`.
+  - Localized pages: Shopify Map, Conversations (list + detail), Analytics (incl. ROI), Integrations, Sidebar, Customers (list + detail), Settings/Bot Info, Product detail, Test page, Shopify OAuth callback.
+  - Removed hardcoded Turkish; segment labels, status badges, toasts, and copy use translation keys. Fixed `en.json` trailing comma; fixed customers list `SEGMENT_LABELS` → `t(\`segment.${customer.segment}\`)`. Build verified.
+- **Return Prevention Module (Feb 18)**:
+  - Implemented as optional paid add-on with separate Shopify `RecurringApplicationCharge`
+  - Migration 011: `merchant_addons`, `return_prevention_attempts` tables; extended `product_instructions` with `video_url`, `prevention_tips`
+  - New `packages/api/src/lib/addons.ts`: addon definitions, `isAddonActive()`, `activateAddon()`, `deactivateAddon()`, attempt logging/tracking
+  - Billing routes: `GET /addons`, `POST /addons/:key/subscribe`, `POST /cancel`, `GET /confirm`
+  - AI Agent: `return_intent` intent type, prevention flow (check addon → detect repeat → RAG + product content → prevention prompt → log attempt → escalate if insisting)
+  - Product detail page: new `video_url` and `prevention_tips` fields
+  - Settings page: Modules section with toggle, pricing, confirmation dialog, plan gate
+  - Analytics: Return Prevention cards (prevented, rate, escalated, returned, top products)
+  - Conversation detail: Return prevention badge with outcome
+  - ROI endpoint: replaced keyword-based savedReturns with structured `return_prevention_attempts` query
+  - Full translations in `ReturnPrevention` namespace (en + tr)
 
 ## Shopify Perfect Match (Feb 2026)
 

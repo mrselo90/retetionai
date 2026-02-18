@@ -18,8 +18,9 @@ import {
 } from './guardrails.js';
 import { processSatisfactionCheck } from './upsell.js';
 import { getMerchantBotInfo } from './botInfo.js';
+import { isAddonActive, logReturnPreventionAttempt, hasPendingPreventionAttempt, updatePreventionOutcome } from './addons.js';
 
-export type Intent = 'question' | 'complaint' | 'chat' | 'opt_out';
+export type Intent = 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent';
 
 export interface AIResponse {
   intent: Intent;
@@ -48,11 +49,12 @@ export async function classifyIntent(message: string): Promise<Intent> {
           content: `You are an intent classifier for a customer service chatbot.
 Classify the user's message into one of these categories:
 - question: User is asking about product usage, features, or how to use something
-- complaint: User is reporting a problem, issue, or dissatisfaction
+- complaint: User is reporting a problem, issue, or dissatisfaction (shipping, packaging, general issues)
+- return_intent: User wants to return the product, says they didn't like it, it doesn't work, wants a refund, or expresses dissatisfaction signaling a potential return (e.g. "iade", "beğenmedim", "çalışmıyor", "return", "refund", "doesn't work", "send it back")
 - chat: General conversation, greetings, or casual messages
 - opt_out: User wants to stop receiving messages or unsubscribe
 
-Respond with ONLY the category name (question, complaint, chat, or opt_out).`,
+Respond with ONLY the category name.`,
         },
         {
           role: 'user',
@@ -69,7 +71,8 @@ Respond with ONLY the category name (question, complaint, chat, or opt_out).`,
       intent === 'question' ||
       intent === 'complaint' ||
       intent === 'chat' ||
-      intent === 'opt_out'
+      intent === 'opt_out' ||
+      intent === 'return_intent'
     ) {
       return intent;
     }
@@ -127,18 +130,53 @@ export async function generateAIResponse(
   }
 
   // Step 2: Classify intent
-  const intent = await classifyIntent(message);
+  let intent = await classifyIntent(message);
 
   const persona = merchant?.persona_settings || {};
   const merchantName = merchant?.name || 'Biz';
   const botInfo = await getMerchantBotInfo(merchantId);
 
+  // Return Prevention: if return_intent detected, check if module is active
+  let returnPreventionActive = false;
+  if (intent === 'return_intent') {
+    returnPreventionActive = await isAddonActive(merchantId, 'return_prevention');
+    if (!returnPreventionActive) {
+      intent = 'complaint'; // fallback to normal complaint flow
+    } else {
+      // Check if customer is insisting (already had a prevention attempt in this conversation)
+      const alreadyAttempted = await hasPendingPreventionAttempt(conversationId);
+      if (alreadyAttempted) {
+        await updatePreventionOutcome(conversationId, 'escalated');
+        await escalateToHuman(userId, conversationId, 'return_intent_insistence', message);
+        return {
+          intent,
+          response: 'I understand this is important to you. Let me connect you with a team member who can personally assist you.',
+          requiresHuman: true,
+        };
+      }
+    }
+  }
+
+  // If the previous state was return_intent but now user is positive, mark as prevented
+  if (intent === 'chat' || intent === 'question') {
+    try {
+      const hasAttempt = await hasPendingPreventionAttempt(conversationId);
+      if (hasAttempt) {
+        const positiveSignals = ['thank', 'thanks', 'ok', 'okay', 'teşekkür', 'sağol', 'anladım', 'deneyeceğim', 'tamam', 'i\'ll try', 'got it'];
+        const msgLower = message.toLowerCase();
+        if (positiveSignals.some((s) => msgLower.includes(s))) {
+          await updatePreventionOutcome(conversationId, 'prevented');
+        }
+      }
+    } catch { /* non-critical */ }
+  }
+
   // product_instructions_scope: 'order_only' | 'rag_products_too' (required from settings)
   const productInstructionsScope = (persona?.product_instructions_scope === 'rag_products_too' ? 'rag_products_too' : 'order_only') as 'order_only' | 'rag_products_too';
 
-  // Step 3: Get RAG context if it's a question (knowledge_chunks + product_instructions)
+  // Step 3: Get RAG context if it's a question OR return_intent (knowledge_chunks + product_instructions)
   let ragContext = '';
-  if (intent === 'question') {
+  if (intent === 'question' || (intent === 'return_intent' && returnPreventionActive)) {
     try {
       let orderProductIds: string[] | undefined;
       if (orderId) {
@@ -177,10 +215,13 @@ export async function generateAIResponse(
       if (instructionProductIds.length > 0) {
         const instructions = await getProductInstructionsByProductIds(merchantId, instructionProductIds);
         if (instructions.length > 0) {
-          const recipeBlocks = instructions.map(
-            (r) =>
-              `[${r.product_name ?? 'Product'}]\nUsage / Recipe: ${r.usage_instructions}${r.recipe_summary ? `\nSummary: ${r.recipe_summary}` : ''}`
-          );
+          const recipeBlocks = instructions.map((r: any) => {
+            let block = `[${r.product_name ?? 'Product'}]\nUsage / Recipe: ${r.usage_instructions}`;
+            if (r.recipe_summary) block += `\nSummary: ${r.recipe_summary}`;
+            if (r.video_url) block += `\nTutorial Video: ${r.video_url}`;
+            if (r.prevention_tips) block += `\nReturn Prevention Tips: ${r.prevention_tips}`;
+            return block;
+          });
           ragContext += (ragContext ? '\n\n' : '') + '--- Product usage instructions (recipes) ---\n' + recipeBlocks.join('\n\n');
         }
       }
@@ -253,7 +294,23 @@ export async function generateAIResponse(
       };
     }
 
-    // Step 8: Check for satisfaction and trigger upsell if appropriate
+    // Step 8a: Log return prevention attempt if applicable
+    if (intent === 'return_intent' && returnPreventionActive) {
+      try {
+        await logReturnPreventionAttempt({
+          merchantId,
+          conversationId,
+          userId,
+          orderId,
+          triggerMessage: message,
+          preventionResponse: aiResponse,
+        });
+      } catch (err) {
+        logger.error({ err }, 'Failed to log return prevention attempt');
+      }
+    }
+
+    // Step 8b: Check for satisfaction and trigger upsell if appropriate
     let upsellResult = null;
     if (intent === 'chat' && orderId) {
       // Check if user is satisfied (positive sentiment in chat)
@@ -384,6 +441,17 @@ function buildSystemPrompt(
         '- Confirm the opt-out clearly\n' +
         '- Thank them politely\n\n';
       break;
+    case 'return_intent':
+      prompt +=
+        'USER INTENT: The user wants to return the product or is dissatisfied.\n' +
+        'YOUR GOAL: Prevent the return by helping them get value from the product.\n' +
+        '- Acknowledge frustration with empathy first\n' +
+        '- Ask how they used it (dosage, frequency, duration)\n' +
+        '- If a video URL is available in the product info, suggest it naturally\n' +
+        '- Share usage tips from product instructions\n' +
+        '- Do NOT accept the return or give return instructions\n' +
+        '- If they insist, offer to connect with a team member\n\n';
+      break;
   }
 
   // RAG context (knowledge_chunks + product_instructions)
@@ -392,12 +460,11 @@ function buildSystemPrompt(
     prompt +=
       'IMPORTANT: Base your answer ONLY on the information above. ' +
       'If the answer is not in the context, clearly say "I don\'t have specific information about that" and offer to help in another way.\n\n';
-  } else if (intent === 'question') {
-    // No product info available — bot should still respond helpfully
+  } else if (intent === 'question' || intent === 'return_intent') {
     prompt +=
       '--- NO PRODUCT INFORMATION AVAILABLE ---\n' +
       'The product information is not in the knowledge base yet. ' +
-      'Acknowledge their question politely, explain you don\'t have specific details, ' +
+      'Acknowledge their concern politely, explain you don\'t have specific details, ' +
       'and suggest alternatives (check packaging, contact support, etc.). ' +
       'NEVER invent product details, ingredients, or usage instructions.\n\n';
   }

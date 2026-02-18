@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 interface NavItem {
   name: string;
@@ -100,6 +101,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const t = useTranslations('Sidebar');
   const pathname = usePathname();
 
   return (
@@ -137,7 +139,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
 
           <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-            <p className="px-3 mb-2 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Ana Menü</p>
+            <p className="px-3 mb-2 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">{t('mainMenu')}</p>
             {navigation.map((item) => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
               return (

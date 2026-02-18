@@ -51,7 +51,7 @@ products.get('/instructions/list', async (c) => {
 
   const { data: rows, error } = await serviceClient
     .from('product_instructions')
-    .select('product_id, usage_instructions, recipe_summary, created_at, updated_at, products(id, name, external_id)')
+    .select('product_id, usage_instructions, recipe_summary, video_url, prevention_tips, created_at, updated_at, products(id, name, external_id)')
     .eq('merchant_id', merchantId);
 
   if (error) {
@@ -64,6 +64,8 @@ products.get('/instructions/list', async (c) => {
     external_id: r.products?.external_id,
     usage_instructions: r.usage_instructions,
     recipe_summary: r.recipe_summary,
+    video_url: r.video_url,
+    prevention_tips: r.prevention_tips,
     created_at: r.created_at,
     updated_at: r.updated_at,
   }));
@@ -93,7 +95,7 @@ products.get('/:id/instruction', validateParams(productIdSchema), async (c) => {
 
   const { data: instruction, error } = await serviceClient
     .from('product_instructions')
-    .select('id, usage_instructions, recipe_summary, created_at, updated_at')
+    .select('id, usage_instructions, recipe_summary, video_url, prevention_tips, created_at, updated_at')
     .eq('merchant_id', merchantId)
     .eq('product_id', productId)
     .maybeSingle();
@@ -138,6 +140,8 @@ products.put('/:id/instruction', validateParams(productIdSchema), validateBody(p
         product_id: productId,
         usage_instructions: body.usage_instructions,
         recipe_summary: body.recipe_summary ?? null,
+        video_url: body.video_url || null,
+        prevention_tips: body.prevention_tips ?? null,
       },
       { onConflict: 'merchant_id,product_id', ignoreDuplicates: false }
     )
