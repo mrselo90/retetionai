@@ -103,9 +103,11 @@
   --popover-foreground: 222 47% 11%;
 
   /* Primary brand colors - Enhanced teal/cyan palette */
-  --primary: 174 62% 47%;
+  --primary: 174 57% 56%;
+  /* #4FD1C5 */
   --primary-foreground: 0 0% 100%;
-  --primary-hover: 174 62% 42%;
+  --primary-hover: 174 57% 51%;
+  /* Slightly darker for hover */
   --primary-light: 174 62% 95%;
 
   /* Secondary colors */
@@ -168,10 +170,12 @@
 }
 
 .dark {
-  --background: 240 10% 3.9%;
+  --background: 220 26% 14%;
+  /* #1A202C */
   --foreground: 0 0% 98%;
 
-  --card: 240 10% 3.9%;
+  --card: 220 26% 14%;
+  /* #1A202C */
   --card-foreground: 0 0% 98%;
 
   --popover: 240 10% 3.9%;
@@ -220,7 +224,12 @@
   }
 
   /* Enhanced Typography */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-bold tracking-tight;
   }
 
@@ -260,6 +269,7 @@
 
   /* Reduced motion support */
   @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {
@@ -272,6 +282,7 @@
 
   /* High contrast mode support */
   @media (prefers-contrast: high) {
+
     .card,
     .button,
     input,
@@ -317,6 +328,7 @@
     opacity: 0;
     transform: translateY(-12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -328,6 +340,7 @@
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -451,9 +464,12 @@
 
 /* Additional Advanced Animations */
 @keyframes success-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
   }
+
   50% {
     box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
   }
@@ -467,6 +483,7 @@
   0% {
     background-position: -1000px 0;
   }
+
   100% {
     background-position: 1000px 0;
   }
@@ -474,20 +491,21 @@
 
 .shimmer {
   animation: shimmer 2s infinite linear;
-  background: linear-gradient(
-    to right,
-    #f0f0f0 0%,
-    #f8f8f8 20%,
-    #f0f0f0 40%,
-    #f0f0f0 100%
-  );
+  background: linear-gradient(to right,
+      #f0f0f0 0%,
+      #f8f8f8 20%,
+      #f0f0f0 40%,
+      #f0f0f0 100%);
   background-size: 1000px 100%;
 }
 
 @keyframes bounce {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -498,13 +516,24 @@
 }
 
 @keyframes shake {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateX(0);
   }
-  10%, 30%, 50%, 70%, 90% {
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
     transform: translateX(-5px);
   }
-  20%, 40%, 60%, 80% {
+
+  20%,
+  40%,
+  60%,
+  80% {
     transform: translateX(5px);
   }
 }
@@ -514,9 +543,12 @@
 }
 
 @keyframes glow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 5px hsl(var(--primary)), 0 0 10px hsl(var(--primary));
   }
+
   50% {
     box-shadow: 0 0 20px hsl(var(--primary)), 0 0 30px hsl(var(--primary));
   }
@@ -527,9 +559,12 @@
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-20px);
   }
@@ -544,6 +579,7 @@
     opacity: 0;
     transform: translateX(100px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
