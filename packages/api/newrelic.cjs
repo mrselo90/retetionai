@@ -8,7 +8,7 @@
 const enabled = process.env.NEW_RELIC_ENABLED !== 'false' && !!process.env.NEW_RELIC_LICENSE_KEY;
 exports.config = {
   agent_enabled: enabled,
-  app_name: [process.env.NEW_RELIC_APP_NAME || 'glowguide-api'],
+  app_name: [process.env.NEW_RELIC_APP_NAME || 'recete-api'],
   license_key: process.env.NEW_RELIC_LICENSE_KEY || '',
   distributed_tracing: { enabled: true },
   logging: {

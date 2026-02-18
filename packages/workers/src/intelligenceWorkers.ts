@@ -4,7 +4,7 @@
  */
 
 import { Worker } from 'bullmq';
-import { getRedisClient, getSupabaseServiceClient, logger, QUEUE_NAMES } from '@glowguide/shared';
+import { getRedisClient, getSupabaseServiceClient, logger, QUEUE_NAMES } from '@recete/shared';
 import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from './lib/whatsapp.js';
 
 const connection = getRedisClient();

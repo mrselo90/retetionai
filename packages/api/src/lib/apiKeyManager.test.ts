@@ -13,7 +13,7 @@ import {
   isApiKeyExpired,
   isApiKeyExpiringSoon,
 } from './apiKeyManager';
-import { generateApiKey, hashApiKey } from '@glowguide/shared';
+import { generateApiKey, hashApiKey } from '@recete/shared';
 
 describe('createApiKeyObject', () => {
   it('should create API key object with correct structure', () => {

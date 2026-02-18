@@ -1,5 +1,5 @@
 import { Context, Next } from 'hono';
-import { getRedisClient } from '@glowguide/shared';
+import { getRedisClient } from '@recete/shared';
 
 /**
  * Rate limit configuration

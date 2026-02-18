@@ -1,4 +1,4 @@
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { decryptPhone } from './encryption.js';
 
 /**

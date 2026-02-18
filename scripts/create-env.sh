@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# GlowGuide Cloud Environment Setup Script
+# ReceteGuide Cloud Environment Setup Script
 # Bu script tüm environment variables'ı toplar ve platform-specific dosyalar oluşturur
 
 set -e
 
-echo "🚀 GlowGuide Cloud Environment Setup"
+echo "🚀 ReceteGuide Cloud Environment Setup"
 echo "======================================"
 echo ""
 echo "Bu script cloud deployment için gerekli tüm environment variables'ı toplayacak."

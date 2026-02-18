@@ -1,4 +1,4 @@
--- GlowGuide Retention Agent - Initial Database Schema
+-- Recete Retention Agent - Initial Database Schema
 -- Multi-tenant SaaS platform for post-purchase AI assistance
 
 -- Enable required extensions

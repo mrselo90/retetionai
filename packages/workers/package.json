@@ -1,5 +1,5 @@
 {
-  "name": "@glowguide/workers",
+  "name": "@recete/workers",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
-    "@glowguide/shared": "workspace:*",
+    "@recete/shared": "workspace:*",
     "bullmq": "^5.4.0",
     "dotenv": "^16.3.1",
     "ioredis": "^5.3.2",

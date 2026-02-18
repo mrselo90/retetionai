@@ -7,7 +7,7 @@ KEY="${HOME}/.ssh/id_ed25519.pub"
 HOST="root@209.97.134.215"
 
 if [ ! -f "$KEY" ]; then
-  echo "No key at $KEY. Run: ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N \"\" -C \"glowguide\""
+  echo "No key at $KEY. Run: ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N \"\" -C \"recete\""
   exit 1
 fi
 

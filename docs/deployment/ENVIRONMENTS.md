@@ -84,12 +84,12 @@ REDIS_URL=redis://staging-redis:6379
 PORT=3001
 NODE_ENV=staging
 LOG_LEVEL=info
-ALLOWED_ORIGINS=https://staging.glowguide.ai
+ALLOWED_ORIGINS=https://staging.recete.ai
 
 # Frontend
 NEXT_PUBLIC_SUPABASE_URL=https://staging-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=staging-anon-key
-NEXT_PUBLIC_API_URL=https://api-staging.glowguide.ai
+NEXT_PUBLIC_API_URL=https://api-staging.recete.ai
 
 # OpenAI
 OPENAI_API_KEY=your-key
@@ -114,12 +114,12 @@ REDIS_URL=redis://production-redis:6379
 PORT=3001
 NODE_ENV=production
 LOG_LEVEL=warn
-ALLOWED_ORIGINS=https://app.glowguide.ai,https://glowguide.ai
+ALLOWED_ORIGINS=https://app.recete.ai,https://recete.ai
 
 # Frontend
 NEXT_PUBLIC_SUPABASE_URL=https://production-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=production-anon-key
-NEXT_PUBLIC_API_URL=https://api.glowguide.ai
+NEXT_PUBLIC_API_URL=https://api.recete.ai
 
 # OpenAI
 OPENAI_API_KEY=your-production-key
@@ -152,7 +152,7 @@ supabase start
 #### Staging
 
 1. Create new Supabase project at https://supabase.com
-2. Name: `glowguide-staging`
+2. Name: `recete-staging`
 3. Copy project URL and keys
 4. Run migrations:
 ```bash
@@ -163,7 +163,7 @@ supabase db push
 #### Production
 
 1. Create new Supabase project
-2. Name: `glowguide-production`
+2. Name: `recete-production`
 3. Copy project URL and keys
 4. Run migrations:
 ```bash
@@ -285,7 +285,7 @@ vercel env add SUPABASE_URL
 **AWS:**
 ```bash
 aws secretsmanager create-secret \
-  --name glowguide/production/supabase-url \
+  --name recete/production/supabase-url \
   --secret-string "https://..."
 ```
 

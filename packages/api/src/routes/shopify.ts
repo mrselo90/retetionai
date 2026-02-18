@@ -3,7 +3,7 @@
  */
 
 import { Hono } from 'hono';
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
 import {
   getShopifyAuthUrl,
@@ -14,7 +14,7 @@ import {
   fetchShopifyProducts,
 } from '../lib/shopify.js';
 import { verifyShopifySessionToken } from '../lib/shopifySession.js';
-import { logger } from '@glowguide/shared';
+import { logger } from '@recete/shared';
 import * as crypto from 'crypto';
 
 const shopify = new Hono();

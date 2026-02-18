@@ -8,7 +8,7 @@ initSentry();
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { swaggerUI } from '@hono/swagger-ui';
-import { getSupabaseClient, getRedisClient } from '@glowguide/shared';
+import { getSupabaseClient, getRedisClient } from '@recete/shared';
 import authRoutes from './routes/auth.js';
 import merchantRoutes from './routes/merchants.js';
 import integrationRoutes from './routes/integrations.js';
@@ -53,7 +53,7 @@ app.use('/*', async (c, next) => {
   const origin = c.req.header('Origin');
 
   // Get allowed origins from environment variable
-  // Format: "http://localhost:3000,https://app.glowguide.ai,https://staging.glowguide.ai"
+  // Format: "http://localhost:3000,https://app.recete.ai,https://staging.recete.ai"
   const allowedOriginsEnv = process.env.ALLOWED_ORIGINS;
   const allowedOrigins = allowedOriginsEnv
     ? allowedOriginsEnv.split(',').map((o) => o.trim())
@@ -272,7 +272,7 @@ app.get('/health', async (c) => {
 
 // Schedule API key expiration cleanup (runs daily)
 import { scheduleApiKeyExpirationCleanup } from './lib/apiKeyExpirationScheduler.js';
-import { logger } from '@glowguide/shared';
+import { logger } from '@recete/shared';
 scheduleApiKeyExpirationCleanup().catch((err) => {
   logger.error(err, 'Failed to schedule API key expiration cleanup');
 });

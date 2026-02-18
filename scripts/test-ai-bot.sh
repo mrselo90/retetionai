@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # AI Bot Functionality Test Script
-# Tests all critical components of the GlowGuide AI bot
+# Tests all critical components of the ReceteGuide AI bot
 
 set -e
 
@@ -9,7 +9,7 @@ API_URL="${API_URL:-http://localhost:3001}"
 MERCHANT_ID="${TEST_MERCHANT_ID:-}"
 API_KEY="${TEST_API_KEY:-}"
 
-echo "🧪 GlowGuide AI Bot Test Suite"
+echo "🧪 ReceteGuide AI Bot Test Suite"
 echo "================================"
 echo "API URL: $API_URL"
 echo ""

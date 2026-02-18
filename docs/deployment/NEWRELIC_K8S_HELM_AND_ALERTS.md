@@ -22,7 +22,7 @@ Create a values file (e.g. `newrelic-k8s-values.yaml`), **do not commit license 
 ```yaml
 # newrelic-k8s-values.yaml (example; use --set for license key in CI)
 global:
-  cluster: glowguide-prod   # optional; identify cluster in NR UI
+  cluster: recete-prod   # optional; identify cluster in NR UI
   licenseKey: ""            # set via: helm install ... --set global.licenseKey=$NEW_RELIC_LICENSE_KEY
 
 # Disable APM auto-injection; we use in-image agent
@@ -42,15 +42,15 @@ kubectl create namespace newrelic --dry-run=client -o yaml | kubectl apply -f -
 helm upgrade --install newrelic-bundle newrelic/nri-bundle \
   -n newrelic \
   --set global.licenseKey=YOUR_LICENSE_KEY \
-  --set global.cluster=glowguide-prod
+  --set global.cluster=recete-prod
 ```
 
 Chart name and values may vary; check [New Relic Kubernetes integration docs](https://docs.newrelic.com/docs/kubernetes-pixie/kubernetes-integration/installation/install-kubernetes-integration/) for the current chart (e.g. `nri-bundle` or `nri-kubernetes`).
 
 ### 4.3 Verify
 
-- In New Relic: **Kubernetes** → select cluster → namespace `glowguide`; pods for api, workers, web should appear.
-- **APM**: Applications → `glowguide-api` and `glowguide-workers` (from in-image agent).
+- In New Relic: **Kubernetes** → select cluster → namespace `recete`; pods for api, workers, web should appear.
+- **APM**: Applications → `recete-api` and `recete-workers` (from in-image agent).
 
 ---
 
@@ -63,10 +63,10 @@ Chart name and values may vary; check [New Relic Kubernetes integration docs](ht
 
 | Condition type | Example |
 |----------------|--------|
-| **APM – Error rate** | Application: `glowguide-api`, error rate > 5% (or threshold of choice). |
-| **APM – Response time** | Application: `glowguide-api`, average response time (ms) > 2000. |
+| **APM – Error rate** | Application: `recete-api`, error rate > 5% (or threshold of choice). |
+| **APM – Response time** | Application: `recete-api`, average response time (ms) > 2000. |
 | **APM – Apdex** | Apdex < 0.7. |
-| **Kubernetes – Pod not ready** | Namespace: `glowguide`, pod status not Running/Ready. |
+| **Kubernetes – Pod not ready** | Namespace: `recete`, pod status not Running/Ready. |
 
 3. **Notification channel**: Email or Slack; attach to the policy.
 
@@ -75,15 +75,15 @@ Chart name and values may vary; check [New Relic Kubernetes integration docs](ht
 ```nrql
 # API error rate (last 5 min)
 SELECT percentage(count(*), WHERE error IS true) FROM Transaction 
-WHERE appName = 'glowguide-api' FACET name SINCE 5 minutes ago
+WHERE appName = 'recete-api' FACET name SINCE 5 minutes ago
 
 # API throughput (requests per minute)
 SELECT rate(count(*), 1 minute) FROM Transaction 
-WHERE appName = 'glowguide-api' SINCE 1 hour ago
+WHERE appName = 'recete-api' SINCE 1 hour ago
 
 # Workers transaction count
 SELECT count(*) FROM Transaction 
-WHERE appName = 'glowguide-workers' FACET name SINCE 1 hour ago
+WHERE appName = 'recete-workers' FACET name SINCE 1 hour ago
 ```
 
 ### 5.3 Dashboard suggestions
@@ -92,9 +92,9 @@ Create a dashboard **"Recete K8s + APM"** with widgets such as:
 
 - **API**: Throughput (requests/min), error rate (%), response time (avg/p95), Apdex.
 - **Workers**: Job throughput, error count, average duration.
-- **Kubernetes**: Pod count by namespace `glowguide`, CPU/memory usage (if available from integration), pod restarts.
+- **Kubernetes**: Pod count by namespace `recete`, CPU/memory usage (if available from integration), pod restarts.
 
-Use **Query** widgets with NRQL above, or **APM** widgets linked to `glowguide-api` and `glowguide-workers`.
+Use **Query** widgets with NRQL above, or **APM** widgets linked to `recete-api` and `recete-workers`.
 
 ---
 

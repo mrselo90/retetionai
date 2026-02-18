@@ -166,7 +166,7 @@ export const options = {
 };
 
 export default function () {
-  const res = http.get('https://api.glowguide.ai/api/health');
+  const res = http.get('https://api.recete.ai/api/health');
   check(res, {
     'status is 200': (r) => r.status === 200,
     'response time < 200ms': (r) => r.timings.duration < 200,

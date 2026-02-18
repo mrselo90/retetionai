@@ -5,7 +5,7 @@
 
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { getCache, setCache } from '../lib/cache.js';
 
 const analytics = new Hono();

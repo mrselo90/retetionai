@@ -4,14 +4,14 @@
  */
 
 import { Worker, WorkerOptions } from 'bullmq';
-import { getRedisClient, getSupabaseServiceClient, logger } from '@glowguide/shared';
+import { getRedisClient, getSupabaseServiceClient, logger } from '@recete/shared';
 import {
   QUEUE_NAMES,
   ScheduledMessageJobData,
   ScrapeJobData,
   AnalyticsJobData,
   getUsageInstructionsForProductIds,
-} from '@glowguide/shared';
+} from '@recete/shared';
 import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from './lib/whatsapp.js';
 import { scrapeProductPage } from './lib/scraper.js';
 import { processProductForRAG } from './lib/knowledgeBase.js';

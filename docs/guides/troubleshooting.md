@@ -510,10 +510,10 @@ Include the following information:
 
 ### Support Channels
 
-- **Documentation**: [docs.glowguide.com](https://docs.glowguide.com)
-- **GitHub Issues**: [github.com/glowguide/retention-agent](https://github.com/glowguide/retention-agent)
-- **Email Support**: support@glowguide.com
-- **Community Forum**: [community.glowguide.com](https://community.glowguide.com)
+- **Documentation**: [docs.recete.com](https://docs.recete.com)
+- **GitHub Issues**: [github.com/recete/retention-agent](https://github.com/recete/retention-agent)
+- **Email Support**: support@recete.com
+- **Community Forum**: [community.recete.com](https://community.recete.com)
 
 ---
 

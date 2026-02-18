@@ -39,9 +39,9 @@ Recete Retention Agent is an intelligent customer support assistant that automat
 
 **Support:**
 
-- Email: support@glowguide.ai
-- Documentation: https://docs.glowguide.ai
-- Help Center: https://help.glowguide.ai
+- Email: support@recete.ai
+- Documentation: https://docs.recete.ai
+- Help Center: https://help.recete.ai
 
 ---
 
@@ -67,11 +67,11 @@ Recete Retention Agent is an intelligent customer support assistant that automat
 
 ## Support Information
 
-**Support Email**: support@glowguide.ai  
+**Support Email**: support@recete.ai  
 **Support Hours**: Monday-Friday, 9 AM - 6 PM EST  
 **Response Time**: Within 24 hours  
-**Documentation**: https://docs.glowguide.ai  
-**Help Center**: https://help.glowguide.ai
+**Documentation**: https://docs.recete.ai  
+**Help Center**: https://help.recete.ai
 
 ---
 
@@ -83,7 +83,7 @@ Recete Retention Agent is an intelligent customer support assistant that automat
 - Customer consent management
 - Data export and deletion available on request
 
-See our [Privacy Policy](https://glowguide.ai/privacy-policy) for details.
+See our [Privacy Policy](https://recete.ai/privacy-policy) for details.
 
 ---
 
@@ -129,9 +129,9 @@ All plans include:
 
 ## Legal Documents
 
-- **Privacy Policy**: https://glowguide.ai/privacy-policy
-- **Terms of Service**: https://glowguide.ai/terms-of-service
-- **Cookie Policy**: https://glowguide.ai/cookie-policy
+- **Privacy Policy**: https://recete.ai/privacy-policy
+- **Terms of Service**: https://recete.ai/terms-of-service
+- **Cookie Policy**: https://recete.ai/cookie-policy
 
 All legal documents are hosted and publicly accessible.
 

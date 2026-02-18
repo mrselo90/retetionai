@@ -3,7 +3,7 @@
  * Handles product content chunking and embedding storage
  */
 
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { chunkText, generateEmbeddingsBatch, type TextChunk } from './embeddings.js';
 
 export interface ProcessProductResult {

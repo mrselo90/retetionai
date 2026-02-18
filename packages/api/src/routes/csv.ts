@@ -5,7 +5,7 @@
 
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { parseCSV } from '../lib/csvParser.js';
 import { generateIdempotencyKey } from '../lib/events.js';
 import { processNormalizedEvent } from '../lib/orderProcessor.js';
@@ -147,13 +147,13 @@ csv.post('/:integrationId/import/csv', authMiddleware, async (c) => {
  */
 csv.get('/csv/template', authMiddleware, async (c) => {
   const template = `external_order_id,created_at,delivered_at,status,customer_phone,customer_name,product_name,product_url,product_external_id
-ORD-12345,2024-01-15T10:30:00Z,2024-01-18T14:20:00Z,delivered,+905551234567,Ahmet Yılmaz,Glow Serum,https://example.com/glow-serum,PROD-001
+ORD-12345,2024-01-15T10:30:00Z,2024-01-18T14:20:00Z,delivered,+905551234567,Ahmet Yılmaz,Recete Serum,https://example.com/glow-serum,PROD-001
 ORD-12345,2024-01-15T10:30:00Z,2024-01-18T14:20:00Z,delivered,+905551234567,Ahmet Yılmaz,Night Cream,https://example.com/night-cream,PROD-002
 ORD-12346,2024-01-16T11:00:00Z,,created,+905559876543,Ayşe Demir,Face Mask,https://example.com/face-mask,PROD-003`;
 
   return c.text(template, 200, {
     'Content-Type': 'text/csv',
-    'Content-Disposition': 'attachment; filename="glowguide-import-template.csv"',
+    'Content-Disposition': 'attachment; filename="recete-import-template.csv"',
   });
 });
 

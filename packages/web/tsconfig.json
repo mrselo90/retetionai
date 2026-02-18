@@ -20,7 +20,7 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@glowguide/shared": ["../shared/src"]
+      "@recete/shared": ["../shared/src"]
     }
   },
   "include": [

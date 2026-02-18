@@ -4,7 +4,7 @@
  */
 
 import { Queue } from 'bullmq';
-import { getRedisClient, logger } from '@glowguide/shared';
+import { getRedisClient, logger } from '@recete/shared';
 
 const redis = getRedisClient();
 

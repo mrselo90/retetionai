@@ -4,7 +4,7 @@
  * Each add-on has its own Shopify RecurringApplicationCharge
  */
 
-import { getSupabaseServiceClient, logger } from '@glowguide/shared';
+import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { getCache, setCache, deleteCache } from './cache.js';
 import type { SubscriptionPlan } from './billing.js';
 

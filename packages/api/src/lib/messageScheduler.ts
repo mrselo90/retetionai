@@ -3,10 +3,10 @@
  * Schedule WhatsApp messages for post-purchase care
  */
 
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { scheduleMessage } from '../queues.js';
 import { decryptPhone } from './encryption.js';
-import type { ScheduledMessageJobData } from '@glowguide/shared';
+import type { ScheduledMessageJobData } from '@recete/shared';
 
 export interface ScheduleMessageOptions {
   userId: string;

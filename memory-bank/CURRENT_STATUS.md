@@ -41,7 +41,7 @@ cd /root/retetionai && git pull && pnpm install && cd packages/web && pnpm build
 |------|------|
 | Backend .env | `/root/retetionai/.env` |
 | Frontend .env | `/root/retetionai/packages/web/.env.local` |
-| Nginx config | `/etc/nginx/sites-available/glowguide` |
+| Nginx config | `/etc/nginx/sites-available/recete` |
 | PM2 config | `~/.pm2/dump.pm2` |
 
 47: ### Next Steps

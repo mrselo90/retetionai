@@ -167,7 +167,7 @@ curl -X POST "https://api.cloudflare.com/client/v4/zones/{zone_id}/purge_cache" 
 curl -X POST "https://api.cloudflare.com/client/v4/zones/{zone_id}/purge_cache" \
   -H "Authorization: Bearer {api_token}" \
   -H "Content-Type: application/json" \
-  --data '{"files":["https://app.glowguide.ai/api/products/123"]}'
+  --data '{"files":["https://app.recete.ai/api/products/123"]}'
 ```
 
 **Vercel:**

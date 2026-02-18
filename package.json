@@ -1,12 +1,12 @@
 {
-  "name": "glowguide-retention-agent",
+  "name": "recete-retention-agent",
   "version": "0.1.0",
   "private": true,
   "description": "White-label SaaS platform for post-purchase AI assistance via WhatsApp",
   "scripts": {
     "dev": "pnpm --filter api dev",
-    "dev:web": "pnpm --filter @glowguide/web dev",
-    "dev:all": "pnpm --parallel --filter api --filter @glowguide/web dev",
+    "dev:web": "pnpm --filter @recete/web dev",
+    "dev:all": "pnpm --parallel --filter api --filter @recete/web dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
@@ -15,12 +15,12 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
     "clean": "pnpm -r clean",
     "test": "pnpm -r test",
-    "test:unit": "pnpm --filter @glowguide/api test && pnpm --filter @glowguide/shared test",
-    "test:integration": "pnpm --filter @glowguide/api test integration",
+    "test:unit": "pnpm --filter @recete/api test && pnpm --filter @recete/shared test",
+    "test:integration": "pnpm --filter @recete/api test integration",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:coverage": "pnpm --filter @glowguide/api test:coverage"
+    "test:coverage": "pnpm --filter @recete/api test:coverage"
   },
   "pnpm": {
     "overrides": {

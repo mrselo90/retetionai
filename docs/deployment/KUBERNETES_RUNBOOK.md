@@ -29,8 +29,8 @@ Run locally with the **same** deployment method you use for production: Docker i
 This script: builds api/workers/web images, loads them into your local cluster (minikube/kind), creates namespace and secret from `.env` or `.env.production`, and applies all manifests (same as production). Then use port-forward to access:
 
 ```bash
-kubectl port-forward svc/api 3001:3001 -n glowguide &
-kubectl port-forward svc/web 3000:3000 -n glowguide
+kubectl port-forward svc/api 3001:3001 -n recete &
+kubectl port-forward svc/web 3000:3000 -n recete
 # Open http://localhost:3000 and API at http://localhost:3001
 ```
 
@@ -38,9 +38,9 @@ kubectl port-forward svc/web 3000:3000 -n glowguide
 
 1. **Cluster**: `minikube start` | `kind create cluster` | Docker Desktop → Enable Kubernetes.
 2. **Build + load images** (see script logic): minikube uses `eval $(minikube docker-env)` then `docker build`; kind uses `docker build` then `kind load docker-image`.
-3. **Namespace + Secret**: `kubectl apply -f k8s/namespace.yaml` and `kubectl create secret generic glowguide-secrets -n glowguide --from-env-file=.env` (or `.env.production`).
+3. **Namespace + Secret**: `kubectl apply -f k8s/namespace.yaml` and `kubectl create secret generic recete-secrets -n recete --from-env-file=.env` (or `.env.production`).
 4. **Apply**: `./scripts/k8s-apply.sh` (same as production).
-5. **Access**: `kubectl port-forward svc/api 3001:3001 -n glowguide` and `kubectl port-forward svc/web 3000:3000 -n glowguide`.
+5. **Access**: `kubectl port-forward svc/api 3001:3001 -n recete` and `kubectl port-forward svc/web 3000:3000 -n recete`.
 
 **Redis:** Use an external Redis (e.g. Supabase or a local Redis) and set `REDIS_URL` in your env file; the app in K8s will use it. No need to run Redis inside the cluster for local.
 
@@ -48,7 +48,7 @@ kubectl port-forward svc/web 3000:3000 -n glowguide
 
 ## 2. Required secrets
 
-Create the `glowguide-secrets` Secret in the `glowguide` namespace. **Never commit real values.**
+Create the `recete-secrets` Secret in the `recete` namespace. **Never commit real values.**
 
 ### Required keys (API + Workers)
 
@@ -80,19 +80,19 @@ Create the `glowguide-secrets` Secret in the `glowguide` namespace. **Never comm
 |-----|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Same as `SUPABASE_URL` (public) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same as `SUPABASE_ANON_KEY` (public) |
-| `NEXT_PUBLIC_API_URL` | Public API base URL (e.g. `https://api.glowguide.ai`) |
+| `NEXT_PUBLIC_API_URL` | Public API base URL (e.g. `https://api.recete.ai`) |
 
 ### Create secret from env file
 
 ```bash
 # Ensure .env.production exists and is gitignored
-kubectl create secret generic glowguide-secrets -n glowguide --from-env-file=.env.production
+kubectl create secret generic recete-secrets -n recete --from-env-file=.env.production
 ```
 
 Or from literals (no file):
 
 ```bash
-kubectl create secret generic glowguide-secrets -n glowguide \
+kubectl create secret generic recete-secrets -n recete \
   --from-literal=SUPABASE_URL=... \
   --from-literal=SUPABASE_SERVICE_ROLE_KEY=... \
   --from-literal=REDIS_URL=... \
@@ -101,7 +101,7 @@ kubectl create secret generic glowguide-secrets -n glowguide \
   # ... add all required keys
 ```
 
-To update an existing secret, delete and recreate or use `kubectl edit secret glowguide-secrets -n glowguide` (values must be base64).
+To update an existing secret, delete and recreate or use `kubectl edit secret recete-secrets -n recete` (values must be base64).
 
 ---
 
@@ -114,7 +114,7 @@ Apply in this order from repo root:
 kubectl apply -f k8s/namespace.yaml
 
 # 2. Secret (create once; see above)
-# kubectl create secret generic glowguide-secrets -n glowguide --from-env-file=.env.production
+# kubectl create secret generic recete-secrets -n recete --from-env-file=.env.production
 
 # 3. ConfigMap
 kubectl apply -f k8s/configmap.yaml
@@ -138,7 +138,7 @@ Or use the script (see [Scripts](#8-scripts)):
 ./scripts/k8s-apply.sh
 ```
 
-Before first deploy: replace image tags in `api-deployment.yaml`, `workers-deployment.yaml`, `web-deployment.yaml` with your registry URLs (e.g. `gcr.io/PROJECT/glowguide-api:1.0.0`).
+Before first deploy: replace image tags in `api-deployment.yaml`, `workers-deployment.yaml`, `web-deployment.yaml` with your registry URLs (e.g. `gcr.io/PROJECT/recete-api:1.0.0`).
 
 ---
 
@@ -147,16 +147,16 @@ Before first deploy: replace image tags in `api-deployment.yaml`, `workers-deplo
 ### Rollback a deployment to previous revision
 
 ```bash
-kubectl rollout undo deployment/api -n glowguide
-kubectl rollout undo deployment/workers -n glowguide
-kubectl rollout undo deployment/web -n glowguide
+kubectl rollout undo deployment/api -n recete
+kubectl rollout undo deployment/workers -n recete
+kubectl rollout undo deployment/web -n recete
 ```
 
 ### Rollback to a specific revision
 
 ```bash
-kubectl rollout history deployment/api -n glowguide
-kubectl rollout undo deployment/api -n glowguide --to-revision=2
+kubectl rollout history deployment/api -n recete
+kubectl rollout undo deployment/api -n recete --to-revision=2
 ```
 
 ### Rollback Ingress
@@ -164,7 +164,7 @@ kubectl rollout undo deployment/api -n glowguide --to-revision=2
 Revert `k8s/ingress.yaml` in git and re-apply, or edit in place:
 
 ```bash
-kubectl apply -f k8s/ingress.yaml -n glowguide
+kubectl apply -f k8s/ingress.yaml -n recete
 ```
 
 ---
@@ -173,13 +173,13 @@ kubectl apply -f k8s/ingress.yaml -n glowguide
 
 ```bash
 # Scale API to 3 replicas
-kubectl scale deployment/api -n glowguide --replicas=3
+kubectl scale deployment/api -n recete --replicas=3
 
 # Scale workers (usually 1–2; ensure queue concurrency is correct)
-kubectl scale deployment/workers -n glowguide --replicas=2
+kubectl scale deployment/workers -n recete --replicas=2
 
 # Scale web
-kubectl scale deployment/web -n glowguide --replicas=2
+kubectl scale deployment/web -n recete --replicas=2
 ```
 
 ---
@@ -190,32 +190,32 @@ kubectl scale deployment/web -n glowguide --replicas=2
 
 ```bash
 # API
-kubectl logs -f deployment/api -n glowguide
+kubectl logs -f deployment/api -n recete
 
 # Workers
-kubectl logs -f deployment/workers -n glowguide
+kubectl logs -f deployment/workers -n recete
 
 # Web
-kubectl logs -f deployment/web -n glowguide
+kubectl logs -f deployment/web -n recete
 ```
 
 ### Logs from a specific pod
 
 ```bash
-kubectl get pods -n glowguide
-kubectl logs -f <pod-name> -n glowguide
+kubectl get pods -n recete
+kubectl logs -f <pod-name> -n recete
 ```
 
 ### Describe pod (events, state)
 
 ```bash
-kubectl describe pod <pod-name> -n glowguide
+kubectl describe pod <pod-name> -n recete
 ```
 
 ### Exec into a pod
 
 ```bash
-kubectl exec -it deployment/api -n glowguide -- sh
+kubectl exec -it deployment/api -n recete -- sh
 ```
 
 ### Check health
@@ -236,7 +236,7 @@ curl https://your-domain.com/health
 |--------|--------|
 | Pods `ImagePullBackOff` | Image name/tag and `imagePullPolicy`; registry auth (imagePullSecrets) if private. |
 | Pods `CrashLoopBackOff` | `kubectl logs` and `kubectl describe pod`; often missing env (e.g. `SUPABASE_URL`, `REDIS_URL`) or wrong key names. |
-| 502 / 503 on Ingress | Pods ready? `kubectl get pods -n glowguide`; readiness probe path correct (`/health` for API, `/` for web). |
+| 502 / 503 on Ingress | Pods ready? `kubectl get pods -n recete`; readiness probe path correct (`/health` for API, `/` for web). |
 | No data in New Relic APM | `NEW_RELIC_LICENSE_KEY` and `NEW_RELIC_APP_NAME` set in secret; app restarted after adding; allow a few minutes for data. |
 | Workers not processing jobs | Redis reachable? Same `REDIS_URL` as API; queue names match; check worker logs. |
 | Web shows wrong API URL | Set `NEXT_PUBLIC_API_URL` in secret (or ConfigMap for web) to the public API base URL. |
@@ -244,7 +244,7 @@ curl https://your-domain.com/health
 ### Common fixes
 
 - **Update secret**: Delete and recreate, or patch; then restart deployments:  
-  `kubectl rollout restart deployment/api deployment/workers deployment/web -n glowguide`
+  `kubectl rollout restart deployment/api deployment/workers deployment/web -n recete`
 - **Update config (ConfigMap)**: Edit `k8s/configmap.yaml`, then `kubectl apply -f k8s/configmap.yaml` and restart deployments so they pick up new env.
 
 ---
@@ -252,7 +252,7 @@ curl https://your-domain.com/health
 ## 8. Scripts
 
 - **`scripts/k8s-local.sh`** — **Local only.** Builds Docker images, loads them into minikube/kind, creates namespace + secret from `.env` or `.env.production`, then runs `k8s-apply.sh`. Same deployment flow as production.
-- **`scripts/k8s-apply.sh`** — Applies manifests in the correct order (used by both local and production). Ensure `glowguide-secrets` exists before running (or use `k8s-local.sh` locally).
+- **`scripts/k8s-apply.sh`** — Applies manifests in the correct order (used by both local and production). Ensure `recete-secrets` exists before running (or use `k8s-local.sh` locally).
 
 ---
 
@@ -266,4 +266,4 @@ curl https://your-domain.com/health
 ## 10. CI/CD (optional)
 
 - **Build and push images**: On git tag push (e.g. `v1.0.0`), workflow `.github/workflows/build-images.yml` builds api, workers, web and pushes to GHCR (or set `REGISTRY` and secrets for GCR/ECR). See workflow file for required secrets (e.g. `NEXT_PUBLIC_*` for web build).
-- **CD**: After images are pushed, update K8s (e.g. `kubectl set image deployment/api api=... -n glowguide`) or Helm upgrade; keep deploy order as in [Deploy order](#3-deploy-order).
+- **CD**: After images are pushed, update K8s (e.g. `kubectl set image deployment/api api=... -n recete`) or Helm upgrade; keep deploy order as in [Deploy order](#3-deploy-order).

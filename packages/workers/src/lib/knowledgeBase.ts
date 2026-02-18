@@ -3,7 +3,7 @@
  * Copied from API package to avoid cross-package source imports.
  */
 
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { chunkText, generateEmbeddingsBatch } from './embeddings.js';
 
 export interface ProcessProductResult {

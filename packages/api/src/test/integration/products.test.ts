@@ -12,7 +12,7 @@ import productsRoutes from '../../routes/products';
 import { mockSupabaseClient } from '../mocks';
 import { createTestApp, testRequest, setupAuthenticatedContext } from './setup';
 import { createTestDatabase } from './db-setup';
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 
 // Mock dependencies
 vi.mock('../../lib/scraper', () => ({

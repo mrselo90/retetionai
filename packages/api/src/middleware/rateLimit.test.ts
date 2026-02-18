@@ -5,13 +5,13 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { rateLimitMiddleware } from './rateLimit';
-import { getRedisClient } from '@glowguide/shared';
+import { getRedisClient } from '@recete/shared';
 import { mockRedisClient } from '../test/mocks';
 import { createMockContext } from '../test/helpers';
 
 // Mock Redis client
-vi.mock('@glowguide/shared', async () => {
-  const actual = await vi.importActual('@glowguide/shared');
+vi.mock('@recete/shared', async () => {
+  const actual = await vi.importActual('@recete/shared');
   return {
     ...actual,
     getRedisClient: vi.fn(),

@@ -4,7 +4,7 @@
  */
 
 import { Hono } from 'hono';
-import { getSupabaseServiceClient, logger } from '@glowguide/shared';
+import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { verifyShopifyHmac } from '../lib/shopify.js';
 import {
   normalizeShopifyEvent,
@@ -159,7 +159,7 @@ webhooks.post('/commerce/event', async (c) => {
     }
 
     // Hash API key and find merchant
-    const { hashApiKey } = await import('@glowguide/shared');
+    const { hashApiKey } = await import('@recete/shared');
     const hashedKey = hashApiKey(apiKey);
 
     const merchant = merchants.find((m) => {

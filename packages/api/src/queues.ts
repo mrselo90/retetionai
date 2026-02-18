@@ -4,8 +4,8 @@
  */
 
 import { Queue } from 'bullmq';
-import { getRedisClient } from '@glowguide/shared';
-import { QUEUE_NAMES, ScheduledMessageJobData, ScrapeJobData, AnalyticsJobData } from '@glowguide/shared';
+import { getRedisClient } from '@recete/shared';
+import { QUEUE_NAMES, ScheduledMessageJobData, ScrapeJobData, AnalyticsJobData } from '@recete/shared';
 
 // Lazily create queue instances to avoid creating Redis connections at import time
 let scheduledMessagesQueue: Queue<ScheduledMessageJobData> | null = null;

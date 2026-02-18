@@ -100,7 +100,7 @@ ORD-002,+905559876543,Jane Smith,2024-01-16,2024-01-21,delivered
 **Example:**
 
 ```bash
-curl -X POST https://api.glowguide.ai/webhooks/commerce/event \
+curl -X POST https://api.recete.ai/webhooks/commerce/event \
   -H "X-Api-Key: gg_live_YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -186,7 +186,7 @@ You need:
 ### 4.3 Configure Webhook in Meta
 
 1. Go to Meta Business Manager → WhatsApp → Configuration
-2. Set webhook URL: `https://api.glowguide.ai/webhooks/whatsapp`
+2. Set webhook URL: `https://api.recete.ai/webhooks/whatsapp`
 3. Set verify token (same as in Recete)
 4. Subscribe to events:
    - `messages`
@@ -340,8 +340,8 @@ Before going live, verify:
 
 - **User Guide**: See other guides in docs/user-guide/
 - **API Documentation**: `/api/docs`
-- **Support**: support@glowguide.ai
-- **Status**: status.glowguide.ai
+- **Support**: support@recete.ai
+- **Status**: status.recete.ai
 
 ---
 

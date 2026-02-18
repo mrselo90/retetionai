@@ -92,7 +92,7 @@ cd supabase
 supabase db push
 
 # Build shared package
-pnpm --filter @glowguide/shared build
+pnpm --filter @recete/shared build
 ```
 
 ### Development
@@ -271,7 +271,7 @@ Private - All rights reserved
 ## 📞 Support
 
 For questions or issues:
-- Email: support@glowguide.ai (coming soon)
+- Email: support@recete.ai (coming soon)
 - Documentation: See `/docs` folder
 - Issues: Track in `memory-bank/` files
 

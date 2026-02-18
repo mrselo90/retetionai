@@ -5,7 +5,7 @@
 
 import { getPlanLimits, isSubscriptionActive } from './billing.js';
 import { getCurrentUsage } from './usageTracking.js';
-import { logger } from '@glowguide/shared';
+import { logger } from '@recete/shared';
 
 export interface LimitCheckResult {
   allowed: boolean;

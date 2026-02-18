@@ -69,7 +69,7 @@ sudo yum install certbot
 sudo systemctl stop nginx  # or apache2
 
 # Generate certificate
-sudo certbot certonly --standalone -d api.glowguide.ai -d app.glowguide.ai
+sudo certbot certonly --standalone -d api.recete.ai -d app.recete.ai
 
 # Start web server
 sudo systemctl start nginx
@@ -81,8 +81,8 @@ sudo systemctl start nginx
 # Generate certificate
 sudo certbot certonly --webroot \
   -w /var/www/html \
-  -d api.glowguide.ai \
-  -d app.glowguide.ai
+  -d api.recete.ai \
+  -d app.recete.ai
 ```
 
 ### Auto-Renewal
@@ -114,7 +114,7 @@ sudo crontab -e
 ```nginx
 server {
     listen 80;
-    server_name api.glowguide.ai;
+    server_name api.recete.ai;
     
     # Redirect HTTP to HTTPS
     return 301 https://$server_name$request_uri;
@@ -122,11 +122,11 @@ server {
 
 server {
     listen 443 ssl http2;
-    server_name api.glowguide.ai;
+    server_name api.recete.ai;
 
     # SSL Certificate paths
-    ssl_certificate /etc/letsencrypt/live/api.glowguide.ai/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.glowguide.ai/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/api.recete.ai/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.recete.ai/privkey.pem;
 
     # SSL Configuration
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -215,7 +215,7 @@ services:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
-      - "--certificatesresolvers.letsencrypt.acme.email=admin@glowguide.ai"
+      - "--certificatesresolvers.letsencrypt.acme.email=admin@recete.ai"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
     ports:
       - "80:80"
@@ -227,10 +227,10 @@ services:
       - "traefik.enable=true"
 
   api:
-    image: glowguide-api:latest
+    image: recete-api:latest
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=Host(`api.glowguide.ai`)"
+      - "traefik.http.routers.api.rule=Host(`api.recete.ai`)"
       - "traefik.http.routers.api.entrypoints=websecure"
       - "traefik.http.routers.api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.api.middlewares=api-headers"
@@ -288,10 +288,10 @@ Enter your domain and check:
 
 ```bash
 # Check certificate
-openssl s_client -connect api.glowguide.ai:443 -servername api.glowguide.ai
+openssl s_client -connect api.recete.ai:443 -servername api.recete.ai
 
 # Check expiration
-echo | openssl s_client -servername api.glowguide.ai -connect api.glowguide.ai:443 2>/dev/null | openssl x509 -noout -dates
+echo | openssl s_client -servername api.recete.ai -connect api.recete.ai:443 2>/dev/null | openssl x509 -noout -dates
 ```
 
 ## Troubleshooting
@@ -324,8 +324,8 @@ Ensure fullchain.pem includes intermediate certificates:
 
 ```bash
 # Verify chain
-openssl verify -CAfile /etc/letsencrypt/live/api.glowguide.ai/chain.pem \
-  /etc/letsencrypt/live/api.glowguide.ai/cert.pem
+openssl verify -CAfile /etc/letsencrypt/live/api.recete.ai/chain.pem \
+  /etc/letsencrypt/live/api.recete.ai/cert.pem
 ```
 
 ## Security Best Practices

@@ -5,11 +5,11 @@ import {
     getProductChunkCount,
     deleteProductChunks,
 } from './knowledgeBase.js';
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import * as embeddings from './embeddings.js';
 
 // Mock dependencies
-vi.mock('@glowguide/shared', () => ({
+vi.mock('@recete/shared', () => ({
     getSupabaseServiceClient: vi.fn(),
 }));
 

@@ -201,4 +201,4 @@ Ensure your product pages have:
 ## Need Help?
 
 - **API Documentation**: `/api/docs`
-- **Support**: support@glowguide.ai
+- **Support**: support@recete.ai

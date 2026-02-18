@@ -30,7 +30,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@glowguide/shared': path.resolve(__dirname, '../shared/src'),
+      '@recete/shared': path.resolve(__dirname, '../shared/src'),
     },
   },
 });

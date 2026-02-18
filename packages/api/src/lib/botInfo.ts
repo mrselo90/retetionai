@@ -3,7 +3,7 @@
  * Injected into AI system prompt for customer Q&A.
  */
 
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 
 export type BotInfoKey =
   | 'brand_guidelines'

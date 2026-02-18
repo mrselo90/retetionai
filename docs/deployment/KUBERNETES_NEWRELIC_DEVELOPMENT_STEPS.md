@@ -15,25 +15,25 @@
 ### Step 1.2 – Add New Relic Node.js agent to API
 
 1. In repo root:  
-   `pnpm add newrelic --filter @glowguide/api`
+   `pnpm add newrelic --filter @recete/api`
 2. In `packages/api`, ensure agent loads first:
    - **Option A**: In `package.json` main entry, use `node -r newrelic dist/index.js` (or `tsx -r newrelic src/index.ts` for dev).
    - **Option B**: At the very top of `packages/api/src/index.ts` (or entry file), add:  
      `import 'newrelic';`  
      and ensure it is the first import.
 3. Add env vars (local `.env` and later K8s Secret):  
-   `NEW_RELIC_LICENSE_KEY`, `NEW_RELIC_APP_NAME=glowguide-api`, `NEW_RELIC_DISTRIBUTED_TRACING_ENABLED=true`.  
+   `NEW_RELIC_LICENSE_KEY`, `NEW_RELIC_APP_NAME=recete-api`, `NEW_RELIC_DISTRIBUTED_TRACING_ENABLED=true`.  
    Disable in dev if desired: `NEW_RELIC_ENABLED=false`.
 4. Create `packages/api/newrelic.js` (or `newrelic.cjs`) from [New Relic Node.js config](https://docs.newrelic.com/docs/apm/agents/nodejs-agent/installation-configuration/nodejs-agent-configuration/); set `app_name`, `license_key` from env, `distributed_tracing: { enabled: true }`.
 5. Run API locally with license key set; confirm app appears in New Relic APM.
 
 ### Step 1.3 – Add New Relic Node.js agent to Workers
 
-1. `pnpm add newrelic --filter @glowguide/workers`
+1. `pnpm add newrelic --filter @recete/workers`
 2. Load agent first in workers entry (same as API: `-r newrelic` or first import).
-3. Env: `NEW_RELIC_APP_NAME=glowguide-workers`, same license key, distributed tracing enabled.
+3. Env: `NEW_RELIC_APP_NAME=recete-workers`, same license key, distributed tracing enabled.
 4. Optional: copy or symlink `newrelic.js` config from api or keep minimal (env-only).
-5. Run workers locally; confirm `glowguide-workers` in APM.
+5. Run workers locally; confirm `recete-workers` in APM.
 
 ### Step 1.4 – (Optional) New Relic for Next.js (web)
 
@@ -50,8 +50,8 @@
 2. Set default CMD to use agent: e.g. `CMD ["node", "-r", "newrelic", "dist/index.js"]` (adjust path if monorepo layout differs).
 3. Do **not** bake license key into image; use env at runtime.
 4. Build and run locally:  
-   `docker build -f Dockerfile --target api -t glowguide-api:test .`  
-   `docker run -e NEW_RELIC_LICENSE_KEY=... -e NEW_RELIC_APP_NAME=glowguide-api ... glowguide-api:test`
+   `docker build -f Dockerfile --target api -t recete-api:test .`  
+   `docker run -e NEW_RELIC_LICENSE_KEY=... -e NEW_RELIC_APP_NAME=recete-api ... recete-api:test`
 5. Confirm APM data in New Relic.
 
 ### Step 2.2 – Workers image
@@ -71,7 +71,7 @@
 ### Step 3.1 – Namespace and base layout
 
 1. Create `k8s/` (or `deploy/kubernetes/`) in repo.
-2. Add `k8s/namespace.yaml`: namespace `glowguide` (or chosen name).
+2. Add `k8s/namespace.yaml`: namespace `recete` (or chosen name).
 3. Add `k8s/configmap.yaml`: non-sensitive config (e.g. `NODE_ENV=production`, `API_URL`, log level). Do not put secrets here.
 
 ### Step 3.2 – Secrets (template)
@@ -79,7 +79,7 @@
 1. Add `k8s/secrets.yaml.example` (or use external secrets doc): list required keys (Supabase, Redis, OpenAI, New Relic, Shopify, WhatsApp, etc.).
 2. Document: "Create Secret from env or vault; do not commit real secrets."
 3. Example:  
-   `kubectl create secret generic glowguide-secrets --from-env-file=.env.production -n glowguide`  
+   `kubectl create secret generic recete-secrets --from-env-file=.env.production -n recete`  
    (ensure `.env.production` is gitignored).
 
 ### Step 3.3 – API Deployment and Service
@@ -131,8 +131,8 @@
    - Kubernetes monitoring enabled.
    - APM auto-attach **disabled** (we use in-image agent): e.g. `k8s-agents-operator.enabled=false` or per chart docs.
 2. Set your New Relic license key (and optional cluster name) in Helm values.
-3. Install in a dedicated namespace (e.g. `newrelic`) or `glowguide`; follow [New Relic Kubernetes integration docs](https://docs.newrelic.com/docs/kubernetes-pixie/kubernetes-integration/installation/install-kubernetes-integration/).
-4. In New Relic UI, open Kubernetes; confirm cluster and pods for `glowguide` namespace.
+3. Install in a dedicated namespace (e.g. `newrelic`) or `recete`; follow [New Relic Kubernetes integration docs](https://docs.newrelic.com/docs/kubernetes-pixie/kubernetes-integration/installation/install-kubernetes-integration/).
+4. In New Relic UI, open Kubernetes; confirm cluster and pods for `recete` namespace.
 
 ### Step 4.3 – (Optional) APM auto-attach
 
@@ -146,7 +146,7 @@
 
 1. In New Relic: Alerts & AI → Create policy (e.g. "Recete Production").
 2. Add conditions, e.g.:
-   - Error rate above X% for `glowguide-api` (NRQL or APM condition).
+   - Error rate above X% for `recete-api` (NRQL or APM condition).
    - Request duration (latency) above Y ms.
    - Kubernetes: pod restart count or not ready.
 3. Create notification channel (email/Slack); link to policy.

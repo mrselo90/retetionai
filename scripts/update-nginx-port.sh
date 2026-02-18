@@ -9,7 +9,7 @@ NC='\033[0m' # No Color
 
 echo -e "${YELLOW}Updating Nginx configuration for API port 3002...${NC}"
 
-NGINX_CONF="/etc/nginx/sites-available/glowguide"
+NGINX_CONF="/etc/nginx/sites-available/recete"
 
 if [ ! -f "$NGINX_CONF" ]; then
     echo -e "${RED}Error: Nginx config file not found at $NGINX_CONF${NC}"

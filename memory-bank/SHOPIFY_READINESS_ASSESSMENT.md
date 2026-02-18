@@ -115,7 +115,7 @@ With **env, DB migrations 000–007, and Shopify app config** in place, you can 
    - Webhooks: orders/create, orders/fulfilled, orders/updated → `API_URL/webhooks/commerce/shopify`.
 
 4. **Run & test**
-   - `pnpm dev` (API) and `pnpm --filter @glowguide/web dev` (Web; use `--webpack` if needed for pnpm).
+   - `pnpm dev` (API) and `pnpm --filter @recete/web dev` (Web; use `--webpack` if needed for pnpm).
    - Install on a dev store; test OAuth, product mapping (shopify-map), and webhooks (order fulfilled + consent).
 
 ---

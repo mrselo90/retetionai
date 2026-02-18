@@ -3,7 +3,7 @@
  * Utilities for database testing and cleanup
  */
 
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { createTestMerchant, createTestProduct, createTestUser, createTestOrder } from './fixtures';
 
 // ============================================================================

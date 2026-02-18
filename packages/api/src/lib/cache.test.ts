@@ -10,12 +10,12 @@ import {
   getCachedMerchant,
   setCachedMerchant,
 } from './cache';
-import { getRedisClient } from '@glowguide/shared';
+import { getRedisClient } from '@recete/shared';
 import { mockRedisClient } from '../test/mocks';
 
 // Mock Redis client
-vi.mock('@glowguide/shared', async () => {
-  const actual = await vi.importActual('@glowguide/shared');
+vi.mock('@recete/shared', async () => {
+  const actual = await vi.importActual('@recete/shared');
   return {
     ...actual,
     getRedisClient: vi.fn(),

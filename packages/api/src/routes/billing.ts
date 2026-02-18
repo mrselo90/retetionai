@@ -9,8 +9,8 @@ import { getMerchantSubscription, getPlanLimits, getAvailablePlans, updateMercha
 import { getCurrentUsage, getUsageHistory } from '../lib/usageTracking.js';
 import { createShopifyRecurringCharge, cancelShopifyRecurringCharge, getShopifyRecurringCharge, getPlanPrice, handleShopifyBillingWebhook } from '../lib/shopifyBilling.js';
 import { ADDON_DEFINITIONS, getMerchantAddons, activateAddon, deactivateAddon } from '../lib/addons.js';
-import { getSupabaseServiceClient } from '@glowguide/shared';
-import { logger } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
+import { logger } from '@recete/shared';
 import { validateBody } from '../middleware/validation.js';
 import { z } from 'zod';
 

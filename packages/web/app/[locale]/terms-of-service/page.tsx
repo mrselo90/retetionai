@@ -105,8 +105,8 @@ export default function TermsOfServicePage() {
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">10. Contact Information</h2>
               <p className="text-zinc-700 mb-4">
                 For questions about these Terms, please contact us at{' '}
-                <a href="mailto:legal@glowguide.ai" className="text-blue-600 hover:underline">
-                  legal@glowguide.ai
+                <a href="mailto:legal@recete.ai" className="text-blue-600 hover:underline">
+                  legal@recete.ai
                 </a>
               </p>
             </section>

@@ -10,12 +10,12 @@ import {
   getCurrentUsage,
   resetUsage,
 } from './usageTracking';
-import { getSupabaseServiceClient, getRedisClient } from '@glowguide/shared';
+import { getSupabaseServiceClient, getRedisClient } from '@recete/shared';
 import { mockSupabaseClient, mockRedisClient } from '../test/mocks';
 
 // Mock dependencies
-vi.mock('@glowguide/shared', async () => {
-  const actual = await vi.importActual('@glowguide/shared');
+vi.mock('@recete/shared', async () => {
+  const actual = await vi.importActual('@recete/shared');
   return {
     ...actual,
     getSupabaseServiceClient: vi.fn(),

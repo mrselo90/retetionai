@@ -9,11 +9,11 @@ import {
     type SubscriptionInfo,
     type PlanLimits,
 } from './billing.js';
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import * as cache from './cache.js';
 
 // Mock dependencies
-vi.mock('@glowguide/shared', () => ({
+vi.mock('@recete/shared', () => ({
     getSupabaseServiceClient: vi.fn(),
     logger: {
         error: vi.fn(),

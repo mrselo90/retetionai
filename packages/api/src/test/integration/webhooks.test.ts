@@ -9,16 +9,16 @@ import './middleware-mocks';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Hono } from 'hono';
 import webhookRoutes from '../../routes/webhooks';
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { mockSupabaseClient } from '../mocks';
 import { createTestIntegration, createTestShopifyEvent, createTestMerchant } from '../fixtures';
 import { testRequest } from './setup';
 import * as crypto from 'crypto';
-import { hashApiKey } from '@glowguide/shared';
+import { hashApiKey } from '@recete/shared';
 
 // Mock dependencies
-vi.mock('@glowguide/shared', async () => {
-  const actual = await vi.importActual('@glowguide/shared');
+vi.mock('@recete/shared', async () => {
+  const actual = await vi.importActual('@recete/shared');
   return {
     ...actual,
     getSupabaseServiceClient: vi.fn(),

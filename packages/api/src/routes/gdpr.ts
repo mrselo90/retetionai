@@ -5,7 +5,7 @@
 
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { exportMerchantData, exportUserData } from '../lib/dataExport.js';
 import {
   softDeleteMerchantData,

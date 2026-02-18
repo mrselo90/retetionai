@@ -4,7 +4,7 @@
  */
 
 import { Hono } from 'hono';
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
 
 const integrations = new Hono();

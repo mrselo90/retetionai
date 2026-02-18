@@ -4,7 +4,7 @@
  */
 
 import { Worker } from 'bullmq';
-import { getRedisClient, getSupabaseServiceClient, logger } from '@glowguide/shared';
+import { getRedisClient, getSupabaseServiceClient, logger } from '@recete/shared';
 import { normalizeApiKeys, removeExpiredKeys } from './lib/apiKeyManager.js';
 
 const redis = getRedisClient();

@@ -10,7 +10,7 @@ import {
   parseWhatsAppWebhook,
   getEffectiveWhatsAppCredentials,
 } from '../lib/whatsapp.js';
-import { getSupabaseServiceClient, logger } from '@glowguide/shared';
+import { getSupabaseServiceClient, logger } from '@recete/shared';
 import {
   findUserByPhone,
   getOrCreateConversation,
@@ -34,7 +34,7 @@ whatsapp.get('/webhooks/whatsapp', async (c) => {
 
   // For MVP, use environment variable
   // In production, this should be per-merchant
-  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || 'glowguide_verify_token';
+  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || 'recete_verify_token';
 
   const challengeResponse = verifyWhatsAppWebhook(
     mode ?? null,

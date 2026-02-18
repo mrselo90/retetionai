@@ -3,7 +3,7 @@
  * Supports Shopify Billing API and usage tracking
  */
 
-import { getSupabaseServiceClient, logger } from '@glowguide/shared';
+import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { getCachedPlanLimits, setCachedPlanLimits, invalidatePlanLimitsCache } from './cache.js';
 
 export type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'enterprise';

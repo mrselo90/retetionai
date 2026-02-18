@@ -4,13 +4,13 @@
  */
 
 import { Hono } from 'hono';
-import { getSupabaseServiceClient } from '@glowguide/shared';
-import { getAuthClient, generateApiKey, hashApiKey } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
+import { getAuthClient, generateApiKey, hashApiKey } from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
 import { validateBody, validateParams } from '../middleware/validation.js';
 import { signupSchema, loginSchema, createApiKeySchema, revokeApiKeySchema, SignupInput, LoginInput } from '../schemas/auth.js';
 import { captureException, setUserContext } from '../lib/sentry.js';
-import { logger } from '@glowguide/shared';
+import { logger } from '@recete/shared';
 import {
   createApiKeyObject,
   normalizeApiKeys,

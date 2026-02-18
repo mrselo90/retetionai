@@ -6,12 +6,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { processNormalizedEvent } from './orderProcessor';
 import { createTestNormalizedEvent, createTestUser, createTestOrder } from '../test/fixtures';
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { mockSupabaseClient } from '../test/mocks';
 
 // Mock dependencies
-vi.mock('@glowguide/shared', async () => {
-  const actual = await vi.importActual('@glowguide/shared');
+vi.mock('@recete/shared', async () => {
+  const actual = await vi.importActual('@recete/shared');
   return {
     ...actual,
     getSupabaseServiceClient: vi.fn(),

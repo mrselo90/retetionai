@@ -8,7 +8,7 @@
 **Server**: 209.97.134.215 (DigitalOcean)  
 **URL**: http://209.97.134.215  
 **Date**: February 17, 2026  
-**Last Deploy**: d968371 (Return Prevention module, app icon, Shopify submission docs, localization and UX)
+**Last Deploy**: cd873a2 (Recete rebrand: name, logo R, docs, memory-bank)
 
 ## Enrichment Roadmap (Feb 2026 - implemented)
 
@@ -61,8 +61,10 @@ All schema changes in `supabase/migrations/009_enrichment_features.sql`:
 **Routes Generated**: 24 routes (all optimized)
 
 ### Recent Updates (Feb 17, 2026)
+- ✅ **Recete rebrand**: Application name Recete → Recete everywhere (web layout, messages en/tr, Sidebar, DashboardLayout, terms, privacy, API title/bot/scraper, workers, shared). Logo letter G → R in sidebar, mobile header, landing. Docs and memory-bank updated. Pushed (cd873a2), deployed to 209.97.134.215; api, web, workers online.
 - ✅ **App icon**: 1200×1200 icon (`logo_icons/1200x1200_icon.png`) in use — copied to `packages/web/public/icon.png`, metadata.icons set in layout (favicon + Apple touch). MEDIA_ASSETS_CHECKLIST updated.
-- ✅ **Git push + server deploy**: All changes pushed (d968371); server pulled, built, PM2 restarted (api, web, workers online).
+- ✅ **Deep Cleanup**: Performed comprehensive search and removal of all "GlowGuide"/"glowguide" references. Validated that remaining "glow" matches are only CSS animations (`animate-glow`) or test data.
+- ✅ **Git push + server deploy**: Latest push cd873a2; server pull, build, PM2 restart (api, web, workers online).
 - ✅ Complete UX/UI overhaul deployed (32/36 tasks - 89%)
 - ✅ Enhanced design system with semantic colors
 - ✅ 10+ new animations (shimmer, glow, shake, float)

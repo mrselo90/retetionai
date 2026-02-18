@@ -3,7 +3,7 @@
  * Copied from API package to avoid cross-package source imports.
  */
 
-import { hashApiKey, generateApiKey } from '@glowguide/shared';
+import { hashApiKey, generateApiKey } from '@recete/shared';
 
 export interface ApiKeyObject {
   hash: string;

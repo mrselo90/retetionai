@@ -18,7 +18,7 @@ This guide walks you through creating a Shopify Partner account and setting up y
 1. In Partner Dashboard, go to **Stores**
 2. Click **Add store** > **Development store**
 3. Fill in details:
-   - **Store name**: glowguide-dev
+   - **Store name**: recete-dev
    - **Store purpose**: Test an app or theme
    - **Login**: Create admin credentials
 4. Click **Save**
@@ -111,7 +111,7 @@ Configure webhooks to receive order events:
 
 1. Install your app in the development store:
    ```
-   https://your-domain.com/api/integrations/shopify/oauth/start?shop=glowguide-dev.myshopify.com
+   https://your-domain.com/api/integrations/shopify/oauth/start?shop=recete-dev.myshopify.com
    ```
 
 2. Authorize the app

@@ -26,8 +26,8 @@ process.env.WHATSAPP_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'test-w
 // Global module mocks (shared clients, OpenAI, fetch)
 // ----------------------------------------------------------------------------
 
-vi.mock('@glowguide/shared', async () => {
-  const actual = await vi.importActual<any>('@glowguide/shared');
+vi.mock('@recete/shared', async () => {
+  const actual = await vi.importActual<any>('@recete/shared');
   return {
     ...actual,
     getRedisClient: vi.fn(() => mockRedisClient as any),

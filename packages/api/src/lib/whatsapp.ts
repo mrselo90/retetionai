@@ -3,7 +3,7 @@
  * Handles sending messages and receiving webhooks
  */
 
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 
 export interface WhatsAppMessage {
   to: string; // E.164 phone number

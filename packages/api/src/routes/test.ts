@@ -6,7 +6,7 @@
 
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { normalizePhone } from '../lib/events.js';
 import { processNormalizedEvent } from '../lib/orderProcessor.js';
 import { findUserByPhone, getOrCreateConversation, addMessageToConversation, getConversationHistory } from '../lib/conversation.js';
@@ -14,7 +14,7 @@ import { generateAIResponse } from '../lib/aiAgent.js';
 import { queryKnowledgeBase, formatRAGResultsForLLM } from '../lib/rag.js';
 import { getMerchantBotInfo } from '../lib/botInfo.js';
 import { getOpenAIClient } from '../lib/openaiClient.js';
-import { getRedisClient } from '@glowguide/shared';
+import { getRedisClient } from '@recete/shared';
 import { Queue } from 'bullmq';
 
 const test = new Hono();

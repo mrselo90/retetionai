@@ -3,7 +3,7 @@
  * Handles API key structure, rotation, expiration, and usage tracking
  */
 
-import { hashApiKey, generateApiKey } from '@glowguide/shared';
+import { hashApiKey, generateApiKey } from '@recete/shared';
 
 /**
  * API Key object structure

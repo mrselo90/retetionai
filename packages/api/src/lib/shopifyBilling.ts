@@ -3,8 +3,8 @@
  * Handles subscription charges and billing for Shopify apps
  */
 
-import { getSupabaseServiceClient } from '@glowguide/shared';
-import { logger } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
+import { logger } from '@recete/shared';
 import type { SubscriptionPlan } from './billing.js';
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;

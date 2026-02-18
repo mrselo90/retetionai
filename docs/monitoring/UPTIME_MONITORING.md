@@ -26,20 +26,20 @@ Uptime monitoring ensures that your application is available and responding corr
 Set up monitors for the following endpoints:
 
 #### API Health Check
-- **URL**: `https://api.glowguide.ai/health`
+- **URL**: `https://api.recete.ai/health`
 - **Method**: GET
 - **Expected Status**: 200
 - **Expected Response**: `{"status":"ok","services":{"database":"connected","redis":"connected"}}`
 - **Check Interval**: 1 minute
 
 #### API Root
-- **URL**: `https://api.glowguide.ai/`
+- **URL**: `https://api.recete.ai/`
 - **Method**: GET
 - **Expected Status**: 200
 - **Check Interval**: 1 minute
 
 #### Frontend Root
-- **URL**: `https://app.glowguide.ai/`
+- **URL**: `https://app.recete.ai/`
 - **Method**: GET
 - **Expected Status**: 200
 - **Check Interval**: 1 minute
@@ -67,7 +67,7 @@ Set up monitors for the following endpoints:
 
 Create a public status page:
 - **Service**: UptimeRobot Status Page, Better Uptime Status Page, or custom
-- **URL**: `https://status.glowguide.ai`
+- **URL**: `https://status.recete.ai`
 - **Display**: 
   - API status
   - Frontend status
@@ -94,10 +94,10 @@ Combine uptime monitoring with:
 ```
 Monitor Name: Recete API Health
 Monitor Type: HTTP(s)
-URL: https://api.glowguide.ai/health
+URL: https://api.recete.ai/health
 Monitoring Interval: 5 minutes
 Alert Contacts: 
-  - Email: devops@glowguide.ai
+  - Email: devops@recete.ai
   - SMS: +1234567890 (critical only)
 ```
 

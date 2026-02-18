@@ -4,7 +4,7 @@
  */
 
 import { Context, Next } from 'hono';
-import { createLogger, LogContext } from '@glowguide/shared';
+import { createLogger, LogContext } from '@recete/shared';
 import { randomUUID } from 'crypto';
 
 /**

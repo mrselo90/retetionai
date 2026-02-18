@@ -91,7 +91,7 @@
 
 ### 4.2 Kubernetes Resources
 
-- **Namespace**: e.g. `glowguide` or `retention-agent`.
+- **Namespace**: e.g. `recete` or `retention-agent`.
 - **Deployments**: api, workers, web; resource requests/limits; liveness/readiness for api and web.
 - **Services**: ClusterIP for api, web; headless not required unless needed.
 - **ConfigMap**: Non-sensitive app config (e.g. `API_URL`, `NODE_ENV`, feature flags).
@@ -102,7 +102,7 @@
 ### 4.3 New Relic Configuration
 
 - **License key**: Stored in Secret; injected as `NEW_RELIC_LICENSE_KEY`.
-- **App names**: `glowguide-api`, `glowguide-workers`, `glowguide-web` (or per env: `glowguide-api-staging`).
+- **App names**: `recete-api`, `recete-workers`, `recete-web` (or per env: `recete-api-staging`).
 - **Labels**: Use `NEW_RELIC_LABELS` or agent config for env, cluster, namespace.
 - **Distributed tracing**: Enable for api ↔ workers (and web if NPM used); same account.
 - **Kubernetes integration**: Deploy `nri-bundle` (Helm) with Kubernetes integration enabled; optionally disable APM auto-attach if using in-image agent.

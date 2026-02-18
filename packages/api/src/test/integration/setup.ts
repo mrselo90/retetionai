@@ -6,13 +6,13 @@
 import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { vi } from 'vitest';
 import { Hono, Context } from 'hono';
-import { getSupabaseServiceClient, getRedisClient, getAuthClient } from '@glowguide/shared';
+import { getSupabaseServiceClient, getRedisClient, getAuthClient } from '@recete/shared';
 import { mockSupabaseClient, mockRedisClient } from '../mocks';
 import { createTestMerchant } from '../fixtures';
 
 // Mock dependencies before importing routes
-vi.mock('@glowguide/shared', async () => {
-  const actual = await vi.importActual('@glowguide/shared');
+vi.mock('@recete/shared', async () => {
+  const actual = await vi.importActual('@recete/shared');
   return {
     ...actual,
     getSupabaseServiceClient: vi.fn(),

@@ -34,9 +34,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@glowguide/shared': path.resolve(__dirname, './packages/shared/src'),
-      '@glowguide/api': path.resolve(__dirname, './packages/api/src'),
-      '@glowguide/workers': path.resolve(__dirname, './packages/workers/src'),
+      '@recete/shared': path.resolve(__dirname, './packages/shared/src'),
+      '@recete/api': path.resolve(__dirname, './packages/api/src'),
+      '@recete/workers': path.resolve(__dirname, './packages/workers/src'),
     },
   },
 });

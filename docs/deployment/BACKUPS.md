@@ -37,7 +37,7 @@ Create a cron job for automated backups:
 **backup-script.sh:**
 ```bash
 #!/bin/bash
-BACKUP_DIR="/backups/glowguide"
+BACKUP_DIR="/backups/recete"
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="$BACKUP_DIR/backup_$DATE.dump"
 
@@ -53,7 +53,7 @@ gzip $BACKUP_FILE
 find $BACKUP_DIR -name "*.dump.gz" -mtime +30 -delete
 
 # Upload to S3 (optional)
-aws s3 cp $BACKUP_FILE.gz s3://your-backup-bucket/glowguide/
+aws s3 cp $BACKUP_FILE.gz s3://your-backup-bucket/recete/
 ```
 
 ## Restore Procedures

@@ -75,7 +75,7 @@ Choose one of three integration methods:
 
 - **Documentation**: See other guides in this section
 - **API Docs**: Visit `/api/docs` for API documentation
-- **Support**: Contact support@glowguide.ai
+- **Support**: Contact support@recete.ai
 
 ---
 

@@ -3,7 +3,7 @@
  * Processes normalized events and upserts to orders/users tables
  */
 
-import { getSupabaseServiceClient, logger } from '@glowguide/shared';
+import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { encryptPhone } from './encryption.js';
 import type { NormalizedEvent } from './events.js';
 import { scheduleOrderMessages } from './messageScheduler.js';

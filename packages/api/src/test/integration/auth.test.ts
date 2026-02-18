@@ -9,15 +9,15 @@ import './middleware-mocks';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Hono } from 'hono';
 import authRoutes from '../../routes/auth';
-import { getSupabaseServiceClient, getAuthClient } from '@glowguide/shared';
+import { getSupabaseServiceClient, getAuthClient } from '@recete/shared';
 import { mockSupabaseClient } from '../mocks';
 import { createTestMerchant, createTestApiKey } from '../fixtures';
-import { generateApiKey, hashApiKey } from '@glowguide/shared';
+import { generateApiKey, hashApiKey } from '@recete/shared';
 import { testRequest } from './setup';
 
 // Mock dependencies
-vi.mock('@glowguide/shared', async () => {
-  const actual = await vi.importActual('@glowguide/shared');
+vi.mock('@recete/shared', async () => {
+  const actual = await vi.importActual('@recete/shared');
   return {
     ...actual,
     getSupabaseServiceClient: vi.fn(),

@@ -87,14 +87,14 @@ pnpm format:check
 ### Import Order
 
 1. External dependencies
-2. Internal modules (`@glowguide/*`)
+2. Internal modules (`@recete/*`)
 3. Relative imports
 4. Type imports (use `import type`)
 
 ```typescript
 // Good
 import { Hono } from 'hono';
-import { getSupabaseClient } from '@glowguide/shared';
+import { getSupabaseClient } from '@recete/shared';
 import { authMiddleware } from '../middleware/auth';
 import type { User } from '../types/user';
 ```

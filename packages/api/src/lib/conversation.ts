@@ -3,7 +3,7 @@
  * Handle conversation state and history
  */
 
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { decryptPhone, encryptPhone } from './encryption.js';
 import { normalizePhone } from './events.js';
 

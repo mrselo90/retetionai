@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import { Queue } from 'bullmq';
 import { getAllWorkers, closeAllWorkers } from './workers.js';
 import { closeAllQueues } from './queues.js';
-import { closeRedisConnection, logger, getRedisClient, QUEUE_NAMES } from '@glowguide/shared';
+import { closeRedisConnection, logger, getRedisClient, QUEUE_NAMES } from '@recete/shared';
 import { getAllIntelligenceWorkers, closeAllIntelligenceWorkers } from './intelligenceWorkers.js';
 
 logger.info('Recete Workers starting...');

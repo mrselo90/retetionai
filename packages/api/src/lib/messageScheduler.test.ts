@@ -6,12 +6,12 @@ import {
     getUserScheduledMessages,
     type ScheduleMessageOptions,
 } from './messageScheduler.js';
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { scheduleMessage } from '../queues.js';
 import { decryptPhone } from './encryption.js';
 
 // Mock dependencies
-vi.mock('@glowguide/shared', () => ({
+vi.mock('@recete/shared', () => ({
     getSupabaseServiceClient: vi.fn(),
 }));
 

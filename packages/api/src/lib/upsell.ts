@@ -3,7 +3,7 @@
  * Satisfaction detection and product recommendations
  */
 
-import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { getOpenAIClient } from './openaiClient.js';
 
 export interface SatisfactionResult {

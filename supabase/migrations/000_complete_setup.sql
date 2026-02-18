@@ -1,5 +1,5 @@
 -- ============================================================================
--- GlowGuide Retention Agent - Complete Database Setup
+-- ReceteGuide Retention Agent - Complete Database Setup
 -- Multi-tenant SaaS platform for post-purchase AI assistance
 -- 
 -- This file contains both schema and RLS policies.
@@ -364,7 +364,7 @@ CREATE POLICY "Scheduled tasks are isolated by merchant_id"
 
 DO $$
 BEGIN
-  RAISE NOTICE '✅ GlowGuide database setup completed successfully!';
+  RAISE NOTICE '✅ ReceteGuide database setup completed successfully!';
   RAISE NOTICE '📊 11 tables created with RLS policies';
   RAISE NOTICE '🔍 Vector search index ready for RAG';
 END $$;

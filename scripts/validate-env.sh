@@ -1,5 +1,5 @@
 #!/bin/bash
-# Environment validation script for GlowGuide Retention Agent
+# Environment validation script for ReceteGuide Retention Agent
 # Validates required and optional environment variables
 
 set -e

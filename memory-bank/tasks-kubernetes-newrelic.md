@@ -10,8 +10,8 @@
 ## Phase 1: New Relic Account and Agent
 
 - [ ] **K8S-NR-1.1** — Create New Relic account (free tier); note license key and ensure 1 Full Platform user.
-- [x] **K8S-NR-1.2** — Add `newrelic` package to `@glowguide/api`; load agent first (`node -r newrelic dist/index.js`); add `newrelic.cjs` config; env: `NEW_RELIC_LICENSE_KEY`, `NEW_RELIC_APP_NAME=glowguide-api`. Start script and `start:no-nr` for dev without agent.
-- [x] **K8S-NR-1.3** — Add `newrelic` to `@glowguide/workers`; same pattern; `newrelic.cjs`; env `glowguide-workers`.
+- [x] **K8S-NR-1.2** — Add `newrelic` package to `@recete/api`; load agent first (`node -r newrelic dist/index.js`); add `newrelic.cjs` config; env: `NEW_RELIC_LICENSE_KEY`, `NEW_RELIC_APP_NAME=recete-api`. Start script and `start:no-nr` for dev without agent.
+- [x] **K8S-NR-1.3** — Add `newrelic` to `@recete/workers`; same pattern; `newrelic.cjs`; env `recete-workers`.
 - [ ] **K8S-NR-1.4** — (Optional) New Relic Browser/NPM for Next.js web; defer if not needed.
 
 ---
@@ -38,7 +38,7 @@
 ## Phase 4: New Relic Kubernetes Integration
 
 - [ ] **K8S-NR-4.1** — Add New Relic Helm repo; install Kubernetes integration (nri-bundle or K8s chart) with APM auto-attach disabled; set license key in values. **Guide**: `docs/deployment/NEWRELIC_K8S_HELM_AND_ALERTS.md`.
-- [ ] **K8S-NR-4.2** — Confirm cluster and `glowguide` namespace visible in New Relic Kubernetes UI.
+- [ ] **K8S-NR-4.2** — Confirm cluster and `recete` namespace visible in New Relic Kubernetes UI.
 
 ---
 

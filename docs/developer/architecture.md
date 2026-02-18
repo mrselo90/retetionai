@@ -261,9 +261,9 @@ See `.env.example` for required variables:
 3. Set up environment variables
 4. Run migrations: See `supabase/RUN_MIGRATIONS.md`
 5. Start services:
-   - API: `pnpm --filter @glowguide/api dev`
-   - Workers: `pnpm --filter @glowguide/workers dev`
-   - Web: `pnpm --filter @glowguide/web dev`
+   - API: `pnpm --filter @recete/api dev`
+   - Workers: `pnpm --filter @recete/workers dev`
+   - Web: `pnpm --filter @recete/web dev`
 
 ### Code Structure
 

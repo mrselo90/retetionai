@@ -4,7 +4,7 @@
 
 ### Adım 1: Supabase Projesi Oluşturun
 1. [supabase.com](https://supabase.com) → Sign in / Sign up
-2. "New Project" → Proje adı: `glowguide-retention-agent`
+2. "New Project" → Proje adı: `recete-retention-agent`
 3. Database password belirleyin (kaydedin!)
 4. Region seçin (en yakın bölge)
 5. Proje oluşturulmasını bekleyin (2-3 dakika)

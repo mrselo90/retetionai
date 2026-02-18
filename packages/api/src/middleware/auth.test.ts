@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { authMiddleware, optionalAuthMiddleware } from './auth.js';
-import { getSupabaseServiceClient } from '@glowguide/shared';
-import { hashApiKey } from '@glowguide/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
+import { hashApiKey } from '@recete/shared';
 
 // Mock dependencies
-vi.mock('@glowguide/shared', () => ({
+vi.mock('@recete/shared', () => ({
     getSupabaseServiceClient: vi.fn(),
     isValidApiKeyFormat: vi.fn(),
     hashApiKey: vi.fn(),
@@ -148,7 +148,7 @@ describe('Auth Middleware', () => {
         });
 
         it('should authenticate with valid API key', async () => {
-            const { isValidApiKeyFormat } = await import('@glowguide/shared');
+            const { isValidApiKeyFormat } = await import('@recete/shared');
             const { getApiKeyByHash, isApiKeyExpired } = await import('../lib/apiKeyManager.js');
 
             mockContext.req.header.mockReturnValue('glow_test_1234567890abcdef');
@@ -176,7 +176,7 @@ describe('Auth Middleware', () => {
         });
 
         it('should return 401 for invalid API key format', async () => {
-            const { isValidApiKeyFormat } = await import('@glowguide/shared');
+            const { isValidApiKeyFormat } = await import('@recete/shared');
 
             mockContext.req.header.mockReturnValue('invalid-key');
             mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null }, error: { message: 'Invalid JWT' } });
@@ -192,7 +192,7 @@ describe('Auth Middleware', () => {
         });
 
         it('should return 401 for expired API key', async () => {
-            const { isValidApiKeyFormat } = await import('@glowguide/shared');
+            const { isValidApiKeyFormat } = await import('@recete/shared');
             const { getApiKeyByHash, isApiKeyExpired } = await import('../lib/apiKeyManager.js');
 
             mockContext.req.header.mockReturnValue('glow_test_1234567890abcdef');
@@ -271,7 +271,7 @@ describe('Auth Middleware', () => {
         });
 
         it('should set merchant context if valid API key provided', async () => {
-            const { isValidApiKeyFormat } = await import('@glowguide/shared');
+            const { isValidApiKeyFormat } = await import('@recete/shared');
             const { getApiKeyByHash, isApiKeyExpired } = await import('../lib/apiKeyManager.js');
 
             mockContext.req.header.mockReturnValue('glow_test_1234567890abcdef');

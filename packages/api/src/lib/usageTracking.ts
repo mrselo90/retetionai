@@ -3,7 +3,7 @@
  * Tracks message count, API calls, and storage usage per merchant
  */
 
-import { getSupabaseServiceClient, logger } from '@glowguide/shared';
+import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { getCachedUsage, setCachedUsage, invalidateUsageCache } from './cache.js';
 
 export interface UsageMetrics {

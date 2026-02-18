@@ -25,7 +25,7 @@ This guide explains how to set up Sentry for error tracking and monitoring in th
 1. Click "Projects" → "Create Project"
 2. Select platform: **Node.js**
 3. Set alert frequency: **On every new issue**
-4. Name your project: "glowguide-retention-agent"
+4. Name your project: "recete-retention-agent"
 5. Click "Create Project"
 
 ### 3. Get Your DSN
@@ -197,7 +197,7 @@ Sentry.showReportDialog({
   env:
     SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     SENTRY_ORG: your-org
-    SENTRY_PROJECT: glowguide-retention-agent
+    SENTRY_PROJECT: recete-retention-agent
   with:
     environment: production
 ```

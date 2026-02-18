@@ -1,6 +1,6 @@
 /**
  * Load env before any other app code. Must be the first import in index.ts
- * so that process.env is set before @glowguide/shared (and others) read it.
+ * so that process.env is set before @recete/shared (and others) read it.
  */
 import path from 'path';
 import { fileURLToPath } from 'url';

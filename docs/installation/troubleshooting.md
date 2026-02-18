@@ -158,7 +158,7 @@ Common issues and solutions for Recete setup and usage.
 
 **Solutions:**
 1. **Check webhook status**: Meta Developers → Webhooks
-2. **Verify webhook URL**: Should be `https://api.glowguide.ai/webhooks/whatsapp`
+2. **Verify webhook URL**: Should be `https://api.recete.ai/webhooks/whatsapp`
 3. **Check credentials**: Verify access token and phone number ID
 4. **Test webhook**: Send test message and check delivery
 5. **Check server logs**: Review error logs for issues
@@ -334,7 +334,7 @@ Common issues and solutions for Recete setup and usage.
 
 ### Contact Support
 
-- **Email**: support@glowguide.ai
+- **Email**: support@recete.ai
 - **Response Time**: 
   - Free: 48 hours
   - Pro: 24 hours
@@ -353,6 +353,6 @@ When contacting support, include:
 
 ## Still Need Help?
 
-- **Status Page**: status.glowguide.ai
-- **Support**: support@glowguide.ai
+- **Status Page**: status.recete.ai
+- **Support**: support@recete.ai
 - **Documentation**: Browse all guides

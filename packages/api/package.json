@@ -1,5 +1,5 @@
 {
-  "name": "@glowguide/api",
+  "name": "@recete/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -16,8 +16,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@glowguide/shared": "workspace:*",
-    "@glowguide/workers": "workspace:*",
+    "@recete/shared": "workspace:*",
+    "@recete/workers": "workspace:*",
     "@hono/node-server": "^1.8.2",
     "@hono/swagger-ui": "^0.5.3",
     "@hono/zod-openapi": "^1.2.0",

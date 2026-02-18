@@ -1193,7 +1193,7 @@
 **Status**: ⬜ Pending
 
 **Tasks**:
-- [ ] Set up support email (support@glowguide.ai)
+- [ ] Set up support email (support@recete.ai)
 - [ ] Add live chat widget (Intercom, Crisp, or Tawk.to)
 - [ ] Create support ticket system (or use external)
 - [ ] Add feedback form

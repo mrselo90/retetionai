@@ -77,8 +77,14 @@
 ## App Icon & Deploy (Feb 17, 2026)
 
 - **App icon 1200×1200**: Source `logo_icons/1200x1200_icon.png`; copy in `packages/web/public/icon.png`. Layout metadata uses `/icon.png` for favicon and Apple touch icon. Shopify MEDIA_ASSETS_CHECKLIST references asset and marks icon-created done.
-- **Git**: All changes committed and pushed to `origin/main` (commit d968371).
+- **Git**: All changes committed and pushed to `origin/main` (commit d968371; later cd873a2 for Recete rebrand).
 - **Server**: Deployed to 209.97.134.215 — git pull, pnpm install, pnpm build, pm2 restart all. API, web, workers online.
+
+## Recete Rebrand (Feb 17, 2026)
+
+- **Name**: Recete → Recete across app and API. Layout title "Recete Retention Agent"; en/tr messages (Landing, Login, Integrations, Settings); Sidebar and DashboardLayout "Recete"; terms/privacy; API index (OpenAPI, health, logger), aiAgent default "Recete Asistan", scrapers User-Agent "Recete-Bot/1.0", workers logger, shared comments.
+- **Logo**: Letter G → R in DashboardLayout (sidebar + mobile header) and landing page hero; favicon unchanged.
+- **Docs & memory-bank**: README, docs/, memory-bank, UXUI-COMPLETE, supabase/README, PRD/architecture/task files updated to Recete. Pushed cd873a2; server deployed (pull, build, pm2 restart).
 
 ## Shopify Perfect Match (Feb 2026)
 

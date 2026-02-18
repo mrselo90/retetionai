@@ -36,13 +36,13 @@ Thank you for your interest in contributing to Recete! This guide will help you 
 5. **Start development servers**
    ```bash
    # API
-   pnpm --filter @glowguide/api dev
+   pnpm --filter @recete/api dev
    
    # Workers
-   pnpm --filter @glowguide/workers dev
+   pnpm --filter @recete/workers dev
    
    # Web
-   pnpm --filter @glowguide/web dev
+   pnpm --filter @recete/web dev
    ```
 
 ## Code Style
@@ -133,4 +133,4 @@ Use conventional commits:
 
 - **Issues**: GitHub Issues
 - **Discussions**: GitHub Discussions
-- **Email**: dev@glowguide.ai
+- **Email**: dev@recete.ai

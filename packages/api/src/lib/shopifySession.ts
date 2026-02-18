@@ -4,7 +4,7 @@
  */
 
 import crypto from 'crypto';
-import { getSupabaseServiceClient, logger } from '@glowguide/shared';
+import { getSupabaseServiceClient, logger } from '@recete/shared';
 
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
 

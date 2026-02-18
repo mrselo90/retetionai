@@ -424,11 +424,11 @@ Track how often recipes are used:
 - [Recipe API Reference](../api/recipes.md)
 - [Template Syntax Guide](../api/templates.md)
 - [Best Practices Video](https://example.com/recipe-best-practices)
-- [Recipe Examples Repository](https://github.com/glowguide/recipe-examples)
+- [Recipe Examples Repository](https://github.com/recete/recipe-examples)
 
 ## Support
 
 Need help with recipe mappings?
-- Email: support@glowguide.com
-- Documentation: docs.glowguide.com
-- Community: community.glowguide.com
+- Email: support@recete.com
+- Documentation: docs.recete.com
+- Community: community.recete.com
