@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines scaling strategies for GlowGuide Retention Agent as it grows.
+This document outlines scaling strategies for Recete Retention Agent as it grows.
 
 ## Current Architecture
 

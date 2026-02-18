@@ -1,6 +1,6 @@
 # Conversations
 
-Conversations are the heart of GlowGuide. View and manage all customer interactions via WhatsApp.
+Conversations are the heart of Recete. View and manage all customer interactions via WhatsApp.
 
 ## Viewing Conversations
 

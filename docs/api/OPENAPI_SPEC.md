@@ -2,7 +2,7 @@
 
 ## Overview
 
-The GlowGuide API uses OpenAPI 3.1.0 specification for documentation. Swagger UI is available at `/api/docs`.
+The Recete API uses OpenAPI 3.1.0 specification for documentation. Swagger UI is available at `/api/docs`.
 
 ## Accessing Documentation
 

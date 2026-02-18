@@ -1,6 +1,6 @@
 # Managing Products
 
-Products are the foundation of GlowGuide's AI responses. The AI uses product information to answer customer questions accurately.
+Products are the foundation of Recete's AI responses. The AI uses product information to answer customer questions accurately.
 
 ## Adding Products
 
@@ -32,7 +32,7 @@ After adding a product, you need to scrape its content:
 
 ### What Gets Scraped
 
-GlowGuide extracts:
+Recete extracts:
 - Product title (from meta tags or HTML)
 - Description (from meta description or content)
 - Usage instructions (from product page content)

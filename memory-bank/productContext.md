@@ -1,4 +1,4 @@
-# Product Context: GlowGuide Retention Agent
+# Product Context: Recete Retention Agent
 
 ## Product Modules
 

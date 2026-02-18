@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers environment setup and management for GlowGuide Retention Agent across development, staging, and production.
+This guide covers environment setup and management for Recete Retention Agent across development, staging, and production.
 
 ## Environment Types
 

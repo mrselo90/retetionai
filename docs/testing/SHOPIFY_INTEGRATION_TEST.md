@@ -29,7 +29,7 @@ If you don't have an app yet:
 2. Click **Apps** → **Create app**
 3. Select **Public app**
 4. Fill in:
-   - **App name**: GlowGuide Retention Agent (Dev)
+   - **App name**: Recete Retention Agent (Dev)
    - **App URL**: `http://localhost:3000` (for testing)
    - **Allowed redirection URL(s)**:
      ```

@@ -123,7 +123,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between h-16 min-h-[4rem] px-5 border-b border-zinc-200/80">
             <Link href="/dashboard" className="flex items-center gap-2" onClick={onClose}>
-              <span className="text-lg font-semibold tracking-tight text-zinc-900">GlowGuide</span>
+              <span className="text-lg font-semibold tracking-tight text-zinc-900">Recete</span>
               <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider hidden sm:inline">Retention</span>
             </Link>
             <button

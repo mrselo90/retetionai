@@ -1,6 +1,6 @@
 # Merchant Setup Guide
 
-Complete step-by-step guide for merchants to set up GlowGuide.
+Complete step-by-step guide for merchants to set up Recete.
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ Before you begin, ensure you have:
 
 ### 1.1 Sign Up
 
-1. Visit GlowGuide signup page
+1. Visit Recete signup page
 2. Enter your information:
    - **Email**: Your business email
    - **Password**: Strong password (min 8 characters)
@@ -25,7 +25,7 @@ Before you begin, ensure you have:
 
 1. Check your email inbox
 2. Click the confirmation link
-3. You'll be redirected to GlowGuide
+3. You'll be redirected to Recete
 4. **Save your API key** (shown only once!)
 
 **Important**: Your API key starts with `gg_live_`. Save it securely!
@@ -53,7 +53,7 @@ Choose the integration method that fits your store:
 4. Click "Connect"
 5. You'll be redirected to Shopify
 6. Review permissions and click "Install app"
-7. You'll be redirected back to GlowGuide
+7. You'll be redirected back to Recete
 8. Integration status should show "Active" ✅
 
 **What happens next:**
@@ -173,7 +173,7 @@ You need:
 2. Create a WhatsApp Business App
 3. Get your credentials from App Dashboard
 
-### 4.2 Add Credentials to GlowGuide
+### 4.2 Add Credentials to Recete
 
 1. Go to "Settings" → "Integrations"
 2. Scroll to "WhatsApp Configuration"
@@ -187,7 +187,7 @@ You need:
 
 1. Go to Meta Business Manager → WhatsApp → Configuration
 2. Set webhook URL: `https://api.glowguide.ai/webhooks/whatsapp`
-3. Set verify token (same as in GlowGuide)
+3. Set verify token (same as in Recete)
 4. Subscribe to events:
    - `messages`
    - `message_status`
@@ -196,7 +196,7 @@ You need:
 ### 4.4 Test Webhook
 
 1. Send a test message to your WhatsApp Business number
-2. Check "Conversations" in GlowGuide
+2. Check "Conversations" in Recete
 3. You should see the message appear
 
 ---
@@ -247,7 +247,7 @@ You need:
 ### 6.2 Verify Integration
 
 1. **Create Test Order**: Place a test order in your store
-2. **Check Sync**: Verify order appears in GlowGuide
+2. **Check Sync**: Verify order appears in Recete
 3. **Check Customer**: Verify customer is added
 4. **Send Message**: Customer should be able to message
 

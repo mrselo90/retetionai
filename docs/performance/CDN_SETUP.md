@@ -2,7 +2,7 @@
 
 ## Overview
 
-Content Delivery Network (CDN) setup for GlowGuide Retention Agent to improve global performance and reduce server load.
+Content Delivery Network (CDN) setup for Recete Retention Agent to improve global performance and reduce server load.
 
 ## Recommended CDN Providers
 

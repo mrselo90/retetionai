@@ -1,6 +1,6 @@
 # Supabase Database Setup
 
-This directory contains database migrations and setup scripts for GlowGuide Retention Agent.
+This directory contains database migrations and setup scripts for Recete Retention Agent.
 
 ## Migration Files
 

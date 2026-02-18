@@ -1,5 +1,5 @@
 /**
- * Shared types for GlowGuide platform
+ * Shared types for Recete platform
  */
 
 export type MerchantId = string;

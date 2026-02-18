@@ -1,4 +1,4 @@
-# GlowGuide Retention Agent — Geliştirme Task Listesi
+# Recete Retention Agent — Geliştirme Task Listesi
 
 Bu doküman, PRD, Technical Spec ve UX Guidelines dokümanlarına dayalı olarak hazırlanmış **MVP geliştirme task listesidir**. Frontend ve Backend olarak ayrılmış, öncelik sırasına göre düzenlenmiştir.
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the coding standards and style guidelines for GlowGuide Retention Agent.
+This document outlines the coding standards and style guidelines for Recete Retention Agent.
 
 ## TypeScript
 

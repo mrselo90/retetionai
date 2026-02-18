@@ -144,7 +144,7 @@
 
 ### Step 5.1 – Alerts (New Relic)
 
-1. In New Relic: Alerts & AI → Create policy (e.g. "GlowGuide Production").
+1. In New Relic: Alerts & AI → Create policy (e.g. "Recete Production").
 2. Add conditions, e.g.:
    - Error rate above X% for `glowguide-api` (NRQL or APM condition).
    - Request duration (latency) above Y ms.
@@ -154,7 +154,7 @@
 
 ### Step 5.2 – Dashboard
 
-1. Dashboards → Create dashboard "GlowGuide K8s + APM".
+1. Dashboards → Create dashboard "Recete K8s + APM".
 2. Add widgets: API throughput (requests/min), error rate, latency (p50/p95); Workers throughput/errors; Kubernetes pods (by namespace/label); optional: Redis or external service health.
 3. Save and share (read-only for Basic users if needed).
 

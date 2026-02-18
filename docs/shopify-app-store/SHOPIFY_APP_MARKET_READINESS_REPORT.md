@@ -1,6 +1,6 @@
 eu01xx67bb44793d88e5ff11596b5abaFFFFNRAL# Shopify App Market Readiness Report
 
-**App**: GlowGuide Retention Agent  
+**App**: Recete Retention Agent  
 **Report Date**: February 2026  
 **Scope**: Readiness for Shopify App Store distribution
 
@@ -70,7 +70,7 @@ Additional security in place: HMAC webhook verification, rate limiting, security
 
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| **4.1.1 App name consistent** | ✅ | “GlowGuide Retention Agent” in codebase and `docs/shopify-app-store/APP_LISTING.md`. |
+| **4.1.1 App name consistent** | ✅ | “Recete Retention Agent” in codebase and `docs/shopify-app-store/APP_LISTING.md`. |
 | **4.1.2 App icon** | ❌ **TODO** | **Icon must be 1200×1200 px** (JPEG or PNG) per current Shopify requirements. Upload in Partner Dashboard and match in listing. |
 | **4.2.x Pricing** | ✅ | Pricing in APP_LISTING.md; must be only in “Pricing details” in listing; not in icon or screenshots. |
 | **4.3.x Accurate listing** | ✅ | Listing copy in APP_LISTING.md; indicate if Online Store required; no unsubstantiated stats/guarantees. |
@@ -196,4 +196,4 @@ Use this as a final gate before “Submit for review”.
 
 ---
 
-*Report generated for GlowGuide Retention Agent. Update this document when completing action items or after submission/review.*
+*Report generated for Recete Retention Agent. Update this document when completing action items or after submission/review.*

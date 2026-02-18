@@ -1,4 +1,4 @@
-# Product Requirements Document (PRD): GlowGuide Retention SaaS
+# Product Requirements Document (PRD): Recete Retention SaaS
 
 ## 1. Yönetici Özeti (Executive Summary)
 E-ticaret firmaları için tasarlanmış, **"White-Label"** (Markalanabilir) bir satış sonrası yapay zeka asistanıdır. WhatsApp üzerinden son kullanıcıya bakım koçluğu, kullanım talimatı ve doğru zamanda ürün önerisi sunar. Firmalar için ise iade oranlarını düşüren ve LTV'yi (Müşteri Yaşam Boyu Değeri) artıran bir otomasyon platformudur.
@@ -36,7 +36,7 @@ Amaç: Merchant’ın **kod yazmadan** veya **minimum teknik eforla** sistemi de
 2. **Manuel Entegrasyon (Platform bağımsız)**
    - **CSV/Excel Import**: Sipariş + müşteri + ürün satırları.
    - **HTTP API (Push)**: Merchant kendi sisteminden sipariş/teslimat event’i gönderir.
-   - **Webhook (Merchant → GlowGuide)**: Merchant bir event yayınlar, GlowGuide tüketir.
+   - **Webhook (Merchant → Recete)**: Merchant bir event yayınlar, Recete tüketir.
 
 #### C2. Minimum gerekli veri (MVP)
 MVP’nin çalışması için en az şu alanların gelmesi gerekir:
@@ -56,7 +56,7 @@ MVP’nin çalışması için en az şu alanların gelmesi gerekir:
 #### C3.1 Teslimat bilgisinin kaynağı (MVP)
 `order_delivered` üretmek için (sırayla tercih):
 1. **E-ticaret platformu fulfillment statüsü** (Shopify/Woo/Ticimax)
-2. **Kargo/lojistik sağlayıcı webhook’u** (varsa; merchant yönlendirir veya GlowGuide connector eklenir)
+2. **Kargo/lojistik sağlayıcı webhook’u** (varsa; merchant yönlendirir veya Recete connector eklenir)
 3. **Manuel teslim edildi işaretleme** (admin panel veya CSV alanı: `delivered_at`)
 
 #### C4. Alan eşleştirme ve doğrulama

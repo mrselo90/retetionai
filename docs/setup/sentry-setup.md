@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to set up Sentry for error tracking and monitoring in the GlowGuide Retention Agent.
+This guide explains how to set up Sentry for error tracking and monitoring in the Recete Retention Agent.
 
 ## Why Sentry?
 

@@ -351,7 +351,7 @@ function buildSystemPrompt(
   ragContext?: string,
   botInfo?: Record<string, string>
 ): string {
-  const botName = persona?.bot_name || 'GlowGuide Asistan';
+  const botName = persona?.bot_name || 'Recete Asistan';
   
   let prompt = `You are ${botName}, a professional and helpful customer service assistant for ${merchantName}.\n\n`;
   

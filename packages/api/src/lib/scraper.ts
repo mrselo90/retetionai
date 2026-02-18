@@ -40,7 +40,7 @@ export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
     // Fetch page
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'GlowGuide-Bot/1.0 (Product Knowledge Scraper)',
+        'User-Agent': 'Recete-Bot/1.0 (Product Knowledge Scraper)',
       },
       signal: AbortSignal.timeout(10000), // 10s timeout
     });

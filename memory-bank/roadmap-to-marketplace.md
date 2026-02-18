@@ -450,7 +450,7 @@ This roadmap provides a clear path from MVP to Shopify Marketplace launch in 8-1
 5. **Monetization** - Billing system ready
 6. **Marketplace compliance** - Meet Shopify requirements
 
-By following this roadmap, GlowGuide will be production-ready and marketplace-approved by end of March 2026.
+By following this roadmap, Recete will be production-ready and marketplace-approved by end of March 2026.
 
 ---
 

@@ -1,8 +1,8 @@
-# Kubernetes Runbook (GlowGuide)
+# Kubernetes Runbook (Recete)
 
 **Same deployment method for local and production:** Docker images + Kubernetes manifests. Locally you use a local cluster (minikube/kind/Docker Desktop) and load images into it; in production you push images to a registry and point the same manifests at that registry.
 
-Operational guide for running GlowGuide on Kubernetes with New Relic. See [KUBERNETES_NEWRELIC_SPEC.md](./KUBERNETES_NEWRELIC_SPEC.md) and [KUBERNETES_NEWRELIC_DEVELOPMENT_STEPS.md](./KUBERNETES_NEWRELIC_DEVELOPMENT_STEPS.md) for architecture and setup.
+Operational guide for running Recete on Kubernetes with New Relic. See [KUBERNETES_NEWRELIC_SPEC.md](./KUBERNETES_NEWRELIC_SPEC.md) and [KUBERNETES_NEWRELIC_DEVELOPMENT_STEPS.md](./KUBERNETES_NEWRELIC_DEVELOPMENT_STEPS.md) for architecture and setup.
 
 ---
 

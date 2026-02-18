@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines mobile responsiveness strategies and best practices for GlowGuide Retention Agent.
+This document outlines mobile responsiveness strategies and best practices for Recete Retention Agent.
 
 ## Breakpoints
 

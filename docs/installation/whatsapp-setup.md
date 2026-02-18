@@ -1,6 +1,6 @@
 # WhatsApp Business API Setup
 
-Complete guide for setting up WhatsApp Business API with GlowGuide.
+Complete guide for setting up WhatsApp Business API with Recete.
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ Complete guide for setting up WhatsApp Business API with GlowGuide.
 1. Go to [Meta Developers](https://developers.facebook.com)
 2. Click "My Apps" → "Create App"
 3. Select "Business" type
-4. Enter app name: "GlowGuide Integration"
+4. Enter app name: "Recete Integration"
 5. Click "Create App"
 
 ### 2.2 Add WhatsApp Product
@@ -74,7 +74,7 @@ Complete guide for setting up WhatsApp Business API with GlowGuide.
 
 1. Go to Business Settings → Users → System Users
 2. Click "Add" → "Create New System User"
-3. Enter name: "GlowGuide Integration"
+3. Enter name: "Recete Integration"
 4. Select "Admin" role
 5. Click "Create System User"
 
@@ -104,11 +104,11 @@ Complete guide for setting up WhatsApp Business API with GlowGuide.
 
 ---
 
-## Step 5: Configure Webhook in GlowGuide
+## Step 5: Configure Webhook in Recete
 
 ### 5.1 Add Credentials
 
-1. Go to GlowGuide → "Settings" → "Integrations"
+1. Go to Recete → "Settings" → "Integrations"
 2. Scroll to "WhatsApp Configuration"
 3. Enter:
    - **Access Token**: Your permanent token from Step 4
@@ -133,7 +133,7 @@ Complete guide for setting up WhatsApp Business API with GlowGuide.
 3. Click "Edit"
 4. Enter:
    - **Callback URL**: `https://api.glowguide.ai/webhooks/whatsapp`
-   - **Verify Token**: Same as in GlowGuide (Step 3.3)
+   - **Verify Token**: Same as in Recete (Step 3.3)
 5. Click "Verify and Save"
 
 ### 6.2 Subscribe to Events
@@ -147,7 +147,7 @@ Complete guide for setting up WhatsApp Business API with GlowGuide.
 ### 6.3 Verify Webhook
 
 1. Meta will send a GET request to verify
-2. GlowGuide will respond with challenge
+2. Recete will respond with challenge
 3. Webhook status should show "Verified" ✅
 
 ---
@@ -162,9 +162,9 @@ Complete guide for setting up WhatsApp Business API with GlowGuide.
    - Incoming message event
    - Webhook delivery status
 
-### 7.2 Check GlowGuide
+### 7.2 Check Recete
 
-1. Go to GlowGuide → "Conversations"
+1. Go to Recete → "Conversations"
 2. You should see the message appear
 3. AI should respond automatically
 
@@ -216,7 +216,7 @@ Complete guide for setting up WhatsApp Business API with GlowGuide.
 
 **Solutions:**
 1. Generate new permanent token (Step 4)
-2. Update credentials in GlowGuide
+2. Update credentials in Recete
 3. Verify token permissions
 
 ### "Phone Number Not Verified"
@@ -267,14 +267,14 @@ If you have multiple WhatsApp Business numbers:
 
 1. Create separate apps for each number
 2. Get credentials for each
-3. Configure in GlowGuide (future: multi-number support)
+3. Configure in Recete (future: multi-number support)
 
 ---
 
 ## Need Help?
 
 - **Meta Documentation**: [WhatsApp Business API Docs](https://developers.facebook.com/docs/whatsapp)
-- **GlowGuide Support**: support@glowguide.ai
+- **Recete Support**: support@glowguide.ai
 - **Status**: status.glowguide.ai
 
 ---

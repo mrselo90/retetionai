@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide outlines load testing strategies for GlowGuide Retention Agent to ensure it can handle production traffic.
+This guide outlines load testing strategies for Recete Retention Agent to ensure it can handle production traffic.
 
 ## Testing Tools
 

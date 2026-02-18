@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the code review process and guidelines for GlowGuide Retention Agent.
+This document outlines the code review process and guidelines for Recete Retention Agent.
 
 ## Review Process
 

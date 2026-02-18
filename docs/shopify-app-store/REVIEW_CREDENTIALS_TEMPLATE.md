@@ -20,7 +20,7 @@ Fill this in and use it when submitting the app for review (paste into the submi
 
 - [ ] App is installed on the store above
 - [ ] App URL (HTTPS): _______________
-- [ ] Reviewers can open the app from Shopify Admin → Apps → GlowGuide Retention Agent
+- [ ] Reviewers can open the app from Shopify Admin → Apps → Recete Retention Agent
 
 ---
 
@@ -42,7 +42,7 @@ The app can send WhatsApp messages for T+0 and conversations. For review, choose
 Suggested text to paste in submission:
 
 ```
-GlowGuide Retention Agent provides post-purchase WhatsApp support and AI conversations.
+Recete Retention Agent provides post-purchase WhatsApp support and AI conversations.
 
 Key flows to test:
 1. Install: OAuth completes and app opens in Admin.

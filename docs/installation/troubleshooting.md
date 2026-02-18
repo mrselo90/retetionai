@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-Common issues and solutions for GlowGuide setup and usage.
+Common issues and solutions for Recete setup and usage.
 
 ## Account & Authentication
 
@@ -40,7 +40,7 @@ Common issues and solutions for GlowGuide setup and usage.
 
 ### "Shopify Integration Not Syncing"
 
-**Problem**: Orders not appearing in GlowGuide.
+**Problem**: Orders not appearing in Recete.
 
 **Checklist:**
 - ✅ Integration status is "Active"
@@ -148,7 +148,7 @@ Common issues and solutions for GlowGuide setup and usage.
 
 ### "Messages Not Received"
 
-**Problem**: Customer messages not appearing in GlowGuide.
+**Problem**: Customer messages not appearing in Recete.
 
 **Checklist:**
 - ✅ Webhook is configured in Meta

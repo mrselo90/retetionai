@@ -2,9 +2,9 @@
 
 ## General
 
-### What is GlowGuide?
+### What is Recete?
 
-GlowGuide is a white-label SaaS platform that provides AI-powered customer support via WhatsApp. It helps e-commerce merchants automate post-purchase customer assistance.
+Recete is a white-label SaaS platform that provides AI-powered customer support via WhatsApp. It helps e-commerce merchants automate post-purchase customer assistance.
 
 ### How does it work?
 
@@ -29,7 +29,7 @@ Yes! Sign up to get started with a free trial. See pricing for details.
 
 1. Go to "Integrations" → "Shopify"
 2. Click "Connect Shopify"
-3. Authorize GlowGuide in Shopify
+3. Authorize Recete in Shopify
 4. Done! Orders will sync automatically.
 
 ### Can I use it without Shopify?
@@ -136,7 +136,7 @@ Yes! Upgrade or downgrade anytime from "Settings" → "Billing".
 
 ### What's an API key?
 
-An API key is a secret token that allows programmatic access to GlowGuide. Use it to send events via API.
+An API key is a secret token that allows programmatic access to Recete. Use it to send events via API.
 
 ### How do I rotate my API key?
 

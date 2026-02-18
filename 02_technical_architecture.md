@@ -41,8 +41,8 @@ Amaç: Shopify / WooCommerce / Ticimax vb. platformlardan sipariş ve teslimat e
    - Auth: OAuth (Shopify) veya API Key/Secret (Woo/Ticimax varyantları)
 2. **Manuel Entegrasyon**
    - **CSV Import** (admin panel upload)
-   - **HTTP API Push** (merchant → GlowGuide)
-   - **Webhook (Merchant → GlowGuide)** (merchant kendi event’ini yolluyor)
+   - **HTTP API Push** (merchant → Recete)
+   - **Webhook (Merchant → Recete)** (merchant kendi event’ini yolluyor)
 
 #### B2. Normalleştirilmiş event modeli
 Tüm kaynaklar aşağıdaki normalize event’lere map edilir:
@@ -93,7 +93,7 @@ Davranış:
 3.  Dashboard sorguları, bu ham tablo yerine günlük olarak güncellenen `daily_stats` (Materialized View) üzerinden çalışır.
 
 ## 4. API Sözleşmeleri (Taslak)
-### 4.1 Webhook/Push (Merchant → GlowGuide)
+### 4.1 Webhook/Push (Merchant → Recete)
 - `POST /webhooks/commerce/event`
   - Auth: `X-Api-Key` (merchant) + opsiyonel HMAC signature
   - Body: normalize event (B2)
@@ -125,7 +125,7 @@ Amaç: pricing paketleri ile uyumlu teknik throttle.
 ## 7. Platform Bazlı Field Mapping Checklist + Örnek Payload’lar (MVP)
 Amaç: Entegrasyon kurulumunu “kanıtlanabilir” hale getirmek (test event → normalize event → mesaj job).
 
-### 7.1 GlowGuide Normalize Event (Referans Şema)
+### 7.1 Recete Normalize Event (Referans Şema)
 Örnek `order_delivered`:
 ```json
 {

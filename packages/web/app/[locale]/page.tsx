@@ -13,7 +13,7 @@ export default function Home() {
         {/* Logo / Brand */}
         <div className="mb-8 flex justify-center">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-2xl animate-scale-in">
-            <span className="text-4xl font-extrabold">G</span>
+            <span className="text-4xl font-extrabold">R</span>
           </div>
         </div>
 

@@ -77,7 +77,7 @@
 ### Manual Integration
 - CSV Import: Async job with validation
 - HTTP API Push: POST /webhooks/commerce/event
-- Webhook: Merchant publishes, GlowGuide consumes
+- Webhook: Merchant publishes, Recete consumes
 
 ## Consent (GDPR/KVKK)
 

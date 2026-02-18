@@ -27,7 +27,7 @@ Visit: **https://partners.shopify.com/**
 1. Click **"Create app"** button
 2. Select **"Public app"** (for App Store distribution)
 3. Fill in:
-   - **App name**: GlowGuide Retention Agent
+   - **App name**: Recete Retention Agent
    - Click **"Create app"**
 
 ### Step 4: Get API Credentials

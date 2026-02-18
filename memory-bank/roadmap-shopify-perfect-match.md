@@ -1,6 +1,6 @@
 # Roadmap: Shopify Perfect Match
 
-> Full checklist to align GlowGuide with the native Shopify App flow: product → recipe mapping, consent-aware webhooks, T+0 beauty consultant, and best practices.
+> Full checklist to align Recete with the native Shopify App flow: product → recipe mapping, consent-aware webhooks, T+0 beauty consultant, and best practices.
 
 **Created**: February 7, 2026  
 **Status**: 🚀 In progress — Phase 1–4 implemented; Phase 5 partial  

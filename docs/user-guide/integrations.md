@@ -1,6 +1,6 @@
 # Integration Guide
 
-GlowGuide supports three ways to connect your store and sync order data.
+Recete supports three ways to connect your store and sync order data.
 
 ## Shopify Integration (Recommended)
 
@@ -15,16 +15,16 @@ GlowGuide supports three ways to connect your store and sync order data.
    - Click "Connect Shopify"
    - Enter your Shopify store domain (e.g., `mystore.myshopify.com`)
 
-2. **Authorize GlowGuide**
+2. **Authorize Recete**
    - You'll be redirected to Shopify
-   - Review the permissions GlowGuide needs:
+   - Review the permissions Recete needs:
      - Read orders
      - Read products
      - Read customers
    - Click "Install app"
 
 3. **Complete Setup**
-   - You'll be redirected back to GlowGuide
+   - You'll be redirected back to Recete
    - Integration status will show "Active"
    - Orders will start syncing automatically
 
@@ -36,7 +36,7 @@ GlowGuide supports three ways to connect your store and sync order data.
 
 ### Webhooks
 
-GlowGuide automatically creates webhooks in your Shopify store:
+Recete automatically creates webhooks in your Shopify store:
 - `orders/create` - New order placed
 - `orders/fulfilled` - Order delivered
 - `orders/cancelled` - Order cancelled
@@ -50,7 +50,7 @@ GlowGuide automatically creates webhooks in your Shopify store:
 - Reconnect if needed
 
 **Orders not syncing?**
-- Check integration status in GlowGuide dashboard
+- Check integration status in Recete dashboard
 - Verify webhook URL is correct in Shopify
 - Check webhook delivery logs in Shopify Admin
 
@@ -181,7 +181,7 @@ X-Api-Key: gg_live_YOUR_API_KEY
 }
 ```
 
-After this event, GlowGuide will:
+After this event, Recete will:
 1. Create/update customer record
 2. Create/update order record
 3. Schedule post-delivery messages (T+3, T+14)

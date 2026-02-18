@@ -186,7 +186,7 @@ app.get('/api/docs/openapi.json', (c) => {
   return c.json({
     openapi: '3.1.0',
     info: {
-      title: 'GlowGuide Retention Agent API',
+      title: 'Recete Retention Agent API',
       version: '0.1.0',
       description: 'White-label SaaS platform for post-purchase AI assistance via WhatsApp',
     },
@@ -228,7 +228,7 @@ app.get('/api/config/platform-contact', (c) => {
 // Health check endpoint
 app.get('/', (c) => {
   return c.json({
-    message: 'GlowGuide API',
+    message: 'Recete API',
     version: '0.1.0',
     status: 'ok'
   });
@@ -280,7 +280,7 @@ scheduleApiKeyExpirationCleanup().catch((err) => {
 // Production: Nginx proxies to API on 3002; avoid 3000 (conflict with web)
 const rawPort = Number(process.env.PORT) || 3002;
 const port = rawPort === 3000 ? 3002 : rawPort;
-logger.info({ port }, '🚀 GlowGuide API server starting');
+logger.info({ port }, '🚀 Recete API server starting');
 
 serve({
   fetch: app.fetch,

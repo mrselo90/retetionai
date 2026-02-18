@@ -58,7 +58,7 @@ Chart name and values may vary; check [New Relic Kubernetes integration docs](ht
 
 ### 5.1 Alert policy
 
-1. In New Relic: **Alerts & AI** → **Alert conditions** → **Create alert policy** (e.g. "GlowGuide Production").
+1. In New Relic: **Alerts & AI** → **Alert conditions** → **Create alert policy** (e.g. "Recete Production").
 2. Add conditions, for example:
 
 | Condition type | Example |
@@ -88,7 +88,7 @@ WHERE appName = 'glowguide-workers' FACET name SINCE 1 hour ago
 
 ### 5.3 Dashboard suggestions
 
-Create a dashboard **"GlowGuide K8s + APM"** with widgets such as:
+Create a dashboard **"Recete K8s + APM"** with widgets such as:
 
 - **API**: Throughput (requests/min), error rate (%), response time (avg/p95), Apdex.
 - **Workers**: Job throughput, error count, average duration.

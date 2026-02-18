@@ -29,7 +29,7 @@ This guide walks you through creating a Shopify Partner account and setting up y
 2. Click **Create app**
 3. Select **Public app** (for App Store)
 4. Fill in app details:
-   - **App name**: GlowGuide Retention Agent
+   - **App name**: Recete Retention Agent
    - **App URL**: `https://your-domain.com`
    - **Allowed redirection URL(s)**:
      ```
@@ -39,7 +39,7 @@ This guide walks you through creating a Shopify Partner account and setting up y
 ## Step 4: Configure App Settings
 
 ### App Info
-- **App name**: GlowGuide Retention Agent
+- **App name**: Recete Retention Agent
 - **Developer name**: Your Company Name
 - **Support email**: support@your-domain.com
 - **Privacy policy URL**: `https://your-domain.com/privacy-policy`
@@ -131,7 +131,7 @@ Configure webhooks to receive order events:
 - [ ] Installation guide
 
 ### App Listing Information
-- **App name**: GlowGuide Retention Agent
+- **App name**: Recete Retention Agent
 - **Tagline**: AI-powered WhatsApp assistant for post-purchase customer engagement
 - **Description**: (See APP_LISTING.md)
 - **Pricing**: Free plan + paid plans

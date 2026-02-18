@@ -14,7 +14,7 @@ This guide walks you through setting up WhatsApp Business API using Meta Cloud A
 2. Click **Create App**
 3. Select **Business** as app type
 4. Fill in app details:
-   - **App Name**: GlowGuide Retention Agent
+   - **App Name**: Recete Retention Agent
    - **App Contact Email**: your-email@example.com
    - **Business Account**: Select your business
 
@@ -81,7 +81,7 @@ curl -X POST \
     "to": "+905551234567",
     "type": "text",
     "text": {
-      "body": "Hello from GlowGuide! 👋"
+      "body": "Hello from Recete! 👋"
     }
   }'
 ```

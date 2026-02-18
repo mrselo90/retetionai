@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to set up WhatsApp Business API integration for the GlowGuide Retention Agent.
+This guide explains how to set up WhatsApp Business API integration for the Recete Retention Agent.
 
 ## Prerequisites
 
@@ -18,7 +18,7 @@ This guide explains how to set up WhatsApp Business API integration for the Glow
 2. Click "My Apps" → "Create App"
 3. Select "Business" as the app type
 4. Fill in app details:
-   - App Name: "GlowGuide Retention Agent"
+   - App Name: "Recete Retention Agent"
    - Contact Email: your-email@example.com
    - Business Account: Select your business account
 

@@ -14,7 +14,7 @@ export default function TermsOfServicePage() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">1. Agreement to Terms</h2>
               <p className="text-zinc-700 mb-4">
-                By accessing or using GlowGuide Retention Agent ("Service"), you agree to be bound by these
+                By accessing or using Recete Retention Agent ("Service"), you agree to be bound by these
                 Terms of Service. If you disagree with any part of these terms, you may not access the Service.
               </p>
             </section>
@@ -22,7 +22,7 @@ export default function TermsOfServicePage() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">2. Description of Service</h2>
               <p className="text-zinc-700 mb-4">
-                GlowGuide is a white-label SaaS platform that provides post-purchase AI assistance via WhatsApp.
+                Recete is a white-label SaaS platform that provides post-purchase AI assistance via WhatsApp.
                 The Service includes:
               </p>
               <ul className="list-disc pl-6 text-zinc-700 mb-4">
@@ -71,7 +71,7 @@ export default function TermsOfServicePage() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">6. Intellectual Property</h2>
               <p className="text-zinc-700 mb-4">
-                The Service and its original content are owned by GlowGuide and protected by international
+                The Service and its original content are owned by Recete and protected by international
                 copyright laws. You retain ownership of your data and content.
               </p>
             </section>
@@ -79,7 +79,7 @@ export default function TermsOfServicePage() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">7. Limitation of Liability</h2>
               <p className="text-zinc-700 mb-4">
-                To the maximum extent permitted by law, GlowGuide shall not be liable for any indirect,
+                To the maximum extent permitted by law, Recete shall not be liable for any indirect,
                 incidental, special, or consequential damages arising from your use of the Service.
               </p>
             </section>

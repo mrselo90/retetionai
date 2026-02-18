@@ -1,4 +1,4 @@
-# Progress: GlowGuide Retention Agent
+# Progress: Recete Retention Agent
 
 > Implementation status and observations
 
@@ -7,7 +7,7 @@
 **Phase**: Production Ready → Shopify Marketplace Launch  
 **MVP Completion**: 100% Backend + 100% Frontend ✅  
 **Marketplace Readiness**: 16% (7/43 tasks completed, 36 remaining)  
-**Last Updated**: 2026-02-11
+**Last Updated**: 2026-02-17
 
 ## Docker + Kubernetes + Ingress (Feb 2026 – local run complete)
 
@@ -45,7 +45,7 @@
 - **TypeScript (root tsconfig)**: `noEmit: true`, `allowJs: false`, `files: []`, exclude `**/dist`, `load-tests`, `scripts` to avoid “would overwrite input file” errors. Package tsconfigs exclude `dist`.
 
 - **WhatsApp Business connection (Integrations)**: Merchants can connect their own WhatsApp Business number from Entegrasyonlar: "WhatsApp Business" card with modal (Phone Number ID, Access Token, Verify Token, optional display number). Stored per merchant in `integrations` with `provider: 'whatsapp'`, `auth_data`. API `getWhatsAppCredentials(merchantId)` reads from DB first (integrations where provider=whatsapp), then falls back to env (corporate). List/GET integrations sanitize tokens; only `phone_number_display` returned for display. Manual integration create fixed to send `auth_data: {}`.
-- **Platform WhatsApp number**: Default +905545736900. API `GET /api/config/platform-contact` returns `whatsapp_number`. Shown on Integrations page as "Kurumsal destek (GlowGuide)" banner (wa.me link) and in dashboard footer as "Destek: +90 554 573 69 00". Env: `PLATFORM_WHATSAPP_NUMBER`, `NEXT_PUBLIC_PLATFORM_WHATSAPP_NUMBER`.
+- **Platform WhatsApp number**: Default +905545736900. API `GET /api/config/platform-contact` returns `whatsapp_number`. Shown on Integrations page as "Kurumsal destek (Recete)" banner (wa.me link) and in dashboard footer as "Destek: +90 554 573 69 00". Env: `PLATFORM_WHATSAPP_NUMBER`, `NEXT_PUBLIC_PLATFORM_WHATSAPP_NUMBER`.
 - **Integration cards "Bağlı" state**: WhatsApp, Shopify, Manual cards show "✓ Bağlı" badge and colored border/background when that integration exists; button shows "Bağlı" or "Güncelle" instead of "Bağla"/"Bağlan"/"Kur". Active integrations list shows phone_number_display for WhatsApp.
 - **Settings page**: Info box under "WhatsApp iletişim numarası" explaining where to get own number (Meta for Developers / Meta Business Suite, future "WhatsApp Business bağla" in Integrations).
 - **Layout / web view – top space removed**: Empty space above header (bar with merchant name and Çıkış) removed: `html`/`body` margin and padding 0 in globals.css; viewport metadata with `viewport-fit: cover` in layout; body `paddingTop: 0`, `min-h-screen`, `overflow-x: hidden`; dashboard layout changed to flex (`flex flex-col lg:flex-row`) so content column starts at top; removed `lg:pl-64` in favor of flex; Sidebar `shrink-0`; main padding reduced (`pt-3`/`pt-4`). Ensures header sits at top in web view.
@@ -73,6 +73,12 @@
   - Conversation detail: Return prevention badge with outcome
   - ROI endpoint: replaced keyword-based savedReturns with structured `return_prevention_attempts` query
   - Full translations in `ReturnPrevention` namespace (en + tr)
+
+## App Icon & Deploy (Feb 17, 2026)
+
+- **App icon 1200×1200**: Source `logo_icons/1200x1200_icon.png`; copy in `packages/web/public/icon.png`. Layout metadata uses `/icon.png` for favicon and Apple touch icon. Shopify MEDIA_ASSETS_CHECKLIST references asset and marks icon-created done.
+- **Git**: All changes committed and pushed to `origin/main` (commit d968371).
+- **Server**: Deployed to 209.97.134.215 — git pull, pnpm install, pnpm build, pm2 restart all. API, web, workers online.
 
 ## Shopify Perfect Match (Feb 2026)
 

@@ -1,16 +1,16 @@
-# Getting Started with GlowGuide
+# Getting Started with Recete
 
-Welcome to GlowGuide Retention Agent! This guide will help you get started with setting up AI-powered post-purchase customer assistance via WhatsApp.
+Welcome to Recete Retention Agent! This guide will help you get started with setting up AI-powered post-purchase customer assistance via WhatsApp.
 
-## What is GlowGuide?
+## What is Recete?
 
-GlowGuide is a white-label SaaS platform that helps e-commerce merchants provide automated customer support via WhatsApp. It uses AI to answer customer questions, handle complaints, and even suggest complementary products.
+Recete is a white-label SaaS platform that helps e-commerce merchants provide automated customer support via WhatsApp. It uses AI to answer customer questions, handle complaints, and even suggest complementary products.
 
 ## Quick Start (5 minutes)
 
 ### Step 1: Sign Up
 
-1. Visit the GlowGuide signup page
+1. Visit the Recete signup page
 2. Enter your email, password, and store name
 3. Check your email and confirm your account
 4. You'll receive your API key (save it securely!)
@@ -22,7 +22,7 @@ Choose one of three integration methods:
 **Option A: Shopify Integration (Recommended)**
 - Click "Integrations" → "Shopify"
 - Click "Connect Shopify"
-- Authorize GlowGuide in your Shopify store
+- Authorize Recete in your Shopify store
 - Orders will sync automatically
 
 **Option B: CSV Import**

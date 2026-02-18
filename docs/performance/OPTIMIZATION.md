@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines performance optimizations implemented in GlowGuide Retention Agent.
+This document outlines performance optimizations implemented in Recete Retention Agent.
 
 ## Caching Strategy
 

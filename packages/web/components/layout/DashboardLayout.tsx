@@ -94,9 +94,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="h-20 flex items-center px-6 border-b border-zinc-100 bg-gradient-to-r from-primary/5 to-transparent">
             <Link href="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-zinc-900 group">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <span className="text-xl font-extrabold">G</span>
+                <span className="text-xl font-extrabold">R</span>
               </div>
-              <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">GlowGuide</span>
+              <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Recete</span>
             </Link>
             <button
               className="ml-auto lg:hidden text-zinc-500 hover:text-zinc-700 p-2 rounded-lg hover:bg-zinc-100 transition-colors"
@@ -168,9 +168,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <header className="lg:hidden h-16 bg-white/95 backdrop-blur-xl border-b border-zinc-200/80 flex items-center px-4 justify-between shadow-sm sticky top-0 z-30">
           <Link href="/dashboard" className="font-bold text-lg text-zinc-900 flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow">
-              <span className="text-base font-extrabold">G</span>
+              <span className="text-base font-extrabold">R</span>
             </div>
-            GlowGuide
+            Recete
           </Link>
           <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="hover:bg-primary/10">
             <Menu className="w-6 h-6" />

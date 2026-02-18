@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines accessibility (a11y) best practices for GlowGuide Retention Agent, following WCAG 2.1 Level AA standards.
+This document outlines accessibility (a11y) best practices for Recete Retention Agent, following WCAG 2.1 Level AA standards.
 
 ## WCAG Principles
 
@@ -14,7 +14,7 @@ Content must be perceivable to all users.
 
 ```tsx
 // Always provide alt text for images
-<img src="logo.png" alt="GlowGuide Logo" />
+<img src="logo.png" alt="Recete Logo" />
 
 // Decorative images
 <img src="decoration.png" alt="" aria-hidden="true" />

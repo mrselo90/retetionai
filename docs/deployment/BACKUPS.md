@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the backup strategy for GlowGuide Retention Agent's PostgreSQL database (Supabase).
+This document outlines the backup strategy for Recete Retention Agent's PostgreSQL database (Supabase).
 
 ## Backup Methods
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers SSL/TLS certificate setup and HTTPS configuration for GlowGuide Retention Agent.
+This guide covers SSL/TLS certificate setup and HTTPS configuration for Recete Retention Agent.
 
 ### Shopify App Store requirement
 

@@ -92,7 +92,7 @@ Combine uptime monitoring with:
 ## Example UptimeRobot Configuration
 
 ```
-Monitor Name: GlowGuide API Health
+Monitor Name: Recete API Health
 Monitor Type: HTTP(s)
 URL: https://api.glowguide.ai/health
 Monitoring Interval: 5 minutes

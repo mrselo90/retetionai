@@ -2,7 +2,7 @@
 
 ## Overview
 
-GlowGuide Retention Agent is a monorepo application with three main services:
+Recete Retention Agent is a monorepo application with three main services:
 - **API**: Hono-based REST API server
 - **Workers**: BullMQ background job processors
 - **Web**: Next.js frontend application

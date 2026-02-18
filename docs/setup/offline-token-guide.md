@@ -25,7 +25,7 @@ This guide explains how to generate and use offline access tokens for WhatsApp B
 2. Navigate to **Users** → **System Users**
 3. Click **Add** to create a new system user
 4. Enter details:
-   - **Name**: "GlowGuide Production Bot"
+   - **Name**: "Recete Production Bot"
    - **Role**: Admin (or appropriate role)
 5. Click **Create System User**
 
@@ -88,7 +88,7 @@ curl -X POST "https://graph.facebook.com/v21.0/YOUR_PHONE_NUMBER_ID/messages" \
     "to": "YOUR_TEST_NUMBER",
     "type": "text",
     "text": {
-      "body": "Test message from GlowGuide"
+      "body": "Test message from Recete"
     }
   }'
 ```

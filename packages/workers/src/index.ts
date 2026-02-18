@@ -9,7 +9,7 @@ import { closeAllQueues } from './queues.js';
 import { closeRedisConnection, logger, getRedisClient, QUEUE_NAMES } from '@glowguide/shared';
 import { getAllIntelligenceWorkers, closeAllIntelligenceWorkers } from './intelligenceWorkers.js';
 
-logger.info('GlowGuide Workers starting...');
+logger.info('Recete Workers starting...');
 
 // Start all workers
 const workers = getAllWorkers();

@@ -1,6 +1,6 @@
-# Contributing to GlowGuide
+# Contributing to Recete
 
-Thank you for your interest in contributing to GlowGuide! This guide will help you get started.
+Thank you for your interest in contributing to Recete! This guide will help you get started.
 
 ## Development Setup
 

@@ -3,14 +3,14 @@
 ## App Information
 
 ### App Name
-**GlowGuide Retention Agent**
+**Recete Retention Agent**
 
 ### Tagline (Short Description)
 AI-powered post-purchase customer support via WhatsApp that helps merchants reduce returns and increase customer satisfaction.
 
 ### Long Description
 
-GlowGuide Retention Agent is an intelligent customer support assistant that automatically engages with your customers via WhatsApp after purchase. Using advanced AI, it answers product questions, handles returns, and provides personalized recommendations—all without manual intervention.
+Recete Retention Agent is an intelligent customer support assistant that automatically engages with your customers via WhatsApp after purchase. Using advanced AI, it answers product questions, handles returns, and provides personalized recommendations—all without manual intervention.
 
 **Key Features:**
 
@@ -31,7 +31,7 @@ GlowGuide Retention Agent is an intelligent customer support assistant that auto
 
 **How It Works:**
 
-1. **Connect Your Store**: Authorize GlowGuide to access your Shopify store
+1. **Connect Your Store**: Authorize Recete to access your Shopify store
 2. **Import Products**: Automatically sync products or upload via CSV
 3. **Configure AI**: Customize the assistant's personality and behavior
 4. **Start Conversations**: Customers receive automated WhatsApp messages after purchase
@@ -49,7 +49,7 @@ GlowGuide Retention Agent is an intelligent customer support assistant that auto
 
 ### For Merchants
 
-1. Click "Install" on the GlowGuide Retention Agent app page
+1. Click "Install" on the Recete Retention Agent app page
 2. Authorize the app to access your Shopify store
 3. Complete the setup wizard:
    - Connect your WhatsApp Business API credentials

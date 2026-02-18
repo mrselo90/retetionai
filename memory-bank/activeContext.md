@@ -8,11 +8,11 @@
 **Server**: 209.97.134.215 (DigitalOcean)  
 **URL**: http://209.97.134.215  
 **Date**: February 17, 2026  
-**Last Deploy**: 7b5711e (Shopify Map Page UX Enhancement - Complete)
+**Last Deploy**: d968371 (Return Prevention module, app icon, Shopify submission docs, localization and UX)
 
 ## Enrichment Roadmap (Feb 2026 - implemented)
 
-All features from the GlowGuide Enrichment Roadmap have been implemented:
+All features from the Recete Enrichment Roadmap have been implemented:
 
 ### Phase 1: Revenue Activation
 - **Human Handoff (1.2)**: Conversation status (`ai`/`human`/`resolved`), merchant reply via WhatsApp, status toggle in UI, reply input in conversation detail. WhatsApp webhook skips AI when status=`human`. Migration 009.
@@ -61,6 +61,8 @@ All schema changes in `supabase/migrations/009_enrichment_features.sql`:
 **Routes Generated**: 24 routes (all optimized)
 
 ### Recent Updates (Feb 17, 2026)
+- ✅ **App icon**: 1200×1200 icon (`logo_icons/1200x1200_icon.png`) in use — copied to `packages/web/public/icon.png`, metadata.icons set in layout (favicon + Apple touch). MEDIA_ASSETS_CHECKLIST updated.
+- ✅ **Git push + server deploy**: All changes pushed (d968371); server pulled, built, PM2 restarted (api, web, workers online).
 - ✅ Complete UX/UI overhaul deployed (32/36 tasks - 89%)
 - ✅ Enhanced design system with semantic colors
 - ✅ 10+ new animations (shimmer, glow, shake, float)

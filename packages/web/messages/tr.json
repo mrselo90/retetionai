@@ -1,6 +1,6 @@
 {
     "Landing": {
-        "title": "GlowGuide Retention Agent",
+        "title": "Recete Retention Agent",
         "subtitle": "Sipariş sonrası müşteri destek ve satış artırım için yapay zeka asistanı.",
         "description": "Ürün rehberi, kullanım talimatları ve proaktif mesajlarla iade oranını düşürün, LTV'yi yükseltin.",
         "login": "Giriş Yap",
@@ -94,7 +94,7 @@
         "error": "Giriş hatası"
     },
     "Login": {
-        "title": "GlowGuide'a Giriş Yap",
+        "title": "Recete'ye Giriş Yap",
         "description": "Hesabınızla giriş yaparak devam edin",
         "emailLabel": "E-posta",
         "passwordLabel": "Şifre",
@@ -291,7 +291,7 @@
         "title": "Entegrasyonlar",
         "description": "E-ticaret platformlarınızı bağlayın ve siparişleri otomatik takip edin",
         "platformSupport": {
-            "title": "Kurumsal destek (GlowGuide)",
+            "title": "Kurumsal destek (Recete)",
             "subtitle": "WhatsApp ile bize ulaşın"
         },
         "providers": {
@@ -506,7 +506,7 @@
                     "desc": "Entegrasyonlarda bağladığınız WhatsApp Business numaranız kullanılır."
                 },
                 "corporate": {
-                    "label": "Kurumsal numara (GlowGuide)",
+                    "label": "Kurumsal numara (Recete)",
                     "desc": "Platformun kurumsal WhatsApp numarası kullanılır."
                 }
             },

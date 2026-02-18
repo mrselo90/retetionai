@@ -1,5 +1,5 @@
 /**
- * GlowGuide Shared
+ * Recete Shared
  * Shared types, utilities, and constants
  */
 

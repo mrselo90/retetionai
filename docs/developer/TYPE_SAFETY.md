@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines TypeScript type safety practices for GlowGuide Retention Agent.
+This document outlines TypeScript type safety practices for Recete Retention Agent.
 
 ## TypeScript Configuration
 

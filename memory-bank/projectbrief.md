@@ -1,8 +1,8 @@
-# Project Brief: GlowGuide Retention Agent
+# Project Brief: Recete Retention Agent
 
 ## Project Overview
 
-**GlowGuide Retention Agent** is a white-label SaaS platform that provides post-purchase AI assistance for e-commerce merchants. The system uses WhatsApp to deliver proactive product guidance, usage instructions, and contextual upsell recommendations to end-users, while helping merchants reduce return rates and increase LTV (Lifetime Value).
+**Recete Retention Agent** is a white-label SaaS platform that provides post-purchase AI assistance for e-commerce merchants. The system uses WhatsApp to deliver proactive product guidance, usage instructions, and contextual upsell recommendations to end-users, while helping merchants reduce return rates and increase LTV (Lifetime Value).
 
 ## Core Value Proposition
 

@@ -1,6 +1,6 @@
 # Tasks: Kubernetes + New Relic
 
-> Implementation tasks for running GlowGuide on Kubernetes with New Relic Free Tier observability.
+> Implementation tasks for running Recete on Kubernetes with New Relic Free Tier observability.
 
 **Spec**: `docs/deployment/KUBERNETES_NEWRELIC_SPEC.md`  
 **Steps**: `docs/deployment/KUBERNETES_NEWRELIC_DEVELOPMENT_STEPS.md`

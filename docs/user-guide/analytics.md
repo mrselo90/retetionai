@@ -1,6 +1,6 @@
 # Analytics Dashboard
 
-Monitor your GlowGuide performance with comprehensive analytics and insights.
+Monitor your Recete performance with comprehensive analytics and insights.
 
 ## Dashboard Overview
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines UI polish improvements for GlowGuide Retention Agent to create a polished, professional user experience.
+This document outlines UI polish improvements for Recete Retention Agent to create a polished, professional user experience.
 
 ## Loading States
 

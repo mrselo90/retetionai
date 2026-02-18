@@ -1,6 +1,6 @@
 {
     "Landing": {
-        "title": "GlowGuide Retention Agent",
+        "title": "Recete Retention Agent",
         "subtitle": "AI assistant for post-purchase customer support and sales uplift.",
         "description": "Reduce return rates and increase LTV with product guides, usage instructions, and proactive messages.",
         "login": "Login",
@@ -94,7 +94,7 @@
         "error": "Login error"
     },
     "Login": {
-        "title": "Login to GlowGuide",
+        "title": "Login to Recete",
         "description": "Continue by logging in to your account",
         "emailLabel": "Email",
         "passwordLabel": "Password",
@@ -291,7 +291,7 @@
         "title": "Integrations",
         "description": "Connect your e-commerce platforms and automate order tracking",
         "platformSupport": {
-            "title": "Corporate support (GlowGuide)",
+            "title": "Corporate support (Recete)",
             "subtitle": "Contact us via WhatsApp"
         },
         "providers": {
@@ -506,7 +506,7 @@
                     "desc": "Uses your connected WhatsApp Business number."
                 },
                 "corporate": {
-                    "label": "Corporate number (GlowGuide)",
+                    "label": "Corporate number (Recete)",
                     "desc": "Uses the platform's shared number."
                 }
             },

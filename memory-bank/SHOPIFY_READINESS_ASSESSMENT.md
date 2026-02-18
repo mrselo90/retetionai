@@ -1,6 +1,6 @@
 # Shopify Readiness Assessment
 
-**Scope**: GlowGuide Retention Agent (WhatsApp bot: documents, RAG, product recipes)  
+**Scope**: Recete Retention Agent (WhatsApp bot: documents, RAG, product recipes)  
 **Date**: February 2026  
 **Verdict**: **Ready for Shopify** — full stack present; install → map products → consent-aware webhooks → T+0 beauty consultant flow implemented. Remaining: Phase 5 (tests, docs, offline token note).
 

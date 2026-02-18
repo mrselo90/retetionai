@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Technical architecture and design decisions for GlowGuide Retention Agent.
+Technical architecture and design decisions for Recete Retention Agent.
 
 ## System Architecture
 

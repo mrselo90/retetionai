@@ -17,7 +17,7 @@ Follow these steps **in order** to connect your Shopify store and fix connection
 1. Go to **[partners.shopify.com](https://partners.shopify.com)** and log in.
 2. In the left sidebar click **Apps**.
 3. Either:
-   - Click **Create app** → **Create app manually** → name it (e.g. “GlowGuide Retention Agent”), or  
+   - Click **Create app** → **Create app manually** → name it (e.g. “Recete Retention Agent”), or  
    - Open an existing app.
 
 ---

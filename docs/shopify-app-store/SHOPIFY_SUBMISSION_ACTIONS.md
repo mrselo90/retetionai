@@ -1,6 +1,6 @@
 eve # Shopify App Store — Submission Actions
 
-Track actions required before submitting GlowGuide for App Store review. Full context: [SHOPIFY_APP_MARKET_READINESS_REPORT.md](./SHOPIFY_APP_MARKET_READINESS_REPORT.md). Final gate: [Section 4 Pre-Submit Checklist](./SHOPIFY_APP_MARKET_READINESS_REPORT.md#4-submission-checklist-pre-submit) in the report.
+Track actions required before submitting Recete for App Store review. Full context: [SHOPIFY_APP_MARKET_READINESS_REPORT.md](./SHOPIFY_APP_MARKET_READINESS_REPORT.md). Final gate: [Section 4 Pre-Submit Checklist](./SHOPIFY_APP_MARKET_READINESS_REPORT.md#4-submission-checklist-pre-submit) in the report.
 
 ---
 

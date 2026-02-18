@@ -1,6 +1,6 @@
 # Kubernetes + New Relic Specification
 
-**App**: GlowGuide Retention Agent  
+**App**: Recete Retention Agent  
 **Version**: 1.0  
 **Last Updated**: February 2026
 

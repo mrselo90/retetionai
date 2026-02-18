@@ -1,4 +1,4 @@
-# GlowGuide Retention Agent
+# Recete Retention Agent
 
 White-label SaaS platform for post-purchase AI assistance via WhatsApp.
 
