@@ -24,13 +24,13 @@ WHERE conversation_status IS NOT NULL;
 -- ============================================================================
 
 -- Index for completed tasks with execution time (message volume queries)
-CREATE INDEX IF NOT EXISTS idx_scheduled_tasks_user_executed 
-ON scheduled_tasks(user_id, executed_at DESC) 
+CREATE INDEX IF NOT EXISTS idx_scheduled_tasks_user_execute 
+ON scheduled_tasks(user_id, execute_at DESC) 
 WHERE status = 'completed';
 
 -- Index for task status queries
-CREATE INDEX IF NOT EXISTS idx_scheduled_tasks_status 
-ON scheduled_tasks(status, executed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_scheduled_tasks_status_execute 
+ON scheduled_tasks(status, execute_at DESC);
 
 -- ============================================================================
 -- ANALYTICS_EVENTS TABLE INDEXES
