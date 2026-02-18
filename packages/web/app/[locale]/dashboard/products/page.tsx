@@ -60,21 +60,39 @@ export default function ProductsPage() {
       );
 
       const list = response?.products ?? [];
-      const productsWithChunks = await Promise.all(
-        list.map(async (product) => {
-          try {
-            const chunksResponse = await authenticatedRequest<{ chunkCount: number }>(
-              `/api/products/${product.id}/chunks`,
-              session.access_token
-            );
-            return { ...product, chunkCount: chunksResponse.chunkCount };
-          } catch {
-            return { ...product, chunkCount: 0 };
-          }
-        })
-      );
-
-      setProducts(productsWithChunks);
+      
+      // Batch fetch chunk counts for all products
+      if (list.length > 0) {
+        try {
+          const productIds = list.map(p => p.id);
+          const chunksResponse = await authenticatedRequest<{ chunkCounts: Array<{ productId: string; chunkCount: number }> }>(
+            '/api/products/chunks/batch',
+            session.access_token,
+            {
+              method: 'POST',
+              body: JSON.stringify({ productIds }),
+            }
+          );
+          
+          // Map chunk counts to products
+          const chunkCountMap = new Map(
+            chunksResponse.chunkCounts.map(cc => [cc.productId, cc.chunkCount])
+          );
+          
+          const productsWithChunks = list.map(product => ({
+            ...product,
+            chunkCount: chunkCountMap.get(product.id) ?? 0,
+          }));
+          
+          setProducts(productsWithChunks);
+        } catch (chunkError) {
+          console.error('Failed to load chunk counts:', chunkError);
+          // Fall back to products without chunk counts
+          setProducts(list.map(p => ({ ...p, chunkCount: 0 })));
+        }
+      } else {
+        setProducts([]);
+      }
     } catch (err: any) {
       console.error('Failed to load products:', err);
       if (err.message?.includes('Unauthorized') || err.message?.includes('401')) {

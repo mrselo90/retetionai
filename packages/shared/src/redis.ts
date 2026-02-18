@@ -17,21 +17,36 @@ export function getRedisClient(): Redis {
   if (!redisClient) {
     redisClient = new Redis(redisUrl, {
       maxRetriesPerRequest: null, // Required for BullMQ
+      enableReadyCheck: true,
       retryStrategy: (times: number) => {
-        const delay = Math.min(times * 50, 2000);
+        if (times > 10) {
+          // After 10 retries, log error and continue trying
+          console.error(`Redis connection retry attempt ${times}`);
+        }
+        const delay = Math.min(times * 100, 3000); // Exponential backoff up to 3 seconds
         return delay;
       },
       reconnectOnError: (err: Error) => {
-        const targetError = 'READONLY';
-        if (err.message.includes(targetError)) {
-          return true; // Reconnect on READONLY error
+        // Reconnect on specific errors
+        const reconnectErrors = ['READONLY', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND'];
+        const shouldReconnect = reconnectErrors.some(errType => 
+          err.message.includes(errType)
+        );
+        if (shouldReconnect) {
+          console.log(`Redis reconnecting due to: ${err.message}`);
+          return true;
         }
         return false;
       },
+      lazyConnect: false, // Connect immediately
+      enableOfflineQueue: true, // Queue commands while offline
+      connectTimeout: 10000, // 10 seconds
+      keepAlive: 30000, // Keep connection alive with 30s intervals
     });
 
     redisClient.on('error', (err: Error) => {
-      console.error('Redis connection error:', err);
+      console.error('Redis connection error:', err.message);
+      // Don't crash the app on Redis errors
     });
 
     redisClient.on('connect', () => {
@@ -40,6 +55,14 @@ export function getRedisClient(): Redis {
 
     redisClient.on('ready', () => {
       console.log('✅ Redis ready');
+    });
+
+    redisClient.on('reconnecting', () => {
+      console.log('🔄 Redis reconnecting...');
+    });
+
+    redisClient.on('close', () => {
+      console.log('❌ Redis connection closed');
     });
   }
 
@@ -57,4 +80,17 @@ export async function closeRedisConnection(): Promise<void> {
   }
 }
 
+/**
+ * Health check for Redis connection
+ */
+export async function checkRedisHealth(): Promise<boolean> {
+  try {
+    const redis = getRedisClient();
+    const result = await redis.ping();
+    return result === 'PONG';
+  } catch (error) {
+    console.error('Redis health check failed:', error);
+    return false;
+  }
+}
 

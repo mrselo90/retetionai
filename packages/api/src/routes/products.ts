@@ -576,4 +576,48 @@ products.get('/:id/chunks', async (c) => {
   });
 });
 
+/**
+ * Get chunk counts for multiple products (batch)
+ * POST /api/products/chunks/batch
+ */
+products.post('/chunks/batch', async (c) => {
+  const merchantId = c.get('merchantId');
+  const body = await c.req.json();
+  const { productIds } = body;
+
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    return c.json({ error: 'productIds array is required' }, 400);
+  }
+
+  const serviceClient = getSupabaseServiceClient();
+
+  // Verify all products belong to merchant
+  const { data: products, error } = await serviceClient
+    .from('products')
+    .select('id')
+    .eq('merchant_id', merchantId)
+    .in('id', productIds);
+
+  if (error) {
+    return c.json({ error: 'Failed to verify products' }, 500);
+  }
+
+  const validProductIds = products?.map(p => p.id) || [];
+
+  // Get chunk counts in parallel (but limit concurrency to avoid overwhelming DB)
+  const chunkCounts = await Promise.all(
+    validProductIds.map(async (productId) => {
+      try {
+        const count = await getProductChunkCount(productId);
+        return { productId, chunkCount: count };
+      } catch (err) {
+        console.error(`Failed to get chunk count for product ${productId}:`, err);
+        return { productId, chunkCount: 0 };
+      }
+    })
+  );
+
+  return c.json({ chunkCounts });
+});
+
 export default products;

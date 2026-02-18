@@ -6,6 +6,7 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
 import { getSupabaseServiceClient } from '@glowguide/shared';
+import { getCache, setCache } from '../lib/cache.js';
 
 const analytics = new Hono();
 
@@ -22,6 +23,13 @@ analytics.get('/dashboard', async (c) => {
     const startDate = c.req.query('startDate') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const endDate = c.req.query('endDate') || new Date().toISOString();
 
+    // Check cache first (5 minute cache)
+    const cacheKey = `${merchantId}:${startDate}:${endDate}`;
+    const cached = await getCache<any>('analytics_dashboard', cacheKey);
+    if (cached) {
+      return c.json(cached);
+    }
+
     const serviceClient = getSupabaseServiceClient();
 
     // Get merchant's users
@@ -32,77 +40,92 @@ analytics.get('/dashboard', async (c) => {
 
     const userIds = merchantUsers?.map((u) => u.id) || [];
 
-    // Daily Active Users (DAU) - last 30 days
-    const dauData: Array<{ date: string; count: number }> = [];
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-      const nextDate = new Date(date);
-      nextDate.setDate(nextDate.getDate() + 1);
+    // Get 30 days ago date
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
 
-      if (userIds.length > 0) {
-        const { count } = await serviceClient
+    // Optimize: Fetch all conversations from last 30 days at once
+    const { data: recentConversations } = userIds.length > 0 
+      ? await serviceClient
           .from('conversations')
-          .select('*', { count: 'exact', head: true })
+          .select('user_id, updated_at, history')
           .in('user_id', userIds)
-          .gte('updated_at', date.toISOString())
-          .lt('updated_at', nextDate.toISOString());
+          .gte('updated_at', thirtyDaysAgo.toISOString())
+      : { data: [] };
 
-        dauData.push({
-          date: date.toISOString().split('T')[0],
-          count: count || 0,
-        });
-      } else {
-        dauData.push({
-          date: date.toISOString().split('T')[0],
-          count: 0,
-        });
-      }
-    }
-
-    // Message Volume - last 30 days
-    const messageVolume: Array<{ date: string; sent: number; received: number }> = [];
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-      const nextDate = new Date(date);
-      nextDate.setDate(nextDate.getDate() + 1);
-
-      let sent = 0;
-      let received = 0;
-
-      if (userIds.length > 0) {
-        // Sent messages (scheduled_tasks completed)
-        const { count: sentCount } = await serviceClient
+    // Optimize: Fetch all scheduled tasks from last 30 days at once
+    const { data: recentTasks } = userIds.length > 0
+      ? await serviceClient
           .from('scheduled_tasks')
-          .select('*', { count: 'exact', head: true })
+          .select('user_id, executed_at')
           .in('user_id', userIds)
           .eq('status', 'completed')
-          .gte('executed_at', date.toISOString())
-          .lt('executed_at', nextDate.toISOString());
+          .gte('executed_at', thirtyDaysAgo.toISOString())
+      : { data: [] };
 
-        sent = sentCount || 0;
+    // Build DAU and Message Volume data in memory
+    const dauMap = new Map<string, Set<string>>();
+    const messageMap = new Map<string, { sent: number; received: number }>();
 
-        // Received messages (conversations with user messages)
-        const { data: conversations } = await serviceClient
-          .from('conversations')
-          .select('history')
-          .in('user_id', userIds)
-          .gte('updated_at', date.toISOString())
-          .lt('updated_at', nextDate.toISOString());
+    // Initialize all 30 days
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+      const dateStr = date.toISOString().split('T')[0];
+      dauMap.set(dateStr, new Set());
+      messageMap.set(dateStr, { sent: 0, received: 0 });
+    }
 
-        received = conversations?.reduce((acc, conv) => {
-          const history = (conv.history as any[]) || [];
-          return acc + history.filter((msg) => msg.role === 'user').length;
-        }, 0) || 0;
+    // Process conversations (for DAU and received messages)
+    (recentConversations || []).forEach((conv: any) => {
+      const updatedDate = new Date(conv.updated_at);
+      updatedDate.setHours(0, 0, 0, 0);
+      const dateStr = updatedDate.toISOString().split('T')[0];
+      
+      if (dauMap.has(dateStr)) {
+        dauMap.get(dateStr)!.add(conv.user_id);
+        
+        // Count received messages
+        const history = (conv.history as any[]) || [];
+        const receivedCount = history.filter((msg) => msg.role === 'user').length;
+        const current = messageMap.get(dateStr)!;
+        messageMap.set(dateStr, { ...current, received: current.received + receivedCount });
       }
+    });
 
+    // Process scheduled tasks (for sent messages)
+    (recentTasks || []).forEach((task: any) => {
+      const executedDate = new Date(task.executed_at);
+      executedDate.setHours(0, 0, 0, 0);
+      const dateStr = executedDate.toISOString().split('T')[0];
+      
+      if (messageMap.has(dateStr)) {
+        const current = messageMap.get(dateStr)!;
+        messageMap.set(dateStr, { ...current, sent: current.sent + 1 });
+      }
+    });
+
+    // Convert maps to arrays
+    const dauData: Array<{ date: string; count: number }> = [];
+    const messageVolume: Array<{ date: string; sent: number; received: number }> = [];
+
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      dauData.push({
+        date: dateStr,
+        count: dauMap.get(dateStr)?.size || 0,
+      });
+
+      const msgData = messageMap.get(dateStr) || { sent: 0, received: 0 };
       messageVolume.push({
-        date: date.toISOString().split('T')[0],
-        sent,
-        received,
+        date: dateStr,
+        ...msgData,
       });
     }
 
@@ -150,7 +173,7 @@ analytics.get('/dashboard', async (c) => {
       ? Math.round((returnedOrders || 0) / totalOrders * 100)
       : 0;
 
-    return c.json({
+    const result = {
       period: {
         startDate,
         endDate,
@@ -164,7 +187,12 @@ analytics.get('/dashboard', async (c) => {
         totalUsers: totalUsers || 0,
         totalOrders: totalOrders || 0,
       },
-    });
+    };
+
+    // Cache for 5 minutes (300 seconds)
+    await setCache('analytics_dashboard', cacheKey, result, 300);
+
+    return c.json(result);
   } catch (error) {
     console.error('Analytics dashboard error:', error);
     return c.json({
