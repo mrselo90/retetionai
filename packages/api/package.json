@@ -8,6 +8,7 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "start": "PORT=3001 node -r dotenv/config -r newrelic dist/index.js",
+    "start:prod": "PORT=3002 node -r dotenv/config -r newrelic dist/index.js",
     "start:no-nr": "node dist/index.js",
     "lint": "eslint src --ext .ts",
     "test": "vitest run",

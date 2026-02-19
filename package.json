@@ -7,7 +7,7 @@
     "dev": "pnpm --filter api dev",
     "dev:web": "pnpm --filter @recete/web dev",
     "dev:all": "pnpm --parallel --filter api --filter @recete/web dev",
-    "build": "pnpm -r build",
+    "build": "pnpm --filter @recete/shared build && pnpm -r --filter '!@recete/shared' build",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",

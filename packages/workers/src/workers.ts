@@ -11,6 +11,7 @@ import {
   ScrapeJobData,
   AnalyticsJobData,
   getUsageInstructionsForProductIds,
+  type ProductInstructionRow,
 } from '@recete/shared';
 import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from './lib/whatsapp.js';
 import { scrapeProductPage } from './lib/scraper.js';
@@ -62,7 +63,7 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           const instructions = await getUsageInstructionsForProductIds(merchantId, productIds);
           if (instructions.length > 0) {
             const parts = instructions.map(
-              (row) =>
+              (row: ProductInstructionRow) =>
                 `**${row.product_name ?? 'Ürün'}**\n${row.usage_instructions}${row.recipe_summary ? `\nÖzet: ${row.recipe_summary}` : ''}`
             );
             message =

@@ -50,8 +50,8 @@ All schema changes in `supabase/migrations/009_enrichment_features.sql`:
 
 | Service | Status | PM2 Name | Port | Updated |
 |---------|--------|----------|------|---------|
-| API (Hono) | ✅ Online | api | 3001 | Feb 19, 2026 |
-| Frontend (Next.js) | ✅ Online | web | 3000 | Feb 19, 2026 |
+| API (Hono) | ✅ Online | api | 3002 | Feb 19, 2026 |
+| Frontend (Next.js) | ✅ Online | web | 3001 | Feb 19, 2026 |
 | Workers (BullMQ) | ✅ Online | workers | - | Feb 19, 2026 |
 | Redis | ✅ Connected | system | 6379 | Active |
 | Supabase DB | ✅ Connected | cloud | - | Active |
@@ -95,9 +95,9 @@ All schema changes in `supabase/migrations/009_enrichment_features.sql`:
 ## Configuration Notes
 
 - `NODE_ENV=development` — HTTPS redirect disabled (no SSL certificate yet)
-- `ALLOWED_ORIGINS=http://209.97.134.215,http://localhost:3001`
+- `ALLOWED_ORIGINS=http://209.97.134.215,http://localhost:3000` (api). Web: `INTERNAL_API_URL=http://127.0.0.1:3002` so "Could not reach the API" is avoided.
 - Supabase keys validated and working
-- Nginx proxies `/api/*` → port 3002, `/*` → port 3001
+- Nginx: `/` and `/api-backend/*` → port 3001 (web); `/api/*` and `/health` → port 3002 (api). Web must set INTERNAL_API_URL=http://127.0.0.1:3002 (see docs/deployment/PORTS_AND_ROUTING.md).
 
 ## What's Working
 

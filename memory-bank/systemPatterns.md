@@ -98,9 +98,10 @@ All sources map to:
 
 ```
 Internet → Nginx (port 80)
-  ├─→ /api/*    → API (PM2, port 3002)
-  ├─→ /health   → API (PM2, port 3002)
-  └─→ /*        → Frontend (PM2, port 3001)
+  ├─→ /            → Frontend (PM2, port 3001)
+  ├─→ /api-backend/* → Frontend (3001); Next.js proxies to API (3002)
+  ├─→ /api/*      → API (PM2, port 3002)
+  └─→ /health     → API (PM2, port 3002)
                     ↓
               ├─→ Workers (PM2, BullMQ)
               ├─→ Redis (port 6379)

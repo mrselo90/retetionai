@@ -9,7 +9,7 @@
 
 | Service | Status | Port | Memory |
 |---------|--------|------|--------|
-| API | ✅ Online | 3000 | ~110 MB |
+| API | ✅ Online | 3002 | ~110 MB |
 | Frontend | ✅ Online | 3001 | ~55 MB |
 | Workers | ✅ Online | - | ~68 MB |
 | Redis | ✅ Connected | 6379 | - |
@@ -43,6 +43,8 @@ cd /root/retetionai && git pull && pnpm install && cd packages/web && pnpm build
 | Frontend .env | `/root/retetionai/packages/web/.env.local` |
 | Nginx config | `/etc/nginx/sites-available/recete` |
 | PM2 config | `~/.pm2/dump.pm2` |
+
+**Ports & "Could not reach the API"**: Frontend = 3001, API = 3002. Nginx must route `/api-backend/*` to the frontend. Web process must have **INTERNAL_API_URL=http://127.0.0.1:3002**. See `docs/deployment/PORTS_AND_ROUTING.md` and `docs/deployment/NGINX_EXAMPLE.conf`.
 
 47: ### Next Steps
 48: 1.  **Deployment:** ✅ Push i18n changes to the server (Build fixed & deployed).

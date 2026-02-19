@@ -47,18 +47,19 @@
 - **Process Manager**: PM2 (auto-start on reboot)
 - **Reverse Proxy**: Nginx
 
-### Service Ports
+### Service Ports (production behind Nginx)
 | Service | Port | PM2 Name |
 |---------|------|----------|
-| API     | 3001 | api      |
-| Frontend| 3000 | web      |
+| API     | 3002 | api      |
+| Frontend| 3001 | web      |
 | Workers | -    | workers  |
 | Redis   | 6379 | system   |
 
+Local dev: Frontend 3000, API 3001. See docs/deployment/PORTS_AND_ROUTING.md.
+
 ### Nginx Configuration
-- `/` → Frontend (localhost:3000)
-- `/api/` → API (localhost:3001/api/)
-- `/health` → API (localhost:3001/health)
+- `/` and `/api-backend/*` → Frontend (127.0.0.1:3001)
+- `/api/*` and `/health` → API (127.0.0.1:3002)
 
 ### PM2 Commands
 ```bash
@@ -146,20 +147,23 @@ SHOPIFY_API_KEY=<key>
 SHOPIFY_API_SECRET=<key>
 SHOPIFY_SCOPES=read_products,read_orders,read_customers,write_webhooks
 
-# App Configuration
+# App Configuration (API on server: PORT=3002)
 NODE_ENV=development
-PORT=3000
+PORT=3002
 API_URL=http://209.97.134.215
 FRONTEND_URL=http://209.97.134.215
-ALLOWED_ORIGINS=http://209.97.134.215,http://localhost:3001
+ALLOWED_ORIGINS=http://209.97.134.215,http://localhost:3000
 ```
 
 ### Frontend (.env.local on server at /root/retetionai/packages/web/.env.local)
 ```env
+PORT=3001
+INTERNAL_API_URL=http://127.0.0.1:3002
 NEXT_PUBLIC_API_URL=http://209.97.134.215
 NEXT_PUBLIC_SUPABASE_URL=https://clcqmasqkfdcmznwdrbx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<key>
 ```
+(INTERNAL_API_URL is required so Next.js can proxy /api-backend/* to the API; avoids "Could not reach the API".)
 
 ## API Endpoints (Key)
 

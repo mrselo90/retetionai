@@ -110,18 +110,20 @@ pnpm --filter web dev
 
 ### Production Mode
 
+See **docs/deployment/PORTS_AND_ROUTING.md** for the canonical port convention (Frontend 3001, API 3002 behind Nginx). Set `INTERNAL_API_URL=http://127.0.0.1:3002` for the web process to avoid "Could not reach the API."
+
 ```bash
 # Build all packages
 pnpm build
 
-# Start API
-pnpm --filter api start
+# Start API (production: port 3002; use start:prod or set PORT=3002 on server)
+pnpm --filter api start:prod
 
 # Start workers
 pnpm --filter workers start
 
-# Start frontend
-pnpm --filter web start
+# Start frontend (production: PORT=3001; set on server)
+PORT=3001 pnpm --filter web start
 ```
 
 ---
