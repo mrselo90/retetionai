@@ -119,7 +119,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   className={cn(
                     "relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group",
                     isActive
-                      ? "bg-gradient-to-r from-primary/10 to-primary/5 text-primary shadow-sm"
+                      ? "bg-gradient-to-r from-primary/15 to-primary/10 text-primary shadow-sm"
                       : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                   )}
                   onClick={() => setIsSidebarOpen(false)}
@@ -138,7 +138,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="p-4 border-t border-zinc-100 bg-gradient-to-r from-muted/20 to-transparent">
             <div className="flex items-center gap-3 mb-3 p-3 rounded-xl bg-white border border-zinc-100 shadow-sm">
               <Avatar className="ring-2 ring-primary/20">
-                <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${userEmail || 'User'}&backgroundColor=14b8a6`} />
+                <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${userEmail || 'User'}&backgroundColor=1a202c`} />
                 <AvatarFallback className="bg-primary text-primary-foreground font-semibold">U</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
@@ -172,7 +172,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
             Recete
           </Link>
-          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="hover:bg-primary/10">
+          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="hover:bg-primary/15">
             <Menu className="w-6 h-6" />
           </Button>
         </header>

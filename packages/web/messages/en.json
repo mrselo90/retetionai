@@ -1,8 +1,10 @@
 {
     "Landing": {
         "title": "Recete Retention Agent",
-        "subtitle": "AI assistant for post-purchase customer support and sales uplift.",
+        "heroLine": "Post-purchase care that reduces returns and boosts LTV.",
+        "subtitle": "Connect your store. Automate product guidance and support via WhatsApp.",
         "description": "Reduce return rates and increase LTV with product guides, usage instructions, and proactive messages.",
+        "forShopify": "For Shopify merchants",
         "login": "Login",
         "signup": "Sign Up",
         "privacy": "Privacy",

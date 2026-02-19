@@ -198,7 +198,7 @@ export default function DashboardPage() {
         <Card hover className="group overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold text-muted-foreground">{t('kpi.totalOrders')}</CardTitle>
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors">
               <ShoppingBag className="h-5 w-5 text-primary" />
             </div>
           </CardHeader>
@@ -268,7 +268,7 @@ export default function DashboardPage() {
         <Card className="col-span-1 overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between pb-4 bg-gradient-to-r from-muted/30 to-muted/10">
             <CardTitle className="text-lg font-bold">{t('recentOrders.title')}</CardTitle>
-            <Button variant="ghost" size="sm" asChild className="hover:bg-primary/10">
+            <Button variant="ghost" size="sm" asChild className="hover:bg-primary/15">
               <Link href="/dashboard/products">{t('recentOrders.viewAll')}</Link>
             </Button>
           </CardHeader>
@@ -278,7 +278,7 @@ export default function DashboardPage() {
                 displayStats.recentActivity.orders.map((order, idx) => (
                   <div key={order.id} className="p-4 hover:bg-muted/30 transition-all duration-200 flex items-center justify-between group" style={{ animationDelay: `${idx * 50}ms` }}>
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                      <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors">
                         <ShoppingBag className="w-5 h-5 text-primary" />
                       </div>
                       <div>
@@ -307,7 +307,7 @@ export default function DashboardPage() {
         <Card className="col-span-1 overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between pb-4 bg-gradient-to-r from-muted/30 to-muted/10">
             <CardTitle className="text-lg font-bold">{t('recentConversations.title')}</CardTitle>
-            <Button variant="ghost" size="sm" asChild className="hover:bg-primary/10">
+            <Button variant="ghost" size="sm" asChild className="hover:bg-primary/15">
               <Link href="/dashboard/conversations">{t('recentConversations.viewAll')}</Link>
             </Button>
           </CardHeader>
@@ -352,7 +352,7 @@ export default function DashboardPage() {
           <Link href="/dashboard/products" className="group">
             <Card hover className="h-full cursor-pointer border-2 border-dashed hover:border-primary/50 hover:border-solid">
               <CardContent className="p-6 flex items-start gap-5">
-                <div className="flex-shrink-0 p-4 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground group-hover:scale-110 transition-transform duration-200 shadow-lg">
+                <div className="flex-shrink-0 p-4 rounded-xl bg-primary text-primary-foreground group-hover:scale-105 transition-transform duration-200 shadow-lg">
                   <Package className="w-7 h-7" />
                 </div>
                 <div className="flex-1">

@@ -1,8 +1,10 @@
 {
     "Landing": {
         "title": "Recete Retention Agent",
-        "subtitle": "Sipariş sonrası müşteri destek ve satış artırım için yapay zeka asistanı.",
+        "heroLine": "İadeleri azaltan, LTV'yi yükselten sipariş sonrası bakım.",
+        "subtitle": "Mağazanızı bağlayın. WhatsApp ile ürün rehberi ve destek otomasyonu.",
         "description": "Ürün rehberi, kullanım talimatları ve proaktif mesajlarla iade oranını düşürün, LTV'yi yükseltin.",
+        "forShopify": "Shopify mağazaları için",
         "login": "Giriş Yap",
         "signup": "Kayıt Ol",
         "privacy": "Gizlilik",
