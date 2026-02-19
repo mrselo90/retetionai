@@ -206,11 +206,11 @@ export default function ProductDetailPage() {
     return (
       
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow p-12 text-center">
+          <div className="bg-card rounded-lg border border-border shadow-sm p-12 text-center">
             <p className="text-zinc-600">{t('notFound')}</p>
             <button
               onClick={() => router.push('/dashboard/products')}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"
             >
               {t('backToProducts')}
             </button>
@@ -228,9 +228,9 @@ export default function ProductDetailPage() {
           <div>
             <button
               onClick={() => router.push('/dashboard/products')}
-              className="text-sm text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
+              className="text-sm text-primary hover:underline mb-2 flex items-center gap-1 font-medium"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               {t('backToProducts')}
@@ -249,7 +249,7 @@ export default function ProductDetailPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? t('saving') : t('save')}
             </button>
@@ -257,7 +257,7 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Product Info */}
-        <div className="bg-white rounded-lg shadow p-6 space-y-6">
+        <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-2">
               {t('productName')}
@@ -309,7 +309,7 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Scraped Content */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-lg border border-border shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-zinc-900">Taranan İçerik</h2>
             <button
@@ -343,7 +343,7 @@ export default function ProductDetailPage() {
               <button
                 onClick={handleRescrape}
                 disabled={rescraping}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50"
               >
                 {rescraping ? 'Taranıyor...' : 'Şimdi Tara'}
               </button>
@@ -352,7 +352,7 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Return Prevention Content */}
-        <div className="bg-white rounded-lg shadow p-6 space-y-5">
+        <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-5">
           <div>
             <h2 className="text-xl font-semibold text-zinc-900">{rp('analyticsTitle')}</h2>
             <p className="text-sm text-zinc-500 mt-1">{rp('moduleDescription')}</p>
@@ -388,7 +388,7 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Metadata */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-lg border border-border shadow-sm p-6">
           <h2 className="text-xl font-semibold text-zinc-900 mb-4">Metadata</h2>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>

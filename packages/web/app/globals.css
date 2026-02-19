@@ -10,6 +10,8 @@
   --color-ring: hsl(var(--ring));
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
+  --color-surface: hsl(var(--surface));
+  --color-surface-foreground: hsl(var(--surface-foreground));
 
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
@@ -90,11 +92,14 @@
 }
 
 :root {
-  /* Base colors */
+  /* Base colors - Polaris-aligned for Shopify admin familiarity */
   --background: 0 0% 100%;
   --foreground: 222 47% 11%;
+  /* Surface: Polaris-like page background (#f6f6f7) for app body */
+  --surface: 240 5% 97%;
+  --surface-foreground: 222 47% 11%;
 
-  /* Card colors */
+  /* Card colors - white cards like Shopify admin */
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
 
@@ -140,9 +145,9 @@
   --info-foreground: 0 0% 100%;
   --info-light: 217 91% 95%;
 
-  /* Border and input */
-  --border: 220 13% 91%;
-  --input: 220 13% 91%;
+  /* Border and input - Polaris subdued border (#e1e3e5) */
+  --border: 220 13% 90%;
+  --input: 220 13% 90%;
   --ring: 220 26% 14%;
 
   /* Radius system */

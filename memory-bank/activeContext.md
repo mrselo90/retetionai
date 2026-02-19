@@ -92,6 +92,16 @@ All schema changes in `supabase/migrations/009_enrichment_features.sql`:
   - Success highlight animation on save
 - ✅ Production build successful with zero errors (53s server compile)
 
+## Shopify UX/UI Alignment (Built for Shopify)
+
+UI/UX has been aligned with [Shopify App Design Guidelines](https://shopify.dev/docs/apps/design-guidelines) and [Built for Shopify design requirements](https://shopify.dev/docs/apps/launch/built-for-shopify/requirements#design):
+
+- **Familiar**: Polaris-aligned surface background (#f6f6f7), white cards with subdued borders, consistent spacing (16px/20px), primary color #1A202C (dark blue-slate; not green/purple). No dramatic on-load animations (BFS 4.3.3).
+- **Back buttons**: All detail pages (conversations/[id], products/[id], customers/[id]) have a visible back link to parent.
+- **Cards**: Card component uses rounded-lg, border-border, shadow-sm (Polaris-like). No heavy gradients or translate on hover.
+- **Layout**: Dashboard uses surface background; sidebar uses bg-card and border-border. Mobile header simplified.
+- **For full BFS when embedded**: Use App Bridge [s-app-nav](https://shopify.dev/docs/api/app-home/app-bridge-web-components/s-app-nav) for primary navigation (hide custom sidebar when inside Shopify Admin). Contextual Save Bar for forms where applicable. See shopify.dev docs for nav and CSB.
+
 ## Configuration Notes
 
 - `NODE_ENV=development` — HTTPS redirect disabled (no SSL certificate yet)

@@ -66,14 +66,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50/50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--surface))]">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-zinc-50/50 to-primary/5 flex">
+    <div className="min-h-screen bg-[hsl(var(--surface))] flex">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
@@ -85,13 +85,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-white/95 backdrop-blur-xl border-r border-zinc-200/80 shadow-xl transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:block",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border shadow-sm transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:block",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="h-full flex flex-col">
-          {/* Logo */}
-          <div className="h-20 flex items-center px-6 border-b border-zinc-100 bg-gradient-to-r from-primary/5 to-transparent">
+          {/* Logo - Polaris-like minimal header */}
+          <div className="h-16 flex items-center px-4 border-b border-border">
             <Link href="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-zinc-900 group">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                 <span className="text-xl font-extrabold">R</span>
@@ -135,8 +135,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </nav>
 
           {/* User Profile */}
-          <div className="p-4 border-t border-zinc-100 bg-gradient-to-r from-muted/20 to-transparent">
-            <div className="flex items-center gap-3 mb-3 p-3 rounded-xl bg-white border border-zinc-100 shadow-sm">
+          <div className="p-4 border-t border-border">
+            <div className="flex items-center gap-3 mb-3 p-3 rounded-lg bg-[hsl(var(--surface))] border border-border">
               <Avatar className="ring-2 ring-primary/20">
                 <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${userEmail || 'User'}&backgroundColor=1a202c`} />
                 <AvatarFallback className="bg-primary text-primary-foreground font-semibold">U</AvatarFallback>
@@ -164,8 +164,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile Header */}
-        <header className="lg:hidden h-16 bg-white/95 backdrop-blur-xl border-b border-zinc-200/80 flex items-center px-4 justify-between shadow-sm sticky top-0 z-30">
+        {/* Mobile Header - Polaris-like */}
+        <header className="lg:hidden h-14 bg-card border-b border-border flex items-center px-4 justify-between sticky top-0 z-30">
           <Link href="/dashboard" className="font-bold text-lg text-zinc-900 flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow">
               <span className="text-base font-extrabold">R</span>
@@ -177,9 +177,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </Button>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 scrollbar-thin">
-          <div className="max-w-7xl mx-auto">
+        {/* Page Content - Polaris-like spacing (16px/20px) */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-thin">
+          <div className="max-w-6xl mx-auto">
             {children}
           </div>
         </main>

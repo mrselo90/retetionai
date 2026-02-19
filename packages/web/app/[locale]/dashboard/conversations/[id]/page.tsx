@@ -171,11 +171,11 @@ export default function ConversationDetailPage() {
     return (
       
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow p-12 text-center">
+          <div className="bg-card rounded-lg border border-border shadow-sm p-12 text-center">
             <p className="text-zinc-600">{t('notFound')}</p>
             <button
               onClick={() => router.push('/dashboard/conversations')}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"
             >
               {t('backToConversations')}
             </button>
@@ -189,12 +189,12 @@ export default function ConversationDetailPage() {
     
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-lg border border-border shadow-sm p-6">
           <button
             onClick={() => router.push('/dashboard/conversations')}
-            className="text-sm text-blue-600 hover:text-blue-800 mb-4 flex items-center gap-1"
+            className="text-sm text-primary hover:underline mb-4 flex items-center gap-1 font-medium"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             {t('backToConversations')}
@@ -202,8 +202,8 @@ export default function ConversationDetailPage() {
 
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
@@ -219,7 +219,7 @@ export default function ConversationDetailPage() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       conversation.order.status === 'delivered'
                         ? 'bg-green-100 text-green-800'
-                        : 'bg-blue-100 text-blue-800'
+                        : 'bg-info/20 text-info'
                     }`}>
                       {conversation.order.status}
                     </span>
@@ -234,7 +234,7 @@ export default function ConversationDetailPage() {
                     ? 'bg-orange-100 text-orange-800'
                     : conversation.conversationStatus === 'resolved'
                     ? 'bg-green-100 text-green-800'
-                    : 'bg-blue-100 text-blue-800'
+                    : 'bg-info/20 text-info'
                 }`}>
                   {conversation.conversationStatus === 'human' ? t('statusHuman') :
                    conversation.conversationStatus === 'resolved' ? t('statusResolved') : t('statusAi')}
@@ -273,7 +273,7 @@ export default function ConversationDetailPage() {
                     <button
                       onClick={() => handleToggleStatus('ai')}
                       disabled={togglingStatus}
-                      className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                      className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
                     >
                       {t('startAi')}
                     </button>
@@ -290,7 +290,7 @@ export default function ConversationDetailPage() {
                   <button
                     onClick={() => handleToggleStatus('ai')}
                     disabled={togglingStatus}
-                    className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
                   >
                     {t('reopen')}
                   </button>
@@ -305,7 +305,7 @@ export default function ConversationDetailPage() {
         </div>
 
         {/* Chat Messages */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-card rounded-lg border border-border shadow-sm">
           <div className="p-6 border-b border-zinc-200">
             <h2 className="text-lg font-semibold text-zinc-900">{t('messageHistory')}</h2>
             <p className="text-sm text-zinc-600 mt-1">
@@ -335,7 +335,7 @@ export default function ConversationDetailPage() {
                             ? 'bg-zinc-100 text-zinc-900'
                             : message.role === 'merchant'
                             ? 'bg-teal-600 text-white'
-                            : 'bg-blue-600 text-white'
+                            : 'bg-primary text-primary-foreground'
                         }`}
                       >
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -385,7 +385,7 @@ export default function ConversationDetailPage() {
 
         {/* Conversation Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-lg border border-border shadow-sm p-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-blue-100 rounded-lg">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -399,7 +399,7 @@ export default function ConversationDetailPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-lg border border-border shadow-sm p-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-green-100 rounded-lg">
                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -415,7 +415,7 @@ export default function ConversationDetailPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-lg border border-border shadow-sm p-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-purple-100 rounded-lg">
                 <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

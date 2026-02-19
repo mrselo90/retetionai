@@ -119,19 +119,19 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6 p-1 animate-fade-in">
+      <div className="space-y-6 p-1">
         <div className="space-y-3">
-          <div className="h-10 w-56 bg-gradient-to-r from-zinc-200 to-zinc-100 rounded-xl animate-pulse" />
+          <div className="h-10 w-56 bg-muted rounded-lg animate-pulse" />
           <div className="h-5 w-80 bg-gradient-to-r from-zinc-100 to-zinc-50 rounded-lg animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" style={{ animationDelay: `${i * 100}ms` }} />
+            <div key={i} className="h-32 bg-card border border-border rounded-lg animate-pulse" />
           ))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-96 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" />
-          <div className="h-96 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" />
+          <div className="h-96 bg-card border border-border rounded-lg animate-pulse" />
+          <div className="h-96 bg-card border border-border rounded-lg animate-pulse" />
         </div>
       </div>
     );
@@ -153,9 +153,9 @@ export default function DashboardPage() {
   const hasErrorAlerts = hasAlerts && displayStats.alerts!.some((a) => a.severity === 'error' || a.severity === 'warning');
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
-      {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 px-8 py-10 text-primary-foreground shadow-xl">
+    <div className="space-y-6 pb-8">
+      {/* Welcome Banner - Polaris-like card */}
+      <div className="relative overflow-hidden rounded-lg border border-border bg-primary px-6 py-8 text-primary-foreground shadow-sm">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bS0yIDJ2LTJoLTJ2Mmgyem0tNCAydi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bTI4IDMydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptLTIgMnYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30"></div>
         <div className="relative z-10">
           <h1 className="text-4xl font-bold tracking-tight mb-3">
@@ -173,7 +173,7 @@ export default function DashboardPage() {
 
       {/* Critical Alerts */}
       {hasErrorAlerts && (
-        <div className="rounded-xl border-2 border-destructive/30 bg-gradient-to-r from-destructive/10 to-destructive/5 px-5 py-5 shadow-sm animate-slide-down">
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-5 py-4 shadow-sm">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center">
               <AlertCircle className="w-5 h-5 text-destructive" />
@@ -249,7 +249,7 @@ export default function DashboardPage() {
       {hasAlerts && displayStats.alerts!.filter((a) => a.severity === 'info').length > 0 && (
         <div className="space-y-3">
           {displayStats.alerts!.filter((a) => a.severity === 'info').map((alert, index) => (
-            <div key={index} className="flex items-start gap-4 bg-gradient-to-r from-info/10 to-info/5 p-5 rounded-xl border border-info/20 shadow-sm animate-slide-down">
+            <div key={index} className="flex items-start gap-4 bg-info/5 p-4 rounded-lg border border-info/20 shadow-sm">
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-info/20 flex items-center justify-center">
                 <Info className="w-5 h-5 text-info" />
               </div>

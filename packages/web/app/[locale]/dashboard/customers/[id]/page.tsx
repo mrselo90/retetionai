@@ -86,7 +86,7 @@ export default function CustomerDetailPage() {
   const rfm = customer.rfmScore || { recency: 0, frequency: 0, monetary: 0 };
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
+    <div className="space-y-6 pb-8">
       {/* Header */}
       <div>
         <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/customers')} className="mb-4">
