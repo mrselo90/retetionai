@@ -92,11 +92,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="h-full flex flex-col">
           {/* Logo - Polaris-like minimal header */}
           <div className="h-16 flex items-center px-4 border-b border-border">
-            <Link href="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-zinc-900 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+            <Link href="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-zinc-900">
+              <div className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center">
                 <span className="text-xl font-extrabold">R</span>
               </div>
-              <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Recete</span>
+              <span className="text-foreground">Recete</span>
             </Link>
             <button
               className="ml-auto lg:hidden text-zinc-500 hover:text-zinc-700 p-2 rounded-lg hover:bg-zinc-100 transition-colors"
@@ -117,17 +117,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group",
+                    "relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150",
                     isActive
-                      ? "bg-gradient-to-r from-primary/15 to-primary/10 text-primary shadow-sm"
-                      : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                      ? "bg-primary/10 text-primary"
+                      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
                   )}
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   {isActive && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"></div>
                   )}
-                  <Icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", isActive ? "text-primary" : "text-zinc-500")} />
+                  <Icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-zinc-500")} />
                   {item.name}
                 </Link>
               );
@@ -167,7 +167,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Mobile Header - Polaris-like */}
         <header className="lg:hidden h-14 bg-card border-b border-border flex items-center px-4 justify-between sticky top-0 z-30">
           <Link href="/dashboard" className="font-bold text-lg text-zinc-900 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow">
+            <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
               <span className="text-base font-extrabold">R</span>
             </div>
             Recete

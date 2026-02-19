@@ -69,12 +69,10 @@
   @keyframes fade-in {
     from {
       opacity: 0;
-      transform: translateY(4px);
     }
 
     to {
       opacity: 1;
-      transform: translateY(0);
     }
   }
 
@@ -312,7 +310,7 @@
 
 /* Enhanced Animations */
 .animate-fade-in {
-  animation: fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fade-in 0.3s ease-out;
 }
 
 .animate-slide-up {
@@ -379,22 +377,13 @@
   border-radius: 3px;
 }
 
-/* Overlay backdrop for modals */
-.modal-overlay {
-  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  animation: fade-in 0.2s ease-out;
-}
-
-/* Enhanced Card Styles */
+/* Card Styles — Polaris-like subdued hover */
 .card-hover {
-  @apply transition-all duration-200;
+  @apply transition-shadow duration-200;
 }
 
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow);
 }
 
 /* Gradient Backgrounds */
@@ -417,26 +406,7 @@
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-/* Button Enhancements */
-.btn-shine {
-  position: relative;
-  overflow: hidden;
-}
 
-.btn-shine::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.5s;
-}
-
-.btn-shine:hover::before {
-  left: 100%;
-}
 
 /* Loading Skeleton */
 .skeleton {
@@ -466,118 +436,7 @@
   @apply w-px bg-border;
 }
 
-/* Additional Advanced Animations */
-@keyframes success-pulse {
-
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-  }
-
-  50% {
-    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
-  }
-}
-
-.success-pulse {
-  animation: success-pulse 2s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-
-  100% {
-    background-position: 1000px 0;
-  }
-}
-
-.shimmer {
-  animation: shimmer 2s infinite linear;
-  background: linear-gradient(to right,
-      #f0f0f0 0%,
-      #f8f8f8 20%,
-      #f0f0f0 40%,
-      #f0f0f0 100%);
-  background-size: 1000px 100%;
-}
-
-@keyframes bounce {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-.animate-bounce-slow {
-  animation: bounce 3s ease-in-out infinite;
-}
-
-@keyframes shake {
-
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-
-  10%,
-  30%,
-  50%,
-  70%,
-  90% {
-    transform: translateX(-5px);
-  }
-
-  20%,
-  40%,
-  60%,
-  80% {
-    transform: translateX(5px);
-  }
-}
-
-.animate-shake {
-  animation: shake 0.5s;
-}
-
-@keyframes glow {
-
-  0%,
-  100% {
-    box-shadow: 0 0 5px hsl(var(--primary)), 0 0 10px hsl(var(--primary));
-  }
-
-  50% {
-    box-shadow: 0 0 20px hsl(var(--primary)), 0 0 30px hsl(var(--primary));
-  }
-}
-
-.animate-glow {
-  animation: glow 2s ease-in-out infinite;
-}
-
-@keyframes float {
-
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
+/* Toast slide-in */
 @keyframes slide-in-right {
   from {
     opacity: 0;
@@ -591,5 +450,5 @@
 }
 
 .animate-slide-in-right {
-  animation: slide-in-right 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: slide-in-right 0.3s ease-out;
 }

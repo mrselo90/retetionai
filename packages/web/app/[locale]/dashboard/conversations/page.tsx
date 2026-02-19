@@ -128,8 +128,8 @@ export default function ConversationsPage() {
     return (
       <div className="space-y-6 animate-fade-in">
         <div className="space-y-3">
-          <div className="h-10 w-48 bg-gradient-to-r from-zinc-200 to-zinc-100 rounded-xl animate-pulse" />
-          <div className="h-5 w-96 bg-gradient-to-r from-zinc-100 to-zinc-50 rounded-lg animate-pulse" />
+          <div className="h-10 w-48 bg-zinc-200 rounded-xl animate-pulse" />
+          <div className="h-5 w-96 bg-zinc-100 rounded-lg animate-pulse" />
         </div>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
@@ -192,7 +192,7 @@ export default function ConversationsPage() {
       {filteredConversations.length === 0 ? (
         <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors">
           <CardContent className="p-16 text-center">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-info/10 to-info/5 flex items-center justify-center shadow-inner">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-zinc-100 flex items-center justify-center ">
               <MessageSquare className="w-10 h-10 text-info" />
             </div>
             <h3 className="text-2xl font-bold mb-3">{t('list.empty.title')}</h3>
@@ -202,19 +202,19 @@ export default function ConversationsPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="overflow-hidden shadow-lg">
+        <Card className="overflow-hidden ">
           <div className="divide-y divide-border">
             {filteredConversations.map((conversation, idx) => (
               <Link
                 key={conversation.id}
                 href={`/dashboard/conversations/${conversation.id}`}
-                className="block p-6 hover:bg-gradient-to-r hover:from-muted/30 hover:to-transparent transition-all duration-200 group"
+                className="block p-6 hover:bg-zinc-50 transition-colors"
                 style={{ animationDelay: `${idx * 50}ms` }}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4 flex-1">
                     {/* Avatar */}
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm">
+                    <div className="w-12 h-12 bg-zinc-100 rounded-xl flex items-center justify-center flex-shrink-0  shadow-sm">
                       <User className="w-6 h-6 text-primary" />
                     </div>
 

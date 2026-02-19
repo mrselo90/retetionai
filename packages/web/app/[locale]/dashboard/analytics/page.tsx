@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, TrendingUp, TrendingDown, Users, Package, Calendar, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useTranslations, useLocale } from 'next-intl';
 
 interface AnalyticsData {
@@ -170,7 +171,7 @@ export default function AnalyticsPage() {
             <Card hover className="group overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                 <CardTitle className="text-sm font-semibold text-muted-foreground">{t('metrics.avgSentiment')}</CardTitle>
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center ">
                   <TrendingUp className="h-5 w-5 text-success" />
                 </div>
               </CardHeader>
@@ -189,7 +190,7 @@ export default function AnalyticsPage() {
             <Card hover className="group overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                 <CardTitle className="text-sm font-semibold text-muted-foreground">{t('metrics.interactionRate')}</CardTitle>
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center group-hover:bg-info/20 transition-colors">
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center ">
                   <BarChart3 className="h-5 w-5 text-info" />
                 </div>
               </CardHeader>
@@ -219,7 +220,7 @@ export default function AnalyticsPage() {
             <Card hover className="group overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                 <CardTitle className="text-sm font-semibold text-muted-foreground">{t('metrics.totalUsers')}</CardTitle>
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center ">
                   <Users className="h-5 w-5 text-primary" />
                 </div>
               </CardHeader>
@@ -233,54 +234,54 @@ export default function AnalyticsPage() {
           {/* ROI Section */}
           {roi && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              <Card hover className="border-2 border-success/20 bg-gradient-to-br from-success/5 to-transparent overflow-hidden group">
+              <Card hover className="overflow-hidden">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                   <CardTitle className="text-sm font-semibold">{t('roi.savedReturns')}</CardTitle>
-                  <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center ">
                     <TrendingUp className="h-5 w-5 text-success" />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-success tracking-tight">{roi.savedReturns}</div>
+                  <div className="text-2xl font-bold">{roi.savedReturns}</div>
                   <p className="text-xs text-muted-foreground mt-2 font-medium">{t('roi.savedReturnsDesc')}</p>
                 </CardContent>
               </Card>
 
-              <Card hover className="border-2 border-info/20 bg-gradient-to-br from-info/5 to-transparent overflow-hidden group">
+              <Card hover className="overflow-hidden">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                   <CardTitle className="text-sm font-semibold">{t('roi.repeatPurchases')}</CardTitle>
-                  <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center group-hover:bg-info/20 transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center ">
                     <Users className="h-5 w-5 text-info" />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-info tracking-tight">{roi.repeatPurchases}</div>
+                  <div className="text-2xl font-bold">{roi.repeatPurchases}</div>
                   <p className="text-xs text-muted-foreground mt-2 font-medium">{t('roi.repeatPurchasesDesc')}</p>
                 </CardContent>
               </Card>
 
-              <Card hover className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent overflow-hidden group">
+              <Card hover className="overflow-hidden">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                   <CardTitle className="text-sm font-semibold">{t('roi.resolvedConversations')}</CardTitle>
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center ">
                     <TrendingUp className="h-5 w-5 text-primary" />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-primary tracking-tight">{roi.resolvedConversations}</div>
+                  <div className="text-2xl font-bold">{roi.resolvedConversations}</div>
                   <p className="text-xs text-muted-foreground mt-2 font-medium">{t('roi.resolvedTotalDesc', { total: roi.totalConversations })}</p>
                 </CardContent>
               </Card>
 
-              <Card hover className="border-2 border-warning/20 bg-gradient-to-br from-warning/5 to-transparent overflow-hidden group">
+              <Card hover className="overflow-hidden">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                   <CardTitle className="text-sm font-semibold">{t('roi.messagesTotalLabel')}</CardTitle>
-                  <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center group-hover:bg-warning/20 transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center ">
                     <BarChart3 className="h-5 w-5 text-warning" />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-warning tracking-tight">{roi.messagesTotal}</div>
+                  <div className="text-2xl font-bold">{roi.messagesTotal}</div>
                   <p className="text-xs text-muted-foreground mt-2 font-medium">{t('roi.interactionRateDesc', { withConv: roi.usersWithConversations, total: roi.totalUsers })}</p>
                 </CardContent>
               </Card>
@@ -295,7 +296,7 @@ export default function AnalyticsPage() {
                 <h2 className="text-xl font-bold">{rp('analyticsTitle')}</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                <Card hover className="border-2 border-success/20 bg-gradient-to-br from-success/5 to-transparent overflow-hidden group">
+                <Card hover className="overflow-hidden">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                     <CardTitle className="text-sm font-semibold">{rp('returnsPrevented')}</CardTitle>
                     <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
@@ -303,14 +304,14 @@ export default function AnalyticsPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-success tracking-tight">{prevention.prevented}</div>
+                    <div className="text-2xl font-bold">{prevention.prevented}</div>
                     <p className="text-xs text-muted-foreground mt-2 font-medium">
                       {prevention.totalAttempts} {rp('totalAttempts').toLowerCase()}
                     </p>
                   </CardContent>
                 </Card>
 
-                <Card hover className="border-2 border-info/20 bg-gradient-to-br from-info/5 to-transparent overflow-hidden group">
+                <Card hover className="overflow-hidden">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                     <CardTitle className="text-sm font-semibold">{rp('preventionRate')}</CardTitle>
                     <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
@@ -318,11 +319,11 @@ export default function AnalyticsPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-info tracking-tight">{prevention.preventionRate}%</div>
+                    <div className="text-2xl font-bold">{prevention.preventionRate}%</div>
                   </CardContent>
                 </Card>
 
-                <Card hover className="border-2 border-warning/20 bg-gradient-to-br from-warning/5 to-transparent overflow-hidden group">
+                <Card hover className="overflow-hidden">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                     <CardTitle className="text-sm font-semibold">{rp('escalated')}</CardTitle>
                     <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
@@ -330,11 +331,11 @@ export default function AnalyticsPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-warning tracking-tight">{prevention.escalated}</div>
+                    <div className="text-2xl font-bold">{prevention.escalated}</div>
                   </CardContent>
                 </Card>
 
-                <Card hover className="border-2 border-destructive/20 bg-gradient-to-br from-destructive/5 to-transparent overflow-hidden group">
+                <Card hover className="overflow-hidden">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                     <CardTitle className="text-sm font-semibold">{rp('returned')}</CardTitle>
                     <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
@@ -342,7 +343,7 @@ export default function AnalyticsPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-destructive tracking-tight">{prevention.returned}</div>
+                    <div className="text-2xl font-bold">{prevention.returned}</div>
                   </CardContent>
                 </Card>
               </div>
@@ -374,36 +375,42 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* DAU Chart */}
             <Card hover className="overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-muted/30 to-transparent pb-4">
-                <CardTitle className="text-lg font-bold">{t('charts.dau.title')}</CardTitle>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base font-semibold">{t('charts.dau.title')}</CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="h-64 flex items-end gap-[2px]">
-                  {analytics.dau.map((day, index) => {
-                    const maxCount = Math.max(...analytics.dau.map((d) => d.count), 1);
-                    const height = (day.count / maxCount) * 100;
-                    return (
-                      <div key={index} className="flex-1 group relative">
-                        <div
-                          className="w-full bg-gradient-to-t from-primary to-primary/60 rounded-t-md transition-all group-hover:from-primary group-hover:to-primary/80 shadow-sm"
-                          style={{ height: `${Math.max(height, 3)}%` }}
-                        />
-                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block z-10 animate-scale-in">
-                          <div className="bg-zinc-900 text-white text-xs px-3 py-2 rounded-lg shadow-xl whitespace-nowrap font-medium">
-                            {new Date(day.date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })} · {day.count} {t('charts.dau.users')}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground mt-4 px-1 font-medium">
-                  {analytics.dau.length > 0 && (
-                    <>
-                      <span>{new Date(analytics.dau[0].date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })}</span>
-                      <span>{new Date(analytics.dau[analytics.dau.length - 1].date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })}</span>
-                    </>
-                  )}
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={analytics.dau} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E4E4E7" />
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={(date) => new Date(date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })}
+                        tick={{ fontSize: 12, fill: '#71717A' }}
+                        axisLine={false}
+                        tickLine={false}
+                        dy={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: '#71717A' }}
+                      />
+                      <Tooltip
+                        cursor={{ fill: '#F4F4F5' }}
+                        contentStyle={{ borderRadius: '8px', border: '1px solid #E4E4E7', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                        labelStyle={{ color: '#18181B', fontWeight: 600, marginBottom: '4px' }}
+                        labelFormatter={(date) => new Date(date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      />
+                      <Bar
+                        dataKey="count"
+                        name={t('charts.dau.users')}
+                        fill="hsl(var(--primary))"
+                        radius={[4, 4, 0, 0]}
+                        maxBarSize={50}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
@@ -414,42 +421,54 @@ export default function AnalyticsPage() {
                 <CardTitle className="text-lg">{t('charts.volume.title')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-56 flex items-end gap-[2px]">
-                  {analytics.messageVolume.map((day, index) => {
-                    const maxVolume = Math.max(
-                      ...analytics.messageVolume.map((d) => Math.max(d.sent, d.received)),
-                      1
-                    );
-                    const sentHeight = (day.sent / maxVolume) * 100;
-                    const receivedHeight = (day.received / maxVolume) * 100;
-                    return (
-                      <div key={index} className="flex-1 flex gap-[1px] group relative">
-                        <div
-                          className="flex-1 bg-emerald-500/80 rounded-t-sm transition-all group-hover:bg-emerald-500"
-                          style={{ height: `${Math.max(sentHeight, 2)}%` }}
-                        />
-                        <div
-                          className="flex-1 bg-primary/60 rounded-t-sm transition-all group-hover:bg-primary/80"
-                          style={{ height: `${Math.max(receivedHeight, 2)}%` }}
-                        />
-                        <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
-                          <div className="bg-zinc-900 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
-                            {t('charts.volume.sent')}: {day.sent} · {t('charts.volume.received')}: {day.received}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center gap-6 mt-4 justify-center">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-emerald-500 rounded-sm" />
-                    <span className="text-xs text-muted-foreground">{t('charts.volume.sent')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-primary/70 rounded-sm" />
-                    <span className="text-xs text-muted-foreground">{t('charts.volume.received')}</span>
-                  </div>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={analytics.messageVolume} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E4E4E7" />
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={(date) => new Date(date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })}
+                        tick={{ fontSize: 12, fill: '#71717A' }}
+                        axisLine={false}
+                        tickLine={false}
+                        dy={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: '#71717A' }}
+                      />
+                      <Tooltip
+                        cursor={{ fill: '#F4F4F5' }}
+                        contentStyle={{ borderRadius: '8px', border: '1px solid #E4E4E7', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                        labelStyle={{ color: '#18181B', fontWeight: 600, marginBottom: '4px' }}
+                        labelFormatter={(date) => new Date(date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      />
+                      <Legend
+                        verticalAlign="top"
+                        height={36}
+                        iconType="circle"
+                        iconSize={8}
+                        wrapperStyle={{ fontSize: '12px', fontWeight: 500 }}
+                      />
+                      <Bar
+                        dataKey="sent"
+                        name={t('charts.volume.sent')}
+                        fill="#10b981"
+                        radius={[0, 0, 4, 4]}
+                        stackId="a"
+                        maxBarSize={50}
+                      />
+                      <Bar
+                        dataKey="received"
+                        name={t('charts.volume.received')}
+                        fill="hsl(var(--primary))"
+                        radius={[4, 4, 0, 0]}
+                        stackId="a"
+                        maxBarSize={50}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>

@@ -44,7 +44,7 @@ function ShopifyCallbackContent() {
   return (
     
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+        <div className="bg-white rounded-lg  p-8 max-w-md w-full mx-4">
           {status === 'loading' && (
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -114,7 +114,7 @@ export default function ShopifyCallbackPage() {
     <Suspense fallback={
       
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg  p-8 max-w-md w-full mx-4">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
               <h2 className="text-2xl font-bold text-zinc-900 mb-2">Loading...</h2>

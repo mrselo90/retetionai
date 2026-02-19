@@ -182,7 +182,7 @@ export default function ShopifyMapPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary shrink-0 shadow-sm">
+          <div className="p-3 rounded-xl bg-zinc-100 text-primary shrink-0 shadow-sm">
             <Link2 className="w-6 h-6" />
           </div>
           <div className="space-y-1.5 min-w-0">
@@ -211,10 +211,10 @@ export default function ShopifyMapPage() {
       {loading ? (
         <div className="space-y-6 animate-fade-in">
           <div className="space-y-3">
-            <div className="h-10 w-56 bg-gradient-to-r from-zinc-200 to-zinc-100 rounded-xl animate-pulse" />
-            <div className="h-5 w-96 bg-gradient-to-r from-zinc-100 to-zinc-50 rounded-lg animate-pulse" />
+            <div className="h-10 w-56 bg-zinc-200 rounded-xl animate-pulse" />
+            <div className="h-5 w-96 bg-zinc-100 rounded-lg animate-pulse" />
           </div>
-          <Card className="overflow-hidden shadow-lg">
+          <Card className="overflow-hidden ">
             {[1, 2, 3].map((i) => (
               <div 
                 key={i} 
@@ -226,7 +226,7 @@ export default function ShopifyMapPage() {
         </div>
       ) : shopifyProducts.length === 0 ? (
         /* Empty State */
-        <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors shadow-lg">
+        <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors ">
           <CardContent className="p-16 text-center">
             <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center shadow-inner">
               <Package className="w-10 h-10 text-primary" />
@@ -235,7 +235,7 @@ export default function ShopifyMapPage() {
             <p className="text-muted-foreground mb-8 max-w-md mx-auto text-base">
               {t('empty.description')}
             </p>
-            <Button size="lg" asChild className="shadow-lg hover:shadow-xl">
+            <Button size="lg" asChild className=" hover:shadow-xl">
               <Link href="/dashboard/integrations">
                 {t('empty.connectButton')}
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -245,7 +245,7 @@ export default function ShopifyMapPage() {
         </Card>
       ) : (
         /* Products Table */
-        <Card hover className="overflow-hidden shadow-lg">
+        <Card hover className="overflow-hidden ">
           <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent border-b py-4">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               {t('table.hint')} <strong className="text-primary">{t('table.hintSave')}</strong>.
@@ -279,7 +279,7 @@ export default function ShopifyMapPage() {
                       <td className="px-5 py-5 align-top">
                         <div className="flex gap-4">
                           {p.featuredImageUrl ? (
-                            <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-muted shrink-0 group-hover:scale-105 transition-transform shadow-sm">
+                            <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-muted shrink-0 shadow-sm">
                               <img
                                 src={p.featuredImageUrl}
                                 alt=""
@@ -349,7 +349,7 @@ export default function ShopifyMapPage() {
                           onClick={() => handleSave(p)}
                           disabled={saving === p.id}
                           size="lg"
-                          className="shadow-lg hover:shadow-xl"
+                          className=" hover:shadow-xl"
                         >
                           {saving === p.id ? (
                             <>

@@ -154,22 +154,21 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      {/* Welcome Banner - Polaris-like card */}
-      <div className="relative overflow-hidden rounded-lg border border-border bg-primary px-6 py-8 text-primary-foreground shadow-sm">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bS0yIDJ2LTJoLTJ2Mmgyem0tNCAydi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bTI4IDMydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptLTIgMnYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30"></div>
-        <div className="relative z-10">
-          <h1 className="text-4xl font-bold tracking-tight mb-3">
+      {/* Welcome Banner — Polaris-like card */}
+      <Card className="overflow-hidden">
+        <CardContent className="px-6 py-6">
+          <h1 className="text-2xl font-bold tracking-tight mb-2">
             {t('greeting', { name: merchant?.name || 'Merchant' })}
           </h1>
-          <p className="text-primary-foreground/90 text-lg max-w-2xl">
+          <p className="text-muted-foreground text-sm max-w-2xl">
             {t.rich('summary', {
               activeUsers: displayStats.kpis.activeUsers ?? 0,
               responseRate: displayStats.kpis.responseRate ?? 0,
-              bold: (chunks) => <span className="font-bold text-primary-foreground">{chunks}</span>
+              bold: (chunks) => <span className="font-semibold text-foreground">{chunks}</span>
             })}
           </p>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Critical Alerts */}
       {hasErrorAlerts && (
@@ -194,53 +193,53 @@ export default function DashboardPage() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        <Card hover className="group overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-semibold text-muted-foreground">{t('kpi.totalOrders')}</CardTitle>
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors">
-              <ShoppingBag className="h-5 w-5 text-primary" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('kpi.totalOrders')}</CardTitle>
+            <div className="w-9 h-9 rounded-lg bg-zinc-100 flex items-center justify-center">
+              <ShoppingBag className="h-4 w-4 text-zinc-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight">{displayStats.kpis.totalOrders ?? 0}</div>
-            <p className="text-xs text-muted-foreground mt-2 font-medium">{t('kpi.lifetime')}</p>
+            <div className="text-2xl font-bold">{displayStats.kpis.totalOrders ?? 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">{t('kpi.lifetime')}</p>
           </CardContent>
         </Card>
-        <Card hover className="group overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-semibold text-muted-foreground">{t('kpi.activeUsers')}</CardTitle>
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
-              <ArrowRight className="h-5 w-5 text-success" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('kpi.activeUsers')}</CardTitle>
+            <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <ArrowRight className="h-4 w-4 text-emerald-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight text-success">{displayStats.kpis.activeUsers ?? 0}</div>
-            <p className="text-xs text-muted-foreground mt-2 font-medium">{t('kpi.last30Days')}</p>
+            <div className="text-2xl font-bold">{displayStats.kpis.activeUsers ?? 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">{t('kpi.last30Days')}</p>
           </CardContent>
         </Card>
-        <Card hover className="group overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-semibold text-muted-foreground">{t('kpi.messagesSent')}</CardTitle>
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center group-hover:bg-info/20 transition-colors">
-              <MessageSquare className="h-5 w-5 text-info" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('kpi.messagesSent')}</CardTitle>
+            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+              <MessageSquare className="h-4 w-4 text-blue-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight text-info">{displayStats.kpis.messagesSent ?? 0}</div>
-            <p className="text-xs text-muted-foreground mt-2 font-medium">{t('kpi.autoManual')}</p>
+            <div className="text-2xl font-bold">{displayStats.kpis.messagesSent ?? 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">{t('kpi.autoManual')}</p>
           </CardContent>
         </Card>
-        <Card hover className="group overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-semibold text-muted-foreground">{t('kpi.responseRate')}</CardTitle>
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center group-hover:bg-warning/20 transition-colors">
-              <BarChart3 className="h-5 w-5 text-warning" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('kpi.responseRate')}</CardTitle>
+            <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center">
+              <BarChart3 className="h-4 w-4 text-amber-600" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight text-warning">{displayStats.kpis.responseRate ?? 0}%</div>
-            <p className="text-xs text-muted-foreground mt-2 font-medium">{t('kpi.feedback')}</p>
+            <div className="text-2xl font-bold">{displayStats.kpis.responseRate ?? 0}%</div>
+            <p className="text-xs text-muted-foreground mt-1">{t('kpi.feedback')}</p>
           </CardContent>
         </Card>
       </div>
@@ -265,10 +264,10 @@ export default function DashboardPage() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Orders */}
-        <Card className="col-span-1 overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-4 bg-gradient-to-r from-muted/30 to-muted/10">
-            <CardTitle className="text-lg font-bold">{t('recentOrders.title')}</CardTitle>
-            <Button variant="ghost" size="sm" asChild className="hover:bg-primary/15">
+        <Card className="col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <CardTitle className="text-base font-semibold">{t('recentOrders.title')}</CardTitle>
+            <Button variant="ghost" size="sm" asChild>
               <Link href="/dashboard/products">{t('recentOrders.viewAll')}</Link>
             </Button>
           </CardHeader>
@@ -276,10 +275,10 @@ export default function DashboardPage() {
             <div className="divide-y divide-border">
               {displayStats.recentActivity.orders && displayStats.recentActivity.orders.length > 0 ? (
                 displayStats.recentActivity.orders.map((order, idx) => (
-                  <div key={order.id} className="p-4 hover:bg-muted/30 transition-all duration-200 flex items-center justify-between group" style={{ animationDelay: `${idx * 50}ms` }}>
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors">
-                        <ShoppingBag className="w-5 h-5 text-primary" />
+                  <div key={order.id} className="p-4 hover:bg-zinc-50 transition-colors flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-zinc-100 flex items-center justify-center">
+                        <ShoppingBag className="w-4 h-4 text-zinc-600" />
                       </div>
                       <div>
                         <p className="font-semibold text-sm">#{order.external_order_id}</p>
@@ -304,10 +303,10 @@ export default function DashboardPage() {
         </Card>
 
         {/* Recent Conversations */}
-        <Card className="col-span-1 overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-4 bg-gradient-to-r from-muted/30 to-muted/10">
-            <CardTitle className="text-lg font-bold">{t('recentConversations.title')}</CardTitle>
-            <Button variant="ghost" size="sm" asChild className="hover:bg-primary/15">
+        <Card className="col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <CardTitle className="text-base font-semibold">{t('recentConversations.title')}</CardTitle>
+            <Button variant="ghost" size="sm" asChild>
               <Link href="/dashboard/conversations">{t('recentConversations.viewAll')}</Link>
             </Button>
           </CardHeader>
@@ -316,10 +315,10 @@ export default function DashboardPage() {
               {displayStats.recentActivity.conversations && displayStats.recentActivity.conversations.length > 0 ? (
                 displayStats.recentActivity.conversations.map((conv, idx) => (
                   <Link key={conv.id} href={`/dashboard/conversations/${conv.id}`} className="block">
-                    <div className="p-4 hover:bg-muted/30 transition-all duration-200 flex items-center justify-between group" style={{ animationDelay: `${idx * 50}ms` }}>
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center group-hover:bg-info/20 transition-colors">
-                          <MessageSquare className="w-5 h-5 text-info" />
+                    <div className="p-4 hover:bg-zinc-50 transition-colors flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+                          <MessageSquare className="w-4 h-4 text-blue-600" />
                         </div>
                         <div>
                           <p className="font-semibold text-sm">Conversation #{conv.id.substring(0, 8)}</p>
@@ -347,43 +346,43 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div className="space-y-4">
-        <h2 className="text-xl font-bold tracking-tight">{t('quickActions.title')}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <Link href="/dashboard/products" className="group">
-            <Card hover className="h-full cursor-pointer border-2 border-dashed hover:border-primary/50 hover:border-solid">
-              <CardContent className="p-6 flex items-start gap-5">
-                <div className="flex-shrink-0 p-4 rounded-xl bg-primary text-primary-foreground group-hover:scale-105 transition-transform duration-200 shadow-lg">
-                  <Package className="w-7 h-7" />
+        <h2 className="text-base font-semibold">{t('quickActions.title')}</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link href="/dashboard/products">
+            <Card hover className="h-full cursor-pointer">
+              <CardContent className="p-5 flex items-start gap-4">
+                <div className="flex-shrink-0 p-3 rounded-lg bg-zinc-100">
+                  <Package className="w-5 h-5 text-zinc-700" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-base mb-1 group-hover:text-primary transition-colors">{t('quickActions.addProduct')}</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{t('quickActions.addProductDesc')}</p>
+                  <p className="font-semibold text-sm mb-1">{t('quickActions.addProduct')}</p>
+                  <p className="text-sm text-muted-foreground">{t('quickActions.addProductDesc')}</p>
                 </div>
               </CardContent>
             </Card>
           </Link>
-          <Link href="/dashboard/integrations" className="group">
-            <Card hover className="h-full cursor-pointer border-2 border-dashed hover:border-primary/50 hover:border-solid">
-              <CardContent className="p-6 flex items-start gap-5">
-                <div className="flex-shrink-0 p-4 rounded-xl bg-gradient-to-br from-info to-info/80 text-info-foreground group-hover:scale-110 transition-transform duration-200 shadow-lg">
-                  <ArrowRight className="w-7 h-7" />
+          <Link href="/dashboard/integrations">
+            <Card hover className="h-full cursor-pointer">
+              <CardContent className="p-5 flex items-start gap-4">
+                <div className="flex-shrink-0 p-3 rounded-lg bg-blue-50">
+                  <ArrowRight className="w-5 h-5 text-blue-700" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-base mb-1 group-hover:text-info transition-colors">{t('quickActions.integration')}</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{t('quickActions.integrationDesc')}</p>
+                  <p className="font-semibold text-sm mb-1">{t('quickActions.integration')}</p>
+                  <p className="text-sm text-muted-foreground">{t('quickActions.integrationDesc')}</p>
                 </div>
               </CardContent>
             </Card>
           </Link>
-          <Link href="/dashboard/settings" className="group">
-            <Card hover className="h-full cursor-pointer border-2 border-dashed hover:border-primary/50 hover:border-solid">
-              <CardContent className="p-6 flex items-start gap-5">
-                <div className="flex-shrink-0 p-4 rounded-xl bg-gradient-to-br from-warning to-warning/80 text-warning-foreground group-hover:scale-110 transition-transform duration-200 shadow-lg">
-                  <BarChart3 className="w-7 h-7" />
+          <Link href="/dashboard/settings">
+            <Card hover className="h-full cursor-pointer">
+              <CardContent className="p-5 flex items-start gap-4">
+                <div className="flex-shrink-0 p-3 rounded-lg bg-amber-50">
+                  <BarChart3 className="w-5 h-5 text-amber-700" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-base mb-1 group-hover:text-warning transition-colors">{t('quickActions.settings')}</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{t('quickActions.settingsDesc')}</p>
+                  <p className="font-semibold text-sm mb-1">{t('quickActions.settings')}</p>
+                  <p className="text-sm text-muted-foreground">{t('quickActions.settingsDesc')}</p>
                 </div>
               </CardContent>
             </Card>

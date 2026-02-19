@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Settings, Bot, Shield, Key, Database, Loader2, Plus, Copy, Trash2, Pencil, X, Download, AlertTriangle, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useTranslations, useLocale } from 'next-intl';
 
 export type ProductInstructionsScope = 'order_only' | 'rag_products_too';
@@ -640,7 +641,7 @@ export default function SettingsPage() {
               step="0.1"
               value={temperature}
               onChange={(e) => setTemperature(parseFloat(e.target.value))}
-              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
+              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer "
             />
             <div className="flex justify-between text-xs text-zinc-600 mt-2 font-semibold">
               <span>{t('botPersona.tempLabels.consistent')}</span>
@@ -797,11 +798,10 @@ export default function SettingsPage() {
           {addons.map((addon) => (
             <div
               key={addon.key}
-              className={`flex items-center justify-between p-5 rounded-xl border transition-all ${
-                addon.status === 'active'
+              className={`flex items-center justify-between p-5 rounded-xl border transition-all ${addon.status === 'active'
                   ? 'bg-gradient-to-r from-success/5 to-transparent border-success/30'
                   : 'bg-gradient-to-r from-muted/50 to-transparent border-border'
-              }`}
+                }`}
             >
               <div className="flex-1">
                 <div className="flex items-center gap-3">
@@ -821,14 +821,12 @@ export default function SettingsPage() {
               <button
                 onClick={() => handleAddonToggle(addon.key, addon.status)}
                 disabled={!addon.planAllowed}
-                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-200 shadow-inner ${
-                  addon.status === 'active' ? 'bg-primary' : 'bg-zinc-300'
-                } ${!addon.planAllowed ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-200 shadow-inner ${addon.status === 'active' ? 'bg-primary' : 'bg-zinc-300'
+                  } ${!addon.planAllowed ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md ${
-                    addon.status === 'active' ? 'translate-x-8' : 'translate-x-1'
-                  }`}
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md ${addon.status === 'active' ? 'translate-x-8' : 'translate-x-1'
+                    }`}
                 />
               </button>
             </div>
@@ -840,34 +838,34 @@ export default function SettingsPage() {
       </Card>
 
       {/* Add-on confirmation dialog */}
-      {showAddonConfirm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
-            <h3 className="text-xl font-bold text-zinc-900">
+      <Dialog open={!!showAddonConfirm} onOpenChange={(open) => !open && setShowAddonConfirm(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
               {addonAction === 'enable' ? rp('enableConfirmTitle') : rp('disableConfirmTitle')}
-            </h3>
-            <p className="text-zinc-600 mt-3">
+            </DialogTitle>
+            <DialogDescription>
               {addonAction === 'enable' ? rp('enableConfirmMessage') : rp('disableConfirmMessage')}
-            </p>
-            <div className="flex gap-3 mt-6">
-              <Button
-                variant="outline"
-                onClick={() => setShowAddonConfirm(null)}
-                className="flex-1"
-              >
-                {rp('cancel')}
-              </Button>
-              <Button
-                onClick={handleAddonConfirm}
-                variant={addonAction === 'enable' ? 'default' : 'destructive'}
-                className="flex-1"
-              >
-                {addonAction === 'enable' ? rp('enableConfirmButton') : rp('disableConfirmButton')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-3 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowAddonConfirm(null)}
+              className="flex-1 sm:flex-none"
+            >
+              {rp('cancel')}
+            </Button>
+            <Button
+              onClick={handleAddonConfirm}
+              variant={addonAction === 'enable' ? 'default' : 'destructive'}
+              className="flex-1 sm:flex-none"
+            >
+              {addonAction === 'enable' ? rp('enableConfirmButton') : rp('disableConfirmButton')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Guardrails */}
       <Card id="guardrails" hover className="scroll-mt-4 overflow-hidden shadow-lg">
@@ -1158,98 +1156,96 @@ export default function SettingsPage() {
       </Card>
 
       {/* Guardrail Add/Edit Modal */}
-      {showGuardrailModal && (
-        <div className="modal-overlay">
-          <Card className="max-w-lg w-full animate-slide-up shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-zinc-900 mb-4">
+      <Dialog open={showGuardrailModal} onOpenChange={(open) => {
+        if (!savingGuardrails) {
+          if (!open) closeGuardrailModal();
+          else setShowGuardrailModal(true);
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
               {editingGuardrail ? t('guardrails.modal.titleEdit') : t('guardrails.modal.titleAdd')}
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.nameLabel')}</label>
-                <input
-                  type="text"
-                  value={guardrailName}
-                  onChange={(e) => setGuardrailName(e.target.value)}
-                  placeholder="e.g. Competitor mention"
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.descLabel')}</label>
-                <input
-                  type="text"
-                  value={guardrailDescription}
-                  onChange={(e) => setGuardrailDescription(e.target.value)}
-                  placeholder="Brief description of the rule"
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.applyToLabel')}</label>
-                <select
-                  value={guardrailApplyTo}
-                  onChange={(e) => setGuardrailApplyTo(e.target.value as 'user_message' | 'ai_response' | 'both')}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                >
-                  <option value="both">{t('guardrails.types.both')}</option>
-                  <option value="user_message">{t('guardrails.types.user_message')}</option>
-                  <option value="ai_response">{t('guardrails.types.ai_response')}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.matchTypeLabel')}</label>
-                <select
-                  value={guardrailMatchType}
-                  onChange={(e) => setGuardrailMatchType(e.target.value as 'keywords' | 'phrase')}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                >
-                  <option value="keywords">{t('guardrails.modal.matchTypes.keywords')}</option>
-                  <option value="phrase">{t('guardrails.modal.matchTypes.phrase')}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">
-                  {t('guardrails.modal.valueLabel')}
-                </label>
-                <input
-                  type="text"
-                  value={guardrailValue}
-                  onChange={(e) => setGuardrailValue(e.target.value)}
-                  placeholder={guardrailMatchType === 'keywords' ? 'competitor, price, discount' : 'This product cures'}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.actionLabel')}</label>
-                <select
-                  value={guardrailAction}
-                  onChange={(e) => setGuardrailAction(e.target.value as 'block' | 'escalate')}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                >
-                  <option value="block">{t('guardrails.actions.block')}</option>
-                  <option value="escalate">{t('guardrails.actions.escalate')}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.responseLabel')}</label>
-                <textarea
-                  value={guardrailSuggestedResponse}
-                  onChange={(e) => setGuardrailSuggestedResponse(e.target.value)}
-                  placeholder="Text to show when rule is triggered"
-                  rows={2}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
-              </div>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.nameLabel')}</label>
+              <input
+                type="text"
+                value={guardrailName}
+                onChange={(e) => setGuardrailName(e.target.value)}
+                placeholder="e.g. Competitor mention"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
             </div>
-            <div className="flex gap-3 mt-6">
-              <Button
-                onClick={handleSaveGuardrail}
-                disabled={savingGuardrails}
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.descLabel')}</label>
+              <input
+                type="text"
+                value={guardrailDescription}
+                onChange={(e) => setGuardrailDescription(e.target.value)}
+                placeholder="Brief description of the rule"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.applyToLabel')}</label>
+              <select
+                value={guardrailApplyTo}
+                onChange={(e) => setGuardrailApplyTo(e.target.value as 'user_message' | 'ai_response' | 'both')}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
-                {savingGuardrails && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {savingGuardrails ? t('guardrails.modal.saving') : (editingGuardrail ? t('guardrails.modal.save') : t('guardrails.modal.save'))}
-              </Button>
+                <option value="both">{t('guardrails.types.both')}</option>
+                <option value="user_message">{t('guardrails.types.user_message')}</option>
+                <option value="ai_response">{t('guardrails.types.ai_response')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.matchTypeLabel')}</label>
+              <select
+                value={guardrailMatchType}
+                onChange={(e) => setGuardrailMatchType(e.target.value as 'keywords' | 'phrase')}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="keywords">{t('guardrails.modal.matchTypes.keywords')}</option>
+                <option value="phrase">{t('guardrails.modal.matchTypes.phrase')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                {t('guardrails.modal.valueLabel')}
+              </label>
+              <input
+                type="text"
+                value={guardrailValue}
+                onChange={(e) => setGuardrailValue(e.target.value)}
+                placeholder={guardrailMatchType === 'keywords' ? 'competitor, price, discount' : 'This product cures'}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.actionLabel')}</label>
+              <select
+                value={guardrailAction}
+                onChange={(e) => setGuardrailAction(e.target.value as 'block' | 'escalate')}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="block">{t('guardrails.actions.block')}</option>
+                <option value="escalate">{t('guardrails.actions.escalate')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.responseLabel')}</label>
+              <textarea
+                value={guardrailSuggestedResponse}
+                onChange={(e) => setGuardrailSuggestedResponse(e.target.value)}
+                placeholder="Text to show when rule is triggered"
+                rows={2}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+            <DialogFooter className="gap-3 sm:gap-0">
               <Button
                 variant="outline"
                 onClick={closeGuardrailModal}
@@ -1257,98 +1253,110 @@ export default function SettingsPage() {
               >
                 {t('guardrails.modal.cancel')}
               </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+              <Button
+                onClick={handleSaveGuardrail}
+                disabled={savingGuardrails}
+              >
+                {savingGuardrails && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {savingGuardrails ? t('guardrails.modal.saving') : (editingGuardrail ? t('guardrails.modal.save') : t('guardrails.modal.save'))}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="modal-overlay">
-          <Card className="max-w-md w-full animate-slide-up shadow-2xl">
-            <CardHeader>
-              <CardTitle className="text-destructive flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5" />
-                {t('gdpr.modal.title')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-                <p className="text-sm text-destructive font-medium mb-2">
-                  {t('gdpr.modal.warning')}
-                </p>
-                <ul className="text-sm text-destructive/80 space-y-1 list-disc list-inside">
-                  <li>{t('gdpr.modal.list.all')}</li>
-                  <li>{t('gdpr.modal.list.permanent')}</li>
-                  <li>{t('gdpr.modal.list.cancel')}</li>
-                </ul>
-              </div>
+      <Dialog open={showDeleteConfirm} onOpenChange={(open) => {
+        if (!deletingData) setShowDeleteConfirm(open);
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              {t('gdpr.modal.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+              <p className="text-sm text-destructive font-medium mb-2">
+                {t('gdpr.modal.warning')}
+              </p>
+              <ul className="text-sm text-destructive/80 space-y-1 list-disc list-inside">
+                <li>{t('gdpr.modal.list.all')}</li>
+                <li>{t('gdpr.modal.list.permanent')}</li>
+                <li>{t('gdpr.modal.list.cancel')}</li>
+              </ul>
+            </div>
 
-              <div className="space-y-2">
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={() => handleDeleteData(false)}
-                  disabled={deletingData}
-                >
-                  {deletingData && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.softDelete')}
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="w-full opacity-80"
-                  onClick={() => handleDeleteData(true)}
-                  disabled={deletingData}
-                >
-                  {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.hardDelete')}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  disabled={deletingData}
-                >
-                  {t('gdpr.modal.cancel')}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            <div className="space-y-2">
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={() => handleDeleteData(false)}
+                disabled={deletingData}
+              >
+                {deletingData && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.softDelete')}
+              </Button>
+              <Button
+                variant="destructive"
+                className="w-full opacity-80"
+                onClick={() => handleDeleteData(true)}
+                disabled={deletingData}
+              >
+                {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.hardDelete')}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deletingData}
+              >
+                {t('gdpr.modal.cancel')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* New API Key Modal */}
-      {showNewKeyModal && newApiKey && (
-        <div className="modal-overlay">
-          <Card className="max-w-md w-full animate-slide-up shadow-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Key className="w-5 h-5 text-primary" />
-                {t('apiKeys.modal.title')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="text-sm text-amber-800">
-                  <strong>{t('apiKeys.modal.important')}</strong> {t('apiKeys.modal.warning')}
-                </p>
-              </div>
+      <Dialog open={showNewKeyModal} onOpenChange={(open) => {
+        if (!open) {
+          setShowNewKeyModal(false);
+          setNewApiKey(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-primary" />
+              {t('apiKeys.modal.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <p className="text-sm text-amber-800">
+                <strong>{t('apiKeys.modal.important')}</strong> {t('apiKeys.modal.warning')}
+              </p>
+            </div>
 
-              <div className="space-y-2">
-                <label className="form-label">{t('apiKeys.modal.label')}</label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="text"
-                    value={newApiKey}
-                    readOnly
-                    className="flex-1 font-mono text-sm"
-                  />
-                  <Button onClick={copyApiKey}>
-                    <Copy className="w-4 h-4 mr-2" />
-                    {t('apiKeys.copy')}
-                  </Button>
-                </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium mb-1 block">{t('apiKeys.modal.label')}</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  value={newApiKey || ''}
+                  readOnly
+                  className="flex-1 font-mono text-sm"
+                />
+                <Button onClick={copyApiKey}>
+                  <Copy className="w-4 h-4 mr-2" />
+                  {t('apiKeys.copy')}
+                </Button>
               </div>
+            </div>
 
+            <DialogFooter>
               <Button
                 variant="outline"
                 className="w-full"
@@ -1359,10 +1367,10 @@ export default function SettingsPage() {
               >
                 {t('apiKeys.modal.close')}
               </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
