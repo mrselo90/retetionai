@@ -242,7 +242,11 @@
             "saveError": {
                 "title": "Error",
                 "message": "Failed to save instructions"
-            }
+            },
+            "saveSuccess": {
+                "title": "Success",
+                "message": "Settings saved successfully"
+            },
         }
     },
     "Conversations": {
@@ -604,6 +608,16 @@
                 "cancel": "Cancel",
                 "deleting": "Deleting..."
             }
+        },
+        "toasts": {
+            "saveSuccess": {
+                "title": "Success",
+                "message": "Settings saved successfully"
+            },
+            "saveError": {
+                "title": "Error saving",
+                "message": "Could not save your settings. Please try again."
+            }
         }
     },
     "Analytics": {
@@ -676,11 +690,23 @@
         "saving": "Saving…",
         "instructionLabel": "Usage instructions: {title}",
         "toasts": {
-            "shopifyNotConnected": { "title": "Shopify not connected", "message": "Connect Shopify from the Integrations page first." },
-            "loadError": { "title": "Error loading data", "message": "An error occurred while loading." },
+            "shopifyNotConnected": {
+                "title": "Shopify not connected",
+                "message": "Connect Shopify from the Integrations page first."
+            },
+            "loadError": {
+                "title": "Error loading data",
+                "message": "An error occurred while loading."
+            },
             "enterInstruction": "Please enter usage instructions",
-            "saveSuccess": { "title": "Usage instructions saved", "message": "Changes saved successfully." },
-            "saveError": { "title": "Save error", "message": "Failed to save." },
+            "saveSuccess": {
+                "title": "Usage instructions saved",
+                "message": "Changes saved successfully."
+            },
+            "saveError": {
+                "title": "Save error",
+                "message": "Failed to save."
+            },
             "productCreateError": "Product could not be created"
         }
     },
@@ -705,7 +731,12 @@
         "conversations": "conversations",
         "previous": "Previous",
         "next": "Next",
-        "toasts": { "loadError": { "title": "Error", "message": "Failed to load customers." } }
+        "toasts": {
+            "loadError": {
+                "title": "Error",
+                "message": "Failed to load customers."
+            }
+        }
     },
     "CustomerDetail": {
         "segment": {
@@ -718,7 +749,12 @@
         },
         "backToCustomers": "Back to Customers",
         "notFound": "Customer not found",
-        "toasts": { "loadError": { "title": "Error", "message": "Failed to load customer." } },
+        "toasts": {
+            "loadError": {
+                "title": "Error",
+                "message": "Failed to load customer."
+            }
+        },
         "churnRisk": "Churn risk",
         "registered": "Registered",
         "consent": "Consent",
@@ -759,11 +795,23 @@
         "customerMessage": "Customer Message",
         "botResponse": "Bot Response",
         "toasts": {
-            "loadError": { "title": "Error", "message": "Error loading conversation." },
-            "sent": { "title": "Sent", "message": "Your message was sent via WhatsApp." },
-            "sendError": { "title": "Error", "message": "Failed to send message." },
+            "loadError": {
+                "title": "Error",
+                "message": "Error loading conversation."
+            },
+            "sent": {
+                "title": "Sent",
+                "message": "Your message was sent via WhatsApp."
+            },
+            "sendError": {
+                "title": "Error",
+                "message": "Failed to send message."
+            },
             "statusUpdated": "Status updated",
-            "statusError": { "title": "Error", "message": "Failed to update status." }
+            "statusError": {
+                "title": "Error",
+                "message": "Failed to update status."
+            }
         },
         "statusHuman": "Human Mode",
         "statusResolved": "Resolved",
@@ -780,14 +828,32 @@
         "saveAll": "Save All",
         "saving": "Saving…",
         "sections": {
-            "brand_guidelines": { "label": "Brand & Guidelines", "placeholder": "Your brand voice, values, how to address customers…" },
-            "bot_boundaries": { "label": "Bot Boundaries", "placeholder": "What the bot should / should not do, no medical advice, human handoff rules…" },
-            "recipe_overview": { "label": "Recipe & Usage Overview", "placeholder": "General cosmetic recipe info, usage summary…" },
-            "custom_instructions": { "label": "Additional Instructions", "placeholder": "Other custom rules or instructions…" }
+            "brand_guidelines": {
+                "label": "Brand & Guidelines",
+                "placeholder": "Your brand voice, values, how to address customers…"
+            },
+            "bot_boundaries": {
+                "label": "Bot Boundaries",
+                "placeholder": "What the bot should / should not do, no medical advice, human handoff rules…"
+            },
+            "recipe_overview": {
+                "label": "Recipe & Usage Overview",
+                "placeholder": "General cosmetic recipe info, usage summary…"
+            },
+            "custom_instructions": {
+                "label": "Additional Instructions",
+                "placeholder": "Other custom rules or instructions…"
+            }
         },
         "toasts": {
-            "loadError": { "title": "Error", "message": "Error loading bot info." },
-            "saveError": { "title": "Save error", "message": "Failed to save." }
+            "loadError": {
+                "title": "Error",
+                "message": "Error loading bot info."
+            },
+            "saveError": {
+                "title": "Save error",
+                "message": "Failed to save."
+            }
         }
     },
     "ProductDetail": {
@@ -803,11 +869,26 @@
         "productUrl": "Product URL",
         "openPage": "Open page",
         "toasts": {
-            "loadError": { "title": "Error", "message": "Error loading product." },
-            "saved": { "title": "Saved", "message": "Product updated successfully." },
-            "saveError": { "title": "Error", "message": "Failed to save product." },
-            "rescanSuccess": { "title": "Success!", "message": "Product rescraped and embeddings created." },
-            "rescanError": { "title": "Error", "message": "Error rescraping product." }
+            "loadError": {
+                "title": "Error",
+                "message": "Error loading product."
+            },
+            "saved": {
+                "title": "Saved",
+                "message": "Product updated successfully."
+            },
+            "saveError": {
+                "title": "Error",
+                "message": "Failed to save product."
+            },
+            "rescanSuccess": {
+                "title": "Success!",
+                "message": "Product rescraped and embeddings created."
+            },
+            "rescanError": {
+                "title": "Error",
+                "message": "Error rescraping product."
+            }
         }
     },
     "Test": {
@@ -817,15 +898,27 @@
         "ragQuery": "How do I use this product?",
         "toasts": {
             "orderError": "Order could not be created",
-            "orderSuccess": { "title": "Order created", "message": "You can now trigger the delivery event." },
+            "orderSuccess": {
+                "title": "Order created",
+                "message": "You can now trigger the delivery event."
+            },
             "deliveryError": "Delivery event could not be created",
-            "deliverySuccess": { "title": "Delivery event sent", "message": "You can now chat with the customer." },
+            "deliverySuccess": {
+                "title": "Delivery event sent",
+                "message": "You can now chat with the customer."
+            },
             "messageError": "Message could not be sent",
             "noResponse": "No response received",
             "messageSent": "Message sent",
-            "resetSuccess": { "title": "Test reset", "message": "You can start a new test." },
+            "resetSuccess": {
+                "title": "Test reset",
+                "message": "You can start a new test."
+            },
             "tasksLoadError": "Failed to load tasks",
-            "taskTriggered": { "title": "Task triggered", "message": "Worker will process shortly." },
+            "taskTriggered": {
+                "title": "Task triggered",
+                "message": "Worker will process shortly."
+            },
             "ragError": "RAG test failed",
             "ragAiError": "Failed to get RAG + AI response"
         },

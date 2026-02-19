@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "start": "node -r dotenv/config -r newrelic dist/index.js",
+    "start": "PORT=3001 node -r dotenv/config -r newrelic dist/index.js",
     "start:no-nr": "node dist/index.js",
     "lint": "eslint src --ext .ts",
     "test": "vitest run",
