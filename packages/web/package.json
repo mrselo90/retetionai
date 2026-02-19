@@ -23,6 +23,7 @@
     "@shopify/app-bridge": "^3.7.11",
     "@shopify/app-bridge-react": "^4.2.10",
     "@shopify/app-bridge-types": "^0.7.0",
+    "@shopify/polaris": "^13.9.5",
     "@supabase/supabase-js": "^2.90.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

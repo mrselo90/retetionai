@@ -16,8 +16,8 @@ export async function securityHeadersMiddleware(c: Context, next: Next) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' data:",
-    "connect-src 'self' https://api.openai.com https://*.supabase.co",
-    "frame-ancestors 'none'",
+    "connect-src 'self' https://api.openai.com https://*.supabase.co https://*.shopify.com https://cdn.shopify.com",
+    "frame-ancestors 'self' https://*.myshopify.com https://admin.shopify.com",
     "base-uri 'self'",
     "form-action 'self'",
   ].join('; ');
@@ -38,8 +38,9 @@ export async function securityHeadersMiddleware(c: Context, next: Next) {
     }
   }
 
-  // Prevent clickjacking
-  c.header('X-Frame-Options', 'DENY');
+  // Prevent clickjacking - handled by CSP frame-ancestors
+  // X-Frame-Options is legacy and conflicts with valid embedding
+  // c.header('X-Frame-Options', 'DENY');
 
   // Prevent MIME type sniffing
   c.header('X-Content-Type-Options', 'nosniff');
