@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTranslations } from 'next-intl';
+import { isShopifyEmbedded, getShopifySessionToken, getShopifyShop } from '@/lib/shopifyEmbedded';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -31,23 +32,72 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [embedded, setEmbedded] = useState(false);
 
   useEffect(() => {
-    const getUser = async () => {
-      try {
+    const initAuth = async () => {
+      const shopifyEmbedded = isShopifyEmbedded();
+      setEmbedded(shopifyEmbedded);
+
+      if (shopifyEmbedded) {
+        // ── Embedded in Shopify Admin ──────────────────────────────────────
+        // 1. Check if we already have a valid Supabase session
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           setUserEmail(user.email || null);
           setLoading(false);
-        } else {
+          return;
+        }
+
+        // 2. No session → perform Token Exchange with our API
+        try {
+          const sessionToken = await getShopifySessionToken();
+          const shop = getShopifyShop();
+
+          if (!sessionToken || !shop) {
+            // Fallback: redirect to login
+            router.push('/login');
+            return;
+          }
+
+          const res = await fetch('/api/integrations/shopify/verify-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: sessionToken, shop }),
+          });
+
+          const data = await res.json();
+
+          if (data.auth_url) {
+            // Redirect to Supabase magic link — auto-authenticates the merchant
+            window.location.href = data.auth_url;
+            return; // navigation in progress
+          }
+
+          // If no auth_url (unexpected), still try to proceed
+          setLoading(false);
+        } catch (err) {
+          console.error('Shopify Token Exchange failed:', err);
           router.push('/login');
         }
-      } catch (err) {
-        console.error('Auth check error:', err);
-        router.push('/login');
+      } else {
+        // ── Standalone web app ─────────────────────────────────────────────
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            setUserEmail(user.email || null);
+            setLoading(false);
+          } else {
+            router.push('/login');
+          }
+        } catch (err) {
+          console.error('Auth check error:', err);
+          router.push('/login');
+        }
       }
     };
-    getUser();
+
+    initAuth();
   }, [router]);
 
   const handleSignOut = async () => {
@@ -74,110 +124,134 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-[hsl(var(--surface))] flex">
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
-          onClick={() => setIsSidebarOpen(false)}
-        />
+
+      {/* ── Embedded Mode: App Bridge s-app-nav (BFS 4.1.4) ─────────────── */}
+      {embedded && (
+        /* @ts-expect-error - App Bridge web component */
+        <s-app-nav>
+          {navItems.map((item) => (
+            /* @ts-expect-error - App Bridge web component */
+            <s-app-nav-item
+              key={item.href}
+              id={`nav-${item.href.replace(/\//g, '-').replace(/^-/, '')}`}
+              label={item.name}
+              url={`/en${item.href}`}
+            />
+          ))}
+          {/* @ts-expect-error - App Bridge web component */}
+        </s-app-nav>
       )}
 
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border shadow-sm transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:block",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="h-full flex flex-col">
-          {/* Logo - Polaris-like minimal header */}
-          <div className="h-16 flex items-center px-4 border-b border-border">
-            <Link href="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-zinc-900">
-              <div className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center">
-                <span className="text-xl font-extrabold">R</span>
-              </div>
-              <span className="text-foreground">Recete</span>
-            </Link>
-            <button
-              className="ml-auto lg:hidden text-zinc-500 hover:text-zinc-700 p-2 rounded-lg hover:bg-zinc-100 transition-colors"
+      {/* ── Standalone Mode: Custom Sidebar ──────────────────────────────── */}
+      {!embedded && (
+        <>
+          {/* Mobile Sidebar Overlay */}
+          {isSidebarOpen && (
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
               onClick={() => setIsSidebarOpen(false)}
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+            />
+          )}
 
-          {/* Nav Items */}
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto scrollbar-thin">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
-              const Icon = item.icon;
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150",
-                    isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-                  )}
+          {/* Sidebar */}
+          <aside
+            className={cn(
+              "fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border shadow-sm transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:block",
+              isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+            )}
+          >
+            <div className="h-full flex flex-col">
+              {/* Logo */}
+              <div className="h-16 flex items-center px-4 border-b border-border">
+                <Link href="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-zinc-900">
+                  <div className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center">
+                    <span className="text-xl font-extrabold">R</span>
+                  </div>
+                  <span className="text-foreground">Recete</span>
+                </Link>
+                <button
+                  className="ml-auto lg:hidden text-zinc-500 hover:text-zinc-700 p-2 rounded-lg hover:bg-zinc-100 transition-colors"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"></div>
-                  )}
-                  <Icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-zinc-500")} />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-          {/* User Profile */}
-          <div className="p-4 border-t border-border">
-            <div className="flex items-center gap-3 mb-3 p-3 rounded-lg bg-[hsl(var(--surface))] border border-border">
-              <Avatar className="ring-2 ring-primary/20">
-                <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${userEmail || 'User'}&backgroundColor=1a202c`} />
-                <AvatarFallback className="bg-primary text-primary-foreground font-semibold">U</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-zinc-900 truncate">
-                  {userEmail?.split('@')[0] || 'User'}
-                </p>
-                <p className="text-xs text-zinc-500 truncate font-medium">
-                  {userEmail || 'Loading...'}
-                </p>
+              {/* Nav Items */}
+              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto scrollbar-thin">
+                {navItems.map((item) => {
+                  const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150",
+                        isActive
+                          ? "bg-primary/10 text-primary"
+                          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                      )}
+                      onClick={() => setIsSidebarOpen(false)}
+                    >
+                      {isActive && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"></div>
+                      )}
+                      <Icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-zinc-500")} />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              {/* User Profile */}
+              <div className="p-4 border-t border-border">
+                <div className="flex items-center gap-3 mb-3 p-3 rounded-lg bg-[hsl(var(--surface))] border border-border">
+                  <Avatar className="ring-2 ring-primary/20">
+                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${userEmail || 'User'}&backgroundColor=1a202c`} />
+                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold">U</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-zinc-900 truncate">
+                      {userEmail?.split('@')[0] || 'User'}
+                    </p>
+                    <p className="text-xs text-zinc-500 truncate font-medium">
+                      {userEmail || 'Loading...'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-zinc-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 border-zinc-200 font-semibold"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  {t('signOut')}
+                </Button>
               </div>
             </div>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-zinc-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 border-zinc-200 font-semibold"
-              onClick={handleSignOut}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              {t('signOut')}
-            </Button>
-          </div>
-        </div>
-      </aside>
+          </aside>
+        </>
+      )}
 
-      {/* Main Content */}
+      {/* ── Main Content ──────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile Header - Polaris-like */}
-        <header className="lg:hidden h-14 bg-card border-b border-border flex items-center px-4 justify-between sticky top-0 z-30">
-          <Link href="/dashboard" className="font-bold text-lg text-zinc-900 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
-              <span className="text-base font-extrabold">R</span>
-            </div>
-            Recete
-          </Link>
-          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="hover:bg-primary/15">
-            <Menu className="w-6 h-6" />
-          </Button>
-        </header>
+        {/* Mobile Header — standalone mode only */}
+        {!embedded && (
+          <header className="lg:hidden h-14 bg-card border-b border-border flex items-center px-4 justify-between sticky top-0 z-30">
+            <Link href="/dashboard" className="font-bold text-lg text-zinc-900 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+                <span className="text-base font-extrabold">R</span>
+              </div>
+              Recete
+            </Link>
+            <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="hover:bg-primary/15">
+              <Menu className="w-6 h-6" />
+            </Button>
+          </header>
+        )}
 
-        {/* Page Content - Polaris-like spacing (16px/20px) */}
+        {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-thin">
           <div className="max-w-6xl mx-auto">
             {children}

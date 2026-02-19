@@ -12,6 +12,10 @@ import { Badge } from '@/components/ui/badge';
 import { Settings, Bot, Shield, Key, Database, Loader2, Plus, Copy, Trash2, Pencil, X, Download, AlertTriangle, ExternalLink, ShieldCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useTranslations, useLocale } from 'next-intl';
+import { ShopifySaveBar } from '@/components/ui/ShopifySaveBar';
+import { InlineError } from '@/components/ui/InlineError';
+import { PlanGatedFeature } from '@/components/ui/PlanGatedFeature';
+import { isShopifyEmbedded } from '@/lib/shopifyEmbedded';
 
 export type ProductInstructionsScope = 'order_only' | 'rag_products_too';
 
@@ -74,6 +78,8 @@ export default function SettingsPage() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
   const [creatingKey, setCreatingKey] = useState(false);
   const [newApiKey, setNewApiKey] = useState<string | null>(null);
   const [showNewKeyModal, setShowNewKeyModal] = useState(false);
@@ -211,10 +217,12 @@ export default function SettingsPage() {
       );
 
       toast.success(t('toasts.saveSuccess.title'), t('toasts.saveSuccess.message'));
+      setSaveError(null);
+      setIsDirty(false);
       await loadData();
     } catch (err: any) {
       console.error('Failed to save persona:', err);
-      toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
+      setSaveError(err.message || t('toasts.saveError.message'));
     } finally {
       setSaving(false);
     }
@@ -766,15 +774,33 @@ export default function SettingsPage() {
 
           {/* Save Button */}
           <div className="pt-6 border-t border-border">
-            <Button
-              onClick={handleSavePersona}
-              disabled={saving}
-              size="lg"
-              className="shadow-lg hover:shadow-xl"
-            >
-              {saving && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
-              {saving ? t('botPersona.saving') : t('botPersona.saveButton')}
-            </Button>
+            {/* G4: Persistent inline error (BFS 4.2.4) */}
+            <InlineError message={saveError} onDismiss={() => setSaveError(null)} />
+
+            {/* G3: Contextual Save Bar when embedded (BFS 4.1.5) */}
+            <ShopifySaveBar
+              id="settings-persona-csb"
+              isDirty={isDirty}
+              onSave={handleSavePersona}
+              onDiscard={() => {
+                setIsDirty(false);
+                setSaveError(null);
+                loadData();
+              }}
+            />
+
+            {/* Inline Save Button — standalone mode only */}
+            {!isShopifyEmbedded() && (
+              <Button
+                onClick={handleSavePersona}
+                disabled={saving}
+                size="lg"
+                className="shadow-lg hover:shadow-xl"
+              >
+                {saving && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
+                {saving ? t('botPersona.saving') : t('botPersona.saveButton')}
+              </Button>
+            )}
           </div>
         </div>
       </Card>
@@ -796,41 +822,42 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           {addons.map((addon) => (
-            <div
+            <PlanGatedFeature
               key={addon.key}
-              className={`flex items-center justify-between p-5 rounded-xl border transition-all ${addon.status === 'active'
+              isLocked={!addon.planAllowed}
+              requiredPlan="Pro"
+            >
+              <div
+                className={`flex items-center justify-between p-5 rounded-xl border transition-all ${addon.status === 'active'
                   ? 'bg-gradient-to-r from-success/5 to-transparent border-success/30'
                   : 'bg-gradient-to-r from-muted/50 to-transparent border-border'
-                }`}
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <p className="font-bold text-zinc-900 text-base">{rp('moduleTitle')}</p>
-                  <Badge variant={addon.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                    {addon.status === 'active' ? rp('statusActive') : rp('statusInactive')}
-                  </Badge>
-                </div>
-                <p className="text-sm text-zinc-600 mt-1">{rp('moduleDescription')}</p>
-                <p className="text-sm font-semibold text-primary mt-1.5">
-                  +${addon.priceMonthly}/month
-                </p>
-                {!addon.planAllowed && (
-                  <p className="text-xs text-amber-600 mt-1">{rp('planGateMessage')}</p>
-                )}
-              </div>
-              <button
-                onClick={() => handleAddonToggle(addon.key, addon.status)}
-                disabled={!addon.planAllowed}
-                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-200 shadow-inner ${addon.status === 'active' ? 'bg-primary' : 'bg-zinc-300'
-                  } ${!addon.planAllowed ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  }`}
               >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md ${addon.status === 'active' ? 'translate-x-8' : 'translate-x-1'
-                    }`}
-                />
-              </button>
-            </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <p className="font-bold text-zinc-900 text-base">{rp('moduleTitle')}</p>
+                    <Badge variant={addon.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                      {addon.status === 'active' ? rp('statusActive') : rp('statusInactive')}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-zinc-600 mt-1">{rp('moduleDescription')}</p>
+                  <p className="text-sm font-semibold text-primary mt-1.5">
+                    +${addon.priceMonthly}/month
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleAddonToggle(addon.key, addon.status)}
+                  disabled={!addon.planAllowed}
+                  className={`relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-200 shadow-inner ${addon.status === 'active' ? 'bg-primary' : 'bg-zinc-300'}`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md ${addon.status === 'active' ? 'translate-x-8' : 'translate-x-1'}`}
+                  />
+                </button>
+              </div>
+            </PlanGatedFeature>
           ))}
+
           {addons.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">No modules available</p>
           )}
