@@ -9,59 +9,138 @@ export function Hero() {
   const t = useTranslations('Landing');
 
   return (
-    <section className="relative overflow-hidden pt-12 sm:pt-20 pb-12 lg:pb-20">
+    <section
+      className="relative overflow-hidden pt-16 sm:pt-24 pb-0"
+      style={{
+        background: 'linear-gradient(180deg, #f0f4ff 0%, #fafafa 60%, #f6f6f7 100%)',
+      }}
+    >
+      {/* Background decorative blobs */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-10"
+        aria-hidden
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: '-80px',
+            left: '50%',
+            transform: 'translateX(-60%)',
+            width: '600px',
+            height: '600px',
+            background: 'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)',
+            borderRadius: '50%',
+            filter: 'blur(40px)',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            top: '20%',
+            right: '-100px',
+            width: '400px',
+            height: '400px',
+            background: 'radial-gradient(circle, rgba(34,197,94,0.12) 0%, transparent 70%)',
+            borderRadius: '50%',
+            filter: 'blur(60px)',
+          }}
+        />
+      </div>
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10 w-full text-center">
-        <p className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-fade-in-up">
-          <ShoppingBag className="w-4 h-4 shrink-0" aria-hidden />
+        {/* Badge */}
+        <p className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-border shadow-sm text-sm font-semibold text-foreground mb-8 animate-fade-in-up">
+          <ShoppingBag className="w-4 h-4 shrink-0 text-primary" aria-hidden />
           {t('forShopify')}
         </p>
-        
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground tracking-tight max-w-4xl mx-auto leading-[1.1] mb-6 animate-fade-in-up delay-100">
+
+        {/* Headline */}
+        <h1
+          className="font-bold text-foreground tracking-tight max-w-4xl mx-auto leading-tight mb-6 animate-fade-in-up delay-100"
+          style={{ fontSize: 'clamp(2rem, 5vw, 3.75rem)', lineHeight: '1.1' }}
+        >
           {t('heroLine')}
         </h1>
-        
-        <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-in-up delay-200">
+
+        {/* Subtitle */}
+        <p
+          className="text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in-up delay-200"
+          style={{ fontSize: 'clamp(1rem, 2vw, 1.2rem)', lineHeight: '1.7' }}
+        >
           {t('subtitle')}
         </p>
-        
+
+        {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4 animate-fade-in-up delay-300">
           <Link
             href="/signup"
-            className="w-full sm:w-auto min-h-[52px] inline-flex items-center justify-center gap-2 px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-xl hover:opacity-90 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 text-base"
+            className="w-full sm:w-auto min-h-[52px] inline-flex items-center justify-center gap-2 px-10 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 transition-all hover:scale-105 active:scale-95 text-base"
+            style={{ boxShadow: '0 8px 24px -4px rgba(26,32,44,0.35)' }}
           >
             {t('signup')}
-            <ArrowRight className="w-4 h-4" aria-hidden />
+            <ArrowRight className="w-5 h-5" aria-hidden />
           </Link>
           <Link
             href="/login"
-            className="w-full sm:w-auto min-h-[52px] inline-flex items-center justify-center px-8 py-3 border border-border bg-background/50 backdrop-blur-sm text-foreground font-medium rounded-xl hover:bg-muted/50 transition-all hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-base"
+            className="w-full sm:w-auto min-h-[52px] inline-flex items-center justify-center px-10 py-3 border border-border bg-white text-foreground font-semibold rounded-xl hover:bg-muted transition-all hover:scale-105 active:scale-95 text-base"
           >
             {t('login')}
           </Link>
         </div>
-        
+
         <p className="text-sm text-muted-foreground animate-fade-in-up delay-400 mb-12">
           {t('signupSmall')}
         </p>
 
         {/* Dashboard Preview */}
-        <div className="relative max-w-5xl mx-auto w-full rounded-xl sm:rounded-2xl border border-border/50 bg-card/50 shadow-2xl overflow-hidden animate-fade-in-up delay-500 group">
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10" />
+        <div
+          className="relative max-w-5xl mx-auto w-full animate-fade-in-up delay-500 group"
+          style={{
+            borderRadius: '16px 16px 0 0',
+            overflow: 'hidden',
+            border: '1px solid rgba(0,0,0,0.08)',
+            borderBottom: 'none',
+            boxShadow: '0 -4px 40px -8px rgba(99,102,241,0.15), 0 20px 60px -12px rgba(0,0,0,0.25)',
+          }}
+        >
+          {/* Browser chrome bar */}
+          <div
+            style={{
+              background: '#f1f3f5',
+              borderBottom: '1px solid rgba(0,0,0,0.08)',
+              padding: '10px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ff5f57' }} />
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#febc2e' }} />
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#28c840' }} />
+            <div
+              style={{
+                marginLeft: 12,
+                flex: 1,
+                background: '#e8eaed',
+                borderRadius: 6,
+                padding: '3px 10px',
+                fontSize: 11,
+                color: '#666',
+                maxWidth: 280,
+              }}
+            >
+              app.recete.ai/dashboard
+            </div>
+          </div>
           <Image
             src="/dashboard-preview.png"
             alt={t('dashboardAlt')}
             width={1200}
             height={750}
-            className="w-full h-auto transform transition-transform duration-700 group-hover:scale-[1.02]"
+            className="w-full h-auto"
             priority
           />
         </div>
-      </div>
-      
-      {/* Background Decor */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl -z-10 pointer-events-none opacity-50 overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[100px] -translate-y-1/2" />
-        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]" />
       </div>
     </section>
   );
