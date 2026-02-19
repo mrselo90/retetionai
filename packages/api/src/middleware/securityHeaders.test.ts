@@ -33,7 +33,7 @@ describe('securityHeadersMiddleware', () => {
       'Strict-Transport-Security',
       expect.stringContaining('max-age=63072000')
     );
-    expect(context.header).toHaveBeenCalledWith('X-Frame-Options', 'DENY');
+    // expect(context.header).toHaveBeenCalledWith('X-Frame-Options', 'DENY'); // Removed
     expect(context.header).toHaveBeenCalledWith('X-Content-Type-Options', 'nosniff');
     expect(context.header).toHaveBeenCalledWith('X-XSS-Protection', '1; mode=block');
     expect(context.header).toHaveBeenCalledWith('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -42,7 +42,11 @@ describe('securityHeadersMiddleware', () => {
   });
 
   it('should include CSP directives', async () => {
-    const context = createMockContext();
+    const context = createMockContext({
+      req: {
+        url: 'https://example.com'
+      } as any
+    });
 
     const next = vi.fn();
     await securityHeadersMiddleware(context as any, next);

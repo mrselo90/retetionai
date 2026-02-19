@@ -20,6 +20,7 @@
 - `orders`: id, merchant_id, user_id, status, delivery_date
 - `product_instructions`: id, merchant_id, product_id (FK products), usage_instructions (TEXT), recipe_summary, created_at, updated_at — UNIQUE(merchant_id, product_id).
 - `merchant_bot_info`: id, merchant_id, key (TEXT), value (TEXT), created_at, updated_at — UNIQUE(merchant_id, key). Merchant-editable AI guidelines.
+- `product_instructions`: id, merchant_id, product_id, shopify_product_id, usage_instructions (TEXT), recipe_summary. Stores cosmetic recipes mapped to products.
 
 ### Intelligence Tables
 - `knowledge_chunks`: id, product_id, chunk_text, embedding (vector(1536))
@@ -81,8 +82,8 @@
 
 ## Consent (GDPR/KVKK)
 
-- **Shopify**: `normalizeShopifyEvent` reads marketing consent from order customer data; maps to `consent_status`: `subscribed` → `opt_in`, `not_subscribed` → `opt_out`, else `pending`.
-- **Queue gate**: `orderProcessor` only schedules messages when `users.consent_status === 'opt_in'`.
+- **Shopify**: `normalizeShopifyEvent` reads marketing consent from order customer data (`email_marketing_consent`, `sms_marketing_consent`); maps to `consent_status`: `subscribed` → `opt_in`, `not_subscribed` → `opt_out`, else `pending`.
+- **Queue gate**: `orderProcessor` only schedules messages (including T+0) when `users.consent_status === 'opt_in'`.
 - **orders/updated**: When order is fulfilled, event is normalized as `order_delivered`.
 
 ## Normalized Event Model

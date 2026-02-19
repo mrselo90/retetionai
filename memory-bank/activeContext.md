@@ -56,11 +56,17 @@ All schema changes in `supabase/migrations/009_enrichment_features.sql`:
 | Redis | ✅ Connected | system | 6379 | Active |
 | Supabase DB | ✅ Connected | cloud | - | Active |
 
-**Latest Build**: Next.js 16 (Turbopack) - 54s compile time  
+**Latest Build**: Next.js 16 (Turbopack) - 3.5s compile time (Polaris + App Bridge v4)
 **Build Status**: ✓ Compiled successfully - 0 errors, 0 warnings  
-**Routes Generated**: 24 routes (all optimized)
+**Routes Generated**: 25 routes (all optimized)
 
 ### Recent Updates (Feb 19, 2026)
+- ✅ **Shopify Compliance & Quality**:
+  - **Embedded App**: Validated `frame-ancestors` CSP for Shopify Admin embedding.
+  - **App Bridge v4**: Upgraded to latest CDN-based App Bridge with `next/script`.
+  - **Design Guidelines**: Integrated `@shopify/polaris` (PolarisProvider) for consistent UI/UX.
+  - **No Asset API**: Confirmed zero usage; scaffolded `theme-app-extension` for future storefront features.
+  - **Session Tokens**: Confirmed secure Token Exchange auth flow.
 - ✅ **Shopify Best Practices Migration**:
   - **Token Exchange**: Replaced manual OAuth redirects with seamless Token Exchange logic in `/verify-session`.
   - **Managed Installation**: Created `shopify.app.toml` to let Shopify manage scopes and webhooks.

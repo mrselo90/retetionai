@@ -46,6 +46,8 @@ describe('Auth Middleware', () => {
             update: vi.fn().mockReturnThis(),
             contains: vi.fn().mockReturnThis(),
             limit: vi.fn(),
+            maybeSingle: vi.fn(),
+            or: vi.fn().mockReturnThis(),
         };
 
         vi.mocked(getSupabaseServiceClient).mockReturnValue(mockSupabase);
@@ -70,7 +72,7 @@ describe('Auth Middleware', () => {
 
             mockContext.req.header.mockReturnValue('Bearer valid-jwt-token');
             mockSupabase.auth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
-            mockSupabase.single.mockResolvedValue({ data: mockMerchant, error: null });
+            mockSupabase.maybeSingle.mockResolvedValue({ data: mockMerchant, error: null });
 
             await authMiddleware(mockContext, mockNext);
 
@@ -88,9 +90,8 @@ describe('Auth Middleware', () => {
 
             mockContext.req.header.mockReturnValue('Bearer valid-jwt-token');
             mockSupabase.auth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
-            mockSupabase.single
-                .mockResolvedValueOnce({ data: null, error: null }) // merchant doesn't exist
-                .mockResolvedValueOnce({ data: { id: 'new-user-123' }, error: null }); // inserted merchant
+            mockSupabase.maybeSingle.mockResolvedValueOnce({ data: null, error: null }); // merchant doesn't exist
+            mockSupabase.single.mockResolvedValueOnce({ data: { id: 'new-user-123' }, error: null }); // inserted merchant
 
             await authMiddleware(mockContext, mockNext);
 
@@ -112,7 +113,7 @@ describe('Auth Middleware', () => {
 
             mockContext.req.header.mockReturnValue('Bearer valid-jwt-token');
             mockSupabase.auth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
-            mockSupabase.single
+            mockSupabase.maybeSingle
                 .mockResolvedValueOnce({ data: null, error: null })
                 .mockResolvedValueOnce({ data: { id: 'user-456' }, error: null });
 
@@ -134,9 +135,8 @@ describe('Auth Middleware', () => {
 
             mockContext.req.header.mockReturnValue('Bearer valid-jwt-token');
             mockSupabase.auth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
-            mockSupabase.single
-                .mockResolvedValueOnce({ data: null, error: null })
-                .mockResolvedValueOnce({ data: { id: 'user-789' }, error: null });
+            mockSupabase.maybeSingle.mockResolvedValueOnce({ data: null, error: null });
+            mockSupabase.single.mockResolvedValueOnce({ data: { id: 'user-789' }, error: null });
 
             await authMiddleware(mockContext, mockNext);
 
@@ -226,7 +226,7 @@ describe('Auth Middleware', () => {
 
             mockContext.req.header.mockReturnValue('Bearer jwt-token-here');
             mockSupabase.auth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
-            mockSupabase.single.mockResolvedValue({ data: mockMerchant, error: null });
+            mockSupabase.maybeSingle.mockResolvedValue({ data: mockMerchant, error: null });
 
             await authMiddleware(mockContext, mockNext);
 
@@ -251,7 +251,7 @@ describe('Auth Middleware', () => {
 
             mockContext.req.header.mockReturnValue('Bearer valid-jwt-token');
             mockSupabase.auth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null });
-            mockSupabase.single.mockResolvedValue({ data: mockMerchant, error: null });
+            mockSupabase.maybeSingle.mockResolvedValue({ data: mockMerchant, error: null });
 
             await optionalAuthMiddleware(mockContext, mockNext);
 
