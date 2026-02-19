@@ -207,17 +207,14 @@ vercel --env .env.staging
 vercel --prod --env .env.production
 ```
 
-### Railway (API & Workers)
 
 #### Staging
 
-1. Create new Railway project
 2. Add environment variables from `.env.staging`
 3. Deploy from `develop` branch
 
 #### Production
 
-1. Create new Railway project
 2. Add environment variables from `.env.production`
 3. Deploy from `main` branch
 
@@ -279,8 +276,6 @@ SUPABASE_URL=...
 vercel env add SUPABASE_URL
 ```
 
-**Railway:**
-- Use Railway dashboard to add secrets
 
 **AWS:**
 ```bash

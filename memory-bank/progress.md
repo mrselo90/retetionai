@@ -634,7 +634,6 @@ All foundation tasks completed. Ready to begin Faz 1: Merchant Onboarding & Ente
   - ✅ .github/workflows/deploy.yml - GitHub Actions CI/CD
 
 - ✅ **Deployment Options Documented**
-  - ✅ Hybrid approach (Vercel + Railway + Supabase) - $10-30/ay
   - ✅ GCP full deployment - $77-2040/ay (scalable)
   - ✅ AWS alternative - $75-270/ay
   - ✅ Azure alternative - $55-219/ay

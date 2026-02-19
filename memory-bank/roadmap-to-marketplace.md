@@ -240,7 +240,6 @@
   - ✅ GitHub Actions workflow (.github/workflows/deploy.yml)
 
 - [x] **Deployment Options Documented** ✅
-  - ✅ Hybrid (Vercel + Railway + Supabase) - $10-30/ay
   - ✅ GCP Full - $77-2040/ay (scalable)
   - ✅ AWS Alternative - $75-270/ay
   - ✅ Azure Alternative - $55-219/ay

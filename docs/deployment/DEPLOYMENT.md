@@ -108,7 +108,6 @@ cd packages/web
 vercel --prod
 ```
 
-#### Railway (API & Workers)
 
 1. Connect your GitHub repository
 2. Set environment variables

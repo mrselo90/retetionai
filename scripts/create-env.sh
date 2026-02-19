@@ -61,7 +61,7 @@ echo ""
 
 # API URL
 echo -e "${YELLOW}🔌 API URL${NC}"
-read -p "API URL (https://your-api.railway.app): " API_URL
+read -p "API URL (https://your-api.com): " API_URL
 echo ""
 
 # Generate secrets
@@ -74,83 +74,6 @@ echo ""
 # Create output directory
 mkdir -p .env-output
 
-# Railway API Environment
-echo -e "${GREEN}📋 Creating Railway API environment file...${NC}"
-cat > .env-output/railway-api.env << EOF
-# Railway API Environment Variables
-# Copy these to Railway Dashboard > API Service > Variables
-
-NODE_ENV=production
-PORT=3001
-
-# Supabase
-SUPABASE_URL=$SUPABASE_URL
-SUPABASE_SERVICE_KEY=$SUPABASE_SERVICE_KEY
-
-# Redis
-REDIS_URL=$REDIS_URL
-
-# OpenAI
-OPENAI_API_KEY=$OPENAI_API_KEY
-
-# Shopify
-SHOPIFY_API_KEY=$SHOPIFY_API_KEY
-SHOPIFY_API_SECRET=$SHOPIFY_API_SECRET
-SHOPIFY_APP_URL=$FRONTEND_URL
-
-# Twilio/WhatsApp
-TWILIO_ACCOUNT_SID=$TWILIO_ACCOUNT_SID
-TWILIO_AUTH_TOKEN=$TWILIO_AUTH_TOKEN
-TWILIO_WHATSAPP_NUMBER=$TWILIO_WHATSAPP_NUMBER
-
-# Security
-JWT_SECRET=$JWT_SECRET
-ENCRYPTION_KEY=$ENCRYPTION_KEY
-
-# CORS
-ALLOWED_ORIGINS=$FRONTEND_URL
-
-# Sentry
-SENTRY_DSN=$SENTRY_DSN
-SENTRY_ENVIRONMENT=production
-
-# Logging
-LOG_LEVEL=info
-EOF
-
-# Railway Workers Environment
-echo -e "${GREEN}📋 Creating Railway Workers environment file...${NC}"
-cat > .env-output/railway-workers.env << EOF
-# Railway Workers Environment Variables
-# Copy these to Railway Dashboard > Workers Service > Variables
-
-NODE_ENV=production
-
-# Supabase
-SUPABASE_URL=$SUPABASE_URL
-SUPABASE_SERVICE_KEY=$SUPABASE_SERVICE_KEY
-
-# Redis
-REDIS_URL=$REDIS_URL
-
-# OpenAI
-OPENAI_API_KEY=$OPENAI_API_KEY
-
-# Twilio/WhatsApp
-TWILIO_ACCOUNT_SID=$TWILIO_ACCOUNT_SID
-TWILIO_AUTH_TOKEN=$TWILIO_AUTH_TOKEN
-TWILIO_WHATSAPP_NUMBER=$TWILIO_WHATSAPP_NUMBER
-
-# Security
-ENCRYPTION_KEY=$ENCRYPTION_KEY
-
-# Sentry
-SENTRY_DSN=$SENTRY_DSN
-SENTRY_ENVIRONMENT=production
-
-# Logging
-LOG_LEVEL=info
-EOF
 
 # Vercel Web Environment
 echo -e "${GREEN}📋 Creating Vercel Web environment file...${NC}"
@@ -194,9 +117,6 @@ DATABASE_URL=postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/
 # API
 NEXT_PUBLIC_API_URL=$API_URL
 
-# Railway Webhooks
-RAILWAY_API_WEBHOOK_URL=<get-from-railway-dashboard>
-RAILWAY_WORKERS_WEBHOOK_URL=<get-from-railway-dashboard>
 
 # Vercel
 VERCEL_TOKEN=<get-from-vercel-dashboard>
@@ -274,19 +194,11 @@ $ENCRYPTION_KEY
 
 ## 📦 Platform-Specific Files
 
-### Railway API
-File: \`railway-api.env\`
-- Go to Railway Dashboard
-- Select API Service
-- Go to Variables tab
-- Copy/paste variables from file
-
-### Railway Workers
-File: \`railway-workers.env\`
-- Go to Railway Dashboard
-- Select Workers Service
-- Go to Variables tab
-- Copy/paste variables from file
+### Server Services
+- Go to your server dashboard
+- Select your services (API, Workers)
+- Go to environment variables section
+- Copy/paste variables from Vercel or manual files
 
 ### Vercel Web
 File: \`vercel.env\`
@@ -314,10 +226,10 @@ File: \`docker-compose.env\`
    - Create project at https://supabase.com
    - Run migrations: \`supabase db push\`
 
-2. **Railway Setup**
+2. **Server Setup**
    - Create API service
    - Create Workers service
-   - Add environment variables from files
+   - Add environment variables
 
 3. **Vercel Setup**
    - Import project
@@ -325,7 +237,7 @@ File: \`docker-compose.env\`
    - Deploy
 
 4. **Update CORS**
-   - Update Railway API \`ALLOWED_ORIGINS\` with Vercel URL
+   - Update API `ALLOWED_ORIGINS` with your frontend URL
 
 5. **Test**
    - API: $API_URL/health
@@ -335,7 +247,6 @@ File: \`docker-compose.env\`
 
 ## 📞 Support
 
-- Railway: https://railway.app/help
 - Vercel: https://vercel.com/support
 - Supabase: https://supabase.com/support
 EOF
@@ -344,8 +255,6 @@ echo ""
 echo -e "${GREEN}✅ Environment files created successfully!${NC}"
 echo ""
 echo "📂 Files created in .env-output/:"
-echo "  - railway-api.env"
-echo "  - railway-workers.env"
 echo "  - vercel.env"
 echo "  - github-secrets.txt"
 echo "  - docker-compose.env"

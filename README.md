@@ -204,7 +204,7 @@ pnpm test:e2e
 - **State**: React hooks
 
 ### Infrastructure
-- **Hosting**: TBD (Vercel, Railway, or AWS)
+- **Hosting**: TBD (Vercel or AWS)
 - **Database**: Supabase Cloud
 - **Cache/Queue**: Upstash Redis
 - **Monitoring**: Sentry (in progress)

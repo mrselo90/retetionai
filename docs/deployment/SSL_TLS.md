@@ -244,9 +244,7 @@ services:
 
 HTTPS is automatically enabled. No configuration needed.
 
-### Railway
 
-HTTPS is automatically enabled with Railway's domain.
 
 ### Render
 
