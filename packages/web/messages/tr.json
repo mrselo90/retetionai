@@ -1,21 +1,56 @@
 {
     "Landing": {
         "title": "Recete Retention Agent",
-        "heroLine": "İadeleri azaltan, LTV'yi yükselten sipariş sonrası bakım.",
-        "subtitle": "Mağazanızı bağlayın. WhatsApp ile ürün rehberi ve destek otomasyonu.",
+        "heroLine": "İadeleri azaltın. Tekrar satışları artırın. Tamamen otomatik.",
+        "subtitle": "Shopify müşterilerinizi WhatsApp üzerinden yönlendiren sipariş sonrası AI — teslimattan sadakate.",
         "description": "Ürün rehberi, kullanım talimatları ve proaktif mesajlarla iade oranını düşürün, LTV'yi yükseltin.",
         "forShopify": "Shopify mağazaları için",
         "login": "Giriş Yap",
-        "signup": "Kayıt Ol",
+        "signup": "Ücretsiz Başla",
+        "signupSmall": "Kredi kartı gerekmez",
         "privacy": "Gizlilik",
         "terms": "Kullanım Koşulları",
+        "dashboardAlt": "Recete dashboard etkileşim metrikleri",
+        "stats": {
+            "merchants": "500+",
+            "merchantsLabel": "Mağaza",
+            "returns": "32%",
+            "returnsLabel": "Daha Az İade",
+            "messages": "50K+",
+            "messagesLabel": "Mesaj Gönderildi",
+            "satisfaction": "94%",
+            "satisfactionLabel": "Memnuniyet"
+        },
         "features": {
-            "automated": "Otomatik",
-            "automatedDesc": "WhatsApp ile otomatik etkileşim",
-            "aiPowered": "Yapay Zeka",
-            "aiPoweredDesc": "Dönüşüm sağlayan akıllı sohbetler",
-            "analytics": "Analitik",
-            "analyticsDesc": "ROI ve etkileşim metriklerini takip edin"
+            "title": "Müşteri tutma için ihtiyacınız olan her şey",
+            "automated": "Otomatik WhatsApp Etkileşimi",
+            "automatedDesc": "Kişiselleştirilmiş sipariş sonrası mesajları otomatik gönderin. Ürün rehberi, kullanım ipuçları ve kontroller — hepsi doğru zamanda WhatsApp ile.",
+            "automatedBullets": "T+0 karşılama · T+3 ipuçları · T+14 geri bildirim",
+            "aiPowered": "Yapay Zeka Destekli Konuşmalar",
+            "aiPoweredDesc": "GPT-4 destekli asistan, ürün bilgi tabanınızı kullanarak müşteri sorularını yanıtlar. Şikayetleri yönetir, kullanımı yönlendirir ve iadeleri önler.",
+            "aiPoweredBullets": "RAG pipeline · Niyet tespiti · İnsan yönlendirme",
+            "analytics": "Analitik ve ROI Paneli",
+            "analyticsDesc": "Kurtarılan iadeleri, tekrar satışları, müşteri memnuniyetini ve etkileşim oranlarını takip edin. Tutma çabalarınızın ne kadar gelir getirdiğini görün.",
+            "analyticsBullets": "ROI takibi · Duygu analizi · RFM segmentleri"
+        },
+        "howItWorks": {
+            "title": "Nasıl çalışır",
+            "subtitle": "3 basit adımda başlayın",
+            "step1Title": "Mağazanızı bağlayın",
+            "step1Desc": "Tek tıkla Shopify entegrasyonu. Ürünlerinizi ve siparişlerinizi otomatik senkronize ederiz.",
+            "step2Title": "AI müşterilerle etkileşime geçer",
+            "step2Desc": "Her satın almadan sonra AI'mız ürün rehberliği ile kişiselleştirilmiş WhatsApp mesajları gönderir.",
+            "step3Title": "Sonuçlarınızı takip edin",
+            "step3Desc": "İade oranlarını, müşteri memnuniyetini ve ROI'yi analitik panelinizden izleyin."
+        },
+        "cta": {
+            "title": "İadeleri azaltmaya ve LTV'yi artırmaya hazır mısınız?",
+            "subtitle": "Sipariş sonrası deneyimini dönüştüren mağazalara katılın.",
+            "button": "Ücretsiz Denemeye Başla"
+        },
+        "footer": {
+            "copyright": "© 2026 Recete. Tüm hakları saklıdır.",
+            "contact": "support@recete.ai"
         }
     },
     "Signup": {
@@ -686,11 +721,23 @@
         "saving": "Kaydediliyor…",
         "instructionLabel": "Kullanım talimatı: {title}",
         "toasts": {
-            "shopifyNotConnected": { "title": "Shopify bağlantısı yok", "message": "Önce Entegrasyonlar sayfasından Shopify bağlayın." },
-            "loadError": { "title": "Veri yüklenemedi", "message": "Yüklenirken hata oluştu." },
+            "shopifyNotConnected": {
+                "title": "Shopify bağlantısı yok",
+                "message": "Önce Entegrasyonlar sayfasından Shopify bağlayın."
+            },
+            "loadError": {
+                "title": "Veri yüklenemedi",
+                "message": "Yüklenirken hata oluştu."
+            },
             "enterInstruction": "Kullanım talimatı girin",
-            "saveSuccess": { "title": "Kullanım talimatı kaydedildi", "message": "Değişiklikler başarıyla kaydedildi." },
-            "saveError": { "title": "Kaydetme hatası", "message": "Kaydedilemedi." },
+            "saveSuccess": {
+                "title": "Kullanım talimatı kaydedildi",
+                "message": "Değişiklikler başarıyla kaydedildi."
+            },
+            "saveError": {
+                "title": "Kaydetme hatası",
+                "message": "Kaydedilemedi."
+            },
             "productCreateError": "Ürün oluşturulamadı"
         }
     },
@@ -707,18 +754,38 @@
             "lost": "Kayıp",
             "new": "Yeni"
         },
-        "empty": { "title": "Müşteri bulunamadı", "description": "Henüz müşteri kaydı yok veya filtreye uygun sonuç bulunamadı." },
+        "empty": {
+            "title": "Müşteri bulunamadı",
+            "description": "Henüz müşteri kaydı yok veya filtreye uygun sonuç bulunamadı."
+        },
         "orders": "sipariş",
         "conversations": "konuşma",
         "previous": "Önceki",
         "next": "Sonraki",
-        "toasts": { "loadError": { "title": "Hata", "message": "Müşteriler yüklenemedi." } }
+        "toasts": {
+            "loadError": {
+                "title": "Hata",
+                "message": "Müşteriler yüklenemedi."
+            }
+        }
     },
     "CustomerDetail": {
-        "segment": { "champions": "Şampiyon", "loyal": "Sadık", "promising": "Umut Vaat Eden", "at_risk": "Risk Altında", "lost": "Kayıp", "new": "Yeni" },
+        "segment": {
+            "champions": "Şampiyon",
+            "loyal": "Sadık",
+            "promising": "Umut Vaat Eden",
+            "at_risk": "Risk Altında",
+            "lost": "Kayıp",
+            "new": "Yeni"
+        },
         "backToCustomers": "Müşterilere Dön",
         "notFound": "Müşteri bulunamadı",
-        "toasts": { "loadError": { "title": "Hata", "message": "Müşteri bilgileri yüklenemedi." } },
+        "toasts": {
+            "loadError": {
+                "title": "Hata",
+                "message": "Müşteri bilgileri yüklenemedi."
+            }
+        },
         "churnRisk": "Kayıp riski",
         "registered": "Kayıt",
         "consent": "Onay",
@@ -759,11 +826,23 @@
         "customerMessage": "Müşteri Mesajı",
         "botResponse": "Bot Yanıtı",
         "toasts": {
-            "loadError": { "title": "Hata", "message": "Konuşma yüklenirken bir hata oluştu." },
-            "sent": { "title": "Gönderildi", "message": "Mesajınız WhatsApp ile gönderildi." },
-            "sendError": { "title": "Hata", "message": "Mesaj gönderilemedi." },
+            "loadError": {
+                "title": "Hata",
+                "message": "Konuşma yüklenirken bir hata oluştu."
+            },
+            "sent": {
+                "title": "Gönderildi",
+                "message": "Mesajınız WhatsApp ile gönderildi."
+            },
+            "sendError": {
+                "title": "Hata",
+                "message": "Mesaj gönderilemedi."
+            },
             "statusUpdated": "Durum güncellendi",
-            "statusError": { "title": "Hata", "message": "Durum güncellenemedi." }
+            "statusError": {
+                "title": "Hata",
+                "message": "Durum güncellenemedi."
+            }
         },
         "statusHuman": "İnsan Modu",
         "statusResolved": "Çözüldü",
@@ -780,12 +859,33 @@
         "saveAll": "Tümünü Kaydet",
         "saving": "Kaydediliyor…",
         "sections": {
-            "brand_guidelines": { "label": "Marka & Kurallar", "placeholder": "Markanızın sesi, değerleri, müşteriye nasıl hitap etmeli…" },
-            "bot_boundaries": { "label": "Bot Sınırları", "placeholder": "Bot ne yapmalı / yapmamalı, tıbbi tavsiye verme, insan yönlendirme kuralları…" },
-            "recipe_overview": { "label": "Tarif & Kullanım Genel Bilgisi", "placeholder": "Genel kozmetik tarif bilgisi, kullanım özeti…" },
-            "custom_instructions": { "label": "Ek Talimatlar", "placeholder": "Diğer özel kurallar veya talimatlar…" }
+            "brand_guidelines": {
+                "label": "Marka & Kurallar",
+                "placeholder": "Markanızın sesi, değerleri, müşteriye nasıl hitap etmeli…"
+            },
+            "bot_boundaries": {
+                "label": "Bot Sınırları",
+                "placeholder": "Bot ne yapmalı / yapmamalı, tıbbi tavsiye verme, insan yönlendirme kuralları…"
+            },
+            "recipe_overview": {
+                "label": "Tarif & Kullanım Genel Bilgisi",
+                "placeholder": "Genel kozmetik tarif bilgisi, kullanım özeti…"
+            },
+            "custom_instructions": {
+                "label": "Ek Talimatlar",
+                "placeholder": "Diğer özel kurallar veya talimatlar…"
+            }
         },
-        "toasts": { "loadError": { "title": "Hata", "message": "Bot bilgisi yüklenirken hata oluştu." }, "saveError": { "title": "Kaydetme hatası", "message": "Kaydedilemedi." } }
+        "toasts": {
+            "loadError": {
+                "title": "Hata",
+                "message": "Bot bilgisi yüklenirken hata oluştu."
+            },
+            "saveError": {
+                "title": "Kaydetme hatası",
+                "message": "Kaydedilemedi."
+            }
+        }
     },
     "ProductDetail": {
         "backToProducts": "Ürünlere Dön",
@@ -800,11 +900,26 @@
         "productUrl": "Ürün URL",
         "openPage": "Sayfayı aç",
         "toasts": {
-            "loadError": { "title": "Hata", "message": "Ürün yüklenirken bir hata oluştu." },
-            "saved": { "title": "Kaydedildi", "message": "Ürün başarıyla güncellendi." },
-            "saveError": { "title": "Hata", "message": "Ürün kaydedilirken bir hata oluştu." },
-            "rescanSuccess": { "title": "Başarılı!", "message": "Ürün yeniden tarandı ve embedding'ler oluşturuldu." },
-            "rescanError": { "title": "Hata", "message": "Ürün taranırken bir hata oluştu." }
+            "loadError": {
+                "title": "Hata",
+                "message": "Ürün yüklenirken bir hata oluştu."
+            },
+            "saved": {
+                "title": "Kaydedildi",
+                "message": "Ürün başarıyla güncellendi."
+            },
+            "saveError": {
+                "title": "Hata",
+                "message": "Ürün kaydedilirken bir hata oluştu."
+            },
+            "rescanSuccess": {
+                "title": "Başarılı!",
+                "message": "Ürün yeniden tarandı ve embedding'ler oluşturuldu."
+            },
+            "rescanError": {
+                "title": "Hata",
+                "message": "Ürün taranırken bir hata oluştu."
+            }
         }
     },
     "Test": {

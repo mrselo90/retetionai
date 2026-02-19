@@ -193,30 +193,21 @@ docker run -d -p 6379:6379 redis:7-alpine
 
 ## Deployment Configuration
 
-### Vercel (Frontend)
+### DigitalOcean Droplet (Frontend & API)
 
 #### Staging
-
-```bash
-vercel --env .env.staging
-```
-
-#### Production
-
-```bash
-vercel --prod --env .env.production
-```
-
-
-#### Staging
-
-2. Add environment variables from `.env.staging`
-3. Deploy from `develop` branch
+1. SSH into Staging Droplet
+2. `git pull origin develop`
+3. `pnpm install`
+4. `pnpm build`
+5. `pm2 restart all`
 
 #### Production
-
-2. Add environment variables from `.env.production`
-3. Deploy from `main` branch
+1. SSH into Production Droplet (209.97.134.215)
+2. `git pull origin main`
+3. `pnpm install`
+4. `pnpm build`
+5. `pm2 restart all`
 
 ### Docker Compose
 
@@ -271,9 +262,10 @@ SUPABASE_URL=...
 
 ### Option 2: Platform Secrets (Staging/Production)
 
-**Vercel:**
+**DigitalOcean (PM2):**
 ```bash
-vercel env add SUPABASE_URL
+# .env file on server
+export SUPABASE_URL=...
 ```
 
 

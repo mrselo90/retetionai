@@ -15,7 +15,14 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Configuration
+# Configuration
 PROJECT_DIR="/root/retetionai"
+# Source environment variables if .env exists
+if [ -f .env ]; then
+  set -a
+  source .env
+  set +a
+fi
 DB_URL="${DATABASE_URL}"
 
 echo -e "${BLUE}Step 1/7: Pulling latest code from git${NC}"
@@ -65,18 +72,18 @@ echo ""
 
 echo -e "${BLUE}Step 7/7: Performance verification${NC}"
 
-# Test API health
+# Test API health (Port 3002)
 echo "Testing API..."
-API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/api/health || echo "000")
+API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3002/api/health || echo "000")
 if [ "$API_STATUS" = "200" ] || [ "$API_STATUS" = "404" ]; then
     echo -e "${GREEN}✓ API is responding${NC}"
 else
     echo -e "${YELLOW}⚠ API returned status: $API_STATUS${NC}"
 fi
 
-# Test Web server
+# Test Web server (Port 3001)
 echo "Testing Web server..."
-WEB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ || echo "000")
+WEB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/ || echo "000")
 if [ "$WEB_STATUS" = "200" ] || [ "$WEB_STATUS" = "307" ]; then
     echo -e "${GREEN}✓ Web server is responding${NC}"
 else

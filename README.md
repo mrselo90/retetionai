@@ -204,7 +204,7 @@ pnpm test:e2e
 - **State**: React hooks
 
 ### Infrastructure
-- **Hosting**: TBD (Vercel or AWS)
+- **Hosting**: DigitalOcean Droplet (209.97.134.215)
 - **Database**: Supabase Cloud
 - **Cache/Queue**: Upstash Redis
 - **Monitoring**: Sentry (in progress)

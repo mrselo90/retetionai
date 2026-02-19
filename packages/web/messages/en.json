@@ -1,21 +1,56 @@
 {
     "Landing": {
         "title": "Recete Retention Agent",
-        "heroLine": "Post-purchase care that reduces returns and boosts LTV.",
-        "subtitle": "Connect your store. Automate product guidance and support via WhatsApp.",
+        "heroLine": "Reduce returns. Boost repeat purchases. All on autopilot.",
+        "subtitle": "Post-purchase AI that guides your Shopify customers via WhatsApp — from delivery to loyalty.",
         "description": "Reduce return rates and increase LTV with product guides, usage instructions, and proactive messages.",
         "forShopify": "For Shopify merchants",
         "login": "Login",
-        "signup": "Sign Up",
+        "signup": "Get Started Free",
+        "signupSmall": "No credit card required",
         "privacy": "Privacy",
         "terms": "Terms of Service",
+        "dashboardAlt": "Recete dashboard showing engagement metrics",
+        "stats": {
+            "merchants": "500+",
+            "merchantsLabel": "Merchants",
+            "returns": "32%",
+            "returnsLabel": "Fewer Returns",
+            "messages": "50K+",
+            "messagesLabel": "Messages Sent",
+            "satisfaction": "94%",
+            "satisfactionLabel": "Satisfaction"
+        },
         "features": {
-            "automated": "Automated",
-            "automatedDesc": "WhatsApp engagement on autopilot",
-            "aiPowered": "AI-Powered",
-            "aiPoweredDesc": "Smart conversations that convert",
-            "analytics": "Analytics",
-            "analyticsDesc": "Track ROI and engagement metrics"
+            "title": "Everything you need to retain customers",
+            "automated": "Automated WhatsApp Engagement",
+            "automatedDesc": "Send personalized post-purchase messages automatically. Product guides, usage tips, and check-ins — all via WhatsApp at the perfect time.",
+            "automatedBullets": "T+0 welcome · T+3 tips · T+14 feedback",
+            "aiPowered": "AI-Powered Conversations",
+            "aiPoweredDesc": "GPT-4 powered assistant answers customer questions using your product knowledge base. Handles complaints, guides usage, and prevents returns.",
+            "aiPoweredBullets": "RAG pipeline · Intent detection · Human handoff",
+            "analytics": "Analytics & ROI Dashboard",
+            "analyticsDesc": "Track saved returns, repeat purchases, customer sentiment, and engagement rates. See exactly how much revenue your retention efforts generate.",
+            "analyticsBullets": "ROI tracking · Sentiment analysis · RFM segments"
+        },
+        "howItWorks": {
+            "title": "How it works",
+            "subtitle": "Get started in 3 simple steps",
+            "step1Title": "Connect your store",
+            "step1Desc": "One-click Shopify integration. We sync your products and orders automatically.",
+            "step2Title": "AI engages customers",
+            "step2Desc": "After each purchase, our AI sends personalized WhatsApp messages with product guidance.",
+            "step3Title": "Track your results",
+            "step3Desc": "Monitor return rates, customer satisfaction, and ROI in your analytics dashboard."
+        },
+        "cta": {
+            "title": "Ready to reduce returns and boost LTV?",
+            "subtitle": "Join merchants who are transforming their post-purchase experience.",
+            "button": "Start Free Trial"
+        },
+        "footer": {
+            "copyright": "© 2026 Recete. All rights reserved.",
+            "contact": "support@recete.ai"
         }
     },
     "Signup": {
