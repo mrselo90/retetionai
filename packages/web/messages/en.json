@@ -242,11 +242,7 @@
             "saveError": {
                 "title": "Error",
                 "message": "Failed to save instructions"
-            },
-            "saveSuccess": {
-                "title": "Success",
-                "message": "Settings saved successfully"
-            },
+            }
         }
     },
     "Conversations": {
