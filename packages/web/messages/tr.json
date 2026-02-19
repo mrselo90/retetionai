@@ -6,7 +6,15 @@
         "login": "Giriş Yap",
         "signup": "Kayıt Ol",
         "privacy": "Gizlilik",
-        "terms": "Kullanım Koşulları"
+        "terms": "Kullanım Koşulları",
+        "features": {
+            "automated": "Otomatik",
+            "automatedDesc": "WhatsApp ile otomatik etkileşim",
+            "aiPowered": "Yapay Zeka",
+            "aiPoweredDesc": "Dönüşüm sağlayan akıllı sohbetler",
+            "analytics": "Analitik",
+            "analyticsDesc": "ROI ve etkileşim metriklerini takip edin"
+        }
     },
     "Signup": {
         "title": "Hesap Oluştur",

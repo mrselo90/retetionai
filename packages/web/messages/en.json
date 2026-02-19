@@ -6,7 +6,15 @@
         "login": "Login",
         "signup": "Sign Up",
         "privacy": "Privacy",
-        "terms": "Terms of Service"
+        "terms": "Terms of Service",
+        "features": {
+            "automated": "Automated",
+            "automatedDesc": "WhatsApp engagement on autopilot",
+            "aiPowered": "AI-Powered",
+            "aiPoweredDesc": "Smart conversations that convert",
+            "analytics": "Analytics",
+            "analyticsDesc": "Track ROI and engagement metrics"
+        }
     },
     "Signup": {
         "title": "Create Account",
