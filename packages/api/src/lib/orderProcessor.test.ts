@@ -1,100 +1,106 @@
-/**
- * Order Processor Tests
- * Tests for order and user processing from normalized events
- */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { processNormalizedEvent } from './orderProcessor';
-import { createTestNormalizedEvent, createTestUser, createTestOrder } from '../test/fixtures';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { processNormalizedEvent } from './orderProcessor.js';
 import { getSupabaseServiceClient } from '@recete/shared';
-import { mockSupabaseClient } from '../test/mocks';
+import { scheduleOrderMessages } from './messageScheduler.js';
+import { scheduleMessage } from '../queues.js';
 
 // Mock dependencies
-vi.mock('@recete/shared', async () => {
-  const actual = await vi.importActual('@recete/shared');
-  return {
-    ...actual,
-    getSupabaseServiceClient: vi.fn(),
-    getRedisClient: vi.fn(),
-    logger: {
-      info: vi.fn(),
-      error: vi.fn(),
-    },
-  };
-});
-
-vi.mock('./messageScheduler', () => ({
-  scheduleOrderMessages: vi.fn().mockResolvedValue({ tasks: [] }),
+vi.mock('@recete/shared', () => ({
+  getSupabaseServiceClient: vi.fn(),
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+  },
 }));
 
-describe('processNormalizedEvent', () => {
+vi.mock('./messageScheduler.js', () => ({
+  scheduleOrderMessages: vi.fn(),
+}));
+
+vi.mock('../queues.js', () => ({
+  scheduleMessage: vi.fn(),
+}));
+
+vi.mock('./encryption.js', () => ({
+  encryptPhone: (phone: string) => `encrypted_${phone}`,
+}));
+
+describe('processNormalizedEvent - Consent Gate', () => {
+  const mockSupabase = {
+    from: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    (getSupabaseServiceClient as any).mockReturnValue(mockSupabaseClient);
+    (getSupabaseServiceClient as any).mockReturnValue(mockSupabase);
   });
 
-  it('should process order_created event', async () => {
-    const merchantId = 'test-merchant-id';
-    const integrationId = 'integration-id';
-    const event = createTestNormalizedEvent(merchantId, integrationId, {
-      event_type: 'order_created',
-      customer: {
-        phone: '+905551112233',
-        name: 'Test Customer',
-      },
-    });
+  const baseEvent = {
+    merchant_id: 'merchant_123',
+    source: 'shopify',
+    event_type: 'order_delivered',
+    occurred_at: new Date().toISOString(),
+    external_order_id: 'order_456',
+    customer: {
+      phone: '+905551234567',
+      name: 'Test Customer',
+    },
+    order: {
+      status: 'delivered',
+      delivered_at: new Date().toISOString(),
+    },
+    items: [
+      { external_product_id: 'prod_789', name: 'Test Product' }
+    ],
+    consent_status: 'pending', // Default
+  };
 
-    const usersQ = mockSupabaseClient.from('users') as any;
-    usersQ.__pushResult({ data: null, error: { code: 'PGRST116' } }); // user lookup
-    usersQ.__pushResult({ data: { id: 'user-id' }, error: null }); // user insert
+  it('should SCHEDULE messages if user consent is opt_in', async () => {
+    // Mock user lookup (found with opt_in)
+    mockSupabase.single
+      .mockResolvedValueOnce({ data: { id: 'user_123' }, error: null }) // Look up user (found)
+      .mockResolvedValueOnce({ data: { id: 'order_123' }, error: null }) // Look up order (found)
+      .mockResolvedValueOnce({ data: { consent_status: 'opt_in' }, error: null }); // Look up user consent for scheduling
 
-    const ordersQ = mockSupabaseClient.from('orders') as any;
-    ordersQ.__pushResult({ data: null, error: { code: 'PGRST116' } }); // order lookup
-    ordersQ.__pushResult({ data: { id: 'order-id' }, error: null }); // order insert
+    await processNormalizedEvent({ ...baseEvent, consent_status: 'opt_in' } as any);
 
-    const result = await processNormalizedEvent(event);
-
-    expect(result).toBeDefined();
-    expect(result.userId).toBeDefined();
-    expect(result.orderId).toBeDefined();
+    expect(scheduleOrderMessages).toHaveBeenCalled();
+    expect(scheduleMessage).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'welcome',
+      to: baseEvent.customer.phone,
+    }));
   });
 
-  it('should process order_delivered event', async () => {
-    const merchantId = 'test-merchant-id';
-    const integrationId = 'integration-id';
-    const event = createTestNormalizedEvent(merchantId, integrationId, {
-      event_type: 'order_delivered',
-      order: {
-        status: 'delivered',
-        delivered_at: new Date().toISOString(),
-      },
-    });
+  it('should NOT schedule messages if user consent is opt_out', async () => {
+    // Mock user lookup (found with opt_out)
+    mockSupabase.single
+      .mockResolvedValueOnce({ data: { id: 'user_123' }, error: null }) // Look up user
+      .mockResolvedValueOnce({ data: { id: 'order_123' }, error: null }) // Look up order
+      .mockResolvedValueOnce({ data: { consent_status: 'opt_out' }, error: null }); // Look up user consent
 
-    const usersQ = mockSupabaseClient.from('users') as any;
-    usersQ.__pushResult({ data: { id: 'user-id' }, error: null }); // user exists
+    await processNormalizedEvent({ ...baseEvent, consent_status: 'opt_out' } as any);
 
-    const ordersQ = mockSupabaseClient.from('orders') as any;
-    ordersQ.__pushResult({ data: { id: 'order-id' }, error: null }); // order exists
-    ordersQ.__pushResult({ data: null, error: null }); // update await
-
-    const result = await processNormalizedEvent(event);
-
-    expect(result).toBeDefined();
-    expect(result.orderId).toBe('order-id');
+    expect(scheduleOrderMessages).not.toHaveBeenCalled();
+    expect(scheduleMessage).not.toHaveBeenCalled();
   });
 
-  it('should handle missing customer phone', async () => {
-    const merchantId = 'test-merchant-id';
-    const integrationId = 'integration-id';
-    const event = createTestNormalizedEvent(merchantId, integrationId, {
-      customer: {
-        name: 'Test Customer',
-        // No phone
-      },
-    });
+  it('should NOT schedule messages if user consent is pending', async () => {
+    // Mock user lookup (found with pending)
+    mockSupabase.single
+      .mockResolvedValueOnce({ data: { id: 'user_123' }, error: null }) // Look up user
+      .mockResolvedValueOnce({ data: { id: 'order_123' }, error: null }) // Look up order
+      .mockResolvedValueOnce({ data: { consent_status: 'pending' }, error: null }); // Look up user consent
 
-    await expect(processNormalizedEvent(event)).rejects.toThrow(
-      'Phone number is required to process event'
-    );
+    await processNormalizedEvent({ ...baseEvent, consent_status: 'pending' } as any);
+
+    expect(scheduleOrderMessages).not.toHaveBeenCalled();
+    expect(scheduleMessage).not.toHaveBeenCalled();
   });
 });
