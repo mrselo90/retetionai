@@ -102,13 +102,12 @@
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
 
-  /* Primary brand colors - Enhanced teal/cyan palette */
-  --primary: 174 57% 56%;
-  /* #4FD1C5 */
+  /* Primary brand color - Dark slate blue */
+  --primary: 220 26% 14%;
+  /* #1A202C */
   --primary-foreground: 0 0% 100%;
-  --primary-hover: 174 57% 51%;
-  /* Slightly darker for hover */
-  --primary-light: 174 62% 95%;
+  --primary-hover: 220 26% 18%;
+  --primary-light: 220 26% 96%;
 
   /* Secondary colors */
   --secondary: 220 14% 96%;
