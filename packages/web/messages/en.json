@@ -23,6 +23,7 @@
         },
         "features": {
             "title": "Everything you need to retain customers",
+            "subtitle": "Powerful features designed to increase LTV and reduce support workload.",
             "automated": "Automated WhatsApp Engagement",
             "automatedDesc": "Send personalized post-purchase messages automatically. Product guides, usage tips, and check-ins — all via WhatsApp at the perfect time.",
             "automatedBullets": "T+0 welcome · T+3 tips · T+14 feedback",
@@ -31,7 +32,16 @@
             "aiPoweredBullets": "RAG pipeline · Intent detection · Human handoff",
             "analytics": "Analytics & ROI Dashboard",
             "analyticsDesc": "Track saved returns, repeat purchases, customer sentiment, and engagement rates. See exactly how much revenue your retention efforts generate.",
-            "analyticsBullets": "ROI tracking · Sentiment analysis · RFM segments"
+            "analyticsBullets": "ROI tracking · Sentiment analysis · RFM segments",
+            "realTime": "Real-time Sync",
+            "realTimeDesc": "Syncs with Shopify in real-time. Orders utilize webhooks to trigger instant messages.",
+            "realTimeBullets": "Webhooks · Instant triggers · Data sync",
+            "integration": "Easy Integration",
+            "integrationDesc": "Connect your store in seconds. No coding required. Works with your existing tech stack.",
+            "integrationBullets": "1-click setup · No code · API access",
+            "secure": "Enterprise Security",
+            "secureDesc": "Your data is safe with us. We use bank-grade encryption and follow GDPR compliance.",
+            "secureBullets": "GDPR compliant · Encrypted · Secure"
         },
         "howItWorks": {
             "title": "How it works",
@@ -46,11 +56,27 @@
         "cta": {
             "title": "Ready to reduce returns and boost LTV?",
             "subtitle": "Join merchants who are transforming their post-purchase experience.",
-            "button": "Start Free Trial"
+            "button": "Start Free Trial",
+            "secondaryButton": "Book a Demo",
+            "meta": "14-day free trial · No credit card required"
         },
         "footer": {
-            "copyright": "© 2026 Recete. All rights reserved.",
-            "contact": "support@recete.ai"
+            "description": "Recete helps brands reduce returns and increase LTV through proactive AI-driven WhatsApp conversations.",
+            "product": "Product",
+            "features": "Features",
+            "howItWorks": "How it Works",
+            "pricing": "Pricing",
+            "demo": "Book a Demo",
+            "company": "Company",
+            "about": "About Us",
+            "blog": "Blog",
+            "careers": "Careers",
+            "contact": "Contact",
+            "legal": "Legal",
+            "privacy": "Privacy Policy",
+            "terms": "Terms of Service",
+            "cookies": "Cookie Policy",
+            "copyright": "All rights reserved. Built for Shopify."
         }
     },
     "Signup": {
