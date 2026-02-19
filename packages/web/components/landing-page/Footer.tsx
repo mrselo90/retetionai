@@ -2,74 +2,116 @@
 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { Mail, Github, Twitter, Linkedin } from 'lucide-react';
+import { Twitter, Github, Linkedin } from 'lucide-react';
+
+const productLinks = ['features', 'howItWorks', 'pricing', 'bookDemo'] as const;
+const companyLinks = ['aboutUs', 'blog', 'careers', 'contact'] as const;
+const legalLinks = ['privacyPolicy', 'termsOfService', 'cookiePolicy'] as const;
+
+const productHrefs = ['/features', '/#how-it-works', '/pricing', '/contact'];
+const companyHrefs = ['/about', '/blog', '/careers', '/contact'];
+const legalHrefs = ['/privacy-policy', '/terms', '/cookie-policy'];
 
 export function Footer() {
     const t = useTranslations('Landing.footer');
-    const currentYear = new Date().getFullYear();
 
     return (
-        <footer className="border-t border-border bg-card">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 lg:py-16">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-                    <div className="col-span-1 md:col-span-1">
-                        <Link href="/" className="inline-flex items-center gap-2.5 font-bold text-foreground text-xl mb-4">
-                            <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
-                                <span className="text-lg font-extrabold">R</span>
-                            </div>
-                            Recete
-                        </Link>
-                        <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-                            {t('description')}
+        <footer style={{
+            background: '#080d18',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            padding: '64px 24px 32px',
+        }}>
+            <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '48px', marginBottom: '48px' }}>
+                    {/* Brand */}
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                            <div style={{
+                                width: '36px', height: '36px', borderRadius: '10px',
+                                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontWeight: 800, color: '#fff', fontSize: '16px',
+                            }}>R</div>
+                            <span style={{ color: '#f1f5f9', fontWeight: 700, fontSize: '16px' }}>Recete</span>
+                        </div>
+                        <p style={{ color: '#475569', fontSize: '14px', lineHeight: 1.7, maxWidth: '200px' }}>
+                            {t('tagline')}
                         </p>
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+                            {[Twitter, Github, Linkedin].map((Icon, i) => (
+                                <a key={i} href="#" style={{
+                                    width: '36px', height: '36px', borderRadius: '8px',
+                                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: '#64748b', textDecoration: 'none',
+                                }}>
+                                    <Icon size={16} />
+                                </a>
+                            ))}
+                        </div>
                     </div>
 
+                    {/* Product */}
                     <div>
-                        <h4 className="font-semibold text-foreground mb-4">{t('product')}</h4>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li><Link href="#features" className="hover:text-primary transition-colors">{t('features')}</Link></li>
-                            <li><Link href="#how-it-works" className="hover:text-primary transition-colors">{t('howItWorks')}</Link></li>
-                            <li><Link href="/pricing" className="hover:text-primary transition-colors">{t('pricing')}</Link></li>
-                            <li><Link href="/demo" className="hover:text-primary transition-colors">{t('demo')}</Link></li>
-                        </ul>
+                        <h4 style={{ color: '#f1f5f9', fontWeight: 600, fontSize: '14px', marginBottom: '16px' }}>
+                            {t('product')}
+                        </h4>
+                        {productLinks.map((key, i) => (
+                            <Link key={key} href={productHrefs[i]} style={{
+                                display: 'block', color: '#475569', fontSize: '14px',
+                                textDecoration: 'none', marginBottom: '10px', lineHeight: 1.4,
+                            }}>
+                                {t(key)}
+                            </Link>
+                        ))}
                     </div>
 
+                    {/* Company */}
                     <div>
-                        <h4 className="font-semibold text-foreground mb-4">{t('company')}</h4>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li><Link href="/about" className="hover:text-primary transition-colors">{t('about')}</Link></li>
-                            <li><Link href="/blog" className="hover:text-primary transition-colors">{t('blog')}</Link></li>
-                            <li><Link href="/careers" className="hover:text-primary transition-colors">{t('careers')}</Link></li>
-                            <li><a href={`mailto:${t('contact')}`} className="hover:text-primary transition-colors">{t('contact')}</a></li>
-                        </ul>
+                        <h4 style={{ color: '#f1f5f9', fontWeight: 600, fontSize: '14px', marginBottom: '16px' }}>
+                            {t('company')}
+                        </h4>
+                        {companyLinks.map((key, i) => (
+                            <Link key={key} href={companyHrefs[i]} style={{
+                                display: 'block', color: '#475569', fontSize: '14px',
+                                textDecoration: 'none', marginBottom: '10px', lineHeight: 1.4,
+                            }}>
+                                {t(key)}
+                            </Link>
+                        ))}
                     </div>
 
+                    {/* Legal */}
                     <div>
-                        <h4 className="font-semibold text-foreground mb-4">{t('legal')}</h4>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li><Link href="/privacy-policy" className="hover:text-primary transition-colors">{t('privacy')}</Link></li>
-                            <li><Link href="/terms-of-service" className="hover:text-primary transition-colors">{t('terms')}</Link></li>
-                            <li><Link href="/cookies" className="hover:text-primary transition-colors">{t('cookies')}</Link></li>
-                        </ul>
+                        <h4 style={{ color: '#f1f5f9', fontWeight: 600, fontSize: '14px', marginBottom: '16px' }}>
+                            {t('legal')}
+                        </h4>
+                        {legalLinks.map((key, i) => (
+                            <Link key={key} href={legalHrefs[i]} style={{
+                                display: 'block', color: '#475569', fontSize: '14px',
+                                textDecoration: 'none', marginBottom: '10px', lineHeight: 1.4,
+                            }}>
+                                {t(key)}
+                            </Link>
+                        ))}
                     </div>
                 </div>
 
-                <div className="pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
-                    <p className="text-sm text-muted-foreground order-2 md:order-1">
-                        &copy; {currentYear} Recete AI. {t('copyright')}
-                    </p>
-
-                    <div className="flex items-center gap-4 order-1 md:order-2">
-                        <a href="#" className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" aria-label="Twitter">
-                            <Twitter className="w-5 h-5" />
-                        </a>
-                        <a href="#" className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" aria-label="GitHub">
-                            <Github className="w-5 h-5" />
-                        </a>
-                        <a href="#" className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" aria-label="LinkedIn">
-                            <Linkedin className="w-5 h-5" />
-                        </a>
-                    </div>
+                {/* Bottom row */}
+                <div style={{
+                    borderTop: '1px solid rgba(255,255,255,0.06)',
+                    paddingTop: '24px',
+                    display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center',
+                    gap: '12px',
+                }}>
+                    <p style={{ color: '#334155', fontSize: '13px' }}>{t('copyright')}</p>
+                    <span style={{
+                        fontSize: '12px', fontWeight: 600,
+                        background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)',
+                        borderRadius: '100px', padding: '4px 12px', color: '#4ade80',
+                    }}>
+                        Built for Shopify ✓
+                    </span>
                 </div>
             </div>
         </footer>

@@ -1,68 +1,108 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Store, Bot, LineChart, ArrowRight } from 'lucide-react';
+import { Store, Bot, LineChart } from 'lucide-react';
+
+const steps = [
+    {
+        icon: Store,
+        color: '#6366f1',
+        bg: 'rgba(99,102,241,0.15)',
+        border: 'rgba(99,102,241,0.3)',
+        titleKey: 'step1Title',
+        descKey: 'step1Desc',
+    },
+    {
+        icon: Bot,
+        color: '#22c55e',
+        bg: 'rgba(34,197,94,0.15)',
+        border: 'rgba(34,197,94,0.3)',
+        titleKey: 'step2Title',
+        descKey: 'step2Desc',
+    },
+    {
+        icon: LineChart,
+        color: '#3b82f6',
+        bg: 'rgba(59,130,246,0.15)',
+        border: 'rgba(59,130,246,0.3)',
+        titleKey: 'step3Title',
+        descKey: 'step3Desc',
+    },
+];
 
 export function HowItWorks() {
     const t = useTranslations('Landing.howItWorks');
 
-    const steps = [
-        {
-            icon: Store,
-            title: t('step1Title'),
-            desc: t('step1Desc'),
-            step: 1
-        },
-        {
-            icon: Bot,
-            title: t('step2Title'),
-            desc: t('step2Desc'),
-            step: 2
-        },
-        {
-            icon: LineChart,
-            title: t('step3Title'),
-            desc: t('step3Desc'),
-            step: 3
-        }
-    ];
-
     return (
-        <section className="py-20 sm:py-28 bg-muted/30 border-y border-border/50 relative overflow-hidden">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
-                <div className="text-center max-w-3xl mx-auto mb-16">
-                    <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+        <section style={{
+            background: 'linear-gradient(180deg, #0a0f1e 0%, #0f172a 100%)',
+            padding: '96px 24px',
+        }}>
+            <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+                {/* Header */}
+                <div style={{ textAlign: 'center', marginBottom: '72px' }}>
+                    <span style={{
+                        display: 'inline-block',
+                        background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)',
+                        borderRadius: '100px', padding: '6px 16px',
+                        color: '#4ade80', fontSize: '13px', fontWeight: 600,
+                        marginBottom: '16px', letterSpacing: '0.05em', textTransform: 'uppercase',
+                    }}>How it Works</span>
+                    <h2 style={{
+                        fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', fontWeight: 800,
+                        color: '#ffffff', marginBottom: '16px', lineHeight: 1.2,
+                    }}>
                         {t('title')}
                     </h2>
-                    <p className="text-lg text-muted-foreground">
+                    <p style={{ color: '#64748b', fontSize: '1.05rem', maxWidth: '480px', margin: '0 auto' }}>
                         {t('subtitle')}
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-                    {/* Connector Line (Desktop) */}
-                    <div className="hidden md:block absolute top-[2.5rem] left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-border via-primary/30 to-border z-0" />
+                {/* Steps */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', position: 'relative' }}>
+                    {/* Connector line - desktop only */}
+                    <div aria-hidden style={{
+                        position: 'absolute', top: '60px', left: '16.67%', right: '16.67%',
+                        height: '1px',
+                        background: 'linear-gradient(90deg, rgba(99,102,241,0.5), rgba(34,197,94,0.5), rgba(59,130,246,0.5))',
+                    }} />
 
-                    {steps.map((step, index) => (
-                        <div key={index} className="relative z-10 flex flex-col items-center text-center group">
-                            <div className="relative mb-6">
-                                <div className="w-20 h-20 rounded-2xl bg-card border border-border shadow-sm flex items-center justify-center text-primary group-hover:scale-110 transition-all duration-300 group-hover:border-primary/50 group-hover:shadow-lg">
-                                    <step.icon className="w-9 h-9" aria-hidden />
+                    {steps.map((step, i) => {
+                        const Icon = step.icon;
+                        return (
+                            <div key={i} style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                                position: 'relative',
+                            }}>
+                                {/* Number badge */}
+                                <div style={{
+                                    width: '120px', height: '120px', borderRadius: '24px',
+                                    background: step.bg, border: `1px solid ${step.border}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    marginBottom: '24px', position: 'relative', zIndex: 1,
+                                }}>
+                                    <Icon size={40} color={step.color} />
+                                    <span style={{
+                                        position: 'absolute', top: '-10px', right: '-10px',
+                                        width: '28px', height: '28px', borderRadius: '50%',
+                                        background: step.color, color: '#fff',
+                                        fontSize: '13px', fontWeight: 800,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        boxShadow: `0 0 12px ${step.color}80`,
+                                    }}>
+                                        {i + 1}
+                                    </span>
                                 </div>
-                                <div className="absolute -bottom-3 -right-3 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shadow-md ring-4 ring-background">
-                                    {step.step}
-                                </div>
+                                <h3 style={{ color: '#f1f5f9', fontWeight: 700, fontSize: '1.15rem', marginBottom: '12px' }}>
+                                    {t(step.titleKey)}
+                                </h3>
+                                <p style={{ color: '#64748b', fontSize: '14px', lineHeight: 1.7, maxWidth: '280px' }}>
+                                    {t(step.descKey)}
+                                </p>
                             </div>
-
-                            <h3 className="text-xl font-bold text-foreground mb-3">
-                                {step.title}
-                            </h3>
-
-                            <p className="text-muted-foreground leading-relaxed max-w-xs mx-auto">
-                                {step.desc}
-                            </p>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         </section>

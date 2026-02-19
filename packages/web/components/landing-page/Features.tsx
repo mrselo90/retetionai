@@ -1,99 +1,139 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { MessageCircle, Package, BarChart3, Clock, Zap, ShieldCheck } from 'lucide-react';
+import { MessageCircle, Bot, BarChart3, Clock, Zap, ShieldCheck } from 'lucide-react';
+
+const featureConfig = [
+    {
+        icon: MessageCircle,
+        color: '#22c55e',
+        bg: 'rgba(34,197,94,0.1)',
+        border: 'rgba(34,197,94,0.2)',
+        key: 'automated',
+        descKey: 'automatedDesc',
+        bulletsKey: 'automatedBullets',
+    },
+    {
+        icon: Bot,
+        color: '#6366f1',
+        bg: 'rgba(99,102,241,0.1)',
+        border: 'rgba(99,102,241,0.2)',
+        key: 'aiPowered',
+        descKey: 'aiPoweredDesc',
+        bulletsKey: 'aiPoweredBullets',
+    },
+    {
+        icon: BarChart3,
+        color: '#3b82f6',
+        bg: 'rgba(59,130,246,0.1)',
+        border: 'rgba(59,130,246,0.2)',
+        key: 'analytics',
+        descKey: 'analyticsDesc',
+        bulletsKey: 'analyticsBullets',
+    },
+    {
+        icon: Clock,
+        color: '#f59e0b',
+        bg: 'rgba(245,158,11,0.1)',
+        border: 'rgba(245,158,11,0.2)',
+        key: 'realtimeSync',
+        descKey: 'realtimeSyncDesc',
+        bulletsKey: 'realtimeSyncBullets',
+    },
+    {
+        icon: Zap,
+        color: '#a855f7',
+        bg: 'rgba(168,85,247,0.1)',
+        border: 'rgba(168,85,247,0.2)',
+        key: 'easyIntegration',
+        descKey: 'easyIntegrationDesc',
+        bulletsKey: 'easyIntegrationBullets',
+    },
+    {
+        icon: ShieldCheck,
+        color: '#14b8a6',
+        bg: 'rgba(20,184,166,0.1)',
+        border: 'rgba(20,184,166,0.2)',
+        key: 'security',
+        descKey: 'securityDesc',
+        bulletsKey: 'securityBullets',
+    },
+];
 
 export function Features() {
     const t = useTranslations('Landing.features');
 
-    const features = [
-        {
-            icon: MessageCircle,
-            title: t('automated'),
-            desc: t('automatedDesc'),
-            bullets: t('automatedBullets'),
-            color: 'text-blue-500',
-            bg: 'bg-blue-500/10'
-        },
-        {
-            icon: Package,
-            title: t('aiPowered'),
-            desc: t('aiPoweredDesc'),
-            bullets: t('aiPoweredBullets'),
-            color: 'text-purple-500',
-            bg: 'bg-purple-500/10'
-        },
-        {
-            icon: BarChart3,
-            title: t('analytics'),
-            desc: t('analyticsDesc'),
-            bullets: t('analyticsBullets'),
-            color: 'text-green-500',
-            bg: 'bg-green-500/10'
-        },
-        {
-            icon: Clock,
-            title: t('realTime'),
-            desc: t('realTimeDesc'),
-            bullets: t('realTimeBullets'),
-            color: 'text-orange-500',
-            bg: 'bg-orange-500/10'
-        },
-        {
-            icon: Zap,
-            title: t('integration'),
-            desc: t('integrationDesc'),
-            bullets: t('integrationBullets'),
-            color: 'text-yellow-500',
-            bg: 'bg-yellow-500/10'
-        },
-        {
-            icon: ShieldCheck,
-            title: t('secure'),
-            desc: t('secureDesc'),
-            bullets: t('secureBullets'),
-            color: 'text-teal-500',
-            bg: 'bg-teal-500/10'
-        }
-    ];
-
     return (
-        <section className="py-20 sm:py-28 relative overflow-hidden" id="features">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
-                <div className="text-center max-w-3xl mx-auto mb-16">
-                    <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+        <section style={{ background: '#0a0f1e', padding: '96px 24px' }}>
+            <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+                {/* Header */}
+                <div style={{ textAlign: 'center', marginBottom: '64px' }}>
+                    <span style={{
+                        display: 'inline-block',
+                        background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)',
+                        borderRadius: '100px', padding: '6px 16px',
+                        color: '#818cf8', fontSize: '13px', fontWeight: 600,
+                        marginBottom: '16px', letterSpacing: '0.05em', textTransform: 'uppercase',
+                    }}>Features</span>
+                    <h2 style={{
+                        fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', fontWeight: 800,
+                        color: '#ffffff', marginBottom: '16px', lineHeight: 1.2,
+                    }}>
                         {t('title')}
                     </h2>
-                    <p className="text-lg text-muted-foreground">
+                    <p style={{ color: '#64748b', fontSize: '1.05rem', maxWidth: '560px', margin: '0 auto' }}>
                         {t('subtitle')}
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                    {features.map((feature, index) => (
-                        <div
-                            key={index}
-                            className="group relative rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300 hover:-translate-y-1"
-                        >
-                            <div className={`w-14 h-14 rounded-xl ${feature.bg} flex items-center justify-center mb-6 ${feature.color} transition-transform group-hover:scale-110 duration-300`}>
-                                <feature.icon className="w-7 h-7" aria-hidden />
-                            </div>
-
-                            <h3 className="font-bold text-xl text-foreground mb-3">
-                                {feature.title}
-                            </h3>
-
-                            <p className="text-muted-foreground leading-relaxed mb-4">
-                                {feature.desc}
-                            </p>
-
-                            <div className="border-t border-border pt-4 mt-auto">
-                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
-                                    {feature.bullets}
+                {/* Grid */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                    gap: '24px',
+                }}>
+                    {featureConfig.map((f) => {
+                        const Icon = f.icon;
+                        const bullets = t(f.bulletsKey).split('·').map((b: string) => b.trim());
+                        return (
+                            <div key={f.key} style={{
+                                background: 'rgba(255,255,255,0.03)',
+                                border: `1px solid rgba(255,255,255,0.07)`,
+                                borderRadius: '16px',
+                                padding: '28px',
+                                transition: 'border-color 0.2s, transform 0.2s',
+                            }}>
+                                <div style={{
+                                    width: '48px', height: '48px', borderRadius: '12px',
+                                    background: f.bg, border: `1px solid ${f.border}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    marginBottom: '20px',
+                                }}>
+                                    <Icon size={22} color={f.color} />
+                                </div>
+                                <h3 style={{ color: '#f1f5f9', fontWeight: 700, fontSize: '1.05rem', marginBottom: '8px' }}>
+                                    {t(f.key)}
+                                </h3>
+                                <p style={{ color: '#64748b', fontSize: '14px', lineHeight: 1.6, marginBottom: '16px' }}>
+                                    {t(f.descKey)}
                                 </p>
+                                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '16px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {bullets.map((b: string, i: number) => (
+                                        <span key={i} style={{
+                                            fontSize: '11px', fontWeight: 600, letterSpacing: '0.03em',
+                                            color: f.color,
+                                            background: f.bg,
+                                            border: `1px solid ${f.border}`,
+                                            borderRadius: '6px',
+                                            padding: '3px 8px',
+                                        }}>
+                                            {b}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         </section>
