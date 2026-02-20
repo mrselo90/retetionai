@@ -980,6 +980,26 @@
                 "title": "Error",
                 "message": "Failed to scrape product"
             }
+        },
+        "ragAlert": {
+            "emptyTitle": "⚠️ Bot Instructions Missing",
+            "emptyDesc": "The bot has no manual instructions for this product. Add usage instructions below so the bot can answer customer questions correctly.",
+            "thinTitle": "ℹ️ Instructions Need More Detail",
+            "thinDesc": "Usage instructions are too short for the bot to answer questions well. Add more detail (50+ characters)."
+        },
+        "botInstructions": {
+            "title": "Bot Instructions",
+            "description": "These are read directly by the AI bot to answer customer questions on WhatsApp. The more detail here, the better the bot answers.",
+            "readyBadge": "Ready ✓",
+            "usageLabel": "Usage Instructions",
+            "usagePlaceholder": "Describe how to use this product step-by-step. Include dosage, application method, frequency, and any important warnings...",
+            "usageHint": "This is the most important field. The bot uses it directly to answer \"How do I use this?\" questions.",
+            "videoLabel": "Tutorial Video URL (optional)",
+            "videoPlaceholder": "https://youtube.com/...",
+            "videoHint": "When a customer struggles with a product, the bot will share this link.",
+            "preventionLabel": "Return Prevention Tips (optional)",
+            "preventionPlaceholder": "Tips the bot uses when a customer wants to return the product — common issues and how to fix them...",
+            "preventionHint": "Used by the bot when a customer says they want to return the product."
         }
     },
     "Test": {

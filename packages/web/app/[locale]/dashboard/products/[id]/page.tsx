@@ -221,9 +221,39 @@ export default function ProductDetailPage() {
     );
   }
 
+  // Determine RAG quality status for the alert
+  const hasGoodInstructions = usageInstructions.trim().length >= 50;
+  const hasAnyInstructions = usageInstructions.trim().length > 0;
+
   return (
 
     <div className="space-y-6">
+
+      {/* ── RAG Quality Alert ──────────────────────────────────────── */}
+      {!hasGoodInstructions && (
+        <div className={`flex gap-4 p-4 rounded-xl border-2 ${!hasAnyInstructions
+            ? 'border-amber-300 bg-amber-50'
+            : 'border-yellow-200 bg-yellow-50'
+          }`}>
+          <div className="flex-shrink-0 mt-0.5">
+            <svg className={`w-5 h-5 ${!hasAnyInstructions ? 'text-amber-500' : 'text-yellow-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={`font-semibold text-sm ${!hasAnyInstructions ? 'text-amber-800' : 'text-yellow-800'}`}>
+              {!hasAnyInstructions
+                ? t('ragAlert.emptyTitle')
+                : t('ragAlert.thinTitle')}
+            </p>
+            <p className={`text-sm mt-1 ${!hasAnyInstructions ? 'text-amber-700' : 'text-yellow-700'}`}>
+              {!hasAnyInstructions
+                ? t('ragAlert.emptyDesc')
+                : t('ragAlert.thinDesc')}
+            </p>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -309,7 +339,81 @@ export default function ProductDetailPage() {
         )}
       </div>
 
-      {/* Scraped Content */}
+      {/* ── Bot Instructions ──────────────────────────────────────── */}
+      <div className={`bg-card rounded-lg border-2 shadow-sm p-6 space-y-5 ${!hasGoodInstructions ? 'border-amber-300' : 'border-border'
+        }`}>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h2 className="text-xl font-semibold text-zinc-900">{t('botInstructions.title')}</h2>
+            <p className="text-sm text-zinc-500 mt-1">{t('botInstructions.description')}</p>
+          </div>
+          {hasGoodInstructions && (
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full shrink-0">
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              {t('botInstructions.readyBadge')}
+            </span>
+          )}
+        </div>
+
+        {/* Usage Instructions — the main RAG field */}
+        <div>
+          <label className="block text-sm font-semibold text-zinc-700 mb-2">
+            {t('botInstructions.usageLabel')}
+            <span className="text-amber-500 ml-1">*</span>
+          </label>
+          <textarea
+            value={usageInstructions}
+            onChange={(e) => setUsageInstructions(e.target.value)}
+            rows={6}
+            placeholder={t('botInstructions.usagePlaceholder')}
+            className={`w-full px-3 py-2.5 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 text-zinc-900 text-sm resize-y transition-colors ${!hasAnyInstructions
+                ? 'border-amber-300 focus:border-primary bg-amber-50/30'
+                : !hasGoodInstructions
+                  ? 'border-yellow-300 focus:border-primary'
+                  : 'border-zinc-200 focus:border-primary'
+              }`}
+          />
+          <p className="text-xs text-zinc-500 mt-1.5">
+            {usageInstructions.trim().length > 0
+              ? `${usageInstructions.length} karakter — ${hasGoodInstructions ? '✅ Yeterli' : '⚠️ 50+ karakter girin'}`
+              : t('botInstructions.usageHint')
+            }
+          </p>
+        </div>
+
+        {/* Video URL */}
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-2">
+            {t('botInstructions.videoLabel')}
+          </label>
+          <input
+            type="url"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder={t('botInstructions.videoPlaceholder')}
+            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 text-zinc-900 text-sm"
+          />
+          <p className="text-xs text-zinc-500 mt-1">{t('botInstructions.videoHint')}</p>
+        </div>
+
+        {/* Prevention Tips */}
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-2">
+            {t('botInstructions.preventionLabel')}
+          </label>
+          <textarea
+            value={preventionTips}
+            onChange={(e) => setPreventionTips(e.target.value)}
+            rows={3}
+            placeholder={t('botInstructions.preventionPlaceholder')}
+            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 text-zinc-900 text-sm"
+          />
+          <p className="text-xs text-zinc-500 mt-1">{t('botInstructions.preventionHint')}</p>
+        </div>
+      </div>
+
       <div className="bg-card rounded-lg border border-border shadow-sm p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
           <h2 className="text-xl font-semibold text-zinc-900">{t('scrapedContent')}</h2>

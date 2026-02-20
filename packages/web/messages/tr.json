@@ -970,6 +970,26 @@
                 "title": "Hata",
                 "message": "Ürün taranırken bir hata oluştu"
             }
+        },
+        "ragAlert": {
+            "emptyTitle": "⚠️ Bot Talimatı Eksik",
+            "emptyDesc": "Bu ürün için bot talimatı girilmemiş. Aşağıya kullanım talimatı ekleyin, bot müşteri sorularını doğru yanıtlayabilsin.",
+            "thinTitle": "ℹ️ Talimatlar Yetersiz",
+            "thinDesc": "Girilen kullanım talimatları botun iyi cevap vermesi için çok kısa. Lütfen daha fazla detay ekleyin (50+ karakter)."
+        },
+        "botInstructions": {
+            "title": "Bot Talimatları",
+            "description": "Bu bilgiler, WhatsApp'ta müşteri sorularına cevap veren yapay zeka bot tarafından doğrudan okunur. Ne kadar detaylı olursa bot o kadar iyi cevap verir.",
+            "readyBadge": "Hazır ✓",
+            "usageLabel": "Kullanım Talimatı",
+            "usagePlaceholder": "Bu ürünün nasıl kullanılacağını adım adım anlatın. Doz, uygulama yöntemi, sıklık ve önemli uyarıları ekleyin...",
+            "usageHint": "Bu en önemli alandır. Bot bunu \"Bu ürünü nasıl kullanmalıyım?\" sorularını yanıtlamak için doğrudan kullanır.",
+            "videoLabel": "Eğitim Videosu URL (opsiyonel)",
+            "videoPlaceholder": "https://youtube.com/...",
+            "videoHint": "Müşteri üründe zorlandığında bot bu linki paylaşır.",
+            "preventionLabel": "İade Önleme İpuçları (opsiyonel)",
+            "preventionPlaceholder": "Müşteri ürünü iade etmek istediğinde botun kullanacağı ipucuçları — yaygın sorunlar ve çözümleri...",
+            "preventionHint": "Müşteri ürünü iade etmek istediğinde bot tarafından kullanılır."
         }
     },
     "Test": {
