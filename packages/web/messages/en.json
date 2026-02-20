@@ -337,6 +337,11 @@
     "Conversations": {
         "title": "Conversations",
         "description": "All WhatsApp conversations with your customers",
+        "empty": {
+            "title": "No conversations yet",
+            "description": "Conversations will appear here when customers message you",
+            "button": "Start a conversation"
+        },
         "filters": {
             "all": "All",
             "human": "Human",

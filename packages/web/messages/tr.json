@@ -337,6 +337,11 @@
     "Conversations": {
         "title": "Konuşmalar",
         "description": "Müşterilerinizle yapılan tüm WhatsApp konuşmaları",
+        "empty": {
+            "title": "Henüz konuşma yok",
+            "description": "Müşterileriniz mesaj gönderdiğinde burada görünecek",
+            "button": "Konuşma başlat"
+        },
         "filters": {
             "all": "Tümü",
             "human": "İnsan",
