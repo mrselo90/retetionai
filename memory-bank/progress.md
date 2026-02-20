@@ -79,6 +79,10 @@
   - **Scanned Items Database Error**: Identified that Postgres migration `004` failed to run due to conflicting `CREATE POLICY` statements. Commented out conflicts to allow users to apply it manually via Supabase Console.
   - **Scraped Product Saving Bug**: Fixed bug where scanning a URL wouldn't persist `raw_text` appropriately by adding `raw_text` to the `PUT /api/products/:id` request payload, and clearing `setCachedProduct` on save/rescrape.
 
+- **Git & Deploy (Feb 20, 2026)**:
+  - **Git**: All application state pushed to `origin/main` (commit 5a3fc22). `.gitignore` updated to exclude `apply_migration_local.mjs` (local one-off migration script; contains DB credentials — keep local only).
+  - **Server**: To deploy on DigitalOcean, SSH to server then run: `cd /root/retetionai && git pull origin main && ./deploy.sh` (see DEPLOY_INSTRUCTIONS.md).
+
 ## App Icon & Deploy (Feb 17, 2026)
 
 - **App icon 1200×1200**: Source `logo_icons/1200x1200_icon.png`; copy in `packages/web/public/icon.png`. Layout metadata uses `/icon.png` for favicon and Apple touch icon. Shopify MEDIA_ASSETS_CHECKLIST references asset and marks icon-created done.

@@ -1,9 +1,9 @@
 # Active Context
 
 ## Current Focus: Post-Deployment Stability & Store Submission Prep
-- **Status**: Code-complete for BFS gaps G1-G5, deployed to production.
-- **Last Action**: Fixed API connectivity (`INTERNAL_API_URL`), resolved migration script conflict for 004, and fixed product caching/saving issues.
-- **Next Step**: User to manually run `004_subscription_system.sql` in Supabase and handle G6 (Partner Dashboard content).
+- **Status**: Code-complete for BFS gaps G1-G5, deployed to production. Repo pushed to git (5a3fc22).
+- **Last Action**: Pushed all application to git (`.gitignore` update for local migration script); memory-bank updated. Server deploy: run on host `cd /root/retetionai && git pull origin main && ./deploy.sh`.
+- **Next Step**: User to run deploy on server if needed; manually run `004_subscription_system.sql` in Supabase; handle G6 (Partner Dashboard content).
 
 ## Recent Accomplishments
 - **BFS Gap Closure**:
