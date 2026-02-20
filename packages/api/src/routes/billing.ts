@@ -273,14 +273,26 @@ billing.post('/webhooks/shopify', async (c) => {
  */
 billing.get('/addons', async (c) => {
   const merchantId = c.get('merchantId');
-  const subscription = await getMerchantSubscription(merchantId);
-  const merchantAddons = await getMerchantAddons(merchantId);
+
+  // Gracefully handle missing subscription - always return addon list (Shopify standard)
+  let subscription = null;
+  try { subscription = await getMerchantSubscription(merchantId); } catch (_) { /* show locked */ }
+
+  let merchantAddons = [];
+  try { merchantAddons = await getMerchantAddons(merchantId); } catch (_) { /* non-critical */ }
 
   const addonStatusMap = new Map(merchantAddons.map((a) => [a.addon_key, a]));
 
+  // Shopify pattern: ALWAYS return all addon definitions, never hide them.
+  // planAllowed=false = locked with upgrade CTA, not invisible.
+  // Trial merchants get planAllowed=true so they can test the full product.
   const addons = Object.values(ADDON_DEFINITIONS).map((def) => {
     const merchantAddon = addonStatusMap.get(def.key);
-    const planAllowed = subscription ? def.requiredPlan.includes(subscription.plan) : false;
+    const planAllowed = subscription
+      ? def.requiredPlan.includes(subscription.plan)
+        || subscription.status === 'trial'
+        || merchantAddon?.status === 'active'
+      : false;
 
     return {
       ...def,
