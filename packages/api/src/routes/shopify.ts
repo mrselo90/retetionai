@@ -8,6 +8,9 @@ import { authMiddleware } from '../middleware/auth.js';
 import {
   fetchShopifyProducts,
   exchangeSessionToken,
+  getShopifyAuthUrl,
+  verifyShopifyHmac,
+  exchangeCodeForToken,
 } from '../lib/shopify.js';
 import { verifyShopifySessionToken } from '../lib/shopifySession.js';
 import { createApiKeyObject } from '../lib/apiKeyManager.js';
@@ -15,6 +18,97 @@ import { logger } from '@recete/shared';
 import * as crypto from 'crypto';
 
 const shopify = new Hono();
+
+const SHOPIFY_OAUTH_SCOPES = ['read_orders', 'read_products', 'write_products', 'read_customers'];
+
+/**
+ * Start Shopify OAuth (standalone connect from Integrations page)
+ * POST /api/integrations/shopify/auth
+ * Body: { shop: "store.myshopify.com" }
+ * Returns: { authUrl } — redirect user to this URL
+ */
+shopify.post('/auth', authMiddleware, async (c) => {
+  try {
+    const body = (await c.req.json()) as { shop?: string };
+    const shopRaw = body?.shop?.trim();
+    if (!shopRaw) {
+      return c.json({ error: 'shop is required' }, 400);
+    }
+    const shop = shopRaw.includes('.myshopify.com') ? shopRaw : `${shopRaw}.myshopify.com`;
+    const merchantId = c.get('merchantId') as string;
+    const state = Buffer.from(JSON.stringify({ merchantId, n: crypto.randomBytes(8).toString('hex') }), 'utf8').toString('base64url');
+    const authUrl = getShopifyAuthUrl(shop, SHOPIFY_OAUTH_SCOPES, state);
+    return c.json({ authUrl });
+  } catch (err) {
+    logger.error({ err }, 'Shopify auth URL error');
+    return c.json({ error: 'Failed to build auth URL' }, 500);
+  }
+});
+
+/**
+ * Shopify OAuth callback (Shopify redirects here after merchant approves)
+ * GET /api/integrations/shopify/oauth/callback?code=...&shop=...&state=...&hmac=...
+ * Exchanges code for token, saves/updates integration for merchant in state, redirects to frontend.
+ */
+shopify.get('/oauth/callback', async (c) => {
+  const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const redirectBase = `${frontendUrl}/en/dashboard/integrations`;
+  try {
+    const query = c.req.query();
+    const hmac = query.hmac;
+    const code = query.code;
+    const shop = query.shop;
+    const state = query.state;
+    if (!hmac || !code || !shop || !state) {
+      const errMsg = encodeURIComponent('Missing code, shop, state, or hmac');
+      return c.redirect(`${redirectBase}/shopify/callback?error=${errMsg}`);
+    }
+    const queryRecord: Record<string, string> = {};
+    for (const [k, v] of Object.entries(query)) {
+      if (typeof v === 'string') queryRecord[k] = v;
+    }
+    if (!verifyShopifyHmac(queryRecord)) {
+      return c.redirect(`${redirectBase}/shopify/callback?error=${encodeURIComponent('Invalid HMAC')}`);
+    }
+    let merchantId: string;
+    try {
+      const decoded = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
+      merchantId = decoded.merchantId;
+    } catch {
+      return c.redirect(`${redirectBase}/shopify/callback?error=${encodeURIComponent('Invalid state')}`);
+    }
+    const tokenData = await exchangeCodeForToken(shop, code);
+    const serviceClient = getSupabaseServiceClient();
+    const { data: existing } = await serviceClient
+      .from('integrations')
+      .select('id')
+      .eq('merchant_id', merchantId)
+      .eq('provider', 'shopify')
+      .maybeSingle();
+    const authData = { shop, access_token: tokenData.access_token, scope: tokenData.scope };
+    if (existing) {
+      await serviceClient
+        .from('integrations')
+        .update({ status: 'active', auth_data: authData, updated_at: new Date().toISOString() })
+        .eq('id', existing.id);
+    } else {
+      await serviceClient
+        .from('integrations')
+        .insert({
+          merchant_id: merchantId,
+          provider: 'shopify',
+          status: 'active',
+          auth_type: 'oauth',
+          auth_data: authData,
+        });
+    }
+    return c.redirect(`${redirectBase}/shopify/callback?success=true&message=${encodeURIComponent('Shopify connected')}`);
+  } catch (err) {
+    logger.error({ err }, 'Shopify OAuth callback error');
+    const msg = err instanceof Error ? err.message : 'Connection failed';
+    return c.redirect(`${redirectBase}/shopify/callback?error=${encodeURIComponent(msg)}`);
+  }
+});
 
 /**
  * Subscribe to Shopify webhooks

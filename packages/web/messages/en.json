@@ -437,7 +437,9 @@
                 "pending": "Pending",
                 "disabled": "Disabled"
             },
-            "connected": "Connected"
+            "connected": "Connected",
+            "deleteConfirm": "Are you sure you want to remove this integration? This cannot be undone.",
+            "storeLabel": "Store"
         },
         "modals": {
             "shopify": {

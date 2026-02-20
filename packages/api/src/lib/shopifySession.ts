@@ -56,14 +56,15 @@ export async function verifyShopifySessionToken(
       return { valid: false, error: 'Token expired' };
     }
 
-    // Find merchant by Shopify shop
+    // Find merchant by Shopify shop (filter by auth_data.shop)
     const serviceClient = getSupabaseServiceClient();
     const { data: integration } = await serviceClient
       .from('integrations')
       .select('merchant_id')
       .eq('provider', 'shopify')
       .eq('status', 'active')
-      .single();
+      .contains('auth_data', { shop })
+      .maybeSingle();
 
     if (!integration) {
       // Valid token, but no integration yet (new install)

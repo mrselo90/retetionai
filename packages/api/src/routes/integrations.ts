@@ -31,11 +31,14 @@ integrations.get('/', authMiddleware, async (c) => {
       return c.json({ error: 'Failed to fetch integrations' }, 500);
     }
 
-    const integrationList = (rawList || []).map((row: { auth_data?: { phone_number_display?: string }; [k: string]: unknown }) => {
+    const integrationList = (rawList || []).map((row: { auth_data?: { phone_number_display?: string; shop?: string }; provider?: string; [k: string]: unknown }) => {
       const { auth_data, ...rest } = row;
       const out = { ...rest };
       if (row.provider === 'whatsapp' && auth_data && typeof auth_data === 'object' && 'phone_number_display' in auth_data) {
         (out as Record<string, unknown>).phone_number_display = (auth_data as { phone_number_display?: string }).phone_number_display;
+      }
+      if (row.provider === 'shopify' && auth_data && typeof auth_data === 'object' && 'shop' in auth_data) {
+        (out as Record<string, unknown>).shop_domain = (auth_data as { shop?: string }).shop;
       }
       return out;
     });

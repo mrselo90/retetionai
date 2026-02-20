@@ -20,6 +20,8 @@ interface Integration {
   created_at: string;
   updated_at: string;
   phone_number_display?: string;
+  /** Shopify store domain (e.g. store.myshopify.com) when provider is shopify */
+  shop_domain?: string;
 }
 
 export default function IntegrationsPage() {
@@ -48,6 +50,13 @@ export default function IntegrationsPage() {
     loadIntegrations();
     loadApiKeys();
     loadPlatformContact();
+  }, []);
+
+  // Reload integrations when page becomes visible (e.g. after OAuth redirect)
+  useEffect(() => {
+    const onFocus = () => loadIntegrations();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, []);
 
   const loadPlatformContact = async () => {
@@ -415,7 +424,7 @@ export default function IntegrationsPage() {
       {/* Integration Options */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* WhatsApp Business */}
-        <Card className={`p-5 ${hasWhatsApp ? 'border-success/30' : ''}`}>
+        <Card className={`p-5 ${hasWhatsApp ? 'border-success/30 bg-success/5' : ''}`}>
           <div className="text-center relative">
             {hasWhatsApp && (
               <Badge variant="success" size="sm" className="absolute -top-1 -right-1">
@@ -438,7 +447,7 @@ export default function IntegrationsPage() {
         </Card>
 
         {/* Shopify */}
-        <Card className={`p-5 ${hasShopify ? 'border-green-300' : ''}`}>
+        <Card className={`p-5 ${hasShopify ? 'border-success/30 bg-success/5' : ''}`}>
           <div className="text-center relative">
             {hasShopify && (
               <Badge variant="success" size="sm" className="absolute -top-1 -right-1">
@@ -448,7 +457,11 @@ export default function IntegrationsPage() {
             <div className="text-5xl mb-4">🛍️</div>
             <h3 className="text-base font-semibold text-zinc-900 mb-2">{t('providers.shopify.title')}</h3>
             <p className="text-sm text-zinc-600 mb-5 min-h-[40px]">
-              {hasShopify ? t('providers.shopify.connected') : t('providers.shopify.description')}
+              {hasShopify
+                ? (integrations.find((i) => i.provider === 'shopify')?.shop_domain
+                    ? `${t('active.storeLabel')}: ${integrations.find((i) => i.provider === 'shopify')?.shop_domain}`
+                    : t('providers.shopify.connected'))
+                : t('providers.shopify.description')}
             </p>
             <Button
               onClick={() => setShowShopifyModal(true)}
@@ -479,10 +492,10 @@ export default function IntegrationsPage() {
         </Card>
 
         {/* Manual / API */}
-        <Card className={`p-5 ${hasManual ? 'border-purple-300' : ''}`}>
+        <Card className={`p-5 ${hasManual ? 'border-primary/30 bg-primary/5' : ''}`}>
           <div className="text-center relative">
             {hasManual && (
-              <Badge variant="default" size="sm" className="absolute -top-1 -right-1">
+              <Badge variant="secondary" size="sm" className="absolute -top-1 -right-1">
                 ✓ {t('active.connected')}
               </Badge>
             )}
@@ -522,6 +535,11 @@ export default function IntegrationsPage() {
                               — {integration.phone_number_display}
                             </span>
                           )}
+                          {integration.provider === 'shopify' && integration.shop_domain && (
+                            <span className="ml-3 text-base font-medium text-zinc-500">
+                              — {integration.shop_domain}
+                            </span>
+                          )}
                         </h3>
                         <p className="text-sm text-zinc-600 mt-2 font-medium">
                           {t('createdLabel')} {new Date(integration.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
@@ -548,7 +566,7 @@ export default function IntegrationsPage() {
                         size="sm"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => {
-                          if (confirm('Are you sure you want to delete this integration?')) {
+                          if (confirm(t('active.deleteConfirm'))) {
                             handleDeleteIntegration(integration.id);
                           }
                         }}
