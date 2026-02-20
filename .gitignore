@@ -41,3 +41,4 @@ temp/
 
 # Scripts with secrets
 scripts/test-shopify-oauth.sh
+apply_migration_local.mjs
