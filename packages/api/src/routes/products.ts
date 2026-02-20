@@ -11,7 +11,7 @@ import { addScrapeJob } from '../queues.js';
 import { processProductForRAG, batchProcessProducts, getProductChunkCount } from '../lib/knowledgeBase.js';
 import { validateBody, validateParams } from '../middleware/validation.js';
 import { createProductSchema, updateProductSchema, productIdSchema, productInstructionSchema, CreateProductInput, UpdateProductInput, ProductIdParams, ProductInstructionInput } from '../schemas/products.js';
-import { getCachedProduct, setCachedProduct } from '../lib/cache.js';
+import { getCachedProduct, setCachedProduct, invalidateProductCache } from '../lib/cache.js';
 import { enforceStorageLimit } from '../lib/planLimits.js';
 
 const products = new Hono();
@@ -313,8 +313,12 @@ products.delete('/:id', async (c) => {
     .eq('id', productId);
 
   if (error) {
+    console.error('Failed to delete product:', error);
     return c.json({ error: 'Failed to delete product' }, 500);
   }
+
+  // Remove product from cache
+  await invalidateProductCache(productId);
 
   return c.json({ message: 'Product deleted' });
 });

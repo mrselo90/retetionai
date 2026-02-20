@@ -266,11 +266,14 @@ export default function ProductsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <CardTitle className="text-lg line-clamp-2 pr-2 font-bold">{product.name}</CardTitle>
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       if (confirm(t('card.deleteConfirm'))) {
                         handleDeleteProduct(product.id);
                       }
                     }}
+                    type="button"
                     className="flex-shrink-0 p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
                   >
                     <Trash2 className="w-4 h-4" />
