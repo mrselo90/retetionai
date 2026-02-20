@@ -459,8 +459,8 @@ export default function IntegrationsPage() {
             <p className="text-sm text-zinc-600 mb-5 min-h-[40px]">
               {hasShopify
                 ? (integrations.find((i) => i.provider === 'shopify')?.shop_domain
-                    ? `${t('active.storeLabel')}: ${integrations.find((i) => i.provider === 'shopify')?.shop_domain}`
-                    : t('providers.shopify.connected'))
+                  ? `${t('active.storeLabel')}: ${integrations.find((i) => i.provider === 'shopify')?.shop_domain}`
+                  : t('providers.shopify.connected'))
                 : t('providers.shopify.description')}
             </p>
             <Button
@@ -580,8 +580,8 @@ export default function IntegrationsPage() {
             </div>
           </Card>
         ) : (
-          <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors">
-            <CardContent className="p-16 text-center">
+          <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center justify-center min-h-[400px] py-12">
+            <CardContent className="p-0 text-center">
               <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-zinc-100 flex items-center justify-center ">
                 <Plug className="w-10 h-10 text-primary" />
               </div>
