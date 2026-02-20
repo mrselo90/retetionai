@@ -700,6 +700,13 @@
                 "cancel": "İptal",
                 "deleting": "Siliniyor..."
             }
+        },
+        "notifications": {
+            "title": "Bildirimler",
+            "description": "Müşteri insan temsilci istediğinde nereye uyarı gönderileceğini ayarlayın.",
+            "phoneLabel": "WhatsApp Bildirim Numarası",
+            "phonePlaceholder": "+905XXXXXXXXX",
+            "phoneHint": "Müşteri insan istiyor dediğinde bu numaraya WhatsApp mesajı gider. Boş bırakırsanız bildirim gitmez."
         }
     },
     "Analytics": {

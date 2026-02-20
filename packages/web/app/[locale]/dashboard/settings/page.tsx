@@ -46,6 +46,7 @@ export interface CustomGuardrail {
 interface Merchant {
   id: string;
   name: string;
+  notification_phone?: string | null;
   persona_settings?: {
     bot_name?: string;
     tone?: 'friendly' | 'professional' | 'casual' | 'formal';
@@ -96,6 +97,7 @@ export default function SettingsPage() {
   const [temperature, setTemperature] = useState(0.7);
   const [productInstructionsScope, setProductInstructionsScope] = useState<ProductInstructionsScope>('order_only');
   const [whatsappSenderMode, setWhatsappSenderMode] = useState<'merchant_own' | 'corporate'>('merchant_own');
+  const [notificationPhone, setNotificationPhone] = useState('');
 
   // Add-ons
   const [addons, setAddons] = useState<Array<{ key: string; name: string; description: string; priceMonthly: number; status: string; planAllowed: boolean }>>([]);
@@ -147,6 +149,7 @@ export default function SettingsPage() {
       setWhatsappSenderMode(
         persona.whatsapp_sender_mode === 'corporate' ? 'corporate' : 'merchant_own'
       );
+      setNotificationPhone(merchantResponse.merchant.notification_phone || '');
 
       const keysResponse = await authenticatedRequest<{ apiKeys: ApiKey[]; count: number }>(
         '/api/merchants/me/api-keys',
@@ -203,6 +206,7 @@ export default function SettingsPage() {
         {
           method: 'PUT',
           body: JSON.stringify({
+            notification_phone: notificationPhone,
             persona_settings: {
               bot_name: botName,
               tone,
@@ -542,6 +546,40 @@ export default function SettingsPage() {
           </a>
         </p>
       </div>
+
+      {/* ── Notification Settings ──────────────────────────── */}
+      <Card hover className="overflow-hidden shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-orange-500/5 to-transparent">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <CardTitle className="text-2xl">{t('notifications.title')}</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1.5 font-medium">
+                {t('notifications.description')}
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <div className="p-6 space-y-4">
+          <div className="space-y-2.5">
+            <label className="text-sm font-bold text-foreground">
+              {t('notifications.phoneLabel')}
+            </label>
+            <Input
+              type="tel"
+              value={notificationPhone}
+              onChange={(e) => { setNotificationPhone(e.target.value); setIsDirty(true); }}
+              placeholder={t('notifications.phonePlaceholder')}
+              className="h-12"
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('notifications.phoneHint')}
+            </p>
+          </div>
+        </div>
+      </Card>
 
       {/* Bot Persona Settings */}
       <Card hover className="overflow-hidden shadow-lg">

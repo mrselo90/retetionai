@@ -25,7 +25,7 @@ merchants.get('/me', async (c) => {
     const serviceClient = getSupabaseServiceClient();
     const { data: merchant, error } = await serviceClient
       .from('merchants')
-      .select('id, name, persona_settings, created_at, updated_at')
+      .select('id, name, persona_settings, notification_phone, created_at, updated_at')
       .eq('id', merchantId)
       .single();
 
@@ -52,7 +52,7 @@ merchants.put('/me', async (c) => {
     const body = await c.req.json();
 
     // Validate allowed fields
-    const allowedFields = ['name', 'persona_settings'];
+    const allowedFields = ['name', 'persona_settings', 'notification_phone'];
     const updates: Record<string, any> = {};
 
     if (body.name !== undefined) {
@@ -69,6 +69,11 @@ merchants.put('/me', async (c) => {
       updates.persona_settings = body.persona_settings;
     }
 
+    if (body.notification_phone !== undefined) {
+      // Allow empty string to clear the field
+      updates.notification_phone = body.notification_phone?.trim() || null;
+    }
+
     if (Object.keys(updates).length === 0) {
       return c.json({ error: 'No valid fields to update' }, 400);
     }
@@ -78,7 +83,7 @@ merchants.put('/me', async (c) => {
       .from('merchants')
       .update(updates)
       .eq('id', merchantId)
-      .select('id, name, persona_settings, created_at, updated_at')
+      .select('id, name, persona_settings, notification_phone, created_at, updated_at')
       .single();
 
     if (error) {
@@ -299,7 +304,7 @@ merchants.get('/me/api-keys', async (c) => {
 
     // Support both legacy string array and new object array
     const rawKeys = (merchant.api_keys as any[]) || [];
-    
+
     const keyList = rawKeys.map((key, index) => {
       if (typeof key === 'string') {
         // Legacy format

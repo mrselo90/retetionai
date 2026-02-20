@@ -710,6 +710,13 @@
                 "title": "Error saving",
                 "message": "Could not save your settings. Please try again."
             }
+        },
+        "notifications": {
+            "title": "Notifications",
+            "description": "Set where you receive alerts when a customer requests a human agent.",
+            "phoneLabel": "WhatsApp Notification Number",
+            "phonePlaceholder": "+905XXXXXXXXX",
+            "phoneHint": "When a customer asks to speak with a human, a WhatsApp alert is sent to this number. Leave empty to disable WhatsApp notifications."
         }
     },
     "Analytics": {
