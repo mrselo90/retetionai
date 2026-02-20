@@ -82,7 +82,7 @@ export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
  */
 function extractProductInfo(html: string, url: string): Omit<ScrapedProduct, 'metadata'> {
   // Extract title
-  const title = 
+  const title =
     extractMetaTag(html, 'og:title') ||
     extractMetaTag(html, 'twitter:title') ||
     extractTag(html, 'title') ||
@@ -222,31 +222,133 @@ function extractIngredients(html: string): string | null {
   return null;
 }
 
+// ── Noise patterns that should be filtered from scraped content ──
+const NOISE_PATTERNS: RegExp[] = [
+  // Shipping / logistics promotions (repeated banners)
+  /\d+\s*TL\s*ve\s*[üÜuU]zeri\s*(al[ıi][şs]veri[şs]lerde)?\s*(kargo\s*bedava|[üÜ]cretsiz\s*kargo)/gi,
+  /[üÜ]cretsiz\s*kargo/gi,
+  /kargo\s*bedava/gi,
+  /free\s*shipping/gi,
+  /free\s*delivery/gi,
+  // Generic CTAs
+  /hemen\s*al/gi,
+  /sepete\s*ekle/gi,
+  /add\s*to\s*cart/gi,
+  /buy\s*now/gi,
+  /shop\s*now/gi,
+  /sipari[şs]\s*ver/gi,
+  // Social share / follow
+  /bizi\s*(takip\s*edin|takip\s*et)/gi,
+  /follow\s*us/gi,
+  /share\s*this/gi,
+  /paylaş/gi,
+  // Cookie / privacy banners
+  /çerez\s*politikas[ıi]/gi,
+  /cookie\s*policy/gi,
+  /gizlilik\s*politikas[ıi]/gi,
+  // Empty nav lines
+  /^(anasayfa|home|menu|menü|kategori|kategoriler|contact|iletişim|hakkımızda|about us)$/gi,
+];
+
 /**
- * Extract raw text content (remove HTML tags)
+ * Remove noise from a line of text — returns null if the line should be dropped
+ */
+function filterLine(line: string): string | null {
+  const trimmed = line.trim();
+
+  // Drop very short lines (less than 20 chars) — likely nav items or punctuation
+  if (trimmed.length < 20) return null;
+
+  // Drop lines that are entirely punctuation / numbers / symbols
+  if (/^[\d\s.,%$€£₺\-+*/\\|!?@#&()[\]{}'"<>=]+$/.test(trimmed)) return null;
+
+  // Apply noise pattern filters
+  for (const pattern of NOISE_PATTERNS) {
+    pattern.lastIndex = 0; // reset stateful regex
+    if (pattern.test(trimmed)) return null;
+  }
+
+  return trimmed;
+}
+
+/**
+ * Extract raw text content — with noise filtering and deduplication
  */
 function extractRawContent(html: string): string {
-  // Remove script and style tags
-  let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  // ── Step 1: Remove entire noisy DOM sections ──────────────────
+  let cleaned = html;
 
-  // Remove HTML tags
-  text = text.replace(/<[^>]*>/g, ' ');
+  // Remove nav, header, footer, cookie banners, breadcrumbs, sidebar
+  const noiseSections = [
+    /<nav\b[^>]*>[\s\S]*?<\/nav>/gi,
+    /<header\b[^>]*>[\s\S]*?<\/header>/gi,
+    /<footer\b[^>]*>[\s\S]*?<\/footer>/gi,
+    /<aside\b[^>]*>[\s\S]*?<\/aside>/gi,
+    // common cookie/banner class names
+    /<div[^>]*(cookie|banner|announcement|notification|promo|shipping-bar|free-shipping)[^>]*>[\s\S]*?<\/div>/gi,
+    // breadcrumb
+    /<(ol|ul|nav)[^>]*breadcrumb[^>]*>[\s\S]*?<\/(ol|ul|nav)>/gi,
+  ];
 
-  // Decode HTML entities
+  for (const sec of noiseSections) {
+    cleaned = cleaned.replace(sec, ' ');
+  }
+
+  // ── Step 2: Prioritise product-specific content ───────────────
+  // Try to find the main product description block — common patterns
+  const descriptionPatterns = [
+    /<div[^>]*(product[_-]description|product[_-]details|product[_-]info|ProductDescription|tab-content)[^>]*>([\s\S]*?)<\/div>/i,
+    /<section[^>]*(product|description|details)[^>]*>([\s\S]*?)<\/section>/i,
+  ];
+
+  let productSpecificContent = '';
+  for (const p of descriptionPatterns) {
+    const m = cleaned.match(p);
+    if (m) {
+      productSpecificContent = m[0];
+      break;
+    }
+  }
+
+  // Use product-specific content if found and substantial; otherwise use whole page
+  const sourceHtml = productSpecificContent.length > 200 ? productSpecificContent : cleaned;
+
+  // ── Step 3: Strip scripts, styles, remaining HTML tags ────────
+  let text = sourceHtml
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]*>/g, '\n'); // Replace tags with newlines to preserve line structure
+
+  // ── Step 4: Decode HTML entities ─────────────────────────────
   text = text
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+    .replace(/&#39;/g, "'")
+    .replace(/&#\d+;/g, ' ');
 
-  // Collapse whitespace
-  text = text.replace(/\s+/g, ' ').trim();
+  // ── Step 5: Filter noise lines + deduplicate ─────────────────
+  const seenLines = new Set<string>();
+  const lines = text.split('\n');
+  const keptLines: string[] = [];
 
-  // Limit to 10000 chars for RAG
-  return text.substring(0, 10000);
+  for (const line of lines) {
+    const filtered = filterLine(line);
+    if (!filtered) continue;
+
+    // Deduplication — normalise for comparison
+    const normalized = filtered.toLowerCase().replace(/\s+/g, ' ');
+    if (seenLines.has(normalized)) continue;
+    seenLines.add(normalized);
+
+    keptLines.push(filtered);
+  }
+
+  // ── Step 6: Re-join and limit ─────────────────────────────────
+  const result = keptLines.join(' ').replace(/\s+/g, ' ').trim();
+  return result.substring(0, 10000);
 }
 
 /**
