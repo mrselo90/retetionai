@@ -622,7 +622,7 @@ export default function SettingsPage() {
             <label className="text-sm font-bold text-foreground block mb-3">
               {t('botPersona.toneLabel')}
             </label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               {(['friendly', 'professional', 'casual', 'formal'] as const).map((tKey) => (
                 <button
                   key={tKey}
@@ -661,7 +661,7 @@ export default function SettingsPage() {
             <label className="text-sm font-bold text-foreground block mb-3">
               {t('botPersona.responseLengthLabel')}
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {(['short', 'medium', 'long'] as const).map((length) => (
                 <button
                   key={length}

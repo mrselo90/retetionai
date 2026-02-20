@@ -225,7 +225,7 @@ export default function ConversationsPage() {
       })()}
 
 
-      <div className="flex items-center gap-3 flex-wrap overflow-x-auto pb-2">
+      <div className="flex items-center gap-3 flex-nowrap overflow-x-auto no-scrollbar pb-2">
         {[
           { key: 'all' as const, label: `${t('filters.all')} (${conversations.length})` },
           { key: 'positive' as const, label: `${t('filters.positive')} (${conversations.filter((c) => c.sentiment === 'positive').length})` },
@@ -237,7 +237,7 @@ export default function ConversationsPage() {
             variant={filter === f.key ? 'default' : 'outline'}
             size="lg"
             onClick={() => setFilter(f.key)}
-            className="shadow-sm font-bold"
+            className="shadow-sm font-bold shrink-0 whitespace-nowrap"
           >
             {f.label}
           </Button>
@@ -255,7 +255,7 @@ export default function ConversationsPage() {
             variant={statusFilter === f.key ? 'info' : 'outline'}
             size="lg"
             onClick={() => setStatusFilter(f.key)}
-            className="shadow-sm font-bold"
+            className="shadow-sm font-bold shrink-0 whitespace-nowrap"
           >
             {f.label}
           </Button>

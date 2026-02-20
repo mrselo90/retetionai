@@ -134,7 +134,7 @@ export default function CustomersPage() {
                 href={`/dashboard/customers/${customer.id}`}
                 className="block p-5 hover:bg-muted/50 transition-colors"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                       <Users className="w-5 h-5 text-primary" />
