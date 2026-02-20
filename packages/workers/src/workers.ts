@@ -184,14 +184,17 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
         throw new Error(scrapeResult.error || 'Scraping failed');
       }
 
-      // Step 2: Enrich product content with LLM via API
+      // Step 2: Enrich product content with LLM via API (internal key for worker auth)
       const rawContent = scrapeResult.product!.rawContent;
       let enrichedText = rawContent;
+      const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:3001';
+      const internalKey = process.env.INTERNAL_API_KEY;
+      const enrichHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (internalKey) enrichHeaders['X-Internal-Key'] = internalKey;
       try {
-        const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:8080';
         const enrichRes = await fetch(`${apiUrl}/api/products/enrich`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: enrichHeaders,
           body: JSON.stringify({ rawText: rawContent, title: scrapeResult.product?.title || 'Unknown Product' })
         });
         if (enrichRes.ok) {
@@ -207,7 +210,7 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
       const { error: updateError } = await serviceClient
         .from('products')
         .update({
-          raw_content: rawContent,
+          raw_text: rawContent,
           enriched_text: enrichedText,
           last_scraped_at: new Date().toISOString(),
         })
@@ -222,12 +225,11 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
       // Note: The worker only passes 2 arguments here because it imports an older type definition, but the API will handle it internally using the latest DB state.
       // Wait, we can't easily instruct processProductForRAG via worker if it doesn't take 3 args. ACTUALLY we should call the API's POST generate-embeddings.
 
-      const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:8080';
+      const embedHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (internalKey) embedHeaders['X-Internal-Key'] = internalKey;
       const embedRes = await fetch(`${apiUrl}/api/products/${productId}/generate-embeddings`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: embedHeaders,
       });
 
       if (!embedRes.ok) {

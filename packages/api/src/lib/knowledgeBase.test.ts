@@ -134,8 +134,8 @@ describe('Knowledge Base Module', () => {
         it('should process multiple products successfully', async () => {
             const productIds = ['prod-1', 'prod-2'];
             const mockProducts = [
-                { id: 'prod-1', raw_content: 'Content for product 1' },
-                { id: 'prod-2', raw_content: 'Content for product 2' },
+                { id: 'prod-1', raw_text: 'Content for product 1' },
+                { id: 'prod-2', raw_text: 'Content for product 2' },
             ];
 
             mockSupabase.in.mockResolvedValue({ data: mockProducts, error: null });
@@ -154,11 +154,11 @@ describe('Knowledge Base Module', () => {
             expect(results[1].success).toBe(true);
         });
 
-        it('should handle products without raw_content', async () => {
+        it('should handle products without raw_text or enriched_text', async () => {
             const productIds = ['prod-1', 'prod-2'];
             const mockProducts = [
-                { id: 'prod-1', raw_content: 'Content' },
-                { id: 'prod-2', raw_content: null },
+                { id: 'prod-1', raw_text: 'Content' },
+                { id: 'prod-2', raw_text: null, enriched_text: null },
             ];
 
             mockSupabase.in.mockResolvedValue({ data: mockProducts, error: null });
@@ -175,7 +175,7 @@ describe('Knowledge Base Module', () => {
             expect(results).toHaveLength(2);
             expect(results[0].success).toBe(true);
             expect(results[1].success).toBe(false);
-            expect(results[1].error).toBe('No raw_content available');
+            expect(results[1].error).toBe('No raw_text or enriched_text available');
         });
 
         it('should throw error if products fetch fails', async () => {
@@ -187,8 +187,8 @@ describe('Knowledge Base Module', () => {
         it('should process products with delay between them', async () => {
             const productIds = ['prod-1', 'prod-2'];
             const mockProducts = [
-                { id: 'prod-1', raw_content: 'Content 1' },
-                { id: 'prod-2', raw_content: 'Content 2' },
+                { id: 'prod-1', raw_text: 'Content 1' },
+                { id: 'prod-2', raw_text: 'Content 2' },
             ];
 
             mockSupabase.in.mockResolvedValue({ data: mockProducts, error: null });

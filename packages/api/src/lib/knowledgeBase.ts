@@ -104,10 +104,10 @@ export async function batchProcessProducts(
 ): Promise<ProcessProductResult[]> {
   const serviceClient = getSupabaseServiceClient();
 
-  // Get products with raw_content
+  // Get products with raw_text and enriched_text
   const { data: products, error } = await serviceClient
     .from('products')
-    .select('id, raw_content, enriched_text')
+    .select('id, raw_text, enriched_text')
     .in('id', productIds);
 
   if (error || !products) {
@@ -118,20 +118,20 @@ export async function batchProcessProducts(
   const results: ProcessProductResult[] = [];
 
   for (const product of products) {
-    if (!product.raw_content && !product.enriched_text) {
+    if (!product.raw_text && !product.enriched_text) {
       results.push({
         productId: product.id,
         chunksCreated: 0,
         totalTokens: 0,
         success: false,
-        error: 'No raw_content available',
+        error: 'No raw_text or enriched_text available',
       });
       continue;
     }
 
     const result = await processProductForRAG(
       product.id,
-      product.raw_content || '',
+      product.raw_text || '',
       product.enriched_text || undefined
     );
     results.push(result);

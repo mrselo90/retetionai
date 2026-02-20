@@ -469,20 +469,28 @@ products.post('/scrape-batch', async (c) => {
  * POST /api/products/:id/generate-embeddings
  */
 products.post('/:id/generate-embeddings', async (c) => {
-  const merchantId = c.get('merchantId');
+  const isInternal = c.get('internalCall') === true;
   const productId = c.req.param('id');
   const serviceClient = getSupabaseServiceClient();
 
-  // Get product
-  const { data: product, error: fetchError } = await serviceClient
+  // Get product (internal call: by id only, then use product.merchant_id)
+  const productQuery = serviceClient
     .from('products')
-    .select('id, raw_text, enriched_text')
-    .eq('id', productId)
-    .eq('merchant_id', merchantId)
-    .single();
+    .select('id, merchant_id, raw_text, enriched_text')
+    .eq('id', productId);
+  if (!isInternal) {
+    const merchantId = c.get('merchantId');
+    productQuery.eq('merchant_id', merchantId);
+  }
+  const { data: product, error: fetchError } = await productQuery.single();
 
   if (fetchError || !product) {
     return c.json({ error: 'Product not found' }, 404);
+  }
+
+  const merchantId = isInternal ? (product as { merchant_id?: string }).merchant_id : c.get('merchantId');
+  if (!merchantId) {
+    return c.json({ error: 'Product has no merchant_id' }, 400);
   }
 
   if (!product.raw_text && !product.enriched_text) {
