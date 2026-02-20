@@ -35,8 +35,9 @@ export default function AdminMerchantsPage() {
             });
 
             if (res.impersonationUrl) {
-                // Open the magic link in a new tab to avoid breaking the current admin session
-                window.open(res.impersonationUrl, '_blank');
+                // Redirect the current tab to the magic link to avoid Popup Blockers
+                // This swaps the session in localStorage and logs the admin into the merchant dashboard
+                window.location.href = res.impersonationUrl;
             }
         } catch (err: any) {
             toast.error('Impersonation failed', err.message);

@@ -122,11 +122,16 @@ admin.post('/impersonate', async (c) => {
         }
 
         // Use Supabase Admin API to generate a link or custom token.
-        // The best exact "impersonation" method without their password
-        // is generating a one-time password or an auth link:
+        // We capture the request Origin to properly redirect to the frontend callback
+        const origin = c.req.header('Origin') || c.req.header('Referer')?.split('/').slice(0, 3).join('/') || 'https://platform.recete.ai';
+        const redirectTo = `${origin}/auth/callback`;
+
         const { data: linkData, error: linkError } = await serviceClient.auth.admin.generateLink({
             type: 'magiclink',
             email: user.user.email as string,
+            options: {
+                redirectTo,
+            }
         });
 
         if (linkError) {
@@ -134,7 +139,7 @@ admin.post('/impersonate', async (c) => {
             return c.json({ error: 'Failed to generate impersonation token' }, 500);
         }
 
-        // Return the magic link to the frontend so it can automatically open it in a new tab
+        // Return the magic link to the frontend so it can redirect the current tab
         return c.json({ impersonationUrl: linkData.properties.action_link });
     } catch (error) {
         console.error('Impersonation error:', error);
