@@ -1,9 +1,9 @@
 # Active Context
 
-## Current Focus: Shopify App Store Submission Prep
-- **Status**: Code-complete for BFS gaps G1-G5.
-- **Last Action**: Implemented and verified seamless onboarding, s-app-nav, save bar, error UX, and plan-gated UI.
-- **Next Step**: User to handle G6 (Partner Dashboard content) and deployment.
+## Current Focus: Post-Deployment Stability & Store Submission Prep
+- **Status**: Code-complete for BFS gaps G1-G5, deployed to production.
+- **Last Action**: Fixed API connectivity (`INTERNAL_API_URL`), resolved migration script conflict for 004, and fixed product caching/saving issues.
+- **Next Step**: User to manually run `004_subscription_system.sql` in Supabase and handle G6 (Partner Dashboard content).
 
 ## Recent Accomplishments
 - **BFS Gap Closure**:
@@ -24,4 +24,5 @@
 
 ## Known Issues / Notes
 - **Dev Store Testing**: Cannot be automated agent-side. User must verify the embedded flow on a real dev store.
-- **Supabase Key**: Ensure `SUPABASE_SERVICE_ROLE_KEY` is set on the production server for the new G1 onboarding flow to work.
+- **Supabase Key**: `SUPABASE_SERVICE_ROLE_KEY` must be set on the production server for the G1 onboarding flow.
+- **Database Migration**: `004_subscription_system.sql` must be manually executed by the user via Supabase SQL Editor due to droplet IPv6 connection limitations restricting automated deployment of the SQL functions.

@@ -6,8 +6,8 @@
 
 **Phase**: Production Ready → Shopify Marketplace Launch  
 **MVP Completion**: 100% Backend + 100% Frontend ✅  
-**Marketplace Readiness**: 16% (7/43 tasks completed, 36 remaining)  
-**Last Updated**: 2026-02-17
+**Marketplace Readiness**: 27% (12/43 tasks completed, 31 remaining) - BFS Gaps G1-G5 completed!
+**Last Updated**: 2026-02-20
 
 ## Docker + Kubernetes + Ingress (Feb 2026 – local run complete)
 
@@ -73,6 +73,11 @@
   - Conversation detail: Return prevention badge with outcome
   - ROI endpoint: replaced keyword-based savedReturns with structured `return_prevention_attempts` query
   - Full translations in `ReturnPrevention` namespace (en + tr)
+
+- **Post-Deployment & Bug Fixes (Feb 20, 2026)**:
+  - **API Connectivity Error**: Fixed frontend error (`Could not reach the API`) by explicitly injecting `INTERNAL_API_URL=http://127.0.0.1:3002` to PM2 `.env`.
+  - **Scanned Items Database Error**: Identified that Postgres migration `004` failed to run due to conflicting `CREATE POLICY` statements. Commented out conflicts to allow users to apply it manually via Supabase Console.
+  - **Scraped Product Saving Bug**: Fixed bug where scanning a URL wouldn't persist `raw_text` appropriately by adding `raw_text` to the `PUT /api/products/:id` request payload, and clearing `setCachedProduct` on save/rescrape.
 
 ## App Icon & Deploy (Feb 17, 2026)
 

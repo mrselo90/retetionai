@@ -11,14 +11,9 @@
 
 | Gap | BFS Req | Description | Effort |
 |-----|---------|-------------|--------|
-| G1 | 3.1.3 | **Seamless onboarding** — `verify-session` must return a Supabase auth token so frontend can create a session without email/password | 3 days |
-| G2 | 4.1.4 | **`s-app-nav`** — hide custom sidebar when embedded; register navigation via App Bridge web component | 2 days |
-| G3 | 4.1.5 | **Contextual Save Bar** — Settings + Bot Info forms need `s-save-bar` when embedded | 1 day |
-| G4 | 4.2.4 | **Error UX** — errors must NOT auto-dismiss (toasts fail BFS); must appear inline next to fields | 1 day |
-| G5 | 4.3.7 | **Plan-gated features** — locked features must be visually greyed out + labelled with required plan | 1 day |
 | G6 | 5.1–5.4 | **Partner Dashboard listing** — upload icon, write description/tagline, configure pricing plans | 1 day |
 
-**Total**: 9 working days to submit-ready  
+**Total**: 1 working day to submit-ready  
 **Full plan**: `brain/implementation_plan.md`
 
 ---
@@ -54,6 +49,11 @@
 | Multi-tenant data isolation | ✅ | RLS, merchant-scoped queries |
 | Feature bullet: no false claims | ✅ | Copy says "reduce returns", not "guarantee 18% uplift" |
 | No auto-popups on load | ✅ | No modals/popovers appear automatically |
+| G1: Seamless onboarding | ✅ | `verify-session` provisions and returns auth token |
+| G2: `s-app-nav` navigation | ✅ | Side-nav hides and registers native app nav when embedded |
+| G3: Contextual Save Bar | ✅ | `s-save-bar` implemented on settings forms |
+| G4: Error UX | ✅ | Form errors display inline via `InlineError` component |
+| G5: Plan-gated features | ✅ | UI greyed out and labeled for un-subscribed plans |
 
 ---
 

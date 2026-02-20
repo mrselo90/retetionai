@@ -1,4 +1,4 @@
-# Current Status — February 16, 2026
+# Current Status — February 20, 2026
 
 ## 🟢 Application is LIVE
 
@@ -44,10 +44,10 @@ cd /root/retetionai && git pull && pnpm install && cd packages/web && pnpm build
 | Nginx config | `/etc/nginx/sites-available/recete` |
 | PM2 config | `~/.pm2/dump.pm2` |
 
-**Ports & "Could not reach the API"**: Frontend = 3001, API = 3002. Nginx must route `/api-backend/*` to the frontend. Web process must have **INTERNAL_API_URL=http://127.0.0.1:3002**. See `docs/deployment/PORTS_AND_ROUTING.md` and `docs/deployment/NGINX_EXAMPLE.conf`.
+**Ports & "Could not reach the API"**: Fixed inside PM2 process via `.env` by setting **INTERNAL_API_URL=http://127.0.0.1:3002**. 
 
-47: ### Next Steps
-48: 1.  **Deployment:** ✅ Push i18n changes to the server (Build fixed & deployed).
-49: 2.  **SSL/Domain:** Configure custom domain and Let's Encrypt SSL.
-50: 3.  **Localization:** Finish localizing inner dashboard pages.
-51: 4.  **Integrations:** Verify Shopify OAuth and WhatsApp API.
+### Next Steps
+1.  **Database Migration:** ✅ User MUST execute `004_subscription_system.sql` manually in Supabase SQL Editor to resolve missing `get_merchant_usage` function.
+2.  **SSL/Domain:** Configure custom domain and Let's Encrypt SSL.
+3.  **App Store Listing:** Complete Partner Dashboard listing (G6).
+4.  **Integrations:** Verify Shopify OAuth and WhatsApp API.
