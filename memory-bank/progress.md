@@ -80,8 +80,8 @@
   - **Scraped Product Saving Bug**: Fixed bug where scanning a URL wouldn't persist `raw_text` appropriately by adding `raw_text` to the `PUT /api/products/:id` request payload, and clearing `setCachedProduct` on save/rescrape.
 
 - **Git & Deploy (Feb 20, 2026)**:
-  - **Git**: All application state pushed to `origin/main` (commit 5a3fc22). `.gitignore` updated to exclude `apply_migration_local.mjs` (local one-off migration script; contains DB credentials — keep local only).
-  - **Server**: To deploy on DigitalOcean, SSH to server then run: `cd /root/retetionai && git pull origin main && ./deploy.sh` (see DEPLOY_INSTRUCTIONS.md).
+  - **Git**: All application state pushed to `origin/main` (commit b8670c9). `.gitignore` updated to exclude `apply_migration_local.mjs` (local one-off migration script; contains DB credentials — keep local only).
+  - **Server**: Deployed on DigitalOcean (209.97.134.215): git pull, pnpm build, pm2 restart all — api, web, workers online. DB migration step (010_performance_indexes) skipped on server (Supabase IPv6 unreachable from droplet); run migrations from local or Supabase Console if needed.
 
 ## App Icon & Deploy (Feb 17, 2026)
 
