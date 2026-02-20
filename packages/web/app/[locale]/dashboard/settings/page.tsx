@@ -62,6 +62,7 @@ interface Merchant {
 interface ApiKey {
   id: number;
   hash: string;
+  hash_full?: string;
   name?: string;
   created_at: string;
   expires_at?: string;
@@ -152,7 +153,7 @@ export default function SettingsPage() {
       setNotificationPhone(merchantResponse.merchant.notification_phone || '');
 
       const keysResponse = await authenticatedRequest<{ apiKeys: ApiKey[]; count: number }>(
-        '/api/merchants/me/api-keys',
+        '/api/auth/api-keys',
         session.access_token
       );
       setApiKeys(keysResponse.apiKeys);
@@ -400,7 +401,7 @@ export default function SettingsPage() {
       setCreatingKey(true);
 
       const response = await authenticatedRequest<{ apiKey: string }>(
-        '/api/merchants/me/api-keys',
+        '/api/auth/api-keys',
         session.access_token,
         {
           method: 'POST',
@@ -423,13 +424,13 @@ export default function SettingsPage() {
     toast.success(t('toasts.copySuccess.title'), t('toasts.copySuccess.message'));
   };
 
-  const handleRevokeApiKey = async (keyId: number) => {
+  const handleRevokeApiKey = async (keyHash: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
       await authenticatedRequest(
-        `/api/merchants/me/api-keys/${keyId}`,
+        `/api/auth/api-keys/${keyHash}`,
         session.access_token,
         {
           method: 'DELETE',
@@ -1070,7 +1071,7 @@ export default function SettingsPage() {
           ) : (
             <div className="space-y-3">
               {apiKeys.map((key, idx) => {
-                const keyHash = key.hash;
+                const keyHash = key.hash_full || key.hash;
 
                 return (
                   <div
@@ -1125,7 +1126,7 @@ export default function SettingsPage() {
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => {
                           if (confirm('Are you sure you want to revoke this API key?')) {
-                            handleRevokeApiKey(key.id);
+                            handleRevokeApiKey(keyHash);
                           }
                         }}
                       >
