@@ -162,7 +162,7 @@ products.put('/:id/instruction', validateParams(productIdSchema), validateBody(p
 products.get('/:id', async (c) => {
   const merchantId = c.get('merchantId');
   const productId = c.req.param('id');
-  
+
   // Try cache first
   const cached = await getCachedProduct(productId) as any;
   if (cached && cached.merchant_id) {
@@ -171,7 +171,7 @@ products.get('/:id', async (c) => {
       return c.json({ product: cached });
     }
   }
-  
+
   const serviceClient = getSupabaseServiceClient();
 
   const { data: product, error } = await serviceClient
@@ -272,13 +272,16 @@ products.put('/:id', validateParams(productIdSchema), validateBody(updateProduct
 
   if (error) {
     console.error('Product update error:', error);
-    return c.json({ 
+    return c.json({
       error: 'Failed to update product',
       details: error.message,
       code: error.code,
       hint: error.hint
     }, 500);
   }
+
+  // Update cache
+  await setCachedProduct(productId, product, 600);
 
   return c.json({ product });
 });
@@ -360,13 +363,16 @@ products.post('/:id/scrape', async (c) => {
 
   if (updateError) {
     console.error('Product scrape update error:', updateError);
-    return c.json({ 
+    return c.json({
       error: 'Failed to update product',
       details: updateError.message,
       code: updateError.code,
       hint: updateError.hint
     }, 500);
   }
+
+  // Update cache
+  await setCachedProduct(productId, updatedProduct, 600);
 
   return c.json({
     message: 'Product scraped successfully',

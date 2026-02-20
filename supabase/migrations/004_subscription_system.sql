@@ -82,18 +82,18 @@ CREATE INDEX IF NOT EXISTS idx_merchants_subscription_plan ON merchants(subscrip
 -- Add RLS policies for usage_tracking
 ALTER TABLE usage_tracking ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Merchants can view their own usage"
-  ON usage_tracking
-  FOR SELECT
-  USING (auth.uid() = merchant_id);
+-- CREATE POLICY "Merchants can view their own usage"
+--   ON usage_tracking
+--   FOR SELECT
+--   USING (auth.uid() = merchant_id);
 
 -- Add RLS policy for subscription_plans (public read)
 ALTER TABLE subscription_plans ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can view active subscription plans"
-  ON subscription_plans
-  FOR SELECT
-  USING (is_active = true);
+-- CREATE POLICY "Anyone can view active subscription plans"
+--   ON subscription_plans
+--   FOR SELECT
+--   USING (is_active = true);
 
 -- Function to get current usage for a merchant
 CREATE OR REPLACE FUNCTION get_merchant_usage(merchant_uuid UUID, period_start_date TIMESTAMPTZ DEFAULT date_trunc('month', NOW()))

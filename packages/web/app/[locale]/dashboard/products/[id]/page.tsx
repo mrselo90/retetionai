@@ -30,7 +30,7 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const productId = params.id as string;
-  
+
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -104,6 +104,7 @@ export default function ProductDetailPage() {
           body: JSON.stringify({
             name: editedName,
             url: editedUrl,
+            raw_text: editedRawText,
           }),
         }
       );
@@ -190,222 +191,222 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      
-        <div className="space-y-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-zinc-200 rounded w-1/4"></div>
-            <div className="h-4 bg-zinc-200 rounded w-1/2"></div>
-            <div className="h-64 bg-zinc-200 rounded"></div>
-          </div>
+
+      <div className="space-y-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-zinc-200 rounded w-1/4"></div>
+          <div className="h-4 bg-zinc-200 rounded w-1/2"></div>
+          <div className="h-64 bg-zinc-200 rounded"></div>
         </div>
-      
+      </div>
+
     );
   }
 
   if (!product) {
     return (
-      
-        <div className="space-y-6">
-          <div className="bg-card rounded-lg border border-border shadow-sm p-12 text-center">
-            <p className="text-zinc-600">{t('notFound')}</p>
-            <button
-              onClick={() => router.push('/dashboard/products')}
-              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"
-            >
-              {t('backToProducts')}
-            </button>
-          </div>
+
+      <div className="space-y-6">
+        <div className="bg-card rounded-lg border border-border shadow-sm p-12 text-center">
+          <p className="text-zinc-600">{t('notFound')}</p>
+          <button
+            onClick={() => router.push('/dashboard/products')}
+            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"
+          >
+            {t('backToProducts')}
+          </button>
         </div>
-      
+      </div>
+
     );
   }
 
   return (
-    
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <button
-              onClick={() => router.push('/dashboard/products')}
-              className="text-sm text-primary hover:underline mb-2 flex items-center gap-1 font-medium"
-            >
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              {t('backToProducts')}
-            </button>
-            <h1 className="text-3xl font-bold text-zinc-900">{t('editProduct')}</h1>
-            <p className="mt-2 text-zinc-600">{t('editDescription')}</p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleRescrape}
-              disabled={rescraping}
-              className="px-4 py-2 border border-zinc-300 text-zinc-700 rounded-lg hover:bg-zinc-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {rescraping ? 'Taranıyor...' : 'Yeniden Tara'}
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? t('saving') : t('save')}
-            </button>
-          </div>
+
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <button
+            onClick={() => router.push('/dashboard/products')}
+            className="text-sm text-primary hover:underline mb-2 flex items-center gap-1 font-medium"
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            {t('backToProducts')}
+          </button>
+          <h1 className="text-3xl font-bold text-zinc-900">{t('editProduct')}</h1>
+          <p className="mt-2 text-zinc-600">{t('editDescription')}</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={handleRescrape}
+            disabled={rescraping}
+            className="px-4 py-2 border border-zinc-300 text-zinc-700 rounded-lg hover:bg-zinc-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {rescraping ? 'Taranıyor...' : 'Yeniden Tara'}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? t('saving') : t('save')}
+          </button>
+        </div>
+      </div>
+
+      {/* Product Info */}
+      <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-2">
+            {t('productName')}
+          </label>
+          <input
+            type="text"
+            value={editedName}
+            onChange={(e) => setEditedName(e.target.value)}
+            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900"
+          />
         </div>
 
-        {/* Product Info */}
-        <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-2">
+            {t('productUrl')}
+          </label>
+          <input
+            type="url"
+            value={editedUrl}
+            onChange={(e) => setEditedUrl(e.target.value)}
+            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900"
+          />
+          <a
+            href={editedUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 text-sm text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1"
+          >
+            {t('openPage')}
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        </div>
+
+        {product.external_id && (
           <div>
             <label className="block text-sm font-medium text-zinc-700 mb-2">
-              {t('productName')}
+              External ID
             </label>
             <input
               type="text"
-              value={editedName}
-              onChange={(e) => setEditedName(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900"
+              value={product.external_id}
+              disabled
+              className="w-full px-3 py-2 border border-zinc-300 rounded-lg bg-zinc-50 text-zinc-500"
             />
           </div>
+        )}
+      </div>
 
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">
-              {t('productUrl')}
-            </label>
-            <input
-              type="url"
-              value={editedUrl}
-              onChange={(e) => setEditedUrl(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900"
-            />
-            <a
-              href={editedUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1 text-sm text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1"
-            >
-              {t('openPage')}
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-          </div>
-
-          {product.external_id && (
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
-                External ID
-              </label>
-              <input
-                type="text"
-                value={product.external_id}
-                disabled
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg bg-zinc-50 text-zinc-500"
-              />
-            </div>
-          )}
+      {/* Scraped Content */}
+      <div className="bg-card rounded-lg border border-border shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-zinc-900">Taranan İçerik</h2>
+          <button
+            onClick={handleRescrape}
+            disabled={rescraping}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
+          >
+            {rescraping ? 'Taranıyor...' : 'Yeniden Tara'}
+          </button>
         </div>
 
-        {/* Scraped Content */}
-        <div className="bg-card rounded-lg border border-border shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-zinc-900">Taranan İçerik</h2>
+        {editedRawText ? (
+          <div className="space-y-4">
+            <textarea
+              value={editedRawText}
+              onChange={(e) => setEditedRawText(e.target.value)}
+              rows={20}
+              className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm text-zinc-900"
+              placeholder="Taranan içerik burada görünecek..."
+            />
+            <p className="text-sm text-zinc-600">
+              {editedRawText.length.toLocaleString('tr-TR')} karakter • {editedRawText.split('\n').length} satır
+            </p>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <svg className="mx-auto h-12 w-12 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p className="mt-2 text-zinc-600">Henüz içerik taranmamış</p>
             <button
               onClick={handleRescrape}
               disabled={rescraping}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50"
             >
-              {rescraping ? 'Taranıyor...' : 'Yeniden Tara'}
+              {rescraping ? 'Taranıyor...' : 'Şimdi Tara'}
             </button>
           </div>
-          
-          {editedRawText ? (
-            <div className="space-y-4">
-              <textarea
-                value={editedRawText}
-                onChange={(e) => setEditedRawText(e.target.value)}
-                rows={20}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm text-zinc-900"
-                placeholder="Taranan içerik burada görünecek..."
-              />
-              <p className="text-sm text-zinc-600">
-                {editedRawText.length.toLocaleString('tr-TR')} karakter • {editedRawText.split('\n').length} satır
-              </p>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="mt-2 text-zinc-600">Henüz içerik taranmamış</p>
-              <button
-                onClick={handleRescrape}
-                disabled={rescraping}
-                className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50"
-              >
-                {rescraping ? 'Taranıyor...' : 'Şimdi Tara'}
-              </button>
-            </div>
-          )}
+        )}
+      </div>
+
+      {/* Return Prevention Content */}
+      <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-5">
+        <div>
+          <h2 className="text-xl font-semibold text-zinc-900">{rp('analyticsTitle')}</h2>
+          <p className="text-sm text-zinc-500 mt-1">{rp('moduleDescription')}</p>
         </div>
 
-        {/* Return Prevention Content */}
-        <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-5">
-          <div>
-            <h2 className="text-xl font-semibold text-zinc-900">{rp('analyticsTitle')}</h2>
-            <p className="text-sm text-zinc-500 mt-1">{rp('moduleDescription')}</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">
-              {rp('videoUrl')}
-            </label>
-            <input
-              type="url"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder={rp('videoUrlPlaceholder')}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900"
-            />
-            <p className="text-xs text-zinc-500 mt-1">{rp('videoUrlDescription')}</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">
-              {rp('preventionTips')}
-            </label>
-            <textarea
-              value={preventionTips}
-              onChange={(e) => setPreventionTips(e.target.value)}
-              rows={4}
-              placeholder={rp('preventionTipsPlaceholder')}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900"
-            />
-            <p className="text-xs text-zinc-500 mt-1">{rp('preventionTipsDescription')}</p>
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-2">
+            {rp('videoUrl')}
+          </label>
+          <input
+            type="url"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder={rp('videoUrlPlaceholder')}
+            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900"
+          />
+          <p className="text-xs text-zinc-500 mt-1">{rp('videoUrlDescription')}</p>
         </div>
 
-        {/* Metadata */}
-        <div className="bg-card rounded-lg border border-border shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-zinc-900 mb-4">Metadata</h2>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-zinc-600">Oluşturulma:</span>
-              <p className="text-zinc-900 font-medium mt-1">
-                {new Date(product.created_at).toLocaleString('tr-TR')}
-              </p>
-            </div>
-            <div>
-              <span className="text-zinc-600">Son Güncelleme:</span>
-              <p className="text-zinc-900 font-medium mt-1">
-                {new Date(product.updated_at).toLocaleString('tr-TR')}
-              </p>
-            </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-2">
+            {rp('preventionTips')}
+          </label>
+          <textarea
+            value={preventionTips}
+            onChange={(e) => setPreventionTips(e.target.value)}
+            rows={4}
+            placeholder={rp('preventionTipsPlaceholder')}
+            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900"
+          />
+          <p className="text-xs text-zinc-500 mt-1">{rp('preventionTipsDescription')}</p>
+        </div>
+      </div>
+
+      {/* Metadata */}
+      <div className="bg-card rounded-lg border border-border shadow-sm p-6">
+        <h2 className="text-xl font-semibold text-zinc-900 mb-4">Metadata</h2>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-zinc-600">Oluşturulma:</span>
+            <p className="text-zinc-900 font-medium mt-1">
+              {new Date(product.created_at).toLocaleString('tr-TR')}
+            </p>
+          </div>
+          <div>
+            <span className="text-zinc-600">Son Güncelleme:</span>
+            <p className="text-zinc-900 font-medium mt-1">
+              {new Date(product.updated_at).toLocaleString('tr-TR')}
+            </p>
           </div>
         </div>
       </div>
-    
+    </div>
+
   );
 }
