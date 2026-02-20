@@ -76,9 +76,10 @@
 
 - **Post-Deployment & Bug Fixes (Feb 20, 2026)**:
   - **API Connectivity Error**: Fixed frontend error (`Could not reach the API`) by explicitly injecting `INTERNAL_API_URL=http://127.0.0.1:3002` to PM2 `.env`.
-  - **Scanned Items Database Error**: Identified that Postgres migration `004` failed to run due to conflicting `CREATE POLICY` statements. Commented out conflicts to allow users to apply it manually via Supabase Console.
+  - **Scanned Items Database Error**: Identified that Postgres migration `004` failed to run due to conflicting `CREATE POLICY` statements. User manually applied conflicts via Supabase Console.
   - **Scraped Product Saving Bug**: Fixed bug where scanning a URL wouldn't persist `raw_text` appropriately by adding `raw_text` to the `PUT /api/products/:id` request payload, and clearing `setCachedProduct` on save/rescrape.
   - **Product Enrichment Assessment**: Assessed the text enrichment pipeline. Confirmed best practices (token limits, fallback logic, proper error handling) in `enrichProduct` and worker queuing. Created and passed unit tests for `enrichProductData` to improve test coverage.
+  - **Database Consistency Verification (Feb 20)**: User manually ran `013_notification_phone.sql` addressing schema gaps. DB Schema is now 100% stable and in sync with codebase migrations.
 
 - **Git & Deploy (Feb 20, 2026)**:
   - **Git**: All application state pushed to `origin/main` (commit b8670c9). `.gitignore` updated to exclude `apply_migration_local.mjs` (local one-off migration script; contains DB credentials — keep local only).

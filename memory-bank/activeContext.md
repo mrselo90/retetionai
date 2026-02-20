@@ -1,9 +1,8 @@
 # Active Context
 
-## Current Focus: Post-Deployment Stability & Store Submission Prep
-- **Status**: Code-complete for BFS gaps G1-G5, deployed to production. Repo pushed to git (5a3fc22).
-- **Last Action**: Ran server deploy via SSH: pull, build, pm2 restart all (api, web, workers online). Migration step skipped (Supabase unreachable from server IPv6).
-- **Next Step**: Manually run `004_subscription_system.sql` in Supabase if not done; handle G6 (Partner Dashboard content).
+## Current Focus: Planning Super Admin Panel
+- **Status**: All database migrations (including `013_notification_phone.sql`) applied and verified. Server deployment fully complete and stable. 
+- **Next Step**: Designing and planning a "Super Admin" backoffice panel to manage merchants, billing, and platform health globally.
 
 ## Recent Accomplishments
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.

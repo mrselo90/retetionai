@@ -27,6 +27,7 @@ import gdprRoutes from './routes/gdpr.js';
 import billingRoutes from './routes/billing.js';
 import customerRoutes from './routes/customers.js';
 import memberRoutes from './routes/members.js';
+import adminRoutes from './routes/admin.js';
 import { rateLimitMiddleware } from './middleware/rateLimit.js';
 import { securityHeadersMiddleware } from './middleware/securityHeaders.js';
 import { loggerMiddleware } from './middleware/logger.js';
@@ -169,6 +170,9 @@ app.route('/api/customers', customerRoutes);
 
 // Team member routes
 app.route('/api/merchants/me/members', memberRoutes);
+
+// Super Admin routes
+app.route('/api/admin', adminRoutes);
 
 // Event processing routes
 app.route('/api/events', eventRoutes);
