@@ -8,7 +8,7 @@ import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, User, ShoppingBag, Clock } from 'lucide-react';
+import { MessageSquare, User, ShoppingBag, Clock, AlertTriangle } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
 interface Conversation {
@@ -28,6 +28,10 @@ interface Conversation {
   created_at: string;
   sentiment: 'positive' | 'neutral' | 'negative';
   conversationStatus?: 'ai' | 'human' | 'resolved';
+  lastMessage?: { role: string; content: string; timestamp: string } | null;
+  escalatedAt?: string | null;
+  userName?: string;
+  phone?: string;
 }
 
 export default function ConversationsPage() {
@@ -37,6 +41,7 @@ export default function ConversationsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'positive' | 'neutral' | 'negative'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'ai' | 'human' | 'resolved'>('all');
+  const [prevHumanCount, setPrevHumanCount] = useState(0);
 
   useEffect(() => {
     loadConversations();
@@ -63,6 +68,21 @@ export default function ConversationsPage() {
       );
 
       setConversations(response.conversations);
+
+      // Update browser tab title with unresolved human count
+      const humanCount = response.conversations.filter((c: Conversation) => c.conversationStatus === 'human').length;
+      if (humanCount > 0) {
+        document.title = `(${humanCount}) ${t('title')}`;
+      } else {
+        document.title = t('title');
+      }
+
+      // Toast when new human conversation appears (only after initial load)
+      if (humanCount > prevHumanCount && prevHumanCount > 0) {
+        toast.error(t('needsAttentionToast.title'), t('needsAttentionToast.message', { count: humanCount - prevHumanCount }));
+      }
+      setPrevHumanCount(humanCount);
+
     } catch (err: any) {
       console.error('Failed to load conversations:', err);
       if (err.status === 401) {
@@ -150,7 +170,61 @@ export default function ConversationsPage() {
         </p>
       </div>
 
-      {/* Filters */}
+      {/* ── Needs Attention Alert ──────────────────────────────────*/}
+      {(() => {
+        const humanConvs = conversations.filter(c => c.conversationStatus === 'human');
+        if (humanConvs.length === 0) return null;
+        return (
+          <div className="rounded-2xl border-2 border-red-300 bg-red-50 overflow-hidden shadow-sm">
+            {/* Header bar */}
+            <div className="flex items-center gap-3 px-5 py-3 bg-red-100 border-b border-red-200">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <span className="font-bold text-red-800 text-sm">
+                {t('needsAttention.title', { count: humanConvs.length })}
+              </span>
+            </div>
+            {/* Human conversations */}
+            <div className="divide-y divide-red-200">
+              {humanConvs.map((conv) => (
+                <Link
+                  key={conv.id}
+                  href={`/dashboard/conversations/${conv.id}`}
+                  className="flex items-center gap-4 px-5 py-4 hover:bg-red-100 transition-colors group"
+                >
+                  <div className="w-10 h-10 rounded-full bg-red-200 flex items-center justify-center flex-shrink-0">
+                    <User className="w-5 h-5 text-red-700" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-red-900 text-sm">
+                      {conv.userName || conv.user?.name || t('list.guest')}
+                    </p>
+                    <p className="text-xs text-red-700 mt-0.5 truncate">
+                      {conv.phone || conv.user?.phone}
+                    </p>
+                    {conv.lastMessage && (
+                      <p className="text-xs text-red-600 mt-1 truncate">
+                        &ldquo;{conv.lastMessage.content?.slice(0, 80)}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-xs text-red-600">{formatDateTime(conv.last_message_at)}</span>
+                    <svg className="w-4 h-4 text-red-400 group-hover:text-red-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+
       <div className="flex items-center gap-3 flex-wrap overflow-x-auto pb-2">
         {[
           { key: 'all' as const, label: `${t('filters.all')} (${conversations.length})` },

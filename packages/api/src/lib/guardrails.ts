@@ -4,6 +4,10 @@
  * System guardrails (crisis, medical) are read-only; merchants can add custom guardrails via settings.
  */
 
+import { getSupabaseServiceClient } from '@recete/shared';
+import { notifyMerchantOfEscalation } from './notifications.js';
+import { decryptPhone } from './encryption.js';
+
 export interface GuardrailResult {
   safe: boolean;
   reason?: 'crisis_keyword' | 'medical_advice' | 'unsafe_content' | 'custom';
@@ -125,6 +129,54 @@ const CRISIS_KEYWORDS = [
   'shock',
   'fainting',
   'fainted',
+];
+
+/**
+ * Human handoff request phrases (Turkish + English)
+ * These trigger immediate escalation to a human agent even when the bot is otherwise functional.
+ */
+const HUMAN_HANDOFF_PHRASES = [
+  // Turkish
+  'insan temsilci',
+  'insanla konuşmak',
+  'insanla görüşmek',
+  'gerçek biri',
+  'insan ile bağlan',
+  'canlı destek',
+  'canlı yardım',
+  'müşteri hizmetleri',
+  'müşteri temsilcisi',
+  'yetkili',
+  'yönetici',
+  'ekibinizle',
+  'sizi aramak',
+  'sizi arayabilir miyim',
+  'beni arasın',
+  'beni ararsın',
+  'telefon numarası',
+  'bot değil',
+  'robot değil',
+  'insanla bağlan',
+  // English
+  'speak to a human',
+  'speak to a person',
+  'talk to a person',
+  'talk to a human',
+  'talk to someone',
+  'real person',
+  'real agent',
+  'customer service',
+  'customer support',
+  'representative',
+  'human agent',
+  'live agent',
+  'live support',
+  'live chat',
+  'call me',
+  'phone number',
+  'not a bot',
+  'not a robot',
+  'connect me',
 ];
 
 /**
@@ -314,7 +366,16 @@ export function checkAIResponseGuardrails(
 }
 
 /**
- * Escalate to human (log for manual review)
+ * Check if message is explicitly requesting a human agent handoff.
+ * Returns true when user wants a human to take over, regardless of other guardrails.
+ */
+export function checkForHumanHandoffRequest(message: string): boolean {
+  const lower = message.toLowerCase();
+  return HUMAN_HANDOFF_PHRASES.some((phrase) => lower.includes(phrase));
+}
+
+/**
+ * Escalate to human — marks conversation in DB, notifies merchant, logs the event
  */
 export async function escalateToHuman(
   userId: string,
@@ -322,13 +383,6 @@ export async function escalateToHuman(
   reason: string,
   message: string
 ): Promise<void> {
-  // MVP Implementation: Escalations are logged to console for monitoring
-  // FUTURE Enhancements:
-  // - Create escalation record in database (escalations table)
-  // - Notify merchant/admin via email or dashboard notification
-  // - Flag conversation for review in dashboard
-  // - Add escalation management UI in dashboard
-
   console.log('🚨 Human escalation required:', {
     userId,
     conversationId,
@@ -336,8 +390,53 @@ export async function escalateToHuman(
     message: message.substring(0, 100),
   });
 
-  // For MVP, escalations are monitored via application logs
-  // In production, implement database tracking and merchant notifications
+  try {
+    const supabase = getSupabaseServiceClient();
+
+    // 1. Update conversation status → 'human'
+    await supabase
+      .from('conversations')
+      .update({
+        conversation_status: 'human',
+        escalated_at: new Date().toISOString(),
+      })
+      .eq('id', conversationId);
+
+    // 2. Fetch user info for notification
+    const { data: user } = await supabase
+      .from('users')
+      .select('name, phone, merchant_id')
+      .eq('id', userId)
+      .single();
+
+    if (!user) {
+      console.warn('[Escalation] User not found, skipping merchant notification');
+      return;
+    }
+
+    // 3. Decrypt customer phone for display
+    let customerPhone = 'N/A';
+    try {
+      customerPhone = decryptPhone(user.phone);
+    } catch {
+      customerPhone = '***';
+    }
+
+    // 4. Notify merchant (non-blocking — failure should not break the conversation flow)
+    await notifyMerchantOfEscalation({
+      merchantId: user.merchant_id,
+      customerName: user.name || 'Bilinmeyen Müşteri',
+      customerPhone,
+      conversationId,
+      triggerMessage: message,
+      reason,
+    });
+
+    console.log(`[Escalation] ✅ Conversation ${conversationId} marked as human, merchant notified`);
+  } catch (error) {
+    // Don't block the bot — log the error but continue
+    console.error('[Escalation] DB update or notification failed:', error);
+  }
 }
 
 /**

@@ -374,6 +374,13 @@
                 "title": "Session Expired",
                 "message": "Please login again"
             }
+        },
+        "needsAttention": {
+            "title": "{count, plural, one {# conversation needs your attention} other {# conversations need your attention}}"
+        },
+        "needsAttentionToast": {
+            "title": "🔴 New Escalation",
+            "message": "{count, plural, one {# customer is requesting a human agent} other {# customers are requesting a human agent}}"
         }
     },
     "Integrations": {

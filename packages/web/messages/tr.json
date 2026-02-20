@@ -374,6 +374,13 @@
                 "title": "Oturum Süresi Doldu",
                 "message": "Lütfen tekrar giriş yapın"
             }
+        },
+        "needsAttention": {
+            "title": "{count, plural, one {# konuşma dikkat gerektiriyor} other {# konuşma dikkat gerektiriyor}}"
+        },
+        "needsAttentionToast": {
+            "title": "🔴 Yeni Yönlendirme",
+            "message": "{count, plural, one {# müşteri insan temsilci istiyor} other {# müşteri insan temsilci istiyor}}"
         }
     },
     "Integrations": {

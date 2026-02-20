@@ -12,6 +12,7 @@ import type { ConversationMessage } from './conversation.js';
 import {
   checkUserMessageGuardrails,
   checkAIResponseGuardrails,
+  checkForHumanHandoffRequest,
   escalateToHuman,
   getSafeResponse,
   type CustomGuardrail,
@@ -126,6 +127,17 @@ export async function generateAIResponse(
       guardrailReason: userGuardrail.reason,
       guardrailCustomName: userGuardrail.customReason,
       requiresHuman: userGuardrail.requiresHuman,
+    };
+  }
+
+  // Step 0.5: Check if the customer is explicitly requesting a human agent
+  if (checkForHumanHandoffRequest(message)) {
+    await escalateToHuman(userId, conversationId, 'human_request', message);
+    return {
+      intent: 'chat',
+      response:
+        'Anladım, sizi ekibimize yönlendiriyorum. En kısa sürede bir temsilci sizinle iletişime geçecek. 🙏\n\nIf you prefer English: Connecting you with our team. A representative will reach out to you shortly.',
+      requiresHuman: true,
     };
   }
 
@@ -352,9 +364,9 @@ function buildSystemPrompt(
   botInfo?: Record<string, string>
 ): string {
   const botName = persona?.bot_name || 'Recete Asistan';
-  
+
   let prompt = `You are ${botName}, a professional and helpful customer service assistant for ${merchantName}.\n\n`;
-  
+
   prompt += `IMPORTANT RULES:
 - Always be logical, clear, and helpful in your responses
 - Use the provided product information and context to give accurate answers
@@ -387,27 +399,27 @@ function buildSystemPrompt(
     casual: 'casual and relaxed',
     formal: 'formal and respectful'
   };
-  
+
   if (persona.tone) {
     prompt += `Communication style: Be ${toneMap[persona.tone] || persona.tone}.\n`;
   }
-  
+
   if (persona.emoji === true) {
     prompt += `Use appropriate emojis to make messages more engaging.\n`;
   } else if (persona.emoji === false) {
     prompt += `Do not use emojis in responses.\n`;
   }
-  
+
   const lengthMap: Record<string, string> = {
     short: 'Keep responses brief (1-2 sentences when possible)',
     medium: 'Keep responses moderate (2-4 sentences typically)',
     long: 'Provide detailed responses (3-6 sentences with full explanations)'
   };
-  
+
   if (persona.response_length) {
     prompt += `Response length: ${lengthMap[persona.response_length] || 'medium'}.\n`;
   }
-  
+
   prompt += '\n';
 
   // Intent-specific instructions
@@ -428,7 +440,7 @@ function buildSystemPrompt(
         '- Be professional and solution-focused\n\n';
       break;
     case 'chat':
-      prompt += 
+      prompt +=
         'USER INTENT: The user is having a casual conversation.\n' +
         '- Be friendly and engaging\n' +
         '- Keep the conversation natural and helpful\n' +
