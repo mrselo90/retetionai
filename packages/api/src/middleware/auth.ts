@@ -189,27 +189,24 @@ async function authenticateShopifyToken(token: string): Promise<string | null> {
 }
 
 
-/** Paths that accept X-Internal-Key for worker/service-to-service auth */
-const INTERNAL_KEY_PATHS = [
+/** Paths that allow unauthenticated access (worker calling enrich / generate-embeddings) */
+const INTERNAL_PATHS = [
   '/api/products/enrich',
   /^\/api\/products\/[^/]+\/generate-embeddings$/,
 ];
 
-function isInternalKeyPath(path: string): boolean {
-  return path === INTERNAL_KEY_PATHS[0] || (INTERNAL_KEY_PATHS[1] as RegExp).test(path);
+function isInternalPath(path: string): boolean {
+  return path === INTERNAL_PATHS[0] || (INTERNAL_PATHS[1] as RegExp).test(path);
 }
 
 /**
  * Auth middleware
  * Supports both JWT (Supabase Auth) and API key authentication.
- * Also allows X-Internal-Key for internal routes (e.g. worker calling enrich / generate-embeddings).
+ * Allows unauthenticated access for internal product routes (enrich, generate-embeddings) so the worker can call them.
  */
 export async function authMiddleware(c: Context, next: Next) {
   const path = c.req.path;
-  const internalKey = c.req.header('X-Internal-Key');
-  const expectedKey = process.env.INTERNAL_API_KEY;
-
-  if (internalKey && expectedKey && internalKey === expectedKey && isInternalKeyPath(path)) {
+  if (isInternalPath(path)) {
     c.set('internalCall', true);
     c.set('merchantId', '');
     c.set('authMethod', 'api_key');

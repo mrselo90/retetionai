@@ -6,6 +6,7 @@
 - **Next Step**: Manually run `004_subscription_system.sql` in Supabase if not done; handle G6 (Partner Dashboard content).
 
 ## Recent Accomplishments
+- **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.
   - **G2**: `DashboardLayout` switches between side-nav (standalone) and `s-app-nav` (embedded).

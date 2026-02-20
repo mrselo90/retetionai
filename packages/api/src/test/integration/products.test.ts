@@ -236,7 +236,7 @@ describe('Products Endpoints', () => {
       });
 
       expect(response.status).toBe(200);
-      expect(processProductForRAG).toHaveBeenCalledWith(product.id, 'Content');
+      expect(processProductForRAG).toHaveBeenCalledWith(product.id, 'Content', undefined);
       expect(enforceStorageLimit).toHaveBeenCalled();
       expect(response.data.chunksCreated).toBe(5);
     });

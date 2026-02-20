@@ -184,17 +184,14 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
         throw new Error(scrapeResult.error || 'Scraping failed');
       }
 
-      // Step 2: Enrich product content with LLM via API (internal key for worker auth)
+      // Step 2: Enrich product content with LLM via API (internal route, no auth)
       const rawContent = scrapeResult.product!.rawContent;
       let enrichedText = rawContent;
       const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:3001';
-      const internalKey = process.env.INTERNAL_API_KEY;
-      const enrichHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (internalKey) enrichHeaders['X-Internal-Key'] = internalKey;
       try {
         const enrichRes = await fetch(`${apiUrl}/api/products/enrich`, {
           method: 'POST',
-          headers: enrichHeaders,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ rawText: rawContent, title: scrapeResult.product?.title || 'Unknown Product' })
         });
         if (enrichRes.ok) {
@@ -225,11 +222,9 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
       // Note: The worker only passes 2 arguments here because it imports an older type definition, but the API will handle it internally using the latest DB state.
       // Wait, we can't easily instruct processProductForRAG via worker if it doesn't take 3 args. ACTUALLY we should call the API's POST generate-embeddings.
 
-      const embedHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (internalKey) embedHeaders['X-Internal-Key'] = internalKey;
       const embedRes = await fetch(`${apiUrl}/api/products/${productId}/generate-embeddings`, {
         method: 'POST',
-        headers: embedHeaders,
+        headers: { 'Content-Type': 'application/json' },
       });
 
       if (!embedRes.ok) {
