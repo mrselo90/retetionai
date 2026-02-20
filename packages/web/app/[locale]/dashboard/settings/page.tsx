@@ -405,6 +405,7 @@ export default function SettingsPage() {
         session.access_token,
         {
           method: 'POST',
+          body: JSON.stringify({ name: `Key from ${new Date().toLocaleDateString()}` }),
         }
       );
 
