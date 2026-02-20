@@ -265,14 +265,20 @@ export default function ConversationsPage() {
       {/* Conversations List */}
       {filteredConversations.length === 0 ? (
         <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center justify-center min-h-[400px] py-12">
-          <CardContent className="p-0 text-center w-full">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-zinc-100 flex items-center justify-center ">
-              <MessageSquare className="w-10 h-10 text-info" />
+          <CardContent className="p-0 flex flex-col items-center justify-center text-center w-full">
+            <div className="w-20 h-20 mb-6 rounded-2xl bg-zinc-100 flex items-center justify-center ">
+              <MessageSquare className="w-10 h-10 text-primary" />
             </div>
-            <h3 className="text-2xl font-bold mb-3">{t('list.empty.title')}</h3>
-            <p className="text-muted-foreground max-w-md mx-auto text-base">
-              {t('list.empty.description')}
+            <h3 className="text-2xl font-bold mb-3">{t('empty.title')}</h3>
+            <p className="text-muted-foreground mb-8 max-w-md text-base text-center">
+              {t('empty.description')}
             </p>
+            <div className="flex items-center justify-center">
+              <Button size="lg" disabled>
+                <MessageSquare className="w-5 h-5 mr-2" />
+                {t('empty.button')}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
