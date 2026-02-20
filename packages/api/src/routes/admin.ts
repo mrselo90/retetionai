@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
 import { adminAuthMiddleware } from '../middleware/adminAuth.js';
-import { getSupabaseServiceClient } from '@recete/shared';
+import { getSupabaseServiceClient, getRedisClient } from '@recete/shared';
+import { getQueueStats } from '../queues.js';
 
 const admin = new Hono();
 
@@ -72,6 +73,72 @@ admin.get('/merchants', async (c) => {
     } catch (error) {
         console.error('Failed to fetch all merchants:', error);
         return c.json({ error: 'Failed to fetch merchants list' }, 500);
+    }
+});
+
+/**
+ * System Health
+ * GET /api/admin/system-health
+ */
+admin.get('/system-health', async (c) => {
+    try {
+        const redisInfo = await getRedisClient().info('server');
+        const queueStats = await getQueueStats();
+
+        return c.json({
+            status: 'healthy',
+            redis: {
+                connected: getRedisClient().status === 'ready',
+                uptime: redisInfo.match(/uptime_in_seconds:(\d+)/)?.[1] || 'unknown'
+            },
+            queues: queueStats
+        });
+    } catch (error) {
+        console.error('Failed to fetch system health:', error);
+        return c.json({ error: 'Failed to fetch system health' }, 500);
+    }
+});
+
+/**
+ * Merchant Impersonation
+ * POST /api/admin/impersonate
+ */
+admin.post('/impersonate', async (c) => {
+    const serviceClient = getSupabaseServiceClient();
+
+    try {
+        const body = await c.req.json();
+        const { targetUserId } = body;
+
+        if (!targetUserId) {
+            return c.json({ error: 'Target user ID is required' }, 400);
+        }
+
+        // We ensure the target actually exists
+        const { data: user, error: userError } = await serviceClient.auth.admin.getUserById(targetUserId);
+
+        if (userError || !user) {
+            return c.json({ error: 'Target user not found' }, 404);
+        }
+
+        // Use Supabase Admin API to generate a link or custom token.
+        // The best exact "impersonation" method without their password
+        // is generating a one-time password or an auth link:
+        const { data: linkData, error: linkError } = await serviceClient.auth.admin.generateLink({
+            type: 'magiclink',
+            email: user.user.email as string,
+        });
+
+        if (linkError) {
+            console.error('Magic link generation failed:', linkError);
+            return c.json({ error: 'Failed to generate impersonation token' }, 500);
+        }
+
+        // Return the magic link to the frontend so it can automatically open it in a new tab
+        return c.json({ impersonationUrl: linkData.properties.action_link });
+    } catch (error) {
+        console.error('Impersonation error:', error);
+        return c.json({ error: 'Failed to setup impersonation' }, 500);
     }
 });
 

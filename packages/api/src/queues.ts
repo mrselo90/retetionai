@@ -44,7 +44,7 @@ function getAnalyticsQueue() {
  */
 export async function scheduleMessage(data: ScheduledMessageJobData) {
   const delay = new Date(data.scheduledFor).getTime() - Date.now();
-  
+
   if (delay < 0) {
     // If scheduledFor is in the past, execute immediately
     return await getScheduledMessagesQueue().add(
@@ -53,7 +53,7 @@ export async function scheduleMessage(data: ScheduledMessageJobData) {
       { delay: 0 }
     );
   }
-  
+
   return await getScheduledMessagesQueue().add(
     `message-${data.type}-${data.userId}`,
     data,
@@ -93,4 +93,21 @@ export async function addAnalyticsEvent(data: AnalyticsJobData) {
       },
     }
   );
+}
+
+/**
+ * Get health stats for all queues
+ */
+export async function getQueueStats() {
+  const [scheduledMsgCounts, scrapeJobsCounts, analyticsCounts] = await Promise.all([
+    getScheduledMessagesQueue().getJobCounts(),
+    getScrapeJobsQueue().getJobCounts(),
+    getAnalyticsQueue().getJobCounts()
+  ]);
+
+  return {
+    scheduledMessages: scheduledMsgCounts,
+    scrapeJobs: scrapeJobsCounts,
+    analytics: analyticsCounts
+  };
 }

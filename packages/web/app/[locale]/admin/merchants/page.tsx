@@ -5,8 +5,10 @@ import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Store, Calendar, ShieldAlert, Key } from 'lucide-react';
+import { Store, Calendar, ShieldAlert, Key, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from '@/lib/toast';
+import { Button } from '@/components/ui/button';
 
 interface Merchant {
     id: string;
@@ -20,6 +22,28 @@ export default function AdminMerchantsPage() {
     const [merchants, setMerchants] = useState<Merchant[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [impersonatingMap, setImpersonatingMap] = useState<Record<string, boolean>>({});
+
+    const handleImpersonate = async (merchantId: string) => {
+        setImpersonatingMap(prev => ({ ...prev, [merchantId]: true }));
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            const res = await authenticatedRequest<{ impersonationUrl: string }>('/api/admin/impersonate', session.access_token, {
+                method: 'POST',
+                body: JSON.stringify({ targetUserId: merchantId })
+            });
+
+            if (res.impersonationUrl) {
+                // Open the magic link in a new tab to avoid breaking the current admin session
+                window.open(res.impersonationUrl, '_blank');
+            }
+        } catch (err: any) {
+            toast.error('Impersonation failed', err.message);
+        } finally {
+            setImpersonatingMap(prev => ({ ...prev, [merchantId]: false }));
+        }
+    };
 
     useEffect(() => {
         const fetchMerchants = async () => {
@@ -161,10 +185,20 @@ export default function AdminMerchantsPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <Badge variant="secondary" className="hover:bg-zinc-200 cursor-not-allowed opacity-50">
-                                                <Key className="w-3 h-3 mr-1" />
-                                                Impersonate (Soon)
-                                            </Badge>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="bg-white hover:bg-zinc-100 hover:text-zinc-900 shadow-sm border-zinc-200"
+                                                disabled={impersonatingMap[merchant.id]}
+                                                onClick={() => handleImpersonate(merchant.id)}
+                                            >
+                                                {impersonatingMap[merchant.id] ? (
+                                                    <Loader2 className="w-3 h-3 mr-2 text-zinc-400 font-bold animate-spin" />
+                                                ) : (
+                                                    <Key className="w-3 h-3 mr-2 text-zinc-400 font-bold" />
+                                                )}
+                                                Login As
+                                            </Button>
                                         </td>
                                     </tr>
                                 );
