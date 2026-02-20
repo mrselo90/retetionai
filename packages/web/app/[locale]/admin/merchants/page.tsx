@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import apiClient from '@/lib/api-client';
+import { supabase } from '@/lib/supabase';
+import { authenticatedRequest } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Store, Calendar, ShieldAlert, Key } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -24,7 +24,10 @@ export default function AdminMerchantsPage() {
     useEffect(() => {
         const fetchMerchants = async () => {
             try {
-                const data = await apiClient.get('/api/admin/merchants');
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+
+                const data = await authenticatedRequest<{ merchants: Merchant[] }>('/api/admin/merchants', session.access_token);
                 setMerchants(data.merchants || []);
             } catch (err: any) {
                 setError(err.message || 'Failed to fetch merchants');
@@ -49,8 +52,8 @@ export default function AdminMerchantsPage() {
                                 <div key={i} className="p-6 flex items-center gap-4">
                                     <div className="w-12 h-12 bg-zinc-200 rounded-lg animate-pulse"></div>
                                     <div className="space-y-2 flex-1">
-                                        <Skeleton className="h-5 w-48" />
-                                        <Skeleton className="h-4 w-32" />
+                                        <div className="h-5 w-48 bg-zinc-200 rounded animate-pulse" />
+                                        <div className="h-4 w-32 bg-zinc-200 rounded animate-pulse" />
                                     </div>
                                 </div>
                             ))}

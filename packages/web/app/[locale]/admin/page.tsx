@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import apiClient from '@/lib/api-client';
+import { supabase } from '@/lib/supabase';
+import { authenticatedRequest } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Users, ShoppingBag, MessageSquare, BarChart3, TrendingUp } from 'lucide-react';
 
@@ -19,7 +20,10 @@ export default function AdminDashboardPage() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const data = await apiClient.get('/api/admin/stats');
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+
+                const data = await authenticatedRequest<{ stats: GlobalStats }>('/api/admin/stats', session.access_token);
                 setStats(data.stats);
             } catch (err) {
                 console.error('Failed to fetch admin stats:', err);

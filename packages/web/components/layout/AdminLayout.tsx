@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import apiClient from '@/lib/api-client';
+import { authenticatedRequest } from '@/lib/api';
 
 interface AdminLayoutProps {
     children: React.ReactNode;
@@ -31,12 +31,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     useEffect(() => {
         const initAdminAuth = async () => {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) {
                     // Verify Super Admin status by hitting An admin endpoint
                     try {
-                        await apiClient.get('/api/admin/stats');
-                        setUserEmail(user.email || 'Super Admin');
+                        await authenticatedRequest('/api/admin/stats', session.access_token);
+                        setUserEmail(session.user.email || 'Super Admin');
                         setLoading(false);
                     } catch (apiErr: any) {
                         console.error('Super Admin check failed:', apiErr);
