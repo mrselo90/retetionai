@@ -19,13 +19,16 @@ export interface ProcessProductResult {
  */
 export async function processProductForRAG(
   productId: string,
-  rawContent: string
+  rawContent: string,
+  enrichedText?: string
 ): Promise<ProcessProductResult> {
   const serviceClient = getSupabaseServiceClient();
 
   try {
+    const textToProcess = enrichedText && enrichedText.trim().length > 0 ? enrichedText : rawContent;
+
     // Validate content
-    if (!rawContent || rawContent.trim().length === 0) {
+    if (!textToProcess || textToProcess.trim().length === 0) {
       return {
         productId,
         chunksCreated: 0,
@@ -36,7 +39,7 @@ export async function processProductForRAG(
     }
 
     // Chunk text
-    const chunks = chunkText(rawContent, 1000); // 1000 chars per chunk
+    const chunks = chunkText(textToProcess, 1000); // 1000 chars per chunk
 
     if (chunks.length === 0) {
       return {
@@ -104,7 +107,7 @@ export async function batchProcessProducts(
   // Get products with raw_content
   const { data: products, error } = await serviceClient
     .from('products')
-    .select('id, raw_content')
+    .select('id, raw_content, enriched_text')
     .in('id', productIds);
 
   if (error || !products) {
@@ -115,7 +118,7 @@ export async function batchProcessProducts(
   const results: ProcessProductResult[] = [];
 
   for (const product of products) {
-    if (!product.raw_content) {
+    if (!product.raw_content && !product.enriched_text) {
       results.push({
         productId: product.id,
         chunksCreated: 0,
@@ -126,7 +129,11 @@ export async function batchProcessProducts(
       continue;
     }
 
-    const result = await processProductForRAG(product.id, product.raw_content);
+    const result = await processProductForRAG(
+      product.id,
+      product.raw_content || '',
+      product.enriched_text || undefined
+    );
     results.push(result);
 
     // Small delay to avoid rate limiting

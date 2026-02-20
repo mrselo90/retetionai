@@ -9,6 +9,7 @@ import { getSupabaseServiceClient } from '@recete/shared';
 import { scrapeProductPage } from '../lib/scraper.js';
 import { addScrapeJob } from '../queues.js';
 import { processProductForRAG, batchProcessProducts, getProductChunkCount } from '../lib/knowledgeBase.js';
+import { enrichProductData } from '../lib/llm/enrichProduct.js';
 import { validateBody, validateParams } from '../middleware/validation.js';
 import { createProductSchema, updateProductSchema, productIdSchema, productInstructionSchema, CreateProductInput, UpdateProductInput, ProductIdParams, ProductInstructionInput } from '../schemas/products.js';
 import { getCachedProduct, setCachedProduct, invalidateProductCache } from '../lib/cache.js';
@@ -475,7 +476,7 @@ products.post('/:id/generate-embeddings', async (c) => {
   // Get product
   const { data: product, error: fetchError } = await serviceClient
     .from('products')
-    .select('id, raw_text')
+    .select('id, raw_text, enriched_text')
     .eq('id', productId)
     .eq('merchant_id', merchantId)
     .single();
@@ -484,13 +485,13 @@ products.post('/:id/generate-embeddings', async (c) => {
     return c.json({ error: 'Product not found' }, 404);
   }
 
-  if (!product.raw_text) {
+  if (!product.raw_text && !product.enriched_text) {
     return c.json({ error: 'Product has no content. Scrape first.' }, 400);
   }
 
   // Check storage limit before processing
   // Estimate: each product chunk is ~1KB, estimate 10 chunks per product
-  const estimatedBytes = product.raw_text.length * 2; // Rough estimate
+  const estimatedBytes = (product.enriched_text?.length || product.raw_text?.length || 0) * 2; // Rough estimate
   try {
     await enforceStorageLimit(merchantId, estimatedBytes);
   } catch (limitError) {
@@ -501,7 +502,11 @@ products.post('/:id/generate-embeddings', async (c) => {
   }
 
   // Process product
-  const result = await processProductForRAG(productId, product.raw_text);
+  const result = await processProductForRAG(
+    productId,
+    product.raw_text || '',
+    product.enriched_text || undefined
+  );
 
   if (!result.success) {
     return c.json({
@@ -515,6 +520,26 @@ products.post('/:id/generate-embeddings', async (c) => {
     chunksCreated: result.chunksCreated,
     totalTokens: result.totalTokens,
   });
+});
+
+/**
+ * Internal route for Worker to enrich product data without OpenAI installed in worker package
+ * POST /api/products/enrich
+ */
+products.post('/enrich', async (c) => {
+  const body = await c.req.json();
+  const { rawText, title } = body;
+
+  if (!rawText) {
+    return c.json({ error: 'rawText is required' }, 400);
+  }
+
+  try {
+    const enrichedText = await enrichProductData(rawText, title || 'Unknown Product');
+    return c.json({ enrichedText });
+  } catch (error) {
+    return c.json({ error: 'Failed to enrich', message: String(error) }, 500);
+  }
 });
 
 /**

@@ -25,16 +25,16 @@ billing.use('/*', authMiddleware);
  */
 billing.get('/subscription', async (c) => {
   const merchantId = c.get('merchantId');
-  
+
   const subscription = await getMerchantSubscription(merchantId);
-  
+
   if (!subscription) {
     return c.json({ error: 'Subscription not found' }, 404);
   }
-  
+
   const limits = await getPlanLimits(merchantId);
   const usage = await getCurrentUsage(merchantId);
-  
+
   return c.json({
     subscription,
     limits,
@@ -48,10 +48,10 @@ billing.get('/subscription', async (c) => {
  */
 billing.get('/usage', async (c) => {
   const merchantId = c.get('merchantId');
-  
+
   const usage = await getCurrentUsage(merchantId);
   const limits = await getPlanLimits(merchantId);
-  
+
   return c.json({
     usage,
     limits,
@@ -76,9 +76,9 @@ billing.get('/usage', async (c) => {
 billing.get('/usage/history', async (c) => {
   const merchantId = c.get('merchantId');
   const months = parseInt(c.req.query('months') || '6', 10);
-  
+
   const history = await getUsageHistory(merchantId, months);
-  
+
   return c.json({ history });
 });
 
@@ -88,7 +88,7 @@ billing.get('/usage/history', async (c) => {
  */
 billing.get('/plans', async (c) => {
   const plans = await getAvailablePlans();
-  
+
   return c.json({ plans });
 });
 
@@ -106,7 +106,7 @@ billing.post('/subscribe', validateBody(subscribeSchema), async (c) => {
   const merchantId = c.get('merchantId');
   const body = c.get('validatedBody') as z.infer<typeof subscribeSchema>;
   const { planId, billingCycle } = body;
-  
+
   // Get merchant's Shopify integration
   const serviceClient = getSupabaseServiceClient();
   const { data: integration, error: integrationError } = await serviceClient
@@ -116,33 +116,33 @@ billing.post('/subscribe', validateBody(subscribeSchema), async (c) => {
     .eq('provider', 'shopify')
     .eq('status', 'active')
     .single();
-  
+
   if (integrationError || !integration) {
-    return c.json({ 
+    return c.json({
       error: 'Shopify integration not found',
       message: 'Please connect your Shopify store first',
     }, 400);
   }
-  
+
   const authData = integration.auth_data as any;
   const shop = authData?.shop;
   const accessToken = authData?.access_token;
-  
+
   if (!shop || !accessToken) {
-    return c.json({ 
+    return c.json({
       error: 'Shopify credentials not found',
       message: 'Please reconnect your Shopify store',
     }, 400);
   }
-  
+
   // Get plan price
   const price = getPlanPrice(planId, billingCycle);
   const planName = `${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan (${billingCycle})`;
-  
+
   // Create return URL (where user is redirected after accepting charge)
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   const returnUrl = `${frontendUrl}/dashboard/settings?billing=success`;
-  
+
   // Create recurring charge in Shopify
   const chargeResult = await createShopifyRecurringCharge(
     shop,
@@ -152,14 +152,14 @@ billing.post('/subscribe', validateBody(subscribeSchema), async (c) => {
     price,
     returnUrl
   );
-  
+
   if (!chargeResult) {
-    return c.json({ 
+    return c.json({
       error: 'Failed to create subscription',
       message: 'Could not create Shopify billing charge',
     }, 500);
   }
-  
+
   // Update merchant subscription status to pending
   await updateMerchantSubscription(merchantId, {
     plan: planId,
@@ -167,7 +167,7 @@ billing.post('/subscribe', validateBody(subscribeSchema), async (c) => {
     subscriptionId: chargeResult.chargeId.toString(),
     billingProvider: 'shopify',
   });
-  
+
   return c.json({
     message: 'Subscription created',
     confirmationUrl: chargeResult.confirmationUrl,
@@ -181,13 +181,13 @@ billing.post('/subscribe', validateBody(subscribeSchema), async (c) => {
  */
 billing.post('/cancel', async (c) => {
   const merchantId = c.get('merchantId');
-  
+
   const subscription = await getMerchantSubscription(merchantId);
-  
+
   if (!subscription || !subscription.subscriptionId) {
     return c.json({ error: 'No active subscription found' }, 400);
   }
-  
+
   // If Shopify billing, cancel the charge
   if (subscription.billingProvider === 'shopify') {
     const serviceClient = getSupabaseServiceClient();
@@ -198,24 +198,24 @@ billing.post('/cancel', async (c) => {
       .eq('provider', 'shopify')
       .eq('status', 'active')
       .single();
-    
+
     if (integration) {
       const authData = integration.auth_data as any;
       const shop = authData?.shop;
       const accessToken = authData?.access_token;
-      
+
       if (shop && accessToken) {
         await cancelShopifyRecurringCharge(shop, accessToken, parseInt(subscription.subscriptionId));
       }
     }
   }
-  
+
   // Update subscription status
   await updateMerchantSubscription(merchantId, {
     status: 'cancelled',
     cancelledAt: new Date(),
   });
-  
+
   return c.json({
     message: 'Subscription cancelled',
   });
@@ -229,16 +229,16 @@ billing.post('/cancel', async (c) => {
 billing.post('/webhooks/shopify', async (c) => {
   try {
     const body = await c.req.json() as { charge_id?: number; status?: string; shop?: string };
-    
+
     // Verify webhook (HMAC verification should be done in middleware)
     const chargeId = body.charge_id;
     const status = body.status;
     const shop = body.shop;
-    
+
     if (!chargeId || !status || !shop) {
       return c.json({ error: 'Missing required fields' }, 400);
     }
-    
+
     // Find merchant by Shopify shop
     const serviceClient = getSupabaseServiceClient();
     const { data: integration } = await serviceClient
@@ -247,15 +247,15 @@ billing.post('/webhooks/shopify', async (c) => {
       .eq('provider', 'shopify')
       .eq('status', 'active')
       .single();
-    
+
     if (!integration) {
       logger.warn({ shop, chargeId }, 'Shopify billing webhook received but integration not found');
       return c.json({ error: 'Integration not found' }, 404);
     }
-    
+
     // Update subscription
     await handleShopifyBillingWebhook(integration.merchant_id, chargeId, status);
-    
+
     return c.json({ message: 'Webhook processed' });
   } catch (error) {
     logger.error({ error }, 'Error processing Shopify billing webhook');
@@ -278,7 +278,7 @@ billing.get('/addons', async (c) => {
   let subscription = null;
   try { subscription = await getMerchantSubscription(merchantId); } catch (_) { /* show locked */ }
 
-  let merchantAddons = [];
+  let merchantAddons: any[] = [];
   try { merchantAddons = await getMerchantAddons(merchantId); } catch (_) { /* non-critical */ }
 
   const addonStatusMap = new Map(merchantAddons.map((a) => [a.addon_key, a]));
@@ -290,8 +290,8 @@ billing.get('/addons', async (c) => {
     const merchantAddon = addonStatusMap.get(def.key);
     const planAllowed = subscription
       ? def.requiredPlan.includes(subscription.plan)
-        || subscription.status === 'trial'
-        || merchantAddon?.status === 'active'
+      || subscription.status === 'trial'
+      || merchantAddon?.status === 'active'
       : false;
 
     return {

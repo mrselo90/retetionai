@@ -16,6 +16,7 @@ import {
 import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from './lib/whatsapp.js';
 import { scrapeProductPage } from './lib/scraper.js';
 import { processProductForRAG } from './lib/knowledgeBase.js';
+
 import {
   scheduledMessagesQueue,
   scrapeJobsQueue,
@@ -183,14 +184,31 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
         throw new Error(scrapeResult.error || 'Scraping failed');
       }
 
+      // Step 2: Enrich product content with LLM via API
       const rawContent = scrapeResult.product!.rawContent;
+      let enrichedText = rawContent;
+      try {
+        const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:8080';
+        const enrichRes = await fetch(`${apiUrl}/api/products/enrich`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rawText: rawContent, title: scrapeResult.product?.title || 'Unknown Product' })
+        });
+        if (enrichRes.ok) {
+          const { enrichedText: et } = (await enrichRes.json()) as { enrichedText?: string };
+          if (et) enrichedText = et;
+        }
+      } catch (err) {
+        logger.error({ err }, 'Failed to call enrich API');
+      }
 
-      // Step 2: Update product with scraped content
+      // Step 3: Update product with scraped and enriched content
       const serviceClient = getSupabaseServiceClient();
       const { error: updateError } = await serviceClient
         .from('products')
         .update({
           raw_content: rawContent,
+          enriched_text: enrichedText,
           last_scraped_at: new Date().toISOString(),
         })
         .eq('id', productId)
@@ -200,12 +218,24 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
         throw new Error(`Failed to update product: ${updateError.message}`);
       }
 
-      // Step 3: Generate embeddings
-      const embeddingResult = await processProductForRAG(productId, rawContent);
+      // Step 4: Generate embeddings (the API processProductForRAG will now pick up the enrichedText we just saved instead of the old rawContent)
+      // Note: The worker only passes 2 arguments here because it imports an older type definition, but the API will handle it internally using the latest DB state.
+      // Wait, we can't easily instruct processProductForRAG via worker if it doesn't take 3 args. ACTUALLY we should call the API's POST generate-embeddings.
 
-      if (!embeddingResult.success) {
-        throw new Error(embeddingResult.error || 'Embedding generation failed');
+      const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:8080';
+      const embedRes = await fetch(`${apiUrl}/api/products/${productId}/generate-embeddings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+      });
+
+      if (!embedRes.ok) {
+        const errJson = (await embedRes.json().catch(() => ({}))) as any;
+        throw new Error(errJson.error || 'Embedding generation failed');
       }
+
+      const embeddingResult = (await embedRes.json()) as { chunksCreated: number; totalTokens: number };
 
       logger.info(
         { productId, chunksCreated: embeddingResult.chunksCreated, totalTokens: embeddingResult.totalTokens },
