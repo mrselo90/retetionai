@@ -932,37 +932,43 @@
         }
     },
     "ProductDetail": {
-        "backToProducts": "Ürünlere Dön",
         "notFound": "Ürün bulunamadı",
-        "editProduct": "Ürün Düzenle",
-        "editDescription": "Ürün bilgilerini düzenleyin",
-        "rescan": "Yeniden Tara",
-        "rescanning": "Taranıyor…",
+        "backToProducts": "Ürünlere Dön",
+        "editProduct": "Ürünü Düzenle",
+        "editDescription": "Ürün detaylarını düzenle",
         "save": "Kaydet",
-        "saving": "Kaydediliyor…",
+        "saving": "Kaydediliyor...",
+        "rescrape": "Yeniden Tara",
+        "rescraping": "Taranıyor...",
         "productName": "Ürün Adı",
         "productUrl": "Ürün URL",
         "openPage": "Sayfayı aç",
+        "scrapedContent": "Taranan İçerik",
+        "scrapedPlaceholder": "Taranan içerik burada görünecek...",
+        "scrapedChars": "{chars} karakter",
+        "scrapedLines": "{lines} satır",
+        "notScrapedYet": "Henüz içerik taranmamış",
+        "scrapeNow": "Şimdi Tara",
         "toasts": {
             "loadError": {
                 "title": "Hata",
-                "message": "Ürün yüklenirken bir hata oluştu."
+                "message": "Ürün detayları yüklenirken hata oluştu"
             },
             "saved": {
                 "title": "Kaydedildi",
-                "message": "Ürün başarıyla güncellendi."
+                "message": "Ürün değişiklikleri başarıyla kaydedildi"
             },
             "saveError": {
                 "title": "Hata",
-                "message": "Ürün kaydedilirken bir hata oluştu."
+                "message": "Ürün değişiklikleri kaydedilemedi"
             },
             "rescanSuccess": {
-                "title": "Başarılı!",
-                "message": "Ürün yeniden tarandı ve embedding'ler oluşturuldu."
+                "title": "Tarandı",
+                "message": "Ürün başarıyla yeniden tarandı"
             },
             "rescanError": {
                 "title": "Hata",
-                "message": "Ürün taranırken bir hata oluştu."
+                "message": "Ürün taranırken bir hata oluştu"
             }
         }
     },

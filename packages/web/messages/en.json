@@ -942,37 +942,43 @@
         }
     },
     "ProductDetail": {
-        "backToProducts": "Back to Products",
         "notFound": "Product not found",
+        "backToProducts": "Back to Products",
         "editProduct": "Edit Product",
         "editDescription": "Edit product details",
-        "rescan": "Rescan",
-        "rescanning": "Rescanning…",
         "save": "Save",
-        "saving": "Saving…",
+        "saving": "Saving...",
+        "rescrape": "Rescrape",
+        "rescraping": "Scraping...",
         "productName": "Product Name",
         "productUrl": "Product URL",
         "openPage": "Open page",
+        "scrapedContent": "Scraped Content",
+        "scrapedPlaceholder": "Scraped content will appear here...",
+        "scrapedChars": "{chars} characters",
+        "scrapedLines": "{lines} lines",
+        "notScrapedYet": "Content not scraped yet",
+        "scrapeNow": "Scrape Now",
         "toasts": {
             "loadError": {
                 "title": "Error",
-                "message": "Error loading product."
+                "message": "Failed to load product details"
             },
             "saved": {
                 "title": "Saved",
-                "message": "Product updated successfully."
+                "message": "Product changes saved successfully"
             },
             "saveError": {
                 "title": "Error",
-                "message": "Failed to save product."
+                "message": "Failed to save product changes"
             },
             "rescanSuccess": {
-                "title": "Success!",
-                "message": "Product rescraped and embeddings created."
+                "title": "Scraped",
+                "message": "Product scraped successfully"
             },
             "rescanError": {
                 "title": "Error",
-                "message": "Error rescraping product."
+                "message": "Failed to scrape product"
             }
         }
     },

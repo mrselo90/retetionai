@@ -225,7 +225,7 @@ export default function ProductDetailPage() {
 
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <button
             onClick={() => router.push('/dashboard/products')}
@@ -239,18 +239,18 @@ export default function ProductDetailPage() {
           <h1 className="text-3xl font-bold text-zinc-900">{t('editProduct')}</h1>
           <p className="mt-2 text-zinc-600">{t('editDescription')}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex w-full sm:w-auto gap-3">
           <button
             onClick={handleRescrape}
             disabled={rescraping}
-            className="px-4 py-2 border border-zinc-300 text-zinc-700 rounded-lg hover:bg-zinc-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 sm:flex-none px-4 py-2 border border-zinc-300 text-zinc-700 rounded-lg hover:bg-zinc-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {rescraping ? 'Taranıyor...' : 'Yeniden Tara'}
+            {rescraping ? t('rescraping') : t('rescrape')}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 sm:flex-none px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? t('saving') : t('save')}
           </button>
@@ -311,14 +311,14 @@ export default function ProductDetailPage() {
 
       {/* Scraped Content */}
       <div className="bg-card rounded-lg border border-border shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-zinc-900">Taranan İçerik</h2>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <h2 className="text-xl font-semibold text-zinc-900">{t('scrapedContent')}</h2>
           <button
             onClick={handleRescrape}
             disabled={rescraping}
             className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
           >
-            {rescraping ? 'Taranıyor...' : 'Yeniden Tara'}
+            {rescraping ? t('rescraping') : t('rescrape')}
           </button>
         </div>
 
@@ -329,10 +329,10 @@ export default function ProductDetailPage() {
               onChange={(e) => setEditedRawText(e.target.value)}
               rows={20}
               className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm text-zinc-900"
-              placeholder="Taranan içerik burada görünecek..."
+              placeholder={t('scrapedPlaceholder')}
             />
             <p className="text-sm text-zinc-600">
-              {editedRawText.length.toLocaleString('tr-TR')} karakter • {editedRawText.split('\n').length} satır
+              {t('scrapedChars', { chars: editedRawText.length.toLocaleString('tr-TR') })} • {t('scrapedLines', { lines: editedRawText.split('\n').length })}
             </p>
           </div>
         ) : (
@@ -340,13 +340,13 @@ export default function ProductDetailPage() {
             <svg className="mx-auto h-12 w-12 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <p className="mt-2 text-zinc-600">Henüz içerik taranmamış</p>
+            <p className="mt-2 text-zinc-600">{t('notScrapedYet')}</p>
             <button
               onClick={handleRescrape}
               disabled={rescraping}
               className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50"
             >
-              {rescraping ? 'Taranıyor...' : 'Şimdi Tara'}
+              {rescraping ? t('rescraping') : t('scrapeNow')}
             </button>
           </div>
         )}
@@ -389,9 +389,9 @@ export default function ProductDetailPage() {
       </div>
 
       {/* Metadata */}
-      <div className="bg-card rounded-lg border border-border shadow-sm p-6">
+      <div className="bg-card rounded-lg border border-border shadow-sm p-6 mt-6">
         <h2 className="text-xl font-semibold text-zinc-900 mb-4">Metadata</h2>
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-zinc-600">Oluşturulma:</span>
             <p className="text-zinc-900 font-medium mt-1">
