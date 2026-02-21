@@ -24,6 +24,9 @@ interface Integration {
   shop_domain?: string;
 }
 
+/** Manual integration is not in plan for now; API keys are still used for webhooks/API auth in Settings. */
+const ENABLE_MANUAL_INTEGRATION = false;
+
 export default function IntegrationsPage() {
   const t = useTranslations('Integrations');
   const locale = useLocale();
@@ -48,7 +51,7 @@ export default function IntegrationsPage() {
 
   useEffect(() => {
     loadIntegrations();
-    loadApiKeys();
+    if (ENABLE_MANUAL_INTEGRATION) loadApiKeys();
     loadPlatformContact();
   }, []);
 
@@ -491,29 +494,31 @@ export default function IntegrationsPage() {
           </div>
         </Card>
 
-        {/* Manual / API */}
-        <Card className={`p-5 ${hasManual ? 'border-primary/30 bg-primary/5' : ''}`}>
-          <div className="text-center relative">
-            {hasManual && (
-              <Badge variant="secondary" size="sm" className="absolute -top-1 -right-1">
-                ✓ {t('active.connected')}
-              </Badge>
-            )}
-            <div className="text-5xl mb-4">📝</div>
-            <h3 className="text-base font-semibold text-zinc-900 mb-2">{t('providers.manual.title')}</h3>
-            <p className="text-sm text-zinc-600 mb-5 min-h-[40px]">
-              {hasManual ? t('providers.manual.connected') : t('providers.manual.description')}
-            </p>
-            <Button
-              onClick={() => setShowManualModal(true)}
-              variant={hasManual ? 'outline' : 'default'}
-              className="w-full"
-            >
-              <Code className="w-4 h-4 mr-2" />
-              {hasManual ? t('providers.manual.action.connected') : t('providers.manual.action.setup')}
-            </Button>
-          </div>
-        </Card>
+        {ENABLE_MANUAL_INTEGRATION && (
+          /* Manual / API - not in plan for now */
+          <Card className={`p-5 ${hasManual ? 'border-primary/30 bg-primary/5' : ''}`}>
+            <div className="text-center relative">
+              {hasManual && (
+                <Badge variant="secondary" size="sm" className="absolute -top-1 -right-1">
+                  ✓ {t('active.connected')}
+                </Badge>
+              )}
+              <div className="text-5xl mb-4">📝</div>
+              <h3 className="text-base font-semibold text-zinc-900 mb-2">{t('providers.manual.title')}</h3>
+              <p className="text-sm text-zinc-600 mb-5 min-h-[40px]">
+                {hasManual ? t('providers.manual.connected') : t('providers.manual.description')}
+              </p>
+              <Button
+                onClick={() => setShowManualModal(true)}
+                variant={hasManual ? 'outline' : 'default'}
+                className="w-full"
+              >
+                <Code className="w-4 h-4 mr-2" />
+                {hasManual ? t('providers.manual.action.connected') : t('providers.manual.action.setup')}
+              </Button>
+            </div>
+          </Card>
+        )}
       </div>
 
       {/* Active Integrations */}
@@ -600,10 +605,12 @@ export default function IntegrationsPage() {
                   <Upload className="w-5 h-5 mr-2" />
                   {t('modals.csv.title')}
                 </Button>
-                <Button variant="outline" onClick={() => setShowManualModal(true)} size="lg">
-                  <Code className="w-5 h-5 mr-2" />
-                  {t('modals.manual.title')}
-                </Button>
+                {ENABLE_MANUAL_INTEGRATION && (
+                  <Button variant="outline" onClick={() => setShowManualModal(true)} size="lg">
+                    <Code className="w-5 h-5 mr-2" />
+                    {t('modals.manual.title')}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
