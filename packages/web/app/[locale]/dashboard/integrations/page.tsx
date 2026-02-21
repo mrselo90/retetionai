@@ -380,14 +380,19 @@ export default function IntegrationsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="space-y-3">
-          <div className="h-10 w-48 bg-zinc-200 rounded-xl animate-pulse" />
-          <div className="h-5 w-96 bg-zinc-100 rounded-lg animate-pulse" />
+      <div className="space-y-6 animate-fade-in pb-8">
+        <div className="space-y-1.5">
+          <div className="h-8 w-48 bg-zinc-200 rounded-md animate-pulse" />
+          <div className="h-4 w-96 bg-zinc-100 rounded animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-56 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" style={{ animationDelay: `${i * 100}ms` }} />
+            <div key={i} className="bg-white shadow-sm ring-1 ring-black/5 rounded-xl p-5 animate-pulse" style={{ animationDelay: `${i * 100}ms` }}>
+              <div className="h-12 w-12 bg-zinc-100 rounded-lg mb-4" />
+              <div className="h-5 w-24 bg-zinc-200 rounded mb-2" />
+              <div className="h-10 w-full bg-zinc-100 rounded" />
+              <div className="mt-4 h-8 w-full bg-zinc-200 rounded-lg" />
+            </div>
           ))}
         </div>
       </div>
@@ -395,39 +400,39 @@ export default function IntegrationsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
-      <div className="space-y-1.5">
-        <h1 className="text-3xl font-extrabold tracking-tight">{t('title')}</h1>
-        <p className="text-muted-foreground text-base font-medium">
+    <div className="space-y-6 animate-fade-in pb-8 font-sans text-[#303030]">
+      <div className="space-y-1">
+        <h1 className="text-xl font-bold text-[#1a1a1a]">{t('title')}</h1>
+        <p className="text-sm text-[#616161]">
           {t('description')}
         </p>
       </div>
 
       {/* Platform support number */}
       {platformWhatsApp && (
-        <Card className="p-5 flex items-center justify-between gap-4">
+        <div className="bg-white shadow-sm ring-1 ring-black/5 rounded-xl p-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="text-3xl">💬</div>
             <div>
-              <p className="font-semibold text-zinc-900">{t('platformSupport.title')}</p>
-              <p className="text-sm text-zinc-600">{t('platformSupport.subtitle')}</p>
+              <p className="font-medium text-[#1a1a1a] text-sm">{t('platformSupport.title')}</p>
+              <p className="text-sm text-[#616161]">{t('platformSupport.subtitle')}</p>
             </div>
           </div>
           <a
             href={`https://wa.me/${platformWhatsApp.replace(/^\+/, '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-success text-success-foreground rounded-lg font-semibold text-sm whitespace-nowrap"
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-black/5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
           >
             {platformWhatsApp}
           </a>
-        </Card>
+        </div>
       )}
 
       {/* Integration Options */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* WhatsApp Business */}
-        <Card className={`p-5 ${hasWhatsApp ? 'border-success/30 bg-success/5' : ''}`}>
+        <div className={`bg-white shadow-sm ring-1 rounded-xl p-5 ${hasWhatsApp ? 'ring-[#008060]/30 bg-[#f3fbf8]' : 'ring-black/5'}`}>
           <div className="text-center relative">
             {hasWhatsApp && (
               <Badge variant="success" size="sm" className="absolute -top-1 -right-1">
@@ -435,22 +440,24 @@ export default function IntegrationsPage() {
               </Badge>
             )}
             <div className="text-5xl mb-4">💬</div>
-            <h3 className="text-base font-semibold text-zinc-900 mb-2">{t('providers.whatsapp.title')}</h3>
-            <p className="text-sm text-zinc-600 mb-5 min-h-[40px]">
+            <h3 className="text-sm font-semibold text-[#1a1a1a] mb-2">{t('providers.whatsapp.title')}</h3>
+            <p className="text-sm text-[#616161] mb-5 min-h-[40px]">
               {hasWhatsApp ? t('providers.whatsapp.connected') : t('providers.whatsapp.description')}
             </p>
-            <Button
+            <button
               onClick={() => openWhatsAppModal(integrations.find((i) => i.provider === 'whatsapp'))}
-              className="w-full"
-              variant={hasWhatsApp ? 'outline' : 'default'}
+              className={`w-full text-sm font-medium px-3 py-1.5 rounded-lg shadow-sm ring-1 transition-colors ${hasWhatsApp
+                ? 'bg-white text-[#1a1a1a] ring-black/5 hover:bg-zinc-50'
+                : 'bg-[#1a1a1a] text-white ring-transparent hover:bg-[#303030]'
+                }`}
             >
               {hasWhatsApp ? t('providers.whatsapp.action.update') : t('providers.whatsapp.action.connect')}
-            </Button>
+            </button>
           </div>
-        </Card>
+        </div>
 
         {/* Shopify */}
-        <Card className={`p-5 ${hasShopify ? 'border-success/30 bg-success/5' : ''}`}>
+        <div className={`bg-white shadow-sm ring-1 rounded-xl p-5 ${hasShopify ? 'ring-[#008060]/30 bg-[#f3fbf8]' : 'ring-black/5'}`}>
           <div className="text-center relative">
             {hasShopify && (
               <Badge variant="success" size="sm" className="absolute -top-1 -right-1">
@@ -458,45 +465,47 @@ export default function IntegrationsPage() {
               </Badge>
             )}
             <div className="text-5xl mb-4">🛍️</div>
-            <h3 className="text-base font-semibold text-zinc-900 mb-2">{t('providers.shopify.title')}</h3>
-            <p className="text-sm text-zinc-600 mb-5 min-h-[40px]">
+            <h3 className="text-sm font-semibold text-[#1a1a1a] mb-2">{t('providers.shopify.title')}</h3>
+            <p className="text-sm text-[#616161] mb-5 min-h-[40px]">
               {hasShopify
                 ? (integrations.find((i) => i.provider === 'shopify')?.shop_domain
                   ? `${t('active.storeLabel')}: ${integrations.find((i) => i.provider === 'shopify')?.shop_domain}`
                   : t('providers.shopify.connected'))
                 : t('providers.shopify.description')}
             </p>
-            <Button
+            <button
               onClick={() => setShowShopifyModal(true)}
-              variant={hasShopify ? 'outline' : 'default'}
-              className="w-full"
+              className={`w-full text-sm font-medium px-3 py-1.5 rounded-lg shadow-sm ring-1 transition-colors ${hasShopify
+                ? 'bg-white text-[#1a1a1a] ring-black/5 hover:bg-zinc-50'
+                : 'bg-[#1a1a1a] text-white ring-transparent hover:bg-[#303030]'
+                }`}
             >
               {hasShopify ? t('providers.shopify.action.connected') : t('providers.shopify.action.connect')}
-            </Button>
+            </button>
           </div>
-        </Card>
+        </div>
 
         {/* CSV Import */}
-        <Card className="p-5">
+        <div className="bg-white shadow-sm ring-1 ring-black/5 rounded-xl p-5">
           <div className="text-center">
             <div className="text-5xl mb-4">📊</div>
-            <h3 className="text-base font-semibold text-zinc-900 mb-2">{t('providers.csv.title')}</h3>
-            <p className="text-sm text-zinc-600 mb-5 min-h-[40px]">
+            <h3 className="text-sm font-semibold text-[#1a1a1a] mb-2">{t('providers.csv.title')}</h3>
+            <p className="text-sm text-[#616161] mb-5 min-h-[40px]">
               {t('providers.csv.description')}
             </p>
-            <Button
+            <button
               onClick={() => setShowCsvModal(true)}
-              className="w-full"
+              className="w-full flex items-center justify-center bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-transparent rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
             >
-              <Upload className="w-4 h-4 mr-2" />
+              <Upload className="w-4 h-4 mr-1.5" />
               {t('providers.csv.action')}
-            </Button>
+            </button>
           </div>
-        </Card>
+        </div>
 
         {ENABLE_MANUAL_INTEGRATION && (
           /* Manual / API - not in plan for now */
-          <Card className={`p-5 ${hasManual ? 'border-primary/30 bg-primary/5' : ''}`}>
+          <div className={`bg-white shadow-sm ring-1 rounded-xl p-5 ${hasManual ? 'ring-teal-600/30 bg-teal-50' : 'ring-black/5'}`}>
             <div className="text-center relative">
               {hasManual && (
                 <Badge variant="secondary" size="sm" className="absolute -top-1 -right-1">
@@ -504,72 +513,70 @@ export default function IntegrationsPage() {
                 </Badge>
               )}
               <div className="text-5xl mb-4">📝</div>
-              <h3 className="text-base font-semibold text-zinc-900 mb-2">{t('providers.manual.title')}</h3>
-              <p className="text-sm text-zinc-600 mb-5 min-h-[40px]">
+              <h3 className="text-sm font-semibold text-[#1a1a1a] mb-2">{t('providers.manual.title')}</h3>
+              <p className="text-sm text-[#616161] mb-5 min-h-[40px]">
                 {hasManual ? t('providers.manual.connected') : t('providers.manual.description')}
               </p>
-              <Button
+              <button
                 onClick={() => setShowManualModal(true)}
-                variant={hasManual ? 'outline' : 'default'}
-                className="w-full"
+                className={`w-full flex items-center justify-center text-sm font-medium px-3 py-1.5 rounded-lg shadow-sm ring-1 transition-colors ${hasManual
+                  ? 'bg-white text-[#1a1a1a] ring-black/5 hover:bg-zinc-50'
+                  : 'bg-[#1a1a1a] text-white ring-transparent hover:bg-[#303030]'
+                  }`}
               >
-                <Code className="w-4 h-4 mr-2" />
+                <Code className="w-4 h-4 mr-1.5" />
                 {hasManual ? t('providers.manual.action.connected') : t('providers.manual.action.setup')}
-              </Button>
+              </button>
             </div>
-          </Card>
+          </div>
         )}
       </div>
 
       {/* Active Integrations */}
-      <div className="pt-2">
-        <h2 className="text-2xl font-extrabold tracking-tight mb-4">{t('active.title')}</h2>
+      <div className="pt-4">
+        <h2 className="text-lg font-semibold text-[#1a1a1a] mb-3">{t('active.title')}</h2>
         {integrations.length > 0 ? (
-          <Card className="overflow-hidden">
-            <div className="divide-y divide-border">
+          <div className="bg-white shadow-sm ring-1 ring-black/5 rounded-xl overflow-hidden">
+            <div className="divide-y divide-black/5">
               {integrations.map((integration, idx) => (
-                <div key={integration.id} className="p-7 hover:bg-gradient-to-r hover:from-muted/30 hover:to-transparent transition-all group" style={{ animationDelay: `${idx * 50}ms` }}>
+                <div key={integration.id} className="p-4 sm:p-5 hover:bg-zinc-50/50 transition-all group" style={{ animationDelay: `${idx * 50}ms` }}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-5">
-                      <div className="text-5xl ">{getProviderIcon(integration.provider)}</div>
+                      <div className="text-3xl bg-zinc-50 w-12 h-12 rounded-lg flex items-center justify-center ring-1 ring-black/5">{getProviderIcon(integration.provider)}</div>
                       <div>
-                        <h3 className="text-xl font-bold text-zinc-900">
+                        <h3 className="text-sm font-semibold text-[#1a1a1a]">
                           {getProviderName(integration.provider)}
                           {integration.provider === 'whatsapp' && integration.phone_number_display && (
-                            <span className="ml-3 text-base font-medium text-zinc-500">
-                              — {integration.phone_number_display}
+                            <span className="ml-2 font-normal text-[#616161]">
+                              • {integration.phone_number_display}
                             </span>
                           )}
                           {integration.provider === 'shopify' && integration.shop_domain && (
-                            <span className="ml-3 text-base font-medium text-zinc-500">
-                              — {integration.shop_domain}
+                            <span className="ml-2 font-normal text-[#616161]">
+                              • {integration.shop_domain}
                             </span>
                           )}
                         </h3>
-                        <p className="text-sm text-zinc-600 mt-2 font-medium">
+                        <p className="text-xs text-[#616161] mt-0.5">
                           {t('createdLabel')} {new Date(integration.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Badge variant={integration.status === 'active' ? 'success' : integration.status === 'error' ? 'destructive' : 'secondary'} size="lg" className="shadow-sm font-bold">
+                      <Badge variant={integration.status === 'active' ? 'success' : integration.status === 'error' ? 'destructive' : 'secondary'} className="shadow-sm font-medium">
                         {getStatusText(integration.status)}
                       </Badge>
                       {integration.provider === 'whatsapp' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                        <button
                           onClick={() => openWhatsAppModal(integration)}
                           title={t('providers.whatsapp.action.update')}
-                          className="hover:bg-primary/10"
+                          className="p-1.5 text-[#616161] hover:text-[#1a1a1a] hover:bg-zinc-100 rounded transition-colors"
                         >
                           <Pencil className="w-4 h-4" />
-                        </Button>
+                        </button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      <button
+                        className="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
                         onClick={() => {
                           if (confirm(t('active.deleteConfirm'))) {
                             handleDeleteIntegration(integration.id);
@@ -577,43 +584,50 @@ export default function IntegrationsPage() {
                         }}
                       >
                         <Trash2 className="w-4 h-4" />
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          </Card>
+          </div>
         ) : (
-          <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center justify-center min-h-[400px] py-12">
-            <CardContent className="p-0 flex flex-col items-center justify-center text-center w-full">
-              <div className="w-20 h-20 mb-6 rounded-2xl bg-zinc-100 flex items-center justify-center ">
-                <Plug className="w-10 h-10 text-primary" />
-              </div>
-              <h3 className="text-2xl font-bold mb-3">
-                {t('active.empty.title')}
-              </h3>
-              <p className="text-muted-foreground mb-8 max-w-md text-base text-center">
-                {t('active.empty.description')}
-              </p>
-              <div className="flex justify-center gap-3 flex-wrap">
-                <Button onClick={() => setShowShopifyModal(true)} size="lg" className="shadow-lg">
-                  <ShoppingBag className="w-5 h-5 mr-2" />
-                  {t('modals.shopify.title')}
-                </Button>
-                <Button variant="outline" onClick={() => setShowCsvModal(true)} size="lg">
-                  <Upload className="w-5 h-5 mr-2" />
-                  {t('modals.csv.title')}
-                </Button>
-                {ENABLE_MANUAL_INTEGRATION && (
-                  <Button variant="outline" onClick={() => setShowManualModal(true)} size="lg">
-                    <Code className="w-5 h-5 mr-2" />
-                    {t('modals.manual.title')}
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="bg-white shadow-sm ring-1 ring-black/5 rounded-xl py-16 px-6 flex flex-col items-center justify-center text-center">
+            <div className="w-12 h-12 mb-4 rounded-lg bg-zinc-50 border border-zinc-100 flex items-center justify-center">
+              <Plug className="w-6 h-6 text-[#616161]" />
+            </div>
+            <h3 className="text-sm font-semibold text-[#1a1a1a] mb-1">
+              {t('active.empty.title')}
+            </h3>
+            <p className="text-sm text-[#616161] mb-6 max-w-sm">
+              {t('active.empty.description')}
+            </p>
+            <div className="flex justify-center gap-3 flex-wrap">
+              <button
+                onClick={() => setShowShopifyModal(true)}
+                className="bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-transparent rounded-lg px-3 py-1.5 text-sm font-medium transition-colors inline-flex items-center"
+              >
+                <ShoppingBag className="w-4 h-4 mr-1.5" />
+                {t('modals.shopify.title')}
+              </button>
+              <button
+                onClick={() => setShowCsvModal(true)}
+                className="bg-white hover:bg-zinc-50 text-[#1a1a1a] shadow-sm ring-1 ring-black/5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors inline-flex items-center"
+              >
+                <Upload className="w-4 h-4 mr-1.5" />
+                {t('modals.csv.title')}
+              </button>
+              {ENABLE_MANUAL_INTEGRATION && (
+                <button
+                  onClick={() => setShowManualModal(true)}
+                  className="bg-white hover:bg-zinc-50 text-[#1a1a1a] shadow-sm ring-1 ring-black/5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors inline-flex items-center"
+                >
+                  <Code className="w-4 h-4 mr-1.5" />
+                  {t('modals.manual.title')}
+                </button>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
@@ -643,14 +657,22 @@ export default function IntegrationsPage() {
               </p>
             </div>
 
-            <DialogFooter className="gap-3 sm:gap-0">
-              <Button variant="outline" onClick={() => setShowShopifyModal(false)} disabled={connectingShopify}>
+            <DialogFooter className="gap-3 sm:gap-3">
+              <button
+                onClick={() => setShowShopifyModal(false)}
+                disabled={connectingShopify}
+                className="bg-white hover:bg-zinc-50 text-[#1a1a1a] shadow-sm ring-1 ring-black/5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
+              >
                 {t('modals.shopify.cancel')}
-              </Button>
-              <Button onClick={handleConnectShopify} disabled={connectingShopify}>
-                {connectingShopify && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              </button>
+              <button
+                onClick={handleConnectShopify}
+                disabled={connectingShopify}
+                className="bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-transparent rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center"
+              >
+                {connectingShopify && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
                 {connectingShopify ? t('modals.shopify.connecting') : t('modals.shopify.connect')}
-              </Button>
+              </button>
             </DialogFooter>
           </div>
         </DialogContent>
@@ -689,14 +711,22 @@ export default function IntegrationsPage() {
               </p>
             </div>
 
-            <DialogFooter className="gap-3 sm:gap-0">
-              <Button variant="outline" onClick={() => setShowCsvModal(false)} disabled={importing}>
+            <DialogFooter className="gap-3 sm:gap-3">
+              <button
+                onClick={() => setShowCsvModal(false)}
+                disabled={importing}
+                className="bg-white hover:bg-zinc-50 text-[#1a1a1a] shadow-sm ring-1 ring-black/5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
+              >
                 {t('modals.csv.cancel')}
-              </Button>
-              <Button onClick={handleImportCsv} disabled={importing || !csvFile}>
-                {importing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              </button>
+              <button
+                onClick={handleImportCsv}
+                disabled={importing || !csvFile}
+                className="bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-transparent rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center"
+              >
+                {importing && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
                 {importing ? t('modals.csv.importing') : t('modals.csv.import')}
-              </Button>
+              </button>
             </DialogFooter>
           </div>
         </DialogContent>
@@ -730,13 +760,19 @@ export default function IntegrationsPage() {
               </div>
             )}
 
-            <DialogFooter className="gap-3 sm:gap-0">
-              <Button variant="outline" onClick={() => setShowManualModal(false)}>
+            <DialogFooter className="gap-3 sm:gap-3">
+              <button
+                onClick={() => setShowManualModal(false)}
+                className="bg-white hover:bg-zinc-50 text-[#1a1a1a] shadow-sm ring-1 ring-black/5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+              >
                 {t('modals.manual.cancel')}
-              </Button>
-              <Button onClick={handleCreateManualIntegration}>
+              </button>
+              <button
+                onClick={handleCreateManualIntegration}
+                className="bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-transparent rounded-lg px-3 py-1.5 text-sm font-medium transition-colors inline-flex items-center justify-center"
+              >
                 {t('modals.manual.create')}
-              </Button>
+              </button>
             </DialogFooter>
           </div>
         </DialogContent>
@@ -801,16 +837,22 @@ export default function IntegrationsPage() {
               />
             </div>
 
-            <DialogFooter className="gap-3 sm:gap-0">
-              <Button variant="outline" onClick={() => setShowWhatsAppModal(false)} disabled={connectingWhatsApp}>
+            <DialogFooter className="gap-3 sm:gap-3">
+              <button
+                onClick={() => setShowWhatsAppModal(false)}
+                disabled={connectingWhatsApp}
+                className="bg-white hover:bg-zinc-50 text-[#1a1a1a] shadow-sm ring-1 ring-black/5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
+              >
                 {t('modals.whatsapp.cancel')}
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={handleSaveWhatsApp}
                 disabled={connectingWhatsApp || !whatsappPhoneNumberId.trim() || !whatsappAccessToken.trim() || !whatsappVerifyToken.trim()}
+                className="bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-transparent rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center"
               >
+                {connectingWhatsApp && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
                 {connectingWhatsApp ? t('modals.whatsapp.saving') : editingWhatsAppId ? t('modals.whatsapp.update') : t('modals.whatsapp.save')}
-              </Button>
+              </button>
             </DialogFooter>
           </div>
         </DialogContent>
