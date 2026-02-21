@@ -294,32 +294,18 @@ function extractRawContent(html: string): string {
     cleaned = cleaned.replace(sec, ' ');
   }
 
-  // ── Step 2: Prioritise product-specific content ───────────────
-  // Try to find the main product description block — common patterns
-  const descriptionPatterns = [
-    /<div[^>]*(product[_-]description|product[_-]details|product[_-]info|ProductDescription|tab-content)[^>]*>([\s\S]*?)<\/div>/i,
-    /<section[^>]*(product|description|details)[^>]*>([\s\S]*?)<\/section>/i,
-  ];
-
-  let productSpecificContent = '';
-  for (const p of descriptionPatterns) {
-    const m = cleaned.match(p);
-    if (m) {
-      productSpecificContent = m[0];
-      break;
-    }
-  }
-
-  // Use product-specific content if found and substantial; otherwise use whole page
-  const sourceHtml = productSpecificContent.length > 200 ? productSpecificContent : cleaned;
-
-  // ── Step 3: Strip scripts, styles, remaining HTML tags ────────
-  let text = sourceHtml
+  // ── Step 2: Strip scripts, styles, remaining HTML tags ────────
+  // To avoid breaking sentences, block-level tags are replaced by newlines.
+  // Inline tags are replaced by a space so words don't merge together.
+  const blockTags = ['div', 'p', 'br', 'li', 'tr', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'section', 'article', 'aside', 'header', 'footer', 'nav', 'table', 'ul', 'ol', 'dl', 'dt', 'dd', 'blockquote'];
+  let text = cleaned
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]*>/g, '\n'); // Replace tags with newlines to preserve line structure
+    .replace(new RegExp(`<(?:${blockTags.join('|')})\\b[^>]*>`, 'gi'), '\n')
+    .replace(new RegExp(`</(?:${blockTags.join('|')})>`, 'gi'), '\n')
+    .replace(/<[^>]*>/g, ' '); // Replace all inline tags with spaces
 
-  // ── Step 4: Decode HTML entities ─────────────────────────────
+  // ── Step 3: Decode HTML entities ─────────────────────────────
   text = text
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
@@ -329,7 +315,7 @@ function extractRawContent(html: string): string {
     .replace(/&#39;/g, "'")
     .replace(/&#\d+;/g, ' ');
 
-  // ── Step 5: Filter noise lines + deduplicate ─────────────────
+  // ── Step 4: Filter noise lines + deduplicate ─────────────────
   const seenLines = new Set<string>();
   const lines = text.split('\n');
   const keptLines: string[] = [];
@@ -346,8 +332,8 @@ function extractRawContent(html: string): string {
     keptLines.push(filtered);
   }
 
-  // ── Step 6: Re-join and limit ─────────────────────────────────
-  const result = keptLines.join(' ').replace(/\s+/g, ' ').trim();
+  // ── Step 5: Re-join and limit ─────────────────────────────────
+  const result = keptLines.join('\n').trim();
   return result.substring(0, 10000);
 }
 
