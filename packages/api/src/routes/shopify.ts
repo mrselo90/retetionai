@@ -154,6 +154,7 @@ shopify.get('/products', authMiddleware, async (c) => {
 
     const result = await fetchShopifyProducts(shopDomain, accessToken, first, after || undefined);
     return c.json({
+      shopDomain,
       products: result.products,
       hasNextPage: result.hasNextPage,
       endCursor: result.endCursor,

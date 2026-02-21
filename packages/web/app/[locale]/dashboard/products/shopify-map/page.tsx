@@ -49,6 +49,7 @@ interface InstructionRow {
 export default function ShopifyMapPage() {
   const t = useTranslations('ShopifyMap');
   const [shopifyProducts, setShopifyProducts] = useState<ShopifyProduct[]>([]);
+  const [shopDomain, setShopDomain] = useState<string>('');
   const [localProducts, setLocalProducts] = useState<LocalProduct[]>([]);
   const [instructions, setInstructions] = useState<Record<string, InstructionRow>>({});
   const [editing, setEditing] = useState<Record<string, { usage_instructions: string; recipe_summary?: string }>>({});
@@ -69,10 +70,12 @@ export default function ShopifyMapPage() {
       const token = session.access_token;
 
       const [shopifyRes, productsRes, instructionsRes] = await Promise.all([
-        authenticatedRequest<{ products: ShopifyProduct[] }>('/api/integrations/shopify/products', token),
+        authenticatedRequest<{ products: ShopifyProduct[], shopDomain: string }>('/api/integrations/shopify/products', token),
         authenticatedRequest<{ products: LocalProduct[] }>('/api/products', token),
         authenticatedRequest<{ instructions: InstructionRow[] }>('/api/products/instructions/list', token).catch(() => ({ instructions: [] })),
       ]);
+
+      setShopDomain(shopifyRes.shopDomain || 'myshopify.com');
 
       setShopifyProducts(shopifyRes.products || []);
       setLocalProducts(productsRes.products || []);
@@ -137,7 +140,7 @@ export default function ShopifyMapPage() {
           method: 'POST',
           body: JSON.stringify({
             name: shopifyProduct.title,
-            url: `https://shopify.com/products/${shopifyProduct.handle || shopifyProduct.id}`,
+            url: `https://${shopDomain}/products/${shopifyProduct.handle || shopifyProduct.id}`,
             external_id: shopifyProduct.id,
             raw_text: descriptionForRag ?? undefined,
           }),
@@ -161,14 +164,14 @@ export default function ShopifyMapPage() {
         }),
       });
       toast.success(t('toasts.saveSuccess.title'), t('toasts.saveSuccess.message'));
-      
+
       // Add success highlight animation
       const row = document.querySelector(`tr[data-product-id="${shopifyProduct.id}"]`);
       if (row) {
         row.classList.add('bg-success/10');
         setTimeout(() => row.classList.remove('bg-success/10'), 1000);
       }
-      
+
       await loadData();
     } catch (err: any) {
       toast.error(t('toasts.saveError.title'), err.message);
@@ -216,9 +219,9 @@ export default function ShopifyMapPage() {
           </div>
           <Card className="overflow-hidden ">
             {[1, 2, 3].map((i) => (
-              <div 
-                key={i} 
-                className="h-32 bg-white border-b-2 border-zinc-100 animate-pulse" 
+              <div
+                key={i}
+                className="h-32 bg-white border-b-2 border-zinc-100 animate-pulse"
                 style={{ animationDelay: `${i * 100}ms` }}
               />
             ))}
@@ -269,7 +272,7 @@ export default function ShopifyMapPage() {
                 </thead>
                 <tbody className="divide-y divide-border bg-card">
                   {shopifyProducts.map((p, idx) => (
-                    <tr 
+                    <tr
                       key={p.id}
                       data-product-id={p.id}
                       className="hover:bg-gradient-to-r hover:from-muted/30 hover:to-transparent transition-all duration-200 group animate-fade-in"
