@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, X, Trash2, Pencil, Plug, Upload, Code, MessageSquare, ShoppingBag } from 'lucide-react';
+import { Loader2, X, Trash2, Pencil, Plug, Upload, Code, MessageSquare, ShoppingBag, MessageCircle, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useTranslations, useLocale } from 'next-intl';
 
@@ -408,21 +408,21 @@ export default function IntegrationsPage() {
         </p>
       </div>
 
-      {/* Platform support number */}
+      {/* Platform support number as an Alert Banner */}
       {platformWhatsApp && (
-        <div className="bg-white shadow-sm ring-1 ring-black/5 rounded-xl p-5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="text-3xl">💬</div>
+        <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-blue-800">
+            <Info className="w-5 h-5" />
             <div>
-              <p className="font-medium text-[#1a1a1a] text-sm">{t('platformSupport.title')}</p>
-              <p className="text-sm text-[#616161]">{t('platformSupport.subtitle')}</p>
+              <p className="font-medium text-sm">{t('platformSupport.title')}</p>
+              <p className="text-sm opacity-90">{t('platformSupport.subtitle')}</p>
             </div>
           </div>
           <a
             href={`https://wa.me/${platformWhatsApp.replace(/^\+/, '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-black/5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-zinc-50 text-blue-900 border border-blue-200 shadow-sm rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
           >
             {platformWhatsApp}
           </a>
@@ -432,23 +432,25 @@ export default function IntegrationsPage() {
       {/* Integration Options */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* WhatsApp Business */}
-        <div className={`bg-white shadow-sm ring-1 rounded-xl p-5 ${hasWhatsApp ? 'ring-[#008060]/30 bg-[#f3fbf8]' : 'ring-black/5'}`}>
-          <div className="text-center relative">
+        <div className={`bg-white shadow-sm ring-1 rounded-xl p-5 flex flex-col h-full ${hasWhatsApp ? 'ring-[#008060]/30 bg-[#f3fbf8]' : 'ring-black/5'}`}>
+          <div className="relative flex-1 text-left flex flex-col">
             {hasWhatsApp && (
               <Badge variant="success" size="sm" className="absolute -top-1 -right-1">
                 ✓ {t('active.connected')}
               </Badge>
             )}
-            <div className="text-5xl mb-4">💬</div>
+            <div className="w-12 h-12 rounded-lg bg-zinc-50 border border-zinc-100 flex items-center justify-center mb-4">
+              <MessageCircle className="w-6 h-6 text-[#1a1a1a]" />
+            </div>
             <h3 className="text-sm font-semibold text-[#1a1a1a] mb-2">{t('providers.whatsapp.title')}</h3>
-            <p className="text-sm text-[#616161] mb-5 min-h-[40px]">
+            <p className="text-sm text-[#616161] mb-5 flex-1 line-clamp-3">
               {hasWhatsApp ? t('providers.whatsapp.connected') : t('providers.whatsapp.description')}
             </p>
             <button
               onClick={() => openWhatsAppModal(integrations.find((i) => i.provider === 'whatsapp'))}
-              className={`w-full text-sm font-medium px-3 py-1.5 rounded-lg shadow-sm ring-1 transition-colors ${hasWhatsApp
-                ? 'bg-white text-[#1a1a1a] ring-black/5 hover:bg-zinc-50'
-                : 'bg-[#1a1a1a] text-white ring-transparent hover:bg-[#303030]'
+              className={`w-full text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${hasWhatsApp
+                ? 'bg-white text-[#1a1a1a] border border-zinc-200 shadow-sm hover:bg-zinc-50'
+                : 'bg-white text-[#1a1a1a] border border-zinc-200 shadow-sm hover:bg-zinc-50'
                 }`}
             >
               {hasWhatsApp ? t('providers.whatsapp.action.update') : t('providers.whatsapp.action.connect')}
@@ -457,16 +459,18 @@ export default function IntegrationsPage() {
         </div>
 
         {/* Shopify */}
-        <div className={`bg-white shadow-sm ring-1 rounded-xl p-5 ${hasShopify ? 'ring-[#008060]/30 bg-[#f3fbf8]' : 'ring-black/5'}`}>
-          <div className="text-center relative">
+        <div className={`bg-white shadow-sm ring-1 rounded-xl p-5 flex flex-col h-full ${hasShopify ? 'ring-[#008060]/30 bg-[#f3fbf8]' : 'ring-black/5'}`}>
+          <div className="relative flex-1 text-left flex flex-col">
             {hasShopify && (
               <Badge variant="success" size="sm" className="absolute -top-1 -right-1">
                 ✓ {t('active.connected')}
               </Badge>
             )}
-            <div className="text-5xl mb-4">🛍️</div>
+            <div className="w-12 h-12 rounded-lg bg-zinc-50 border border-zinc-100 flex items-center justify-center mb-4">
+              <ShoppingBag className="w-6 h-6 text-[#1a1a1a]" />
+            </div>
             <h3 className="text-sm font-semibold text-[#1a1a1a] mb-2">{t('providers.shopify.title')}</h3>
-            <p className="text-sm text-[#616161] mb-5 min-h-[40px]">
+            <p className="text-sm text-[#616161] mb-5 flex-1 line-clamp-3">
               {hasShopify
                 ? (integrations.find((i) => i.provider === 'shopify')?.shop_domain
                   ? `${t('active.storeLabel')}: ${integrations.find((i) => i.provider === 'shopify')?.shop_domain}`
@@ -475,9 +479,9 @@ export default function IntegrationsPage() {
             </p>
             <button
               onClick={() => setShowShopifyModal(true)}
-              className={`w-full text-sm font-medium px-3 py-1.5 rounded-lg shadow-sm ring-1 transition-colors ${hasShopify
-                ? 'bg-white text-[#1a1a1a] ring-black/5 hover:bg-zinc-50'
-                : 'bg-[#1a1a1a] text-white ring-transparent hover:bg-[#303030]'
+              className={`w-full text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${hasShopify
+                ? 'bg-white text-[#1a1a1a] border border-zinc-200 shadow-sm hover:bg-zinc-50'
+                : 'bg-white text-[#1a1a1a] border border-zinc-200 shadow-sm hover:bg-zinc-50'
                 }`}
             >
               {hasShopify ? t('providers.shopify.action.connected') : t('providers.shopify.action.connect')}
@@ -486,16 +490,18 @@ export default function IntegrationsPage() {
         </div>
 
         {/* CSV Import */}
-        <div className="bg-white shadow-sm ring-1 ring-black/5 rounded-xl p-5">
-          <div className="text-center">
-            <div className="text-5xl mb-4">📊</div>
+        <div className="bg-white shadow-sm ring-1 ring-black/5 rounded-xl p-5 flex flex-col h-full">
+          <div className="relative flex-1 text-left flex flex-col">
+            <div className="w-12 h-12 rounded-lg bg-zinc-50 border border-zinc-100 flex items-center justify-center mb-4">
+              <Upload className="w-6 h-6 text-[#1a1a1a]" />
+            </div>
             <h3 className="text-sm font-semibold text-[#1a1a1a] mb-2">{t('providers.csv.title')}</h3>
-            <p className="text-sm text-[#616161] mb-5 min-h-[40px]">
+            <p className="text-sm text-[#616161] mb-5 flex-1 line-clamp-3">
               {t('providers.csv.description')}
             </p>
             <button
               onClick={() => setShowCsvModal(true)}
-              className="w-full flex items-center justify-center bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-transparent rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center bg-white hover:bg-zinc-50 text-[#1a1a1a] border border-zinc-200 shadow-sm rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
             >
               <Upload className="w-4 h-4 mr-1.5" />
               {t('providers.csv.action')}
@@ -506,22 +512,24 @@ export default function IntegrationsPage() {
         {ENABLE_MANUAL_INTEGRATION && (
           /* Manual / API - not in plan for now */
           <div className={`bg-white shadow-sm ring-1 rounded-xl p-5 ${hasManual ? 'ring-teal-600/30 bg-teal-50' : 'ring-black/5'}`}>
-            <div className="text-center relative">
+            <div className="relative flex-1 text-left flex flex-col">
               {hasManual && (
                 <Badge variant="secondary" size="sm" className="absolute -top-1 -right-1">
                   ✓ {t('active.connected')}
                 </Badge>
               )}
-              <div className="text-5xl mb-4">📝</div>
+              <div className="w-12 h-12 rounded-lg bg-zinc-50 border border-zinc-100 flex items-center justify-center mb-4">
+                <Code className="w-6 h-6 text-[#1a1a1a]" />
+              </div>
               <h3 className="text-sm font-semibold text-[#1a1a1a] mb-2">{t('providers.manual.title')}</h3>
-              <p className="text-sm text-[#616161] mb-5 min-h-[40px]">
+              <p className="text-sm text-[#616161] mb-5 flex-1 line-clamp-3">
                 {hasManual ? t('providers.manual.connected') : t('providers.manual.description')}
               </p>
               <button
                 onClick={() => setShowManualModal(true)}
-                className={`w-full flex items-center justify-center text-sm font-medium px-3 py-1.5 rounded-lg shadow-sm ring-1 transition-colors ${hasManual
-                  ? 'bg-white text-[#1a1a1a] ring-black/5 hover:bg-zinc-50'
-                  : 'bg-[#1a1a1a] text-white ring-transparent hover:bg-[#303030]'
+                className={`w-full flex items-center justify-center text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${hasManual
+                  ? 'bg-white text-[#1a1a1a] border border-zinc-200 shadow-sm hover:bg-zinc-50'
+                  : 'bg-white text-[#1a1a1a] border border-zinc-200 shadow-sm hover:bg-zinc-50'
                   }`}
               >
                 <Code className="w-4 h-4 mr-1.5" />
@@ -542,7 +550,12 @@ export default function IntegrationsPage() {
                 <div key={integration.id} className="p-4 sm:p-5 hover:bg-zinc-50/50 transition-all group" style={{ animationDelay: `${idx * 50}ms` }}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-5">
-                      <div className="text-3xl bg-zinc-50 w-12 h-12 rounded-lg flex items-center justify-center ring-1 ring-black/5">{getProviderIcon(integration.provider)}</div>
+                      <div className="w-10 h-10 bg-zinc-50 rounded-lg flex flex-shrink-0 items-center justify-center ring-1 ring-black/5">
+                        {integration.provider === 'shopify' && <ShoppingBag className="w-5 h-5 text-zinc-600" />}
+                        {integration.provider === 'whatsapp' && <MessageCircle className="w-5 h-5 text-zinc-600" />}
+                        {integration.provider === 'manual' && <Code className="w-5 h-5 text-zinc-600" />}
+                        {integration.provider !== 'shopify' && integration.provider !== 'whatsapp' && integration.provider !== 'manual' && <Plug className="w-5 h-5 text-zinc-600" />}
+                      </div>
                       <div>
                         <h3 className="text-sm font-semibold text-[#1a1a1a]">
                           {getProviderName(integration.provider)}
@@ -602,30 +615,10 @@ export default function IntegrationsPage() {
             <p className="text-sm text-[#616161] mb-6 max-w-sm">
               {t('active.empty.description')}
             </p>
-            <div className="flex justify-center gap-3 flex-wrap">
-              <button
-                onClick={() => setShowShopifyModal(true)}
-                className="bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-transparent rounded-lg px-3 py-1.5 text-sm font-medium transition-colors inline-flex items-center"
-              >
-                <ShoppingBag className="w-4 h-4 mr-1.5" />
-                {t('modals.shopify.title')}
-              </button>
-              <button
-                onClick={() => setShowCsvModal(true)}
-                className="bg-white hover:bg-zinc-50 text-[#1a1a1a] shadow-sm ring-1 ring-black/5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors inline-flex items-center"
-              >
-                <Upload className="w-4 h-4 mr-1.5" />
-                {t('modals.csv.title')}
-              </button>
-              {ENABLE_MANUAL_INTEGRATION && (
-                <button
-                  onClick={() => setShowManualModal(true)}
-                  className="bg-white hover:bg-zinc-50 text-[#1a1a1a] shadow-sm ring-1 ring-black/5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors inline-flex items-center"
-                >
-                  <Code className="w-4 h-4 mr-1.5" />
-                  {t('modals.manual.title')}
-                </button>
-              )}
+            <div className="flex justify-center flex-col items-center">
+              <p className="text-sm text-[#8a8a8a]">
+                Select an option from above to get started.
+              </p>
             </div>
           </div>
         )}
