@@ -178,12 +178,11 @@ export default function ProductDetailPage() {
         console.error('Embedding generation failed:', err);
       }
 
-      // Reload product
       await loadProduct();
       toast.success(t('toasts.rescanSuccess.title'), t('toasts.rescanSuccess.message'));
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to rescrape product:', err);
-      toast.error(t('toasts.rescanError.title'), t('toasts.rescanError.message'));
+      toast.error(t('toasts.rescanError.title'), err.message || t('toasts.rescanError.message'));
     } finally {
       setRescraping(false);
     }
@@ -232,8 +231,8 @@ export default function ProductDetailPage() {
       {/* ── RAG Quality Alert ──────────────────────────────────────── */}
       {!hasGoodInstructions && (
         <div className={`flex gap-4 p-4 rounded-xl border-2 ${!hasAnyInstructions
-            ? 'border-amber-300 bg-amber-50'
-            : 'border-yellow-200 bg-yellow-50'
+          ? 'border-amber-300 bg-amber-50'
+          : 'border-yellow-200 bg-yellow-50'
           }`}>
           <div className="flex-shrink-0 mt-0.5">
             <svg className={`w-5 h-5 ${!hasAnyInstructions ? 'text-amber-500' : 'text-yellow-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -369,10 +368,10 @@ export default function ProductDetailPage() {
             rows={6}
             placeholder={t('botInstructions.usagePlaceholder')}
             className={`w-full px-3 py-2.5 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 text-zinc-900 text-sm resize-y transition-colors ${!hasAnyInstructions
-                ? 'border-amber-300 focus:border-primary bg-amber-50/30'
-                : !hasGoodInstructions
-                  ? 'border-yellow-300 focus:border-primary'
-                  : 'border-zinc-200 focus:border-primary'
+              ? 'border-amber-300 focus:border-primary bg-amber-50/30'
+              : !hasGoodInstructions
+                ? 'border-yellow-300 focus:border-primary'
+                : 'border-zinc-200 focus:border-primary'
               }`}
           />
           <p className="text-xs text-zinc-500 mt-1.5">

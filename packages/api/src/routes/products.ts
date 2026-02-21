@@ -355,11 +355,31 @@ products.post('/:id/scrape', async (c) => {
     }, 500);
   }
 
+  const rawContent = scrapeResult.product!.rawContent;
+
+  // Detect Shopify password protection
+  if (rawContent && rawContent.toLowerCase().includes('password protected')) {
+    return c.json({
+      error: 'Store is password protected',
+      details: 'Please disable the Shopify storefront password to allow scraping, or manually enter product details.',
+    }, 403);
+  }
+
+  // Enrich the scraped text
+  let enrichedText = rawContent;
+  try {
+    const et = await enrichProductData(rawContent, scrapeResult.product?.title || product.name || 'Unknown Product');
+    if (et) enrichedText = et;
+  } catch (enrichErr) {
+    console.error('Manual scrape enrichment error:', enrichErr);
+  }
+
   // Update product with scraped data
   const { data: updatedProduct, error: updateError } = await serviceClient
     .from('products')
     .update({
-      raw_text: scrapeResult.product!.rawContent,
+      raw_text: rawContent,
+      enriched_text: enrichedText,
       updated_at: new Date().toISOString(),
     })
     .eq('id', productId)
