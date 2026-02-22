@@ -225,8 +225,9 @@ export default function ConversationsPage() {
       })()}
 
 
-      <div className="-mx-4 px-4 md:mx-0 md:px-0 overflow-hidden">
-        <div className="flex items-center gap-3 flex-nowrap overflow-x-auto no-scrollbar pb-2 w-full">
+      <div className="space-y-3">
+        {/* Primary Filters (Sentiment) */}
+        <div className="flex items-center gap-2 flex-wrap">
           {[
             { key: 'all' as const, label: `${t('filters.all')} (${conversations.length})` },
             { key: 'positive' as const, label: `${t('filters.positive')} (${conversations.filter((c) => c.sentiment === 'positive').length})` },
@@ -236,16 +237,17 @@ export default function ConversationsPage() {
             <Button
               key={f.key}
               variant={filter === f.key ? 'default' : 'outline'}
-              size="lg"
+              size="sm"
               onClick={() => setFilter(f.key)}
-              className="shadow-sm font-bold shrink-0 whitespace-nowrap"
+              className="shadow-sm font-bold text-xs sm:text-sm h-8 sm:h-10 px-3 sm:px-4"
             >
               {f.label}
             </Button>
           ))}
+        </div>
 
-          <div className="w-px h-8 bg-border shrink-0 hidden sm:block"></div>
-
+        {/* Secondary Filters (Status) */}
+        <div className="flex items-center gap-2 flex-wrap">
           {[
             { key: 'all' as const, label: t('filters.all') },
             { key: 'human' as const, label: t('filters.humanCount', { count: conversations.filter((c) => c.conversationStatus === 'human').length }) },
@@ -255,9 +257,9 @@ export default function ConversationsPage() {
             <Button
               key={`status-${f.key}`}
               variant={statusFilter === f.key ? 'info' : 'outline'}
-              size="lg"
+              size="sm"
               onClick={() => setStatusFilter(f.key)}
-              className="shadow-sm font-bold shrink-0 whitespace-nowrap"
+              className="shadow-sm font-bold text-xs sm:text-sm h-8 sm:h-10 px-3 sm:px-4"
             >
               {f.label}
             </Button>
