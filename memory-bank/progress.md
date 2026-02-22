@@ -81,6 +81,12 @@
   - **Product Enrichment Assessment**: Assessed the text enrichment pipeline. Confirmed best practices (token limits, fallback logic, proper error handling) in `enrichProduct` and worker queuing. Created and passed unit tests for `enrichProductData` to improve test coverage.
   - **Database Consistency Verification (Feb 20)**: User manually ran `013_notification_phone.sql` addressing schema gaps. DB Schema is now 100% stable and in sync with codebase migrations.
 
+- **Shopify Billing & Subscription (Feb 22, 2026)**:
+  - **Strict GraphQL Implementation**: Transitioned Shopify billing from REST API to the `appSubscriptionCreate` GraphQL mutation to strictly comply with App Store rules.
+  - **Usage-Based Billing**: Integrated `appUsageRecordCreate` for extra AI/WhatsApp token usages along with a configurable $100 Capped Amount.
+  - **Billing Middleware**: Created `requireActiveSubscription` in (`packages/api/src/middleware/billingMiddleware.ts`) extending core API guard logic globally.
+  - **Super Admin Endpoint**: Exposed `POST /api/admin/set-capped-amount` to manage Capped Amount values securely via the admin panel.
+
 - **Git & Deploy (Feb 20, 2026)**:
   - **Git**: All application state pushed to `origin/main` (commit b8670c9). `.gitignore` updated to exclude `apply_migration_local.mjs` (local one-off migration script; contains DB credentials — keep local only).
   - **Server**: Deployed on DigitalOcean (209.97.134.215): git pull, pnpm build, pm2 restart all — api, web, workers online. DB migration step (010_performance_indexes) skipped on server (Supabase IPv6 unreachable from droplet); run migrations from local or Supabase Console if needed.

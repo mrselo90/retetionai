@@ -1,18 +1,40 @@
 /**
  * Shopify Billing API Integration
- * Handles subscription charges and billing for Shopify apps
+ * Handles subscription charges and billing for Shopify apps using GraphQL API
  */
 
-import { getSupabaseServiceClient } from '@recete/shared';
-import { logger } from '@recete/shared';
+import { getSupabaseServiceClient, logger } from '@recete/shared';
 import type { SubscriptionPlan } from './billing.js';
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
 
 /**
- * Create a recurring charge (subscription) in Shopify
- * This is used for Shopify App Store apps
+ * GraphQL Client for Shopify Admin API
+ */
+async function shopifyGraphQL(shop: string, accessToken: string, query: string, variables: any = {}): Promise<any> {
+  const url = `https://${shop}/admin/api/2024-01/graphql.json`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': accessToken,
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    logger.error({ shop, errorText }, 'Shopify GraphQL Error');
+    throw new Error('Shopify GraphQL request failed.');
+  }
+
+  return await response.json();
+}
+
+/**
+ * Create a recurring charge (subscription) combined with Usage limits via GraphQL
+ * This is the required method for Shopify App Store billing compliance.
  */
 export async function createShopifyRecurringCharge(
   shop: string,
@@ -20,43 +42,119 @@ export async function createShopifyRecurringCharge(
   planId: SubscriptionPlan,
   planName: string,
   price: number,
-  returnUrl: string
+  returnUrl: string,
+  cappedAmount: number = 100.0 // Default $100 Capped Amount
 ): Promise<{ confirmationUrl: string; chargeId: number } | null> {
   try {
-    const url = `https://${shop}/admin/api/2024-01/recurring_application_charges.json`;
+    const mutation = `
+      mutation appSubscriptionCreate($name: String!, $returnUrl: URL!, $lineItems: [AppSubscriptionLineItemInput!]!, $test: Boolean) {
+        appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: $test) {
+          appSubscription {
+            id
+          }
+          confirmationUrl
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': accessToken,
-      },
-      body: JSON.stringify({
-        recurring_application_charge: {
-          name: planName,
-          price: price,
-          return_url: returnUrl,
-          test: process.env.NODE_ENV !== 'production', // Test mode in development
+    const variables = {
+      name: planName,
+      returnUrl: returnUrl,
+      test: process.env.NODE_ENV !== 'production',
+      lineItems: [
+        {
+          plan: {
+            appRecurringPricingDetails: {
+              price: { amount: price, currencyCode: "USD" },
+              interval: "EVERY_30_DAYS"
+            }
+          }
         },
-      }),
-    });
+        // Usage-based billing (Capped Amount) for extra AI and WhatsApp usage
+        {
+          plan: {
+            appUsagePricingDetails: {
+              cappedAmount: { amount: cappedAmount, currencyCode: "USD" },
+              terms: "Extra WhatsApp message or AI token usage limit costs"
+            }
+          }
+        }
+      ]
+    };
 
-    if (!response.ok) {
-      const error = await response.text();
-      logger.error({ error, shop, planId }, 'Failed to create Shopify recurring charge');
+    const response = await shopifyGraphQL(shop, accessToken, mutation, variables);
+    const data = response.data as any;
+    const errors = response.errors as any;
+
+    if (errors || data?.appSubscriptionCreate?.userErrors?.length > 0) {
+      logger.error({ shop, errors, userErrors: data?.appSubscriptionCreate?.userErrors }, 'Failed to create App Subscription via GraphQL');
       return null;
     }
 
-    const data = await response.json() as { recurring_application_charge: any };
-    const charge = data.recurring_application_charge;
+    const appSubscriptionId = data.appSubscriptionCreate.appSubscription.id;
+    // Extract numeric ID from GraphQL gid (e.g. gid://shopify/AppSubscription/12345 -> 12345)
+    // The previous implementation and DB expect a number
+    const chargeIdMatch = appSubscriptionId.match(/(\d+)$/);
+    const chargeId = chargeIdMatch ? parseInt(chargeIdMatch[1], 10) : 0;
 
     return {
-      confirmationUrl: charge.confirmation_url,
-      chargeId: charge.id,
+      confirmationUrl: data.appSubscriptionCreate.confirmationUrl,
+      chargeId: chargeId
     };
   } catch (error) {
-    logger.error({ error, shop, planId }, 'Error creating Shopify recurring charge');
+    logger.error({ error, shop, planId }, 'Error creating Shopify GraphQL recurring charge');
     return null;
+  }
+}
+
+/**
+ * Send an App Usage Record (Kullanım Bazlı Ücretlendirme) via GraphQL
+ */
+export async function createShopifyUsageRecord(
+  shop: string,
+  accessToken: string,
+  subscriptionLineItemId: string, // Provide the usage-billing subscriptionLineItemId here
+  priceAmount: number,
+  description: string
+): Promise<boolean> {
+  try {
+    const mutation = `
+      mutation appUsageRecordCreate($subscriptionLineItemId: ID!, $price: MoneyInput!, $description: String!) {
+        appUsageRecordCreate(subscriptionLineItemId: $subscriptionLineItemId, price: $price, description: $description) {
+          appUsageRecord {
+            id
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      subscriptionLineItemId,
+      price: { amount: priceAmount, currencyCode: "USD" },
+      description
+    };
+
+    const response = await shopifyGraphQL(shop, accessToken, mutation, variables);
+    const data = response.data as any;
+    const errors = response.errors as any;
+
+    if (errors || data?.appUsageRecordCreate?.userErrors?.length > 0) {
+      logger.error({ shop, errors, userErrors: data?.appUsageRecordCreate?.userErrors }, 'Failed to create usage record');
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    logger.error({ error, shop }, 'Error creating app usage record');
+    return false;
   }
 }
 

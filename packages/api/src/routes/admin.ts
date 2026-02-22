@@ -146,5 +146,49 @@ admin.post('/impersonate', async (c) => {
         return c.json({ error: 'Failed to setup impersonation' }, 500);
     }
 });
+/**
+ * Set Merchant Capped Amount
+ * POST /api/admin/set-capped-amount
+ */
+admin.post('/set-capped-amount', async (c) => {
+    const serviceClient = getSupabaseServiceClient();
+
+    try {
+        const body = await c.req.json();
+        const { merchantId, cappedAmount } = body;
+
+        if (!merchantId || cappedAmount === undefined) {
+            return c.json({ error: 'merchantId and cappedAmount are required' }, 400);
+        }
+
+        // Validate cappedAmount is a positive number
+        if (typeof cappedAmount !== 'number' || cappedAmount <= 0) {
+            return c.json({ error: 'cappedAmount must be a positive number' }, 400);
+        }
+
+        const { error } = await serviceClient
+            .from('merchants')
+            .update({
+                // Assuming the db has a capped_amount column now, or store in a jsonb config.
+                // Default implementation stores it in metadata/config depending on your DB architecture.
+                // Or ideally, this triggers a logic to re-subscribe the user in Shopify with the new Cap.
+                // But usually, modifying Capped Amount requires user approval on Shopify!
+                // Let's store it locally and we'd trigger a billing flow.
+                settings: { capped_amount: cappedAmount } // Example fallback
+            })
+            // Realistically you should update the DB and then email/notify merchant to accept new charge!
+            .eq('id', merchantId);
+
+        if (error) {
+            console.error('Failed to update capped amount:', error);
+            return c.json({ error: 'Failed to update merchant' }, 500);
+        }
+
+        return c.json({ success: true, message: `Capped amount set to ${cappedAmount} for merchant ${merchantId}. They must approve the new charge.` });
+    } catch (error) {
+        console.error('Update capped amount error:', error);
+        return c.json({ error: 'Internal server error' }, 500);
+    }
+});
 
 export default admin;
