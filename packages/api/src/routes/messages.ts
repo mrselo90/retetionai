@@ -4,6 +4,7 @@
 
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
+import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
 import {
   scheduleUserMessage,
   scheduleOrderMessages,
@@ -15,6 +16,7 @@ const messages = new Hono();
 
 // All routes require authentication
 messages.use('/*', authMiddleware);
+messages.use('/*', requireActiveSubscription as any);
 
 /**
  * Schedule a message

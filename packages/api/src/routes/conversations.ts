@@ -5,6 +5,7 @@
 
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
+import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
 import { getSupabaseServiceClient } from '@recete/shared';
 import { decryptPhone, encryptPhone } from '../lib/encryption.js';
 import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from '../lib/whatsapp.js';
@@ -14,6 +15,7 @@ const conversations = new Hono();
 
 // All routes require authentication
 conversations.use('/*', authMiddleware);
+conversations.use('/*', requireActiveSubscription as any);
 
 /**
  * List conversations
@@ -62,9 +64,9 @@ conversations.get('/', async (c) => {
     const formattedConversations = (conversationsData || []).map((conv: any) => {
       const history = (conv.history as any[]) || [];
       const lastMessage = history.length > 0 ? history[history.length - 1] : null;
-      
+
       const user = usersMap.get(conv.user_id);
-      
+
       // Decrypt phone (for display)
       let phoneDisplay = 'N/A';
       try {
@@ -94,10 +96,10 @@ conversations.get('/', async (c) => {
         phone: phoneDisplay,
         lastMessage: lastMessage
           ? {
-              role: lastMessage.role,
-              content: lastMessage.content,
-              timestamp: lastMessage.timestamp,
-            }
+            role: lastMessage.role,
+            content: lastMessage.content,
+            timestamp: lastMessage.timestamp,
+          }
           : null,
         messageCount: history.length,
         lastMessageAt: conv.updated_at,

@@ -140,28 +140,21 @@ app.route('/api/integrations', integrationRoutes);
 // CSV import routes
 app.route('/api/integrations', csvRoutes);
 
-import { requireActiveSubscription } from './middleware/billingMiddleware.js';
-
-// Core features require active subscription
-app.use('/api/products/*', requireActiveSubscription);
+// Product routes
 app.route('/api/products', productRoutes);
 
 // RAG routes
-app.use('/api/rag/*', requireActiveSubscription);
 app.route('/api/rag', ragRoutes);
 
 // WhatsApp routes
-app.use('/api/whatsapp/*', requireActiveSubscription);
 app.route('/api/whatsapp', whatsappRoutes);
 // WhatsApp webhooks at root (Meta sends to /webhooks/whatsapp)
 // Note: These routes are handled in whatsappRoutes, but we keep them here for clarity
 
 // Message scheduling routes
-app.use('/api/messages/*', requireActiveSubscription);
 app.route('/api/messages', messageRoutes);
 
 // Conversation routes
-app.use('/api/conversations/*', requireActiveSubscription);
 app.route('/api/conversations', conversationRoutes);
 
 // Analytics routes

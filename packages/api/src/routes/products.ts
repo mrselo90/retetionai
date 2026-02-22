@@ -5,6 +5,7 @@
 
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
+import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
 import { getSupabaseServiceClient } from '@recete/shared';
 import { scrapeProductPage } from '../lib/scraper.js';
 import { addScrapeJob } from '../queues.js';
@@ -19,6 +20,7 @@ const products = new Hono();
 
 // All routes require authentication
 products.use('/*', authMiddleware);
+products.use('/*', requireActiveSubscription as any);
 
 /**
  * List products

@@ -5,6 +5,7 @@
 
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
+import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
 import { queryKnowledgeBase, formatRAGResultsForLLM, getOrderProductContext } from '../lib/rag.js';
 import { getCachedRAGQuery, setCachedRAGQuery } from '../lib/cache.js';
 
@@ -12,6 +13,7 @@ const rag = new Hono();
 
 // All routes require authentication
 rag.use('/*', authMiddleware);
+rag.use('/*', requireActiveSubscription as any);
 
 /**
  * Query knowledge base (semantic search)
@@ -51,7 +53,7 @@ rag.post('/query', async (c) => {
 
   try {
     // Try cache first (1 hour TTL for RAG queries)
-    const cacheKey = productIds && productIds.length > 0 
+    const cacheKey = productIds && productIds.length > 0
       ? `${merchantId}:${productIds.join(',')}:${query}`
       : `${merchantId}:${query}`;
     const cached = await getCachedRAGQuery(cacheKey, merchantId);
@@ -74,7 +76,7 @@ rag.post('/query', async (c) => {
         cached: true,
       });
     }
-    
+
     const result = await queryKnowledgeBase({
       merchantId,
       query,

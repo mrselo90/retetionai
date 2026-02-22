@@ -4,6 +4,7 @@
 
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
+import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
 import {
   sendWhatsAppMessage,
   verifyWhatsAppWebhook,
@@ -312,7 +313,7 @@ whatsapp.post('/send', authMiddleware, async (c) => {
  * Test WhatsApp connection
  * GET /api/whatsapp/test
  */
-whatsapp.get('/test', authMiddleware, async (c) => {
+whatsapp.get('/test', authMiddleware, requireActiveSubscription as any, async (c) => {
   const merchantId = c.get('merchantId');
 
   const credentials = await getEffectiveWhatsAppCredentials(merchantId);
