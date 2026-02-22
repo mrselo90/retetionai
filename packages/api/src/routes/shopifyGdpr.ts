@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { verifyShopifyGdprWebhook } from '../middleware/shopifyGdprHmac.js';
 import { getSupabaseServiceClient, logger } from '@recete/shared';
+import { permanentlyDeleteMerchantData } from '../lib/dataDeletion.js';
 
 // Tamamen İzole Route
 const shopifyGdpr = new Hono<{ Variables: { parsedGdprBody: any } }>();
@@ -83,13 +84,24 @@ shopifyGdpr.post('/shop/redact', async (c) => {
             logger.info({ shopDomain }, '[GDPR] Mağaza kalıcı olarak silindi. Tüm verileri temizleniyor.');
 
             if (shopDomain) {
-                // Mağaza ile ilişkili olan PII barındıran tabloları (müşteriler vs.) tamamen uçuruyoruz.
-                const { error } = await supabase
-                    .from('customers')
-                    .delete()
-                    .eq('shop_domain', shopDomain);
+                // Entegrasyon tablosundan satıcıyı (merchant_id) buluyoruz
+                const { data: integration } = await supabase
+                    .from('integrations')
+                    .select('merchant_id')
+                    .eq('provider', 'shopify')
+                    .contains('auth_data', { shop: shopDomain })
+                    .maybeSingle();
 
-                if (error) throw error;
+                if (integration?.merchant_id) {
+                    // Satıcıya (Merchant) ait TÜM verileri (orders, users, products, conversations, merchants, integrations vb.) siler.
+                    await permanentlyDeleteMerchantData(integration.merchant_id);
+                    logger.info({ shopDomain, merchantId: integration.merchant_id }, '[GDPR] Mağazaya ait tüm veriler (Vendor Data) başarıyla silindi.');
+                } else {
+                    logger.warn({ shopDomain }, '[GDPR] Mağaza silme isteği geldi ancak veritabanında eşleşen entegrasyon bulunamadı. Fallback olarak sadece customers tablosundaki eşleşen veriler silinecek.');
+
+                    // Fallback: Sadece shop_domain bilebilmekte olduğumuz tabloları temizlemeye çalışıyoruz
+                    await supabase.from('customers').delete().eq('shop_domain', shopDomain);
+                }
             }
         } catch (error) {
             logger.error({ error, payload }, '[GDPR] Mağaza bazlı silme (shop/redact) işleminde hata oluştu.');
