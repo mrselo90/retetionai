@@ -221,47 +221,7 @@ billing.post('/cancel', async (c) => {
   });
 });
 
-/**
- * Handle Shopify billing webhook callback
- * POST /api/billing/webhooks/shopify
- * This is called by Shopify when subscription status changes
- */
-billing.post('/webhooks/shopify', async (c) => {
-  try {
-    const body = await c.req.json() as { charge_id?: number; status?: string; shop?: string };
 
-    // Verify webhook (HMAC verification should be done in middleware)
-    const chargeId = body.charge_id;
-    const status = body.status;
-    const shop = body.shop;
-
-    if (!chargeId || !status || !shop) {
-      return c.json({ error: 'Missing required fields' }, 400);
-    }
-
-    // Find merchant by Shopify shop
-    const serviceClient = getSupabaseServiceClient();
-    const { data: integration } = await serviceClient
-      .from('integrations')
-      .select('merchant_id')
-      .eq('provider', 'shopify')
-      .eq('status', 'active')
-      .single();
-
-    if (!integration) {
-      logger.warn({ shop, chargeId }, 'Shopify billing webhook received but integration not found');
-      return c.json({ error: 'Integration not found' }, 404);
-    }
-
-    // Update subscription
-    await handleShopifyBillingWebhook(integration.merchant_id, chargeId, status);
-
-    return c.json({ message: 'Webhook processed' });
-  } catch (error) {
-    logger.error({ error }, 'Error processing Shopify billing webhook');
-    return c.json({ error: 'Internal server error' }, 500);
-  }
-});
 
 // ============================================================================
 // ADD-ON MODULE ROUTES

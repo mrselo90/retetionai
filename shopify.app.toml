@@ -21,7 +21,8 @@ api_version = "2024-01"
   topics = [
     "orders/create",
     "orders/fulfilled",
-    "orders/updated"
+    "orders/updated",
+    "app_subscriptions/update"
   ]
   uri = "/webhooks/commerce/shopify"
 

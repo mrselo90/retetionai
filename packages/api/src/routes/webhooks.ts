@@ -11,6 +11,7 @@ import {
   generateIdempotencyKey,
   type NormalizedEvent,
 } from '../lib/events.js';
+import { handleShopifyBillingWebhook } from '../lib/shopifyBilling.js';
 import { processNormalizedEvent } from '../lib/orderProcessor.js';
 import * as crypto from 'crypto';
 
@@ -67,7 +68,34 @@ webhooks.post('/commerce/shopify', async (c) => {
       return c.json({ error: 'Integration not found for shop' }, 404);
     }
 
-    // Normalize event
+    // Handle App Subscriptions (Shopify Billing)
+    if (topic === 'app_subscriptions/update') {
+      try {
+        const appSubscription = body?.app_subscription;
+        if (!appSubscription) {
+          return c.json({ error: 'Missing app_subscription in payload' }, 400);
+        }
+
+        const graphqlId: string = appSubscription.admin_graphql_api_id;
+        const status: string = appSubscription.status;
+
+        if (!graphqlId || !status) {
+          return c.json({ error: 'Missing id or status in app_subscription' }, 400);
+        }
+
+        // Extract numeric charge ID from GraphQL ID (e.g. gid://shopify/AppSubscription/12345)
+        const chargeIdMatch = graphqlId.match(/\d+$/);
+        const chargeId = chargeIdMatch ? chargeIdMatch[0] : graphqlId;
+
+        await handleShopifyBillingWebhook(integration.merchant_id, chargeId, status);
+        return c.json({ message: 'App subscription updating processed successfully' }, 200);
+      } catch (err) {
+        logger.error({ err, shop }, 'Error processing Shopify app_subscription webhook');
+        return c.json({ error: 'Failed to process app subscription update' }, 500);
+      }
+    }
+
+    // Normalize event (for standard commerce webhooks)
     const normalizedEvent = normalizeShopifyEvent(
       integration.merchant_id,
       integration.id,

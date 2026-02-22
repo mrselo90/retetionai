@@ -24,7 +24,7 @@ export async function createShopifyRecurringCharge(
 ): Promise<{ confirmationUrl: string; chargeId: number } | null> {
   try {
     const url = `https://${shop}/admin/api/2024-01/recurring_application_charges.json`;
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -40,16 +40,16 @@ export async function createShopifyRecurringCharge(
         },
       }),
     });
-    
+
     if (!response.ok) {
       const error = await response.text();
       logger.error({ error, shop, planId }, 'Failed to create Shopify recurring charge');
       return null;
     }
-    
+
     const data = await response.json() as { recurring_application_charge: any };
     const charge = data.recurring_application_charge;
-    
+
     return {
       confirmationUrl: charge.confirmation_url,
       chargeId: charge.id,
@@ -74,23 +74,23 @@ export async function getShopifyRecurringCharge(
 } | null> {
   try {
     const url = `https://${shop}/admin/api/2024-01/recurring_application_charges/${chargeId}.json`;
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'X-Shopify-Access-Token': accessToken,
       },
     });
-    
+
     if (!response.ok) {
       const error = await response.text();
       logger.error({ error, shop, chargeId }, 'Failed to get Shopify recurring charge');
       return null;
     }
-    
+
     const data = await response.json() as { recurring_application_charge: any };
     const charge = data.recurring_application_charge;
-    
+
     return {
       status: charge.status,
       createdAt: charge.created_at,
@@ -112,20 +112,20 @@ export async function cancelShopifyRecurringCharge(
 ): Promise<boolean> {
   try {
     const url = `https://${shop}/admin/api/2024-01/recurring_application_charges/${chargeId}.json`;
-    
+
     const response = await fetch(url, {
       method: 'DELETE',
       headers: {
         'X-Shopify-Access-Token': accessToken,
       },
     });
-    
+
     if (!response.ok) {
       const error = await response.text();
       logger.error({ error, shop, chargeId }, 'Failed to cancel Shopify recurring charge');
       return false;
     }
-    
+
     return true;
   } catch (error) {
     logger.error({ error, shop, chargeId }, 'Error cancelling Shopify recurring charge');
@@ -139,14 +139,17 @@ export async function cancelShopifyRecurringCharge(
  */
 export async function handleShopifyBillingWebhook(
   merchantId: string,
-  chargeId: number,
+  chargeId: string | number,
   status: string
 ): Promise<boolean> {
   const serviceClient = getSupabaseServiceClient();
-  
+
   let subscriptionStatus: 'trial' | 'active' | 'cancelled' | 'expired' | 'past_due' = 'active';
-  
-  switch (status) {
+
+  // Clean and lowercase the status to handle both REST ('active') and GraphQL ('ACTIVE') responses
+  const normalizedStatus = status.toLowerCase().trim();
+
+  switch (normalizedStatus) {
     case 'active':
       subscriptionStatus = 'active';
       break;
@@ -157,12 +160,16 @@ export async function handleShopifyBillingWebhook(
       subscriptionStatus = 'expired';
       break;
     case 'declined':
+    case 'frozen':
       subscriptionStatus = 'past_due';
+      break;
+    case 'pending':
+      subscriptionStatus = 'trial';
       break;
     default:
       subscriptionStatus = 'active';
   }
-  
+
   const { error } = await serviceClient
     .from('merchants')
     .update({
@@ -171,12 +178,12 @@ export async function handleShopifyBillingWebhook(
       cancelled_at: status === 'cancelled' ? new Date().toISOString() : null,
     })
     .eq('id', merchantId);
-  
+
   if (error) {
     logger.error({ error, merchantId, chargeId, status }, 'Failed to update subscription from webhook');
     return false;
   }
-  
+
   logger.info({ merchantId, chargeId, status }, 'Subscription updated from Shopify webhook');
   return true;
 }
@@ -191,6 +198,6 @@ export function getPlanPrice(planId: SubscriptionPlan, billingCycle: 'monthly' |
     pro: { monthly: 99.00, yearly: 990.00 },
     enterprise: { monthly: 0, yearly: 0 }, // Custom pricing
   };
-  
+
   return billingCycle === 'yearly' ? prices[planId].yearly : prices[planId].monthly;
 }
