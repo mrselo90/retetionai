@@ -61,6 +61,7 @@ admin.get('/merchants', async (c) => {
         name, 
         created_at,
         is_super_admin,
+        settings,
         integrations (provider, status)
       `)
             .order('created_at', { ascending: false });

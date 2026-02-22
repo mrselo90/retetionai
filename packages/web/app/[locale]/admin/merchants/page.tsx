@@ -15,6 +15,7 @@ interface Merchant {
     name: string;
     created_at: string;
     is_super_admin: boolean;
+    settings?: { capped_amount?: number;[key: string]: any };
     integrations: Array<{ provider: string; status: string }>;
 }
 
@@ -23,6 +24,44 @@ export default function AdminMerchantsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [impersonatingMap, setImpersonatingMap] = useState<Record<string, boolean>>({});
+
+    const fetchMerchants = async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const data = await authenticatedRequest<{ merchants: Merchant[] }>('/api/admin/merchants', session.access_token);
+            setMerchants(data.merchants || []);
+        } catch (err: any) {
+            setError(err.message || 'Failed to fetch merchants');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSetLimit = async (merchantId: string, currentLimit: number) => {
+        const amountStr = prompt(`Enter new Capped Amount for merchant (Current: $${currentLimit})`, currentLimit.toString());
+        if (!amountStr) return;
+        const amount = Number(amountStr);
+        if (isNaN(amount) || amount <= 0) {
+            toast.error('Invalid amount. Must be a positive number.');
+            return;
+        }
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            await authenticatedRequest('/api/admin/set-capped-amount', session.access_token, {
+                method: 'POST',
+                body: JSON.stringify({ merchantId, cappedAmount: amount })
+            });
+            toast.success(`Capped amount requested to $${amount}`);
+            await fetchMerchants();
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to update limit');
+        }
+    };
 
     const handleImpersonate = async (merchantId: string) => {
         setImpersonatingMap(prev => ({ ...prev, [merchantId]: true }));
@@ -47,19 +86,6 @@ export default function AdminMerchantsPage() {
     };
 
     useEffect(() => {
-        const fetchMerchants = async () => {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) return;
-
-                const data = await authenticatedRequest<{ merchants: Merchant[] }>('/api/admin/merchants', session.access_token);
-                setMerchants(data.merchants || []);
-            } catch (err: any) {
-                setError(err.message || 'Failed to fetch merchants');
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchMerchants();
     }, []);
 
@@ -121,6 +147,7 @@ export default function AdminMerchantsPage() {
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4">Integrations</th>
                                 <th className="px-6 py-4 text-right">Registered</th>
+                                <th className="px-6 py-4 text-right">Limit</th>
                                 <th className="px-6 py-4 text-center">Actions</th>
                             </tr>
                         </thead>
@@ -185,28 +212,44 @@ export default function AdminMerchantsPage() {
                                                 {merchant.created_at ? format(new Date(merchant.created_at), 'MMM d, yyyy') : 'Unknown'}
                                             </div>
                                         </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="font-medium text-zinc-900">
+                                                ${merchant.settings?.capped_amount || 100}
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4 text-center">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="bg-white hover:bg-zinc-100 hover:text-zinc-900 shadow-sm border-zinc-200"
-                                                disabled={impersonatingMap[merchant.id]}
-                                                onClick={() => handleImpersonate(merchant.id)}
-                                            >
-                                                {impersonatingMap[merchant.id] ? (
-                                                    <Loader2 className="w-3 h-3 mr-2 text-zinc-400 font-bold animate-spin" />
-                                                ) : (
-                                                    <Key className="w-3 h-3 mr-2 text-zinc-400 font-bold" />
-                                                )}
-                                                Login As
-                                            </Button>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="bg-zinc-100 hover:bg-zinc-200 hover:text-zinc-900 shadow-sm border-zinc-200 text-xs px-2 h-8"
+                                                    disabled={impersonatingMap[merchant.id]}
+                                                    onClick={() => handleSetLimit(merchant.id, merchant.settings?.capped_amount || 100)}
+                                                >
+                                                    <span className="font-semibold text-zinc-600">Set Limit</span>
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="bg-white hover:bg-zinc-100 hover:text-zinc-900 shadow-sm border-zinc-200 text-xs px-2 h-8"
+                                                    disabled={impersonatingMap[merchant.id]}
+                                                    onClick={() => handleImpersonate(merchant.id)}
+                                                >
+                                                    {impersonatingMap[merchant.id] ? (
+                                                        <Loader2 className="w-3 h-3 mr-1.5 text-zinc-400 font-bold animate-spin" />
+                                                    ) : (
+                                                        <Key className="w-3 h-3 mr-1.5 text-zinc-400 font-bold" />
+                                                    )}
+                                                    Login As
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 );
                             })}
                             {merchants.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
                                         No merchants found in the system.
                                     </td>
                                 </tr>
