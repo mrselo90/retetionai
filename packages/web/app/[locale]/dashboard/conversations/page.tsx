@@ -225,41 +225,44 @@ export default function ConversationsPage() {
       })()}
 
 
-      <div className="flex items-center gap-3 flex-nowrap overflow-x-auto no-scrollbar pb-2">
-        {[
-          { key: 'all' as const, label: `${t('filters.all')} (${conversations.length})` },
-          { key: 'positive' as const, label: `${t('filters.positive')} (${conversations.filter((c) => c.sentiment === 'positive').length})` },
-          { key: 'neutral' as const, label: `${t('filters.neutral')} (${conversations.filter((c) => c.sentiment === 'neutral').length})` },
-          { key: 'negative' as const, label: `${t('filters.negative')} (${conversations.filter((c) => c.sentiment === 'negative').length})` },
-        ].map((f) => (
-          <Button
-            key={f.key}
-            variant={filter === f.key ? 'default' : 'outline'}
-            size="lg"
-            onClick={() => setFilter(f.key)}
-            className="shadow-sm font-bold shrink-0 whitespace-nowrap"
-          >
-            {f.label}
-          </Button>
-        ))}
+      <div className="-mx-4 px-4 md:mx-0 md:px-0 overflow-hidden">
+        <div className="flex items-center gap-3 flex-nowrap overflow-x-auto no-scrollbar pb-2 w-full">
+          {[
+            { key: 'all' as const, label: `${t('filters.all')} (${conversations.length})` },
+            { key: 'positive' as const, label: `${t('filters.positive')} (${conversations.filter((c) => c.sentiment === 'positive').length})` },
+            { key: 'neutral' as const, label: `${t('filters.neutral')} (${conversations.filter((c) => c.sentiment === 'neutral').length})` },
+            { key: 'negative' as const, label: `${t('filters.negative')} (${conversations.filter((c) => c.sentiment === 'negative').length})` },
+          ].map((f) => (
+            <Button
+              key={f.key}
+              variant={filter === f.key ? 'default' : 'outline'}
+              size="lg"
+              onClick={() => setFilter(f.key)}
+              className="shadow-sm font-bold shrink-0 whitespace-nowrap"
+            >
+              {f.label}
+            </Button>
+          ))}
 
-        <div className="w-px h-8 bg-border"></div>
-        {[
-          { key: 'all' as const, label: t('filters.all') },
-          { key: 'human' as const, label: t('filters.humanCount', { count: conversations.filter((c) => c.conversationStatus === 'human').length }) },
-          { key: 'ai' as const, label: 'AI' },
-          { key: 'resolved' as const, label: t('filters.resolved') },
-        ].map((f) => (
-          <Button
-            key={`status-${f.key}`}
-            variant={statusFilter === f.key ? 'info' : 'outline'}
-            size="lg"
-            onClick={() => setStatusFilter(f.key)}
-            className="shadow-sm font-bold shrink-0 whitespace-nowrap"
-          >
-            {f.label}
-          </Button>
-        ))}
+          <div className="w-px h-8 bg-border shrink-0 hidden sm:block"></div>
+
+          {[
+            { key: 'all' as const, label: t('filters.all') },
+            { key: 'human' as const, label: t('filters.humanCount', { count: conversations.filter((c) => c.conversationStatus === 'human').length }) },
+            { key: 'ai' as const, label: 'AI' },
+            { key: 'resolved' as const, label: t('filters.resolved') },
+          ].map((f) => (
+            <Button
+              key={`status-${f.key}`}
+              variant={statusFilter === f.key ? 'info' : 'outline'}
+              size="lg"
+              onClick={() => setStatusFilter(f.key)}
+              className="shadow-sm font-bold shrink-0 whitespace-nowrap"
+            >
+              {f.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Conversations List */}

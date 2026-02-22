@@ -60,7 +60,7 @@ export default function ConversationDetailPage() {
   useEffect(() => {
     if (conversationId) {
       loadConversation();
-      
+
       // Real-time updates: Poll every 5 seconds for conversation detail
       const interval = setInterval(() => {
         loadConversation();
@@ -156,282 +156,277 @@ export default function ConversationDetailPage() {
 
   if (loading) {
     return (
-      
-        <div className="space-y-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-zinc-200 rounded w-1/4"></div>
-            <div className="h-96 bg-zinc-200 rounded"></div>
-          </div>
+
+      <div className="space-y-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-zinc-200 rounded w-1/4"></div>
+          <div className="h-96 bg-zinc-200 rounded"></div>
         </div>
-      
+      </div>
+
     );
   }
 
   if (!conversation) {
     return (
-      
-        <div className="space-y-6">
-          <div className="bg-card rounded-lg border border-border shadow-sm p-12 text-center">
-            <p className="text-zinc-600">{t('notFound')}</p>
-            <button
-              onClick={() => router.push('/dashboard/conversations')}
-              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"
-            >
-              {t('backToConversations')}
-            </button>
-          </div>
+
+      <div className="space-y-6">
+        <div className="bg-card rounded-lg border border-border shadow-sm p-12 text-center">
+          <p className="text-zinc-600">{t('notFound')}</p>
+          <button
+            onClick={() => router.push('/dashboard/conversations')}
+            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"
+          >
+            {t('backToConversations')}
+          </button>
         </div>
-      
+      </div>
+
     );
   }
 
   return (
-    
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="bg-card rounded-lg border border-border shadow-sm p-6">
-          <button
-            onClick={() => router.push('/dashboard/conversations')}
-            className="text-sm text-primary hover:underline mb-4 flex items-center gap-1 font-medium"
-          >
-            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            {t('backToConversations')}
-          </button>
 
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-zinc-900">{conversation.userName}</h1>
-                <p className="text-zinc-600 mt-1">{conversation.phone}</p>
-                {conversation.order && (
-                  <div className="flex items-center gap-2 mt-2 text-sm">
-                    <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                    <span className="text-zinc-900 font-medium">{t('order')}: #{conversation.order.externalOrderId}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      conversation.order.status === 'delivered'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-info/20 text-info'
-                    }`}>
-                      {conversation.order.status}
-                    </span>
-                  </div>
-                )}
-              </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-card rounded-lg border border-border shadow-sm p-6">
+        <button
+          onClick={() => router.push('/dashboard/conversations')}
+          className="text-sm text-primary hover:underline mb-4 flex items-center gap-1 font-medium"
+        >
+          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          {t('backToConversations')}
+        </button>
+
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
             </div>
-            <div className="text-right space-y-3">
-              <div className="flex items-center gap-2 justify-end">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                  conversation.conversationStatus === 'human'
-                    ? 'bg-orange-100 text-orange-800'
-                    : conversation.conversationStatus === 'resolved'
+            <div>
+              <h1 className="text-2xl font-bold text-zinc-900">{conversation.userName}</h1>
+              <p className="text-zinc-600 mt-1">{conversation.phone}</p>
+              {conversation.order && (
+                <div className="flex items-center gap-2 mt-2 text-sm">
+                  <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                  <span className="text-zinc-900 font-medium">{t('order')}: #{conversation.order.externalOrderId}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${conversation.order.status === 'delivered'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-info/20 text-info'
+                    }`}>
+                    {conversation.order.status}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="text-right space-y-3">
+            <div className="flex items-center gap-2 justify-end">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${conversation.conversationStatus === 'human'
+                  ? 'bg-orange-100 text-orange-800'
+                  : conversation.conversationStatus === 'resolved'
                     ? 'bg-green-100 text-green-800'
                     : 'bg-info/20 text-info'
                 }`}>
-                  {conversation.conversationStatus === 'human' ? t('statusHuman') :
-                   conversation.conversationStatus === 'resolved' ? t('statusResolved') : t('statusAi')}
-                </span>
-                {conversation.returnPreventionAttempt && (
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                    conversation.returnPreventionAttempt.outcome === 'prevented'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : conversation.returnPreventionAttempt.outcome === 'returned'
+                {conversation.conversationStatus === 'human' ? t('statusHuman') :
+                  conversation.conversationStatus === 'resolved' ? t('statusResolved') : t('statusAi')}
+              </span>
+              {conversation.returnPreventionAttempt && (
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${conversation.returnPreventionAttempt.outcome === 'prevented'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : conversation.returnPreventionAttempt.outcome === 'returned'
                       ? 'bg-red-100 text-red-800'
                       : conversation.returnPreventionAttempt.outcome === 'escalated'
-                      ? 'bg-orange-100 text-orange-800'
-                      : 'bg-zinc-100 text-zinc-600'
+                        ? 'bg-orange-100 text-orange-800'
+                        : 'bg-zinc-100 text-zinc-600'
                   }`}>
-                    🛡️ {rp('badgeLabel')} · {
-                      conversation.returnPreventionAttempt.outcome === 'prevented' ? rp('outcomePrevented') :
+                  🛡️ {rp('badgeLabel')} · {
+                    conversation.returnPreventionAttempt.outcome === 'prevented' ? rp('outcomePrevented') :
                       conversation.returnPreventionAttempt.outcome === 'returned' ? rp('outcomeReturned') :
-                      conversation.returnPreventionAttempt.outcome === 'escalated' ? rp('outcomeEscalated') :
-                      rp('outcomePending')
-                    }
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 justify-end">
-                {conversation.conversationStatus === 'ai' && (
-                  <button
-                    onClick={() => handleToggleStatus('human')}
-                    disabled={togglingStatus}
-                    className="px-3 py-1.5 text-xs font-medium bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
-                  >
-                    {t('stopAi')}
-                  </button>
-                )}
-                {conversation.conversationStatus === 'human' && (
-                  <>
-                    <button
-                      onClick={() => handleToggleStatus('ai')}
-                      disabled={togglingStatus}
-                      className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
-                    >
-                      {t('startAi')}
-                    </button>
-                    <button
-                      onClick={() => handleToggleStatus('resolved')}
-                      disabled={togglingStatus}
-                      className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-                    >
-                      {t('resolved')}
-                    </button>
-                  </>
-                )}
-                {conversation.conversationStatus === 'resolved' && (
+                        conversation.returnPreventionAttempt.outcome === 'escalated' ? rp('outcomeEscalated') :
+                          rp('outcomePending')
+                  }
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 justify-end">
+              {conversation.conversationStatus === 'ai' && (
+                <button
+                  onClick={() => handleToggleStatus('human')}
+                  disabled={togglingStatus}
+                  className="px-3 py-1.5 text-xs font-medium bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                >
+                  {t('stopAi')}
+                </button>
+              )}
+              {conversation.conversationStatus === 'human' && (
+                <>
                   <button
                     onClick={() => handleToggleStatus('ai')}
                     disabled={togglingStatus}
                     className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
                   >
-                    {t('reopen')}
+                    {t('startAi')}
                   </button>
-                )}
-              </div>
-              <div className="text-sm text-zinc-600">
-                <p>{t('started')}: {formatDateTime(conversation.createdAt)}</p>
-                <p className="mt-1">{t('lastUpdate')}: {formatDateTime(conversation.updatedAt)}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Chat Messages */}
-        <div className="bg-card rounded-lg border border-border shadow-sm">
-          <div className="p-6 border-b border-zinc-200">
-            <h2 className="text-lg font-semibold text-zinc-900">{t('messageHistory')}</h2>
-            <p className="text-sm text-zinc-600 mt-1">
-              {t('messageCount', { count: conversation.history.length })}
-            </p>
-          </div>
-
-          <div className="p-6 space-y-4 max-h-[600px] overflow-y-auto">
-            {conversation.history.length === 0 ? (
-              <div className="text-center py-12 text-zinc-500">
-                <svg className="mx-auto h-12 w-12 text-zinc-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-                <p>{t('noMessages')}</p>
-              </div>
-            ) : (
-              <>
-                {conversation.history.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`flex ${message.role === 'user' ? 'justify-start' : 'justify-end'}`}
+                  <button
+                    onClick={() => handleToggleStatus('resolved')}
+                    disabled={togglingStatus}
+                    className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                   >
-                    <div className={`max-w-[70%] ${message.role === 'user' ? 'order-1' : 'order-2'}`}>
-                      <div
-                        className={`rounded-lg p-4 ${
-                          message.role === 'user'
-                            ? 'bg-zinc-100 text-zinc-900'
-                            : message.role === 'merchant'
-                            ? 'bg-teal-600 text-white'
-                            : 'bg-primary text-primary-foreground'
-                        }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      </div>
-                      <div className={`flex items-center gap-2 mt-1 text-xs text-zinc-600 ${
-                        message.role === 'user' ? 'justify-start' : 'justify-end'
-                      }`}>
-                        <span>{message.role === 'user' ? t('customer') : message.role === 'merchant' ? t('you') : t('aiBot')}</span>
-                        <span>•</span>
-                        <span>{formatTime(message.timestamp)}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </>
-            )}
-          </div>
-
-          {/* Reply Input */}
-          <div className="p-4 border-t border-zinc-200">
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }}
-                placeholder={conversation.conversationStatus === 'resolved' ? t('placeholderResolved') : t('placeholderReply')}
-                disabled={sending || conversation.conversationStatus === 'resolved'}
-                className="flex-1 px-4 py-2.5 rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-zinc-100 disabled:cursor-not-allowed text-sm"
-              />
-              <button
-                onClick={handleSendReply}
-                disabled={!replyText.trim() || sending || conversation.conversationStatus === 'resolved'}
-                className="px-5 py-2.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-              >
-                {sending ? t('sending') : t('send')}
-              </button>
+                    {t('resolved')}
+                  </button>
+                </>
+              )}
+              {conversation.conversationStatus === 'resolved' && (
+                <button
+                  onClick={() => handleToggleStatus('ai')}
+                  disabled={togglingStatus}
+                  className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+                >
+                  {t('reopen')}
+                </button>
+              )}
             </div>
-            {conversation.conversationStatus === 'ai' && (
-              <p className="text-xs text-zinc-500 mt-2">
-                {t('humanModeNote')}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Conversation Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-card rounded-lg border border-border shadow-sm p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-zinc-600">Toplam Mesaj</p>
-                <p className="text-2xl font-bold text-zinc-900">{conversation.history.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border shadow-sm p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-zinc-600">{t('customerMessage')}</p>
-                <p className="text-2xl font-bold text-zinc-900">
-                  {conversation.history.filter((m) => m.role === 'user').length}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border shadow-sm p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-zinc-600">{t('botResponse')}</p>
-                <p className="text-2xl font-bold text-zinc-900">
-                  {conversation.history.filter((m) => m.role === 'assistant').length}
-                </p>
-              </div>
+            <div className="text-sm text-zinc-600">
+              <p>{t('started')}: {formatDateTime(conversation.createdAt)}</p>
+              <p className="mt-1">{t('lastUpdate')}: {formatDateTime(conversation.updatedAt)}</p>
             </div>
           </div>
         </div>
       </div>
-    
+
+      {/* Chat Messages */}
+      <div className="bg-card rounded-lg border border-border shadow-sm">
+        <div className="p-6 border-b border-zinc-200">
+          <h2 className="text-lg font-semibold text-zinc-900">{t('messageHistory')}</h2>
+          <p className="text-sm text-zinc-600 mt-1">
+            {t('messageCount', { count: conversation.history.length })}
+          </p>
+        </div>
+
+        <div className="p-6 space-y-4 max-h-[600px] overflow-y-auto">
+          {conversation.history.length === 0 ? (
+            <div className="text-center py-12 text-zinc-500">
+              <svg className="mx-auto h-12 w-12 text-zinc-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              <p>{t('noMessages')}</p>
+            </div>
+          ) : (
+            <>
+              {conversation.history.map((message, index) => (
+                <div
+                  key={index}
+                  className={`flex ${message.role === 'user' ? 'justify-start' : 'justify-end'}`}
+                >
+                  <div className={`max-w-[85%] sm:max-w-[70%] ${message.role === 'user' ? 'order-1' : 'order-2'}`}>
+                    <div
+                      className={`rounded-lg p-4 ${message.role === 'user'
+                          ? 'bg-zinc-100 text-zinc-900'
+                          : message.role === 'merchant'
+                            ? 'bg-teal-600 text-white'
+                            : 'bg-primary text-primary-foreground'
+                        }`}
+                    >
+                      <p className="text-sm whitespace-pre-wrap flex-wrap break-words">{message.content}</p>
+                    </div>
+                    <div className={`flex items-center gap-2 mt-1 text-xs text-zinc-600 ${message.role === 'user' ? 'justify-start' : 'justify-end'
+                      }`}>
+                      <span>{message.role === 'user' ? t('customer') : message.role === 'merchant' ? t('you') : t('aiBot')}</span>
+                      <span>•</span>
+                      <span>{formatTime(message.timestamp)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </>
+          )}
+        </div>
+
+        {/* Reply Input */}
+        <div className="p-4 border-t border-zinc-200">
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }}
+              placeholder={conversation.conversationStatus === 'resolved' ? t('placeholderResolved') : t('placeholderReply')}
+              disabled={sending || conversation.conversationStatus === 'resolved'}
+              className="flex-1 px-4 py-2.5 rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-zinc-100 disabled:cursor-not-allowed text-sm"
+            />
+            <button
+              onClick={handleSendReply}
+              disabled={!replyText.trim() || sending || conversation.conversationStatus === 'resolved'}
+              className="px-5 py-2.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              {sending ? t('sending') : t('send')}
+            </button>
+          </div>
+          {conversation.conversationStatus === 'ai' && (
+            <p className="text-xs text-zinc-500 mt-2">
+              {t('humanModeNote')}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Conversation Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-card rounded-lg border border-border shadow-sm p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm text-zinc-600">Toplam Mesaj</p>
+              <p className="text-2xl font-bold text-zinc-900">{conversation.history.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-lg border border-border shadow-sm p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-green-100 rounded-lg">
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm text-zinc-600">{t('customerMessage')}</p>
+              <p className="text-2xl font-bold text-zinc-900">
+                {conversation.history.filter((m) => m.role === 'user').length}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-lg border border-border shadow-sm p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-purple-100 rounded-lg">
+              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm text-zinc-600">{t('botResponse')}</p>
+              <p className="text-2xl font-bold text-zinc-900">
+                {conversation.history.filter((m) => m.role === 'assistant').length}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   );
 }
