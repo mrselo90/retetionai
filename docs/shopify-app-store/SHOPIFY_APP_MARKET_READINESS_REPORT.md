@@ -191,7 +191,7 @@ Use this as a final gate before “Submit for review”.
 
 ## 7. References
 
-- **This repo**: `memory-bank/SHOPIFY_READINESS_ASSESSMENT.md`, `docs/shopify-app-store/REVIEW_CHECKLIST.md`, `docs/shopify-app-store/APP_LISTING.md`, `docs/shopify-app-store/SHOPIFY_SUBMISSION_ACTIONS.md`.
+- **This repo**: `memory-bank/SHOPIFY_READINESS_ASSESSMENT.md`, `docs/shopify-app-store/REVIEW_CHECKLIST.md`, `docs/shopify-app-store/APP_LISTING.md`, `docs/shopify-app-store/SHOPIFY_SUBMISSION_ACTIONS.md`. For a consolidated reviewer-focused review (policy, technical, design/UX, listing, testing, gaps), see [SPECIAL_SHOPIFY_READINESS_REVIEW.md](./SPECIAL_SHOPIFY_READINESS_REVIEW.md).
 - **Shopify**: [App Store requirements](https://shopify.dev/docs/apps/launch/shopify-app-store/app-store-requirements), [App Store review](https://shopify.dev/docs/apps/launch/app-store-review/review-process), [Submit for review](https://shopify.dev/docs/apps/launch/app-store-review/submit-app-for-review).
 
 ---

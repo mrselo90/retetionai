@@ -53,24 +53,62 @@ admin.get('/stats', async (c) => {
 admin.get('/merchants', async (c) => {
     const serviceClient = getSupabaseServiceClient();
 
-    try {
-        const { data: merchants, error } = await serviceClient
-            .from('merchants')
-            .select(`
-        id, 
-        name, 
+    const fullSelect = `
+        id,
+        name,
         created_at,
         is_super_admin,
         settings,
         integrations (provider, status)
-      `)
+    `;
+    const selectWithoutSettings = `
+        id,
+        name,
+        created_at,
+        is_super_admin,
+        integrations (provider, status)
+    `;
+    const minimalSelect = `
+        id,
+        name,
+        created_at,
+        is_super_admin
+    `;
+
+    try {
+        let result = await serviceClient
+            .from('merchants')
+            .select(fullSelect)
             .order('created_at', { ascending: false });
 
-        if (error) {
-            throw error;
+        if (result.error) {
+            result = await serviceClient
+                .from('merchants')
+                .select(selectWithoutSettings)
+                .order('created_at', { ascending: false });
+
+            if (result.error) {
+                result = await serviceClient
+                    .from('merchants')
+                    .select(minimalSelect)
+                    .order('created_at', { ascending: false });
+                if (result.error) throw result.error;
+                const merchants = (result.data || []).map((m: Record<string, unknown>) => ({
+                    ...m,
+                    settings: undefined,
+                    integrations: [],
+                }));
+                return c.json({ merchants });
+            }
+
+            const merchants = (result.data || []).map((m: Record<string, unknown>) => ({
+                ...m,
+                settings: undefined,
+            }));
+            return c.json({ merchants });
         }
 
-        return c.json({ merchants });
+        return c.json({ merchants: result.data ?? [] });
     } catch (error) {
         console.error('Failed to fetch all merchants:', error);
         return c.json({ error: 'Failed to fetch merchants list' }, 500);

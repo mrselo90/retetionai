@@ -74,3 +74,5 @@
 ---
 
 *Last assessed: February 19, 2026 — based on official BFS achievement criteria.*
+
+For a consolidated reviewer-focused review (policy, technical, design/UX, listing, testing, gaps), see [docs/shopify-app-store/SPECIAL_SHOPIFY_READINESS_REVIEW.md](../docs/shopify-app-store/SPECIAL_SHOPIFY_READINESS_REVIEW.md).
