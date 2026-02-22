@@ -76,39 +76,41 @@ admin.get('/merchants', async (c) => {
     `;
 
     try {
-        let result = await serviceClient
+        const resultFull = await serviceClient
             .from('merchants')
             .select(fullSelect)
             .order('created_at', { ascending: false });
 
-        if (result.error) {
-            result = await serviceClient
-                .from('merchants')
-                .select(selectWithoutSettings)
-                .order('created_at', { ascending: false });
+        if (!resultFull.error) {
+            return c.json({ merchants: resultFull.data ?? [] });
+        }
 
-            if (result.error) {
-                result = await serviceClient
-                    .from('merchants')
-                    .select(minimalSelect)
-                    .order('created_at', { ascending: false });
-                if (result.error) throw result.error;
-                const merchants = (result.data || []).map((m: Record<string, unknown>) => ({
-                    ...m,
-                    settings: undefined,
-                    integrations: [],
-                }));
-                return c.json({ merchants });
-            }
+        const resultWithoutSettings = await serviceClient
+            .from('merchants')
+            .select(selectWithoutSettings)
+            .order('created_at', { ascending: false });
 
-            const merchants = (result.data || []).map((m: Record<string, unknown>) => ({
+        if (!resultWithoutSettings.error) {
+            const merchants = (resultWithoutSettings.data || []).map((m: any) => ({
                 ...m,
                 settings: undefined,
             }));
             return c.json({ merchants });
         }
 
-        return c.json({ merchants: result.data ?? [] });
+        const resultMinimal = await serviceClient
+            .from('merchants')
+            .select(minimalSelect)
+            .order('created_at', { ascending: false });
+
+        if (resultMinimal.error) throw resultMinimal.error;
+
+        const merchants = (resultMinimal.data || []).map((m: any) => ({
+            ...m,
+            settings: undefined,
+            integrations: [],
+        }));
+        return c.json({ merchants });
     } catch (error) {
         console.error('Failed to fetch all merchants:', error);
         return c.json({ error: 'Failed to fetch merchants list' }, 500);
