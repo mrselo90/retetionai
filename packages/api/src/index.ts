@@ -28,6 +28,7 @@ import billingRoutes from './routes/billing.js';
 import customerRoutes from './routes/customers.js';
 import memberRoutes from './routes/members.js';
 import adminRoutes from './routes/admin.js';
+import shopifyGdprRoutes from './routes/shopifyGdpr.js';
 import { rateLimitMiddleware } from './middleware/rateLimit.js';
 import { securityHeadersMiddleware } from './middleware/securityHeaders.js';
 import { loggerMiddleware } from './middleware/logger.js';
@@ -179,6 +180,9 @@ app.route('/api/events', eventRoutes);
 
 // Webhook routes (public endpoints, authenticated via HMAC/API key)
 app.route('/webhooks', webhookRoutes);
+
+// Shopify GDPR Mandatory Webhook routes (public, authenticated via HMAC)
+app.route('/api/webhooks/shopify/gdpr', shopifyGdprRoutes);
 
 // Swagger UI Documentation
 app.get('/api/docs', swaggerUI({
