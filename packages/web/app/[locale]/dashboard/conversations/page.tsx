@@ -78,7 +78,8 @@ export default function ConversationsPage() {
       }
 
       // Toast when new human conversation appears (only after initial load)
-      if (humanCount > prevHumanCount && prevHumanCount > 0) {
+      const isInitialLoad = prevHumanCount === 0 && loading;
+      if (humanCount > prevHumanCount && !isInitialLoad && !loading) {
         toast.error(t('needsAttentionToast.title'), t('needsAttentionToast.message', { count: humanCount - prevHumanCount }));
       }
       setPrevHumanCount(humanCount);

@@ -388,7 +388,7 @@ export default function ConversationDetailPage() {
               </svg>
             </div>
             <div>
-              <p className="text-sm text-zinc-600">Toplam Mesaj</p>
+              <p className="text-sm text-zinc-600">{t('totalMessages')}</p>
               <p className="text-2xl font-bold text-zinc-900">{conversation.history.length}</p>
             </div>
           </div>

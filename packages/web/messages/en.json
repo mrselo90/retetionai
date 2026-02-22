@@ -900,6 +900,7 @@
         "lastUpdate": "Last update",
         "customerMessage": "Customer Message",
         "botResponse": "Bot Response",
+        "totalMessages": "Total Messages",
         "toasts": {
             "loadError": {
                 "title": "Error",

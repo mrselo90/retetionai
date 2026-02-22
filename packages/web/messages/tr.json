@@ -890,6 +890,7 @@
         "lastUpdate": "Son güncelleme",
         "customerMessage": "Müşteri Mesajı",
         "botResponse": "Bot Yanıtı",
+        "totalMessages": "Toplam Mesaj",
         "toasts": {
             "loadError": {
                 "title": "Hata",

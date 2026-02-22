@@ -81,9 +81,9 @@ conversations.get('/', async (c) => {
       let sentiment: 'positive' | 'neutral' | 'negative' = 'neutral';
       if (lastMessage) {
         const content = lastMessage.content?.toLowerCase() || '';
-        if (content.includes('teşekkür') || content.includes('harika') || content.includes('mükemmel')) {
+        if (content.includes('teşekkür') || content.includes('harika') || content.includes('mükemmel') || content.includes('thanks') || content.includes('great') || content.includes('perfect') || content.includes('awesome')) {
           sentiment = 'positive';
-        } else if (content.includes('kötü') || content.includes('şikayet') || content.includes('problem')) {
+        } else if (content.includes('kötü') || content.includes('şikayet') || content.includes('problem') || content.includes('bad') || content.includes('complain') || content.includes('issue') || content.includes('wrong')) {
           sentiment = 'negative';
         }
       }
@@ -92,7 +92,7 @@ conversations.get('/', async (c) => {
         id: conv.id,
         userId: conv.user_id,
         orderId: conv.order_id,
-        userName: user?.name || 'İsimsiz Kullanıcı',
+        userName: user?.name || 'Guest User',
         phone: phoneDisplay,
         lastMessage: lastMessage
           ? {
@@ -226,7 +226,7 @@ conversations.get('/:id', async (c) => {
         id: conversation.id,
         userId: conversation.user_id,
         orderId: conversation.order_id,
-        userName: user?.name || 'İsimsiz Kullanıcı',
+        userName: user?.name || 'Guest User',
         phone: phoneDisplay,
         history: (conversation.history as any[]) || [],
         status: conversation.current_state || 'active',
