@@ -146,14 +146,26 @@ export default function ConversationsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="space-y-3">
-          <div className="h-10 w-48 bg-zinc-200 rounded-xl animate-pulse" />
-          <div className="h-5 w-96 bg-zinc-100 rounded-lg animate-pulse" />
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 space-y-6 animate-fade-in pb-8">
+        <div className="space-y-2">
+          <div className="h-7 sm:h-8 w-40 sm:w-56 bg-zinc-200 rounded-lg animate-pulse" />
+          <div className="h-4 w-full max-w-md bg-zinc-100 rounded animate-pulse" />
         </div>
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" style={{ animationDelay: `${i * 100}ms` }} />
+        <div className="flex gap-2 overflow-hidden">
+          <div className="h-9 w-20 rounded-lg bg-zinc-100 animate-pulse shrink-0" />
+          <div className="h-9 w-24 rounded-lg bg-zinc-100 animate-pulse shrink-0" />
+          <div className="h-9 w-20 rounded-lg bg-zinc-100 animate-pulse shrink-0" />
+        </div>
+        <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex gap-4 p-4 sm:p-5" style={{ animationDelay: `${i * 80}ms` }}>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-zinc-100 animate-pulse shrink-0" />
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="h-4 w-32 sm:w-40 bg-zinc-200 rounded animate-pulse" />
+                <div className="h-3 w-24 sm:w-28 bg-zinc-100 rounded animate-pulse" />
+                <div className="h-3 w-full max-w-[200px] bg-zinc-100 rounded animate-pulse" />
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -161,59 +173,59 @@ export default function ConversationsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
+    <div className="mx-auto max-w-4xl px-4 sm:px-6 space-y-5 sm:space-y-6 animate-fade-in pb-8">
       {/* Header */}
-      <div className="space-y-1.5">
-        <h1 className="text-3xl font-extrabold tracking-tight">{t('title')}</h1>
-        <p className="text-muted-foreground text-base font-medium">
+      <div className="space-y-1">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-zinc-900">
+          {t('title')}
+        </h1>
+        <p className="text-sm sm:text-base text-muted-foreground max-w-2xl">
           {t('description')}
         </p>
       </div>
 
-      {/* ── Needs Attention Alert ──────────────────────────────────*/}
+      {/* Needs Attention Alert */}
       {(() => {
         const humanConvs = conversations.filter(c => c.conversationStatus === 'human');
         if (humanConvs.length === 0) return null;
         return (
-          <div className="rounded-2xl border-2 border-red-300 bg-red-50 overflow-hidden shadow-sm">
-            {/* Header bar */}
-            <div className="flex items-center gap-3 px-5 py-3 bg-red-100 border-b border-red-200">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+          <div className="rounded-xl sm:rounded-2xl border border-red-200 sm:border-2 sm:border-red-300 bg-red-50 overflow-hidden shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 sm:py-3 bg-red-100/80 border-b border-red-200">
+              <span className="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-500" />
               </span>
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-              <span className="font-bold text-red-800 text-sm">
+              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 shrink-0" />
+              <span className="font-semibold sm:font-bold text-red-800 text-xs sm:text-sm truncate">
                 {t('needsAttention.title', { count: humanConvs.length })}
               </span>
             </div>
-            {/* Human conversations */}
             <div className="divide-y divide-red-200">
               {humanConvs.map((conv) => (
                 <Link
                   key={conv.id}
                   href={`/dashboard/conversations/${conv.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-red-100 transition-colors group"
+                  className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 hover:bg-red-100/50 active:bg-red-100 transition-colors group min-h-[72px] sm:min-h-0"
                 >
-                  <div className="w-10 h-10 rounded-full bg-red-200 flex items-center justify-center flex-shrink-0">
-                    <User className="w-5 h-5 text-red-700" />
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-red-200 flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-red-700" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-red-900 text-sm truncate">
+                    <p className="font-semibold sm:font-bold text-red-900 text-sm truncate">
                       {conv.userName || conv.user?.name || t('list.guest')}
                     </p>
                     <p className="text-xs text-red-700 mt-0.5 truncate">
                       {conv.phone || conv.user?.phone}
                     </p>
                     {conv.lastMessage && (
-                      <p className="text-xs text-red-600 mt-1 truncate">
-                        &ldquo;{conv.lastMessage.content?.slice(0, 80)}&rdquo;
+                      <p className="text-xs text-red-600 mt-1 truncate max-w-full">
+                        &ldquo;{conv.lastMessage.content?.slice(0, 60)}&rdquo;
                       </p>
                     )}
                   </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
                     <span className="text-[10px] sm:text-xs text-red-600 whitespace-nowrap">{formatDateTime(conv.last_message_at)}</span>
-                    <svg className="w-4 h-4 text-red-400 group-hover:text-red-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-red-400 group-hover:text-red-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
@@ -224,10 +236,9 @@ export default function ConversationsPage() {
         );
       })()}
 
-
-      <div className="space-y-3">
-        {/* Primary Filters (Sentiment) */}
-        <div className="flex items-center gap-2 flex-wrap">
+      {/* Filters: horizontal scroll on mobile, wrap on desktop */}
+      <div className="space-y-2 sm:space-y-3">
+        <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap scrollbar-thin -mx-4 px-4 sm:mx-0 sm:px-0">
           {[
             { key: 'all' as const, label: `${t('filters.all')} (${conversations.length})` },
             { key: 'positive' as const, label: `${t('filters.positive')} (${conversations.filter((c) => c.sentiment === 'positive').length})` },
@@ -239,15 +250,13 @@ export default function ConversationsPage() {
               variant={filter === f.key ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter(f.key)}
-              className="shadow-sm font-bold text-xs sm:text-sm h-8 sm:h-10 px-3 sm:px-4"
+              className="shrink-0 h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm font-semibold shadow-sm"
             >
               {f.label}
             </Button>
           ))}
         </div>
-
-        {/* Secondary Filters (Status) */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap scrollbar-thin -mx-4 px-4 sm:mx-0 sm:px-0">
           {[
             { key: 'all' as const, label: t('filters.all') },
             { key: 'human' as const, label: t('filters.humanCount', { count: conversations.filter((c) => c.conversationStatus === 'human').length }) },
@@ -259,7 +268,7 @@ export default function ConversationsPage() {
               variant={statusFilter === f.key ? 'info' : 'outline'}
               size="sm"
               onClick={() => setStatusFilter(f.key)}
-              className="shadow-sm font-bold text-xs sm:text-sm h-8 sm:h-10 px-3 sm:px-4"
+              className="shrink-0 h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm font-semibold shadow-sm"
             >
               {f.label}
             </Button>
@@ -269,78 +278,73 @@ export default function ConversationsPage() {
 
       {/* Conversations List */}
       {filteredConversations.length === 0 ? (
-        <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center justify-center min-h-[400px] py-12">
-          <CardContent className="p-0 flex flex-col items-center justify-center text-center w-full">
-            <div className="w-20 h-20 mb-6 rounded-2xl bg-zinc-100 flex items-center justify-center ">
-              <MessageSquare className="w-10 h-10 text-primary" />
+        <Card className="border-2 border-dashed border-border bg-card rounded-xl overflow-hidden">
+          <CardContent className="p-6 sm:p-8 sm:py-12 flex flex-col items-center justify-center text-center min-h-[320px] sm:min-h-[400px]">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 mb-4 sm:mb-6 rounded-2xl bg-muted flex items-center justify-center">
+              <MessageSquare className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground" />
             </div>
-            <h3 className="text-2xl font-bold mb-3">{t('empty.title')}</h3>
-            <p className="text-muted-foreground mb-8 max-w-md text-base text-center">
+            <h3 className="text-lg sm:text-xl font-semibold text-zinc-900 mb-2 px-2">{t('empty.title')}</h3>
+            <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-sm px-2">
               {t('empty.description')}
             </p>
-            <div className="flex items-center justify-center">
-              <Button size="lg" disabled>
-                <MessageSquare className="w-5 h-5 mr-2" />
+            <Button size="lg" asChild className="min-h-11 px-6 font-semibold">
+              <Link href="/dashboard/integrations">
+                <MessageSquare className="w-5 h-5 mr-2 shrink-0" />
                 {t('empty.button')}
-              </Button>
-            </div>
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       ) : (
-        <Card className="overflow-hidden ">
+        <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <div className="divide-y divide-border">
             {filteredConversations.map((conversation, idx) => (
               <Link
                 key={conversation.id}
                 href={`/dashboard/conversations/${conversation.id}`}
-                className="block p-4 sm:p-6 hover:bg-zinc-50 transition-colors"
+                className="block p-4 sm:p-5 hover:bg-muted/50 active:bg-muted transition-colors min-h-[88px] sm:min-h-0"
                 style={{ animationDelay: `${idx * 50}ms` }}
               >
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0 w-full sm:w-auto">
-                    {/* Avatar */}
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-100 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
-                      <User className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  <div className="flex gap-3 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
                     </div>
-
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2 flex-wrap">
-                        <h3 className="text-base sm:text-lg font-bold truncate max-w-full">
-                          {conversation.user?.name || t('list.guest')}
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                        <h3 className="text-sm sm:text-base font-semibold text-zinc-900 truncate max-w-[140px] sm:max-w-none">
+                          {conversation.userName || conversation.user?.name || t('list.guest')}
                         </h3>
-                        <Badge variant={getSentimentBadgeVariant(conversation.sentiment) === 'default' ? 'success' : getSentimentBadgeVariant(conversation.sentiment)} size="sm" className="shadow-sm">
+                        <Badge variant={getSentimentBadgeVariant(conversation.sentiment) === 'default' ? 'success' : getSentimentBadgeVariant(conversation.sentiment)} size="sm" className="shrink-0 text-[10px] sm:text-xs">
                           {getSentimentIcon(conversation.sentiment)} {conversation.sentiment}
                         </Badge>
                         {conversation.conversationStatus === 'human' && (
-                          <Badge variant="destructive" size="sm" className="shadow-sm font-bold">{t('statusBadge.human')}</Badge>
+                          <Badge variant="destructive" size="sm" className="shrink-0 font-semibold text-[10px] sm:text-xs">{t('statusBadge.human')}</Badge>
                         )}
                         {conversation.conversationStatus === 'resolved' && (
-                          <Badge variant="success" size="sm" className="shadow-sm font-bold">{t('statusBadge.resolved')}</Badge>
+                          <Badge variant="success" size="sm" className="shrink-0 font-semibold text-[10px] sm:text-xs">{t('statusBadge.resolved')}</Badge>
                         )}
                       </div>
-                      <p className="text-xs sm:text-sm text-muted-foreground mb-1.5 sm:mb-2 font-medium truncate">
-                        {conversation.user?.phone}
+                      <p className="text-xs text-muted-foreground truncate mb-0.5">
+                        {conversation.phone || conversation.user?.phone}
                       </p>
                       {conversation.order && (
-                        <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground flex-wrap">
-                          <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                          <span className="font-medium truncate max-w-full">{t('list.order')}: #{conversation.order.external_order_id}</span>
-                          <Badge variant={conversation.order.status === 'delivered' ? 'success' : 'secondary'} size="sm">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                          <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate max-w-[120px] sm:max-w-none">{t('list.order')}: #{conversation.order.external_order_id}</span>
+                          <Badge variant={conversation.order.status === 'delivered' ? 'success' : 'secondary'} size="sm" className="text-[10px]">
                             {conversation.order.status}
                           </Badge>
                         </div>
                       )}
                     </div>
                   </div>
-
-                  {/* Meta */}
-                  <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto text-left sm:text-right flex-shrink-0 sm:ml-4 gap-2 border-t sm:border-0 pt-3 sm:pt-0 border-zinc-100 mt-1 sm:mt-0">
-                    <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 font-medium">
-                      <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                      <span className="truncate">{formatDateTime(conversation.last_message_at)}</span>
+                  <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 sm:gap-1 border-t sm:border-0 pt-3 sm:pt-0 border-border/50 sm:ml-0">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      <span>{formatDateTime(conversation.last_message_at)}</span>
                     </p>
-                    <Badge variant="outline" size="sm" className="font-bold shrink-0">
+                    <Badge variant="outline" size="sm" className="font-medium text-[10px] sm:text-xs shrink-0">
                       {conversation.message_count} {t('list.messages')}
                     </Badge>
                   </div>
