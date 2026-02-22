@@ -200,25 +200,25 @@ export default function ConversationDetailPage() {
           {t('backToConversations')}
         </button>
 
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-              <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex flex-col md:flex-row items-start md:items-start justify-between gap-6">
+          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 md:w-8 md:h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-zinc-900">{conversation.userName}</h1>
-              <p className="text-zinc-600 mt-1">{conversation.phone}</p>
+            <div className="min-w-0">
+              <h1 className="text-xl md:text-2xl font-bold text-zinc-900 truncate max-w-[200px] sm:max-w-xs">{conversation.userName}</h1>
+              <p className="text-sm md:text-base text-zinc-600 mt-0.5 sm:mt-1 truncate max-w-[200px] sm:max-w-xs">{conversation.phone}</p>
               {conversation.order && (
-                <div className="flex items-center gap-2 mt-2 text-sm">
-                  <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center gap-1.5 sm:gap-2 mt-2 text-xs sm:text-sm flex-wrap">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                   </svg>
-                  <span className="text-zinc-900 font-medium">{t('order')}: #{conversation.order.externalOrderId}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${conversation.order.status === 'delivered'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-info/20 text-info'
+                  <span className="text-zinc-900 font-medium truncate max-w-[150px] sm:max-w-xs">{t('order')}: #{conversation.order.externalOrderId}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium shrink-0 ${conversation.order.status === 'delivered'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-info/20 text-info'
                     }`}>
                     {conversation.order.status}
                   </span>
@@ -226,25 +226,25 @@ export default function ConversationDetailPage() {
               )}
             </div>
           </div>
-          <div className="text-right space-y-3">
-            <div className="flex items-center gap-2 justify-end">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${conversation.conversationStatus === 'human'
-                  ? 'bg-orange-100 text-orange-800'
-                  : conversation.conversationStatus === 'resolved'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-info/20 text-info'
+          <div className="w-full md:w-auto text-left md:text-right space-y-3 pt-4 border-t border-zinc-100 md:border-0 md:pt-0">
+            <div className="flex flex-col sm:flex-row items-center gap-2 justify-start md:justify-end flex-wrap">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shrink-0 ${conversation.conversationStatus === 'human'
+                ? 'bg-orange-100 text-orange-800'
+                : conversation.conversationStatus === 'resolved'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-info/20 text-info'
                 }`}>
                 {conversation.conversationStatus === 'human' ? t('statusHuman') :
                   conversation.conversationStatus === 'resolved' ? t('statusResolved') : t('statusAi')}
               </span>
               {conversation.returnPreventionAttempt && (
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${conversation.returnPreventionAttempt.outcome === 'prevented'
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : conversation.returnPreventionAttempt.outcome === 'returned'
-                      ? 'bg-red-100 text-red-800'
-                      : conversation.returnPreventionAttempt.outcome === 'escalated'
-                        ? 'bg-orange-100 text-orange-800'
-                        : 'bg-zinc-100 text-zinc-600'
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shrink-0 ${conversation.returnPreventionAttempt.outcome === 'prevented'
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : conversation.returnPreventionAttempt.outcome === 'returned'
+                    ? 'bg-red-100 text-red-800'
+                    : conversation.returnPreventionAttempt.outcome === 'escalated'
+                      ? 'bg-orange-100 text-orange-800'
+                      : 'bg-zinc-100 text-zinc-600'
                   }`}>
                   🛡️ {rp('badgeLabel')} · {
                     conversation.returnPreventionAttempt.outcome === 'prevented' ? rp('outcomePrevented') :
@@ -255,12 +255,12 @@ export default function ConversationDetailPage() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 justify-end">
+            <div className="flex items-center gap-2 justify-start md:justify-end flex-wrap mt-2">
               {conversation.conversationStatus === 'ai' && (
                 <button
                   onClick={() => handleToggleStatus('human')}
                   disabled={togglingStatus}
-                  className="px-3 py-1.5 text-xs font-medium bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors shrink-0"
                 >
                   {t('stopAi')}
                 </button>
@@ -270,14 +270,14 @@ export default function ConversationDetailPage() {
                   <button
                     onClick={() => handleToggleStatus('ai')}
                     disabled={togglingStatus}
-                    className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+                    className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity shrink-0"
                   >
                     {t('startAi')}
                   </button>
                   <button
                     onClick={() => handleToggleStatus('resolved')}
                     disabled={togglingStatus}
-                    className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                    className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shrink-0"
                   >
                     {t('resolved')}
                   </button>
@@ -287,13 +287,13 @@ export default function ConversationDetailPage() {
                 <button
                   onClick={() => handleToggleStatus('ai')}
                   disabled={togglingStatus}
-                  className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity shrink-0"
                 >
                   {t('reopen')}
                 </button>
               )}
             </div>
-            <div className="text-sm text-zinc-600">
+            <div className="text-sm text-zinc-600 mt-2">
               <p>{t('started')}: {formatDateTime(conversation.createdAt)}</p>
               <p className="mt-1">{t('lastUpdate')}: {formatDateTime(conversation.updatedAt)}</p>
             </div>
@@ -328,10 +328,10 @@ export default function ConversationDetailPage() {
                   <div className={`max-w-[85%] sm:max-w-[70%] ${message.role === 'user' ? 'order-1' : 'order-2'}`}>
                     <div
                       className={`rounded-lg p-4 ${message.role === 'user'
-                          ? 'bg-zinc-100 text-zinc-900'
-                          : message.role === 'merchant'
-                            ? 'bg-teal-600 text-white'
-                            : 'bg-primary text-primary-foreground'
+                        ? 'bg-zinc-100 text-zinc-900'
+                        : message.role === 'merchant'
+                          ? 'bg-teal-600 text-white'
+                          : 'bg-primary text-primary-foreground'
                         }`}
                     >
                       <p className="text-sm whitespace-pre-wrap flex-wrap break-words">{message.content}</p>

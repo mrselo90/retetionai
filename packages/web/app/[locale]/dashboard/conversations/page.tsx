@@ -199,7 +199,7 @@ export default function ConversationsPage() {
                     <User className="w-5 h-5 text-red-700" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-red-900 text-sm">
+                    <p className="font-bold text-red-900 text-sm truncate">
                       {conv.userName || conv.user?.name || t('list.guest')}
                     </p>
                     <p className="text-xs text-red-700 mt-0.5 truncate">
@@ -211,9 +211,9 @@ export default function ConversationsPage() {
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs text-red-600">{formatDateTime(conv.last_message_at)}</span>
-                    <svg className="w-4 h-4 text-red-400 group-hover:text-red-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span className="text-[10px] sm:text-xs text-red-600 whitespace-nowrap">{formatDateTime(conv.last_message_at)}</span>
+                    <svg className="w-4 h-4 text-red-400 group-hover:text-red-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
@@ -291,20 +291,20 @@ export default function ConversationsPage() {
               <Link
                 key={conversation.id}
                 href={`/dashboard/conversations/${conversation.id}`}
-                className="block p-6 hover:bg-zinc-50 transition-colors"
+                className="block p-4 sm:p-6 hover:bg-zinc-50 transition-colors"
                 style={{ animationDelay: `${idx * 50}ms` }}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-4 flex-1">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0 w-full sm:w-auto">
                     {/* Avatar */}
-                    <div className="w-12 h-12 bg-zinc-100 rounded-xl flex items-center justify-center flex-shrink-0  shadow-sm">
-                      <User className="w-6 h-6 text-primary" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-100 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <User className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <h3 className="text-lg font-bold">
+                      <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2 flex-wrap">
+                        <h3 className="text-base sm:text-lg font-bold truncate max-w-full">
                           {conversation.user?.name || t('list.guest')}
                         </h3>
                         <Badge variant={getSentimentBadgeVariant(conversation.sentiment) === 'default' ? 'success' : getSentimentBadgeVariant(conversation.sentiment)} size="sm" className="shadow-sm">
@@ -317,13 +317,13 @@ export default function ConversationsPage() {
                           <Badge variant="success" size="sm" className="shadow-sm font-bold">{t('statusBadge.resolved')}</Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mb-2 font-medium">
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-1.5 sm:mb-2 font-medium truncate">
                         {conversation.user?.phone}
                       </p>
                       {conversation.order && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <ShoppingBag className="w-4 h-4" />
-                          <span className="font-medium">{t('list.order')}: #{conversation.order.external_order_id}</span>
+                        <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground flex-wrap">
+                          <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                          <span className="font-medium truncate max-w-full">{t('list.order')}: #{conversation.order.external_order_id}</span>
                           <Badge variant={conversation.order.status === 'delivered' ? 'success' : 'secondary'} size="sm">
                             {conversation.order.status}
                           </Badge>
@@ -333,12 +333,12 @@ export default function ConversationsPage() {
                   </div>
 
                   {/* Meta */}
-                  <div className="text-right flex-shrink-0 ml-4 space-y-2">
-                    <p className="text-sm text-muted-foreground flex items-center gap-2 justify-end font-medium">
-                      <Clock className="w-4 h-4" />
-                      {formatDateTime(conversation.last_message_at)}
+                  <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto text-left sm:text-right flex-shrink-0 sm:ml-4 gap-2 border-t sm:border-0 pt-3 sm:pt-0 border-zinc-100 mt-1 sm:mt-0">
+                    <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 font-medium">
+                      <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                      <span className="truncate">{formatDateTime(conversation.last_message_at)}</span>
                     </p>
-                    <Badge variant="outline" size="sm" className="font-bold">
+                    <Badge variant="outline" size="sm" className="font-bold shrink-0">
                       {conversation.message_count} {t('list.messages')}
                     </Badge>
                   </div>
