@@ -270,19 +270,20 @@ export default function SignupPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">{t('businessName')}</label>
+              <div className="form-field">
+                <label htmlFor="name" className="form-label">{t('businessName')}</label>
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
                   placeholder={t('businessName')}
+                  className="w-full"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">{t('email')}</label>
+              <div className="form-field">
+                <label htmlFor="email" className="form-label">{t('email')}</label>
                 <Input
                   id="email"
                   type="email"
@@ -290,11 +291,12 @@ export default function SignupPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="you@example.com"
+                  className="w-full"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">{t('password')}</label>
+              <div className="form-field">
+                <label htmlFor="password" className="form-label">{t('password')}</label>
                 <Input
                   id="password"
                   type="password"
@@ -303,12 +305,13 @@ export default function SignupPage() {
                   required
                   minLength={6}
                   placeholder="••••••••"
+                  className="w-full"
                 />
-                <p className="text-xs text-muted-foreground">{t('passwordMinLength')}</p>
+                <p className="form-helper">{t('passwordMinLength')}</p>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">{t('confirmPassword')}</label>
+              <div className="form-field">
+                <label htmlFor="confirmPassword" className="form-label">{t('confirmPassword')}</label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -317,6 +320,7 @@ export default function SignupPage() {
                   required
                   minLength={6}
                   placeholder="••••••••"
+                  className="w-full"
                 />
               </div>
 

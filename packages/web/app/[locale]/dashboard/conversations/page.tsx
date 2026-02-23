@@ -177,7 +177,7 @@ export default function ConversationsPage() {
     <div className="mx-auto max-w-4xl px-4 sm:px-6 space-y-5 sm:space-y-6 animate-fade-in pb-8">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-zinc-900">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
           {t('title')}
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground max-w-2xl">
@@ -284,7 +284,7 @@ export default function ConversationsPage() {
             <div className="w-16 h-16 sm:w-20 sm:h-20 mb-4 sm:mb-6 rounded-2xl bg-muted flex items-center justify-center">
               <MessageSquare className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground" />
             </div>
-            <h3 className="text-lg sm:text-xl font-semibold text-zinc-900 mb-2 px-2">{t('empty.title')}</h3>
+            <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 px-2">{t('empty.title')}</h3>
             <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-sm px-2">
               {t('empty.description')}
             </p>
@@ -313,7 +313,7 @@ export default function ConversationsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
-                        <h3 className="text-sm sm:text-base font-semibold text-zinc-900 truncate max-w-[140px] sm:max-w-none">
+                        <h3 className="text-sm sm:text-base font-semibold text-foreground truncate max-w-[140px] sm:max-w-none">
                           {conversation.userName || conversation.user?.name || t('list.guest')}
                         </h3>
                         <Badge variant={getSentimentBadgeVariant(conversation.sentiment) === 'default' ? 'success' : getSentimentBadgeVariant(conversation.sentiment)} size="sm" className="shrink-0 text-[10px] sm:text-xs">

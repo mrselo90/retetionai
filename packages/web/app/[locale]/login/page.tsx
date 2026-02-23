@@ -183,8 +183,8 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2.5">
-              <label htmlFor="email" className="text-sm font-bold leading-none text-foreground">
+            <div className="form-field">
+              <label htmlFor="email" className="form-label">
                 {t('emailLabel')}
               </label>
               <Input
@@ -194,16 +194,16 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder={t('emailPlaceholder')}
-                className="h-12"
+                className="h-12 w-full"
               />
             </div>
 
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-bold leading-none text-foreground">
+            <div className="form-field">
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="password" className="form-label mb-0">
                   {t('passwordLabel')}
                 </label>
-                <I18nLink href="/forgot-password" className="text-sm font-bold text-primary hover:text-primary/80 transition-colors">
+                <I18nLink href="/forgot-password" className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors">
                   {t('forgotPassword')}
                 </I18nLink>
               </div>
@@ -214,7 +214,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="h-12"
+                className="h-12 w-full"
               />
             </div>
 

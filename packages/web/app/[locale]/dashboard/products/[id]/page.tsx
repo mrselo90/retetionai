@@ -265,7 +265,7 @@ export default function ProductDetailPage() {
             </svg>
             {t('backToProducts')}
           </button>
-          <h1 className="text-3xl font-bold text-zinc-900">{t('editProduct')}</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t('editProduct')}</h1>
           <p className="mt-2 text-zinc-600">{t('editDescription')}</p>
         </div>
         <div className="flex w-full sm:w-auto gap-3">
@@ -289,7 +289,7 @@ export default function ProductDetailPage() {
       {/* Product Info */}
       <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-6">
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-2">
+          <label className="form-label">
             {t('productName')}
           </label>
           <input
@@ -301,7 +301,7 @@ export default function ProductDetailPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-2">
+          <label className="form-label">
             {t('productUrl')}
           </label>
           <input
@@ -325,7 +325,7 @@ export default function ProductDetailPage() {
 
         {product.external_id && (
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">
+            <label className="form-label">
               External ID
             </label>
             <input
@@ -343,7 +343,7 @@ export default function ProductDetailPage() {
         }`}>
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h2 className="text-xl font-semibold text-zinc-900">{t('botInstructions.title')}</h2>
+            <h2 className="text-xl font-semibold text-foreground">{t('botInstructions.title')}</h2>
             <p className="text-sm text-zinc-500 mt-1">{t('botInstructions.description')}</p>
           </div>
           {hasGoodInstructions && (
@@ -358,7 +358,7 @@ export default function ProductDetailPage() {
 
         {/* Usage Instructions — the main RAG field */}
         <div>
-          <label className="block text-sm font-semibold text-zinc-700 mb-2">
+          <label className="form-label">
             {t('botInstructions.usageLabel')}
             <span className="text-amber-500 ml-1">*</span>
           </label>
@@ -384,7 +384,7 @@ export default function ProductDetailPage() {
 
         {/* Video URL */}
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-2">
+          <label className="form-label">
             {t('botInstructions.videoLabel')}
           </label>
           <input
@@ -399,7 +399,7 @@ export default function ProductDetailPage() {
 
         {/* Prevention Tips */}
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-2">
+          <label className="form-label">
             {t('botInstructions.preventionLabel')}
           </label>
           <textarea
@@ -415,7 +415,7 @@ export default function ProductDetailPage() {
 
       <div className="bg-card rounded-lg border border-border shadow-sm p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-          <h2 className="text-xl font-semibold text-zinc-900">{t('scrapedContent')}</h2>
+          <h2 className="text-xl font-semibold text-foreground">{t('scrapedContent')}</h2>
           <button
             onClick={handleRescrape}
             disabled={rescraping}
@@ -458,12 +458,12 @@ export default function ProductDetailPage() {
       {/* Return Prevention Content */}
       <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-5">
         <div>
-          <h2 className="text-xl font-semibold text-zinc-900">{rp('analyticsTitle')}</h2>
+          <h2 className="text-xl font-semibold text-foreground">{rp('analyticsTitle')}</h2>
           <p className="text-sm text-zinc-500 mt-1">{rp('moduleDescription')}</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-2">
+          <label className="form-label">
             {rp('videoUrl')}
           </label>
           <input
@@ -477,7 +477,7 @@ export default function ProductDetailPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-2">
+          <label className="form-label">
             {rp('preventionTips')}
           </label>
           <textarea
@@ -493,7 +493,7 @@ export default function ProductDetailPage() {
 
       {/* Metadata */}
       <div className="bg-card rounded-lg border border-border shadow-sm p-6 mt-6">
-        <h2 className="text-xl font-semibold text-zinc-900 mb-4">Metadata</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-4">Metadata</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-zinc-600">Oluşturulma:</span>

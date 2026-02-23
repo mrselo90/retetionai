@@ -90,35 +90,34 @@
 }
 
 :root {
-  /* Base colors - Polaris-aligned for Shopify admin familiarity */
+  /* Base colors - high contrast for readability */
   --background: 0 0% 100%;
-  --foreground: 222 47% 11%;
-  /* Surface: Polaris-like page background (#f6f6f7) for app body */
+  --foreground: 222 47% 9%;
+  /* Surface: page background */
   --surface: 240 5% 97%;
-  --surface-foreground: 222 47% 11%;
+  --surface-foreground: 222 47% 9%;
 
-  /* Card colors - white cards like Shopify admin */
+  /* Card colors */
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  --card-foreground: 222 47% 9%;
 
   /* Popover colors */
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
+  --popover-foreground: 222 47% 9%;
 
-  /* Primary brand color - Dark slate blue */
+  /* Primary brand color - Dark slate */
   --primary: 220 26% 14%;
-  /* #1A202C */
   --primary-foreground: 0 0% 100%;
   --primary-hover: 220 26% 18%;
   --primary-light: 220 26% 96%;
 
   /* Secondary colors */
   --secondary: 220 14% 96%;
-  --secondary-foreground: 222 47% 11%;
+  --secondary-foreground: 222 47% 9%;
 
-  /* Muted colors */
+  /* Muted - labels/descriptions: darker for readability (was 46%) */
   --muted: 220 14% 96%;
-  --muted-foreground: 220 9% 46%;
+  --muted-foreground: 220 10% 38%;
 
   /* Accent colors */
   --accent: 174 62% 47%;
@@ -143,9 +142,9 @@
   --info-foreground: 0 0% 100%;
   --info-light: 217 91% 95%;
 
-  /* Border and input - Polaris subdued border (#e1e3e5) */
-  --border: 220 13% 90%;
-  --input: 220 13% 90%;
+  /* Border and input - visible, consistent */
+  --border: 220 13% 86%;
+  --input: 220 13% 86%;
   --ring: 220 26% 14%;
 
   /* Radius system */
@@ -225,14 +224,14 @@
     overflow-x: hidden;
   }
 
-  /* Enhanced Typography */
+  /* Enhanced Typography - readable headers */
   h1,
   h2,
   h3,
   h4,
   h5,
   h6 {
-    @apply font-bold tracking-tight;
+    @apply font-bold tracking-tight text-foreground;
   }
 
   h1 {
@@ -349,13 +348,17 @@
   }
 }
 
-/* Form utility classes used across pages */
+/* Form utility classes - consistent label + input alignment */
 .form-label {
-  @apply text-sm font-medium text-foreground;
+  @apply block text-sm font-semibold text-foreground mb-1.5;
 }
 
 .form-helper {
-  @apply text-xs text-muted-foreground;
+  @apply block text-xs text-muted-foreground mt-1.5;
+}
+
+.form-field {
+  @apply space-y-1.5;
 }
 
 /* Custom scrollbar for sidebar / main content */

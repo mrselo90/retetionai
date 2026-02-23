@@ -163,14 +163,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="h-full flex flex-col">
               {/* Logo */}
               <div className="h-16 flex items-center px-4 border-b border-border">
-                <Link href="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-zinc-900">
+                <Link href="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-foreground">
                   <div className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center">
                     <span className="text-xl font-extrabold">R</span>
                   </div>
                   <span className="text-foreground">Recete</span>
                 </Link>
                 <button
-                  className="ml-auto lg:hidden text-zinc-500 hover:text-zinc-700 p-2 rounded-lg hover:bg-zinc-100 transition-colors"
+                  className="ml-auto lg:hidden text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-muted transition-colors"
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   <X className="w-5 h-5" />
@@ -190,7 +190,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         "relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150",
                         isActive
                           ? "bg-primary/10 text-primary"
-                          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
                       )}
                       onClick={() => setIsSidebarOpen(false)}
                     >
@@ -212,7 +212,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     <AvatarFallback className="bg-primary text-primary-foreground font-semibold">U</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-zinc-900 truncate">
+                    <p className="text-sm font-semibold text-foreground truncate">
                       {userEmail?.split('@')[0] || 'User'}
                     </p>
                     <p className="text-xs text-zinc-500 truncate font-medium">
@@ -239,7 +239,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Mobile Header — standalone mode only */}
         {!embedded && (
           <header className="lg:hidden h-14 bg-card border-b border-border flex items-center px-4 justify-between sticky top-0 z-30">
-            <Link href="/dashboard" className="font-bold text-lg text-zinc-900 flex items-center gap-2">
+            <Link href="/dashboard" className="font-bold text-lg text-foreground flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
                 <span className="text-base font-extrabold">R</span>
               </div>
