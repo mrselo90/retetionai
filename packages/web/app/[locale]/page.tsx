@@ -20,23 +20,23 @@ export default function Home() {
       role="main"
       aria-label={t('title')}
     >
-      {/* Header — Recete brand + nav (mobile-first, no truncation) */}
-      <header className="sticky top-0 z-50 border-b border-border/80 bg-background/95 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4 min-w-0">
+      {/* Header — mobile-first: logo + nav, no overflow */}
+      <header className="sticky top-0 z-50 border-b border-border/80 bg-background/95 backdrop-blur-md shrink-0">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3 min-w-0">
           <Link
             href="/"
-            className="flex items-center gap-2 sm:gap-3 font-bold tracking-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg min-w-0 shrink-0"
+            className="flex items-center gap-2 min-w-0 shrink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg"
             aria-label={t('brandName')}
           >
-            <img src="/recete-logo.svg" alt="" className="h-8 sm:h-9 w-auto shrink-0" width="160" height="40" />
-            <span className="hidden sm:inline text-sm font-medium text-muted-foreground shrink-0">{t('brandTagline')}</span>
+            <img src="/recete-logo.svg" alt="" className="h-7 w-auto min-w-[100px] sm:h-8 sm:min-w-[120px]" width="160" height="40" />
+            <span className="hidden md:inline text-sm font-medium text-muted-foreground truncate">{t('brandTagline')}</span>
           </Link>
-          <nav className="flex items-center gap-1 sm:gap-2 shrink-0" aria-label="Language and account">
-            <div className="flex rounded-lg sm:rounded-xl border border-border bg-muted/30 p-0.5 sm:p-1" role="group" aria-label="Language">
+          <nav className="flex items-center gap-2 sm:gap-3 shrink-0" aria-label="Language and account">
+            <div className="flex rounded-lg border border-border bg-muted/30 p-0.5" role="group" aria-label="Language">
               <Link
                 href="/"
                 locale="en"
-                className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${isEn ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+                className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${isEn ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
                 aria-current={isEn ? 'page' : undefined}
               >
                 EN
@@ -44,7 +44,7 @@ export default function Home() {
               <Link
                 href="/"
                 locale="tr"
-                className={`px-2 py-1.5 sm:px-3 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${!isEn ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+                className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${!isEn ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
                 aria-current={!isEn ? 'page' : undefined}
               >
                 TR
@@ -52,13 +52,13 @@ export default function Home() {
             </div>
             <Link
               href="/login"
-              className="px-2 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-medium text-foreground hover:bg-muted rounded-lg sm:rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              className="py-2 px-3 sm:px-4 text-xs sm:text-sm font-medium text-foreground hover:bg-muted rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               {t('login')}
             </Link>
             <Link
               href="/signup"
-              className="px-3 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold bg-primary text-primary-foreground rounded-lg sm:rounded-xl shadow-sm hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 whitespace-nowrap"
+              className="py-2 px-3 sm:px-5 text-xs sm:text-sm font-semibold bg-primary text-primary-foreground rounded-lg shadow-sm hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 whitespace-nowrap"
             >
               {t('signup')}
             </Link>

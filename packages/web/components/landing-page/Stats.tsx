@@ -18,20 +18,20 @@ export function Stats() {
 
     return (
         <section className="border-b border-[#F8F5E6]/10" style={{ background: 'linear-gradient(180deg, #0A3D2E 0%, #0d4a38 100%)' }}>
-            <div className="max-w-[1100px] mx-auto px-6 py-12 sm:py-14">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-0">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-px sm:gap-0 bg-[#F8F5E6]/10">
                     {stats.map((stat, i) => (
                         <div
                             key={i}
-                            className={`text-center py-6 px-4 border-[#F8F5E6]/10 ${i === 0 || i === 2 ? 'border-r' : ''} ${i < 3 && i !== 2 ? 'sm:border-r' : ''}`}
+                            className="text-center py-6 sm:py-8 px-3 sm:px-4 bg-[#0A3D2E] sm:bg-transparent sm:border-r border-[#F8F5E6]/10 last:border-r-0"
                         >
                             <div
-                                className="text-3xl sm:text-4xl font-extrabold leading-none mb-2 tracking-tight"
+                                className="text-2xl sm:text-3xl md:text-4xl font-extrabold leading-tight mb-1.5 sm:mb-2 tracking-tight break-words"
                                 style={{ color: statColors[i] }}
                             >
-                                {statIcons[i]} {stat.value}
+                                <span aria-hidden>{statIcons[i]}</span> {stat.value}
                             </div>
-                            <div className="text-sm font-medium opacity-80" style={{ color: '#F8F5E6' }}>{stat.label}</div>
+                            <div className="text-xs sm:text-sm font-medium opacity-80 line-clamp-2 sm:line-clamp-none" style={{ color: '#F8F5E6' }}>{stat.label}</div>
                         </div>
                     ))}
                 </div>
