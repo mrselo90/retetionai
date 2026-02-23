@@ -16,35 +16,21 @@ export function Stats() {
     ];
 
     return (
-        <section style={{
-            background: 'linear-gradient(180deg, #0f172a 0%, #1a2540 100%)',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-        }}>
-            <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '48px 24px' }}>
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                    gap: '0',
-                }}>
+        <section className="border-b border-white/6" style={{ background: 'linear-gradient(180deg, #0f172a 0%, #1a2540 100%)' }}>
+            <div className="max-w-[1100px] mx-auto px-6 py-12 sm:py-14">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-0">
                     {stats.map((stat, i) => (
-                        <div key={i} style={{
-                            textAlign: 'center',
-                            padding: '24px 16px',
-                            borderRight: i < 3 ? '1px solid rgba(255,255,255,0.07)' : 'none',
-                        }}>
-                            <div style={{
-                                fontSize: 'clamp(2rem, 4vw, 2.75rem)',
-                                fontWeight: 800,
-                                color: statColors[i],
-                                lineHeight: 1,
-                                marginBottom: '8px',
-                                letterSpacing: '-0.02em',
-                            }}>
+                        <div
+                            key={i}
+                            className={`text-center py-6 px-4 border-white/[0.07] ${i === 0 || i === 2 ? 'border-r' : ''} ${i < 3 && i !== 2 ? 'sm:border-r' : ''}`}
+                        >
+                            <div
+                                className="text-3xl sm:text-4xl font-extrabold leading-none mb-2 tracking-tight"
+                                style={{ color: statColors[i] }}
+                            >
                                 {statIcons[i]} {stat.value}
                             </div>
-                            <div style={{ fontSize: '14px', color: '#64748b', fontWeight: 500 }}>
-                                {stat.label}
-                            </div>
+                            <div className="text-sm text-slate-500 font-medium">{stat.label}</div>
                         </div>
                     ))}
                 </div>

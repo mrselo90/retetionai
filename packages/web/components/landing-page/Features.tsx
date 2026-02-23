@@ -64,69 +64,49 @@ export function Features() {
     const t = useTranslations('Landing.features');
 
     return (
-        <section style={{ background: '#0a0f1e', padding: '96px 24px' }}>
-            <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-                {/* Header */}
-                <div style={{ textAlign: 'center', marginBottom: '64px' }}>
-                    <span style={{
-                        display: 'inline-block',
-                        background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)',
-                        borderRadius: '100px', padding: '6px 16px',
-                        color: '#818cf8', fontSize: '13px', fontWeight: 600,
-                        marginBottom: '16px', letterSpacing: '0.05em', textTransform: 'uppercase',
-                    }}>Features</span>
-                    <h2 style={{
-                        fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', fontWeight: 800,
-                        color: '#ffffff', marginBottom: '16px', lineHeight: 1.2,
-                    }}>
+        <section className="bg-[#0a0f1e] py-20 sm:py-24 px-6">
+            <div className="max-w-[1100px] mx-auto">
+                <div className="text-center mb-14 sm:mb-16">
+                    <span
+                        className="inline-block rounded-full border px-4 py-1.5 text-[13px] font-semibold uppercase tracking-wider mb-4"
+                        style={{
+                            background: 'rgba(99,102,241,0.14)',
+                            borderColor: 'rgba(99,102,241,0.28)',
+                            color: '#818cf8',
+                        }}
+                    >
+                        Features
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-4 leading-tight">
                         {t('title')}
                     </h2>
-                    <p style={{ color: '#64748b', fontSize: '1.05rem', maxWidth: '560px', margin: '0 auto' }}>
-                        {t('subtitle')}
-                    </p>
+                    <p className="text-slate-500 text-[1.05rem] max-w-[32rem] mx-auto">{t('subtitle')}</p>
                 </div>
 
-                {/* Grid */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                    gap: '24px',
-                }}>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
                     {featureConfig.map((f) => {
                         const Icon = f.icon;
                         const bullets = t(f.bulletsKey).split('·').map((b: string) => b.trim());
                         return (
-                            <div key={f.key} style={{
-                                background: 'rgba(255,255,255,0.03)',
-                                border: `1px solid rgba(255,255,255,0.07)`,
-                                borderRadius: '16px',
-                                padding: '28px',
-                                transition: 'border-color 0.2s, transform 0.2s',
-                            }}>
-                                <div style={{
-                                    width: '48px', height: '48px', borderRadius: '12px',
-                                    background: f.bg, border: `1px solid ${f.border}`,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    marginBottom: '20px',
-                                }}>
-                                    <Icon size={22} color={f.color} />
+                            <div
+                                key={f.key}
+                                className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-6 transition-colors hover:border-white/[0.1]"
+                            >
+                                <div
+                                    className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 border"
+                                    style={{ background: f.bg, borderColor: f.border }}
+                                >
+                                    <Icon size={22} color={f.color} aria-hidden />
                                 </div>
-                                <h3 style={{ color: '#f1f5f9', fontWeight: 700, fontSize: '1.05rem', marginBottom: '8px' }}>
-                                    {t(f.key)}
-                                </h3>
-                                <p style={{ color: '#64748b', fontSize: '14px', lineHeight: 1.6, marginBottom: '16px' }}>
-                                    {t(f.descKey)}
-                                </p>
-                                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '16px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                <h3 className="text-slate-100 font-bold text-[1.05rem] mb-2">{t(f.key)}</h3>
+                                <p className="text-slate-500 text-sm leading-relaxed mb-4">{t(f.descKey)}</p>
+                                <div className="border-t border-white/[0.06] pt-4 flex flex-wrap gap-1.5">
                                     {bullets.map((b: string, i: number) => (
-                                        <span key={i} style={{
-                                            fontSize: '11px', fontWeight: 600, letterSpacing: '0.03em',
-                                            color: f.color,
-                                            background: f.bg,
-                                            border: `1px solid ${f.border}`,
-                                            borderRadius: '6px',
-                                            padding: '3px 8px',
-                                        }}>
+                                        <span
+                                            key={i}
+                                            className="text-[11px] font-semibold tracking-wide rounded-md px-2 py-0.5 border"
+                                            style={{ color: f.color, background: f.bg, borderColor: f.border }}
+                                        >
                                             {b}
                                         </span>
                                     ))}

@@ -1,6 +1,8 @@
 {
     "Landing": {
-        "title": "Recete Retention Agent",
+        "brandName": "Recete",
+        "brandTagline": "Retention Agent",
+        "title": "Recete — Retention Agent",
         "heroLine": "İadeleri azaltın. Tekrar satışları artırın. Tamamen otomatik.",
         "subtitle": "Shopify müşterilerinizi WhatsApp üzerinden yönlendiren sipariş sonrası AI — teslimattan sadakate.",
         "description": "Ürün rehberi, kullanım talimatları ve proaktif mesajlarla iade oranını düşürün, LTV'yi yükseltin.",

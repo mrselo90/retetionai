@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Recete Retention Agent",
-  description: "AI-powered post-purchase customer retention platform",
+  title: "Recete — Retention Agent",
+  description: "AI-powered post-purchase customer retention platform for Shopify. Reduce returns, boost LTV via WhatsApp.",
   icons: {
     icon: "/icon.png",
     apple: "/icon.png",

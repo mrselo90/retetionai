@@ -10,116 +10,118 @@ export function Hero() {
 
   return (
     <section
+      className="relative overflow-hidden pt-20 pb-0"
       style={{
-        background: 'linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
-        position: 'relative',
-        overflow: 'hidden',
-        paddingTop: '80px',
-        paddingBottom: '0',
+        background: 'linear-gradient(165deg, #0f172a 0%, #1e293b 45%, #0f172a 100%)',
       }}
     >
-      {/* Glow blobs */}
-      <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        <div style={{
-          position: 'absolute', top: '-100px', left: '30%',
-          width: '500px', height: '500px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)',
-          filter: 'blur(60px)',
-        }} />
-        <div style={{
-          position: 'absolute', top: '20%', right: '10%',
-          width: '350px', height: '350px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(34,197,94,0.15) 0%, transparent 70%)',
-          filter: 'blur(60px)',
-        }} />
+      {/* Ambient glow */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none">
+        <div
+          className="absolute rounded-full blur-[60px] opacity-60"
+          style={{
+            top: '-120px',
+            left: '28%',
+            width: '480px',
+            height: '480px',
+            background: 'radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 70%)',
+          }}
+        />
+        <div
+          className="absolute rounded-full blur-[60px] opacity-50"
+          style={{
+            top: '18%',
+            right: '8%',
+            width: '320px',
+            height: '320px',
+            background: 'radial-gradient(circle, rgba(34,197,94,0.14) 0%, transparent 70%)',
+          }}
+        />
       </div>
 
-      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1, textAlign: 'center' }}>
-        {/* WhatsApp badge */}
-        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px',
-            background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)',
-            borderRadius: '100px', padding: '8px 18px',
-            color: '#4ade80', fontSize: '14px', fontWeight: 600,
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.557 4.126 1.524 5.86L0 24l6.305-1.654A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.019-1.378l-.36-.214-3.737.98.999-3.648-.235-.374A9.818 9.818 0 012.182 12C2.182 6.573 6.573 2.182 12 2.182S21.818 6.573 21.818 12 17.427 21.818 12 21.818z" />
-            </svg>
-            WhatsApp-Powered Post-Purchase AI
-          </span>
+      <div className="relative z-10 max-w-[1100px] mx-auto px-4 sm:px-6 text-center">
+        {/* Badge */}
+        <div
+          className="inline-flex items-center gap-2 rounded-full border px-5 py-2.5 mb-8 animate-[fade-in_0.6s_ease-out]"
+          style={{
+            background: 'rgba(34,197,94,0.12)',
+            borderColor: 'rgba(34,197,94,0.28)',
+            color: '#4ade80',
+            fontSize: '14px',
+            fontWeight: 600,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.557 4.126 1.524 5.86L0 24l6.305-1.654A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.019-1.378l-.36-.214-3.737.98.999-3.648-.235-.374A9.818 9.818 0 012.182 12C2.182 6.573 6.573 2.182 12 2.182S21.818 6.573 21.818 12 17.427 21.818 12 21.818z" />
+          </svg>
+          WhatsApp-Powered Post-Purchase AI
         </div>
 
-        {/* Headline */}
-        <h1 style={{
-          fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 800,
-          color: '#ffffff', lineHeight: 1.05, marginBottom: '24px',
-          letterSpacing: '-0.02em',
-        }}>
+        {/* Headline — staggered reveal feel via animation-delay */}
+        <h1
+          className="text-white font-extrabold tracking-tight mb-6 animate-[fade-in_0.7s_ease-out_0.1s_both]"
+          style={{
+            fontSize: 'clamp(2.5rem, 5.5vw, 4.25rem)',
+            lineHeight: 1.08,
+            letterSpacing: '-0.03em',
+          }}
+        >
           {t('heroLine')}
         </h1>
 
         {/* Subtitle */}
-        <p style={{
-          fontSize: 'clamp(1.05rem, 2vw, 1.25rem)', color: '#94a3b8',
-          maxWidth: '640px', margin: '0 auto 40px', lineHeight: 1.7,
-        }}>
+        <p
+          className="text-slate-400 max-w-[36rem] mx-auto mb-10 animate-[fade-in_0.7s_ease-out_0.2s_both]"
+          style={{
+            fontSize: 'clamp(1rem, 1.8vw, 1.2rem)',
+            lineHeight: 1.7,
+          }}
+        >
           {t('subtitle')}
         </p>
 
         {/* CTAs */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
-          <Link href="/signup" style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px',
-            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-            color: '#fff', fontWeight: 700, fontSize: '16px',
-            padding: '14px 32px', borderRadius: '12px', textDecoration: 'none',
-            boxShadow: '0 8px 32px rgba(99,102,241,0.4)',
-            transition: 'transform 0.15s, box-shadow 0.15s',
-          }}>
-            {t('signup')} <ArrowRight size={18} />
+        <div className="flex flex-wrap gap-3 justify-center mb-4 animate-[fade-in_0.7s_ease-out_0.3s_both]">
+          <Link
+            href="/signup"
+            className="inline-flex items-center gap-2 text-white font-bold text-base py-3.5 px-7 rounded-xl no-underline shadow-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#1e293b]"
+            style={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+              boxShadow: '0 8px 28px rgba(99,102,241,0.4)',
+            }}
+          >
+            {t('signup')} <ArrowRight size={18} aria-hidden />
           </Link>
-          <Link href="/login" style={{
-            display: 'inline-flex', alignItems: 'center',
-            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-            backdropFilter: 'blur(8px)',
-            color: '#e2e8f0', fontWeight: 600, fontSize: '16px',
-            padding: '14px 32px', borderRadius: '12px', textDecoration: 'none',
-          }}>
+          <Link
+            href="/login"
+            className="inline-flex items-center py-3.5 px-7 rounded-xl font-semibold text-base no-underline border border-white/20 bg-white/10 text-slate-200 backdrop-blur-sm transition-colors hover:bg-white/15 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#1e293b]"
+          >
             {t('login')}
           </Link>
         </div>
-        <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '56px' }}>{t('signupSmall')}</p>
+        <p className="text-slate-500 text-[13px] mb-14 animate-[fade-in_0.7s_ease-out_0.35s_both]">{t('signupSmall')}</p>
 
         {/* Dashboard preview */}
-        <div style={{
-          maxWidth: '960px', margin: '0 auto',
-          borderRadius: '16px 16px 0 0',
-          overflow: 'hidden',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderBottom: 'none',
-          boxShadow: '0 -8px 60px rgba(99,102,241,0.2), 0 40px 80px rgba(0,0,0,0.5)',
-        }}>
-          {/* Browser bar */}
-          <div style={{
-            background: '#1e293b', padding: '10px 16px',
-            display: 'flex', alignItems: 'center', gap: '8px',
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
-          }}>
-            <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#ff5f57' }} />
-            <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#febc2e' }} />
-            <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#28c840' }} />
-            <div style={{
-              marginLeft: 12, flex: 1,
-              background: 'rgba(255,255,255,0.06)', borderRadius: 6,
-              padding: '4px 12px', fontSize: 12, color: '#64748b', maxWidth: 260,
-            }}>app.recete.ai/dashboard</div>
+        <div
+          className="max-w-[960px] mx-auto rounded-2xl rounded-b-none overflow-hidden border border-white/10 border-b-0 animate-[fade-in_0.8s_ease-out_0.4s_both]"
+          style={{
+            boxShadow: '0 -8px 48px rgba(99,102,241,0.18), 0 32px 64px rgba(0,0,0,0.45)',
+          }}
+        >
+          <div className="flex items-center gap-2 bg-slate-800 px-4 py-2.5 border-b border-white/10">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500/90" />
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400/90" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/90" />
+            <span className="ml-3 flex-1 max-w-[240px] rounded-md bg-white/5 px-3 py-1 text-xs text-slate-500 font-mono">
+              app.recete.ai/dashboard
+            </span>
           </div>
           <Image
             src="/dashboard-preview.png"
             alt={t('dashboardAlt')}
-            width={1200} height={750}
+            width={1200}
+            height={750}
             className="w-full h-auto block"
             priority
           />
