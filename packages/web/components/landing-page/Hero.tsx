@@ -72,11 +72,11 @@ export function Hero() {
           {t('subtitle')}
         </p>
 
-        {/* CTAs — stack on mobile, row on desktop; full-width tap targets on mobile */}
-        <div className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center items-stretch sm:items-center mb-6 sm:mb-4 px-2">
+        {/* CTAs — full-width on mobile when stacked, side-by-side on desktop */}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-stretch sm:items-center mb-6 sm:mb-4 px-2 max-w-md sm:max-w-none mx-auto sm:mx-0">
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center gap-2 font-bold text-sm sm:text-base py-3.5 px-5 sm:py-3.5 sm:px-7 rounded-xl no-underline shadow-lg transition-all duration-200 hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A3D2E] min-h-[44px] sm:min-h-0"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 font-bold text-sm sm:text-base py-3.5 px-5 sm:py-3.5 sm:px-7 rounded-xl no-underline shadow-lg transition-all duration-200 hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A3D2E] min-h-[44px] sm:min-h-0"
             style={{
               background: '#F8F5E6',
               color: '#0A3D2E',
@@ -87,12 +87,12 @@ export function Hero() {
           </Link>
           <Link
             href="/login"
-            className="inline-flex items-center justify-center py-3.5 px-5 sm:py-3.5 sm:px-7 rounded-xl font-semibold text-sm sm:text-base no-underline border border-[#F8F5E6]/30 bg-white/5 text-[#F8F5E6] backdrop-blur-sm transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A3D2E] min-h-[44px] sm:min-h-0"
+            className="w-full sm:w-auto inline-flex items-center justify-center py-3.5 px-5 sm:py-3.5 sm:px-7 rounded-xl font-semibold text-sm sm:text-base no-underline border border-[#F8F5E6]/30 bg-white/5 text-[#F8F5E6] backdrop-blur-sm transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A3D2E] min-h-[44px] sm:min-h-0"
           >
             {t('login')}
           </Link>
         </div>
-        <p className="text-xs sm:text-[13px] mb-8 sm:mb-12 opacity-75 text-[#F8F5E6] px-2">{t('signupSmall')}</p>
+        <p className="text-[13px] sm:text-sm mb-8 sm:mb-12 opacity-85 text-[#F8F5E6] px-2">{t('signupSmall')}</p>
 
         {/* Dashboard preview — responsive; keeps aspect when image missing */}
         <div
