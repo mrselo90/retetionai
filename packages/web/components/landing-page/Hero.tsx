@@ -12,29 +12,29 @@ export function Hero() {
     <section
       className="relative overflow-hidden pt-20 pb-0"
       style={{
-        background: 'linear-gradient(165deg, #0f172a 0%, #1e293b 45%, #0f172a 100%)',
+        background: 'linear-gradient(165deg, #0A3D2E 0%, #0d4a38 45%, #0A3D2E 100%)',
       }}
     >
-      {/* Ambient glow */}
+      {/* Ambient glow — Recete emerald/gold */}
       <div aria-hidden className="absolute inset-0 pointer-events-none">
         <div
-          className="absolute rounded-full blur-[60px] opacity-60"
+          className="absolute rounded-full blur-[60px] opacity-50"
           style={{
             top: '-120px',
             left: '28%',
             width: '480px',
             height: '480px',
-            background: 'radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(16,185,129,0.25) 0%, transparent 70%)',
           }}
         />
         <div
-          className="absolute rounded-full blur-[60px] opacity-50"
+          className="absolute rounded-full blur-[60px] opacity-40"
           style={{
             top: '18%',
             right: '8%',
             width: '320px',
             height: '320px',
-            background: 'radial-gradient(circle, rgba(34,197,94,0.14) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)',
           }}
         />
       </div>
@@ -44,9 +44,9 @@ export function Hero() {
         <div
           className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border px-4 py-2 sm:px-5 sm:py-2.5 mb-6 sm:mb-8 animate-[fade-in_0.6s_ease-out]"
           style={{
-            background: 'rgba(34,197,94,0.12)',
-            borderColor: 'rgba(34,197,94,0.28)',
-            color: '#4ade80',
+            background: 'rgba(248,245,230,0.12)',
+            borderColor: 'rgba(248,245,230,0.28)',
+            color: '#F8F5E6',
             fontSize: 'clamp(12px, 2.5vw, 14px)',
             fontWeight: 600,
           }}
@@ -60,8 +60,9 @@ export function Hero() {
 
         {/* Headline — scales for mobile, no overflow */}
         <h1
-          className="text-white font-extrabold tracking-tight mb-5 sm:mb-6 animate-[fade-in_0.7s_ease-out_0.1s_both] leading-tight"
+          className="font-extrabold tracking-tight mb-5 sm:mb-6 animate-[fade-in_0.7s_ease-out_0.1s_both] leading-tight"
           style={{
+            color: '#F8F5E6',
             fontSize: 'clamp(1.75rem, 6vw, 4.25rem)',
             letterSpacing: '-0.02em',
           }}
@@ -69,9 +70,10 @@ export function Hero() {
           {t('heroLine')}
         </h1>
 
-        {/* Subtitle — readable on small screens */}
+        {/* Subtitle — Cream */}
         <p
-          className="text-slate-400 max-w-[36rem] mx-auto mb-8 sm:mb-10 animate-[fade-in_0.7s_ease-out_0.2s_both] text-[15px] sm:text-base leading-relaxed"
+          className="max-w-[36rem] mx-auto mb-8 sm:mb-10 animate-[fade-in_0.7s_ease-out_0.2s_both] text-[15px] sm:text-base leading-relaxed opacity-90"
+          style={{ color: '#F8F5E6' }}
         >
           {t('subtitle')}
         </p>
@@ -80,35 +82,36 @@ export function Hero() {
         <div className="flex flex-wrap gap-2 sm:gap-3 justify-center mb-3 sm:mb-4 animate-[fade-in_0.7s_ease-out_0.3s_both]">
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center gap-2 text-white font-bold text-sm sm:text-base py-3 px-5 sm:py-3.5 sm:px-7 rounded-xl no-underline shadow-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#1e293b]"
+            className="inline-flex items-center justify-center gap-2 font-bold text-sm sm:text-base py-3 px-5 sm:py-3.5 sm:px-7 rounded-xl no-underline shadow-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A3D2E]"
             style={{
-              background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-              boxShadow: '0 8px 28px rgba(99,102,241,0.4)',
+              background: '#F8F5E6',
+              color: '#0A3D2E',
+              boxShadow: '0 8px 28px rgba(248,245,230,0.25)',
             }}
           >
             {t('signup')} <ArrowRight size={18} aria-hidden />
           </Link>
           <Link
             href="/login"
-            className="inline-flex items-center justify-center py-3 px-5 sm:py-3.5 sm:px-7 rounded-xl font-semibold text-sm sm:text-base no-underline border border-white/20 bg-white/10 text-slate-200 backdrop-blur-sm transition-colors hover:bg-white/15 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#1e293b]"
+            className="inline-flex items-center justify-center py-3 px-5 sm:py-3.5 sm:px-7 rounded-xl font-semibold text-sm sm:text-base no-underline border border-[#F8F5E6]/30 bg-white/5 text-[#F8F5E6] backdrop-blur-sm transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A3D2E]"
           >
             {t('login')}
           </Link>
         </div>
-        <p className="text-slate-500 text-xs sm:text-[13px] mb-10 sm:mb-14 animate-[fade-in_0.7s_ease-out_0.35s_both]">{t('signupSmall')}</p>
+        <p className="text-xs sm:text-[13px] mb-10 sm:mb-14 animate-[fade-in_0.7s_ease-out_0.35s_both] opacity-75" style={{ color: '#F8F5E6' }}>{t('signupSmall')}</p>
 
         {/* Dashboard preview — URL bar truncates on mobile */}
         <div
           className="max-w-[960px] mx-auto rounded-xl sm:rounded-2xl rounded-b-none overflow-hidden border border-white/10 border-b-0 animate-[fade-in_0.8s_ease-out_0.4s_both]"
           style={{
-            boxShadow: '0 -8px 48px rgba(99,102,241,0.18), 0 32px 64px rgba(0,0,0,0.45)',
+            boxShadow: '0 -8px 48px rgba(10,61,46,0.4), 0 32px 64px rgba(0,0,0,0.35)',
           }}
         >
-          <div className="flex items-center gap-2 bg-slate-800 px-3 sm:px-4 py-2 sm:py-2.5 border-b border-white/10 min-w-0">
+          <div className="flex items-center gap-2 bg-[#0d4a38] px-3 sm:px-4 py-2 sm:py-2.5 border-b border-white/10 min-w-0">
             <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-500/90 shrink-0" />
             <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-400/90 shrink-0" />
             <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500/90 shrink-0" />
-            <span className="ml-2 sm:ml-3 flex-1 min-w-0 rounded bg-white/5 px-2 sm:px-3 py-1 text-[11px] sm:text-xs text-slate-500 font-mono truncate" title="app.recete.ai/dashboard">
+            <span className="ml-2 sm:ml-3 flex-1 min-w-0 rounded bg-white/5 px-2 sm:px-3 py-1 text-[11px] sm:text-xs font-mono truncate opacity-80" style={{ color: '#F8F5E6' }} title="app.recete.ai/dashboard">
               app.recete.ai/dashboard
             </span>
           </div>

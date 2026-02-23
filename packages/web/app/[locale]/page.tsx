@@ -21,7 +21,7 @@ export default function Home() {
       aria-label={t('title')}
     >
       {/* Header — Recete brand + nav (mobile-first, no truncation) */}
-      <header className="sticky top-0 z-50 border-b border-border/80 bg-white/95 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-border/80 bg-background/95 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4 min-w-0">
           <Link
             href="/"
