@@ -41,26 +41,30 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <Card className={cn('border-2 border-dashed border-border hover:border-primary/50 transition-colors', className)}>
-      <CardContent className="p-16 text-center">
+      <CardContent className="py-12 px-6 text-center">
         <div
           className={cn(
-            'w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-inner',
+            'w-16 h-16 mx-auto mb-5 rounded-xl bg-gradient-to-br flex items-center justify-center',
             iconColors[iconVariant]
           )}
         >
-          <Icon className="w-10 h-10" />
+          <Icon className="w-8 h-8" />
         </div>
-        <h3 className="text-2xl font-bold mb-3">{title}</h3>
-        {description && <p className="text-muted-foreground mb-8 max-w-md mx-auto text-base">{description}</p>}
+        <h3 className="text-[length:var(--polaris-heading-lg)] font-semibold mb-2 text-foreground">{title}</h3>
+        {description && (
+          <p className="text-[length:var(--polaris-body-md)] text-muted-foreground mb-6 max-w-md mx-auto leading-relaxed">
+            {description}
+          </p>
+        )}
         {(action || secondaryAction) && (
           <div className="flex items-center justify-center gap-3 flex-wrap">
             {action && (
-              <Button onClick={action.onClick} variant={action.variant || 'default'} size="lg" className="shadow-lg hover:shadow-xl">
+              <Button onClick={action.onClick} variant={action.variant || 'default'} size="default">
                 {action.label}
               </Button>
             )}
             {secondaryAction && (
-              <Button onClick={secondaryAction.onClick} variant={secondaryAction.variant || 'outline'} size="lg">
+              <Button onClick={secondaryAction.onClick} variant={secondaryAction.variant || 'outline'} size="default">
                 {secondaryAction.label}
               </Button>
             )}

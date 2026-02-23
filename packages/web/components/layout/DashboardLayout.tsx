@@ -251,8 +251,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </header>
         )}
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-thin">
+        {/* Page Content — Polaris-aligned: 32px horizontal padding on large, 24px medium, 16px small */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 scrollbar-thin">
           <div className="max-w-6xl mx-auto">
             {children}
           </div>

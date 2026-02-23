@@ -86,8 +86,8 @@ export default function CustomersPage() {
   return (
     <div className="space-y-8 animate-fade-in pb-8">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-        <p className="text-muted-foreground">{t('subtitle', { total })}</p>
+        <h1 className="page-title">{t('title')}</h1>
+        <p className="page-description">{t('subtitle', { total })}</p>
       </div>
 
       {/* Search + Segment Filter */}

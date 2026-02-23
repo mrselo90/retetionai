@@ -402,10 +402,8 @@ export default function IntegrationsPage() {
   return (
     <div className="space-y-6 animate-fade-in pb-8 font-sans text-[#303030]">
       <div className="space-y-1">
-        <h1 className="text-xl font-bold text-[#1a1a1a]">{t('title')}</h1>
-        <p className="text-sm text-[#616161]">
-          {t('description')}
-        </p>
+        <h1 className="page-title">{t('title')}</h1>
+        <p className="page-description">{t('description')}</p>
       </div>
 
       {/* Platform support number as an Alert Banner */}

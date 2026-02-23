@@ -213,8 +213,8 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1.5">
-          <h1 className="text-3xl font-extrabold tracking-tight">{t('title')}</h1>
-          <p className="text-muted-foreground text-base font-medium">{t('description')}</p>
+          <h1 className="page-title">{t('title')}</h1>
+          <p className="page-description">{t('description')}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <Button variant="outline" size="lg" asChild>

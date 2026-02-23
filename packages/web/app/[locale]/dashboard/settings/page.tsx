@@ -540,8 +540,8 @@ export default function SettingsPage() {
     <div className="space-y-6 animate-fade-in pb-8">
       {/* Header */}
       <div className="space-y-1.5">
-        <h1 className="text-3xl font-extrabold tracking-tight">{t('title')}</h1>
-        <p className="text-muted-foreground text-base font-medium">
+        <h1 className="page-title">{t('title')}</h1>
+        <p className="page-description">
           {t('description')}{' '}
           <a href="#guardrails" className="text-primary hover:text-primary/80 font-bold transition-colors">
             {t('guardrailsLink')}

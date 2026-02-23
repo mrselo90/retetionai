@@ -177,12 +177,8 @@ export default function ConversationsPage() {
     <div className="mx-auto max-w-4xl px-4 sm:px-6 space-y-5 sm:space-y-6 animate-fade-in pb-8">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
-          {t('title')}
-        </h1>
-        <p className="text-sm sm:text-base text-muted-foreground max-w-2xl">
-          {t('description')}
-        </p>
+        <h1 className="page-title">{t('title')}</h1>
+        <p className="page-description max-w-2xl">{t('description')}</p>
       </div>
 
       {/* Needs Attention Alert */}

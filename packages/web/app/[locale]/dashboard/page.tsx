@@ -157,10 +157,10 @@ export default function DashboardPage() {
       {/* Welcome Banner — Polaris-like card */}
       <Card className="overflow-hidden">
         <CardContent className="px-6 py-6">
-          <h1 className="text-2xl font-bold tracking-tight mb-2">
+          <h1 className="page-title mb-2">
             {t('greeting', { name: merchant?.name || 'Merchant' })}
           </h1>
-          <p className="text-muted-foreground text-sm max-w-2xl">
+          <p className="page-description max-w-2xl">
             {t.rich('summary', {
               activeUsers: displayStats.kpis.activeUsers ?? 0,
               responseRate: displayStats.kpis.responseRate ?? 0,
