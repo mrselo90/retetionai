@@ -25,15 +25,10 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4 min-w-0">
           <Link
             href="/"
-            className="flex items-center gap-2 sm:gap-3 font-bold text-foreground tracking-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg min-w-0 shrink-0"
+            className="flex items-center gap-2 sm:gap-3 font-bold tracking-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg min-w-0 shrink-0"
+            aria-label={t('brandName')}
           >
-            <div
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 text-base sm:text-xl font-extrabold"
-              aria-hidden
-            >
-              R
-            </div>
-            <span className="text-base sm:text-xl text-foreground whitespace-nowrap">{t('brandName')}</span>
+            <img src="/recete-logo.svg" alt="" className="h-8 sm:h-9 w-auto shrink-0" width="160" height="40" />
             <span className="hidden sm:inline text-sm font-medium text-muted-foreground shrink-0">{t('brandTagline')}</span>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-2 shrink-0" aria-label="Language and account">

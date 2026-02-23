@@ -1,23 +1,21 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
 import { Card, CardContent } from './card';
-import { Button } from './button';
+import { Button, type ButtonVariant } from './button';
 import { cn } from '@/lib/utils';
+
+interface EmptyStateAction {
+  label: string;
+  onClick: () => void;
+  variant?: ButtonVariant;
+}
 
 interface EmptyStateProps {
   icon: LucideIcon;
   title: string;
   description?: string;
-  action?: {
-    label: string;
-    onClick: () => void;
-    variant?: 'default' | 'outline' | 'secondary';
-  };
-  secondaryAction?: {
-    label: string;
-    onClick: () => void;
-    variant?: 'default' | 'outline' | 'secondary';
-  };
+  action?: EmptyStateAction;
+  secondaryAction?: EmptyStateAction;
   className?: string;
   iconVariant?: 'default' | 'primary' | 'success' | 'warning' | 'info';
 }
@@ -59,12 +57,12 @@ export function EmptyState({
         {(action || secondaryAction) && (
           <div className="flex items-center justify-center gap-3 flex-wrap">
             {action && (
-              <Button onClick={action.onClick} variant={action.variant || 'default'} size="default">
+              <Button onClick={action.onClick} variant={action.variant ?? 'default'} size="default">
                 {action.label}
               </Button>
             )}
             {secondaryAction && (
-              <Button onClick={secondaryAction.onClick} variant={secondaryAction.variant || 'outline'} size="default">
+              <Button onClick={secondaryAction.onClick} variant={secondaryAction.variant ?? 'outline'} size="default">
                 {secondaryAction.label}
               </Button>
             )}

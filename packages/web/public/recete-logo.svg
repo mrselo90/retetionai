@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" width="200" height="48" aria-hidden="true">
+  <defs>
+    <linearGradient id="recete-logo-icon-gradient" x1="0%" y1="0%" x2="100%" y2="100%" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="50%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <!-- Icon R (scaled from 64 to 40 height, ~42 width) -->
+  <g transform="translate(0,4) scale(0.625)">
+    <path fill="url(#recete-logo-icon-gradient)" d="M18 8h10c8 0 14 5 14 13s-5 12-12 13l-2 14h-6l2-14h-6V8zm0 18h4c4 0 7-2.5 7-6s-3-6-7-6h-4v12z"/>
+  </g>
+  <!-- Wordmark "recete" - serif style, Deep Forest Green for light bg -->
+  <text x="52" y="34" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="600" fill="#0A3D2E">recete</text>
+</svg>

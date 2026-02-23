@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Link, useRouter, usePathname } from '@/i18n/routing';
+import { useState } from 'react';
+import { Link, usePathname } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
 import {
   LayoutDashboard,
@@ -11,7 +11,6 @@ import {
   LogOut,
   Menu,
   X,
-  CreditCard,
   BarChart3,
   Puzzle
 } from 'lucide-react';
@@ -19,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTranslations } from 'next-intl';
-import { isShopifyEmbedded, getShopifySessionToken, getShopifyShop } from '@/lib/shopifyEmbedded';
+import { useDashboardAuth } from '@/hooks/useDashboardAuth';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -28,81 +27,12 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const t = useTranslations('Dashboard.sidebar');
   const pathname = usePathname();
-  const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [embedded, setEmbedded] = useState(false);
-
-  useEffect(() => {
-    const initAuth = async () => {
-      const shopifyEmbedded = isShopifyEmbedded();
-      setEmbedded(shopifyEmbedded);
-
-      if (shopifyEmbedded) {
-        // ── Embedded in Shopify Admin ──────────────────────────────────────
-        // 1. Check if we already have a valid Supabase session
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setUserEmail(user.email || null);
-          setLoading(false);
-          return;
-        }
-
-        // 2. No session → perform Token Exchange with our API
-        try {
-          const sessionToken = await getShopifySessionToken();
-          const shop = getShopifyShop();
-
-          if (!sessionToken || !shop) {
-            // Fallback: redirect to login
-            router.push('/login');
-            return;
-          }
-
-          const res = await fetch('/api/integrations/shopify/verify-session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: sessionToken, shop }),
-          });
-
-          const data = await res.json();
-
-          if (data.auth_url) {
-            // Redirect to Supabase magic link — auto-authenticates the merchant
-            window.location.href = data.auth_url;
-            return; // navigation in progress
-          }
-
-          // If no auth_url (unexpected), still try to proceed
-          setLoading(false);
-        } catch (err) {
-          console.error('Shopify Token Exchange failed:', err);
-          router.push('/login');
-        }
-      } else {
-        // ── Standalone web app ─────────────────────────────────────────────
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            setUserEmail(user.email || null);
-            setLoading(false);
-          } else {
-            router.push('/login');
-          }
-        } catch (err) {
-          console.error('Auth check error:', err);
-          router.push('/login');
-        }
-      }
-    };
-
-    initAuth();
-  }, [router]);
+  const { userEmail, loading, embedded } = useDashboardAuth();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   const navItems = [
@@ -164,9 +94,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               {/* Logo */}
               <div className="h-16 flex items-center px-4 border-b border-border">
                 <Link href="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-foreground">
-                  <div className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center">
-                    <span className="text-xl font-extrabold">R</span>
-                  </div>
+                  <img src="/recete-icon.svg" alt="" className="w-10 h-10 rounded-xl shrink-0" width="40" height="40" aria-hidden />
                   <span className="text-foreground">Recete</span>
                 </Link>
                 <button
@@ -240,9 +168,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {!embedded && (
           <header className="lg:hidden h-14 bg-card border-b border-border flex items-center px-4 justify-between sticky top-0 z-30">
             <Link href="/dashboard" className="font-bold text-lg text-foreground flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
-                <span className="text-base font-extrabold">R</span>
-              </div>
+              <img src="/recete-icon.svg" alt="" className="w-8 h-8 rounded-lg shrink-0" width="32" height="32" aria-hidden />
               Recete
             </Link>
             <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="hover:bg-primary/15">

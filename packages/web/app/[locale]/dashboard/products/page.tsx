@@ -8,10 +8,13 @@ import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Package, Plus, Trash2, ExternalLink, FileText, CheckCircle, Loader2, X, ArrowRight } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Package, Plus, Trash2, ExternalLink, FileText, CheckCircle, Loader2, ArrowRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useTranslations } from 'next-intl';
+import { SESSION_RECHECK_MS } from '@/lib/constants';
 
 interface Product {
   id: string;
@@ -44,9 +47,8 @@ export default function ProductsPage() {
   const loadProducts = async () => {
     try {
       let { data: { session } } = await supabase.auth.getSession();
-      // Give Supabase a moment to restore session from storage on first navigation
       if (!session) {
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, SESSION_RECHECK_MS));
         const next = await supabase.auth.getSession();
         session = next.data.session;
       }
@@ -201,7 +203,7 @@ export default function ProductsPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-56 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" style={{ animationDelay: `${i * 100}ms` }} />
+            <div key={i} className="h-56 bg-card border border-border rounded-lg animate-pulse" />
           ))}
         </div>
       </div>
@@ -232,36 +234,29 @@ export default function ProductsPage() {
 
       {/* Products Grid */}
       {products.length === 0 && !loading ? (
-        <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center justify-center min-h-[400px] py-12">
-          <CardContent className="p-0 flex flex-col items-center justify-center text-center w-full">
-            <div className="w-20 h-20 mb-6 rounded-2xl bg-zinc-100 flex items-center justify-center ">
-              <Package className="w-10 h-10 text-primary" />
-            </div>
-            <h3 className="text-2xl font-bold mb-3">{t('empty.title')}</h3>
-            <p className="text-muted-foreground mb-8 max-w-md text-base text-center">{t('empty.description')}</p>
-            <div className="flex items-center justify-center gap-3 flex-wrap">
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => {
-                  setLoading(true);
-                  loadProducts();
-                }}
-              >
-                <Loader2 className="w-5 h-5 mr-2" />
-                {t('empty.refresh')}
-              </Button>
-              <Button size="lg" onClick={() => setShowAddModal(true)} className="">
-                <Plus className="w-5 h-5 mr-2" />
-                {t('empty.button')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Package}
+          title={t('empty.title')}
+          description={t('empty.description')}
+          iconVariant="primary"
+          action={{
+            label: t('empty.button'),
+            onClick: () => setShowAddModal(true),
+            variant: 'default',
+          }}
+          secondaryAction={{
+            label: t('empty.refresh'),
+            onClick: () => {
+              setLoading(true);
+              loadProducts();
+            },
+            variant: 'outline',
+          }}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {products.map((product, idx) => (
-            <Card key={product.id} hover className="group overflow-hidden" style={{ animationDelay: `${idx * 50}ms` }}>
+          {products.map((product) => (
+            <Card key={product.id} hover className="group overflow-hidden">
               <CardHeader className="pb-4 ">
                 <div className="flex items-start justify-between gap-3">
                   <CardTitle className="text-lg line-clamp-2 pr-2 font-bold">{product.name}</CardTitle>
@@ -345,25 +340,27 @@ export default function ProductsPage() {
               </div>
             ) : (
               <div className="space-y-5">
-                <div className="space-y-2.5">
-                  <label className="text-sm font-bold text-foreground">{t('addModal.nameLabel')}</label>
+                <div className="space-y-2">
+                  <Label htmlFor="product-name">{t('addModal.nameLabel')}</Label>
                   <Input
+                    id="product-name"
                     type="text"
                     value={newProductName}
                     onChange={(e) => setNewProductName(e.target.value)}
                     placeholder={t('addModal.namePlaceholder')}
-                    className="h-12"
+                    className="h-10"
                   />
                 </div>
 
-                <div className="space-y-2.5">
-                  <label className="text-sm font-bold text-foreground">{t('addModal.urlLabel')}</label>
+                <div className="space-y-2">
+                  <Label htmlFor="product-url">{t('addModal.urlLabel')}</Label>
                   <Input
+                    id="product-url"
                     type="url"
                     value={newProductUrl}
                     onChange={(e) => setNewProductUrl(e.target.value)}
                     placeholder={t('addModal.urlPlaceholder')}
-                    className="h-12"
+                    className="h-10"
                   />
                   <p className="text-xs text-muted-foreground font-medium">
                     {t('addModal.urlHelper')}

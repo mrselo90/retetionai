@@ -22,10 +22,7 @@ export function Footer() {
                     {/* Brand — Recete */}
                     <div className="col-span-2 sm:col-span-1">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-lg shadow-sm" style={{ background: '#F8F5E6', color: '#0A3D2E' }}>
-                                R
-                            </div>
-                            <span className="font-bold text-base" style={{ color: '#F8F5E6' }}>Recete</span>
+                            <img src="/recete-logo-dark.svg" alt="Recete" className="h-8 w-auto" width="140" height="34" />
                         </div>
                         <p className="text-sm leading-relaxed max-w-[200px] opacity-80" style={{ color: '#F8F5E6' }}>{t('tagline')}</p>
                         <div className="flex gap-3 mt-5">

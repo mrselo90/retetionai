@@ -6,9 +6,11 @@ Sizes and formats needed for Recete Retention Agent icons (web app, Shopify App 
 
 ## Web app (Next.js) — `packages/web/public/`
 
-
 | Use                        | Size                                 | Format           | File name                              | Notes                                          |
 | -------------------------- | ------------------------------------ | ---------------- | -------------------------------------- | ---------------------------------------------- |
+| **Recete icon (brand)**    | 64×64 (vector)                       | SVG              | `recete-icon.svg`                      | Stylized R, Emerald–Gold gradient; used in dashboard sidebar & mobile header |
+| **Recete logo (light bg)** | 200×48 (vector)                      | SVG              | `recete-logo.svg`                      | Icon + “recete” wordmark (#0A3D2E); used in landing header |
+| **Recete logo (dark bg)**  | 200×48 (vector)                      | SVG              | `recete-logo-dark.svg`                 | Icon + “recete” wordmark (#F8F5E6); used in footer |
 | Favicon                    | 32×32 (or 16×16 + 32×32 in one .ico) | `.ico` or `.png` | `favicon.ico` or `icon.png`            | Browser tab                                    |
 | Default icon               | **32×32**                            | PNG              | `icon.png`                             | Used for `icon` and `apple` in layout metadata |
 | Apple touch icon           | **180×180**                          | PNG              | `apple-icon.png` (or reuse `icon.png`) | iOS “Add to Home Screen”                       |

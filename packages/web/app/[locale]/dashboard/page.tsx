@@ -8,7 +8,8 @@ import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, ArrowRight, BarChart3, MessageSquare, Package, ShoppingBag, Info, AlertTriangle } from 'lucide-react';
+import { ListEmpty } from '@/components/ui/list-empty';
+import { AlertCircle, ArrowRight, BarChart3, MessageSquare, Package, ShoppingBag, Info } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
 interface Merchant {
@@ -179,7 +180,7 @@ export default function DashboardPage() {
             </div>
             <p className="font-bold text-destructive text-lg">{t('actionRequired')}</p>
           </div>
-          <div className="space-y-2.5 pl-13">
+          <div className="space-y-2.5 pl-12">
             {displayStats.alerts!.filter((a) => a.severity === 'error' || a.severity === 'warning').map((alert, index) => (
               <div key={index} className="flex items-start gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-destructive mt-2 flex-shrink-0"></div>
@@ -291,12 +292,7 @@ export default function DashboardPage() {
                   </div>
                 ))
               ) : (
-                <div className="p-12 text-center text-muted-foreground">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                    <ShoppingBag className="w-8 h-8 opacity-40" />
-                  </div>
-                  <p className="font-medium">{t('recentOrders.empty')}</p>
-                </div>
+                <ListEmpty icon={ShoppingBag} message={t('recentOrders.empty')} />
               )}
             </div>
           </CardContent>
@@ -332,12 +328,7 @@ export default function DashboardPage() {
                   </Link>
                 ))
               ) : (
-                <div className="p-12 text-center text-muted-foreground">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                    <MessageSquare className="w-8 h-8 opacity-40" />
-                  </div>
-                  <p className="font-medium">{t('recentConversations.empty')}</p>
-                </div>
+                <ListEmpty icon={MessageSquare} message={t('recentConversations.empty')} />
               )}
             </div>
           </CardContent>
