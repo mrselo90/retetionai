@@ -102,6 +102,9 @@
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
+- **Web Deploy Sync (admin Polaris pages)**:
+  - Admin Polaris migration bundle (commit `fcfdb17`) is deployed on server
+  - PM2 status confirms `web` online (with `api` and `workers` also online) after deployment verification
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.
