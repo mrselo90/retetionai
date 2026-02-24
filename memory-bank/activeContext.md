@@ -127,6 +127,10 @@
   - Additional incompatible Polaris button icon props removed from `dashboard/customers/[id]`, `dashboard/integrations`, and internal `dashboard/test`
   - Full scan confirms no remaining `Polaris Button icon={...}` usages with React icon components in app pages/components
   - Deployed web update (commit `8039355`) and verified successful build + PM2 `web` restart
+- **RAG Language Consistency Fix (facts-first deterministic)**:
+  - Deterministic `product_facts` answers now skip direct mode when `detectedLanguage` does not match the user query language (except language-agnostic `volume`)
+  - Prevents mixed-language answers (e.g., Turkish template labels + Hungarian usage/frequency content) and falls back to normal LLM response generation
+  - API/workers restarted after deploying commit `f20fa71`
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
