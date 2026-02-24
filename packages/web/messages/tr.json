@@ -372,7 +372,14 @@
             "scrapeErrorTitle": "Toplu tarama başarısız",
             "embeddingsErrorTitle": "Toplu embedding başarısız",
             "successMessage": "{success} başarılı, {failed} başarısız",
-            "allFailedMessage": "Tüm istekler başarısız oldu ({failed})"
+            "allFailedMessage": "Tüm istekler başarısız oldu ({failed})",
+            "requestFailedMessage": "Toplu istek tamamlanamadı."
+        },
+        "savedViews": {
+            "all": "Tümü",
+            "saveCurrent": "Mevcut görünümü kaydet",
+            "promptName": "Görünüm adı",
+            "deleteAria": "{name} kayıtlı görünümünü sil"
         },
         "shopifyMapButton": "Shopify Ürün Eşleme",
         "addProductButton": "Yeni Ürün Ekle",

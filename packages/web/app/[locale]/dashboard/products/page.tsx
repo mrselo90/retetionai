@@ -45,6 +45,13 @@ interface ProductWithChunks extends Product {
 type ProductsViewMode = 'grid' | 'list';
 type ProductStatusFilter = 'all' | 'rag_ready' | 'rag_not_ready' | 'rag_unknown' | 'scraped' | 'not_scraped';
 type ProductSortOption = 'updated_desc' | 'updated_asc' | 'name_asc' | 'name_desc' | 'chunks_desc' | 'chunks_asc';
+type ProductsSavedView = {
+  id: string;
+  name: string;
+  searchQuery: string;
+  statusFilter: ProductStatusFilter;
+  sortBy: ProductSortOption;
+};
 
 export default function ProductsPage() {
   const t = useTranslations('Products');
@@ -54,6 +61,8 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>('all');
   const [sortBy, setSortBy] = useState<ProductSortOption>('updated_desc');
+  const [savedViews, setSavedViews] = useState<ProductsSavedView[]>([]);
+  const [activeSavedViewId, setActiveSavedViewId] = useState<string>('all');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [bulkActionLoading, setBulkActionLoading] = useState<'scrape' | 'embeddings' | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -72,6 +81,39 @@ export default function ProductsPage() {
     const saved = window.localStorage.getItem('productsViewMode');
     if (saved === 'grid' || saved === 'list') setViewMode(saved);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const raw = window.localStorage.getItem('productsSavedViews');
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as ProductsSavedView[];
+      if (Array.isArray(parsed)) setSavedViews(parsed);
+    } catch {
+      // ignore malformed local data
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('productsSavedViews', JSON.stringify(savedViews));
+  }, [savedViews]);
+
+  useEffect(() => {
+    if (activeSavedViewId === 'all') return;
+    const active = savedViews.find((v) => v.id === activeSavedViewId);
+    if (!active) {
+      setActiveSavedViewId('all');
+      return;
+    }
+    const matchesActive =
+      active.searchQuery === searchQuery &&
+      active.statusFilter === statusFilter &&
+      active.sortBy === sortBy;
+    if (!matchesActive) {
+      setActiveSavedViewId('all');
+    }
+  }, [activeSavedViewId, savedViews, searchQuery, statusFilter, sortBy]);
 
   useEffect(() => {
     // Remove selections that no longer exist after reload/delete.
@@ -405,18 +447,29 @@ export default function ProductsPage() {
       let successCount = 0;
       let failCount = 0;
 
-      for (const productId of selectedProductIds) {
-        try {
-          if (action === 'scrape') {
-            await authenticatedRequest(`/api/products/${productId}/scrape`, session.access_token, { method: 'POST' });
-          } else {
-            await authenticatedRequest(`/api/products/${productId}/generate-embeddings`, session.access_token, { method: 'POST' });
+      if (action === 'embeddings') {
+        const response = await authenticatedRequest<any>(
+          '/api/products/generate-embeddings-batch',
+          session.access_token,
+          {
+            method: 'POST',
+            body: JSON.stringify({ productIds: selectedProductIds }),
           }
-          successCount += 1;
-        } catch (err) {
-          console.error(`Bulk ${action} failed for ${productId}:`, err);
-          failCount += 1;
-        }
+        );
+        successCount = response?.summary?.successful ?? 0;
+        failCount = response?.summary?.failed ?? Math.max(0, selectedProductIds.length - successCount);
+      } else {
+        const response = await authenticatedRequest<any>(
+          '/api/products/scrape-batch',
+          session.access_token,
+          {
+            method: 'POST',
+            body: JSON.stringify({ productIds: selectedProductIds }),
+          }
+        );
+        // async queue route only queues jobs; treat queued count as success for UX
+        successCount = response?.count ?? 0;
+        failCount = Math.max(0, selectedProductIds.length - successCount);
       }
 
       if (successCount > 0) {
@@ -435,8 +488,51 @@ export default function ProductsPage() {
       }
 
       await loadProducts();
+    } catch (err: any) {
+      console.error(`Bulk ${action} request failed:`, err);
+      toast.error(
+        action === 'scrape' ? t('bulk.scrapeErrorTitle') : t('bulk.embeddingsErrorTitle'),
+        err?.message || t('bulk.requestFailedMessage')
+      );
     } finally {
       setBulkActionLoading(null);
+    }
+  };
+
+  const applySavedView = (viewId: string) => {
+    setActiveSavedViewId(viewId);
+    if (viewId === 'all') {
+      setSearchQuery('');
+      setStatusFilter('all');
+      setSortBy('updated_desc');
+      return;
+    }
+    const view = savedViews.find((v) => v.id === viewId);
+    if (!view) return;
+    setSearchQuery(view.searchQuery);
+    setStatusFilter(view.statusFilter);
+    setSortBy(view.sortBy);
+  };
+
+  const saveCurrentView = () => {
+    const name = window.prompt(t('savedViews.promptName'));
+    if (!name?.trim()) return;
+    const id = `view-${Date.now()}`;
+    const next: ProductsSavedView = {
+      id,
+      name: name.trim(),
+      searchQuery,
+      statusFilter,
+      sortBy,
+    };
+    setSavedViews((prev) => [...prev, next]);
+    setActiveSavedViewId(id);
+  };
+
+  const deleteSavedView = (viewId: string) => {
+    setSavedViews((prev) => prev.filter((v) => v.id !== viewId));
+    if (activeSavedViewId === viewId) {
+      setActiveSavedViewId('all');
     }
   };
 
@@ -500,6 +596,51 @@ export default function ProductsPage() {
       {products.length > 0 && (
         <PolarisCard>
           <div className="p-4 sm:p-5 space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => applySavedView('all')}
+                  className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    activeSavedViewId === 'all'
+                      ? 'border-[var(--p-color-border-emphasis)] bg-[var(--p-color-bg-fill-secondary)] text-[var(--p-color-text)]'
+                      : 'border-border bg-background text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {t('savedViews.all')}
+                </button>
+                {savedViews.map((view) => (
+                  <span key={view.id} className="inline-flex items-center rounded-full border border-border bg-background text-xs">
+                    <button
+                      type="button"
+                      onClick={() => applySavedView(view.id)}
+                      className={`px-3 py-1.5 rounded-full transition-colors ${
+                        activeSavedViewId === view.id
+                          ? 'bg-[var(--p-color-bg-fill-secondary)] text-[var(--p-color-text)]'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {view.name}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteSavedView(view.id)}
+                      className="pr-2 pl-1 text-muted-foreground hover:text-destructive"
+                      aria-label={t('savedViews.deleteAria', { name: view.name })}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={saveCurrentView}>
+                  {t('savedViews.saveCurrent')}
+                </Button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:gap-4 xl:items-end">
               <div className="min-w-0">
                 <PolarisTextField
@@ -554,6 +695,7 @@ export default function ProductsPage() {
                     setSearchQuery('');
                     setStatusFilter('all');
                     setSortBy('updated_desc');
+                    setActiveSavedViewId('all');
                   }}
                   className="text-primary hover:text-primary/80 font-medium text-left sm:text-right"
                 >

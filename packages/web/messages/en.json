@@ -372,7 +372,14 @@
             "scrapeErrorTitle": "Bulk scrape failed",
             "embeddingsErrorTitle": "Bulk embeddings failed",
             "successMessage": "{success} succeeded, {failed} failed",
-            "allFailedMessage": "All requests failed ({failed})"
+            "allFailedMessage": "All requests failed ({failed})",
+            "requestFailedMessage": "Bulk request could not be completed."
+        },
+        "savedViews": {
+            "all": "All",
+            "saveCurrent": "Save current view",
+            "promptName": "Name this view",
+            "deleteAria": "Delete saved view {name}"
         },
         "shopifyMapButton": "Shopify Product Mapping",
         "addProductButton": "Add New Product",
