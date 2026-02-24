@@ -49,6 +49,7 @@ export default function ProductsPage() {
   const [newProductName, setNewProductName] = useState('');
   const [scraping, setScraping] = useState(false);
   const [scrapeProgress, setScrapeProgress] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
 
   useEffect(() => {
     loadProducts();
@@ -276,8 +277,6 @@ export default function ProductsPage() {
       )}
     </div>
   );
-
-  const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
 
   const getProductStatus = (product: ProductWithChunks): ProductStatusFilter => {
     if (!product.raw_text) return 'not_scraped';

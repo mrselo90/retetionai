@@ -275,9 +275,10 @@ export default function DashboardPage() {
   return (
     <Page
       title={t('greeting', { name: merchant.name || 'Merchant' })}
-      subtitle={t('summary', {
+      subtitle={t.markup('summary', {
         activeUsers: displayStats.kpis.activeUsers ?? 0,
         responseRate: displayStats.kpis.responseRate ?? 0,
+        bold: (chunks) => chunks,
       })}
     >
       <Layout>
