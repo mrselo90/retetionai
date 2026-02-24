@@ -316,6 +316,18 @@
     "Products": {
         "title": "Products",
         "description": "Manage your products and prepare them for RAG.",
+        "view": {
+            "grid": "Grid",
+            "list": "List"
+        },
+        "list": {
+            "columns": {
+                "product": "Product",
+                "source": "Source URL",
+                "status": "RAG Status",
+                "actions": "Actions"
+            }
+        },
         "shopifyMapButton": "Shopify Product Mapping",
         "addProductButton": "Add New Product",
         "empty": {

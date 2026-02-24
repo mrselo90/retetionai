@@ -316,6 +316,18 @@
     "Products": {
         "title": "Ürünler",
         "description": "Ürünlerinizi yönetin ve RAG için hazırlayın.",
+        "view": {
+            "grid": "Kart",
+            "list": "Liste"
+        },
+        "list": {
+            "columns": {
+                "product": "Ürün",
+                "source": "Kaynak URL",
+                "status": "RAG Durumu",
+                "actions": "İşlemler"
+            }
+        },
         "shopifyMapButton": "Shopify Ürün Eşleme",
         "addProductButton": "Yeni Ürün Ekle",
         "empty": {

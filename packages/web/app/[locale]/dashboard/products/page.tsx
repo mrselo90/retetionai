@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Package, Plus, Trash2, ExternalLink, FileText, CheckCircle, Loader2, ArrowRight } from 'lucide-react';
+import { Package, Plus, Trash2, ExternalLink, FileText, CheckCircle, Loader2, ArrowRight, LayoutGrid, List } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useTranslations } from 'next-intl';
 import { SESSION_RECHECK_MS } from '@/lib/constants';
@@ -36,6 +36,7 @@ export default function ProductsPage() {
   const t = useTranslations('Products');
   const [products, setProducts] = useState<ProductWithChunks[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProductUrl, setNewProductUrl] = useState('');
   const [newProductName, setNewProductName] = useState('');
@@ -45,6 +46,19 @@ export default function ProductsPage() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = window.localStorage.getItem('productsViewMode');
+    if (saved === 'grid' || saved === 'list') setViewMode(saved);
+  }, []);
+
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('productsViewMode', mode);
+    }
+  };
 
   const loadProducts = async () => {
     try {
@@ -223,6 +237,39 @@ export default function ProductsPage() {
     );
   }
 
+  const renderProductStatusBadges = (product: ProductWithChunks) => (
+    <div className="flex items-center gap-2 flex-wrap">
+      <Badge variant="outline-primary" size="sm" className="gap-1.5">
+        <FileText className="w-3.5 h-3.5" />
+        {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
+      </Badge>
+      {product.raw_text && (
+        <Badge variant="success" size="sm" className="gap-1.5 shadow-sm">
+          <CheckCircle className="w-3.5 h-3.5" />
+          {t('card.scraped')}
+        </Badge>
+      )}
+      {product.raw_text && !product.chunkCountUnavailable && (product.chunkCount || 0) > 0 && (
+        <Badge variant="success" size="sm" className="gap-1.5 shadow-sm">
+          <CheckCircle className="w-3.5 h-3.5" />
+          {t('card.ragReady')}
+        </Badge>
+      )}
+      {product.raw_text && product.chunkCountUnavailable && (
+        <Badge variant="outline" size="sm" className="gap-1.5">
+          <FileText className="w-3.5 h-3.5" />
+          {t('card.ragStatusUnknown')}
+        </Badge>
+      )}
+      {product.raw_text && !product.chunkCountUnavailable && (product.chunkCount || 0) === 0 && (
+        <Badge variant="outline" size="sm" className="gap-1.5">
+          <FileText className="w-3.5 h-3.5" />
+          {t('card.ragNotReady')}
+        </Badge>
+      )}
+    </div>
+  );
+
   return (
     <Page title={t('title')} subtitle={t('description')} fullWidth>
       <Layout>
@@ -236,6 +283,36 @@ export default function ProductsPage() {
             <Text as="p" tone="subdued">{t('description')}</Text>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
+            <div className="inline-flex items-center rounded-lg border border-border bg-muted/40 p-1">
+              <button
+                type="button"
+                onClick={() => handleViewModeChange('grid')}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                aria-pressed={viewMode === 'grid'}
+                title={t('view.grid')}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{t('view.grid')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleViewModeChange('list')}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                aria-pressed={viewMode === 'list'}
+                title={t('view.list')}
+              >
+                <List className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{t('view.list')}</span>
+              </button>
+            </div>
             <Button variant="outline" size="lg" asChild>
               <Link href="/dashboard/products/shopify-map">
                 <ArrowRight className="w-4 h-4 mr-2" />
@@ -250,7 +327,7 @@ export default function ProductsPage() {
         </div>
       </PolarisCard>
 
-      {/* Products Grid */}
+      {/* Products Grid/List */}
       {products.length === 0 && !loading ? (
         <EmptyState
           icon={Package}
@@ -272,80 +349,156 @@ export default function ProductsPage() {
           }}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {products.map((product) => (
-            <Card key={product.id} hover className="group overflow-hidden">
-              <CardHeader className="pb-4 ">
-                <div className="flex items-start justify-between gap-3">
-                  <CardTitle className="text-lg line-clamp-2 pr-2 font-bold">{product.name}</CardTitle>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (confirm(t('card.deleteConfirm'))) {
-                        handleDeleteProduct(product.id);
-                      }
-                    }}
-                    type="button"
-                    title={t('card.deleteConfirm')}
-                    className="flex-shrink-0 p-2 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+        viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {products.map((product) => (
+              <Card key={product.id} hover className="group overflow-hidden">
+                <CardHeader className="pb-4 ">
+                  <div className="flex items-start justify-between gap-3">
+                    <CardTitle className="text-lg line-clamp-2 pr-2 font-bold">{product.name}</CardTitle>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (confirm(t('card.deleteConfirm'))) {
+                          handleDeleteProduct(product.id);
+                        }
+                      }}
+                      type="button"
+                      title={t('card.deleteConfirm')}
+                      className="flex-shrink-0 p-2 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <a
+                    href={product.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:text-primary/80 line-clamp-1 flex items-center gap-2 font-medium transition-colors group/link"
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <a
-                  href={product.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:text-primary/80 line-clamp-1 flex items-center gap-2 font-medium transition-colors group/link"
-                >
-                  <ExternalLink className="w-4 h-4 shrink-0 group-hover/link:scale-110 transition-transform" />
-                  <span className="truncate">{product.url}</span>
-                </a>
+                    <ExternalLink className="w-4 h-4 shrink-0 group-hover/link:scale-110 transition-transform" />
+                    <span className="truncate">{product.url}</span>
+                  </a>
 
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline-primary" size="sm" className="gap-1.5">
-                    <FileText className="w-3.5 h-3.5" />
-                    {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
-                  </Badge>
-                  {product.raw_text && (
-                    <Badge variant="success" size="sm" className="gap-1.5 shadow-sm">
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      {t('card.scraped')}
-                    </Badge>
-                  )}
-                  {product.raw_text && !product.chunkCountUnavailable && (product.chunkCount || 0) > 0 && (
-                    <Badge variant="success" size="sm" className="gap-1.5 shadow-sm">
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      {t('card.ragReady')}
-                    </Badge>
-                  )}
-                  {product.raw_text && product.chunkCountUnavailable && (
-                    <Badge variant="outline" size="sm" className="gap-1.5">
-                      <FileText className="w-3.5 h-3.5" />
-                      {t('card.ragStatusUnknown')}
-                    </Badge>
-                  )}
-                  {product.raw_text && !product.chunkCountUnavailable && (product.chunkCount || 0) === 0 && (
-                    <Badge variant="outline" size="sm" className="gap-1.5">
-                      <FileText className="w-3.5 h-3.5" />
-                      {t('card.ragNotReady')}
-                    </Badge>
-                  )}
-                </div>
+                  {renderProductStatusBadges(product)}
 
-                <Button variant="outline" className="w-full group/btn" asChild size="lg">
-                  <Link href={`/dashboard/products/${product.id}`}>
-                    <ArrowRight className="w-4 h-4 mr-2 group-hover/btn:translate-x-1 transition-transform" />
-                    {t('card.edit')}
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  <Button variant="outline" className="w-full group/btn" asChild size="lg">
+                    <Link href={`/dashboard/products/${product.id}`}>
+                      <ArrowRight className="w-4 h-4 mr-2 group-hover/btn:translate-x-1 transition-transform" />
+                      {t('card.edit')}
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <PolarisCard>
+            <div className="divide-y divide-border">
+              <div className="hidden md:grid grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_minmax(0,1.6fr)_auto] gap-4 px-5 py-3 bg-muted/30 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <div>{t('list.columns.product')}</div>
+                <div>{t('list.columns.source')}</div>
+                <div>{t('list.columns.status')}</div>
+                <div className="text-right">{t('list.columns.actions')}</div>
+              </div>
+
+              {products.map((product) => (
+                <div key={product.id} className="px-4 sm:px-5 py-4">
+                  <div className="md:hidden space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-foreground leading-snug line-clamp-2">{product.name}</p>
+                        <p className="mt-1 text-xs text-muted-foreground break-all">{product.id}</p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
+                        }}
+                        type="button"
+                        title={t('card.deleteConfirm')}
+                        className="flex-shrink-0 p-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <a
+                      href={product.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:text-primary/80 line-clamp-1 flex items-center gap-2 font-medium"
+                    >
+                      <ExternalLink className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{product.url}</span>
+                    </a>
+
+                    {renderProductStatusBadges(product)}
+
+                    <Button variant="outline" className="w-full" asChild>
+                      <Link href={`/dashboard/products/${product.id}`}>
+                        <ArrowRight className="w-4 h-4 mr-2" />
+                        {t('card.edit')}
+                      </Link>
+                    </Button>
+                  </div>
+
+                  <div className="hidden md:grid grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_minmax(0,1.6fr)_auto] gap-4 items-center">
+                    <div className="min-w-0">
+                      <Link
+                        href={`/dashboard/products/${product.id}`}
+                        className="block font-semibold text-foreground hover:text-primary line-clamp-2"
+                      >
+                        {product.name}
+                      </Link>
+                      <p className="mt-1 text-xs text-muted-foreground truncate">{product.id}</p>
+                    </div>
+
+                    <div className="min-w-0">
+                      <a
+                        href={product.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:text-primary/80 line-clamp-2 inline-flex items-start gap-2"
+                      >
+                        <ExternalLink className="w-4 h-4 shrink-0 mt-0.5" />
+                        <span className="break-all line-clamp-2">{product.url}</span>
+                      </a>
+                    </div>
+
+                    <div>
+                      {renderProductStatusBadges(product)}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/dashboard/products/${product.id}`}>
+                          {t('card.edit')}
+                        </Link>
+                      </Button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
+                        }}
+                        type="button"
+                        title={t('card.deleteConfirm')}
+                        className="p-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </PolarisCard>
+        )
       )}
 
       {/* Add Product Modal */}
