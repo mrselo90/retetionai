@@ -103,6 +103,10 @@
   - `Settings` add-on rows/actions moved further toward Polaris controls (status badge + action buttons), and add-on/guardrail/GDPR confirm modal actions now use Polaris buttons
   - `Settings` GDPR delete confirmation modal content converted to Polaris `Box`/`BlockStack` surfaces with Polaris button actions
   - `Integrations` modal body surfaces (Shopify/CSV/Manual/WhatsApp) wrapped with Polaris spacing/box structure; CSV helper/file state messaging aligned with Polaris text/surface patterns
+- **Products Responsive Overlap Fixes**:
+  - Saved views row changed to responsive split layout with horizontal scrolling chips to prevent overlap with save action on narrower widths
+  - Applied filter chips and bulk action toolbar updated for mobile/desktop wrapping behavior to avoid stacked collisions
+  - Desktop products list status/action cells constrained (`max-width`, responsive action stack) to prevent badge/button overlap in `IndexTable`
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart

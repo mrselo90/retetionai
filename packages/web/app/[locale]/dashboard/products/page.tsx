@@ -596,12 +596,13 @@ export default function ProductsPage() {
       {products.length > 0 && (
         <PolarisCard>
           <div className="p-4 sm:p-5 space-y-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:items-start">
+              <div className="min-w-0">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button
                   type="button"
                   onClick={() => applySavedView('all')}
-                  className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                     activeSavedViewId === 'all'
                       ? 'border-[var(--p-color-border-emphasis)] bg-[var(--p-color-bg-fill-secondary)] text-[var(--p-color-text)]'
                       : 'border-border bg-background text-muted-foreground hover:text-foreground'
@@ -610,15 +611,16 @@ export default function ProductsPage() {
                   {t('savedViews.all')}
                 </button>
                 {savedViews.map((view) => (
-                  <span key={view.id} className="inline-flex items-center rounded-full border border-border bg-background text-xs">
+                  <span key={view.id} className="inline-flex shrink-0 items-center rounded-full border border-border bg-background text-xs max-w-[220px]">
                     <button
                       type="button"
                       onClick={() => applySavedView(view.id)}
-                      className={`px-3 py-1.5 rounded-full transition-colors ${
+                      className={`px-3 py-1.5 rounded-full transition-colors truncate ${
                         activeSavedViewId === view.id
                           ? 'bg-[var(--p-color-bg-fill-secondary)] text-[var(--p-color-text)]'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
+                      title={view.name}
                     >
                       {view.name}
                     </button>
@@ -633,8 +635,9 @@ export default function ProductsPage() {
                   </span>
                 ))}
               </div>
+              </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 xl:justify-end">
                 <Button variant="outline" size="sm" onClick={saveCurrentView}>
                   {t('savedViews.saveCurrent')}
                 </Button>
@@ -705,8 +708,9 @@ export default function ProductsPage() {
             </div>
 
             {(searchQuery || statusFilter !== 'all' || sortBy !== 'updated_desc') && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-muted-foreground font-medium">{t('filters.applied')}:</span>
+              <div className="flex flex-col sm:flex-row sm:items-start gap-2">
+                <span className="text-xs text-muted-foreground font-medium leading-7 shrink-0">{t('filters.applied')}:</span>
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
                 {searchQuery && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
                     {t('filters.searchChip', { value: searchQuery })}
@@ -731,6 +735,7 @@ export default function ProductsPage() {
                     </button>
                   </span>
                 )}
+                </div>
               </div>
             )}
           </div>
@@ -739,8 +744,8 @@ export default function ProductsPage() {
 
       {products.length > 0 && (
         <PolarisCard>
-          <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="p-4 sm:p-5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 min-w-0">
               <button
                 type="button"
                 onClick={toggleSelectAllVisibleProducts}
@@ -764,7 +769,7 @@ export default function ProductsPage() {
               </Text>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 xl:flex xl:flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
@@ -982,10 +987,12 @@ export default function ProductsPage() {
                         </div>
                       </IndexTable.Cell>
                       <IndexTable.Cell>
-                        {renderProductStatusBadges(product)}
+                        <div className="max-w-[260px]">
+                          {renderProductStatusBadges(product)}
+                        </div>
                       </IndexTable.Cell>
                       <IndexTable.Cell>
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-end gap-2 min-w-[120px]">
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/dashboard/products/${product.id}`}>
                               {t('card.edit')}
