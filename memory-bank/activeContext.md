@@ -107,6 +107,10 @@
   - Saved views row changed to responsive split layout with horizontal scrolling chips to prevent overlap with save action on narrower widths
   - Applied filter chips and bulk action toolbar updated for mobile/desktop wrapping behavior to avoid stacked collisions
   - Desktop products list status/action cells constrained (`max-width`, responsive action stack) to prevent badge/button overlap in `IndexTable`
+- **Admin Polaris Migration (step 2 / polish)**:
+  - `/admin/system` queue cards refactored further to Polaris layout primitives (`InlineStack`, `InlineGrid`, `Box`, `Text`) while preserving queue stats logic
+  - Redis infrastructure panel moved from custom flex/typography blocks to Polaris-first layout structure
+  - “Queue Management (Coming Soon)” notice converted to Polaris `Banner`
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
