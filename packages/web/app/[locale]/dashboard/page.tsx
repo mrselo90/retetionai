@@ -79,14 +79,14 @@ function MetricCard({
   value,
   hint,
   icon,
-  iconBgClassName,
+  iconBackground,
   iconClassName,
 }: {
   title: string;
   value: string | number;
   hint: string;
   icon: React.ReactNode;
-  iconBgClassName?: string;
+  iconBackground?: React.ComponentProps<typeof Box>['background'];
   iconClassName?: string;
 }) {
   return (
@@ -96,11 +96,15 @@ function MetricCard({
           <Text as="p" variant="bodySm" tone="subdued">
             {title}
           </Text>
-          <div
-            className={`w-9 h-9 rounded-lg flex items-center justify-center bg-[hsl(var(--muted))] ${iconBgClassName ?? ''}`}
+          <Box
+            background={iconBackground || 'bg-surface-secondary'}
+            borderRadius="200"
+            minWidth="36px"
+            minHeight="36px"
+            padding="200"
           >
             <span className={iconClassName}>{icon}</span>
-          </div>
+          </Box>
         </InlineStack>
         <BlockStack gap="100">
           <Text as="p" variant="headingLg" fontWeight="semibold">
@@ -123,6 +127,26 @@ function ListEmptyPolaris({ message }: { message: string }) {
           {message}
         </Text>
       </BlockStack>
+    </Box>
+  );
+}
+
+function DashboardIconTile({
+  icon,
+  background,
+}: {
+  icon: React.ReactNode;
+  background?: React.ComponentProps<typeof Box>['background'];
+}) {
+  return (
+    <Box
+      background={background || 'bg-surface-secondary'}
+      borderRadius="200"
+      minWidth="36px"
+      minHeight="36px"
+      padding="200"
+    >
+      {icon}
     </Box>
   );
 }
@@ -312,21 +336,21 @@ export default function DashboardPage() {
               value={displayStats.kpis.activeUsers ?? 0}
               hint={t('kpi.last30Days')}
               icon={<ArrowRight className="h-4 w-4 text-emerald-700" />}
-              iconBgClassName="bg-emerald-100"
+              iconBackground="bg-fill-success-secondary"
             />
             <MetricCard
               title={t('kpi.messagesSent')}
               value={displayStats.kpis.messagesSent ?? 0}
               hint={t('kpi.autoManual')}
               icon={<MessageSquare className="h-4 w-4 text-blue-700" />}
-              iconBgClassName="bg-blue-100"
+              iconBackground="bg-fill-info-secondary"
             />
             <MetricCard
               title={t('kpi.responseRate')}
               value={`${displayStats.kpis.responseRate ?? 0}%`}
               hint={t('kpi.feedback')}
               icon={<BarChart3 className="h-4 w-4 text-amber-700" />}
-              iconBgClassName="bg-amber-100"
+              iconBackground="bg-fill-caution-secondary"
             />
           </InlineGrid>
         </Layout.Section>
@@ -370,9 +394,7 @@ export default function DashboardPage() {
                       >
                         <InlineStack align="space-between" blockAlign="center" gap="300">
                           <InlineStack blockAlign="center" gap="300">
-                            <div className="w-9 h-9 rounded-lg bg-zinc-100 flex items-center justify-center">
-                              <ShoppingBag className="w-4 h-4 text-zinc-600" />
-                            </div>
+                            <DashboardIconTile icon={<ShoppingBag className="w-4 h-4 text-zinc-600" />} />
                             <BlockStack gap="050">
                               <Text as="p" variant="bodySm" fontWeight="semibold">
                                 #{order.external_order_id}
@@ -417,9 +439,10 @@ export default function DashboardPage() {
                         <Link href={`/dashboard/conversations/${conv.id}`} className="block no-underline">
                           <InlineStack align="space-between" blockAlign="center" gap="300">
                             <InlineStack blockAlign="center" gap="300">
-                              <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center">
-                                <MessageSquare className="w-4 h-4 text-blue-700" />
-                              </div>
+                              <DashboardIconTile
+                                background="bg-fill-info-secondary"
+                                icon={<MessageSquare className="w-4 h-4 text-blue-700" />}
+                              />
                               <BlockStack gap="050">
                                 <Text as="p" variant="bodySm" fontWeight="semibold">
                                   Conversation #{conv.id.substring(0, 8)}
@@ -452,9 +475,7 @@ export default function DashboardPage() {
               <Link href="/dashboard/products" className="block no-underline">
                 <PolarisCard>
                   <InlineStack gap="300" blockAlign="start">
-                    <div className="flex-shrink-0 p-3 rounded-lg bg-zinc-100">
-                      <Package className="w-5 h-5 text-zinc-700" />
-                    </div>
+                    <DashboardIconTile icon={<Package className="w-5 h-5 text-zinc-700" />} />
                     <BlockStack gap="100">
                       <Text as="p" variant="bodySm" fontWeight="semibold">
                         {t('quickActions.addProduct')}
@@ -470,9 +491,10 @@ export default function DashboardPage() {
               <Link href="/dashboard/integrations" className="block no-underline">
                 <PolarisCard>
                   <InlineStack gap="300" blockAlign="start">
-                    <div className="flex-shrink-0 p-3 rounded-lg bg-blue-100">
-                      <ArrowRight className="w-5 h-5 text-blue-700" />
-                    </div>
+                    <DashboardIconTile
+                      background="bg-fill-info-secondary"
+                      icon={<ArrowRight className="w-5 h-5 text-blue-700" />}
+                    />
                     <BlockStack gap="100">
                       <Text as="p" variant="bodySm" fontWeight="semibold">
                         {t('quickActions.integration')}
@@ -488,9 +510,10 @@ export default function DashboardPage() {
               <Link href="/dashboard/settings" className="block no-underline">
                 <PolarisCard>
                   <InlineStack gap="300" blockAlign="start">
-                    <div className="flex-shrink-0 p-3 rounded-lg bg-amber-100">
-                      <BarChart3 className="w-5 h-5 text-amber-700" />
-                    </div>
+                    <DashboardIconTile
+                      background="bg-fill-caution-secondary"
+                      icon={<BarChart3 className="w-5 h-5 text-amber-700" />}
+                    />
                     <BlockStack gap="100">
                       <Text as="p" variant="bodySm" fontWeight="semibold">
                         {t('quickActions.settings')}

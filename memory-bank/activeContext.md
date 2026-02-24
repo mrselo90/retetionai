@@ -32,6 +32,9 @@
   - Polaris migration (step 2): Desktop list view now uses Polaris `IndexTable` while keeping mobile stacked rows for mobile-first usability
   - Products index (step 3): Added applied filter chips and bulk product actions (select visible/clear selection/re-scrape/generate embeddings) aligned with RAG operations workflow
   - Products index (step 4): Bulk actions now use batch endpoints (`scrape-batch`, `generate-embeddings-batch`) and saved views/tabs (local persisted presets) were added for Shopify-like workflow
+- **Dashboard Polaris-first Standardization (step 1)**:
+  - Replaced remaining ad-hoc icon tiles/row icon shells with Polaris `Box`-based surfaces to align visual tokens/backgrounds with Shopify Polaris
+  - Preserved existing dashboard information architecture while reducing custom Tailwind visual primitives
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.
