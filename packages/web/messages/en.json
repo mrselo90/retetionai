@@ -64,7 +64,7 @@
             "step3Title": "Track your results",
             "step3Desc": "Monitor return rates, customer satisfaction, and ROI in your analytics dashboard."
         },
-        "cta": {
+  "cta": {
             "title": "Ready to reduce returns and boost LTV?",
             "subtitle": "Join merchants who are transforming their post-purchase experience.",
             "button": "Start Free Trial",
@@ -72,9 +72,66 @@
             "secondaryButton": "Book a Demo",
             "secondaryCta": "Book a Demo",
             "meta": "14-day free trial · No credit card required",
-            "footnote": "14-day free trial · No credit card required · Cancel anytime"
-        },
-        "footer": {
+    "footnote": "14-day free trial · No credit card required · Cancel anytime"
+  },
+  "socialProof": {
+    "eyebrow": "Trusted by growth teams",
+    "title": "Merchants use Recete to protect margin after checkout",
+    "subtitle": "Built for Shopify stores that want fewer returns, faster answers, and higher repeat purchase rates without hiring a bigger support team.",
+    "proof1": "Shopify-native onboarding",
+    "proof2": "WhatsApp-first engagement",
+    "proof3": "Secure merchant controls",
+    "testimonial1": {
+      "quote": "We reduced avoidable returns by sending usage guidance before customers got frustrated. Setup took less than one afternoon.",
+      "name": "Ece Demir",
+      "role": "Founder, skincare brand",
+      "metric": "-28% returns"
+    },
+    "testimonial2": {
+      "quote": "Our support team now spends time on real escalations. Recete handles repetitive post-purchase questions automatically.",
+      "name": "Mark Jensen",
+      "role": "Operations lead, DTC home goods",
+      "metric": "2.1x faster replies"
+    },
+    "testimonial3": {
+      "quote": "The analytics view made it easy to justify the spend. We could see saved returns and repeat conversations turning into revenue.",
+      "name": "Selin Kaya",
+      "role": "E-commerce manager, wellness store",
+      "metric": "+14% repeat sales"
+    }
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "title": "Start lean. Upgrade when volume grows.",
+    "subtitle": "Simple plans designed for Shopify merchants. Start free, validate ROI quickly, then scale with more conversations and automation.",
+    "mostPopular": "Most popular",
+    "perMonth": "/month",
+    "cta": "Start free",
+    "secondaryCta": "Estimate your ROI",
+    "roiNote": "Most merchants recover subscription cost by preventing just a few returns each month.",
+    "starter": {
+      "name": "Starter",
+      "desc": "For early-stage stores validating post-purchase automation.",
+      "price": "$49",
+      "note": "Best for low-volume stores",
+      "bullets": "Shopify integration · Basic WhatsApp automation · Product guidance flows · Core analytics"
+    },
+    "growth": {
+      "name": "Growth",
+      "desc": "For growing stores that need AI support and ROI visibility.",
+      "price": "$149",
+      "note": "Best for scaling DTC teams",
+      "bullets": "Everything in Starter · AI conversations (RAG) · Advanced analytics & ROI · Human handoff controls"
+    },
+    "scale": {
+      "name": "Scale",
+      "desc": "For high-volume brands requiring deeper customization and controls.",
+      "price": "$399",
+      "note": "Custom onboarding included",
+      "bullets": "Everything in Growth · Higher message volume · Multi-team workflows · Priority support"
+    }
+  },
+  "footer": {
             "description": "Recete helps brands reduce returns and increase LTV through proactive AI-driven WhatsApp conversations.",
             "tagline": "Post-purchase AI that helps Shopify merchants reduce returns and boost customer loyalty.",
             "product": "Product",

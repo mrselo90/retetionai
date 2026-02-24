@@ -17,23 +17,30 @@ export function Stats() {
     ];
 
     return (
-        <section className="border-b border-[#F8F5E6]/10" style={{ background: 'linear-gradient(180deg, #0A3D2E 0%, #0d4a38 100%)' }}>
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-px sm:gap-0 bg-[#F8F5E6]/10">
-                    {stats.map((stat, i) => (
-                        <div
-                            key={i}
-                            className="text-center py-6 sm:py-8 px-3 sm:px-4 bg-[#0A3D2E] sm:bg-transparent sm:border-r border-[#F8F5E6]/10 last:border-r-0"
-                        >
+        <section className="px-4 sm:px-6 py-6 sm:py-8 bg-[#f6f4ea]">
+            <div className="max-w-6xl mx-auto">
+                <div className="rounded-2xl sm:rounded-3xl border border-black/5 bg-white shadow-[0_18px_60px_rgba(10,61,46,0.07)] overflow-hidden">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-black/5">
+                        {stats.map((stat, i) => (
                             <div
-                                className="text-2xl sm:text-3xl md:text-4xl font-extrabold leading-tight mb-1.5 sm:mb-2 tracking-tight break-words"
-                                style={{ color: statColors[i] }}
+                                key={i}
+                                className="relative bg-white p-4 sm:p-5 lg:p-6"
                             >
-                                <span aria-hidden>{statIcons[i]}</span> {stat.value}
+                                <div
+                                    aria-hidden
+                                    className="absolute top-0 left-0 h-1 w-full opacity-90"
+                                    style={{ background: `linear-gradient(90deg, ${statColors[i]}40, ${statColors[i]})` }}
+                                />
+                                <div className="inline-flex items-center gap-2 rounded-full border border-black/5 bg-[#f6f4ea] px-2.5 py-1 text-xs font-semibold text-zinc-600">
+                                    <span aria-hidden>{statIcons[i]}</span>
+                                    {stat.label}
+                                </div>
+                                <div className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-[#0a3d2e]">
+                                    {stat.value}
+                                </div>
                             </div>
-                            <div className="text-xs sm:text-sm font-medium opacity-80 line-clamp-2 sm:line-clamp-none" style={{ color: '#F8F5E6' }}>{stat.label}</div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>

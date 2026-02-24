@@ -8,12 +8,12 @@ export function CTA() {
     const t = useTranslations('Landing.cta');
 
     return (
-        <section className="py-14 sm:py-20 lg:py-24 px-4 sm:px-6" style={{ background: '#0A3D2E' }}>
-            <div className="max-w-3xl mx-auto">
+        <section id="cta" className="py-14 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
+            <div className="max-w-5xl mx-auto">
                 <div
-                    className="relative overflow-hidden rounded-xl sm:rounded-2xl border border-[#F8F5E6]/25 px-4 py-10 sm:px-8 sm:py-14 md:px-12 md:py-16 text-center"
+                    className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-[#0A3D2E]/10 px-4 py-10 sm:px-8 sm:py-14 md:px-12 md:py-16 text-center"
                     style={{
-                        background: 'linear-gradient(135deg, rgba(248,245,230,0.08) 0%, rgba(16,185,129,0.1) 50%, rgba(245,158,11,0.06) 100%)',
+                        background: 'linear-gradient(135deg, #0A3D2E 0%, #0d4a38 60%, #125542 100%)',
                     }}
                 >
                     <div
@@ -22,6 +22,11 @@ export function CTA() {
                         style={{
                             background: 'radial-gradient(circle, rgba(248,245,230,0.15) 0%, transparent 70%)',
                         }}
+                    />
+                    <div
+                        aria-hidden
+                        className="absolute -bottom-10 -right-8 w-44 h-44 rounded-full blur-3xl opacity-60"
+                        style={{ background: 'radial-gradient(circle, rgba(245,158,11,.18) 0%, transparent 70%)' }}
                     />
 
                     <h2 className="relative text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold mb-3 sm:mb-4 leading-tight text-[#F8F5E6] px-2">
@@ -44,7 +49,7 @@ export function CTA() {
                             {t('primaryCta')} <ArrowRight size={18} aria-hidden />
                         </Link>
                         <Link
-                            href="/contact"
+                            href="/signup"
                             className="inline-flex items-center justify-center gap-2 py-3.5 px-6 sm:py-4 sm:px-8 rounded-xl font-semibold text-sm sm:text-base no-underline border border-[#F8F5E6]/30 bg-white/5 backdrop-blur-sm transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A3D2E] min-h-[44px] sm:min-h-0 text-[#F8F5E6]"
                         >
                             <Calendar size={18} aria-hidden /> {t('secondaryCta')}
