@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { Link } from '@/i18n/routing';
-import { Banner, Card as PolarisCard, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
+import { Banner, BlockStack, Box, Card as PolarisCard, InlineGrid, InlineStack, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -120,11 +120,15 @@ export default function AnalyticsPage() {
       <SkeletonPage title={t('title')}>
         <Layout>
           <Layout.Section>
-      <div className="space-y-8 animate-fade-in">
-        <div className="space-y-2">
-          <div className="h-8 w-40 bg-zinc-200 rounded-lg animate-pulse" />
-          <div className="h-4 w-64 bg-zinc-100 rounded animate-pulse" />
-        </div>
+      <BlockStack gap="500">
+        <PolarisCard>
+          <Box padding="400">
+            <div className="space-y-2 animate-pulse">
+              <div className="h-8 w-40 bg-zinc-200 rounded-lg" />
+              <div className="h-4 w-64 bg-zinc-100 rounded" />
+            </div>
+          </Box>
+        </PolarisCard>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-28 bg-white border border-zinc-200 rounded-xl animate-pulse" />
@@ -134,7 +138,7 @@ export default function AnalyticsPage() {
           <div className="h-72 bg-white border border-zinc-200 rounded-xl animate-pulse" />
           <div className="h-72 bg-white border border-zinc-200 rounded-xl animate-pulse" />
         </div>
-      </div>
+      </BlockStack>
           </Layout.Section>
         </Layout>
       </SkeletonPage>
@@ -148,32 +152,34 @@ export default function AnalyticsPage() {
     <div className="space-y-6 animate-fade-in pb-8">
       {/* Header */}
       <PolarisCard>
-        <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1.5">
-          <Text as="h2" variant="headingMd">{t('title')}</Text>
-          <Text as="p" tone="subdued">{t('description')}</Text>
-        </div>
-        <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-xl p-1.5">
-          <div className="flex items-center gap-2 px-3">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-            <input
-              type="date"
-              value={dateRange.startDate}
-              onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-              className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 py-2 font-medium"
-            />
-          </div>
-          <span className="text-muted-foreground text-sm font-bold">–</span>
-          <div className="flex items-center px-3">
-            <input
-              type="date"
-              value={dateRange.endDate}
-              onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-              className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 py-2 font-medium"
-            />
-          </div>
-        </div>
-        </div>
+        <Box padding="400">
+          <InlineGrid columns={{ xs: '1fr', md: '1fr auto' }} gap="300" alignItems="center">
+            <BlockStack gap="100">
+              <Text as="h2" variant="headingMd">{t('title')}</Text>
+              <Text as="p" tone="subdued">{t('description')}</Text>
+            </BlockStack>
+            <Box borderWidth="025" borderColor="border" borderRadius="300" padding="200">
+              <InlineStack gap="200" blockAlign="center" wrap>
+                <InlineStack gap="100" blockAlign="center">
+                  <Calendar className="w-4 h-4 text-zinc-500" />
+                  <input
+                    type="date"
+                    value={dateRange.startDate}
+                    onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+                    className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 py-2 font-medium"
+                  />
+                </InlineStack>
+                <Text as="span" tone="subdued">–</Text>
+                <input
+                  type="date"
+                  value={dateRange.endDate}
+                  onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+                  className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 py-2 font-medium"
+                />
+              </InlineStack>
+            </Box>
+          </InlineGrid>
+        </Box>
       </PolarisCard>
 
       {/* Key Metrics */}

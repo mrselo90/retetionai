@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest, getApiUrl, getApiBaseUrlForDisplay } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Banner, Card as PolarisCard, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
+import { Badge as PolarisBadge, Banner, BlockStack, Box, Button as PolarisButton, Card as PolarisCard, InlineStack, Layout, Page, SkeletonPage, Text, TextField } from '@shopify/polaris';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -395,16 +395,18 @@ export default function IntegrationsPage() {
         <Layout.Section>
     <div className="space-y-6 animate-fade-in pb-8 font-sans text-[#303030]">
       <PolarisCard>
-        <div className="p-5 space-y-1">
-          <Text as="h2" variant="headingMd">{t('title')}</Text>
-          <Text as="p" tone="subdued">{t('description')}</Text>
-        </div>
+        <Box padding="400">
+          <BlockStack gap="100">
+            <Text as="h2" variant="headingMd">{t('title')}</Text>
+            <Text as="p" tone="subdued">{t('description')}</Text>
+          </BlockStack>
+        </Box>
       </PolarisCard>
 
       {/* Platform support number as an Alert Banner */}
       {platformWhatsApp && (
         <PolarisCard>
-          <div className="p-4">
+          <Box padding="300">
             <Banner tone="info" title={t('platformSupport.title')}>
               <p>{t('platformSupport.subtitle')}</p>
               <div className="mt-3">
@@ -418,15 +420,14 @@ export default function IntegrationsPage() {
                 </a>
               </div>
             </Banner>
-          </div>
+          </Box>
         </PolarisCard>
       )}
 
       {/* Discover Integrations (Polaris List Style) */}
       <div className="mt-8">
         <h2 className="text-lg font-semibold text-[#1a1a1a] mb-3">Discover integrations</h2>
-        <PolarisCard>
-        <div className="bg-white rounded-xl overflow-hidden">
+        <PolarisCard padding="0">
           <div className="divide-y divide-zinc-100">
             {/* Shopify */}
             <div className="p-4 hover:bg-zinc-50/50 transition-colors flex items-center justify-between">
@@ -434,11 +435,11 @@ export default function IntegrationsPage() {
                 <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-[#95BF47]/10 flex items-center justify-center flex-shrink-0">
                   <ShoppingBag className="w-5 h-5 text-[#95BF47]" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-[#1a1a1a]">{t('providers.shopify.title')}</h3>
-                    {hasShopify && <Badge variant="secondary" className="bg-[#AEE9D1] text-[#005E39] hover:bg-[#AEE9D1]">Connected</Badge>}
-                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-[#1a1a1a]">{t('providers.shopify.title')}</h3>
+                    {hasShopify && <PolarisBadge tone="success">Connected</PolarisBadge>}
+                    </div>
                   <p className="text-sm text-[#616161] mt-0.5 max-w-[400px]">
                     {hasShopify
                       ? (integrations.find((i) => i.provider === 'shopify')?.shop_domain
@@ -449,15 +450,13 @@ export default function IntegrationsPage() {
                 </div>
               </div>
               <div>
-                <button
+                <PolarisButton
                   onClick={() => setShowShopifyModal(true)}
-                  className={`text-sm font-medium px-3 py-1.5 rounded-lg shadow-sm transition-colors whitespace-nowrap ${hasShopify
-                    ? 'bg-white text-[#1a1a1a] ring-1 ring-zinc-200 hover:bg-zinc-50'
-                    : 'bg-[#1a1a1a] text-white hover:bg-[#303030]'
-                    }`}
+                  variant={hasShopify ? 'secondary' : 'primary'}
+                  size="slim"
                 >
                   {hasShopify ? t('providers.shopify.action.connected') : t('providers.shopify.action.connect')}
-                </button>
+                </PolarisButton>
               </div>
             </div>
 
@@ -467,26 +466,24 @@ export default function IntegrationsPage() {
                 <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
                   <MessageCircle className="w-5 h-5 text-[#25D366]" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-[#1a1a1a]">{t('providers.whatsapp.title')}</h3>
-                    {hasWhatsApp && <Badge variant="secondary" className="bg-[#AEE9D1] text-[#005E39] hover:bg-[#AEE9D1]">Connected</Badge>}
-                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-[#1a1a1a]">{t('providers.whatsapp.title')}</h3>
+                    {hasWhatsApp && <PolarisBadge tone="success">Connected</PolarisBadge>}
+                    </div>
                   <p className="text-sm text-[#616161] mt-0.5 max-w-[400px]">
                     {hasWhatsApp ? t('providers.whatsapp.connected') : t('providers.whatsapp.description')}
                   </p>
                 </div>
               </div>
               <div>
-                <button
+                <PolarisButton
                   onClick={() => openWhatsAppModal(integrations.find((i) => i.provider === 'whatsapp'))}
-                  className={`text-sm font-medium px-3 py-1.5 rounded-lg shadow-sm transition-colors whitespace-nowrap ${hasWhatsApp
-                    ? 'bg-white text-[#1a1a1a] ring-1 ring-zinc-200 hover:bg-zinc-50'
-                    : 'bg-[#1a1a1a] text-white hover:bg-[#303030]'
-                    }`}
+                  variant={hasWhatsApp ? 'secondary' : 'primary'}
+                  size="slim"
                 >
                   {hasWhatsApp ? t('providers.whatsapp.action.update') : t('providers.whatsapp.action.connect')}
-                </button>
+                </PolarisButton>
               </div>
             </div>
 
@@ -504,13 +501,14 @@ export default function IntegrationsPage() {
                 </div>
               </div>
               <div>
-                <button
+                <PolarisButton
                   onClick={() => setShowCsvModal(true)}
-                  className="bg-white hover:bg-zinc-50 text-[#1a1a1a] shadow-sm ring-1 ring-zinc-200 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors inline-flex items-center whitespace-nowrap"
+                  variant="secondary"
+                  size="slim"
+                  icon={Upload}
                 >
-                  <Upload className="w-4 h-4 mr-1.5" />
                   {t('providers.csv.action')}
-                </button>
+                </PolarisButton>
               </div>
             </div>
 
@@ -524,7 +522,7 @@ export default function IntegrationsPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-semibold text-[#1a1a1a]">{t('providers.manual.title')}</h3>
-                      {hasManual && <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">Connected</Badge>}
+                      {hasManual && <PolarisBadge tone="info">Connected</PolarisBadge>}
                     </div>
                     <p className="text-sm text-[#616161] mt-0.5 max-w-[400px]">
                       {hasManual ? t('providers.manual.connected') : t('providers.manual.description')}
@@ -532,21 +530,18 @@ export default function IntegrationsPage() {
                   </div>
                 </div>
                 <div>
-                  <button
+                  <PolarisButton
                     onClick={() => setShowManualModal(true)}
-                    className={`text-sm font-medium px-3 py-1.5 rounded-lg shadow-sm transition-colors whitespace-nowrap ${hasManual
-                      ? 'bg-white text-[#1a1a1a] ring-1 ring-zinc-200 hover:bg-zinc-50'
-                      : 'bg-white text-[#1a1a1a] ring-1 ring-zinc-200 hover:bg-zinc-50'
-                      }`}
+                    variant="secondary"
+                    size="slim"
+                    icon={Code}
                   >
-                    <Code className="w-4 h-4 mr-1.5 inline" />
                     {hasManual ? t('providers.manual.action.connected') : t('providers.manual.action.setup')}
-                  </button>
+                  </PolarisButton>
                 </div>
               </div>
             )}
           </div>
-        </div>
         </PolarisCard>
       </div>
 
@@ -554,8 +549,7 @@ export default function IntegrationsPage() {
       <div className="pt-8">
         <h2 className="text-lg font-semibold text-[#1a1a1a] mb-3">{t('active.title')}</h2>
         {integrations.length > 0 ? (
-          <PolarisCard>
-          <div className="bg-white rounded-xl overflow-hidden">
+          <PolarisCard padding="0">
             <div className="divide-y divide-zinc-100">
               {integrations.map((integration, idx) => (
                 <div key={integration.id} className="p-4 hover:bg-zinc-50/50 transition-all group" style={{ animationDelay: `${idx * 50}ms` }}>
@@ -601,9 +595,9 @@ export default function IntegrationsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Badge variant={integration.status === 'active' ? 'success' : integration.status === 'error' ? 'destructive' : 'secondary'} className="shadow-sm font-medium">
+                      <PolarisBadge tone={integration.status === 'active' ? 'success' : integration.status === 'error' ? 'critical' : 'attention'}>
                         {getStatusText(integration.status)}
-                      </Badge>
+                      </PolarisBadge>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {integration.provider === 'whatsapp' && (
                           <button
@@ -630,21 +624,20 @@ export default function IntegrationsPage() {
                 </div>
               ))}
             </div>
-          </div>
           </PolarisCard>
         ) : (
           <PolarisCard>
-          <div className="bg-white rounded-xl py-12 px-6 flex flex-col items-center justify-center text-center">
-            <div className="w-12 h-12 mb-4 rounded-lg bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-sm">
-              <Plug className="w-6 h-6 text-zinc-400" />
-            </div>
-            <h3 className="text-sm font-semibold text-[#1a1a1a] mb-1">
-              {t('active.empty.title')}
-            </h3>
-            <p className="text-sm text-[#616161] max-w-sm">
-              No integrations are currently active. Discover apps above to automate your workflows.
-            </p>
-          </div>
+            <Box padding="800">
+              <BlockStack gap="300" inlineAlign="center">
+                <Box background="bg-surface-secondary" borderRadius="300" padding="300">
+                  <Plug className="w-6 h-6 text-zinc-500" />
+                </Box>
+                <Text as="h3" variant="headingSm">{t('active.empty.title')}</Text>
+                <Text as="p" tone="subdued" alignment="center">
+                  No integrations are currently active. Discover apps above to automate your workflows.
+                </Text>
+              </BlockStack>
+            </Box>
           </PolarisCard>
         )}
       </div>

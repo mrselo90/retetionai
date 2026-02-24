@@ -79,6 +79,13 @@
   - Customer detail page (`/dashboard/customers/[id]`) refactored heavily toward Polaris-first layout
   - Header, metric cards, and orders/conversations/feedback sections now use Polaris `Card`, `Box`, `BlockStack`, `InlineStack`, `InlineGrid`, `Badge`, and `Button`
   - Existing navigation/data loading behaviors preserved while replacing most custom shadcn card shells
+- **Integrations Polaris Migration (step 1)**:
+  - Integrations header/support banner and the two most visible list sections (`Discover integrations`, `Active integrations`) standardized further with Polaris cards/badges/buttons
+  - Connection CTA buttons for Shopify/WhatsApp/CSV/manual rows now use Polaris button styles, improving Shopify-admin consistency
+  - Modals remain mixed (custom dialog + inputs/buttons) and are planned for a later pass
+- **Analytics Polaris Migration (step 1)**:
+  - Analytics loading surfaces and header/date-range container moved toward Polaris-first card/layout primitives
+  - Date range controls still use native date inputs (inside Polaris surfaces) to preserve behavior while improving visual consistency
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
