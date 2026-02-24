@@ -29,6 +29,7 @@
   - Follow-up runtime fixes: moved `useDeferredValue` above conditional returns (React hook order) and fixed dashboard summary rich-text translation formatting for Polaris subtitle
   - Filter toolbar alignment refined: search/status/sort fields now share the same label/control rhythm and responsive grid alignment
   - Polaris migration (step 1): Products filter toolbar now uses Polaris `TextField` + `Select` controls, moving the page closer to Shopify-native form behavior
+  - Polaris migration (step 2): Desktop list view now uses Polaris `IndexTable` while keeping mobile stacked rows for mobile-first usability
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.

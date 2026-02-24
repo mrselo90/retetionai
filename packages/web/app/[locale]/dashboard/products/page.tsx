@@ -8,6 +8,7 @@ import { Link } from '@/i18n/routing';
 import {
   ButtonGroup as PolarisButtonGroup,
   Card as PolarisCard,
+  IndexTable,
   Layout,
   Page,
   Select as PolarisSelect,
@@ -528,16 +529,9 @@ export default function ProductsPage() {
         ) : (
           <PolarisCard>
             <div className="divide-y divide-border">
-              <div className="hidden md:grid grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_minmax(0,1.6fr)_auto] gap-4 px-5 py-3 bg-muted/30 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <div>{t('list.columns.product')}</div>
-                <div>{t('list.columns.source')}</div>
-                <div>{t('list.columns.status')}</div>
-                <div className="text-right">{t('list.columns.actions')}</div>
-              </div>
-
               {filteredAndSortedProducts.map((product) => (
-                <div key={product.id} className="px-4 sm:px-5 py-4">
-                  <div className="md:hidden space-y-3">
+                <div key={`mobile-${product.id}`} className="px-4 sm:px-5 py-4 md:hidden">
+                  <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-semibold text-foreground leading-snug line-clamp-2">{product.name}</p>
@@ -576,56 +570,76 @@ export default function ProductsPage() {
                       </Link>
                     </Button>
                   </div>
-
-                  <div className="hidden md:grid grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_minmax(0,1.6fr)_auto] gap-4 items-center">
-                    <div className="min-w-0">
-                      <Link
-                        href={`/dashboard/products/${product.id}`}
-                        className="block font-semibold text-foreground hover:text-primary line-clamp-2"
-                      >
-                        {product.name}
-                      </Link>
-                      <p className="mt-1 text-xs text-muted-foreground truncate">{product.id}</p>
-                    </div>
-
-                    <div className="min-w-0">
-                      <a
-                        href={product.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary hover:text-primary/80 line-clamp-2 inline-flex items-start gap-2"
-                      >
-                        <ExternalLink className="w-4 h-4 shrink-0 mt-0.5" />
-                        <span className="break-all line-clamp-2">{product.url}</span>
-                      </a>
-                    </div>
-
-                    <div>
-                      {renderProductStatusBadges(product)}
-                    </div>
-
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/dashboard/products/${product.id}`}>
-                          {t('card.edit')}
-                        </Link>
-                      </Button>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
-                        }}
-                        type="button"
-                        title={t('card.deleteConfirm')}
-                        className="p-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
                 </div>
               ))}
+
+              <div className="hidden md:block">
+                <IndexTable
+                  selectable={false}
+                  itemCount={filteredAndSortedProducts.length}
+                  resourceName={{ singular: t('list.columns.product'), plural: t('title') }}
+                  headings={[
+                    { title: t('list.columns.product') },
+                    { title: t('list.columns.source') },
+                    { title: t('list.columns.status') },
+                    { title: t('list.columns.actions'), alignment: 'end' },
+                  ]}
+                >
+                  {filteredAndSortedProducts.map((product, index) => (
+                    <IndexTable.Row id={product.id} key={product.id} position={index}>
+                      <IndexTable.Cell>
+                        <div className="min-w-0">
+                          <Link
+                            href={`/dashboard/products/${product.id}`}
+                            className="block font-semibold text-foreground hover:text-primary line-clamp-2"
+                          >
+                            {product.name}
+                          </Link>
+                          <p className="mt-1 text-xs text-muted-foreground truncate">{product.id}</p>
+                        </div>
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        <div className="min-w-0 max-w-[320px]">
+                          <a
+                            href={product.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:text-primary/80 line-clamp-2 inline-flex items-start gap-2"
+                          >
+                            <ExternalLink className="w-4 h-4 shrink-0 mt-0.5" />
+                            <span className="break-all line-clamp-2">{product.url}</span>
+                          </a>
+                        </div>
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        {renderProductStatusBadges(product)}
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/dashboard/products/${product.id}`}>
+                              {t('card.edit')}
+                            </Link>
+                          </Button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
+                            }}
+                            type="button"
+                            title={t('card.deleteConfirm')}
+                            className="p-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </IndexTable.Cell>
+                    </IndexTable.Row>
+                  ))}
+                </IndexTable>
+              </div>
+
             </div>
           </PolarisCard>
         )
