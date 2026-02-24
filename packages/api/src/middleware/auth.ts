@@ -196,7 +196,29 @@ function authenticateInternalSecret(c: Context): {
  * Allows unauthenticated access for internal product routes (enrich, generate-embeddings) so the worker can call them.
  */
 export async function authMiddleware(c: Context, next: Next) {
-  const path = c.req.path;
+  const token = extractToken(c);
+
+  // Prefer end-user auth (JWT / Shopify session token) over internal-secret auth.
+  // This prevents stale/injected X-Internal-Secret headers from breaking browser requests.
+  if (token) {
+    // Try JWT first (Supabase Auth)
+    let merchantId = await authenticateJWT(token);
+    let authMethod: 'jwt' = 'jwt';
+
+    // If JWT fails, try Shopify Session Token
+    if (!merchantId) {
+      merchantId = await authenticateShopifyToken(token);
+      authMethod = 'jwt';
+    }
+
+    if (merchantId) {
+      c.set('merchantId', merchantId);
+      c.set('authMethod', authMethod);
+      await next();
+      return;
+    }
+  }
+
   const internal = authenticateInternalSecret(c);
   if (internal) {
     if (!internal.ok) {
@@ -208,32 +230,10 @@ export async function authMiddleware(c: Context, next: Next) {
     return next();
   }
 
-  const token = extractToken(c);
-
   if (!token) {
     return c.json({ error: 'Unauthorized: Missing authentication' }, 401);
   }
-
-  // Try JWT first (Supabase Auth)
-  let merchantId = await authenticateJWT(token);
-  let authMethod: 'jwt' = 'jwt';
-
-  // If API key fails, try Shopify Session Token
-  if (!merchantId) {
-    merchantId = await authenticateShopifyToken(token);
-    // treated as jwt for simplicity, or we could add 'shopify_token'
-    authMethod = 'jwt';
-  }
-
-  if (!merchantId) {
-    return c.json({ error: 'Unauthorized: Invalid token' }, 401);
-  }
-
-  // Add merchant context to request
-  c.set('merchantId', merchantId);
-  c.set('authMethod', authMethod);
-
-  await next();
+  return c.json({ error: 'Unauthorized: Invalid token' }, 401);
 }
 
 /**

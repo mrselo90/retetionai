@@ -21,6 +21,7 @@
 - **Manual RAG Test UX (Dashboard / Test)**:
   - Advanced RAG tab now loads existing merchant products and chunk counts for direct selection
   - Supports search/filter and multi-select so manual RAG questions can be scoped to specific scraped products (avoids all-products ambiguity)
+  - Auth middleware updated to prefer JWT/Shopify token over internal secret, preventing browser requests from failing on stray `X-Internal-Secret` headers
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.
