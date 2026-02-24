@@ -16,8 +16,10 @@ import { validateBody, validateParams } from '../middleware/validation.js';
 import { createProductSchema, updateProductSchema, productIdSchema, productInstructionSchema, CreateProductInput, UpdateProductInput, ProductIdParams, ProductInstructionInput } from '../schemas/products.js';
 import { getCachedProduct, setCachedProduct, invalidateProductCache } from '../lib/cache.js';
 import { enforceStorageLimit } from '../lib/planLimits.js';
+import { MultiLangRagShadowWriteService } from '../lib/multiLangRag/shadowWriteService.js';
 
 const products = new Hono();
+const multiLangShadowWrite = new MultiLangRagShadowWriteService();
 
 // All routes require authentication
 products.use('/*', authMiddleware);
@@ -427,6 +429,9 @@ products.post('/:id/scrape', async (c) => {
     );
     if (result.success) {
       embeddingResult = { chunksCreated: result.chunksCreated, totalTokens: result.totalTokens };
+      void multiLangShadowWrite.syncProduct(String(merchantId), productId).catch((e) => {
+        console.warn('Multi-lang RAG shadow write failed after scrape:', e);
+      });
     }
   } catch (embedErr) {
     console.error('Auto embedding generation after scrape failed:', embedErr);
@@ -577,6 +582,10 @@ products.post('/:id/generate-embeddings', async (c) => {
     }, 500);
   }
 
+  void multiLangShadowWrite.syncProduct(String(merchantId), productId).catch((e) => {
+    console.warn('Multi-lang RAG shadow write failed after embeddings:', e);
+  });
+
   return c.json({
     message: 'Embeddings generated successfully',
     chunksCreated: result.chunksCreated,
@@ -658,6 +667,12 @@ products.post('/generate-embeddings-batch', async (c) => {
 
   // Process products
   const results = await batchProcessProducts(productIds);
+
+  for (const r of results.filter((x) => x.success)) {
+    void multiLangShadowWrite.syncProduct(String(merchantId), r.productId).catch((e) => {
+      console.warn('Multi-lang RAG shadow write failed after batch embeddings:', e);
+    });
+  }
 
   const summary = {
     total: results.length,

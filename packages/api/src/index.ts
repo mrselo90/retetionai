@@ -29,6 +29,7 @@ import customerRoutes from './routes/customers.js';
 import memberRoutes from './routes/members.js';
 import adminRoutes from './routes/admin.js';
 import shopifyGdprRoutes from './routes/shopifyGdpr.js';
+import answerRoutes from './routes/answer.js';
 import { rateLimitMiddleware } from './middleware/rateLimit.js';
 import { securityHeadersMiddleware } from './middleware/securityHeaders.js';
 import { loggerMiddleware } from './middleware/logger.js';
@@ -145,6 +146,9 @@ app.route('/api/products', productRoutes);
 
 // RAG routes
 app.route('/api/rag', ragRoutes);
+
+// Answer route (feature-flagged multi-lang RAG support, legacy-compatible)
+app.route('/api/answer', answerRoutes);
 
 // WhatsApp routes
 app.route('/api/whatsapp', whatsappRoutes);

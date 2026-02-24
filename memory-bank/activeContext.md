@@ -157,3 +157,8 @@
 - **Eval quality is currently sensitive to product scoping**: passing too many products at once (e.g. 10) degrades grounding and can inflate hallucination/wrong-product rates.
 - **Prod schema drift observed**: `product_facts` query checks showed column mismatch (`extraction_status` missing in prod), so latest migrations should be verified/applied before relying on facts-first metrics.
 - **Dev Store Testing**: Shopify embedded/dev-store verification still requires manual user testing.
+- **Multi-lang RAG (Option A) additive scaffold added (feature-flagged)**:
+  - Added `019_multi_lang_rag_additive.sql` (new `shop_settings`, `product_i18n`, `product_embeddings`, lang-filtered vector RPC)
+  - Added server-side services for translation, multi-lang embeddings, vector search, shadow write, and `/api/answer` feature-flagged flow
+  - Integrated shadow write hook into product scrape / embedding generation routes (no-op unless `MULTI_LANG_RAG_SHADOW_WRITE=true`)
+  - Added `/api/answer` legacy-compatible route with shadow-read + gradual enable via `shop_settings.multi_lang_rag_enabled`
