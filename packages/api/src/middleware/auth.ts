@@ -131,6 +131,8 @@ async function authenticateShopifyToken(token: string): Promise<string | null> {
 const INTERNAL_PRODUCT_PATHS = [
   '/api/products/enrich',
   /^\/api\/products\/[^/]+\/generate-embeddings$/,
+  '/api/products/chunks/batch',
+  /^\/api\/products\/[^/]+\/chunks$/,
 ];
 
 /** Internal eval/test routes (server-side eval runner) */
@@ -140,7 +142,9 @@ const INTERNAL_EVAL_PATHS = [
 ];
 
 function isInternalProductPath(path: string): boolean {
-  return path === INTERNAL_PRODUCT_PATHS[0] || (INTERNAL_PRODUCT_PATHS[1] as RegExp).test(path);
+  return INTERNAL_PRODUCT_PATHS.some((pattern) =>
+    typeof pattern === 'string' ? path === pattern : pattern.test(path)
+  );
 }
 
 function isInternalEvalPath(path: string): boolean {
