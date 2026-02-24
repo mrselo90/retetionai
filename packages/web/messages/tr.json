@@ -523,6 +523,15 @@
                 "daysAgo": "{d} gün önce"
             }
         },
+        "table": {
+            "columns": {
+                "customer": "Müşteri",
+                "order": "Sipariş",
+                "status": "Durum",
+                "messages": "Mesaj",
+                "lastActivity": "Son aktivite"
+            }
+        },
         "toasts": {
             "loadError": {
                 "title": "Hata",

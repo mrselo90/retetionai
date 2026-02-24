@@ -35,6 +35,9 @@
 - **Dashboard Polaris-first Standardization (step 1)**:
   - Replaced remaining ad-hoc icon tiles/row icon shells with Polaris `Box`-based surfaces to align visual tokens/backgrounds with Shopify Polaris
   - Preserved existing dashboard information architecture while reducing custom Tailwind visual primitives
+- **Conversations Polaris Migration (step 1)**:
+  - Desktop conversations list migrated to Polaris `IndexTable` (mobile-first stacked rows retained)
+  - Empty state and row icon surfaces moved toward Polaris `Box` primitives; table columns localized via `Conversations.table.columns`
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.

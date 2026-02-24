@@ -523,6 +523,15 @@
                 "daysAgo": "{d} days ago"
             }
         },
+        "table": {
+            "columns": {
+                "customer": "Customer",
+                "order": "Order",
+                "status": "Status",
+                "messages": "Messages",
+                "lastActivity": "Last activity"
+            }
+        },
         "toasts": {
             "loadError": {
                 "title": "Error",

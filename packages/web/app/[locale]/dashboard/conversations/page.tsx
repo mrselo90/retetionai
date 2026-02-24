@@ -12,6 +12,8 @@ import {
   Box,
   Button as PolarisButton,
   Card as PolarisCard,
+  IndexTable,
+  InlineStack,
   Layout,
   Page,
   SkeletonBodyText,
@@ -43,6 +45,26 @@ interface Conversation {
   escalatedAt?: string | null;
   userName?: string;
   phone?: string;
+}
+
+function ConversationIconSurface({
+  icon,
+  background = 'bg-surface-secondary',
+}: {
+  icon: React.ReactNode;
+  background?: React.ComponentProps<typeof Box>['background'];
+}) {
+  return (
+    <Box
+      background={background}
+      borderRadius="200"
+      minWidth="40px"
+      minHeight="40px"
+      padding="200"
+    >
+      {icon}
+    </Box>
+  );
 }
 
 export default function ConversationsPage() {
@@ -244,35 +266,116 @@ export default function ConversationsPage() {
         <PolarisCard>
           <Box padding="600">
             <BlockStack gap="300" inlineAlign="center">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 mb-4 sm:mb-6 rounded-2xl bg-muted flex items-center justify-center">
-              <MessageSquare className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground" />
-            </div>
-            <Text as="h2" variant="headingSm" alignment="center">{t('empty.title')}</Text>
-            <Text as="p" variant="bodyMd" tone="subdued" alignment="center">{t('empty.description')}</Text>
-            <PolarisButton url={`/${locale}/dashboard/integrations`} variant="primary">{t('empty.button')}</PolarisButton>
+              <Box
+                background="bg-surface-secondary"
+                borderRadius="300"
+                padding="500"
+              >
+                <MessageSquare className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground" />
+              </Box>
+              <Text as="h2" variant="headingSm" alignment="center">{t('empty.title')}</Text>
+              <Text as="p" variant="bodyMd" tone="subdued" alignment="center">{t('empty.description')}</Text>
+              <PolarisButton url={`/${locale}/dashboard/integrations`} variant="primary">{t('empty.button')}</PolarisButton>
             </BlockStack>
           </Box>
         </PolarisCard>
       ) : (
         <PolarisCard>
           <div className="divide-y divide-border">
-            {filteredConversations.map((conversation, idx) => (
-              <Link
-                key={conversation.id}
-                href={`/dashboard/conversations/${conversation.id}`}
-                className="block p-4 sm:p-5 hover:bg-muted/50 active:bg-muted transition-colors min-h-[88px] sm:min-h-0"
-                style={{ animationDelay: `${idx * 50}ms` }}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                  <div className="flex gap-3 sm:gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
+            {filteredConversations.map((conversation) => (
+              <div key={`mobile-${conversation.id}`} className="md:hidden">
+                <Link
+                  href={`/dashboard/conversations/${conversation.id}`}
+                  className="block p-4 hover:bg-muted/50 active:bg-muted transition-colors min-h-[88px]"
+                >
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-3 flex-1 min-w-0">
+                      <ConversationIconSurface icon={<User className="w-5 h-5 text-muted-foreground" />} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                          <p className="text-sm font-semibold text-foreground truncate max-w-[160px]">
+                            {conversation.userName || conversation.user?.name || t('list.guest')}
+                          </p>
+                          <PolarisBadge tone={getSentimentBadgeTone(conversation.sentiment)}>
+                            {`${getSentimentIcon(conversation.sentiment)} ${conversation.sentiment}`}
+                          </PolarisBadge>
+                          {conversation.conversationStatus === 'human' && (
+                            <PolarisBadge tone="critical">{t('statusBadge.human')}</PolarisBadge>
+                          )}
+                          {conversation.conversationStatus === 'resolved' && (
+                            <PolarisBadge tone="success">{t('statusBadge.resolved')}</PolarisBadge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate mb-0.5">
+                          {conversation.phone || conversation.user?.phone}
+                        </p>
+                        {conversation.order && (
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                            <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate max-w-[180px]">{t('list.order')}: #{conversation.order.external_order_id}</span>
+                            <PolarisBadge tone={conversation.order.status === 'delivered' ? 'success' : 'enabled'}>
+                              {conversation.order.status}
+                            </PolarisBadge>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
-                        <h3 className="text-sm sm:text-base font-semibold text-foreground truncate max-w-[140px] sm:max-w-none">
-                          {conversation.userName || conversation.user?.name || t('list.guest')}
-                        </h3>
+                    <div className="flex items-center justify-between gap-2 border-t border-border/50 pt-3">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 shrink-0" />
+                        <span>{formatDateTime(conversation.last_message_at)}</span>
+                      </p>
+                      <PolarisBadge>{`${conversation.message_count} ${t('list.messages')}`}</PolarisBadge>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            ))}
+
+            <div className="hidden md:block">
+              <IndexTable
+                selectable={false}
+                itemCount={filteredConversations.length}
+                resourceName={{ singular: t('title'), plural: t('title') }}
+                headings={[
+                  { title: t('table.columns.customer') },
+                  { title: t('table.columns.order') },
+                  { title: t('table.columns.status') },
+                  { title: t('table.columns.messages') },
+                  { title: t('table.columns.lastActivity'), alignment: 'end' },
+                ]}
+              >
+                {filteredConversations.map((conversation, index) => (
+                  <IndexTable.Row id={conversation.id} key={conversation.id} position={index}>
+                    <IndexTable.Cell>
+                      <Link href={`/dashboard/conversations/${conversation.id}`} className="block no-underline">
+                        <InlineStack gap="300" blockAlign="start">
+                          <ConversationIconSurface icon={<User className="w-4 h-4 text-muted-foreground" />} />
+                          <BlockStack gap="050">
+                            <Text as="p" variant="bodySm" fontWeight="semibold">
+                              {conversation.userName || conversation.user?.name || t('list.guest')}
+                            </Text>
+                            <Text as="p" variant="bodyXs" tone="subdued">
+                              {conversation.phone || conversation.user?.phone}
+                            </Text>
+                          </BlockStack>
+                        </InlineStack>
+                      </Link>
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>
+                      {conversation.order ? (
+                        <BlockStack gap="050">
+                          <Text as="p" variant="bodySm">#{conversation.order.external_order_id}</Text>
+                          <PolarisBadge tone={conversation.order.status === 'delivered' ? 'success' : 'enabled'}>
+                            {conversation.order.status}
+                          </PolarisBadge>
+                        </BlockStack>
+                      ) : (
+                        <Text as="p" variant="bodySm" tone="subdued">-</Text>
+                      )}
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>
+                      <InlineStack gap="200" wrap={false}>
                         <PolarisBadge tone={getSentimentBadgeTone(conversation.sentiment)}>
                           {`${getSentimentIcon(conversation.sentiment)} ${conversation.sentiment}`}
                         </PolarisBadge>
@@ -282,29 +385,21 @@ export default function ConversationsPage() {
                         {conversation.conversationStatus === 'resolved' && (
                           <PolarisBadge tone="success">{t('statusBadge.resolved')}</PolarisBadge>
                         )}
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate mb-0.5">
-                        {conversation.phone || conversation.user?.phone}
-                      </p>
-                      {conversation.order && (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
-                          <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate max-w-[120px] sm:max-w-none">{t('list.order')}: #{conversation.order.external_order_id}</span>
-                          <PolarisBadge tone={conversation.order.status === 'delivered' ? 'success' : 'enabled'}>{conversation.order.status}</PolarisBadge>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 sm:gap-1 border-t sm:border-0 pt-3 sm:pt-0 border-border/50 sm:ml-0">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 shrink-0" />
-                      <span>{formatDateTime(conversation.last_message_at)}</span>
-                    </p>
-                    <PolarisBadge>{`${conversation.message_count} ${t('list.messages')}`}</PolarisBadge>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                      </InlineStack>
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>
+                      <Text as="p" variant="bodySm">{conversation.message_count}</Text>
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>
+                      <InlineStack align="end" gap="200" blockAlign="center">
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                        <Text as="p" variant="bodySm" tone="subdued">{formatDateTime(conversation.last_message_at)}</Text>
+                      </InlineStack>
+                    </IndexTable.Cell>
+                  </IndexTable.Row>
+                ))}
+              </IndexTable>
+            </div>
           </div>
         </PolarisCard>
       )}
