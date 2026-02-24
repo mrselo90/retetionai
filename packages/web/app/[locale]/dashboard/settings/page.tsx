@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Bot, Shield, Database, Loader2, Plus, Trash2, Pencil, X, Download, AlertTriangle, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Settings, Bot, Shield, Database, Loader2, Pencil, X, AlertTriangle, ExternalLink, ShieldCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useTranslations, useLocale } from 'next-intl';
 import { ShopifySaveBar } from '@/components/ui/ShopifySaveBar';
@@ -796,7 +796,7 @@ export default function SettingsPage() {
                   <Text as="p" tone="subdued">{t('guardrails.description')}</Text>
                 </BlockStack>
               </InlineStack>
-              <PolarisButton onClick={openAddGuardrail} variant="primary" icon={Plus}>
+              <PolarisButton onClick={openAddGuardrail} variant="primary">
                 {t('guardrails.addButton')}
               </PolarisButton>
             </InlineStack>
@@ -919,7 +919,6 @@ export default function SettingsPage() {
                 variant="secondary"
                 onClick={handleExportData}
                 disabled={exportingData}
-                icon={exportingData ? Loader2 : Download}
                 loading={exportingData}
               >
                 {exportingData ? t('gdpr.exporting') : t('gdpr.exportButton')}
@@ -942,7 +941,6 @@ export default function SettingsPage() {
                 tone="critical"
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={deletingData}
-                icon={Trash2}
               >
                 {t('gdpr.deleteButton')}
               </PolarisButton>

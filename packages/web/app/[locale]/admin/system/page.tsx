@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { Badge, Banner, BlockStack, Box, Button, Card, InlineGrid, InlineStack, Layout, Page, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
-import { Database, Server, Activity, RefreshCw, AlertCircle } from 'lucide-react';
+import { Database, Server, Activity, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface QueueStats {
@@ -177,7 +177,7 @@ export default function SystemHealthPage() {
                     <Text as="span" variant="bodySm" tone="subdued">
                         Last checked: {formatDistanceToNow(lastUpdated)} ago
                     </Text>
-                    <Button variant="secondary" size="slim" onClick={fetchHealth} disabled={isRefreshing} icon={RefreshCw}>
+                    <Button variant="secondary" size="slim" onClick={fetchHealth} disabled={isRefreshing}>
                         Refresh
                     </Button>
                 </InlineStack>

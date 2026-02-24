@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { Badge, BlockStack, Box, Button, Card, IndexTable, InlineStack, Layout, Page, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
-import { Store, Calendar, ShieldAlert, Key } from 'lucide-react';
+import { Store, Calendar, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/lib/toast';
 
@@ -228,7 +228,6 @@ export default function AdminMerchantsPage() {
                                                     size="slim"
                                                     disabled={impersonatingMap[merchant.id]}
                                                     loading={!!impersonatingMap[merchant.id]}
-                                                    icon={Key}
                                                     onClick={() => handleImpersonate(merchant.id)}
                                                 >
                                                     Login As
