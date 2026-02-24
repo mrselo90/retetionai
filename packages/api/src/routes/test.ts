@@ -304,22 +304,29 @@ test.post('/rag/answer', async (c) => {
 
     let answer = '';
     let completion: any = null;
+    let llmRequestMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+    const llmConfig = {
+      model: 'gpt-4o-mini',
+      temperature: 0.5,
+      max_tokens: 500,
+    } as const;
     if (planned) {
       answer = planned.answer;
     } else {
       const openai = getOpenAIClient();
+      llmRequestMessages = [
+        { role: 'system', content: systemPrompt },
+        ...conversationHistory.slice(-10).map((m: any) => ({
+          role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+          content: m.content,
+        })),
+        { role: 'user', content: query },
+      ];
       completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...conversationHistory.slice(-10).map((m: any) => ({
-            role: m.role === 'user' ? 'user' : 'assistant',
-            content: m.content,
-          })),
-          { role: 'user', content: query },
-        ],
-        temperature: 0.5,
-        max_tokens: 500,
+        model: llmConfig.model,
+        messages: llmRequestMessages,
+        temperature: llmConfig.temperature,
+        max_tokens: llmConfig.max_tokens,
       });
       answer = completion.choices[0]?.message?.content?.trim() || '';
     }
@@ -347,6 +354,21 @@ test.post('/rag/answer', async (c) => {
         deterministicEvidenceUsed: planned?.evidenceQuotesUsed?.length || 0,
         styleCompliance,
         tokens: completion?.usage || null,
+        aiDebug: {
+          mode: planned ? 'deterministic_facts' : 'llm_chat_completion',
+          model: planned ? null : llmConfig.model,
+          query,
+          ragQuery,
+          plannerQuery,
+          systemPrompt,
+          contextText,
+          contextChars: contextText.length,
+          requestMessages: llmRequestMessages,
+          llmConfig: planned ? null : llmConfig,
+          deterministicAnswerUsed: Boolean(planned),
+          deterministicUsedFactKeys: planned?.usedFactKeys || [],
+          deterministicEvidenceQuotes: planned?.evidenceQuotesUsed || [],
+        },
       },
       ...(ragResult.results.length === 0 && {
         hint: 'RAG sonucu boş; AI genel bir cevap verebilir. Ürün ekleyip embedding ürettiğinizde daha iyi yanıt alırsınız.',

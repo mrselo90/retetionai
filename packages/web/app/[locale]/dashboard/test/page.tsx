@@ -1024,6 +1024,63 @@ export default function TestInterfacePage() {
                         <p className="text-zinc-800 whitespace-pre-wrap">{ragResult.answer}</p>
                       </div>
                     )}
+                    {ragResult.meta?.aiDebug && (
+                      <details className="border border-zinc-200 bg-white rounded-lg p-3">
+                        <summary className="cursor-pointer text-sm font-semibold text-zinc-900">
+                          AI Debug (Model / Prompt / Gönderilen Mesajlar)
+                        </summary>
+                        <div className="mt-3 space-y-3 text-sm">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                              <p><span className="font-medium">Mode:</span> {String(ragResult.meta.aiDebug.mode || '-')}</p>
+                              <p><span className="font-medium">Model:</span> {ragResult.meta.aiDebug.model || '(deterministic facts, model call yok)'}</p>
+                              <p><span className="font-medium">Context chars:</span> {ragResult.meta.aiDebug.contextChars ?? 0}</p>
+                            </div>
+                            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                              <p><span className="font-medium">Query:</span> {String(ragResult.meta.aiDebug.query || '')}</p>
+                              <p><span className="font-medium">RAG Query:</span> {String(ragResult.meta.aiDebug.ragQuery || '')}</p>
+                              <p><span className="font-medium">Planner Query:</span> {String(ragResult.meta.aiDebug.plannerQuery || '')}</p>
+                            </div>
+                          </div>
+
+                          {ragResult.meta.aiDebug.llmConfig && (
+                            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                              <p className="font-medium mb-2">LLM Config</p>
+                              <pre className="text-xs whitespace-pre-wrap break-words text-zinc-700">
+{JSON.stringify(ragResult.meta.aiDebug.llmConfig, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+
+                          {Array.isArray(ragResult.meta.aiDebug.requestMessages) && ragResult.meta.aiDebug.requestMessages.length > 0 && (
+                            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                              <p className="font-medium mb-2">Gönderilen Mesajlar (OpenAI messages)</p>
+                              <pre className="max-h-80 overflow-y-auto text-xs whitespace-pre-wrap break-words text-zinc-700">
+{JSON.stringify(ragResult.meta.aiDebug.requestMessages, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+
+                          {typeof ragResult.meta.aiDebug.systemPrompt === 'string' && ragResult.meta.aiDebug.systemPrompt && (
+                            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                              <p className="font-medium mb-2">System Prompt</p>
+                              <pre className="max-h-80 overflow-y-auto text-xs whitespace-pre-wrap break-words text-zinc-700">
+{ragResult.meta.aiDebug.systemPrompt}
+                              </pre>
+                            </div>
+                          )}
+
+                          {typeof ragResult.meta.aiDebug.contextText === 'string' && ragResult.meta.aiDebug.contextText && (
+                            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                              <p className="font-medium mb-2">Context (RAG + Facts)</p>
+                              <pre className="max-h-80 overflow-y-auto text-xs whitespace-pre-wrap break-words text-zinc-700">
+{ragResult.meta.aiDebug.contextText}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      </details>
+                    )}
                     <h4 className="font-semibold text-zinc-900">
                       {ragResult.count} RAG sonucu
                     </h4>
