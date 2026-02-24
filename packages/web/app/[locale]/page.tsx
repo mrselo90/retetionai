@@ -28,7 +28,7 @@ export default function Home() {
     >
       {/* Header — mobile-first: logo + nav, no overflow */}
       <header className="sticky top-0 z-50 border-b border-black/5 bg-[#f6f4ea]/90 backdrop-blur-xl shrink-0">
-        <SCard className="block max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3 min-w-0 bg-transparent border-0 shadow-none">
+        <SCard className="block w-full max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3 min-w-0 bg-transparent border-0 shadow-none">
           <Link
             href="/"
             className="flex items-center gap-2 min-w-0 shrink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg"
@@ -119,7 +119,7 @@ export default function Home() {
       <CTA />
       <Footer />
 
-      <div className="sm:hidden fixed bottom-3 inset-x-3 z-40">
+      <div className="sm:hidden fixed bottom-3 inset-x-3 z-40 pb-[max(env(safe-area-inset-bottom),0px)]">
         <SCard className="block rounded-2xl border border-black/10 bg-white/95 backdrop-blur shadow-[0_18px_45px_rgba(10,61,46,.14)] p-2 flex items-center gap-2">
           <Link
             href="/signup"

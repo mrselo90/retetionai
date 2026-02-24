@@ -35,21 +35,21 @@ export function SocialProof() {
   ];
 
   return (
-    <SSection className="block py-14 sm:py-20 px-4 sm:px-6 bg-[#f6f4ea]">
+    <SSection className="block py-16 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[#f6f4ea]">
       <div className="max-w-6xl mx-auto">
         <SCard className="block rounded-2xl sm:rounded-3xl border border-black/5 bg-white p-5 sm:p-7 lg:p-8 shadow-[0_14px_50px_rgba(10,61,46,.06)]">
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-6 sm:mb-8">
-            <div>
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 lg:gap-8 mb-6 sm:mb-8">
+            <div className="w-full lg:flex-1 text-center lg:text-left">
               <SBadge className="inline-flex items-center rounded-full border border-[#0a3d2e]/10 bg-[#0a3d2e]/5 px-3 py-1 text-xs font-semibold text-[#0a3d2e]">
                 {t('eyebrow')}
               </SBadge>
               <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-[#0a3d2e]">
                 {t('title')}
               </h2>
-              <p className="mt-2 text-sm sm:text-base text-zinc-600 max-w-2xl text-center lg:text-left">{t('subtitle')}</p>
+              <p className="mt-2 text-sm sm:text-base text-zinc-600 max-w-2xl mx-auto lg:mx-0 text-center lg:text-left leading-relaxed">{t('subtitle')}</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto lg:min-w-[520px]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto lg:min-w-[520px] self-stretch">
               {proofItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -64,11 +64,11 @@ export function SocialProof() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
             {testimonials.map((item, idx) => (
               <article
                 key={idx}
-                className="relative rounded-2xl border border-black/5 bg-white p-4 sm:p-5 shadow-[0_8px_24px_rgba(10,61,46,.04)]"
+                className="relative rounded-2xl border border-black/5 bg-white p-4 sm:p-5 shadow-[0_8px_24px_rgba(10,61,46,.04)] h-full flex flex-col"
               >
                 <Quote className="w-5 h-5 text-emerald-600/70" aria-hidden />
                 <p className="mt-3 text-sm sm:text-base leading-relaxed text-zinc-700">
@@ -76,7 +76,7 @@ export function SocialProof() {
                   {item.quote}
                   <span aria-hidden>&rdquo;</span>
                 </p>
-                <div className="mt-4 pt-4 border-t border-black/5 flex items-start justify-between gap-3">
+                <div className="mt-auto pt-4 border-t border-black/5 flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-[#0a3d2e]">{item.name}</p>
                     <p className="text-xs text-zinc-500">{item.role}</p>

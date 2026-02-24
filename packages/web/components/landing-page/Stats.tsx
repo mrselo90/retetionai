@@ -18,7 +18,7 @@ export function Stats() {
     ];
 
     return (
-        <SSection className="block px-4 sm:px-6 py-6 sm:py-8 bg-[#f6f4ea]">
+        <SSection className="block px-4 sm:px-6 pt-4 pb-8 sm:pt-6 sm:pb-10 bg-[#f6f4ea] -mt-2 sm:-mt-4 relative z-20">
             <div className="max-w-6xl mx-auto">
                 <SCard className="block rounded-2xl sm:rounded-3xl border border-black/5 bg-white shadow-[0_18px_60px_rgba(10,61,46,0.07)] overflow-hidden">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-black/5">

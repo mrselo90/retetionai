@@ -15,6 +15,9 @@
 - **Products Dashboard RAG Status Fix**:
   - `chunks/batch` parse error no longer causes false `0 chunk`
   - UI shows unknown state instead of false `RAG not ready` when chunk-count fetch fails
+- **Landing Page Responsive Cleanup**:
+  - Mobile-first spacing rhythm tightened across sections (Hero→Stats, Features, How It Works, Social Proof, Pricing, FAQ, CTA, Footer)
+  - Alignment inconsistencies fixed (card heights, section headers, mobile CTA/button layout, footer grid spacing)
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.
@@ -22,7 +25,6 @@
   - **G3**: `ShopifySaveBar` implemented on Settings pages.
   - **G4**: `InlineError` replaces toasts on Settings pages (BFS requirement).
   - **G5**: `PlanGatedFeature` visually disables locked add-ons.
-- **Landing Page**: Retained premium dark design (verified in previous session).
 
 ## Active Tasks (current)
 - [x] Remove merchant API key dependency from active app/runtime paths

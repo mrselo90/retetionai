@@ -36,10 +36,10 @@ export function HowItWorks() {
     const t = useTranslations('Landing.howItWorks');
 
     return (
-        <SSection id="how-it-works" className="block py-14 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
+        <SSection id="how-it-works" className="block py-16 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
             <div className="max-w-6xl mx-auto">
                 <SCard className="block rounded-2xl sm:rounded-3xl border border-black/5 bg-white p-6 sm:p-8 lg:p-10 shadow-[0_16px_50px_rgba(10,61,46,.06)]">
-                <div className="text-center mb-10 sm:mb-14">
+                <div className="text-center mb-10 sm:mb-12 lg:mb-14">
                     <SBadge
                         className="inline-block rounded-full border px-4 py-1.5 text-xs sm:text-[13px] font-semibold uppercase tracking-wider mb-3 sm:mb-4"
                         style={{
@@ -53,10 +53,10 @@ export function HowItWorks() {
                     <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold mb-3 sm:mb-4 leading-tight text-[#0A3D2E] px-2 tracking-tight">
                         {t('title')}
                     </h2>
-                    <p className="text-sm sm:text-base max-w-[28rem] mx-auto text-zinc-600 px-2 text-center">{t('subtitle')}</p>
+                    <p className="text-sm sm:text-base max-w-xl mx-auto text-zinc-600 px-2 text-center leading-relaxed">{t('subtitle')}</p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-8 lg:gap-10 relative">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-6 lg:gap-10 relative items-start">
                     {/* Connector line — desktop only */}
                     <div
                         aria-hidden

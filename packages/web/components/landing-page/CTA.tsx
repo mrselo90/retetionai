@@ -9,7 +9,7 @@ export function CTA() {
     const t = useTranslations('Landing.cta');
 
     return (
-        <SSection id="cta" className="block py-14 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
+        <SSection id="cta" className="block pt-16 pb-12 sm:pt-20 sm:pb-16 lg:pt-24 lg:pb-18 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
             <div className="max-w-5xl mx-auto">
                 <SCard
                     className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-[#0A3D2E]/10 px-4 py-10 sm:px-8 sm:py-14 md:px-12 md:py-16 text-center"
@@ -33,10 +33,10 @@ export function CTA() {
                     <h2 className="relative text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold mb-3 sm:mb-4 leading-tight text-[#F8F5E6] px-2">
                         {t('title')}
                     </h2>
-                    <div className="relative mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap gap-3 justify-center items-stretch sm:items-center">
+                    <div className="relative mt-6 sm:mt-8 flex flex-col sm:flex-row sm:flex-wrap gap-3 justify-center items-stretch sm:items-center max-w-2xl mx-auto">
                         <Link
                             href="/signup"
-                            className="inline-block"
+                            className="inline-block w-full sm:w-auto"
                         >
                             <SButton
                                 className="inline-flex items-center justify-center gap-2 font-bold text-sm sm:text-base py-3.5 px-6 sm:py-4 sm:px-8 rounded-xl no-underline shadow-lg transition-all hover:opacity-95 min-h-[44px] sm:min-h-0"
@@ -49,10 +49,7 @@ export function CTA() {
                                 {t('primaryCta')} <ArrowRight size={18} aria-hidden />
                             </SButton>
                         </Link>
-                        <Link
-                            href="/signup"
-                            className="inline-block"
-                        >
+                        <Link href="/signup" className="inline-block w-full sm:w-auto">
                             <SButton className="inline-flex items-center justify-center gap-2 py-3.5 px-6 sm:py-4 sm:px-8 rounded-xl font-semibold text-sm sm:text-base no-underline border border-[#F8F5E6]/30 bg-white/5 backdrop-blur-sm transition-colors hover:bg-white/10 min-h-[44px] sm:min-h-0 text-[#F8F5E6]">
                                 <Calendar size={18} aria-hidden /> {t('secondaryCta')}
                             </SButton>
