@@ -32,11 +32,7 @@ export function CTA() {
                     <h2 className="relative text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold mb-3 sm:mb-4 leading-tight text-[#F8F5E6] px-2">
                         {t('title')}
                     </h2>
-                    <p className="relative text-sm sm:text-base max-w-[32rem] mx-auto mb-8 sm:mb-10 leading-relaxed opacity-90 text-[#F8F5E6] px-2 text-center">
-                        {t('subtitle')}
-                    </p>
-
-                    <div className="relative flex flex-col sm:flex-row flex-wrap gap-3 justify-center items-stretch sm:items-center">
+                    <div className="relative mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap gap-3 justify-center items-stretch sm:items-center">
                         <Link
                             href="/signup"
                             className="inline-flex items-center justify-center gap-2 font-bold text-sm sm:text-base py-3.5 px-6 sm:py-4 sm:px-8 rounded-xl no-underline shadow-lg transition-all hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A3D2E] min-h-[44px] sm:min-h-0"
