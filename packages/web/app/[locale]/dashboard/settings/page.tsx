@@ -5,7 +5,7 @@ import { Link } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Banner, BlockStack, Box, Card as PolarisCard, Checkbox, ChoiceList, Divider, InlineStack, Layout, Page, RangeSlider, Select, SkeletonPage, Text, TextField } from '@shopify/polaris';
+import { Badge as PolarisBadge, Banner, BlockStack, Box, Button as PolarisButton, Card as PolarisCard, Checkbox, ChoiceList, Divider, InlineStack, Layout, Page, RangeSlider, Select, SkeletonPage, Text, TextField } from '@shopify/polaris';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -725,24 +725,23 @@ export default function SettingsPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <p className="font-bold text-zinc-900 text-base">{rp('moduleTitle')}</p>
-                    <Badge variant={addon.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                    <PolarisBadge tone={addon.status === 'active' ? 'success' : undefined}>
                       {addon.status === 'active' ? rp('statusActive') : rp('statusInactive')}
-                    </Badge>
+                    </PolarisBadge>
                   </div>
                   <p className="text-sm text-zinc-600 mt-1">{rp('moduleDescription')}</p>
                   <p className="text-sm font-semibold text-primary mt-1.5">
                     +${addon.priceMonthly}/month
                   </p>
                 </div>
-                <button
+                <PolarisButton
                   onClick={() => handleAddonToggle(addon.key, addon.status)}
                   disabled={!addon.planAllowed}
-                  className={`relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-200 shadow-inner ${addon.status === 'active' ? 'bg-primary' : 'bg-zinc-300'}`}
+                  variant={addon.status === 'active' ? 'secondary' : 'primary'}
+                  size="slim"
                 >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md ${addon.status === 'active' ? 'translate-x-8' : 'translate-x-1'}`}
-                  />
-                </button>
+                  {addon.status === 'active' ? rp('disableConfirmButton') : rp('enableConfirmButton')}
+                </PolarisButton>
               </div>
             </PlanGatedFeature>
           ))}
@@ -765,21 +764,20 @@ export default function SettingsPage() {
               {addonAction === 'enable' ? rp('enableConfirmMessage') : rp('disableConfirmMessage')}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-3 sm:gap-0">
-            <Button
-              variant="outline"
+          <DialogFooter className="gap-3 sm:gap-3">
+            <PolarisButton
               onClick={() => setShowAddonConfirm(null)}
-              className="flex-1 sm:flex-none"
+              variant="secondary"
             >
               {rp('cancel')}
-            </Button>
-            <Button
+            </PolarisButton>
+            <PolarisButton
               onClick={handleAddonConfirm}
-              variant={addonAction === 'enable' ? 'default' : 'destructive'}
-              className="flex-1 sm:flex-none"
+              variant={addonAction === 'enable' ? 'primary' : undefined}
+              tone={addonAction === 'enable' ? undefined : 'critical'}
             >
               {addonAction === 'enable' ? rp('enableConfirmButton') : rp('disableConfirmButton')}
-            </Button>
+            </PolarisButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -798,10 +796,9 @@ export default function SettingsPage() {
                   <Text as="p" tone="subdued">{t('guardrails.description')}</Text>
                 </BlockStack>
               </InlineStack>
-              <Button onClick={openAddGuardrail} size="lg" variant="success" className="shadow-lg">
-                <Plus className="w-5 h-5 mr-2" />
+              <PolarisButton onClick={openAddGuardrail} variant="primary" icon={Plus}>
                 {t('guardrails.addButton')}
-              </Button>
+              </PolarisButton>
             </InlineStack>
           {/* System guardrails (read-only) */}
           <div>
@@ -869,23 +866,21 @@ export default function SettingsPage() {
                           </Text>
                         </BlockStack>
                         <InlineStack gap="200">
-                          <Button
-                            type="button"
+                          <PolarisButton
                             onClick={() => openEditGuardrail(g)}
-                            variant="outline"
-                            size="sm"
+                            variant="secondary"
+                            size="slim"
                           >
                             {t('guardrails.edit')}
-                          </Button>
-                          <Button
-                            type="button"
+                          </PolarisButton>
+                          <PolarisButton
                             onClick={() => handleDeleteGuardrail(g.id)}
                             disabled={savingGuardrails}
-                            variant="destructive"
-                            size="sm"
+                            tone="critical"
+                            size="slim"
                           >
                             {t('guardrails.delete')}
-                          </Button>
+                          </PolarisButton>
                         </InlineStack>
                       </InlineStack>
                     </Box>
@@ -920,15 +915,15 @@ export default function SettingsPage() {
                 <Text as="h3" variant="headingSm">{t('gdpr.exportTitle')}</Text>
                 <Text as="p" tone="subdued">{t('gdpr.exportDesc')}</Text>
               </BlockStack>
-              <Button
-                variant="outline"
+              <PolarisButton
+                variant="secondary"
                 onClick={handleExportData}
                 disabled={exportingData}
-                className="ml-4"
+                icon={exportingData ? Loader2 : Download}
+                loading={exportingData}
               >
-                {exportingData ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
                 {exportingData ? t('gdpr.exporting') : t('gdpr.exportButton')}
-              </Button>
+              </PolarisButton>
             </InlineStack>
           </Box>
 
@@ -943,15 +938,14 @@ export default function SettingsPage() {
                   <Text as="span" variant="bodySm" tone="critical">{t('gdpr.deleteWarning')}</Text>
                 </InlineStack>
               </BlockStack>
-              <Button
-                variant="destructive"
+              <PolarisButton
+                tone="critical"
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={deletingData}
-                className="ml-4"
+                icon={Trash2}
               >
-                <Trash2 className="w-4 h-4 mr-2" />
                 {t('gdpr.deleteButton')}
-              </Button>
+              </PolarisButton>
             </InlineStack>
           </Box>
 
@@ -1044,21 +1038,22 @@ export default function SettingsPage() {
               multiline={2}
               autoComplete="off"
             />
-            <DialogFooter className="gap-3 sm:gap-0">
-              <Button
-                variant="outline"
+            <DialogFooter className="gap-3 sm:gap-3">
+              <PolarisButton
+                variant="secondary"
                 onClick={closeGuardrailModal}
                 disabled={savingGuardrails}
               >
                 {t('guardrails.modal.cancel')}
-              </Button>
-              <Button
+              </PolarisButton>
+              <PolarisButton
                 onClick={handleSaveGuardrail}
                 disabled={savingGuardrails}
+                loading={savingGuardrails}
+                variant="primary"
               >
-                {savingGuardrails && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {savingGuardrails ? t('guardrails.modal.saving') : (editingGuardrail ? t('guardrails.modal.save') : t('guardrails.modal.save'))}
-              </Button>
+              </PolarisButton>
             </DialogFooter>
           </BlockStack>
         </DialogContent>
@@ -1070,51 +1065,58 @@ export default function SettingsPage() {
       }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-destructive flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
-              {t('gdpr.modal.title')}
+            <DialogTitle>
+              <InlineStack gap="200" blockAlign="center">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <Text as="span" variant="headingSm" tone="critical">{t('gdpr.modal.title')}</Text>
+              </InlineStack>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-              <p className="text-sm text-destructive font-medium mb-2">
-                {t('gdpr.modal.warning')}
-              </p>
-              <ul className="text-sm text-destructive/80 space-y-1 list-disc list-inside">
-                <li>{t('gdpr.modal.list.all')}</li>
-                <li>{t('gdpr.modal.list.permanent')}</li>
-                <li>{t('gdpr.modal.list.cancel')}</li>
-              </ul>
-            </div>
+          <Box paddingBlockStart="300">
+            <BlockStack gap="400">
+              <Box background="bg-surface-critical" borderColor="border-critical" borderWidth="025" borderRadius="300" padding="300">
+                <BlockStack gap="200">
+                  <Text as="p" variant="bodyMd" fontWeight="medium" tone="critical">
+                    {t('gdpr.modal.warning')}
+                  </Text>
+                  <BlockStack gap="100">
+                    <Text as="p" variant="bodySm" tone="critical">• {t('gdpr.modal.list.all')}</Text>
+                    <Text as="p" variant="bodySm" tone="critical">• {t('gdpr.modal.list.permanent')}</Text>
+                    <Text as="p" variant="bodySm" tone="critical">• {t('gdpr.modal.list.cancel')}</Text>
+                  </BlockStack>
+                </BlockStack>
+              </Box>
 
-            <div className="space-y-2">
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={() => handleDeleteData(false)}
-                disabled={deletingData}
-              >
-                {deletingData && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.softDelete')}
-              </Button>
-              <Button
-                variant="destructive"
-                className="w-full opacity-80"
-                onClick={() => handleDeleteData(true)}
-                disabled={deletingData}
-              >
-                {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.hardDelete')}
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={deletingData}
-              >
-                {t('gdpr.modal.cancel')}
-              </Button>
-            </div>
-          </div>
+              <BlockStack gap="200">
+                <PolarisButton
+                  tone="critical"
+                  fullWidth
+                  onClick={() => handleDeleteData(false)}
+                  disabled={deletingData}
+                  loading={deletingData}
+                >
+                  {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.softDelete')}
+                </PolarisButton>
+                <PolarisButton
+                  tone="critical"
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => handleDeleteData(true)}
+                  disabled={deletingData}
+                >
+                  {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.hardDelete')}
+                </PolarisButton>
+                <PolarisButton
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deletingData}
+                >
+                  {t('gdpr.modal.cancel')}
+                </PolarisButton>
+              </BlockStack>
+            </BlockStack>
+          </Box>
         </DialogContent>
       </Dialog>
 

@@ -646,6 +646,7 @@ export default function IntegrationsPage() {
           <DialogHeader>
             <DialogTitle>{t('modals.shopify.title')}</DialogTitle>
           </DialogHeader>
+          <Box paddingBlockStart="200">
           <BlockStack gap="400">
             <TextField
               label={t('modals.shopify.shopLabel')}
@@ -675,6 +676,7 @@ export default function IntegrationsPage() {
               </PolarisButton>
             </DialogFooter>
           </BlockStack>
+          </Box>
         </DialogContent>
       </Dialog>
 
@@ -686,11 +688,12 @@ export default function IntegrationsPage() {
           <DialogHeader>
             <DialogTitle>{t('modals.csv.title')}</DialogTitle>
           </DialogHeader>
+          <Box paddingBlockStart="200">
           <BlockStack gap="400">
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <BlockStack gap="200">
+              <Text as="p" variant="bodyMd" fontWeight="medium">
                 {t('modals.csv.fileLabel')}
-              </label>
+              </Text>
               <input
                 type="file"
                 accept=".csv"
@@ -699,17 +702,17 @@ export default function IntegrationsPage() {
                 className="w-full px-3 py-2 rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 text-sm"
               />
               {csvFile && (
-                <p className="text-sm text-emerald-600">
+                <Text as="p" variant="bodySm" tone="success">
                   {t('modals.csv.fileSelected', { name: csvFile.name })}
-                </p>
+                </Text>
               )}
-            </div>
+            </BlockStack>
 
-            <div className="bg-muted/50 border border-border rounded-lg p-4">
-              <p className="text-sm text-muted-foreground">
+            <Box background="bg-surface-secondary" borderWidth="025" borderColor="border" borderRadius="300" padding="300">
+              <Text as="p" variant="bodySm" tone="subdued">
                 <strong>{t('modals.csv.format')}</strong>
-              </p>
-            </div>
+              </Text>
+            </Box>
 
             <DialogFooter className="gap-3 sm:gap-3">
               <PolarisButton
@@ -729,6 +732,7 @@ export default function IntegrationsPage() {
               </PolarisButton>
             </DialogFooter>
           </BlockStack>
+          </Box>
         </DialogContent>
       </Dialog>
 
@@ -738,6 +742,7 @@ export default function IntegrationsPage() {
           <DialogHeader>
             <DialogTitle>{t('modals.manual.title')}</DialogTitle>
           </DialogHeader>
+          <Box paddingBlockStart="200">
           <BlockStack gap="400">
             <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
               <BlockStack gap="200">
@@ -764,6 +769,7 @@ export default function IntegrationsPage() {
               </PolarisButton>
             </DialogFooter>
           </BlockStack>
+          </Box>
         </DialogContent>
       </Dialog>
 
@@ -780,6 +786,7 @@ export default function IntegrationsPage() {
               {t('modals.whatsapp.description')}
             </DialogDescription>
           </DialogHeader>
+          <Box paddingBlockStart="200">
           <BlockStack gap="400">
             <TextField
               label={t('modals.whatsapp.displayLabel')}
@@ -833,6 +840,7 @@ export default function IntegrationsPage() {
               </PolarisButton>
             </DialogFooter>
           </BlockStack>
+          </Box>
         </DialogContent>
       </Dialog>
     </div>
