@@ -39,6 +39,7 @@ const sbHeaders = {
 const internalHeaders = {
   'Content-Type': 'application/json',
   'X-Internal-Secret': INTERNAL_SECRET,
+  'X-Internal-Merchant-Id': MERCHANT_ID,
 };
 
 function decodeHtmlEntities(s) {
