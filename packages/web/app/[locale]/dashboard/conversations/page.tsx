@@ -19,6 +19,7 @@ import {
   SkeletonBodyText,
   SkeletonDisplayText,
   SkeletonPage,
+  Tabs,
   Text,
 } from '@shopify/polaris';
 import { MessageSquare, User, ShoppingBag, Clock } from 'lucide-react';
@@ -181,6 +182,24 @@ export default function ConversationsPage() {
     return true;
   });
 
+  const sentimentTabs = [
+    { id: 'sentiment-all', content: `${t('filters.all')} (${conversations.length})` },
+    { id: 'sentiment-positive', content: `${t('filters.positive')} (${conversations.filter((c) => c.sentiment === 'positive').length})` },
+    { id: 'sentiment-neutral', content: `${t('filters.neutral')} (${conversations.filter((c) => c.sentiment === 'neutral').length})` },
+    { id: 'sentiment-negative', content: `${t('filters.negative')} (${conversations.filter((c) => c.sentiment === 'negative').length})` },
+  ];
+  const sentimentTabKeys: Array<typeof filter> = ['all', 'positive', 'neutral', 'negative'];
+  const selectedSentimentTabIndex = sentimentTabKeys.indexOf(filter);
+
+  const statusTabs = [
+    { id: 'status-all', content: t('filters.all') },
+    { id: 'status-human', content: t('filters.humanCount', { count: conversations.filter((c) => c.conversationStatus === 'human').length }) },
+    { id: 'status-ai', content: 'AI' },
+    { id: 'status-resolved', content: t('filters.resolved') },
+  ];
+  const statusTabKeys: Array<typeof statusFilter> = ['all', 'human', 'ai', 'resolved'];
+  const selectedStatusTabIndex = statusTabKeys.indexOf(statusFilter);
+
   if (loading) {
     return (
       <SkeletonPage title={t('title')}>
@@ -223,43 +242,24 @@ export default function ConversationsPage() {
         );
       })()}
 
-      {/* Filters: horizontal scroll on mobile, wrap on desktop */}
-      <div className="space-y-2 sm:space-y-3">
-        <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap scrollbar-thin -mx-4 px-4 sm:mx-0 sm:px-0">
-          {[
-            { key: 'all' as const, label: `${t('filters.all')} (${conversations.length})` },
-            { key: 'positive' as const, label: `${t('filters.positive')} (${conversations.filter((c) => c.sentiment === 'positive').length})` },
-            { key: 'neutral' as const, label: `${t('filters.neutral')} (${conversations.filter((c) => c.sentiment === 'neutral').length})` },
-            { key: 'negative' as const, label: `${t('filters.negative')} (${conversations.filter((c) => c.sentiment === 'negative').length})` },
-          ].map((f) => (
-            <PolarisButton
-              key={f.key}
-              variant={filter === f.key ? 'primary' : 'secondary'}
-              size="slim"
-              onClick={() => setFilter(f.key)}
-            >
-              {f.label}
-            </PolarisButton>
-          ))}
-        </div>
-        <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap scrollbar-thin -mx-4 px-4 sm:mx-0 sm:px-0">
-          {[
-            { key: 'all' as const, label: t('filters.all') },
-            { key: 'human' as const, label: t('filters.humanCount', { count: conversations.filter((c) => c.conversationStatus === 'human').length }) },
-            { key: 'ai' as const, label: 'AI' },
-            { key: 'resolved' as const, label: t('filters.resolved') },
-          ].map((f) => (
-            <PolarisButton
-              key={`status-${f.key}`}
-              variant={statusFilter === f.key ? 'primary' : 'secondary'}
-              size="slim"
-              onClick={() => setStatusFilter(f.key)}
-            >
-              {f.label}
-            </PolarisButton>
-          ))}
-        </div>
-      </div>
+      {/* Filters (Polaris Tabs) */}
+      <PolarisCard>
+        <Box padding="300">
+          <BlockStack gap="300">
+            <Tabs
+              tabs={sentimentTabs}
+              selected={selectedSentimentTabIndex >= 0 ? selectedSentimentTabIndex : 0}
+              onSelect={(index) => setFilter(sentimentTabKeys[index] || 'all')}
+              fitted
+            />
+            <Tabs
+              tabs={statusTabs}
+              selected={selectedStatusTabIndex >= 0 ? selectedStatusTabIndex : 0}
+              onSelect={(index) => setStatusFilter(statusTabKeys[index] || 'all')}
+            />
+          </BlockStack>
+        </Box>
+      </PolarisCard>
 
       {/* Conversations List */}
       {filteredConversations.length === 0 ? (

@@ -38,6 +38,9 @@
 - **Conversations Polaris Migration (step 1)**:
   - Desktop conversations list migrated to Polaris `IndexTable` (mobile-first stacked rows retained)
   - Empty state and row icon surfaces moved toward Polaris `Box` primitives; table columns localized via `Conversations.table.columns`
+- **Conversations Polaris Migration (step 2)**:
+  - Sentiment and status filters migrated from custom button rows to Polaris `Tabs` (two-tab-bar filter layout)
+  - Mobile horizontal-scroll hacks removed in favor of Polaris tab disclosure behavior
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.
