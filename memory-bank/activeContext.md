@@ -119,6 +119,10 @@
   - Server pulled and built latest web commits up to `57138ad`
   - Next.js production build completed successfully and generated all key dashboard/admin routes (`products`, `customers`, `conversations`, `settings`, `analytics`, `integrations`, admin pages)
   - PM2 `api`, `web`, and `workers` restarted and confirmed `online`
+- **Runtime Crash Fix (React #31)**:
+  - Fixed a production crash caused by passing `lucide-react` icon components into Polaris `Button` `icon` props (Polaris expected a different icon source type)
+  - Removed incompatible `icon={...}` usage in `settings`, `admin/merchants`, and `admin/system` Polaris buttons
+  - Deployed web update (commit `1157c73`) and verified successful Next.js build + PM2 `web` restart
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
