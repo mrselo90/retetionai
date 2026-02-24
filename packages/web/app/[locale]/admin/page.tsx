@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
-import { BlockStack, Box, Card, InlineGrid, InlineStack, Layout, Page, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
+import { Banner, BlockStack, Box, Card, InlineGrid, InlineStack, Layout, Page, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
 import { Users, ShoppingBag, MessageSquare, BarChart3, TrendingUp } from 'lucide-react';
 
 interface GlobalStats {
@@ -69,28 +69,24 @@ export default function AdminDashboardPage() {
             value: stats.totalMerchants.toLocaleString(),
             icon: Users,
             color: 'text-blue-600',
-            bg: 'bg-blue-50',
         },
         {
             title: 'Total End Customers',
             value: stats.totalUsers.toLocaleString(),
             icon: Users,
             color: 'text-indigo-600',
-            bg: 'bg-indigo-50',
         },
         {
             title: 'Total Orders Tracked',
             value: stats.totalOrders.toLocaleString(),
             icon: ShoppingBag,
             color: 'text-emerald-600',
-            bg: 'bg-emerald-50',
         },
         {
             title: 'Conversations Handled',
             value: stats.totalConversations.toLocaleString(),
             icon: MessageSquare,
             color: 'text-purple-600',
-            bg: 'bg-purple-50',
         }
     ];
 
@@ -144,6 +140,10 @@ export default function AdminDashboardPage() {
                                 </BlockStack>
                             </Box>
                         </Card>
+
+                        <Banner tone="info">
+                            Platform admin dashboards are Polaris-standardized for operations, while merchant-facing screens remain the primary UX priority.
+                        </Banner>
                     </BlockStack>
                 </Layout.Section>
             </Layout>

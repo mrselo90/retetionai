@@ -149,12 +149,12 @@ export default function AdminMerchantsPage() {
                                 return (
                                     <IndexTable.Row id={merchant.id} key={merchant.id} position={index}>
                                         <IndexTable.Cell>
-                                            <InlineStack gap="300" blockAlign="center">
+                                            <InlineStack gap="300" blockAlign="center" wrap={false}>
                                                 <Box background="bg-surface-secondary" borderRadius="300" padding="200">
                                                     <Store className="w-5 h-5 text-zinc-500" />
                                                 </Box>
                                                 <BlockStack gap="100">
-                                                    <InlineStack gap="200" blockAlign="center">
+                                                    <InlineStack gap="200" blockAlign="center" wrap>
                                                         <Text as="span" variant="bodyMd" fontWeight="semibold">
                                                         {merchant.name || 'Unnamed Store'}
                                                         </Text>
@@ -182,7 +182,7 @@ export default function AdminMerchantsPage() {
                                             )}
                                         </IndexTable.Cell>
                                         <IndexTable.Cell>
-                                            <InlineStack gap="200">
+                                            <InlineStack gap="200" wrap>
                                                 {shopifyInt ? (
                                                     <Badge tone={shopifyInt.status === 'active' ? 'success' : 'enabled'}>
                                                         Shopify
@@ -214,7 +214,7 @@ export default function AdminMerchantsPage() {
                                             </InlineStack>
                                         </IndexTable.Cell>
                                         <IndexTable.Cell>
-                                            <InlineStack align="center" gap="200">
+                                            <InlineStack align="center" gap="200" wrap>
                                                 <Button
                                                     variant="secondary"
                                                     size="slim"
@@ -245,6 +245,11 @@ export default function AdminMerchantsPage() {
                             </Box>
                         )}
                     </Card>
+                    <Box paddingBlockStart="300">
+                        <Text as="p" variant="bodySm" tone="subdued">
+                            Admin actions here are operational tools. Use “Login As” to validate merchant-facing behavior in the real dashboard context.
+                        </Text>
+                    </Box>
                 </Layout.Section>
             </Layout>
         </Page>

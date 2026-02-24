@@ -111,6 +111,10 @@
   - `/admin/system` queue cards refactored further to Polaris layout primitives (`InlineStack`, `InlineGrid`, `Box`, `Text`) while preserving queue stats logic
   - Redis infrastructure panel moved from custom flex/typography blocks to Polaris-first layout structure
   - “Queue Management (Coming Soon)” notice converted to Polaris `Banner`
+- **Admin Polaris Migration (step 3 / consistency pass)**:
+  - `/admin/merchants` table row badges/actions improved with wrapping behavior to avoid cramped layouts in narrower widths
+  - `/admin/merchants` gained a Polaris-style operational note below the table for action hierarchy/context clarity
+  - `/admin` platform overview removed unused visual config and added a Polaris `Banner` note to reinforce operational/admin context
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
