@@ -30,6 +30,7 @@
   - Filter toolbar alignment refined: search/status/sort fields now share the same label/control rhythm and responsive grid alignment
   - Polaris migration (step 1): Products filter toolbar now uses Polaris `TextField` + `Select` controls, moving the page closer to Shopify-native form behavior
   - Polaris migration (step 2): Desktop list view now uses Polaris `IndexTable` while keeping mobile stacked rows for mobile-first usability
+  - Products index (step 3): Added applied filter chips and bulk product actions (select visible/clear selection/re-scrape/generate embeddings) aligned with RAG operations workflow
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.

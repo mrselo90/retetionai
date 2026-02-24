@@ -54,6 +54,8 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>('all');
   const [sortBy, setSortBy] = useState<ProductSortOption>('updated_desc');
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [bulkActionLoading, setBulkActionLoading] = useState<'scrape' | 'embeddings' | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProductUrl, setNewProductUrl] = useState('');
   const [newProductName, setNewProductName] = useState('');
@@ -70,6 +72,11 @@ export default function ProductsPage() {
     const saved = window.localStorage.getItem('productsViewMode');
     if (saved === 'grid' || saved === 'list') setViewMode(saved);
   }, []);
+
+  useEffect(() => {
+    // Remove selections that no longer exist after reload/delete.
+    setSelectedProductIds((prev) => prev.filter((id) => products.some((p) => p.id === id)));
+  }, [products]);
 
   const handleViewModeChange = (mode: ProductsViewMode) => {
     setViewMode(mode);
@@ -288,6 +295,42 @@ export default function ProductsPage() {
     </div>
   );
 
+  const getStatusFilterLabel = (value: ProductStatusFilter) => {
+    switch (value) {
+      case 'rag_ready':
+        return t('filters.statusOptions.ragReady');
+      case 'rag_not_ready':
+        return t('filters.statusOptions.ragNotReady');
+      case 'rag_unknown':
+        return t('filters.statusOptions.ragUnknown');
+      case 'scraped':
+        return t('filters.statusOptions.scraped');
+      case 'not_scraped':
+        return t('filters.statusOptions.notScraped');
+      case 'all':
+      default:
+        return t('filters.statusOptions.all');
+    }
+  };
+
+  const getSortLabel = (value: ProductSortOption) => {
+    switch (value) {
+      case 'updated_asc':
+        return t('filters.sortOptions.updatedAsc');
+      case 'name_asc':
+        return t('filters.sortOptions.nameAsc');
+      case 'name_desc':
+        return t('filters.sortOptions.nameDesc');
+      case 'chunks_desc':
+        return t('filters.sortOptions.chunksDesc');
+      case 'chunks_asc':
+        return t('filters.sortOptions.chunksAsc');
+      case 'updated_desc':
+      default:
+        return t('filters.sortOptions.updatedDesc');
+    }
+  };
+
   const getProductStatus = (product: ProductWithChunks): ProductStatusFilter => {
     if (!product.raw_text) return 'not_scraped';
     if (product.chunkCountUnavailable) return 'rag_unknown';
@@ -326,6 +369,76 @@ export default function ProductsPage() {
           return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
       }
     });
+
+  const visibleProductIds = filteredAndSortedProducts.map((p) => p.id);
+  const selectedIdSet = new Set(selectedProductIds);
+  const selectedVisibleCount = visibleProductIds.filter((id) => selectedIdSet.has(id)).length;
+  const allVisibleSelected = visibleProductIds.length > 0 && selectedVisibleCount === visibleProductIds.length;
+
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+    );
+  };
+
+  const toggleSelectAllVisibleProducts = () => {
+    setSelectedProductIds((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        visibleProductIds.forEach((id) => next.delete(id));
+      } else {
+        visibleProductIds.forEach((id) => next.add(id));
+      }
+      return Array.from(next);
+    });
+  };
+
+  const clearSelectedProducts = () => setSelectedProductIds([]);
+
+  const runBulkProductAction = async (action: 'scrape' | 'embeddings') => {
+    if (selectedProductIds.length === 0) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      setBulkActionLoading(action);
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const productId of selectedProductIds) {
+        try {
+          if (action === 'scrape') {
+            await authenticatedRequest(`/api/products/${productId}/scrape`, session.access_token, { method: 'POST' });
+          } else {
+            await authenticatedRequest(`/api/products/${productId}/generate-embeddings`, session.access_token, { method: 'POST' });
+          }
+          successCount += 1;
+        } catch (err) {
+          console.error(`Bulk ${action} failed for ${productId}:`, err);
+          failCount += 1;
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(
+          action === 'scrape' ? t('bulk.scrapeSuccessTitle') : t('bulk.embeddingsSuccessTitle'),
+          t(action === 'scrape' ? 'bulk.successMessage' : 'bulk.successMessage', {
+            success: successCount,
+            failed: failCount,
+          })
+        );
+      } else {
+        toast.error(
+          action === 'scrape' ? t('bulk.scrapeErrorTitle') : t('bulk.embeddingsErrorTitle'),
+          t('bulk.allFailedMessage', { failed: failCount })
+        );
+      }
+
+      await loadProducts();
+    } finally {
+      setBulkActionLoading(null);
+    }
+  };
 
   return (
     <Page title={t('title')} subtitle={t('description')} fullWidth>
@@ -448,6 +561,92 @@ export default function ProductsPage() {
                 </button>
               )}
             </div>
+
+            {(searchQuery || statusFilter !== 'all' || sortBy !== 'updated_desc') && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground font-medium">{t('filters.applied')}:</span>
+                {searchQuery && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
+                    {t('filters.searchChip', { value: searchQuery })}
+                    <button type="button" onClick={() => setSearchQuery('')} className="text-muted-foreground hover:text-foreground">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {statusFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
+                    {t('filters.statusChip', { value: getStatusFilterLabel(statusFilter) })}
+                    <button type="button" onClick={() => setStatusFilter('all')} className="text-muted-foreground hover:text-foreground">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {sortBy !== 'updated_desc' && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
+                    {t('filters.sortChip', { value: getSortLabel(sortBy) })}
+                    <button type="button" onClick={() => setSortBy('updated_desc')} className="text-muted-foreground hover:text-foreground">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </PolarisCard>
+      )}
+
+      {products.length > 0 && (
+        <PolarisCard>
+          <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleSelectAllVisibleProducts}
+                disabled={visibleProductIds.length === 0}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-background text-sm hover:bg-muted disabled:opacity-50"
+              >
+                <span
+                  aria-hidden
+                  className={`inline-flex h-4 w-4 items-center justify-center rounded border text-[10px] ${
+                    allVisibleSelected ? 'bg-primary text-primary-foreground border-primary' : 'border-zinc-300 text-transparent'
+                  }`}
+                >
+                  ✓
+                </span>
+                <span>
+                  {allVisibleSelected ? t('bulk.unselectVisible') : t('bulk.selectVisible')}
+                </span>
+              </button>
+              <Text as="p" tone="subdued">
+                {t('bulk.selectedCount', { count: selectedProductIds.length, visible: selectedVisibleCount })}
+              </Text>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
+                onClick={clearSelectedProducts}
+              >
+                {t('bulk.clearSelection')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
+                onClick={() => runBulkProductAction('scrape')}
+              >
+                {bulkActionLoading === 'scrape' ? t('bulk.scraping') : t('bulk.rescrape')}
+              </Button>
+              <Button
+                size="sm"
+                disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
+                onClick={() => runBulkProductAction('embeddings')}
+              >
+                {bulkActionLoading === 'embeddings' ? t('bulk.generatingEmbeddings') : t('bulk.generateEmbeddings')}
+              </Button>
+            </div>
           </div>
         </PolarisCard>
       )}
@@ -486,7 +685,17 @@ export default function ProductsPage() {
               <Card key={product.id} hover className="group overflow-hidden">
                 <CardHeader className="pb-4 ">
                   <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="text-lg line-clamp-2 pr-2 font-bold">{product.name}</CardTitle>
+                    <div className="flex items-start gap-2 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedIdSet.has(product.id)}
+                        onChange={() => toggleProductSelection(product.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={t('bulk.selectProduct', { name: product.name })}
+                        className="mt-1 rounded border-zinc-300"
+                      />
+                      <CardTitle className="text-lg line-clamp-2 pr-2 font-bold">{product.name}</CardTitle>
+                    </div>
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -533,9 +742,18 @@ export default function ProductsPage() {
                 <div key={`mobile-${product.id}`} className="px-4 sm:px-5 py-4 md:hidden">
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-foreground leading-snug line-clamp-2">{product.name}</p>
-                        <p className="mt-1 text-xs text-muted-foreground break-all">{product.id}</p>
+                      <div className="min-w-0 flex items-start gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedIdSet.has(product.id)}
+                          onChange={() => toggleProductSelection(product.id)}
+                          aria-label={t('bulk.selectProduct', { name: product.name })}
+                          className="mt-1 rounded border-zinc-300"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-foreground leading-snug line-clamp-2">{product.name}</p>
+                          <p className="mt-1 text-xs text-muted-foreground break-all">{product.id}</p>
+                        </div>
                       </div>
                       <button
                         onClick={(e) => {
@@ -579,6 +797,7 @@ export default function ProductsPage() {
                   itemCount={filteredAndSortedProducts.length}
                   resourceName={{ singular: t('list.columns.product'), plural: t('title') }}
                   headings={[
+                    { title: '' },
                     { title: t('list.columns.product') },
                     { title: t('list.columns.source') },
                     { title: t('list.columns.status') },
@@ -587,6 +806,15 @@ export default function ProductsPage() {
                 >
                   {filteredAndSortedProducts.map((product, index) => (
                     <IndexTable.Row id={product.id} key={product.id} position={index}>
+                      <IndexTable.Cell>
+                        <input
+                          type="checkbox"
+                          checked={selectedIdSet.has(product.id)}
+                          onChange={() => toggleProductSelection(product.id)}
+                          aria-label={t('bulk.selectProduct', { name: product.name })}
+                          className="rounded border-zinc-300"
+                        />
+                      </IndexTable.Cell>
                       <IndexTable.Cell>
                         <div className="min-w-0">
                           <Link
