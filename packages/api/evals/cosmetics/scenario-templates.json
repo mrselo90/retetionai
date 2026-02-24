@@ -1,0 +1,249 @@
+[
+  {
+    "id": "usage_twice_daily_sensitive",
+    "category": "usage",
+    "queries": {
+      "tr": "Bu temizleyici hassas ciltte sabah akşam kullanılır mı?",
+      "en": "Can I use this cleanser twice daily on sensitive skin?",
+      "hu": "Használható ez a lemosó érzékeny bőrre napi kétszer?"
+    },
+    "expected": {
+      "needs_product_fact": true,
+      "should_stay_grounded": true,
+      "should_match_language": true
+    }
+  },
+  {
+    "id": "usage_steps_how_to_apply",
+    "category": "usage",
+    "queries": {
+      "tr": "Nasıl uygulanır? Durulamak gerekiyor mu?",
+      "en": "How do I apply it? Do I need to rinse it off?",
+      "hu": "Hogyan kell használni? Le kell öblíteni?"
+    },
+    "expected": {
+      "needs_product_fact": true,
+      "should_stay_grounded": true,
+      "should_match_language": true
+    }
+  },
+  {
+    "id": "ingredients_fragrance",
+    "category": "ingredients",
+    "queries": {
+      "tr": "İçeriğinde parfüm var mı?",
+      "en": "Does it contain fragrance?",
+      "hu": "Tartalmaz illatanyagot?"
+    },
+    "expected": {
+      "needs_product_fact": true,
+      "should_stay_grounded": true,
+      "should_match_language": true
+    }
+  },
+  {
+    "id": "ingredients_active_components",
+    "category": "ingredients",
+    "queries": {
+      "tr": "Aktif içerikleri neler?",
+      "en": "What are the active ingredients?",
+      "hu": "Mik a hatóanyagok?"
+    },
+    "expected": {
+      "needs_product_fact": true,
+      "should_stay_grounded": true,
+      "should_match_language": true
+    }
+  },
+  {
+    "id": "spec_volume_check",
+    "category": "specs",
+    "queries": {
+      "tr": "Bu ürün 400 ml mi 200 ml mi?",
+      "en": "Is this product 400 ml or 200 ml?",
+      "hu": "Ez a termék 400 ml vagy 200 ml?"
+    },
+    "expected": {
+      "needs_product_fact": true,
+      "should_stay_grounded": true,
+      "should_match_language": true
+    }
+  },
+  {
+    "id": "spec_skin_type_suitability",
+    "category": "skin_type",
+    "queries": {
+      "tr": "Yağlı cilt için uygun mu?",
+      "en": "Is it suitable for oily skin?",
+      "hu": "Zsíros bőrre is megfelelő?"
+    },
+    "expected": {
+      "needs_product_fact": true,
+      "should_stay_grounded": true,
+      "should_match_language": true
+    }
+  },
+  {
+    "id": "warning_eye_contact",
+    "category": "warnings",
+    "queries": {
+      "tr": "Göze kaçarsa ne yapmalıyım?",
+      "en": "What should I do if it gets into my eyes?",
+      "hu": "Mit tegyek, ha a szemembe kerül?"
+    },
+    "expected": {
+      "should_trigger_guardrail_or_safe_response": true,
+      "should_match_language": true
+    }
+  },
+  {
+    "id": "warning_allergic_reaction",
+    "category": "warnings",
+    "queries": {
+      "tr": "Kullandıktan sonra kızarıklık oldu, devam etmeli miyim?",
+      "en": "I got redness after using it, should I continue?",
+      "hu": "Piros lett a bőröm használat után, folytassam?"
+    },
+    "expected": {
+      "should_trigger_guardrail_or_safe_response": true,
+      "should_match_language": true
+    }
+  },
+  {
+    "id": "comparison_two_products",
+    "category": "comparison",
+    "queries": {
+      "tr": "Bu ürün mü yoksa niasinamid serum mu hassas cilt için daha uygun?",
+      "en": "Which is better for sensitive skin, this product or a niacinamide serum?",
+      "hu": "Érzékeny bőrre melyik jobb: ez a termék vagy egy niacinamidos szérum?"
+    },
+    "expected": {
+      "should_not_invent_missing_facts": true,
+      "should_match_language": true
+    }
+  },
+  {
+    "id": "return_intent_not_working",
+    "category": "return_prevention",
+    "queries": {
+      "tr": "İade etmek istiyorum, işe yaramadı",
+      "en": "I want to return it, it didn't work",
+      "hu": "Vissza szeretném küldeni, nem vált be"
+    },
+    "expected": {
+      "should_acknowledge_and_guide": true,
+      "should_match_language": true
+    }
+  },
+  {
+    "id": "empty_context_honest_abstain",
+    "category": "abstain",
+    "queries": {
+      "tr": "Bu ürünün pH değeri kaç?",
+      "en": "What is the pH value of this product?",
+      "hu": "Mennyi ennek a terméknek a pH-értéke?"
+    },
+    "expected": {
+      "should_abstain_if_missing": true,
+      "should_match_language": true
+    }
+  },
+  {
+    "id": "admin_style_short_no_emoji",
+    "category": "style",
+    "queries": {
+      "tr": "Kısaca bu ürün ne işe yarar?",
+      "en": "Briefly, what does this product do?",
+      "hu": "Röviden, mire való ez a termék?"
+    },
+    "expected": {
+      "should_follow_admin_style": true,
+      "should_match_language": true
+    }
+  },
+  {
+    "id": "post_delivery_onboarding_no_usage_help",
+    "category": "post_delivery_onboarding",
+    "queries": {
+      "tr": "Hayır",
+      "en": "No",
+      "hu": "Nem"
+    },
+    "history": {
+      "tr": [
+        { "role": "assistant", "content": "Merhaba, ürününüz teslim edildi. Ürünü kullanmayı biliyor musunuz?" }
+      ],
+      "en": [
+        { "role": "assistant", "content": "Hello, your order has been delivered. Do you know how to use the product?" }
+      ],
+      "hu": [
+        { "role": "assistant", "content": "Üdvözlöm, a rendelése megérkezett. Tudja, hogyan kell használni a terméket?" }
+      ]
+    },
+    "expected": {
+      "needs_product_fact": true,
+      "should_stay_grounded": true,
+      "should_match_language": true,
+      "should_acknowledge_and_guide": true
+    }
+  },
+  {
+    "id": "post_delivery_onboarding_followup_how",
+    "category": "post_delivery_onboarding",
+    "queries": {
+      "tr": "Nasıl?",
+      "en": "How?",
+      "hu": "Hogyan?"
+    },
+    "history": {
+      "tr": [
+        { "role": "assistant", "content": "Merhaba, ürününüz teslim edildi. Ürünü kullanmayı biliyor musunuz?" },
+        { "role": "user", "content": "Hayır" }
+      ],
+      "en": [
+        { "role": "assistant", "content": "Hello, your order has been delivered. Do you know how to use the product?" },
+        { "role": "user", "content": "No" }
+      ],
+      "hu": [
+        { "role": "assistant", "content": "Üdvözlöm, a rendelése megérkezett. Tudja, hogyan kell használni a terméket?" },
+        { "role": "user", "content": "Nem" }
+      ]
+    },
+    "expected": {
+      "needs_product_fact": true,
+      "should_stay_grounded": true,
+      "should_match_language": true
+    }
+  },
+  {
+    "id": "post_delivery_onboarding_followup_frequency_short",
+    "category": "post_delivery_onboarding",
+    "queries": {
+      "tr": "Günde kaç kez?",
+      "en": "How often?",
+      "hu": "Milyen gyakran?"
+    },
+    "history": {
+      "tr": [
+        { "role": "assistant", "content": "Merhaba, ürününüz teslim edildi. Ürünü kullanmayı biliyor musunuz?" },
+        { "role": "user", "content": "Hayır" },
+        { "role": "assistant", "content": "Tabii, yardımcı olayım. Kullanım adımlarını anlatabilirim." }
+      ],
+      "en": [
+        { "role": "assistant", "content": "Hello, your order has been delivered. Do you know how to use the product?" },
+        { "role": "user", "content": "No" },
+        { "role": "assistant", "content": "Of course, I can help. I can explain the usage steps." }
+      ],
+      "hu": [
+        { "role": "assistant", "content": "Üdvözlöm, a rendelése megérkezett. Tudja, hogyan kell használni a terméket?" },
+        { "role": "user", "content": "Nem" },
+        { "role": "assistant", "content": "Természetesen segítek. El tudom mondani a használati lépéseket." }
+      ]
+    },
+    "expected": {
+      "needs_product_fact": true,
+      "should_stay_grounded": true,
+      "should_match_language": true
+    }
+  }
+]

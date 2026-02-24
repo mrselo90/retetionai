@@ -17,6 +17,35 @@ import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from './lib/what
 import { scrapeProductPage } from './lib/scraper.js';
 import { processProductForRAG } from './lib/knowledgeBase.js';
 
+// Lightweight inline i18n for worker templates (mirrors api/src/lib/i18n.ts)
+type WorkerLang = 'tr' | 'en' | 'hu';
+const WORKER_TEMPLATES: Record<WorkerLang, Record<string, string>> = {
+  tr: {
+    welcome: 'Merhaba! Siparişiniz için teşekkür ederiz. Size nasıl yardımcı olabilirim?',
+    checkin_t3: 'Merhaba! Ürününüzü nasıl kullanıyorsunuz? Herhangi bir sorunuz var mı?',
+    checkin_t14: 'Merhaba! Ürününüzden memnun musunuz? Size özel yeni ürünlerimiz var!',
+    upsell: 'Size özel indirimli ürünlerimizi keşfetmek ister misiniz?',
+    welcome_with_instructions: 'Merhaba! Siparişiniz için teşekkür ederiz. Satın aldığınız ürünler için kullanım bilgileri:\n\n',
+    welcome_instructions_cta: '\n\nUygulama konusunda sorunuz var mı?',
+  },
+  en: {
+    welcome: 'Hello! Thank you for your order. How can I help you?',
+    checkin_t3: 'Hello! How are you using your product? Do you have any questions?',
+    checkin_t14: 'Hello! Are you satisfied with your product? We have new products just for you!',
+    upsell: 'Would you like to discover our special discounted products?',
+    welcome_with_instructions: 'Hello! Thank you for your order. Here are the usage instructions for your products:\n\n',
+    welcome_instructions_cta: '\n\nDo you have any questions about usage?',
+  },
+  hu: {
+    welcome: 'Üdvözöljük! Köszönjük a rendelését. Miben segíthetek?',
+    checkin_t3: 'Üdvözöljük! Hogyan használja a terméket? Van bármilyen kérdése?',
+    checkin_t14: 'Üdvözöljük! Elégedett a termékkel? Különleges új termékeink vannak Önnek!',
+    upsell: 'Szeretné felfedezni különleges kedvezményes termékeinket?',
+    welcome_with_instructions: 'Üdvözöljük! Köszönjük a rendelését. Íme a megvásárolt termékek használati útmutatója:\n\n',
+    welcome_instructions_cta: '\n\nVan kérdése a használattal kapcsolatban?',
+  },
+};
+
 import {
   scheduledMessagesQueue,
   scrapeJobsQueue,
@@ -59,30 +88,32 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
       let message = messageTemplate;
 
       if (!message) {
+        // Determine merchant language from persona_settings.default_language (fallback: 'tr')
+        const { data: merchantRow } = await serviceClient
+          .from('merchants')
+          .select('persona_settings')
+          .eq('id', merchantId)
+          .single();
+        const lang: WorkerLang = (merchantRow?.persona_settings as any)?.default_language || 'tr';
+        const tpl = WORKER_TEMPLATES[lang] || WORKER_TEMPLATES.tr;
+
         // T+0 welcome: build beauty-consultant message from product usage instructions
         if (type === 'welcome' && productIds && productIds.length > 0) {
           const instructions = await getUsageInstructionsForProductIds(merchantId, productIds);
           if (instructions.length > 0) {
             const parts = instructions.map(
               (row: ProductInstructionRow) =>
-                `**${row.product_name ?? 'Ürün'}**\n${row.usage_instructions}${row.recipe_summary ? `\nÖzet: ${row.recipe_summary}` : ''}`
+                `**${row.product_name ?? (lang === 'hu' ? 'Termék' : 'Ürün')}**\n${row.usage_instructions}${row.recipe_summary ? `\n${lang === 'hu' ? 'Összefoglaló' : 'Özet'}: ${row.recipe_summary}` : ''}`
             );
             message =
-              'Merhaba! Siparişiniz için teşekkür ederiz. Satın aldığınız ürünler için kullanım bilgileri:\n\n' +
+              tpl.welcome_with_instructions +
               parts.join('\n\n') +
-              '\n\nUygulama konusunda sorunuz var mı?';
+              tpl.welcome_instructions_cta;
           } else {
-            message = 'Merhaba! Siparişiniz için teşekkür ederiz. Size nasıl yardımcı olabilirim?';
+            message = tpl.welcome;
           }
         } else {
-          // Default templates (will be replaced with LLM generation later)
-          const templates: Record<string, string> = {
-            welcome: 'Merhaba! Siparişiniz için teşekkür ederiz. Size nasıl yardımcı olabilirim?',
-            checkin_t3: 'Merhaba! Ürününüzü nasıl kullanıyorsunuz? Herhangi bir sorunuz var mı?',
-            checkin_t14: 'Merhaba! Ürününüzden memnun musunuz? Size özel yeni ürünlerimiz var!',
-            upsell: 'Size özel indirimli ürünlerimizi keşfetmek ister misiniz?',
-          };
-          message = templates[type] || 'Merhaba! Size nasıl yardımcı olabilirim?';
+          message = tpl[type] || tpl.welcome;
         }
       }
 
@@ -192,7 +223,14 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
         const enrichRes = await fetch(`${apiUrl}/api/products/enrich`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rawText: rawContent, title: scrapeResult.product?.title || 'Unknown Product' })
+          body: JSON.stringify({
+            rawText: rawContent,
+            title: scrapeResult.product?.title || 'Unknown Product',
+            rawSections: scrapeResult.product?.rawSections,
+            productId,
+            sourceUrl: url,
+            sourceType: 'scrape_enrich_worker',
+          })
         });
         if (enrichRes.ok) {
           const { enrichedText: et } = (await enrichRes.json()) as { enrichedText?: string };

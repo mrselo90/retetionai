@@ -7,6 +7,13 @@
 import { getSupabaseServiceClient } from '@recete/shared';
 import { notifyMerchantOfEscalation } from './notifications.js';
 import { decryptPhone } from './encryption.js';
+import {
+  detectLanguage,
+  getLocalizedClarificationResponse,
+  getLocalizedCrisisResponse,
+  getLocalizedMedicalResponse,
+  type SupportedLanguage,
+} from './i18n.js';
 
 export interface GuardrailResult {
   safe: boolean;
@@ -129,6 +136,25 @@ const CRISIS_KEYWORDS = [
   'shock',
   'fainting',
   'fainted',
+  // Hungarian
+  'égés',
+  'fáj',
+  'fájdalom',
+  'kórház',
+  'mentő',
+  'sürgős',
+  'sürgősségi',
+  'allergia',
+  'allergiás reakció',
+  'ügyvéd',
+  'kártérítés',
+  'per',
+  'halál',
+  'méreg',
+  'mérgezés',
+  'öngyilkosság',
+  'ájulás',
+  'sokk',
 ];
 
 /**
@@ -177,6 +203,16 @@ const HUMAN_HANDOFF_PHRASES = [
   'not a bot',
   'not a robot',
   'connect me',
+  // Hungarian
+  'élő személy',
+  'valódi ember',
+  'ügyfélszolgálat',
+  'emberi segítség',
+  'beszélni szeretnék',
+  'képviselő',
+  'nem robot',
+  'nem bot',
+  'hívjon vissza',
 ];
 
 /**
@@ -216,6 +252,17 @@ const MEDICAL_ADVICE_KEYWORDS = [
   'disease',
   'sick',
   'symptom',
+  // Hungarian
+  'kezelés',
+  'gyógyszer',
+  'orvos',
+  'orvoshoz',
+  'tünet',
+  'diagnózis',
+  'betegség',
+  'beteg',
+  'gyógyít',
+  'orvosi tanács',
 ];
 
 /**
@@ -244,6 +291,7 @@ function requestsMedicalAdvice(text: string): boolean {
 
 export interface GuardrailCheckOptions {
   customGuardrails?: CustomGuardrail[];
+  languageHint?: SupportedLanguage;
 }
 
 /**
@@ -288,14 +336,16 @@ export function checkUserMessageGuardrails(
   userMessage: string,
   options?: GuardrailCheckOptions
 ): GuardrailResult {
+  // Detect language for localized responses
+  const lang = detectLanguage(userMessage);
+
   // 1. System: crisis keywords
   if (containsCrisisKeywords(userMessage)) {
     return {
       safe: false,
       reason: 'crisis_keyword',
       requiresHuman: true,
-      suggestedResponse:
-        "Anladım, bu ciddi bir durum gibi görünüyor. Lütfen acil durumlar için 112'yi arayın veya en yakın acil servise başvurun. Size daha iyi yardımcı olabilmemiz için lütfen müşteri hizmetlerimizle iletişime geçin.",
+      suggestedResponse: getLocalizedCrisisResponse(lang),
     };
   }
 
@@ -305,8 +355,7 @@ export function checkUserMessageGuardrails(
       safe: false,
       reason: 'medical_advice',
       requiresHuman: false,
-      suggestedResponse:
-        'Üzgünüm, tıbbi tavsiye veremem. Sağlık sorunlarınız için lütfen bir sağlık uzmanına danışın. Ürün kullanımı hakkında sorularınız varsa, size yardımcı olabilirim.',
+      suggestedResponse: getLocalizedMedicalResponse(lang),
     };
   }
 
@@ -330,14 +379,15 @@ export function checkAIResponseGuardrails(
   aiResponse: string,
   options?: GuardrailCheckOptions
 ): GuardrailResult {
+  const lang = options?.languageHint ?? detectLanguage(aiResponse);
+
   // 1. System: crisis-related content in AI response
   if (containsCrisisKeywords(aiResponse)) {
     return {
       safe: false,
       reason: 'crisis_keyword',
       requiresHuman: true,
-      suggestedResponse:
-        'Size nasıl yardımcı olabilirim? Sorunuzu daha iyi anlayabilmem için lütfen detay verin.',
+      suggestedResponse: getLocalizedClarificationResponse(lang),
     };
   }
 
@@ -347,8 +397,7 @@ export function checkAIResponseGuardrails(
       safe: false,
       reason: 'medical_advice',
       requiresHuman: false,
-      suggestedResponse:
-        'Ürün kullanımı hakkında sorularınız varsa size yardımcı olabilirim. Sağlık sorunları için lütfen bir sağlık uzmanına danışın.',
+      suggestedResponse: getLocalizedMedicalResponse(lang),
     };
   }
 

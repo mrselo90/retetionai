@@ -10,10 +10,15 @@ import { getSupabaseServiceClient } from '@recete/shared';
 import { normalizePhone } from '../lib/events.js';
 import { processNormalizedEvent } from '../lib/orderProcessor.js';
 import { findUserByPhone, getOrCreateConversation, addMessageToConversation, getConversationHistory } from '../lib/conversation.js';
-import { generateAIResponse } from '../lib/aiAgent.js';
+import { generateAIResponse, detectPostDeliveryFollowUpSignal } from '../lib/aiAgent.js';
 import { queryKnowledgeBase, formatRAGResultsForLLM } from '../lib/rag.js';
 import { getMerchantBotInfo } from '../lib/botInfo.js';
 import { getOpenAIClient } from '../lib/openaiClient.js';
+import { detectLanguage } from '../lib/i18n.js';
+import { evaluateStyleCompliance } from '../lib/styleCompliance.js';
+import { getActiveProductFactsContext } from '../lib/productFactsQuery.js';
+import { getActiveProductFactsSnapshots } from '../lib/productFactsQuery.js';
+import { planStructuredFactAnswer } from '../lib/productFactsPlanner.js';
 import { getRedisClient } from '@recete/shared';
 import { Queue } from 'bullmq';
 
@@ -225,6 +230,15 @@ test.post('/rag/answer', async (c) => {
     const query = typeof body?.query === 'string' ? body.query.trim() : '';
     const productIds = Array.isArray(body?.productIds) ? body.productIds : undefined;
     const topK = typeof body?.topK === 'number' ? body.topK : 5;
+    const conversationHistory = Array.isArray(body?.conversationHistory)
+      ? body.conversationHistory
+          .filter((m: any) => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant' || m.role === 'merchant'))
+          .map((m: any) => ({
+            role: m.role,
+            content: m.content,
+            timestamp: typeof m.timestamp === 'string' ? m.timestamp : new Date().toISOString(),
+          }))
+      : [];
 
     if (!query) {
       return c.json({
@@ -233,24 +247,43 @@ test.post('/rag/answer', async (c) => {
       }, 400);
     }
 
+    const followUpSignal = detectPostDeliveryFollowUpSignal(query, conversationHistory);
+    const ragQuery = followUpSignal.ragQueryOverride || query;
     const ragResult = await queryKnowledgeBase({
       merchantId,
-      query,
+      query: ragQuery,
       productIds,
       topK,
       similarityThreshold: 0.6,
     });
 
-    const contextText = formatRAGResultsForLLM(ragResult.results);
+    const chunkContextText = formatRAGResultsForLLM(ragResult.results);
+    const factsProductIds = productIds?.length
+      ? productIds
+      : Array.from(new Set(ragResult.results.map((r) => r.productId)));
+    const factsContext = await getActiveProductFactsContext(merchantId, factsProductIds);
+    const contextText = factsContext.text
+      ? `${factsContext.text}\n\n${chunkContextText}`
+      : chunkContextText;
     const botInfo = await getMerchantBotInfo(merchantId);
     const { data: merchant } = await getSupabaseServiceClient()
       .from('merchants')
-      .select('name')
+      .select('name, persona_settings')
       .eq('id', merchantId)
       .single();
 
     const merchantName = merchant?.name || 'Mağaza';
-    let systemPrompt = `Sen ${merchantName} müşteri hizmeti asistanısın. Kullanıcının sorusunu AŞAĞIDAKI ürün bilgisine dayanarak yanıtla. Bilgi bağlamda yoksa kibarca söyle ve genel yardım öner. Asla ürün detayı uydurma. Kısa, dostane ve yardımcı ol. Türkçe yanıtla.\n\n`;
+    const queryLang = detectLanguage(query);
+    const languageInstruction =
+      queryLang === 'hu'
+        ? 'Mindig magyarul válaszolj.'
+        : queryLang === 'en'
+          ? 'Always answer in English.'
+          : 'Türkçe yanıtla.';
+    let systemPrompt = `Sen ${merchantName} müşteri hizmeti asistanısın. Kullanıcının sorusunu AŞAĞIDAKI ürün bilgisine dayanarak yanıtla. Bilgi bağlamda yoksa kibarca söyle ve genel yardım öner. Asla ürün detayı uydurma. Kısa, dostane ve yardımcı ol. ${languageInstruction}\n\n`;
+    if (followUpSignal.promptHint) {
+      systemPrompt += `RUNTIME CONVERSATION HINT: ${followUpSignal.promptHint}\n\n`;
+    }
     if (botInfo && Object.keys(botInfo).length > 0) {
       systemPrompt += '--- Marka / kurallar ---\n';
       for (const [key, value] of Object.entries(botInfo)) {
@@ -262,24 +295,59 @@ test.post('/rag/answer', async (c) => {
     }
     systemPrompt += '--- Ürün bilgisi (buna göre cevap ver) ---\n' + contextText;
 
-    const openai = getOpenAIClient();
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: query },
-      ],
-      temperature: 0.5,
-      max_tokens: 500,
+    const factsSnapshots = await getActiveProductFactsSnapshots(merchantId, factsProductIds);
+    const plannerQuery = followUpSignal.plannerQueryOverride || query;
+    const planned = planStructuredFactAnswer(plannerQuery, queryLang, factsSnapshots, {
+      responseLength: (merchant as any)?.persona_settings?.response_length,
+      includeEvidenceQuote: true,
     });
 
-    const answer = completion.choices[0]?.message?.content?.trim() || '';
+    let answer = '';
+    let completion: any = null;
+    if (planned) {
+      answer = planned.answer;
+    } else {
+      const openai = getOpenAIClient();
+      completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...conversationHistory.slice(-10).map((m: any) => ({
+            role: m.role === 'user' ? 'user' : 'assistant',
+            content: m.content,
+          })),
+          { role: 'user', content: query },
+        ],
+        temperature: 0.5,
+        max_tokens: 500,
+      });
+      answer = completion.choices[0]?.message?.content?.trim() || '';
+    }
+
+    const styleCompliance = evaluateStyleCompliance(answer, (merchant as any)?.persona_settings || {});
 
     return c.json({
       query,
       results: ragResult.results,
       count: ragResult.results.length,
       answer: answer || '(Cevap üretilemedi.)',
+      meta: {
+        queryLanguage: queryLang,
+        answerLanguage: answer ? detectLanguage(answer) : null,
+        postDeliveryFollowUpDetected: followUpSignal.detected,
+        postDeliveryFollowUpType: followUpSignal.type || null,
+        ragQueryOverridden: ragQuery !== query,
+        ragExecutionTime: ragResult.executionTime,
+        topChunkIds: ragResult.results.map((r) => r.chunkId),
+        topProducts: Array.from(new Set(ragResult.results.map((r) => r.productId))),
+        factsSnapshotsFound: factsContext.factCount,
+        factsProductIds: factsContext.productIds,
+        deterministicFactsAnswer: Boolean(planned),
+        deterministicFactsQueryType: planned?.queryType || null,
+        deterministicEvidenceUsed: planned?.evidenceQuotesUsed?.length || 0,
+        styleCompliance,
+        tokens: completion?.usage || null,
+      },
       ...(ragResult.results.length === 0 && {
         hint: 'RAG sonucu boş; AI genel bir cevap verebilir. Ürün ekleyip embedding ürettiğinizde daha iyi yanıt alırsınız.',
       }),

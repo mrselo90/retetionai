@@ -326,6 +326,8 @@
         },
         "card": {
             "scraped": "Tarandı",
+            "ragReady": "RAG Hazır",
+            "ragNotReady": "RAG Hazır Değil",
             "chunks": "parça",
             "edit": "Düzenle",
             "deleteConfirm": "Bu ürünü silmek istediğinizden emin misiniz?"
@@ -375,6 +377,10 @@
             "sessionExpired": {
                 "title": "Oturum Süresi Doldu",
                 "message": "Lütfen tekrar giriş yapın"
+            },
+            "embeddingWarning": {
+                "title": "Embedding Uyarısı",
+                "message": "Ürün tarandı ancak embedding oluşturulamadı. Ürün bot yanıtlarında görünmeyebilir. Ürün düzenleme sayfasından tekrar taramayı deneyin."
             }
         }
     },
@@ -1071,6 +1077,10 @@
             "rescanError": {
                 "title": "Hata",
                 "message": "Ürün taranırken bir hata oluştu"
+            },
+            "embeddingWarning": {
+                "title": "Embedding Uyarısı",
+                "message": "Ürün tarandı ancak embedding oluşturulamadı. Tekrar taramayı deneyin."
             }
         },
         "ragAlert": {

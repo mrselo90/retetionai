@@ -5,6 +5,7 @@
 
 import { getSupabaseServiceClient } from '@recete/shared';
 import { chunkText, generateEmbeddingsBatch, type TextChunk } from './embeddings.js';
+import crypto from 'node:crypto';
 
 export interface ProcessProductResult {
   productId: string;
@@ -12,6 +13,55 @@ export interface ProcessProductResult {
   totalTokens: number;
   success: boolean;
   error?: string;
+}
+
+function chunkTextForRAG(text: string, maxChunkSize: number, overlap: number): TextChunk[] {
+  // If enrichment created explicit section markers, chunk per section first to preserve topicality.
+  if (!text.includes('[SECTION:')) {
+    return chunkText(text, maxChunkSize, overlap);
+  }
+
+  const sections = text
+    .split(/\n(?=\[SECTION:)/g)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const allChunks: TextChunk[] = [];
+  let index = 0;
+
+  for (const section of sections) {
+    const sectionChunks = chunkText(section, maxChunkSize, overlap);
+    for (const c of sectionChunks) {
+      allChunks.push({ ...c, index });
+      index++;
+    }
+  }
+
+  return allChunks;
+}
+
+function detectChunkLanguage(textToProcess: string): string | null {
+  const m = textToProcess.match(/\[LANG:([a-z]{2})\]/i);
+  return m?.[1]?.toLowerCase() ?? null;
+}
+
+function inferSectionType(chunkText: string): string {
+  const sectionMatch = chunkText.match(/\[SECTION:([A-Z_]+)\]/i);
+  if (sectionMatch?.[1]) return sectionMatch[1].toLowerCase();
+
+  const lower = chunkText.toLowerCase();
+  if (/\b(ingredients|inci|összetev|hatóanyag|içerik)\b/.test(lower)) return 'ingredients';
+  if (/\b(usage|how to use|directions|kullanım|használat|alkalmaz)\b/.test(lower)) return 'usage';
+  if (/\b(warning|caution|uyarı|dikkat|figyelmezt)\b/.test(lower)) return 'warnings';
+  if (/\b(spf|ph|\bml\b|\bg\b|volume)\b/.test(lower)) return 'specs';
+  return 'general';
+}
+
+function stripRAGMarkers(text: string): string {
+  return text
+    .replace(/\[LANG:[a-z]{2}\]\s*/gi, '')
+    .replace(/\[PRODUCT_FACTS\]\s*/gi, '')
+    .trim();
 }
 
 /**
@@ -25,7 +75,17 @@ export async function processProductForRAG(
   const serviceClient = getSupabaseServiceClient();
 
   try {
+    // Fetch product name for chunk prefix (improves retrieval relevance)
+    const { data: productRow } = await serviceClient
+      .from('products')
+      .select('name')
+      .eq('id', productId)
+      .single();
+    const productName = productRow?.name || '';
+
     const textToProcess = enrichedText && enrichedText.trim().length > 0 ? enrichedText : rawContent;
+    const chunkLanguage = detectChunkLanguage(textToProcess);
+    const sourceKind = enrichedText && enrichedText.trim().length > 0 ? 'enriched_text' : 'raw_text';
 
     // Validate content
     if (!textToProcess || textToProcess.trim().length === 0) {
@@ -38,8 +98,8 @@ export async function processProductForRAG(
       };
     }
 
-    // Chunk text
-    const chunks = chunkText(textToProcess, 1000); // 1000 chars per chunk
+    // Chunk text (with 15% overlap for context continuity)
+    const chunks = chunkTextForRAG(textToProcess, 1000, 150); // 1000 chars per chunk, 150 overlap
 
     if (chunks.length === 0) {
       return {
@@ -60,12 +120,16 @@ export async function processProductForRAG(
       .delete()
       .eq('product_id', productId);
 
-    // Insert new chunks with embeddings
+    // Insert new chunks with embeddings (prefix each chunk with product name for better retrieval)
     const chunksToInsert = chunks.map((chunk, index) => ({
       product_id: productId,
-      chunk_text: chunk.text,
+      chunk_text: productName ? `[${productName}] ${stripRAGMarkers(chunk.text)}` : stripRAGMarkers(chunk.text),
       embedding: JSON.stringify(embeddings[index].embedding), // pgvector expects array
       chunk_index: chunk.index,
+      section_type: inferSectionType(chunk.text),
+      language_code: chunkLanguage,
+      source_kind: sourceKind,
+      chunk_hash: crypto.createHash('sha256').update(chunk.text).digest('hex'),
     }));
 
     const { error: insertError } = await serviceClient

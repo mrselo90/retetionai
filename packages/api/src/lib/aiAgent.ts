@@ -5,8 +5,7 @@
 
 import type OpenAI from 'openai';
 import { getOpenAIClient } from './openaiClient.js';
-import { queryKnowledgeBase, formatRAGResultsForLLM } from './rag.js';
-import { getOrderProductContext } from './rag.js';
+import { queryKnowledgeBase, formatRAGResultsForLLM, getOrderProductContextResolved } from './rag.js';
 import { getSupabaseServiceClient, logger, getProductInstructionsByProductIds } from '@recete/shared';
 import type { ConversationMessage } from './conversation.js';
 import {
@@ -20,6 +19,14 @@ import {
 import { processSatisfactionCheck } from './upsell.js';
 import { getMerchantBotInfo } from './botInfo.js';
 import { isAddonActive, logReturnPreventionAttempt, hasPendingPreventionAttempt, updatePreventionOutcome } from './addons.js';
+import {
+  detectLanguage,
+  getLocalizedHandoffResponse,
+  getLocalizedEscalationResponse,
+  type SupportedLanguage,
+} from './i18n.js';
+import { getActiveProductFactsContext, getActiveProductFactsSnapshots } from './productFactsQuery.js';
+import { planStructuredFactAnswer } from './productFactsPlanner.js';
 
 export type Intent = 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent';
 
@@ -36,6 +43,196 @@ export interface AIResponse {
   upsellMessage?: string;
 }
 
+function getCosmeticRAGConfig(query: string): { profile: string; topK: number; similarityThreshold: number } {
+  const q = query.toLowerCase();
+  const hasAny = (terms: string[]) => terms.some((t) => q.includes(t));
+
+  if (hasAny(['içerik', 'i̇çerik', 'ingredients', 'inci', 'összetev', 'hatóanyag', 'fragrance', 'parfüm', 'illatanyag'])) {
+    return { profile: 'ingredients', topK: 4, similarityThreshold: 0.62 };
+  }
+  if (hasAny(['nasıl kullan', 'kullanım', 'how to use', 'directions', 'használat', 'alkalmaz'])) {
+    return { profile: 'usage', topK: 5, similarityThreshold: 0.58 };
+  }
+  if (hasAny(['uyarı', 'warning', 'caution', 'figyelmezt', 'allergy', 'alerji', 'allergia', 'eye', 'göz', 'szem'])) {
+    return { profile: 'warnings', topK: 5, similarityThreshold: 0.55 };
+  }
+  if (hasAny(['ml', 'gram', 'g ', 'oz', 'spf', 'ph', '%'])) {
+    return { profile: 'specs', topK: 3, similarityThreshold: 0.65 };
+  }
+  return { profile: 'default', topK: 5, similarityThreshold: 0.6 };
+}
+
+function getPreferredSectionsForProfile(profile: string): string[] | undefined {
+  switch (profile) {
+    case 'ingredients':
+      return ['ingredients', 'active_ingredients', 'claims', 'general'];
+    case 'usage':
+      return ['usage', 'faq', 'general'];
+    case 'warnings':
+      return ['warnings', 'usage', 'general'];
+    case 'specs':
+      return ['specs', 'identity', 'general'];
+    default:
+      return undefined;
+  }
+}
+
+type PostDeliveryFollowUpType =
+  | 'usage_onboarding_no'
+  | 'usage_onboarding_yes'
+  | 'usage_how'
+  | 'usage_frequency'
+  | 'warning_signal';
+
+export interface PostDeliveryFollowUpSignal {
+  detected: boolean;
+  type?: PostDeliveryFollowUpType;
+  promoteIntentToQuestion: boolean;
+  ragQueryOverride?: string;
+  plannerQueryOverride?: string;
+  promptHint?: string;
+}
+
+function looksLikeUsageOnboardingPrompt(text: string): boolean {
+  const t = text.toLowerCase();
+  return (
+    /kullanmayı biliyor musun|kullanimi biliyor musun|nasıl kullan(acağınızı|acağını|ilir)|uygulama konusunda sorunuz var mı/i.test(t) ||
+    /do you know how to use|how are you using your product|questions about usage/i.test(t) ||
+    /tudja hogyan kell használni|hogyan használja a terméket|kérdése van a használattal/i.test(t)
+  );
+}
+
+function buildUsageGuidanceRetrievalQuery(lang: SupportedLanguage): string {
+  if (lang === 'tr') return 'Bu ürün nasıl kullanılır, kullanım adımları, kullanım sıklığı ve uyarılar';
+  if (lang === 'hu') return 'A termék használata, használati lépések, gyakoriság és figyelmeztetések';
+  return 'How to use this product, usage steps, frequency, and warnings';
+}
+
+function buildUsageHowRetrievalQuery(lang: SupportedLanguage): string {
+  if (lang === 'tr') return 'Bu ürünün kullanım adımları ve nasıl uygulanacağı';
+  if (lang === 'hu') return 'A termék használati lépései és alkalmazása';
+  return 'Product usage steps and how to apply it';
+}
+
+function buildUsageFrequencyRetrievalQuery(lang: SupportedLanguage): string {
+  if (lang === 'tr') return 'Bu ürünün kullanım sıklığı, günde kaç kez kullanılır';
+  if (lang === 'hu') return 'A termék használatának gyakorisága, naponta hányszor';
+  return 'How often to use this product, frequency per day';
+}
+
+function buildPostDeliveryAcknowledgementResponse(lang: SupportedLanguage): string {
+  if (lang === 'tr') {
+    return 'Harika, sevindim. Kullanım sırasında takıldığınız bir nokta olursa yazabilirsiniz; adım adım yardımcı olurum.';
+  }
+  if (lang === 'hu') {
+    return 'Szuper, örülök neki. Ha használat közben kérdése merül fel, írjon nyugodtan, lépésről lépésre segítek.';
+  }
+  return 'Great, glad to hear that. If anything is unclear while using it, message me and I can help step by step.';
+}
+
+export function detectPostDeliveryFollowUpSignal(
+  message: string,
+  conversationHistory: ConversationMessage[] = []
+): PostDeliveryFollowUpSignal {
+  const lang = detectLanguage(message);
+  const msg = message.trim().toLowerCase();
+  const recentAssistantMessages = conversationHistory
+    .slice(-6)
+    .filter((m) => m.role === 'assistant' || m.role === 'merchant')
+    .map((m) => m.content || '');
+  const inOnboardingUsageContext = recentAssistantMessages.some(looksLikeUsageOnboardingPrompt);
+
+  if (!inOnboardingUsageContext) {
+    return { detected: false, promoteIntentToQuestion: false };
+  }
+
+  const isNo =
+    /^(hayır|hayir|yok|bilmiyorum|no|not really|not yet|nem|még nem|nem tudom)[.!?]*$/i.test(msg);
+  if (isNo) {
+    return {
+      detected: true,
+      type: 'usage_onboarding_no',
+      promoteIntentToQuestion: true,
+      ragQueryOverride: buildUsageGuidanceRetrievalQuery(lang),
+      plannerQueryOverride: buildUsageGuidanceRetrievalQuery(lang),
+      promptHint:
+        lang === 'tr'
+          ? 'Kullanıcı teslim sonrası kullanım desteği istiyor. Önce temel kullanım adımlarını ve sıklığı açıkla, sonra önemli uyarıları belirt.'
+          : lang === 'hu'
+            ? 'A felhasználó szállítás után használati segítséget kér. Először alap használati lépések és gyakoriság, majd fontos figyelmeztetések.'
+            : 'The user is asking for post-delivery usage guidance. Start with basic usage steps and frequency, then key warnings.',
+    };
+  }
+
+  const isYes =
+    /^(evet|olur|tamam|yes|yeah|yep|igen|rendben|ok[ée]?)[:.!? ]*$/i.test(msg);
+  if (isYes) {
+    return {
+      detected: true,
+      type: 'usage_onboarding_yes',
+      promoteIntentToQuestion: false,
+      promptHint:
+        lang === 'tr'
+          ? 'Kullanıcı kullanım bildiğini söylüyor; kısa onay ver ve gerekirse soru sorabileceğini belirt.'
+          : lang === 'hu'
+            ? 'A felhasználó azt jelzi, hogy tudja a használatot; röviden erősítsd meg, és jelezd, hogy kérdezhet.'
+            : 'The user says they know how to use it; briefly acknowledge and mention they can ask follow-up questions.',
+    };
+  }
+
+  if (/^(nasıl|nasil|how|hogyan)\b/i.test(msg) || /uygula|apply|alkalmaz/i.test(msg)) {
+    return {
+      detected: true,
+      type: 'usage_how',
+      promoteIntentToQuestion: true,
+      ragQueryOverride: buildUsageHowRetrievalQuery(lang),
+      plannerQueryOverride: buildUsageHowRetrievalQuery(lang),
+      promptHint:
+        lang === 'tr'
+          ? 'Bu, kullanım adımı sorusu olarak ele alınmalı. Adımları net ve sıralı ver.'
+          : lang === 'hu'
+            ? 'Ezt használati lépés kérdésként kezeld. A lépéseket világosan és sorrendben add meg.'
+            : 'Treat this as a usage-steps question. Give clear ordered steps.',
+    };
+  }
+
+  if (
+    /kaç kez|ne sıklıkla|günde|sabah.*akşam|how often|twice daily|daily|hányszor|milyen gyakran|naponta/i.test(msg)
+  ) {
+    return {
+      detected: true,
+      type: 'usage_frequency',
+      promoteIntentToQuestion: true,
+      ragQueryOverride: buildUsageFrequencyRetrievalQuery(lang),
+      plannerQueryOverride: buildUsageFrequencyRetrievalQuery(lang),
+      promptHint:
+        lang === 'tr'
+          ? 'Bu, kullanım sıklığı sorusu olarak ele alınmalı. Sıklık bilgisi yoksa açıkça belirt.'
+          : lang === 'hu'
+            ? 'Ezt használati gyakoriság kérdésként kezeld. Ha nincs adat, mondd ki egyértelműen.'
+            : 'Treat this as a usage-frequency question. If frequency is not available, say so clearly.',
+    };
+  }
+
+  if (/göz|eye|szem|yanma|burn|burning|kızar|irrit|piros/i.test(msg)) {
+    return {
+      detected: true,
+      type: 'warning_signal',
+      promoteIntentToQuestion: true,
+      ragQueryOverride: message,
+      plannerQueryOverride: message,
+      promptHint:
+        lang === 'tr'
+          ? 'Bu bir kullanım sonrası uyarı/reaksiyon sorusu olabilir; güvenli ve ürün uyarılarına dayalı yanıt ver.'
+          : lang === 'hu'
+            ? 'Ez használat utáni figyelmeztetés/reakció kérdés lehet; biztonságosan, a termék figyelmeztetéseire támaszkodva válaszolj.'
+            : 'This may be a post-use warning/reaction question; answer safely and rely on product warnings.',
+    };
+  }
+
+  return { detected: false, promoteIntentToQuestion: false };
+}
+
 /**
  * Classify message intent
  */
@@ -47,11 +244,14 @@ export async function classifyIntent(message: string): Promise<Intent> {
       messages: [
         {
           role: 'system',
-          content: `You are an intent classifier for a customer service chatbot.
-Classify the user's message into one of these categories:
+          content: `You are an intent classifier for a multilingual customer service chatbot.
+Classify the user's message into one of these categories regardless of the language used:
 - question: User is asking about product usage, features, or how to use something
 - complaint: User is reporting a problem, issue, or dissatisfaction (shipping, packaging, general issues)
-- return_intent: User wants to return the product, says they didn't like it, it doesn't work, wants a refund, or expresses dissatisfaction signaling a potential return (e.g. "iade", "beğenmedim", "çalışmıyor", "return", "refund", "doesn't work", "send it back")
+- return_intent: User wants to return the product, says they didn't like it, it doesn't work, wants a refund, or expresses dissatisfaction signaling a potential return. Examples include but are not limited to:
+  Turkish: "iade", "beğenmedim", "çalışmıyor", "geri göndermek istiyorum"
+  English: "return", "refund", "doesn't work", "send it back"
+  Hungarian: "visszaküldés", "nem tetszik", "nem működik", "visszaadni", "pénzvisszatérítés"
 - chat: General conversation, greetings, or casual messages
 - opt_out: User wants to stop receiving messages or unsubscribe
 
@@ -133,20 +333,34 @@ export async function generateAIResponse(
   // Step 0.5: Check if the customer is explicitly requesting a human agent
   if (checkForHumanHandoffRequest(message)) {
     await escalateToHuman(userId, conversationId, 'human_request', message);
+    const lang = detectLanguage(message);
     return {
       intent: 'chat',
-      response:
-        'Anladım, sizi ekibimize yönlendiriyorum. En kısa sürede bir temsilci sizinle iletişime geçecek. 🙏\n\nIf you prefer English: Connecting you with our team. A representative will reach out to you shortly.',
+      response: getLocalizedHandoffResponse(lang),
       requiresHuman: true,
     };
   }
 
   // Step 2: Classify intent
   let intent = await classifyIntent(message);
+  const postDeliveryFollowUp = detectPostDeliveryFollowUpSignal(message, conversationHistory);
+  if (postDeliveryFollowUp.detected && postDeliveryFollowUp.promoteIntentToQuestion && intent === 'chat') {
+    intent = 'question';
+  }
 
   const persona = merchant?.persona_settings || {};
   const merchantName = merchant?.name || 'Biz';
   const botInfo = await getMerchantBotInfo(merchantId);
+  const userLang = detectLanguage(message);
+
+  if (postDeliveryFollowUp.detected && postDeliveryFollowUp.type === 'usage_onboarding_yes') {
+    const ack = buildPostDeliveryAcknowledgementResponse(userLang);
+    return {
+      intent,
+      response: ack,
+      requiresHuman: false,
+    };
+  }
 
   // Return Prevention: if return_intent detected, check if module is active
   let returnPreventionActive = false;
@@ -160,9 +374,10 @@ export async function generateAIResponse(
       if (alreadyAttempted) {
         await updatePreventionOutcome(conversationId, 'escalated');
         await escalateToHuman(userId, conversationId, 'return_intent_insistence', message);
+        const lang = detectLanguage(message);
         return {
           intent,
-          response: 'I understand this is important to you. Let me connect you with a team member who can personally assist you.',
+          response: getLocalizedEscalationResponse(lang),
           requiresHuman: true,
         };
       }
@@ -174,7 +389,14 @@ export async function generateAIResponse(
     try {
       const hasAttempt = await hasPendingPreventionAttempt(conversationId);
       if (hasAttempt) {
-        const positiveSignals = ['thank', 'thanks', 'ok', 'okay', 'teşekkür', 'sağol', 'anladım', 'deneyeceğim', 'tamam', 'i\'ll try', 'got it'];
+        const positiveSignals = [
+          // English
+          'thank', 'thanks', 'ok', 'okay', 'i\'ll try', 'got it',
+          // Turkish
+          'teşekkür', 'sağol', 'anladım', 'deneyeceğim', 'tamam',
+          // Hungarian
+          'köszönöm', 'rendben', 'értem', 'megpróbálom', 'oké',
+        ];
         const msgLower = message.toLowerCase();
         if (positiveSignals.some((s) => msgLower.includes(s))) {
           await updatePreventionOutcome(conversationId, 'prevented');
@@ -190,19 +412,58 @@ export async function generateAIResponse(
   let ragContext = '';
   if (intent === 'question' || (intent === 'return_intent' && returnPreventionActive)) {
     try {
+      const ragQuery = postDeliveryFollowUp.ragQueryOverride || message;
       let orderProductIds: string[] | undefined;
+      let orderScopeSource: string | undefined;
       if (orderId) {
-        const productContext = await getOrderProductContext(orderId);
-        orderProductIds = productContext.map((c) => c.productId);
+        const orderScope = await getOrderProductContextResolved(orderId);
+        orderProductIds = orderScope.productIds;
+        orderScopeSource = orderScope.source;
       }
-      // RAG: semantic search (order products if any, else all merchant products)
-      const ragResult = await queryKnowledgeBase({
-        merchantId,
-        query: message,
-        productIds: orderProductIds?.length ? orderProductIds : undefined,
-        topK: 5,
-        similarityThreshold: 0.6,
-      });
+      // RAG: semantic search (order products if any).
+      // Safety: when an order exists but we cannot resolve products, do NOT broaden to all merchant products.
+      const ragConfig = getCosmeticRAGConfig(ragQuery);
+      const queryLang = userLang;
+      const ragResult =
+        orderId && (!orderProductIds || orderProductIds.length === 0)
+          ? {
+              query: ragQuery,
+              results: [],
+              totalResults: 0,
+              executionTime: 0,
+            }
+          : await queryKnowledgeBase({
+              merchantId,
+              query: ragQuery,
+              productIds: orderProductIds?.length ? orderProductIds : undefined,
+              topK: ragConfig.topK,
+              similarityThreshold: ragConfig.similarityThreshold,
+              preferredSectionTypes: getPreferredSectionsForProfile(ragConfig.profile),
+              preferredLanguage: queryLang,
+            });
+
+      logger.info(
+        {
+          merchantId,
+          conversationId,
+          orderId,
+          intent,
+          queryLang,
+          postDeliveryFollowUp: postDeliveryFollowUp.detected ? postDeliveryFollowUp.type : null,
+          ragQueryOverridden: ragQuery !== message,
+          orderScopeSource: orderScopeSource || (orderId ? 'none' : 'not_applicable'),
+          ragProfile: ragConfig.profile,
+          orderProductIdsCount: orderProductIds?.length || 0,
+          ragTotalResults: ragResult.totalResults,
+          ragTop: ragResult.results.slice(0, 5).map((r) => ({
+            chunkId: r.chunkId,
+            productId: r.productId,
+            similarity: Number(r.similarity.toFixed(3)),
+          })),
+          ragExecutionTimeMs: ragResult.executionTime,
+        },
+        'AI response RAG trace'
+      );
 
       if (ragResult.results.length > 0) {
         ragContext = formatRAGResultsForLLM(ragResult.results);
@@ -221,6 +482,76 @@ export async function generateAIResponse(
           instructionProductIds = [...new Set([...orderProductIds, ...ragProductIds])];
         } else {
           instructionProductIds = ragProductIds;
+        }
+      }
+
+      const factsProductIds =
+        instructionProductIds.length > 0
+          ? instructionProductIds
+          : [...new Set(ragResult.results.map((r) => r.productId))];
+      let factsSnapshots: Awaited<ReturnType<typeof getActiveProductFactsSnapshots>> = [];
+      if (factsProductIds.length > 0) {
+        const factsContext = await getActiveProductFactsContext(merchantId, factsProductIds);
+        factsSnapshots = await getActiveProductFactsSnapshots(merchantId, factsProductIds);
+        if (factsContext.text) {
+          ragContext = ragContext
+            ? `${factsContext.text}\n\n${ragContext}`
+            : factsContext.text;
+        }
+        logger.info(
+          {
+            merchantId,
+            conversationId,
+            orderId,
+            factsProductIdsCount: factsProductIds.length,
+            factsSnapshotsFound: factsContext.factCount,
+          },
+          'AI response facts context trace'
+        );
+      }
+
+      // Deterministic facts-first short-circuit for narrow factual cosmetics queries.
+      if (intent === 'question' && factsSnapshots.length > 0) {
+        const queryLang = userLang;
+        const plannerQuery = postDeliveryFollowUp.plannerQueryOverride || message;
+        const planned = planStructuredFactAnswer(plannerQuery, queryLang, factsSnapshots, {
+          responseLength: persona?.response_length,
+          includeEvidenceQuote: true,
+        });
+        if (planned) {
+          const guard = checkAIResponseGuardrails(planned.answer, {
+            customGuardrails,
+            languageHint: queryLang,
+          });
+          const finalAnswer = guard.safe
+            ? planned.answer
+            : (guard.suggestedResponse || getSafeResponse(guard.reason ?? 'custom'));
+
+          logger.info(
+            {
+              merchantId,
+              conversationId,
+              orderId,
+              planner: planned.queryType,
+              plannerQueryOverridden: plannerQuery !== message,
+              postDeliveryFollowUp: postDeliveryFollowUp.detected ? postDeliveryFollowUp.type : null,
+              usedProductId: planned.usedProductId,
+              usedFactKeys: planned.usedFactKeys,
+              evidenceQuotesUsed: planned.evidenceQuotesUsed?.length || 0,
+              guardrailBlocked: !guard.safe,
+            },
+            'AI response deterministic facts-first answer'
+          );
+
+          return {
+            intent,
+            response: finalAnswer,
+            ragContext: ragContext || undefined,
+            guardrailBlocked: !guard.safe,
+            guardrailReason: guard.safe ? undefined : guard.reason,
+            guardrailCustomName: guard.safe ? undefined : guard.customReason,
+            requiresHuman: guard.safe ? false : guard.requiresHuman,
+          };
         }
       }
 
@@ -250,12 +581,16 @@ export async function generateAIResponse(
     ragContext,
     botInfo
   );
+  const runtimeHint = postDeliveryFollowUp.promptHint;
+  const finalSystemPrompt = runtimeHint
+    ? `${systemPrompt}\nRUNTIME CONVERSATION HINT:\n- ${runtimeHint}\n`
+    : systemPrompt;
 
   // Step 5: Build conversation messages
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
     {
       role: 'system',
-      content: systemPrompt,
+      content: finalSystemPrompt,
     },
   ];
 
@@ -286,7 +621,10 @@ export async function generateAIResponse(
     let aiResponse = response.choices[0]?.message?.content || '';
 
     // Step 7: Check guardrails for AI response (system + custom)
-    const responseGuardrail = checkAIResponseGuardrails(aiResponse, { customGuardrails });
+    const responseGuardrail = checkAIResponseGuardrails(aiResponse, {
+      customGuardrails,
+      languageHint: userLang,
+    });
 
     if (!responseGuardrail.safe) {
       aiResponse = responseGuardrail.suggestedResponse || getSafeResponse(responseGuardrail.reason ?? 'custom');
@@ -338,6 +676,24 @@ export async function generateAIResponse(
         // Continue without upsell
       }
     }
+
+    logger.info(
+      {
+        merchantId,
+        conversationId,
+        orderId,
+        intent,
+        userLang: detectLanguage(message),
+        postDeliveryFollowUp: postDeliveryFollowUp.detected ? postDeliveryFollowUp.type : null,
+        responseLang: detectLanguage(aiResponse),
+        guardrailBlocked: false,
+        ragUsed: Boolean(ragContext),
+        promptTokens: (response as any).usage?.prompt_tokens,
+        completionTokens: (response as any).usage?.completion_tokens,
+        totalTokens: (response as any).usage?.total_tokens,
+      },
+      'AI response generated'
+    );
 
     return {
       intent,
@@ -470,6 +826,8 @@ function buildSystemPrompt(
   if (ragContext) {
     prompt += `--- PRODUCT INFORMATION (Use this to answer) ---\n${ragContext}\n\n`;
     prompt +=
+      'IMPORTANT: If structured product facts are present, treat them as highest-priority source of truth. ' +
+      'Use retrieved text chunks as supporting evidence/details.\n' +
       'IMPORTANT: Base your answer ONLY on the information above. ' +
       'If the answer is not in the context, clearly say "I don\'t have specific information about that" and offer to help in another way.\n\n';
   } else if (intent === 'question' || intent === 'return_intent') {
@@ -483,7 +841,7 @@ function buildSystemPrompt(
 
   prompt +=
     'RESPONSE FORMAT:\n' +
-    '- Respond in Turkish unless the user writes in another language\n' +
+    '- ALWAYS respond in the SAME language the user writes in. If the user writes in Hungarian, respond in Hungarian. If in Turkish, respond in Turkish. If in English, respond in English. Match the user\'s language exactly.\n' +
     '- Be natural and conversational\n' +
     '- Focus on being helpful and solving the customer\'s need\n';
 

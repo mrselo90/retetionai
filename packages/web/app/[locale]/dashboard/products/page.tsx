@@ -154,8 +154,12 @@ export default function ProductsPage() {
           session.access_token,
           { method: 'POST' }
         );
-      } catch (err) {
+      } catch (err: any) {
         console.error('Embedding generation failed:', err);
+        toast.warning(
+          t('toasts.embeddingWarning.title'),
+          err.message || t('toasts.embeddingWarning.message')
+        );
       }
 
       setScrapeProgress(t('addModal.scraping.completed'));
@@ -308,6 +312,18 @@ export default function ProductsPage() {
                     <Badge variant="success" size="sm" className="gap-1.5 shadow-sm">
                       <CheckCircle className="w-3.5 h-3.5" />
                       {t('card.scraped')}
+                    </Badge>
+                  )}
+                  {product.raw_text && (product.chunkCount || 0) > 0 && (
+                    <Badge variant="success" size="sm" className="gap-1.5 shadow-sm">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      {t('card.ragReady')}
+                    </Badge>
+                  )}
+                  {product.raw_text && (product.chunkCount || 0) === 0 && (
+                    <Badge variant="outline" size="sm" className="gap-1.5">
+                      <FileText className="w-3.5 h-3.5" />
+                      {t('card.ragNotReady')}
                     </Badge>
                   )}
                 </div>

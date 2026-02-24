@@ -10,7 +10,8 @@ import { getSupabaseServiceClient } from '@recete/shared';
 import { scrapeProductPage } from '../lib/scraper.js';
 import { addScrapeJob } from '../queues.js';
 import { processProductForRAG, batchProcessProducts, getProductChunkCount } from '../lib/knowledgeBase.js';
-import { enrichProductData } from '../lib/llm/enrichProduct.js';
+import { enrichProductDataDetailed } from '../lib/llm/enrichProduct.js';
+import { persistProductFactsSnapshot } from '../lib/productFactsStore.js';
 import { validateBody, validateParams } from '../middleware/validation.js';
 import { createProductSchema, updateProductSchema, productIdSchema, productInstructionSchema, CreateProductInput, UpdateProductInput, ProductIdParams, ProductInstructionInput } from '../schemas/products.js';
 import { getCachedProduct, setCachedProduct, invalidateProductCache } from '../lib/cache.js';
@@ -370,8 +371,23 @@ products.post('/:id/scrape', async (c) => {
   // Enrich the scraped text
   let enrichedText = rawContent;
   try {
-    const et = await enrichProductData(rawContent, scrapeResult.product?.title || product.name || 'Unknown Product');
-    if (et) enrichedText = et;
+    const enrichResult = await enrichProductDataDetailed(
+      rawContent,
+      scrapeResult.product?.title || product.name || 'Unknown Product',
+      { rawSections: scrapeResult.product?.rawSections }
+    );
+    if (enrichResult.enrichedText) enrichedText = enrichResult.enrichedText;
+    if (enrichResult.facts) {
+      await persistProductFactsSnapshot({
+        productId,
+        merchantId,
+        facts: enrichResult.facts,
+        sourceUrl: product.url,
+        sourceType: 'scrape_enrich_manual',
+        extractionModel: 'gpt-4o-mini',
+        validationErrors: enrichResult.factsValidationErrors,
+      });
+    }
   } catch (enrichErr) {
     console.error('Manual scrape enrichment error:', enrichErr);
   }
@@ -401,10 +417,26 @@ products.post('/:id/scrape', async (c) => {
   // Update cache
   await setCachedProduct(productId, updatedProduct, 600);
 
+  // Auto-generate embeddings after scrape (backend guarantee — frontend also calls this, but this ensures consistency)
+  let embeddingResult: { chunksCreated: number; totalTokens: number } | null = null;
+  try {
+    const result = await processProductForRAG(
+      productId,
+      rawContent,
+      enrichedText || undefined
+    );
+    if (result.success) {
+      embeddingResult = { chunksCreated: result.chunksCreated, totalTokens: result.totalTokens };
+    }
+  } catch (embedErr) {
+    console.error('Auto embedding generation after scrape failed:', embedErr);
+  }
+
   return c.json({
     message: 'Product scraped successfully',
     product: updatedProduct,
     scraped: scrapeResult.product,
+    embeddings: embeddingResult,
   });
 });
 
@@ -558,15 +590,41 @@ products.post('/:id/generate-embeddings', async (c) => {
  */
 products.post('/enrich', async (c) => {
   const body = await c.req.json();
-  const { rawText, title } = body;
+  const { rawText, title, rawSections, productId, sourceUrl, sourceType } = body;
 
   if (!rawText) {
     return c.json({ error: 'rawText is required' }, 400);
   }
 
   try {
-    const enrichedText = await enrichProductData(rawText, title || 'Unknown Product');
-    return c.json({ enrichedText });
+    const enrichResult = await enrichProductDataDetailed(rawText, title || 'Unknown Product', { rawSections });
+
+    // Internal worker may send productId so we can persist structured facts centrally in API package
+    if (typeof productId === 'string' && productId.trim() && enrichResult.facts) {
+      const serviceClient = getSupabaseServiceClient();
+      const { data: p } = await serviceClient
+        .from('products')
+        .select('id, merchant_id, url')
+        .eq('id', productId)
+        .single();
+      if (p?.merchant_id) {
+        await persistProductFactsSnapshot({
+          productId: p.id,
+          merchantId: p.merchant_id,
+          facts: enrichResult.facts,
+          sourceUrl: typeof sourceUrl === 'string' && sourceUrl ? sourceUrl : p.url || undefined,
+          sourceType: typeof sourceType === 'string' && sourceType ? sourceType : 'scrape_enrich_internal',
+          extractionModel: 'gpt-4o-mini',
+          validationErrors: enrichResult.factsValidationErrors,
+        });
+      }
+    }
+
+    return c.json({
+      enrichedText: enrichResult.enrichedText,
+      enrichmentMode: enrichResult.enrichmentMode,
+      factsExtracted: Boolean(enrichResult.facts),
+    });
   } catch (error) {
     return c.json({ error: 'Failed to enrich', message: String(error) }, 500);
   }

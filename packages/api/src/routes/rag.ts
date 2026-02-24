@@ -53,9 +53,10 @@ rag.post('/query', async (c) => {
 
   try {
     // Try cache first (1 hour TTL for RAG queries)
-    const cacheKey = productIds && productIds.length > 0
+    const cacheKeyBase = productIds && productIds.length > 0
       ? `${merchantId}:${productIds.join(',')}:${query}`
       : `${merchantId}:${query}`;
+    const cacheKey = `${cacheKeyBase}:topK=${topK}:th=${similarityThreshold}:fmt=${format}`;
     const cached = await getCachedRAGQuery(cacheKey, merchantId);
     if (cached) {
       if (format === 'text') {

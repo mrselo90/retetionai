@@ -18,6 +18,9 @@ export interface RAGQueryOptions {
   productIds?: string[]; // Filter by specific products
   topK?: number; // Number of results to return
   similarityThreshold?: number; // Minimum similarity score (0-1)
+  preferredSectionTypes?: string[];
+  preferredLanguage?: 'tr' | 'en' | 'hu' | string;
+  candidateMultiplier?: number;
 }
 
 export interface RAGResult {
@@ -28,6 +31,8 @@ export interface RAGResult {
   chunkText: string;
   chunkIndex: number;
   similarity: number;
+  sectionType?: string | null;
+  languageCode?: string | null;
 }
 
 export interface RAGQueryResponse {
@@ -37,8 +42,15 @@ export interface RAGQueryResponse {
   executionTime: number;
 }
 
+interface OrderScopeResolution {
+  productIds: string[];
+  chunks: RAGResult[];
+  source: 'external_events' | 'merchant_fallback_legacy' | 'none';
+}
+
 /**
  * Perform semantic search over knowledge base
+ * Uses pgvector HNSW index via Supabase RPC for fast similarity search
  */
 export async function queryKnowledgeBase(
   options: RAGQueryOptions
@@ -50,6 +62,9 @@ export async function queryKnowledgeBase(
     productIds: rawProductIds,
     topK = 5,
     similarityThreshold = 0.7,
+    preferredSectionTypes,
+    preferredLanguage,
+    candidateMultiplier,
   } = options;
 
   // Only use product IDs that are valid UUIDs (avoids "invalid input syntax for type uuid" when query is pasted into Product IDs field)
@@ -61,43 +76,30 @@ export async function queryKnowledgeBase(
   // Generate embedding for query
   const { embedding: queryEmbedding } = await generateEmbedding(query);
 
-  // Build SQL query for vector similarity search
   const serviceClient = getSupabaseServiceClient();
 
-  // pgvector cosine similarity: 1 - (embedding <=> query_embedding)
-  // We use the <=> operator for cosine distance, then convert to similarity
-  let sqlQuery = serviceClient
-    .from('knowledge_chunks')
-    .select(
-      `
-      id,
-      product_id,
-      chunk_text,
-      chunk_index,
-      embedding,
-      products!inner (
-        id,
-        name,
-        url,
-        merchant_id
-      )
-    `
+  const dbMatchCount = Math.min(
+    50,
+    Math.max(
+      topK,
+      topK * (candidateMultiplier ?? ((preferredSectionTypes?.length || preferredLanguage) ? 3 : 1))
     )
-    .eq('products.merchant_id', merchantId);
+  );
 
-  // Filter by product IDs if specified (only valid UUIDs)
-  if (productIds && productIds.length > 0) {
-    sqlQuery = sqlQuery.in('product_id', productIds);
-  }
-
-  // Execute query
-  const { data: chunks, error } = await sqlQuery;
+  // Use pgvector RPC for DB-side cosine similarity (leverages HNSW index)
+  const { data: rows, error } = await serviceClient.rpc('match_knowledge_chunks', {
+    query_embedding: JSON.stringify(queryEmbedding),
+    match_merchant_id: merchantId,
+    match_product_ids: productIds && productIds.length > 0 ? productIds : null,
+    match_threshold: similarityThreshold,
+    match_count: dbMatchCount,
+  });
 
   if (error) {
     throw new Error(`Failed to query knowledge base: ${error.message}`);
   }
 
-  if (!chunks || chunks.length === 0) {
+  if (!rows || rows.length === 0) {
     return {
       query,
       results: [],
@@ -106,39 +108,32 @@ export async function queryKnowledgeBase(
     };
   }
 
-  // Calculate cosine similarity for each chunk
-  // Note: Supabase doesn't support vector operations in the query directly,
-  // so we calculate similarity in-memory
-  const results: RAGResult[] = chunks
-    .map((chunk: any) => {
-      // Parse embedding (stored as JSON string)
-      let chunkEmbedding: number[];
-      try {
-        chunkEmbedding =
-          typeof chunk.embedding === 'string'
-            ? JSON.parse(chunk.embedding)
-            : chunk.embedding;
-      } catch {
-        return null;
-      }
+  let results: RAGResult[] = (rows as any[]).map((row) => ({
+    chunkId: row.id,
+    productId: row.product_id,
+    productName: row.product_name,
+    productUrl: row.product_url,
+    chunkText: row.chunk_text,
+    chunkIndex: row.chunk_index,
+    similarity: row.similarity,
+    sectionType: row.section_type ?? null,
+    languageCode: row.language_code ?? null,
+  }));
 
-      // Calculate cosine similarity
-      const similarity = cosineSimilarity(queryEmbedding, chunkEmbedding);
-
-      return {
-        chunkId: chunk.id,
-        productId: chunk.product_id,
-        productName: chunk.products.name,
-        productUrl: chunk.products.url,
-        chunkText: chunk.chunk_text,
-        chunkIndex: chunk.chunk_index,
-        similarity,
-      };
-    })
-    .filter((result): result is RAGResult => result !== null)
-    .filter((result) => result.similarity >= similarityThreshold)
-    .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, topK);
+  if (preferredSectionTypes?.length || preferredLanguage) {
+    const preferredSet = new Set((preferredSectionTypes || []).map((s) => s.toLowerCase()));
+    results = results
+      .map((r) => {
+        let score = r.similarity;
+        if (r.sectionType && preferredSet.has(r.sectionType.toLowerCase())) score += 0.08;
+        if (preferredLanguage && r.languageCode && r.languageCode.toLowerCase() === preferredLanguage.toLowerCase()) score += 0.03;
+        return { ...r, similarity: Math.min(0.999, score) };
+      })
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, topK);
+  } else {
+    results = results.slice(0, topK);
+  }
 
   return {
     query,
@@ -146,34 +141,6 @@ export async function queryKnowledgeBase(
     totalResults: results.length,
     executionTime: Date.now() - startTime,
   };
-}
-
-/**
- * Calculate cosine similarity between two vectors
- */
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error('Vectors must have the same length');
-  }
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  normA = Math.sqrt(normA);
-  normB = Math.sqrt(normB);
-
-  if (normA === 0 || normB === 0) {
-    return 0;
-  }
-
-  return dotProduct / (normA * normB);
 }
 
 /**
@@ -202,6 +169,18 @@ ${result.chunkText}
 export async function getOrderProductContext(
   orderId: string
 ): Promise<RAGResult[]> {
+  const result = await getOrderProductContextResolved(orderId);
+  return result.chunks;
+}
+
+/**
+ * Best-effort order-scoped product resolution.
+ * Resolves products from external_events.payload.items[*].external_product_id when available.
+ * Returns empty scope (instead of all merchant products) when order items cannot be resolved.
+ */
+export async function getOrderProductContextResolved(
+  orderId: string
+): Promise<OrderScopeResolution> {
   const serviceClient = getSupabaseServiceClient();
 
   // Get order with products (from orders table, we need to join with items)
@@ -210,7 +189,7 @@ export async function getOrderProductContext(
 
   const { data: order, error: orderError } = await serviceClient
     .from('orders')
-    .select('id, merchant_id, user_id')
+    .select('id, merchant_id, user_id, external_order_id')
     .eq('id', orderId)
     .single();
 
@@ -218,8 +197,44 @@ export async function getOrderProductContext(
     throw new Error('Order not found');
   }
 
-  // Get all products for this merchant
-  // In production, filter by products in the order
+  // Try to resolve product IDs from normalized event payload items
+  let resolvedProductIds: string[] = [];
+  try {
+    const { data: events } = await serviceClient
+      .from('external_events')
+      .select('payload, received_at')
+      .eq('merchant_id', order.merchant_id)
+      .contains('payload', { external_order_id: (order as any).external_order_id })
+      .order('received_at', { ascending: false })
+      .limit(5);
+
+    const externalProductIds = Array.from(
+      new Set(
+        (events || [])
+          .flatMap((e: any) => Array.isArray(e?.payload?.items) ? e.payload.items : [])
+          .map((i: any) => (typeof i?.external_product_id === 'string' ? i.external_product_id.trim() : ''))
+          .filter(Boolean)
+      )
+    );
+
+    if (externalProductIds.length > 0) {
+      const { data: products } = await serviceClient
+        .from('products')
+        .select('id, external_id')
+        .eq('merchant_id', order.merchant_id)
+        .in('external_id', externalProductIds);
+
+      resolvedProductIds = Array.from(new Set((products || []).map((p: any) => p.id)));
+    }
+  } catch {
+    // Best-effort only. We'll return no scope rather than broadening incorrectly.
+    resolvedProductIds = [];
+  }
+
+  if (resolvedProductIds.length === 0) {
+    return { productIds: [], chunks: [], source: 'none' };
+  }
+
   const { data: chunks, error: chunksError } = await serviceClient
     .from('knowledge_chunks')
     .select(
@@ -237,6 +252,7 @@ export async function getOrderProductContext(
     `
     )
     .eq('products.merchant_id', order.merchant_id)
+    .in('product_id', resolvedProductIds)
     .order('chunk_index', { ascending: true });
 
   if (chunksError) {
@@ -244,10 +260,10 @@ export async function getOrderProductContext(
   }
 
   if (!chunks || chunks.length === 0) {
-    return [];
+    return { productIds: resolvedProductIds, chunks: [], source: 'external_events' };
   }
 
-  return chunks.map((chunk: any) => ({
+  const mapped = chunks.map((chunk: any) => ({
     chunkId: chunk.id,
     productId: chunk.product_id,
     productName: chunk.products.name,
@@ -256,4 +272,6 @@ export async function getOrderProductContext(
     chunkIndex: chunk.chunk_index,
     similarity: 1.0, // Not calculated for full context retrieval
   }));
+
+  return { productIds: resolvedProductIds, chunks: mapped, source: 'external_events' };
 }

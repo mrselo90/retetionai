@@ -32,6 +32,7 @@ describe('Knowledge Base Module', () => {
             insert: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             in: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: { name: 'Test Product' }, error: null }),
         };
 
         vi.mocked(getSupabaseServiceClient).mockReturnValue(mockSupabase);
@@ -51,7 +52,6 @@ describe('Knowledge Base Module', () => {
 
             vi.mocked(embeddings.chunkText).mockReturnValue(mockChunks);
             vi.mocked(embeddings.generateEmbeddingsBatch).mockResolvedValue(mockEmbeddings);
-            mockSupabase.eq.mockResolvedValue({ error: null });
 
             const result = await processProductForRAG(mockProductId, rawContent);
 
@@ -66,13 +66,13 @@ describe('Knowledge Base Module', () => {
             expect(mockSupabase.insert).toHaveBeenCalledWith([
                 {
                     product_id: mockProductId,
-                    chunk_text: mockChunks[0].text,
+                    chunk_text: `[Test Product] ${mockChunks[0].text}`,
                     embedding: JSON.stringify(mockEmbeddings[0].embedding),
                     chunk_index: 0,
                 },
                 {
                     product_id: mockProductId,
-                    chunk_text: mockChunks[1].text,
+                    chunk_text: `[Test Product] ${mockChunks[1].text}`,
                     embedding: JSON.stringify(mockEmbeddings[1].embedding),
                     chunk_index: 1,
                 },

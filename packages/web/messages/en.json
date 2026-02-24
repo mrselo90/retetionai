@@ -326,6 +326,8 @@
         },
         "card": {
             "scraped": "Scraped",
+            "ragReady": "RAG Ready",
+            "ragNotReady": "RAG not ready",
             "chunks": "chunks",
             "edit": "Edit",
             "deleteConfirm": "Are you sure you want to delete this product?"
@@ -375,6 +377,10 @@
             "sessionExpired": {
                 "title": "Session Expired",
                 "message": "Please login again"
+            },
+            "embeddingWarning": {
+                "title": "Embedding Warning",
+                "message": "Product was scraped but embedding generation failed. The product may not appear in bot answers. Try re-scraping from the product edit page."
             }
         }
     },
@@ -1081,6 +1087,10 @@
             "rescanError": {
                 "title": "Error",
                 "message": "Failed to scrape product"
+            },
+            "embeddingWarning": {
+                "title": "Embedding Warning",
+                "message": "Product was scraped but embedding generation failed. Try re-scraping."
             }
         },
         "ragAlert": {

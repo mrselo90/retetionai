@@ -75,9 +75,9 @@ export async function generateEmbeddingsBatch(
 
 /**
  * Chunk text into smaller pieces for embedding
- * Uses simple sentence-based chunking
+ * Uses sentence-based chunking with configurable overlap
  */
-export function chunkText(text: string, maxChunkSize: number = 1000): TextChunk[] {
+export function chunkText(text: string, maxChunkSize: number = 1000, overlapSize: number = 150): TextChunk[] {
   // Clean text
   const cleaned = text.trim().replace(/\s+/g, ' ');
 
@@ -96,18 +96,26 @@ export function chunkText(text: string, maxChunkSize: number = 1000): TextChunk[
   const chunks: TextChunk[] = [];
   let currentChunk = '';
   let chunkIndex = 0;
+  let overlapText = ''; // Trailing text from previous chunk for context continuity
 
   for (const sentence of sentences) {
     const trimmedSentence = sentence.trim();
 
     // If adding this sentence exceeds max size, save current chunk and start new one
     if (currentChunk.length + trimmedSentence.length > maxChunkSize && currentChunk.length > 0) {
+      const chunkContent = currentChunk.trim();
       chunks.push({
-        text: currentChunk.trim(),
+        text: chunkContent,
         index: chunkIndex,
       });
       chunkIndex++;
-      currentChunk = trimmedSentence;
+
+      // Carry over the tail of the previous chunk as overlap for context
+      overlapText = overlapSize > 0 && chunkContent.length > overlapSize
+        ? chunkContent.slice(-overlapSize).trim()
+        : '';
+
+      currentChunk = overlapText ? overlapText + ' ' + trimmedSentence : trimmedSentence;
     } else {
       currentChunk += (currentChunk ? ' ' : '') + trimmedSentence;
     }
@@ -129,7 +137,8 @@ export function chunkText(text: string, maxChunkSize: number = 1000): TextChunk[
  * 1 token ≈ 4 characters for English text
  */
 export function estimateTokenCount(text: string): number {
-  return Math.ceil(text.length / 4);
+  // Use /3 ratio — more conservative and accurate for non-English (Turkish, Hungarian) text
+  return Math.ceil(text.length / 3);
 }
 
 /**

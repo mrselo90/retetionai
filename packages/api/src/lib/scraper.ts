@@ -11,6 +11,21 @@ export interface ScrapedProduct {
   imageUrl?: string;
   price?: string;
   rawContent: string; // Full text content for RAG
+  warnings?: string;
+  rawSections?: {
+    title?: string;
+    description?: string;
+    usage?: string;
+    ingredients?: string;
+    warnings?: string;
+    specs?: string;
+  };
+  extractionMetrics?: {
+    rawChars: number;
+    rawLines: number;
+    keptLines: number;
+    sectionsFound: string[];
+  };
   metadata: {
     scrapedAt: string;
     url: string;
@@ -112,9 +127,27 @@ function extractProductInfo(html: string, url: string): Omit<ScrapedProduct, 'me
 
   // Extract ingredients (for cosmetics)
   const ingredients = extractIngredients(html);
+  const warnings = extractWarnings(html);
+  const specs = extractSpecs(html, {
+    title,
+    description,
+    ingredients,
+    usageInstructions,
+  });
 
   // Extract raw text content (remove HTML tags, scripts, styles)
   const rawContent = extractRawContent(html);
+  const rawSections = {
+    title: cleanText(title),
+    description: description ? cleanText(description) : undefined,
+    usage: usageInstructions ? cleanText(usageInstructions) : undefined,
+    ingredients: ingredients ? cleanText(ingredients) : undefined,
+    warnings: warnings ? cleanText(warnings) : undefined,
+    specs: specs ? cleanText(specs) : undefined,
+  };
+  const sectionsFound = Object.entries(rawSections)
+    .filter(([, v]) => Boolean(v))
+    .map(([k]) => k);
 
   return {
     title: cleanText(title),
@@ -123,7 +156,16 @@ function extractProductInfo(html: string, url: string): Omit<ScrapedProduct, 'me
     ingredients: ingredients ? cleanText(ingredients) : undefined,
     imageUrl: imageUrl || undefined,
     price: price || undefined,
-    rawContent: cleanText(rawContent),
+    warnings: warnings ? cleanText(warnings) : undefined,
+    rawSections,
+    extractionMetrics: {
+      rawChars: rawContent.length,
+      rawLines: rawContent.split('\n').length,
+      keptLines: rawContent ? rawContent.split('\n').filter(Boolean).length : 0,
+      sectionsFound,
+    },
+    // Keep line/section boundaries for downstream enrichment and future section-aware chunking.
+    rawContent: rawContent.trim(),
   };
 }
 
@@ -186,9 +228,12 @@ function extractUsageInstructions(html: string): string | null {
   const patterns = [
     /kullanım şekli[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
     /nasıl kullanılır[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
+    /kullanım[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
     /usage instructions[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
     /how to use[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
     /directions[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
+    /használat(?:i útmutató)?[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
+    /alkalmazás[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
   ];
 
   for (const pattern of patterns) {
@@ -208,8 +253,12 @@ function extractUsageInstructions(html: string): string | null {
 function extractIngredients(html: string): string | null {
   const patterns = [
     /içerik[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
+    /i̇çindekiler[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
     /ingredients[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
     /composition[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
+    /összetevők[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
+    /hatóanyagok[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
+    /inci[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
   ];
 
   for (const pattern of patterns) {
@@ -220,6 +269,54 @@ function extractIngredients(html: string): string | null {
   }
 
   return null;
+}
+
+/**
+ * Extract warnings / cautions (cosmetics)
+ */
+function extractWarnings(html: string): string | null {
+  const patterns = [
+    /uyarı(?:lar)?[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
+    /dikkat[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
+    /warning(?:s)?[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
+    /caution[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
+    /figyelmeztetés[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
+    /óvintézkedés(?:ek)?[:\s]*([^<]*(?:<[^>]*>[^<]*)*)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match) return match[1].substring(0, 800);
+  }
+  return null;
+}
+
+/**
+ * Extract compact specs from the page body (size/volume/SPF/pH)
+ */
+function extractSpecs(
+  html: string,
+  context: { title?: string; description?: string; ingredients?: string | null; usageInstructions?: string | null }
+): string | null {
+  const source = [html, context.title, context.description, context.ingredients, context.usageInstructions]
+    .filter(Boolean)
+    .join('\n');
+  const found = new Set<string>();
+
+  const patterns = [
+    /\b\d{1,4}\s?(?:ml|mL|g|kg|oz)\b/gi,
+    /\bSPF\s?\d{1,3}\b/gi,
+    /\bpH\s?\d(?:[.,]\d)?\b/gi,
+    /\b\d{1,3}\s?%\b/gi,
+  ];
+
+  for (const pattern of patterns) {
+    const matches = source.match(pattern) || [];
+    for (const m of matches) found.add(m.trim());
+  }
+
+  if (found.size === 0) return null;
+  return Array.from(found).slice(0, 12).join(' | ');
 }
 
 // ── Noise patterns that should be filtered from scraped content ──
@@ -248,6 +345,16 @@ const NOISE_PATTERNS: RegExp[] = [
   /gizlilik\s*politikas[ıi]/gi,
   // Empty nav lines
   /^(anasayfa|home|menu|menü|kategori|kategoriler|contact|iletişim|hakkımızda|about us)$/gi,
+  // Hungarian e-commerce noise
+  /ingyenes\s*szállítás/gi,
+  /kosárba/gi,
+  /vásárlás/gi,
+  /rendelés\s*leadása/gi,
+  /adatvédelmi/gi,
+  /kövess\s*minket/gi,
+  /megosztás/gi,
+  /süti\s*kezelés/gi,
+  /^(főoldal|menü|kategóriák|kapcsolat|rólunk)$/gi,
 ];
 
 /**
@@ -255,9 +362,21 @@ const NOISE_PATTERNS: RegExp[] = [
  */
 function filterLine(line: string): string | null {
   const trimmed = line.trim();
+  const compact = trimmed.replace(/\s+/g, ' ');
+
+  // Keep short but high-signal cosmetic/spec lines (e.g., "400 ml", "SPF 50", "pH 5.5")
+  const shortSignalPatterns = [
+    /\b\d{1,4}\s?(ml|g|kg|oz)\b/i,
+    /\bSPF\s?\d{1,3}\b/i,
+    /\bpH\s?\d(?:[.,]\d)?\b/i,
+    /\bINCI\b/i,
+    /\bPA\+{1,4}\b/i,
+    /\b\d{1,3}\s?%\b/i,
+  ];
+  const isShortSignal = shortSignalPatterns.some((p) => p.test(compact));
 
   // Drop very short lines (less than 20 chars) — likely nav items or punctuation
-  if (trimmed.length < 20) return null;
+  if (trimmed.length < 20 && !isShortSignal) return null;
 
   // Drop lines that are entirely punctuation / numbers / symbols
   if (/^[\d\s.,%$€£₺\-+*/\\|!?@#&()[\]{}'"<>=]+$/.test(trimmed)) return null;
@@ -268,7 +387,7 @@ function filterLine(line: string): string | null {
     if (pattern.test(trimmed)) return null;
   }
 
-  return trimmed;
+  return compact;
 }
 
 /**

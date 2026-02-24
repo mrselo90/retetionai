@@ -16,8 +16,15 @@ vi.mock('./rag', () => ({
 vi.mock('./guardrails', () => ({
   checkUserMessageGuardrails: vi.fn(() => ({ safe: true, requiresHuman: false })),
   checkAIResponseGuardrails: vi.fn(() => ({ safe: true, requiresHuman: false })),
+  checkForHumanHandoffRequest: vi.fn(() => false),
   escalateToHuman: vi.fn(),
   getSafeResponse: vi.fn(),
+}));
+
+vi.mock('./i18n', () => ({
+  detectLanguage: vi.fn(() => 'en'),
+  getLocalizedHandoffResponse: vi.fn(() => 'Connecting you with our team.'),
+  getLocalizedEscalationResponse: vi.fn(() => 'Let me connect you with a team member.'),
 }));
 
 vi.mock('./conversation', () => ({
