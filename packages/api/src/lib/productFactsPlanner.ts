@@ -17,6 +17,30 @@ export interface PlannedFactAnswer {
 
 type UsageSubtype = 'how' | 'frequency' | 'general';
 
+function normalizeLang(lang?: string | null): string | null {
+  if (!lang) return null;
+  const v = String(lang).trim().toLowerCase();
+  if (!v) return null;
+  if (v.startsWith('tr')) return 'tr';
+  if (v.startsWith('hu')) return 'hu';
+  if (v.startsWith('en')) return 'en';
+  return v;
+}
+
+function deterministicLanguageCompatible(
+  queryType: PlannedFactAnswer['queryType'],
+  userLang: SupportedLanguage,
+  factsLang?: string | null
+): boolean {
+  // Numeric/spec answers are language-agnostic enough to keep deterministic.
+  if (queryType === 'volume') return true;
+
+  const normalizedFactsLang = normalizeLang(factsLang);
+  if (!normalizedFactsLang) return true; // unknown => don't block
+
+  return normalizedFactsLang === userLang;
+}
+
 function detectFactQueryType(query: string): PlannedFactAnswer['queryType'] | null {
   const q = query.toLowerCase();
   if (/\b(ml|gram|g |oz|volume|kaç ml|hány ml)\b/i.test(q)) return 'volume';
@@ -196,6 +220,10 @@ export function planStructuredFactAnswer(
 
   const snap = pickSnapshot(snapshots, query);
   if (!snap) return null;
+
+  if (!deterministicLanguageCompatible(queryType, lang, snap.detectedLanguage)) {
+    return null;
+  }
 
   const facts: any = snap.facts || {};
   const identity = facts.product_identity || {};
