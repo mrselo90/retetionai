@@ -328,6 +328,31 @@
                 "actions": "Actions"
             }
         },
+        "filters": {
+            "searchLabel": "Search products",
+            "searchPlaceholder": "Search by product name, URL, or ID",
+            "status": "Status",
+            "sort": "Sort",
+            "reset": "Reset filters",
+            "resultsCount": "{shown} of {total} products",
+            "noMatches": "No products match the current filters.",
+            "statusOptions": {
+                "all": "All products",
+                "ragReady": "RAG ready",
+                "ragNotReady": "RAG not ready",
+                "ragUnknown": "RAG status unknown",
+                "scraped": "Scraped",
+                "notScraped": "Not scraped"
+            },
+            "sortOptions": {
+                "updatedDesc": "Newest updated",
+                "updatedAsc": "Oldest updated",
+                "nameAsc": "Name (A-Z)",
+                "nameDesc": "Name (Z-A)",
+                "chunksDesc": "Chunks (high to low)",
+                "chunksAsc": "Chunks (low to high)"
+            }
+        },
         "shopifyMapButton": "Shopify Product Mapping",
         "addProductButton": "Add New Product",
         "empty": {

@@ -328,6 +328,31 @@
                 "actions": "İşlemler"
             }
         },
+        "filters": {
+            "searchLabel": "Ürün ara",
+            "searchPlaceholder": "Ürün adı, URL veya ID ile ara",
+            "status": "Durum",
+            "sort": "Sırala",
+            "reset": "Filtreleri sıfırla",
+            "resultsCount": "{shown} / {total} ürün",
+            "noMatches": "Mevcut filtrelere uyan ürün bulunamadı.",
+            "statusOptions": {
+                "all": "Tüm ürünler",
+                "ragReady": "RAG hazır",
+                "ragNotReady": "RAG hazır değil",
+                "ragUnknown": "RAG durumu bilinmiyor",
+                "scraped": "Taranmış",
+                "notScraped": "Taranmamış"
+            },
+            "sortOptions": {
+                "updatedDesc": "Son güncellenen",
+                "updatedAsc": "İlk güncellenen",
+                "nameAsc": "Ad (A-Z)",
+                "nameDesc": "Ad (Z-A)",
+                "chunksDesc": "Parça (çoktan aza)",
+                "chunksAsc": "Parça (azdan çoğa)"
+            }
+        },
         "shopifyMapButton": "Shopify Ürün Eşleme",
         "addProductButton": "Yeni Ürün Ekle",
         "empty": {

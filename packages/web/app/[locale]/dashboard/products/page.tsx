@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useDeferredValue, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
@@ -32,11 +32,18 @@ interface ProductWithChunks extends Product {
   chunkCountUnavailable?: boolean;
 }
 
+type ProductsViewMode = 'grid' | 'list';
+type ProductStatusFilter = 'all' | 'rag_ready' | 'rag_not_ready' | 'rag_unknown' | 'scraped' | 'not_scraped';
+type ProductSortOption = 'updated_desc' | 'updated_asc' | 'name_asc' | 'name_desc' | 'chunks_desc' | 'chunks_asc';
+
 export default function ProductsPage() {
   const t = useTranslations('Products');
   const [products, setProducts] = useState<ProductWithChunks[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<ProductsViewMode>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>('all');
+  const [sortBy, setSortBy] = useState<ProductSortOption>('updated_desc');
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProductUrl, setNewProductUrl] = useState('');
   const [newProductName, setNewProductName] = useState('');
@@ -53,7 +60,7 @@ export default function ProductsPage() {
     if (saved === 'grid' || saved === 'list') setViewMode(saved);
   }, []);
 
-  const handleViewModeChange = (mode: 'grid' | 'list') => {
+  const handleViewModeChange = (mode: ProductsViewMode) => {
     setViewMode(mode);
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('productsViewMode', mode);
@@ -270,6 +277,47 @@ export default function ProductsPage() {
     </div>
   );
 
+  const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
+
+  const getProductStatus = (product: ProductWithChunks): ProductStatusFilter => {
+    if (!product.raw_text) return 'not_scraped';
+    if (product.chunkCountUnavailable) return 'rag_unknown';
+    if ((product.chunkCount || 0) > 0) return 'rag_ready';
+    return 'rag_not_ready';
+  };
+
+  const filteredAndSortedProducts = [...products]
+    .filter((product) => {
+      const status = getProductStatus(product);
+      const matchesStatus =
+        statusFilter === 'all'
+          ? true
+          : statusFilter === 'scraped'
+            ? Boolean(product.raw_text)
+            : status === statusFilter;
+
+      const haystack = `${product.name} ${product.url} ${product.id}`.toLowerCase();
+      const matchesSearch = !deferredSearchQuery || haystack.includes(deferredSearchQuery);
+      return matchesStatus && matchesSearch;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'name_asc':
+          return a.name.localeCompare(b.name);
+        case 'name_desc':
+          return b.name.localeCompare(a.name);
+        case 'updated_asc':
+          return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+        case 'chunks_desc':
+          return (b.chunkCount ?? -1) - (a.chunkCount ?? -1);
+        case 'chunks_asc':
+          return (a.chunkCount ?? -1) - (b.chunkCount ?? -1);
+        case 'updated_desc':
+        default:
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      }
+    });
+
   return (
     <Page title={t('title')} subtitle={t('description')} fullWidth>
       <Layout>
@@ -327,6 +375,84 @@ export default function ProductsPage() {
         </div>
       </PolarisCard>
 
+      {products.length > 0 && (
+        <PolarisCard>
+          <div className="p-4 sm:p-5 space-y-4">
+            <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+              <div className="flex-1 min-w-0">
+                <label htmlFor="products-search" className="sr-only">{t('filters.searchLabel')}</label>
+                <Input
+                  id="products-search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t('filters.searchPlaceholder')}
+                  className="h-10 bg-background"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:flex lg:items-center lg:gap-3">
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="products-status-filter" className="text-xs text-muted-foreground font-medium">
+                    {t('filters.status')}
+                  </Label>
+                  <select
+                    id="products-status-filter"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as ProductStatusFilter)}
+                    className="h-10 min-w-[180px] rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="all">{t('filters.statusOptions.all')}</option>
+                    <option value="rag_ready">{t('filters.statusOptions.ragReady')}</option>
+                    <option value="rag_not_ready">{t('filters.statusOptions.ragNotReady')}</option>
+                    <option value="rag_unknown">{t('filters.statusOptions.ragUnknown')}</option>
+                    <option value="scraped">{t('filters.statusOptions.scraped')}</option>
+                    <option value="not_scraped">{t('filters.statusOptions.notScraped')}</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="products-sort" className="text-xs text-muted-foreground font-medium">
+                    {t('filters.sort')}
+                  </Label>
+                  <select
+                    id="products-sort"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as ProductSortOption)}
+                    className="h-10 min-w-[200px] rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="updated_desc">{t('filters.sortOptions.updatedDesc')}</option>
+                    <option value="updated_asc">{t('filters.sortOptions.updatedAsc')}</option>
+                    <option value="name_asc">{t('filters.sortOptions.nameAsc')}</option>
+                    <option value="name_desc">{t('filters.sortOptions.nameDesc')}</option>
+                    <option value="chunks_desc">{t('filters.sortOptions.chunksDesc')}</option>
+                    <option value="chunks_asc">{t('filters.sortOptions.chunksAsc')}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
+              <Text as="p" tone="subdued">
+                {t('filters.resultsCount', { shown: filteredAndSortedProducts.length, total: products.length })}
+              </Text>
+              {(searchQuery || statusFilter !== 'all' || sortBy !== 'updated_desc') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setStatusFilter('all');
+                    setSortBy('updated_desc');
+                  }}
+                  className="text-primary hover:text-primary/80 font-medium text-left sm:text-right"
+                >
+                  {t('filters.reset')}
+                </button>
+              )}
+            </div>
+          </div>
+        </PolarisCard>
+      )}
+
       {/* Products Grid/List */}
       {products.length === 0 && !loading ? (
         <EmptyState
@@ -349,9 +475,15 @@ export default function ProductsPage() {
           }}
         />
       ) : (
-        viewMode === 'grid' ? (
+        filteredAndSortedProducts.length === 0 ? (
+          <PolarisCard>
+            <div className="p-8 text-center">
+              <Text as="p" tone="subdued">{t('filters.noMatches')}</Text>
+            </div>
+          </PolarisCard>
+        ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {products.map((product) => (
+            {filteredAndSortedProducts.map((product) => (
               <Card key={product.id} hover className="group overflow-hidden">
                 <CardHeader className="pb-4 ">
                   <div className="flex items-start justify-between gap-3">
@@ -405,7 +537,7 @@ export default function ProductsPage() {
                 <div className="text-right">{t('list.columns.actions')}</div>
               </div>
 
-              {products.map((product) => (
+              {filteredAndSortedProducts.map((product) => (
                 <div key={product.id} className="px-4 sm:px-5 py-4">
                   <div className="md:hidden space-y-3">
                     <div className="flex items-start justify-between gap-3">
