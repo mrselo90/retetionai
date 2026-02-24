@@ -805,30 +805,41 @@ export default function SettingsPage() {
             </InlineStack>
           {/* System guardrails (read-only) */}
           <div>
+            <BlockStack gap="200">
             <Text as="h3" variant="headingSm">{t('guardrails.systemTitle')}</Text>
             <ul className="space-y-3">
               {systemGuardrails.map((g) => (
                 <li
                   key={g.id}
-                  className="flex items-start gap-3 p-4 rounded-lg border border-zinc-200 bg-zinc-50/80"
+                  className="rounded-lg border border-zinc-200 bg-zinc-50/80"
                 >
-                  <span className="text-zinc-500 mt-0.5" title={t('guardrails.locked')}>🔒</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-zinc-900">{locale === 'tr' ? (g.name_tr ?? g.name) : g.name}</p>
-                    <p className="text-sm text-zinc-600 mt-1">{locale === 'tr' ? (g.description_tr ?? g.description) : g.description}</p>
-                    <p className="text-xs text-zinc-500 mt-2">
-                      {t('guardrails.application', {
-                        type: g.apply_to === 'both' ? t('guardrails.types.both') : g.apply_to === 'user_message' ? t('guardrails.types.user_message') : t('guardrails.types.ai_response'),
-                        action: g.action === 'escalate' ? t('guardrails.actions.escalate') : t('guardrails.actions.block')
-                      })}
-                    </p>
-                  </div>
+                  <Box padding="300">
+                    <InlineStack gap="300" blockAlign="start">
+                      <Text as="span" tone="subdued">🔒</Text>
+                      <BlockStack gap="100">
+                        <Text as="p" variant="bodyMd" fontWeight="medium">
+                          {locale === 'tr' ? (g.name_tr ?? g.name) : g.name}
+                        </Text>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          {locale === 'tr' ? (g.description_tr ?? g.description) : g.description}
+                        </Text>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          {t('guardrails.application', {
+                            type: g.apply_to === 'both' ? t('guardrails.types.both') : g.apply_to === 'user_message' ? t('guardrails.types.user_message') : t('guardrails.types.ai_response'),
+                            action: g.action === 'escalate' ? t('guardrails.actions.escalate') : t('guardrails.actions.block')
+                          })}
+                        </Text>
+                      </BlockStack>
+                    </InlineStack>
+                  </Box>
                 </li>
               ))}
             </ul>
+            </BlockStack>
           </div>
           {/* Custom guardrails */}
           <div>
+            <BlockStack gap="200">
             <Text as="h3" variant="headingSm">{t('guardrails.customTitle')}</Text>
             {customGuardrails.length === 0 ? (
               <p className="text-sm text-zinc-500 py-4">{t('guardrails.empty')}</p>
@@ -837,45 +848,52 @@ export default function SettingsPage() {
                 {customGuardrails.map((g) => (
                   <li
                     key={g.id}
-                    className="flex items-center gap-3 p-4 rounded-lg border border-zinc-200 bg-white"
+                    className="rounded-lg border border-zinc-200 bg-white"
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-zinc-900">{g.name}</p>
-                      {g.description && (
-                        <p className="text-sm text-zinc-600 mt-0.5">{g.description}</p>
-                      )}
-                      <p className="text-xs text-zinc-500 mt-2">
-                        {g.match_type === 'keywords'
-                          ? `${t('guardrails.modal.matchTypes.keywords')}: ${Array.isArray(g.value) ? g.value.join(', ') : g.value}`
-                          : `${t('guardrails.modal.matchTypes.phrase')}: ${typeof g.value === 'string' ? g.value : (Array.isArray(g.value) ? g.value[0] : '')}`}
-                        {' · '}
-                        {t('guardrails.application', {
-                          type: g.apply_to === 'both' ? t('guardrails.types.both') : g.apply_to === 'user_message' ? t('guardrails.types.user_message') : t('guardrails.types.ai_response'),
-                          action: g.action === 'escalate' ? t('guardrails.actions.escalate') : t('guardrails.actions.block')
-                        })}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => openEditGuardrail(g)}
-                        className="text-sm text-teal-600 hover:text-teal-700 font-medium"
-                      >
-                        {t('guardrails.edit')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteGuardrail(g.id)}
-                        disabled={savingGuardrails}
-                        className="text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
-                      >
-                        {t('guardrails.delete')}
-                      </button>
-                    </div>
+                    <Box padding="300">
+                      <InlineStack align="space-between" blockAlign="start" gap="300">
+                        <BlockStack gap="100">
+                          <Text as="p" variant="bodyMd" fontWeight="medium">{g.name}</Text>
+                          {g.description && (
+                            <Text as="p" variant="bodySm" tone="subdued">{g.description}</Text>
+                          )}
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            {g.match_type === 'keywords'
+                              ? `${t('guardrails.modal.matchTypes.keywords')}: ${Array.isArray(g.value) ? g.value.join(', ') : g.value}`
+                              : `${t('guardrails.modal.matchTypes.phrase')}: ${typeof g.value === 'string' ? g.value : (Array.isArray(g.value) ? g.value[0] : '')}`}
+                            {' · '}
+                            {t('guardrails.application', {
+                              type: g.apply_to === 'both' ? t('guardrails.types.both') : g.apply_to === 'user_message' ? t('guardrails.types.user_message') : t('guardrails.types.ai_response'),
+                              action: g.action === 'escalate' ? t('guardrails.actions.escalate') : t('guardrails.actions.block')
+                            })}
+                          </Text>
+                        </BlockStack>
+                        <InlineStack gap="200">
+                          <Button
+                            type="button"
+                            onClick={() => openEditGuardrail(g)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            {t('guardrails.edit')}
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => handleDeleteGuardrail(g.id)}
+                            disabled={savingGuardrails}
+                            variant="destructive"
+                            size="sm"
+                          >
+                            {t('guardrails.delete')}
+                          </Button>
+                        </InlineStack>
+                      </InlineStack>
+                    </Box>
                   </li>
                 ))}
               </ul>
             )}
+            </BlockStack>
           </div>
           </BlockStack>
         </Box>
@@ -896,14 +914,12 @@ export default function SettingsPage() {
               </BlockStack>
             </InlineStack>
           {/* Data Export */}
-          <div className="p-4 border border-border rounded-lg">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="font-medium mb-1">{t('gdpr.exportTitle')}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {t('gdpr.exportDesc')}
-                </p>
-              </div>
+          <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300">
+            <InlineStack align="space-between" blockAlign="start" gap="300">
+              <BlockStack gap="100">
+                <Text as="h3" variant="headingSm">{t('gdpr.exportTitle')}</Text>
+                <Text as="p" tone="subdued">{t('gdpr.exportDesc')}</Text>
+              </BlockStack>
               <Button
                 variant="outline"
                 onClick={handleExportData}
@@ -913,22 +929,20 @@ export default function SettingsPage() {
                 {exportingData ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
                 {exportingData ? t('gdpr.exporting') : t('gdpr.exportButton')}
               </Button>
-            </div>
-          </div>
+            </InlineStack>
+          </Box>
 
           {/* Data Deletion */}
-          <div className="p-4 border border-destructive/20 rounded-lg bg-destructive/5">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="font-medium text-destructive mb-1">{t('gdpr.deleteTitle')}</h3>
-                <p className="text-sm text-destructive/80">
-                  {t('gdpr.deleteDesc')}
-                </p>
-                <p className="text-xs text-destructive/70 mt-2 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" />
-                  {t('gdpr.deleteWarning')}
-                </p>
-              </div>
+          <Box padding="300" borderWidth="025" borderColor="border-critical" borderRadius="300" background="bg-surface-critical">
+            <InlineStack align="space-between" blockAlign="start" gap="300">
+              <BlockStack gap="100">
+                <Text as="h3" variant="headingSm" tone="critical">{t('gdpr.deleteTitle')}</Text>
+                <Text as="p" tone="critical">{t('gdpr.deleteDesc')}</Text>
+                <InlineStack gap="100" blockAlign="center">
+                  <AlertTriangle className="w-3 h-3 text-red-700" />
+                  <Text as="span" variant="bodySm" tone="critical">{t('gdpr.deleteWarning')}</Text>
+                </InlineStack>
+              </BlockStack>
               <Button
                 variant="destructive"
                 onClick={() => setShowDeleteConfirm(true)}
@@ -938,11 +952,11 @@ export default function SettingsPage() {
                 <Trash2 className="w-4 h-4 mr-2" />
                 {t('gdpr.deleteButton')}
               </Button>
-            </div>
-          </div>
+            </InlineStack>
+          </Box>
 
           {/* Links */}
-          <div className="pt-4 border-t">
+          <Box paddingBlockStart="300" borderBlockStartWidth="025" borderColor="border">
             <div className="flex flex-wrap gap-4 text-sm">
               <a href="/privacy-policy" target="_blank" className="text-primary hover:underline flex items-center gap-1">
                 <ExternalLink className="w-3 h-3" /> {t('gdpr.links.privacy')}
@@ -954,7 +968,7 @@ export default function SettingsPage() {
                 <ExternalLink className="w-3 h-3" /> {t('gdpr.links.cookie')}
               </a>
             </div>
-          </div>
+          </Box>
           </BlockStack>
         </Box>
       </PolarisCard>

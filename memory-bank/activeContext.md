@@ -67,6 +67,10 @@
 - **Settings Polaris Migration (step 3)**:
   - Guardrail add/edit modal form inputs migrated from native inputs/selects/textarea to Polaris `TextField` + `Select`
   - Merchant-critical guardrail configuration workflow is now closer to Shopify/Polaris form behavior while keeping existing dialog logic intact
+- **Settings Polaris Migration (step 4)**:
+  - Guardrails system/custom list rows standardized further with Polaris layout primitives (`Box`, `BlockStack`, `InlineStack`, `Text`)
+  - GDPR export/delete inner panels and links section moved to Polaris-style boxed surfaces while preserving existing actions
+  - Custom UI buttons remain where tied to existing shared button variants/dialog patterns, but surrounding layout is now Polaris-first
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
