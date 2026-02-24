@@ -18,6 +18,9 @@
 - **Landing Page Responsive Cleanup**:
   - Mobile-first spacing rhythm tightened across sections (Hero→Stats, Features, How It Works, Social Proof, Pricing, FAQ, CTA, Footer)
   - Alignment inconsistencies fixed (card heights, section headers, mobile CTA/button layout, footer grid spacing)
+- **Manual RAG Test UX (Dashboard / Test)**:
+  - Advanced RAG tab now loads existing merchant products and chunk counts for direct selection
+  - Supports search/filter and multi-select so manual RAG questions can be scoped to specific scraped products (avoids all-products ambiguity)
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.

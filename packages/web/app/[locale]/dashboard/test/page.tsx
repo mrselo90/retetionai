@@ -46,6 +46,18 @@ interface Product {
   url: string;
 }
 
+interface MerchantProduct {
+  id: string;
+  name: string;
+  url: string;
+  raw_text?: string | null;
+}
+
+interface MerchantProductWithChunks extends MerchantProduct {
+  chunkCount?: number;
+  chunkCountUnavailable?: boolean;
+}
+
 interface OrderData {
   orderId: string;
   customerPhone: string;
@@ -84,6 +96,11 @@ export default function TestInterfacePage() {
   // RAG test state
   const [ragQuery, setRagQuery] = useState('Bu ürün nasıl kullanılır?');
   const [ragProductIds, setRagProductIds] = useState('');
+  const [ragProductSearch, setRagProductSearch] = useState('');
+  const [ragOnlyReady, setRagOnlyReady] = useState(true);
+  const [ragProductsList, setRagProductsList] = useState<MerchantProductWithChunks[]>([]);
+  const [ragProductsLoading, setRagProductsLoading] = useState(false);
+  const [ragProductsLoaded, setRagProductsLoaded] = useState(false);
   const [ragResult, setRagResult] = useState<any>(null);
 
   // Tasks state
@@ -359,6 +376,82 @@ export default function TestInterfacePage() {
     }
   };
 
+  const parseSelectedRagProductIds = () =>
+    ragProductIds
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+  const syncRagProductIds = (ids: string[]) => {
+    setRagProductIds(Array.from(new Set(ids)).join(', '));
+  };
+
+  const toggleRagProductSelection = (productId: string) => {
+    const selected = new Set(parseSelectedRagProductIds());
+    if (selected.has(productId)) {
+      selected.delete(productId);
+    } else {
+      selected.add(productId);
+    }
+    syncRagProductIds(Array.from(selected));
+  };
+
+  const selectAllVisibleRagProducts = () => {
+    const ids = filteredRagProducts.map((p) => p.id);
+    syncRagProductIds(ids);
+  };
+
+  const clearRagProductSelection = () => {
+    setRagProductIds('');
+  };
+
+  const loadRAGProducts = async () => {
+    setRagProductsLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await authenticatedRequest<{ products?: MerchantProduct[] }>(
+        '/api/products',
+        session.access_token
+      );
+      const list = response?.products ?? [];
+      if (list.length === 0) {
+        setRagProductsList([]);
+        setRagProductsLoaded(true);
+        return;
+      }
+
+      try {
+        const chunksResponse = await authenticatedRequest<{ chunkCounts: Array<{ productId: string; chunkCount: number }> }>(
+          '/api/products/chunks/batch',
+          session.access_token,
+          {
+            method: 'POST',
+            body: JSON.stringify({ productIds: list.map((p) => p.id) }),
+          }
+        );
+        const chunkCountMap = new Map((chunksResponse.chunkCounts ?? []).map((c) => [c.productId, c.chunkCount]));
+        setRagProductsList(
+          list.map((p) => ({
+            ...p,
+            chunkCount: chunkCountMap.get(p.id) ?? 0,
+            chunkCountUnavailable: false,
+          }))
+        );
+      } catch (chunkErr) {
+        console.error('Failed to load chunk counts for RAG test products:', chunkErr);
+        setRagProductsList(list.map((p) => ({ ...p, chunkCountUnavailable: true })));
+      }
+      setRagProductsLoaded(true);
+    } catch (err: any) {
+      console.error('Failed to load RAG test products:', err);
+      toast.error('RAG test ürünleri yüklenemedi', err?.message || 'Ürün listesi alınamadı');
+    } finally {
+      setRagProductsLoading(false);
+    }
+  };
+
   const handleRAGAnswer = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -398,6 +491,24 @@ export default function TestInterfacePage() {
       loadHealth();
     }
   }, [showAdvanced, advancedTab]);
+
+  useEffect(() => {
+    if (showAdvanced && advancedTab === 'rag' && !ragProductsLoaded && !ragProductsLoading) {
+      loadRAGProducts();
+    }
+  }, [showAdvanced, advancedTab, ragProductsLoaded, ragProductsLoading]);
+
+  const filteredRagProducts = ragProductsList.filter((product) => {
+    const matchesSearch =
+      !ragProductSearch.trim() ||
+      product.name?.toLowerCase().includes(ragProductSearch.toLowerCase()) ||
+      product.id.toLowerCase().includes(ragProductSearch.toLowerCase());
+    const matchesReady = !ragOnlyReady || (typeof product.chunkCount === 'number' && product.chunkCount > 0);
+    return matchesSearch && matchesReady;
+  });
+
+  const selectedRagIds = parseSelectedRagProductIds();
+  const selectedRagIdSet = new Set(selectedRagIds);
 
   return (
     <Page title="Test & Development Interface" subtitle="Siparis olusturup bot ile konusarak sistemi test edin" fullWidth>
@@ -731,7 +842,22 @@ export default function TestInterfacePage() {
             {/* RAG Test Tab */}
             {advancedTab === 'rag' && (
               <div className="bg-white rounded-lg shadow p-6 space-y-4">
-                <h3 className="text-lg font-semibold text-zinc-900">RAG Pipeline Testi</h3>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-zinc-900">RAG Pipeline Testi</h3>
+                    <p className="text-sm text-zinc-600 mt-1">
+                      Mevcut scrape edilmiş ürünleri seçip ürün sorularını manuel test edin.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={loadRAGProducts}
+                    disabled={ragProductsLoading}
+                    className="px-3 py-2 text-sm border border-zinc-300 rounded-lg hover:bg-zinc-50 disabled:opacity-50"
+                  >
+                    {ragProductsLoading ? 'Yükleniyor...' : 'Ürünleri Yenile'}
+                  </button>
+                </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 mb-2">
@@ -746,6 +872,132 @@ export default function TestInterfacePage() {
                   />
                 </div>
 
+                <div className="border border-zinc-200 rounded-lg p-4 space-y-3 bg-zinc-50">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700">Test edilecek ürünler</label>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        Seçmezseniz tüm ürünlerde arar (önerilmez). 1 ürün seçmek en doğru sonuç verir.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={selectAllVisibleRagProducts}
+                        disabled={filteredRagProducts.length === 0}
+                        className="px-3 py-1.5 text-xs border border-zinc-300 rounded-md hover:bg-white disabled:opacity-50"
+                      >
+                        Görünenleri Seç
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearRagProductSelection}
+                        disabled={selectedRagIds.length === 0}
+                        className="px-3 py-1.5 text-xs border border-zinc-300 rounded-md hover:bg-white disabled:opacity-50"
+                      >
+                        Seçimi Temizle
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+                    <input
+                      type="text"
+                      value={ragProductSearch}
+                      onChange={(e) => setRagProductSearch(e.target.value)}
+                      placeholder="Ürün ara (isim veya ID)"
+                      className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    />
+                    <label className="inline-flex items-center gap-2 text-sm text-zinc-700 bg-white border border-zinc-300 rounded-lg px-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={ragOnlyReady}
+                        onChange={(e) => setRagOnlyReady(e.target.checked)}
+                        className="rounded border-zinc-300"
+                      />
+                      Sadece RAG Ready
+                    </label>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {selectedRagIds.length === 0 ? (
+                      <span className="text-xs text-zinc-500">Henüz ürün seçilmedi</span>
+                    ) : (
+                      selectedRagIds.slice(0, 6).map((id) => {
+                        const p = ragProductsList.find((x) => x.id === id);
+                        return (
+                          <span key={id} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs border border-blue-200">
+                            <span className="truncate max-w-[180px]">{p?.name || id}</span>
+                            <button
+                              type="button"
+                              onClick={() => toggleRagProductSelection(id)}
+                              className="text-blue-700 hover:text-blue-900"
+                              aria-label="Ürünü seçimden kaldır"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </span>
+                        );
+                      })
+                    )}
+                    {selectedRagIds.length > 6 && (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 text-xs">
+                        +{selectedRagIds.length - 6} ürün
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="max-h-72 overflow-y-auto border border-zinc-200 rounded-lg bg-white divide-y divide-zinc-100">
+                    {!ragProductsLoaded && !ragProductsLoading ? (
+                      <div className="p-3 text-sm text-zinc-500">Ürün listesi yüklenmedi</div>
+                    ) : ragProductsLoading ? (
+                      <div className="p-3 text-sm text-zinc-500">Ürünler yükleniyor...</div>
+                    ) : filteredRagProducts.length === 0 ? (
+                      <div className="p-3 text-sm text-zinc-500">Filtreye uygun ürün bulunamadı</div>
+                    ) : (
+                      filteredRagProducts.map((product) => {
+                        const isSelected = selectedRagIdSet.has(product.id);
+                        const isReady = typeof product.chunkCount === 'number' ? product.chunkCount > 0 : false;
+                        return (
+                          <label
+                            key={product.id}
+                            className={`flex items-start gap-3 p-3 cursor-pointer hover:bg-zinc-50 ${isSelected ? 'bg-blue-50/60' : ''}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleRagProductSelection(product.id)}
+                              className="mt-1 rounded border-zinc-300"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-medium text-sm text-zinc-900 truncate">{product.name || '(İsimsiz ürün)'}</p>
+                                {product.chunkCountUnavailable ? (
+                                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-amber-200 text-amber-700 bg-amber-50">
+                                    Chunk bilinmiyor
+                                  </span>
+                                ) : isReady ? (
+                                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-emerald-200 text-emerald-700 bg-emerald-50">
+                                    RAG Ready ({product.chunkCount})
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-zinc-200 text-zinc-600 bg-zinc-50">
+                                    RAG not ready
+                                  </span>
+                                )}
+                              </div>
+                              <p className="mt-1 text-xs text-zinc-500 break-all">{product.id}</p>
+                              {product.url && (
+                                <p className="mt-1 text-xs text-zinc-500 break-all line-clamp-1">{product.url}</p>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 mb-2">
                     Product IDs (comma-separated, optional)
@@ -758,7 +1010,7 @@ export default function TestInterfacePage() {
                     className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <p className="mt-1 text-xs text-zinc-500">
-                    Boş bırakırsanız tüm ürünlerde aranır
+                    Yukarıdan ürün seçtiğinizde bu alan otomatik dolar. Boş bırakırsanız tüm ürünlerde aranır.
                   </p>
                 </div>
 
