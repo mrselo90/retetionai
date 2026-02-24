@@ -115,6 +115,10 @@
   - `/admin/merchants` table row badges/actions improved with wrapping behavior to avoid cramped layouts in narrower widths
   - `/admin/merchants` gained a Polaris-style operational note below the table for action hierarchy/context clarity
   - `/admin` platform overview removed unused visual config and added a Polaris `Banner` note to reinforce operational/admin context
+- **Web Deploy Sync (customer-facing + admin Polaris updates)**:
+  - Server pulled and built latest web commits up to `57138ad`
+  - Next.js production build completed successfully and generated all key dashboard/admin routes (`products`, `customers`, `conversations`, `settings`, `analytics`, `integrations`, admin pages)
+  - PM2 `api`, `web`, and `workers` restarted and confirmed `online`
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
