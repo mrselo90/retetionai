@@ -51,13 +51,13 @@ function Toast({ toast, onClose }: ToastProps) {
   const getColors = () => {
     switch (toast.type) {
       case 'success':
-        return 'bg-gradient-to-r from-success/15 to-success/5 border-2 border-success/30 shadow-success/20';
+        return 'bg-card border border-success/25';
       case 'error':
-        return 'bg-gradient-to-r from-destructive/15 to-destructive/5 border-2 border-destructive/30 shadow-destructive/20';
+        return 'bg-card border border-destructive/25';
       case 'warning':
-        return 'bg-gradient-to-r from-warning/15 to-warning/5 border-2 border-warning/30 shadow-warning/20';
+        return 'bg-card border border-warning/25';
       case 'info':
-        return 'bg-gradient-to-r from-info/15 to-info/5 border-2 border-info/30 shadow-info/20';
+        return 'bg-card border border-info/25';
     }
   };
 
@@ -77,19 +77,19 @@ function Toast({ toast, onClose }: ToastProps) {
   const getMessageColor = () => {
     switch (toast.type) {
       case 'success':
-        return 'text-success/80';
+        return 'text-muted-foreground';
       case 'error':
-        return 'text-destructive/80';
+        return 'text-muted-foreground';
       case 'warning':
-        return 'text-warning/80';
+        return 'text-muted-foreground';
       case 'info':
-        return 'text-info/80';
+        return 'text-muted-foreground';
     }
   };
 
   return (
     <div
-      className={`${getColors()} rounded-xl shadow-xl p-5 mb-3 flex items-start gap-4 backdrop-blur-sm transition-all duration-300 ${
+      className={`${getColors()} rounded-lg shadow-sm p-4 mb-3 flex items-start gap-3 transition-all duration-200 ${
         isExiting ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0 animate-slide-in-right'
       }`}
     >
@@ -97,18 +97,18 @@ function Toast({ toast, onClose }: ToastProps) {
         {getIcon()}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-bold ${getTitleColor()}`}>
+        <p className={`text-sm font-semibold ${getTitleColor()}`}>
           {toast.title}
         </p>
         {toast.message && (
-          <p className={`text-sm mt-1.5 font-medium ${getMessageColor()}`}>
+          <p className={`text-sm mt-1 ${getMessageColor()}`}>
             {toast.message}
           </p>
         )}
       </div>
       <button
         onClick={handleClose}
-        className="flex-shrink-0 p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/50 transition-all"
+        className="flex-shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
       >
         <X className="w-5 h-5" />
       </button>
@@ -139,7 +139,7 @@ export default function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-6 right-6 z-50 w-full max-w-md space-y-3">
+    <div className="fixed top-4 right-4 z-50 w-full max-w-md space-y-2">
       {toasts.map((toast) => (
         <Toast key={toast.id} toast={toast} onClose={removeToast} />
       ))}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { Button, Card, Layout, Page, Text } from '@shopify/polaris';
 import { ChevronDown, ChevronUp, Check, ArrowRight, Plus, X, RefreshCw } from 'lucide-react';
 
 interface ScheduledTask {
@@ -399,15 +400,23 @@ export default function TestInterfacePage() {
   }, [showAdvanced, advancedTab]);
 
   return (
+    <Page title="Test & Development Interface" subtitle="Siparis olusturup bot ile konusarak sistemi test edin" fullWidth>
+      <Layout>
+        <Layout.Section>
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-zinc-900">Test & Development Interface</h1>
-        <p className="mt-2 text-zinc-600">Sipariş oluşturup bot ile konuşarak sistemi test edin</p>
-      </div>
+      <Card>
+        <div className="p-5">
+          <Text as="h2" variant="headingMd">Test & Development Interface</Text>
+          <div className="mt-2">
+            <Text as="p" tone="subdued">Sipariş oluşturup bot ile konuşarak sistemi test edin</Text>
+          </div>
+        </div>
+      </Card>
 
       {/* Step Indicator */}
-      <div className="flex items-center justify-between max-w-2xl">
+      <Card>
+      <div className="p-5 flex items-center justify-between max-w-2xl">
         <div className="flex items-center space-x-2">
           <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
             currentStep >= 1 ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 text-zinc-400'
@@ -446,16 +455,16 @@ export default function TestInterfacePage() {
         </div>
 
         {currentStep > 1 && (
-          <button
-            type="button"
+          <Button
             onClick={handleReset}
-            className="ml-4 p-2 text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
-            title="Testi sıfırla"
+            variant="plain"
+            icon={RefreshCw}
           >
-            <RefreshCw className="w-5 h-5" />
-          </button>
+            Sıfırla
+          </Button>
         )}
       </div>
+      </Card>
 
       {/* Step 1: Create Order */}
       {currentStep === 1 && (
@@ -974,5 +983,8 @@ export default function TestInterfacePage() {
         )}
       </div>
     </div>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }

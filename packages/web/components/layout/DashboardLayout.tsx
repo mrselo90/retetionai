@@ -46,14 +46,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--surface))]">
+      <div className="shopify-dashboard-theme min-h-screen flex items-center justify-center bg-[hsl(var(--surface))]">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--surface))] flex">
+    <div className="shopify-dashboard-theme min-h-screen bg-[hsl(var(--surface))] flex">
 
       {/* ── Embedded Mode: App Bridge s-app-nav (BFS 4.1.4) ─────────────── */}
       {embedded && (
@@ -78,7 +78,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Mobile Sidebar Overlay */}
           {isSidebarOpen && (
             <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
+              className="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-40 lg:hidden animate-fade-in"
               onClick={() => setIsSidebarOpen(false)}
             />
           )}
@@ -86,19 +86,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Sidebar */}
           <aside
             className={cn(
-              "fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border shadow-sm transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:block",
+              "shopify-app-sidebar fixed inset-y-0 left-0 z-50 w-64 border-r transition-transform duration-200 ease-out lg:translate-x-0 lg:static lg:block",
               isSidebarOpen ? "translate-x-0" : "-translate-x-full"
             )}
           >
             <div className="h-full flex flex-col">
               {/* Logo */}
-              <div className="h-16 flex items-center px-4 border-b border-border">
-                <Link href="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-foreground">
-                  <img src="/recete-icon.svg" alt="" className="w-10 h-10 rounded-xl shrink-0" width="40" height="40" aria-hidden />
+              <div className="h-14 flex items-center px-4 border-b border-border">
+                <Link href="/dashboard" className="flex items-center gap-2.5 font-semibold text-[14px] tracking-normal text-foreground">
+                  <img src="/recete-icon.svg" alt="" className="w-8 h-8 rounded-md shrink-0" width="32" height="32" aria-hidden />
                   <span className="text-foreground">Recete</span>
                 </Link>
                 <button
-                  className="ml-auto lg:hidden text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-muted transition-colors"
+                  className="ml-auto lg:hidden text-muted-foreground hover:text-foreground p-2 rounded-md hover:bg-muted transition-colors"
                   onClick={() => setIsSidebarOpen(false)}
                 >
                   <X className="w-5 h-5" />
@@ -106,7 +106,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
 
               {/* Nav Items */}
-              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto scrollbar-thin">
+              <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin">
                 {navItems.map((item) => {
                   const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
                   const Icon = item.icon;
@@ -115,17 +115,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-150",
+                        "shopify-nav-item relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-150",
                         isActive
-                          ? "bg-primary/10 text-primary"
+                          ? "is-active bg-primary/10 text-primary"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground"
                       )}
                       onClick={() => setIsSidebarOpen(false)}
                     >
-                      {isActive && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full"></div>
-                      )}
-                      <Icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-muted-foreground")} />
+                      <Icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-muted-foreground")} strokeWidth={1.8} />
                       {item.name}
                     </Link>
                   );
@@ -135,7 +132,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               {/* User Profile */}
               <div className="p-4 border-t border-border">
                 <div className="flex items-center gap-3 mb-3 p-3 rounded-lg bg-[hsl(var(--surface))] border border-border">
-                  <Avatar className="ring-2 ring-primary/20">
+                  <Avatar className="ring-1 ring-border">
                     <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${userEmail || 'User'}&backgroundColor=0A3D2E`} />
                     <AvatarFallback className="bg-primary text-primary-foreground font-semibold">U</AvatarFallback>
                   </Avatar>
@@ -150,7 +147,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
                 <Button
                   variant="outline"
-                  className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 border-border font-semibold"
+                  className="w-full justify-start"
                   onClick={handleSignOut}
                 >
                   <LogOut className="w-4 h-4 mr-2" />
@@ -167,11 +164,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Mobile Header — standalone mode only */}
         {!embedded && (
           <header className="lg:hidden h-14 bg-card border-b border-border flex items-center px-4 justify-between sticky top-0 z-30">
-            <Link href="/dashboard" className="font-bold text-lg text-foreground flex items-center gap-2">
-              <img src="/recete-icon.svg" alt="" className="w-8 h-8 rounded-lg shrink-0" width="32" height="32" aria-hidden />
+            <Link href="/dashboard" className="font-semibold text-sm text-foreground flex items-center gap-2">
+              <img src="/recete-icon.svg" alt="" className="w-7 h-7 rounded-md shrink-0" width="28" height="28" aria-hidden />
               Recete
             </Link>
-            <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="hover:bg-primary/15">
+            <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)}>
               <Menu className="w-6 h-6" />
             </Button>
           </header>

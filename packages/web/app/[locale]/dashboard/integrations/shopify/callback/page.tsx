@@ -2,8 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { authenticatedRequest } from '@/lib/api';
+import { Banner, Box, Button, Card, Layout, Page, Spinner, Text } from '@shopify/polaris';
 import { useTranslations } from 'next-intl';
 
 function ShopifyCallbackContent() {
@@ -12,10 +11,6 @@ function ShopifyCallbackContent() {
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    handleCallback();
-  }, []);
 
   const handleCallback = () => {
     // Check URL parameters (backend redirects here with success/error)
@@ -41,87 +36,94 @@ function ShopifyCallbackContent() {
     }
   };
 
+  useEffect(() => {
+    handleCallback();
+  }, [searchParams, router, t]);
+
   return (
-    
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="bg-white rounded-lg  p-8 max-w-md w-full mx-4">
+    <Page title={t('connecting')}>
+      <Layout>
+        <Layout.Section>
+      <Box paddingBlockStart="400">
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="max-w-md w-full mx-4">
+          <Card>
+            <div className="p-8">
           {status === 'loading' && (
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <h2 className="text-2xl font-bold text-zinc-900 mb-2">{t('connecting')}</h2>
-              <p className="text-zinc-600">{t('pleaseWait')}</p>
+              <div className="flex justify-center mb-4">
+                <Spinner accessibilityLabel={t('connecting')} size="large" />
+              </div>
+              <Text as="h2" variant="headingLg">{t('connecting')}</Text>
+              <div className="mt-2">
+                <Text as="p" tone="subdued">{t('pleaseWait')}</Text>
+              </div>
             </div>
           )}
 
           {status === 'success' && (
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
+              <Banner tone="success">
+                <p>{message}</p>
+              </Banner>
+              <div className="mt-4">
+                <Text as="h2" variant="headingLg">{t('success')}</Text>
               </div>
-              <h2 className="text-2xl font-bold text-zinc-900 mb-2">{t('success')}</h2>
-              <p className="text-zinc-600 mb-4">{message}</p>
-              <p className="text-sm text-zinc-600">{t('redirecting')}</p>
+              <div className="mt-2">
+                <Text as="p" tone="subdued">{t('redirecting')}</Text>
+              </div>
             </div>
           )}
 
           {status === 'error' && (
             <div className="text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-red-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+              <Banner tone="critical">
+                <p>{message}</p>
+              </Banner>
+              <div className="mt-4">
+                <Text as="h2" variant="headingLg">Hata</Text>
               </div>
-              <h2 className="text-2xl font-bold text-zinc-900 mb-2">Hata</h2>
-              <p className="text-zinc-600 mb-4">{message}</p>
-              <button
-                onClick={() => router.push('/dashboard/integrations')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
+              <div className="mt-4">
+                <Button onClick={() => router.push('/dashboard/integrations')} variant="primary">
                 {t('backToIntegrations')}
-              </button>
+                </Button>
+              </div>
             </div>
           )}
+            </div>
+          </Card>
         </div>
       </div>
-    
+      </Box>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }
 
 export default function ShopifyCallbackPage() {
   return (
     <Suspense fallback={
-      
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="bg-white rounded-lg  p-8 max-w-md w-full mx-4">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <h2 className="text-2xl font-bold text-zinc-900 mb-2">Loading...</h2>
+      <Page title="Loading...">
+        <Layout>
+          <Layout.Section>
+        <Box paddingBlockStart="400">
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="max-w-md w-full mx-4">
+              <Card>
+                <div className="p-8 text-center">
+                  <div className="flex justify-center mb-4">
+                    <Spinner accessibilityLabel="Loading" size="large" />
+                  </div>
+                  <Text as="h2" variant="headingLg">Loading...</Text>
+                </div>
+              </Card>
             </div>
           </div>
-        </div>
-      
+        </Box>
+          </Layout.Section>
+        </Layout>
+      </Page>
     }>
       <ShopifyCallbackContent />
     </Suspense>

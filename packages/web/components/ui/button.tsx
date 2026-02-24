@@ -5,28 +5,28 @@ import { cn } from "@/lib/utils"
 
 /* Polaris-aligned: default height 36px, border-radius 8px, 14px font, font-semibold */
 const buttonVariants = cva(
-    "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-[length:var(--polaris-body-md)] font-semibold ring-offset-background transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed",
+    "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-[length:var(--polaris-body-md)] font-medium ring-offset-background transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed",
     {
         variants: {
             variant: {
-                default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm border border-transparent",
+                default: "bg-primary text-primary-foreground hover:bg-primary/95 shadow-[inset_0_-1px_0_rgba(0,0,0,0.12)] border border-transparent",
                 destructive:
-                    "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm border border-transparent",
+                    "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-[inset_0_-1px_0_rgba(0,0,0,0.12)] border border-transparent",
                 outline:
-                    "border border-input bg-background hover:bg-accent/50 hover:text-accent-foreground",
+                    "border border-input bg-card text-foreground hover:bg-muted",
                 secondary:
                     "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-transparent",
-                ghost: "hover:bg-accent/50 hover:text-accent-foreground",
+                ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
                 link: "text-primary underline-offset-4 hover:underline",
-                success: "bg-success text-success-foreground hover:bg-success/90 shadow-sm border border-transparent",
-                warning: "bg-warning text-warning-foreground hover:bg-warning/90 shadow-sm border border-transparent",
-                info: "bg-info text-info-foreground hover:bg-info/90 shadow-sm border border-transparent",
+                success: "bg-success text-success-foreground hover:bg-success/90 shadow-[inset_0_-1px_0_rgba(0,0,0,0.12)] border border-transparent",
+                warning: "bg-warning text-warning-foreground hover:bg-warning/90 shadow-[inset_0_-1px_0_rgba(0,0,0,0.12)] border border-transparent",
+                info: "bg-info text-info-foreground hover:bg-info/90 shadow-[inset_0_-1px_0_rgba(0,0,0,0.12)] border border-transparent",
             },
             size: {
-                default: "h-9 min-h-9 px-4 py-2",
+                default: "h-9 min-h-9 px-3.5 py-2",
                 sm: "h-8 min-h-8 rounded-md px-3 text-[length:var(--polaris-body-sm)]",
-                lg: "h-10 min-h-10 rounded-lg px-5 text-[length:var(--polaris-body-md)]",
-                xl: "h-11 min-h-11 rounded-lg px-6 text-[length:var(--polaris-body-md)]",
+                lg: "h-10 min-h-10 rounded-lg px-4.5 text-[length:var(--polaris-body-md)]",
+                xl: "h-11 min-h-11 rounded-lg px-5.5 text-[length:var(--polaris-body-md)]",
                 icon: "h-9 w-9",
                 "icon-sm": "h-8 w-8",
                 "icon-lg": "h-10 w-10",

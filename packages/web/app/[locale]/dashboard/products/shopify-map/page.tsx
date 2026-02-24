@@ -1,16 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Spinner } from '@/components/ui/spinner';
-import { Link2, ArrowLeft, Package, Image, Loader2, Save, ArrowRight } from 'lucide-react';
+import {
+  Badge as PolarisBadge,
+  Banner,
+  BlockStack,
+  Box,
+  Button as PolarisButton,
+  Card as PolarisCard,
+  Layout,
+  Page,
+  SkeletonBodyText,
+  SkeletonDisplayText,
+  SkeletonPage,
+  Text,
+  TextField,
+} from '@shopify/polaris';
+import { Link2, Package, Image as ImageIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 
 interface ShopifyProductVariant {
   id: string;
@@ -48,19 +59,15 @@ interface InstructionRow {
 
 export default function ShopifyMapPage() {
   const t = useTranslations('ShopifyMap');
+  const router = useRouter();
   const [shopifyProducts, setShopifyProducts] = useState<ShopifyProduct[]>([]);
   const [shopDomain, setShopDomain] = useState<string>('');
   const [localProducts, setLocalProducts] = useState<LocalProduct[]>([]);
-  const [instructions, setInstructions] = useState<Record<string, InstructionRow>>({});
   const [editing, setEditing] = useState<Record<string, { usage_instructions: string; recipe_summary?: string }>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -84,7 +91,6 @@ export default function ShopifyMapPage() {
         if (row.external_id) byExternal[row.external_id] = row;
         byExternal[row.product_id] = row;
       });
-      setInstructions(byExternal);
       const initialEdit: Record<string, { usage_instructions: string; recipe_summary?: string }> = {};
       (shopifyRes.products || []).forEach((p) => {
         const localId = productsRes.products?.find((lp) => lp.external_id === p.id)?.id;
@@ -95,16 +101,24 @@ export default function ShopifyMapPage() {
         };
       });
       setEditing(initialEdit);
-    } catch (err: any) {
-      if (err.message?.includes('Shopify integration not found') || err.message?.includes('404')) {
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' && err !== null && 'message' in err
+          ? String((err as { message?: string }).message ?? '')
+          : '';
+      if (message.includes('Shopify integration not found') || message.includes('404')) {
         toast.warning(t('toasts.shopifyNotConnected.title'), t('toasts.shopifyNotConnected.message'));
       } else {
-        toast.error(t('toasts.loadError.title'), err.message);
+        toast.error(t('toasts.loadError.title'), message || t('toasts.loadError.message'));
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const getLocalProductId = (shopifyId: string): string | null => {
     const byExternal = localProducts.find((p) => p.external_id === shopifyId);
@@ -173,15 +187,22 @@ export default function ShopifyMapPage() {
       }
 
       await loadData();
-    } catch (err: any) {
-      toast.error(t('toasts.saveError.title'), err.message);
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' && err !== null && 'message' in err
+          ? String((err as { message?: string }).message ?? '')
+          : '';
+      toast.error(t('toasts.saveError.title'), message || t('toasts.saveError.message'));
     } finally {
       setSaving(null);
     }
   };
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
+    <Page title={t('title')} subtitle={t('description')} fullWidth>
+      <Layout>
+        <Layout.Section>
+          <div className="space-y-6 animate-fade-in pb-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-start gap-4">
@@ -196,65 +217,59 @@ export default function ShopifyMapPage() {
               {t('description')}
             </p>
             {!loading && shopifyProducts.length > 0 && (
-              <Badge variant="outline-primary" size="sm" className="font-bold">
-                {t('productCount', { count: shopifyProducts.length })}
-              </Badge>
+              <PolarisBadge tone="info">{t('productCount', { count: shopifyProducts.length })}</PolarisBadge>
             )}
           </div>
         </div>
-        <Button variant="outline" size="lg" asChild className="shrink-0">
-          <Link href="/dashboard/products">
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            {t('backToProducts')}
-          </Link>
-        </Button>
+        <PolarisButton onClick={() => router.push('/dashboard/products')} variant="secondary">
+          {t('backToProducts')}
+        </PolarisButton>
       </div>
 
       {/* Loading State */}
       {loading ? (
-        <div className="space-y-6 animate-fade-in">
-          <div className="space-y-3">
-            <div className="h-10 w-56 bg-zinc-200 rounded-xl animate-pulse" />
-            <div className="h-5 w-96 bg-zinc-100 rounded-lg animate-pulse" />
-          </div>
-          <Card className="overflow-hidden ">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-32 bg-white border-b-2 border-zinc-100 animate-pulse"
-                style={{ animationDelay: `${i * 100}ms` }}
-              />
-            ))}
-          </Card>
-        </div>
+        <SkeletonPage title={t('title')}>
+          <Layout>
+            <Layout.Section>
+              <PolarisCard>
+                <BlockStack gap="300">
+                  <SkeletonDisplayText size="small" maxWidth="24ch" />
+                  <SkeletonBodyText lines={2} />
+                  <SkeletonBodyText lines={6} />
+                </BlockStack>
+              </PolarisCard>
+            </Layout.Section>
+          </Layout>
+        </SkeletonPage>
       ) : shopifyProducts.length === 0 ? (
         /* Empty State */
-        <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors ">
-          <CardContent className="p-16 text-center">
+        <PolarisCard>
+          <Box padding="600">
+            <BlockStack gap="400" inlineAlign="center">
             <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center shadow-inner">
               <Package className="w-10 h-10 text-primary" />
             </div>
-            <h2 className="text-2xl font-bold mb-3">{t('empty.title')}</h2>
-            <p className="text-muted-foreground mb-8 max-w-md mx-auto text-base">
+            <Text as="h2" variant="headingMd" alignment="center">
+              {t('empty.title')}
+            </Text>
+            <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
               {t('empty.description')}
-            </p>
-            <Button size="lg" asChild className=" hover:shadow-xl">
-              <Link href="/dashboard/integrations">
-                {t('empty.connectButton')}
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+            </Text>
+            <PolarisButton onClick={() => router.push('/dashboard/integrations')} variant="primary">
+              {t('empty.connectButton')}
+            </PolarisButton>
+            </BlockStack>
+          </Box>
+        </PolarisCard>
       ) : (
         /* Products Table */
-        <Card hover className="overflow-hidden ">
-          <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent border-b py-4">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+        <div className="space-y-4">
+          <Banner tone="info">
+            <Text as="p" variant="bodySm">
               {t('table.hint')} <strong className="text-primary">{t('table.hintSave')}</strong>.
-            </p>
-          </CardHeader>
-          <CardContent className="p-0">
+            </Text>
+          </Banner>
+          <PolarisCard>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-border" aria-label={t('table.ariaLabel')}>
                 <thead className="bg-muted/30">
@@ -285,13 +300,13 @@ export default function ShopifyMapPage() {
                             <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-muted shrink-0 shadow-sm">
                               <img
                                 src={p.featuredImageUrl}
-                                alt=""
+                                alt={p.title}
                                 className="w-full h-full object-cover"
                               />
                             </div>
                           ) : (
                             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center text-muted-foreground shrink-0 shadow-inner">
-                              <Image className="w-7 h-7" />
+                              <ImageIcon className="w-7 h-7" aria-hidden />
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
@@ -300,19 +315,17 @@ export default function ShopifyMapPage() {
                             {(p.productType || p.vendor || (p.variants?.length && p.variants[0])) && (
                               <div className="flex flex-wrap gap-2">
                                 {p.productType && (
-                                  <Badge variant="outline-primary" size="sm">
+                                  <PolarisBadge tone="info">
                                     {p.productType}
-                                  </Badge>
+                                  </PolarisBadge>
                                 )}
                                 {p.vendor && (
-                                  <Badge variant="outline" size="sm">
-                                    {p.vendor}
-                                  </Badge>
+                                  <PolarisBadge>{p.vendor}</PolarisBadge>
                                 )}
                                 {p.variants?.[0]?.price != null && (
-                                  <Badge variant="secondary" size="sm" className="font-bold">
+                                  <PolarisBadge tone="attention">
                                     {p.variants[0].price}
-                                  </Badge>
+                                  </PolarisBadge>
                                 )}
                               </div>
                             )}
@@ -327,20 +340,18 @@ export default function ShopifyMapPage() {
 
                       {/* Usage Instructions Textarea */}
                       <td className="px-5 py-5 align-top">
-                        <label htmlFor={`instruction-${p.id}`} className="sr-only">
-                          {t('instructionLabel', { title: p.title })}
-                        </label>
-                        <textarea
+                        <TextField
                           id={`instruction-${p.id}`}
-                          aria-label={t('instructionLabel', { title: p.title })}
-                          className="w-full rounded-xl border-2 border-input bg-background px-4 py-3 text-sm min-h-[88px] placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 outline-none transition-all duration-200 hover:border-border/80 font-medium resize-none"
-                          rows={3}
-                          placeholder={t('placeholder')}
+                          label={t('instructionLabel', { title: p.title })}
+                          labelHidden
+                          autoComplete="off"
+                          multiline={3}
                           value={editing[p.id]?.usage_instructions ?? ''}
-                          onChange={(e) =>
+                          placeholder={t('placeholder')}
+                          onChange={(value) =>
                             setEditing((prev) => ({
                               ...prev,
-                              [p.id]: { ...prev[p.id], usage_instructions: e.target.value },
+                              [p.id]: { ...prev[p.id], usage_instructions: value },
                             }))
                           }
                         />
@@ -348,33 +359,26 @@ export default function ShopifyMapPage() {
 
                       {/* Save Button */}
                       <td className="px-5 py-5 text-right align-top">
-                        <Button
+                        <PolarisButton
                           onClick={() => handleSave(p)}
                           disabled={saving === p.id}
-                          size="lg"
-                          className=" hover:shadow-xl"
+                          loading={saving === p.id}
+                          variant="primary"
                         >
-                          {saving === p.id ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              {t('saving')}
-                            </>
-                          ) : (
-                            <>
-                              <Save className="w-4 h-4 mr-2" />
-                              {t('save')}
-                            </>
-                          )}
-                        </Button>
+                          {saving === p.id ? t('saving') : t('save')}
+                        </PolarisButton>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
+          </PolarisCard>
+        </div>
       )}
-    </div>
+          </div>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }

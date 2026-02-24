@@ -20,8 +20,8 @@ interface PlanGatedFeatureProps {
 }
 
 const PLAN_COLORS: Record<string, string> = {
-    Starter: '#10b981',
-    Pro: '#6366f1',
+    Starter: 'hsl(155 61% 35%)',
+    Pro: 'hsl(220 17% 25%)',
 };
 
 export function PlanGatedFeature({
@@ -40,7 +40,7 @@ export function PlanGatedFeature({
             <div
                 aria-disabled="true"
                 style={{
-                    opacity: 0.5,
+                    opacity: 0.55,
                     pointerEvents: 'none',
                     userSelect: 'none',
                 }}
@@ -56,12 +56,12 @@ export function PlanGatedFeature({
                     right: 8,
                     background: badgeColor,
                     color: '#fff',
-                    borderRadius: 6,
-                    padding: '3px 10px',
+                    borderRadius: 999,
+                    padding: '4px 10px',
                     fontSize: 12,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     letterSpacing: '0.02em',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                    boxShadow: 'none',
                     zIndex: 1,
                     pointerEvents: 'none',
                 }}
@@ -75,7 +75,7 @@ export function PlanGatedFeature({
                     style={{
                         marginTop: 8,
                         fontSize: 13,
-                        color: '#6b7280',
+                        color: 'hsl(220 10% 40%)',
                         textAlign: 'center',
                     }}
                 >

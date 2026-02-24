@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { Card as PolarisCard, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -76,19 +77,43 @@ export default function CustomerDetailPage() {
     new Date(d).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
   if (loading) {
-    return <div className="space-y-6 animate-fade-in"><div className="h-8 w-48 bg-zinc-200 rounded animate-pulse" /><div className="h-96 bg-zinc-200 rounded animate-pulse" /></div>;
+    return (
+      <SkeletonPage title={t('backToCustomers')}>
+        <Layout>
+          <Layout.Section>
+            <div className="space-y-6 animate-fade-in"><div className="h-8 w-48 bg-zinc-200 rounded animate-pulse" /><div className="h-96 bg-zinc-200 rounded animate-pulse" /></div>
+          </Layout.Section>
+        </Layout>
+      </SkeletonPage>
+    );
   }
 
   if (!customer) {
-    return <div className="text-center py-12"><p>{t('notFound')}</p></div>;
+    return (
+      <Page title={t('backToCustomers')}>
+        <Layout>
+          <Layout.Section>
+            <PolarisCard>
+              <div className="text-center py-12">
+                <Text as="p" tone="subdued">{t('notFound')}</Text>
+              </div>
+            </PolarisCard>
+          </Layout.Section>
+        </Layout>
+      </Page>
+    );
   }
 
   const rfm = customer.rfmScore || { recency: 0, frequency: 0, monetary: 0 };
 
   return (
+    <Page title={customer.name} subtitle={customer.phone} fullWidth>
+      <Layout>
+        <Layout.Section>
     <div className="space-y-6 pb-8">
       {/* Header */}
-      <div>
+      <PolarisCard>
+        <div className="p-5">
         <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/customers')} className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-1" /> {t('backToCustomers')}
         </Button>
@@ -110,7 +135,8 @@ export default function CustomerDetailPage() {
             <p className="text-xs text-muted-foreground mt-1">{t('registered')}: {formatDate(customer.createdAt)} • {t('consent')}: {customer.consent}</p>
           </div>
         </div>
-      </div>
+        </div>
+      </PolarisCard>
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -224,5 +250,8 @@ export default function CustomerDetailPage() {
         </Card>
       )}
     </div>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }

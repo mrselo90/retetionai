@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import Link from 'next/link';
+import { Button, Card, Layout, Page, Text, TextField } from '@shopify/polaris';
 import { ShopifySaveBar } from '@/components/ui/ShopifySaveBar';
 import { InlineError } from '@/components/ui/InlineError';
 import { isShopifyEmbedded } from '@/lib/shopifyEmbedded';
@@ -85,19 +85,21 @@ export default function BotInfoPage() {
   };
 
   return (
+    <Page title={t('title')} subtitle={t('description')}>
+      <Layout>
+        <Layout.Section>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">{t('title')}</h1>
-          <p className="text-sm text-zinc-600 mt-1">{t('description')}</p>
+      <Card>
+        <div className="p-5 flex items-center justify-between gap-4">
+          <div>
+            <Text as="h2" variant="headingMd">{t('title')}</Text>
+            <div className="mt-1">
+              <Text as="p" tone="subdued">{t('description')}</Text>
+            </div>
+          </div>
+          <Button url="/dashboard/settings">{t('backToSettings')}</Button>
         </div>
-        <Link
-          href="/dashboard/settings"
-          className="text-sm font-medium text-teal-600 hover:text-teal-500"
-        >
-          {t('backToSettings')}
-        </Link>
-      </div>
+      </Card>
 
       {/* G3: Contextual Save Bar (BFS 4.1.5) — embedded only */}
       <ShopifySaveBar
@@ -111,38 +113,46 @@ export default function BotInfoPage() {
       <InlineError message={saveError} onDismiss={() => setSaveError(null)} />
 
       {loading ? (
-        <div className="rounded-lg border border-zinc-200 bg-white p-8 text-center text-zinc-500">
-          {t('loading')}
-        </div>
+        <Card>
+          <div className="p-8 text-center">
+            <Text as="p" tone="subdued">{t('loading')}</Text>
+          </div>
+        </Card>
       ) : (
         <div className="space-y-6">
           {BOT_INFO_KEYS.map((key) => (
-            <div key={key} className="rounded-lg border border-zinc-200 bg-white p-4">
-              <label className="form-label block mb-2">{t(`sections.${key}.label`)}</label>
-              <textarea
-                className="w-full rounded px-3 py-2 text-sm focus:border-teal-500 focus:ring-1 focus:ring-teal-500 min-h-[120px]"
-                placeholder={t(`sections.${key}.placeholder`)}
-                value={botInfo[key] ?? ''}
-                onChange={(e) => handleFieldChange(key, e.target.value)}
-              />
-            </div>
+            <Card key={key}>
+              <div className="p-4">
+                <TextField
+                  label={t(`sections.${key}.label`)}
+                  multiline={5}
+                  autoComplete="off"
+                  placeholder={t(`sections.${key}.placeholder`)}
+                  value={botInfo[key] ?? ''}
+                  onChange={(value) => handleFieldChange(key, value)}
+                />
+              </div>
+            </Card>
           ))}
 
           {/* Inline Save Button — standalone mode only (BFS 4.1.5) */}
           {!isShopifyEmbedded() && (
             <div className="flex justify-end">
-              <button
-                type="button"
+              <Button
+                variant="primary"
                 disabled={saving}
                 onClick={handleSave}
-                className="rounded bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50"
+                loading={saving}
               >
                 {saving ? t('saving') : t('saveAll')}
-              </button>
+              </Button>
             </div>
           )}
         </div>
       )}
     </div>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }

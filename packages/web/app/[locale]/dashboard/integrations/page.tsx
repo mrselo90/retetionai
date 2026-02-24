@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest, getApiUrl, getApiBaseUrlForDisplay } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { Banner, Card as PolarisCard, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, X, Trash2, Pencil, Plug, Upload, Code, MessageSquare, ShoppingBag, MessageCircle, Info } from 'lucide-react';
+import { Loader2, X, Trash2, Pencil, Plug, Upload, Code, MessageSquare, ShoppingBag, MessageCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useTranslations, useLocale } from 'next-intl';
 
@@ -380,6 +381,9 @@ export default function IntegrationsPage() {
 
   if (loading) {
     return (
+      <SkeletonPage title={t('title')}>
+        <Layout>
+          <Layout.Section>
       <div className="space-y-6 animate-fade-in pb-8">
         <div className="space-y-1.5">
           <div className="h-8 w-48 bg-zinc-200 rounded-md animate-pulse" />
@@ -396,41 +400,50 @@ export default function IntegrationsPage() {
           ))}
         </div>
       </div>
+          </Layout.Section>
+        </Layout>
+      </SkeletonPage>
     );
   }
 
   return (
+    <Page title={t('title')} subtitle={t('description')} fullWidth>
+      <Layout>
+        <Layout.Section>
     <div className="space-y-6 animate-fade-in pb-8 font-sans text-[#303030]">
-      <div className="space-y-1">
-        <h1 className="page-title">{t('title')}</h1>
-        <p className="page-description">{t('description')}</p>
-      </div>
+      <PolarisCard>
+        <div className="p-5 space-y-1">
+          <Text as="h2" variant="headingMd">{t('title')}</Text>
+          <Text as="p" tone="subdued">{t('description')}</Text>
+        </div>
+      </PolarisCard>
 
       {/* Platform support number as an Alert Banner */}
       {platformWhatsApp && (
-        <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 text-blue-800">
-            <Info className="w-5 h-5 flex-shrink-0" />
-            <div>
-              <p className="font-medium text-sm">{t('platformSupport.title')}</p>
-              <p className="text-sm opacity-90">{t('platformSupport.subtitle')}</p>
-            </div>
+        <PolarisCard>
+          <div className="p-4">
+            <Banner tone="info" title={t('platformSupport.title')}>
+              <p>{t('platformSupport.subtitle')}</p>
+              <div className="mt-3">
+                <a
+                  href={`https://wa.me/${platformWhatsApp.replace(/^\+/, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium"
+                >
+                  {platformWhatsApp}
+                </a>
+              </div>
+            </Banner>
           </div>
-          <a
-            href={`https://wa.me/${platformWhatsApp.replace(/^\+/, '')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center flex-shrink-0 gap-2 px-3 py-1.5 bg-white hover:bg-zinc-50 text-blue-900 border border-blue-200 shadow-sm rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-          >
-            {platformWhatsApp}
-          </a>
-        </div>
+        </PolarisCard>
       )}
 
       {/* Discover Integrations (Polaris List Style) */}
       <div className="mt-8">
         <h2 className="text-lg font-semibold text-[#1a1a1a] mb-3">Discover integrations</h2>
-        <div className="bg-white shadow-sm ring-1 ring-zinc-200 rounded-xl overflow-hidden">
+        <PolarisCard>
+        <div className="bg-white rounded-xl overflow-hidden">
           <div className="divide-y divide-zinc-100">
             {/* Shopify */}
             <div className="p-4 hover:bg-zinc-50/50 transition-colors flex items-center justify-between">
@@ -551,13 +564,15 @@ export default function IntegrationsPage() {
             )}
           </div>
         </div>
+        </PolarisCard>
       </div>
 
       {/* Active Integrations */}
       <div className="pt-8">
         <h2 className="text-lg font-semibold text-[#1a1a1a] mb-3">{t('active.title')}</h2>
         {integrations.length > 0 ? (
-          <div className="bg-white shadow-sm ring-1 ring-zinc-200 rounded-xl overflow-hidden">
+          <PolarisCard>
+          <div className="bg-white rounded-xl overflow-hidden">
             <div className="divide-y divide-zinc-100">
               {integrations.map((integration, idx) => (
                 <div key={integration.id} className="p-4 hover:bg-zinc-50/50 transition-all group" style={{ animationDelay: `${idx * 50}ms` }}>
@@ -633,8 +648,10 @@ export default function IntegrationsPage() {
               ))}
             </div>
           </div>
+          </PolarisCard>
         ) : (
-          <div className="bg-white shadow-sm ring-1 ring-zinc-200 rounded-xl py-12 px-6 flex flex-col items-center justify-center text-center">
+          <PolarisCard>
+          <div className="bg-white rounded-xl py-12 px-6 flex flex-col items-center justify-center text-center">
             <div className="w-12 h-12 mb-4 rounded-lg bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-sm">
               <Plug className="w-6 h-6 text-zinc-400" />
             </div>
@@ -645,6 +662,7 @@ export default function IntegrationsPage() {
               No integrations are currently active. Discover apps above to automate your workflows.
             </p>
           </div>
+          </PolarisCard>
         )}
       </div>
 
@@ -875,5 +893,8 @@ export default function IntegrationsPage() {
         </DialogContent>
       </Dialog>
     </div>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }

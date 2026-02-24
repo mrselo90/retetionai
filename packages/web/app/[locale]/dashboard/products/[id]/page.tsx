@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { Banner, Button, Card, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
 import { useTranslations } from 'next-intl';
 
 interface ProductInstruction {
@@ -190,7 +191,9 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-
+      <SkeletonPage title={t('editProduct')}>
+        <Layout>
+          <Layout.Section>
       <div className="space-y-6">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-zinc-200 rounded w-1/4"></div>
@@ -198,25 +201,30 @@ export default function ProductDetailPage() {
           <div className="h-64 bg-zinc-200 rounded"></div>
         </div>
       </div>
-
+          </Layout.Section>
+        </Layout>
+      </SkeletonPage>
     );
   }
 
   if (!product) {
     return (
-
+      <Page title={t('editProduct')}>
+        <Layout>
+          <Layout.Section>
       <div className="space-y-6">
-        <div className="bg-card rounded-lg border border-border shadow-sm p-12 text-center">
-          <p className="text-zinc-600">{t('notFound')}</p>
-          <button
-            onClick={() => router.push('/dashboard/products')}
-            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"
-          >
-            {t('backToProducts')}
-          </button>
-        </div>
+        <Card>
+          <div className="p-12 text-center">
+            <Text as="p" tone="subdued">{t('notFound')}</Text>
+            <div className="mt-4 flex justify-center">
+              <Button onClick={() => router.push('/dashboard/products')}>{t('backToProducts')}</Button>
+            </div>
+          </div>
+        </Card>
       </div>
-
+          </Layout.Section>
+        </Layout>
+      </Page>
     );
   }
 
@@ -225,64 +233,35 @@ export default function ProductDetailPage() {
   const hasAnyInstructions = usageInstructions.trim().length > 0;
 
   return (
-
+    <Page title={t('editProduct')} subtitle={t('editDescription')} fullWidth>
+      <Layout>
+        <Layout.Section>
     <div className="space-y-6">
 
       {/* ── RAG Quality Alert ──────────────────────────────────────── */}
       {!hasGoodInstructions && (
-        <div className={`flex gap-4 p-4 rounded-xl border-2 ${!hasAnyInstructions
-          ? 'border-amber-300 bg-amber-50'
-          : 'border-yellow-200 bg-yellow-50'
-          }`}>
-          <div className="flex-shrink-0 mt-0.5">
-            <svg className={`w-5 h-5 ${!hasAnyInstructions ? 'text-amber-500' : 'text-yellow-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className={`font-semibold text-sm ${!hasAnyInstructions ? 'text-amber-800' : 'text-yellow-800'}`}>
-              {!hasAnyInstructions
-                ? t('ragAlert.emptyTitle')
-                : t('ragAlert.thinTitle')}
-            </p>
-            <p className={`text-sm mt-1 ${!hasAnyInstructions ? 'text-amber-700' : 'text-yellow-700'}`}>
-              {!hasAnyInstructions
-                ? t('ragAlert.emptyDesc')
-                : t('ragAlert.thinDesc')}
-            </p>
-          </div>
-        </div>
+        <Banner tone="warning" title={!hasAnyInstructions ? t('ragAlert.emptyTitle') : t('ragAlert.thinTitle')}>
+          <p>{!hasAnyInstructions ? t('ragAlert.emptyDesc') : t('ragAlert.thinDesc')}</p>
+        </Banner>
       )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <button
-            onClick={() => router.push('/dashboard/products')}
-            className="text-sm text-primary hover:underline mb-2 flex items-center gap-1 font-medium"
-          >
-            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            {t('backToProducts')}
-          </button>
+          <div className="mb-2">
+            <Button onClick={() => router.push('/dashboard/products')} variant="plain">
+              {t('backToProducts')}
+            </Button>
+          </div>
           <h1 className="text-3xl font-bold text-foreground">{t('editProduct')}</h1>
           <p className="mt-2 text-zinc-600">{t('editDescription')}</p>
         </div>
         <div className="flex w-full sm:w-auto gap-3">
-          <button
-            onClick={handleRescrape}
-            disabled={rescraping}
-            className="flex-1 sm:flex-none px-4 py-2 border border-zinc-300 text-zinc-700 rounded-lg hover:bg-zinc-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <Button onClick={handleRescrape} disabled={rescraping} loading={rescraping}>
             {rescraping ? t('rescraping') : t('rescrape')}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex-1 sm:flex-none px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          </Button>
+          <Button onClick={handleSave} disabled={saving} loading={saving} variant="primary">
             {saving ? t('saving') : t('save')}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -416,13 +395,9 @@ export default function ProductDetailPage() {
       <div className="bg-card rounded-lg border border-border shadow-sm p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
           <h2 className="text-xl font-semibold text-foreground">{t('scrapedContent')}</h2>
-          <button
-            onClick={handleRescrape}
-            disabled={rescraping}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
-          >
+          <Button onClick={handleRescrape} disabled={rescraping} loading={rescraping} variant="plain">
             {rescraping ? t('rescraping') : t('rescrape')}
-          </button>
+          </Button>
         </div>
 
         {editedRawText ? (
@@ -444,13 +419,11 @@ export default function ProductDetailPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             <p className="mt-2 text-zinc-600">{t('notScrapedYet')}</p>
-            <button
-              onClick={handleRescrape}
-              disabled={rescraping}
-              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50"
-            >
-              {rescraping ? t('rescraping') : t('scrapeNow')}
-            </button>
+            <div className="mt-4">
+              <Button onClick={handleRescrape} disabled={rescraping} loading={rescraping} variant="primary">
+                {rescraping ? t('rescraping') : t('scrapeNow')}
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -510,6 +483,8 @@ export default function ProductDetailPage() {
         </div>
       </div>
     </div>
-
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }

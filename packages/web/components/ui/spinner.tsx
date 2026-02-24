@@ -34,10 +34,10 @@ interface LoadingOverlayProps {
 
 export function LoadingOverlay({ message, className }: LoadingOverlayProps) {
   return (
-    <div className={cn('fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50', className)}>
-      <div className="bg-card border-2 border-border rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
+    <div className={cn('fixed inset-0 bg-background/70 flex items-center justify-center z-50', className)}>
+      <div className="bg-card border border-border rounded-lg shadow-sm p-6 flex flex-col items-center gap-3 max-w-sm mx-4">
         <Spinner size="xl" />
-        {message && <p className="text-foreground font-semibold text-center">{message}</p>}
+        {message && <p className="text-foreground font-medium text-center text-sm">{message}</p>}
       </div>
     </div>
   );

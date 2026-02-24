@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { Link } from '@/i18n/routing';
+import { Banner, Card as PolarisCard, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -116,6 +117,9 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
+      <SkeletonPage title={t('title')}>
+        <Layout>
+          <Layout.Section>
       <div className="space-y-8 animate-fade-in">
         <div className="space-y-2">
           <div className="h-8 w-40 bg-zinc-200 rounded-lg animate-pulse" />
@@ -131,18 +135,25 @@ export default function AnalyticsPage() {
           <div className="h-72 bg-white border border-zinc-200 rounded-xl animate-pulse" />
         </div>
       </div>
+          </Layout.Section>
+        </Layout>
+      </SkeletonPage>
     );
   }
 
   return (
+    <Page title={t('title')} subtitle={t('description')} fullWidth>
+      <Layout>
+        <Layout.Section>
     <div className="space-y-6 animate-fade-in pb-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <PolarisCard>
+        <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1.5">
-          <h1 className="page-title">{t('title')}</h1>
-          <p className="page-description">{t('description')}</p>
+          <Text as="h2" variant="headingMd">{t('title')}</Text>
+          <Text as="p" tone="subdued">{t('description')}</Text>
         </div>
-        <div className="flex items-center gap-2 bg-white border-2 border-zinc-200 rounded-xl p-1.5 shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-xl p-1.5">
           <div className="flex items-center gap-2 px-3">
             <Calendar className="w-4 h-4 text-muted-foreground" />
             <input
@@ -162,7 +173,8 @@ export default function AnalyticsPage() {
             />
           </div>
         </div>
-      </div>
+        </div>
+      </PolarisCard>
 
       {/* Key Metrics */}
       {analytics ? (
@@ -475,8 +487,13 @@ export default function AnalyticsPage() {
           </div>
         </>
       ) : (
-        <Card className="border-dashed">
-          <CardContent className="p-12 text-center">
+        <PolarisCard>
+          <div className="p-4">
+            <Banner tone="info">
+              <p>{t('empty.description')}</p>
+            </Banner>
+          </div>
+          <CardContent className="p-12 pt-2 text-center">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
               <BarChart3 className="w-8 h-8 text-muted-foreground" />
             </div>
@@ -499,8 +516,11 @@ export default function AnalyticsPage() {
               </Button>
             </div>
           </CardContent>
-        </Card>
+        </PolarisCard>
       )}
     </div>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }

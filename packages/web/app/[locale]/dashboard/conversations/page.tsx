@@ -1,14 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { Link } from '@/i18n/routing';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { MessageSquare, User, ShoppingBag, Clock, AlertTriangle } from 'lucide-react';
+import {
+  Badge as PolarisBadge,
+  Banner,
+  BlockStack,
+  Box,
+  Button as PolarisButton,
+  Card as PolarisCard,
+  Layout,
+  Page,
+  SkeletonBodyText,
+  SkeletonDisplayText,
+  SkeletonPage,
+  Text,
+} from '@shopify/polaris';
+import { MessageSquare, User, ShoppingBag, Clock } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
 interface Conversation {
@@ -43,18 +54,7 @@ export default function ConversationsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'ai' | 'human' | 'resolved'>('all');
   const [prevHumanCount, setPrevHumanCount] = useState(0);
 
-  useEffect(() => {
-    loadConversations();
-
-    // Real-time updates: Poll every 10 seconds
-    const interval = setInterval(() => {
-      loadConversations();
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -84,9 +84,13 @@ export default function ConversationsPage() {
       }
       setPrevHumanCount(humanCount);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load conversations:', err);
-      if (err.status === 401) {
+      const errorStatus =
+        typeof err === 'object' && err !== null && 'status' in err
+          ? (err as { status?: number }).status
+          : undefined;
+      if (errorStatus === 401) {
         toast.error(t('toasts.sessionExpired.title'), t('toasts.sessionExpired.message'));
         window.location.href = '/login';
       } else {
@@ -95,7 +99,17 @@ export default function ConversationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [loading, prevHumanCount, t]);
+
+  useEffect(() => {
+    void loadConversations();
+
+    const interval = setInterval(() => {
+      void loadConversations();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [loadConversations]);
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -128,14 +142,14 @@ export default function ConversationsPage() {
     }
   };
 
-  const getSentimentBadgeVariant = (sentiment: string): 'default' | 'secondary' | 'destructive' => {
+  const getSentimentBadgeTone = (sentiment: string): Parameters<typeof PolarisBadge>[0]['tone'] => {
     switch (sentiment) {
       case 'positive':
-        return 'default';
+        return 'success';
       case 'negative':
-        return 'destructive';
+        return 'critical';
       default:
-        return 'secondary';
+        return 'enabled';
     }
   };
 
@@ -147,89 +161,43 @@ export default function ConversationsPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 space-y-6 animate-fade-in pb-8">
-        <div className="space-y-2">
-          <div className="h-7 sm:h-8 w-40 sm:w-56 bg-zinc-200 rounded-lg animate-pulse" />
-          <div className="h-4 w-full max-w-md bg-zinc-100 rounded animate-pulse" />
-        </div>
-        <div className="flex gap-2 overflow-hidden">
-          <div className="h-9 w-20 rounded-lg bg-zinc-100 animate-pulse shrink-0" />
-          <div className="h-9 w-24 rounded-lg bg-zinc-100 animate-pulse shrink-0" />
-          <div className="h-9 w-20 rounded-lg bg-zinc-100 animate-pulse shrink-0" />
-        </div>
-        <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex gap-4 p-4 sm:p-5" style={{ animationDelay: `${i * 80}ms` }}>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-zinc-100 animate-pulse shrink-0" />
-              <div className="flex-1 min-w-0 space-y-2">
-                <div className="h-4 w-32 sm:w-40 bg-zinc-200 rounded animate-pulse" />
-                <div className="h-3 w-24 sm:w-28 bg-zinc-100 rounded animate-pulse" />
-                <div className="h-3 w-full max-w-[200px] bg-zinc-100 rounded animate-pulse" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <SkeletonPage title={t('title')}>
+        <Layout>
+          <Layout.Section>
+            <PolarisCard>
+              <BlockStack gap="300">
+                <SkeletonDisplayText size="small" maxWidth="20ch" />
+                <SkeletonBodyText lines={4} />
+              </BlockStack>
+            </PolarisCard>
+          </Layout.Section>
+        </Layout>
+      </SkeletonPage>
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 sm:px-6 space-y-5 sm:space-y-6 animate-fade-in pb-8">
+    <Page title={t('title')} subtitle={t('description')}>
+      <Layout>
+        <Layout.Section>
+          <BlockStack gap="400">
       {/* Header */}
-      <div className="space-y-1">
-        <h1 className="page-title">{t('title')}</h1>
-        <p className="page-description max-w-2xl">{t('description')}</p>
-      </div>
+      <div className="space-y-1" />
 
       {/* Needs Attention Alert */}
       {(() => {
         const humanConvs = conversations.filter(c => c.conversationStatus === 'human');
         if (humanConvs.length === 0) return null;
         return (
-          <div className="rounded-xl sm:rounded-2xl border border-red-200 sm:border-2 sm:border-red-300 bg-red-50 overflow-hidden shadow-sm">
-            <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 sm:py-3 bg-red-100/80 border-b border-red-200">
-              <span className="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-500" />
-              </span>
-              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 shrink-0" />
-              <span className="font-semibold sm:font-bold text-red-800 text-xs sm:text-sm truncate">
-                {t('needsAttention.title', { count: humanConvs.length })}
-              </span>
-            </div>
-            <div className="divide-y divide-red-200">
-              {humanConvs.map((conv) => (
-                <Link
-                  key={conv.id}
-                  href={`/dashboard/conversations/${conv.id}`}
-                  className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 hover:bg-red-100/50 active:bg-red-100 transition-colors group min-h-[72px] sm:min-h-0"
-                >
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-red-200 flex items-center justify-center flex-shrink-0">
-                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-red-700" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold sm:font-bold text-red-900 text-sm truncate">
-                      {conv.userName || conv.user?.name || t('list.guest')}
-                    </p>
-                    <p className="text-xs text-red-700 mt-0.5 truncate">
-                      {conv.phone || conv.user?.phone}
-                    </p>
-                    {conv.lastMessage && (
-                      <p className="text-xs text-red-600 mt-1 truncate max-w-full">
-                        &ldquo;{conv.lastMessage.content?.slice(0, 60)}&rdquo;
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-                    <span className="text-[10px] sm:text-xs text-red-600 whitespace-nowrap">{formatDateTime(conv.last_message_at)}</span>
-                    <svg className="w-4 h-4 text-red-400 group-hover:text-red-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </Link>
+          <Banner tone="critical" title={t('needsAttention.title', { count: humanConvs.length })}>
+            <BlockStack gap="200">
+              {humanConvs.slice(0, 5).map((conv) => (
+                <Text as="p" variant="bodySm" key={conv.id}>
+                  {(conv.userName || conv.user?.name || t('list.guest'))} · {conv.phone || conv.user?.phone}
+                </Text>
               ))}
-            </div>
-          </div>
+            </BlockStack>
+          </Banner>
         );
       })()}
 
@@ -242,15 +210,14 @@ export default function ConversationsPage() {
             { key: 'neutral' as const, label: `${t('filters.neutral')} (${conversations.filter((c) => c.sentiment === 'neutral').length})` },
             { key: 'negative' as const, label: `${t('filters.negative')} (${conversations.filter((c) => c.sentiment === 'negative').length})` },
           ].map((f) => (
-            <Button
+            <PolarisButton
               key={f.key}
-              variant={filter === f.key ? 'default' : 'outline'}
-              size="sm"
+              variant={filter === f.key ? 'primary' : 'secondary'}
+              size="slim"
               onClick={() => setFilter(f.key)}
-              className="shrink-0 h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm font-semibold shadow-sm"
             >
               {f.label}
-            </Button>
+            </PolarisButton>
           ))}
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap scrollbar-thin -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -260,40 +227,34 @@ export default function ConversationsPage() {
             { key: 'ai' as const, label: 'AI' },
             { key: 'resolved' as const, label: t('filters.resolved') },
           ].map((f) => (
-            <Button
+            <PolarisButton
               key={`status-${f.key}`}
-              variant={statusFilter === f.key ? 'info' : 'outline'}
-              size="sm"
+              variant={statusFilter === f.key ? 'primary' : 'secondary'}
+              size="slim"
               onClick={() => setStatusFilter(f.key)}
-              className="shrink-0 h-9 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm font-semibold shadow-sm"
             >
               {f.label}
-            </Button>
+            </PolarisButton>
           ))}
         </div>
       </div>
 
       {/* Conversations List */}
       {filteredConversations.length === 0 ? (
-        <Card className="border-2 border-dashed border-border bg-card rounded-xl overflow-hidden">
-          <CardContent className="p-6 sm:p-8 sm:py-12 flex flex-col items-center justify-center text-center min-h-[320px] sm:min-h-[400px]">
+        <PolarisCard>
+          <Box padding="600">
+            <BlockStack gap="300" inlineAlign="center">
             <div className="w-16 h-16 sm:w-20 sm:h-20 mb-4 sm:mb-6 rounded-2xl bg-muted flex items-center justify-center">
               <MessageSquare className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground" />
             </div>
-            <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 px-2">{t('empty.title')}</h3>
-            <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-sm px-2">
-              {t('empty.description')}
-            </p>
-            <Button size="lg" asChild className="min-h-11 px-6 font-semibold">
-              <Link href="/dashboard/integrations">
-                <MessageSquare className="w-5 h-5 mr-2 shrink-0" />
-                {t('empty.button')}
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+            <Text as="h2" variant="headingSm" alignment="center">{t('empty.title')}</Text>
+            <Text as="p" variant="bodyMd" tone="subdued" alignment="center">{t('empty.description')}</Text>
+            <PolarisButton url={`/${locale}/dashboard/integrations`} variant="primary">{t('empty.button')}</PolarisButton>
+            </BlockStack>
+          </Box>
+        </PolarisCard>
       ) : (
-        <Card className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <PolarisCard>
           <div className="divide-y divide-border">
             {filteredConversations.map((conversation, idx) => (
               <Link
@@ -312,14 +273,14 @@ export default function ConversationsPage() {
                         <h3 className="text-sm sm:text-base font-semibold text-foreground truncate max-w-[140px] sm:max-w-none">
                           {conversation.userName || conversation.user?.name || t('list.guest')}
                         </h3>
-                        <Badge variant={getSentimentBadgeVariant(conversation.sentiment) === 'default' ? 'success' : getSentimentBadgeVariant(conversation.sentiment)} size="sm" className="shrink-0 text-[10px] sm:text-xs">
-                          {getSentimentIcon(conversation.sentiment)} {conversation.sentiment}
-                        </Badge>
+                        <PolarisBadge tone={getSentimentBadgeTone(conversation.sentiment)}>
+                          {`${getSentimentIcon(conversation.sentiment)} ${conversation.sentiment}`}
+                        </PolarisBadge>
                         {conversation.conversationStatus === 'human' && (
-                          <Badge variant="destructive" size="sm" className="shrink-0 font-semibold text-[10px] sm:text-xs">{t('statusBadge.human')}</Badge>
+                          <PolarisBadge tone="critical">{t('statusBadge.human')}</PolarisBadge>
                         )}
                         {conversation.conversationStatus === 'resolved' && (
-                          <Badge variant="success" size="sm" className="shrink-0 font-semibold text-[10px] sm:text-xs">{t('statusBadge.resolved')}</Badge>
+                          <PolarisBadge tone="success">{t('statusBadge.resolved')}</PolarisBadge>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground truncate mb-0.5">
@@ -329,9 +290,7 @@ export default function ConversationsPage() {
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
                           <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
                           <span className="truncate max-w-[120px] sm:max-w-none">{t('list.order')}: #{conversation.order.external_order_id}</span>
-                          <Badge variant={conversation.order.status === 'delivered' ? 'success' : 'secondary'} size="sm" className="text-[10px]">
-                            {conversation.order.status}
-                          </Badge>
+                          <PolarisBadge tone={conversation.order.status === 'delivered' ? 'success' : 'enabled'}>{conversation.order.status}</PolarisBadge>
                         </div>
                       )}
                     </div>
@@ -341,16 +300,17 @@ export default function ConversationsPage() {
                       <Clock className="w-3.5 h-3.5 shrink-0" />
                       <span>{formatDateTime(conversation.last_message_at)}</span>
                     </p>
-                    <Badge variant="outline" size="sm" className="font-medium text-[10px] sm:text-xs shrink-0">
-                      {conversation.message_count} {t('list.messages')}
-                    </Badge>
+                    <PolarisBadge>{`${conversation.message_count} ${t('list.messages')}`}</PolarisBadge>
                   </div>
                 </div>
               </Link>
             ))}
           </div>
-        </Card>
+        </PolarisCard>
       )}
-    </div>
+          </BlockStack>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }

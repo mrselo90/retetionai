@@ -4,31 +4,31 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-    "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
     {
         variants: {
             variant: {
                 default:
-                    "border-transparent bg-primary text-primary-foreground shadow-sm hover:bg-primary/90",
+                    "border-transparent bg-primary/[0.12] text-primary hover:bg-primary/[0.16]",
                 secondary:
                     "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
                 destructive:
-                    "border-transparent bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+                    "border-destructive/20 bg-destructive/[0.08] text-destructive hover:bg-destructive/[0.12]",
                 success:
-                    "border-transparent bg-success text-success-foreground shadow-sm hover:bg-success/90",
+                    "border-success/20 bg-success/[0.10] text-success hover:bg-success/[0.15]",
                 warning:
-                    "border-transparent bg-warning text-warning-foreground shadow-sm hover:bg-warning/90",
+                    "border-warning/20 bg-warning/[0.15] text-warning-foreground hover:bg-warning/[0.20]",
                 info:
-                    "border-transparent bg-info text-info-foreground shadow-sm hover:bg-info/90",
-                outline: "text-foreground border-border hover:bg-muted",
-                "outline-primary": "text-primary border-primary/50 hover:bg-primary/10",
-                "outline-success": "text-success border-success/50 hover:bg-success/10",
-                "outline-destructive": "text-destructive border-destructive/50 hover:bg-destructive/10",
+                    "border-info/20 bg-info/[0.08] text-info hover:bg-info/[0.12]",
+                outline: "text-foreground border-border bg-card hover:bg-muted",
+                "outline-primary": "text-primary border-primary/25 bg-primary/5 hover:bg-primary/10",
+                "outline-success": "text-success border-success/25 bg-success/5 hover:bg-success/10",
+                "outline-destructive": "text-destructive border-destructive/25 bg-destructive/5 hover:bg-destructive/10",
             },
             size: {
-                default: "px-3 py-1 text-xs",
+                default: "px-2.5 py-0.5 text-xs",
                 sm: "px-2 py-0.5 text-[10px]",
-                lg: "px-4 py-1.5 text-sm",
+                lg: "px-3 py-1 text-sm",
             },
         },
         defaultVariants: {

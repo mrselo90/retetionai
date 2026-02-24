@@ -1,14 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { Link } from '@/i18n/routing';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Users, Search, ShoppingBag, MessageSquare, AlertTriangle } from 'lucide-react';
+import {
+  Badge as PolarisBadge,
+  BlockStack,
+  Box,
+  Button as PolarisButton,
+  Card as PolarisCard,
+  InlineStack,
+  Layout,
+  Page,
+  SkeletonBodyText,
+  SkeletonDisplayText,
+  SkeletonPage,
+  Text,
+  TextField,
+} from '@shopify/polaris';
+import { Users, Search, ShoppingBag, MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface Customer {
@@ -24,13 +36,13 @@ interface Customer {
   createdAt: string;
 }
 
-const SEGMENT_COLORS: Record<string, string> = {
-  champions: 'bg-emerald-100 text-emerald-800',
-  loyal: 'bg-blue-100 text-blue-800',
-  promising: 'bg-violet-100 text-violet-800',
-  at_risk: 'bg-orange-100 text-orange-800',
-  lost: 'bg-red-100 text-red-800',
-  new: 'bg-zinc-100 text-zinc-800',
+const SEGMENT_TONES: Record<string, Parameters<typeof PolarisBadge>[0]['tone']> = {
+  champions: 'success',
+  loyal: 'info',
+  promising: 'attention',
+  at_risk: 'warning',
+  lost: 'critical',
+  new: 'enabled',
 };
 
 export default function CustomersPage() {
@@ -42,11 +54,7 @@ export default function CustomersPage() {
   const [segment, setSegment] = useState('all');
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    loadCustomers();
-  }, [page, segment]);
-
-  const loadCustomers = async () => {
+  const loadCustomers = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -58,75 +66,90 @@ export default function CustomersPage() {
       const response = await authenticatedRequest<{ customers: Customer[]; total: number }>(url, session.access_token);
       setCustomers(response.customers);
       setTotal(response.total);
-    } catch (err) {
+    } catch {
       toast.error(t('toasts.loadError.title'), t('toasts.loadError.message'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, segment, search, t]);
+
+  useEffect(() => {
+    void loadCustomers();
+  }, [loadCustomers]);
 
   const handleSearch = () => {
     setPage(1);
-    loadCustomers();
+    void loadCustomers();
   };
 
   const totalPages = Math.ceil(total / 20);
 
   if (loading) {
     return (
-      <div className="space-y-8 animate-fade-in">
-        <div className="h-8 w-48 bg-zinc-200 rounded-lg animate-pulse" />
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => <div key={i} className="h-20 bg-white border rounded-xl animate-pulse" />)}
-        </div>
-      </div>
+      <SkeletonPage title={t('title')}>
+        <Layout>
+          <Layout.Section>
+            <PolarisCard>
+              <BlockStack gap="300">
+                <SkeletonDisplayText size="small" maxWidth="18ch" />
+                <SkeletonBodyText lines={2} />
+              </BlockStack>
+            </PolarisCard>
+          </Layout.Section>
+        </Layout>
+      </SkeletonPage>
     );
   }
 
   return (
-    <div className="space-y-8 animate-fade-in pb-8">
-      <div className="space-y-1">
-        <h1 className="page-title">{t('title')}</h1>
-        <p className="page-description">{t('subtitle', { total })}</p>
-      </div>
+    <Page title={t('title')} subtitle={t('subtitle', { total })}>
+      <Layout>
+        <Layout.Section>
+          <BlockStack gap="400">
 
       {/* Search + Segment Filter */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
+        <div className="w-full sm:max-w-sm">
+          <TextField
+            label={t('searchPlaceholder')}
+            labelHidden
+            autoComplete="off"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            onChange={setSearch}
             placeholder={t('searchPlaceholder')}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+            prefix={<Search className="w-4 h-4" aria-hidden />}
           />
         </div>
         <div className="flex gap-2 flex-wrap">
           {['all', 'champions', 'loyal', 'promising', 'at_risk', 'lost', 'new'].map((s) => (
-            <Button
+            <PolarisButton
               key={s}
-              variant={segment === s ? 'default' : 'outline'}
-              size="sm"
+              variant={segment === s ? 'primary' : 'secondary'}
+              size="slim"
               onClick={() => { setSegment(s); setPage(1); }}
             >
               {s === 'all' ? t('filterAll') : t(`segment.${s}`)}
-            </Button>
+            </PolarisButton>
           ))}
+          <PolarisButton variant="secondary" size="slim" onClick={handleSearch}>
+            {t('search')}
+          </PolarisButton>
         </div>
       </div>
 
       {/* Customer List */}
       {customers.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="p-12 text-center">
-            <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">{t('empty.title')}</h3>
-            <p className="text-muted-foreground">{t('empty.description')}</p>
-          </CardContent>
-        </Card>
+        <PolarisCard>
+          <Box padding="600">
+            <BlockStack gap="300" inlineAlign="center">
+              <Users className="w-12 h-12 text-zinc-500" />
+              <Text as="h2" variant="headingSm">{t('empty.title')}</Text>
+              <Text as="p" variant="bodyMd" tone="subdued" alignment="center">{t('empty.description')}</Text>
+            </BlockStack>
+          </Box>
+        </PolarisCard>
       ) : (
-        <Card>
+        <PolarisCard>
           <div className="divide-y">
             {customers.map((customer) => (
               <Link
@@ -141,18 +164,15 @@ export default function CustomersPage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{customer.name}</h3>
-                        <Badge className={SEGMENT_COLORS[customer.segment] || SEGMENT_COLORS.new}>
+                        <Text as="p" variant="bodyMd" fontWeight="semibold">{customer.name}</Text>
+                        <PolarisBadge tone={SEGMENT_TONES[customer.segment] || 'enabled'}>
                           {t(`segment.${customer.segment}`) || customer.segment}
-                        </Badge>
+                        </PolarisBadge>
                         {customer.churnProbability > 0.6 && (
-                          <Badge variant="destructive" className="text-xs">
-                            <AlertTriangle className="w-3 h-3 mr-1" />
-                            Risk {Math.round(customer.churnProbability * 100)}%
-                          </Badge>
+                          <PolarisBadge tone="critical">{`Risk ${Math.round(customer.churnProbability * 100)}%`}</PolarisBadge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{customer.phone}</p>
+                      <Text as="p" variant="bodySm" tone="subdued">{customer.phone}</Text>
                     </div>
                   </div>
                   <div className="flex items-center gap-6 text-sm text-muted-foreground">
@@ -169,21 +189,24 @@ export default function CustomersPage() {
               </Link>
             ))}
           </div>
-        </Card>
+        </PolarisCard>
       )}
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+        <InlineStack align="center" gap="200">
+          <PolarisButton variant="secondary" size="slim" disabled={page <= 1} onClick={() => setPage(page - 1)}>
             {t('previous')}
-          </Button>
-          <span className="text-sm text-muted-foreground">Sayfa {page} / {totalPages}</span>
-          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+          </PolarisButton>
+          <Text as="span" variant="bodySm" tone="subdued">Sayfa {page} / {totalPages}</Text>
+          <PolarisButton variant="secondary" size="slim" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
             {t('next')}
-          </Button>
-        </div>
+          </PolarisButton>
+        </InlineStack>
       )}
-    </div>
+          </BlockStack>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }

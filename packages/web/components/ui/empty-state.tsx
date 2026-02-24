@@ -21,11 +21,11 @@ interface EmptyStateProps {
 }
 
 const iconColors = {
-  default: 'from-muted/10 to-muted/5 text-muted-foreground',
-  primary: 'from-primary/10 to-primary/5 text-primary',
-  success: 'from-success/10 to-success/5 text-success',
-  warning: 'from-warning/10 to-warning/5 text-warning',
-  info: 'from-info/10 to-info/5 text-info',
+  default: 'bg-muted text-muted-foreground',
+  primary: 'bg-primary/[0.12] text-primary',
+  success: 'bg-success/[0.10] text-success',
+  warning: 'bg-warning/[0.15] text-warning-foreground',
+  info: 'bg-info/[0.10] text-info',
 };
 
 export function EmptyState({
@@ -38,17 +38,17 @@ export function EmptyState({
   iconVariant = 'default',
 }: EmptyStateProps) {
   return (
-    <Card className={cn('border-2 border-dashed border-border hover:border-primary/50 transition-colors', className)}>
+    <Card className={cn('border border-dashed border-border hover:border-primary/30 transition-colors', className)}>
       <CardContent className="py-12 px-6 text-center">
         <div
           className={cn(
-            'w-16 h-16 mx-auto mb-5 rounded-xl bg-gradient-to-br flex items-center justify-center',
+            'w-16 h-16 mx-auto mb-5 rounded-lg flex items-center justify-center',
             iconColors[iconVariant]
           )}
         >
           <Icon className="w-8 h-8" />
         </div>
-        <h3 className="text-[length:var(--polaris-heading-lg)] font-semibold mb-2 text-foreground">{title}</h3>
+        <h3 className="text-[length:var(--polaris-heading-md)] font-semibold mb-2 text-foreground">{title}</h3>
         {description && (
           <p className="text-[length:var(--polaris-body-md)] text-muted-foreground mb-6 max-w-md mx-auto leading-relaxed">
             {description}

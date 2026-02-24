@@ -5,6 +5,7 @@ import { Link } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { Banner, Card as PolarisCard, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -525,6 +526,9 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
+      <SkeletonPage title={t('title')}>
+        <Layout>
+          <Layout.Section>
       <div className="space-y-6 animate-fade-in">
         <div className="space-y-3">
           <div className="h-10 w-40 bg-gradient-to-r from-zinc-200 to-zinc-100 rounded-xl animate-pulse" />
@@ -533,21 +537,33 @@ export default function SettingsPage() {
         <div className="h-80 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" />
         <div className="h-64 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" />
       </div>
+          </Layout.Section>
+        </Layout>
+      </SkeletonPage>
     );
   }
 
   return (
+    <Page title={t('title')} subtitle={t('description')} fullWidth>
+      <Layout>
+        <Layout.Section>
     <div className="space-y-6 animate-fade-in pb-8">
       {/* Header */}
-      <div className="space-y-1.5">
-        <h1 className="page-title">{t('title')}</h1>
-        <p className="page-description">
-          {t('description')}{' '}
-          <a href="#guardrails" className="text-primary hover:text-primary/80 font-bold transition-colors">
-            {t('guardrailsLink')}
-          </a>
-        </p>
-      </div>
+      <PolarisCard>
+        <div className="p-5 space-y-3">
+          <div className="space-y-1.5">
+            <Text as="h2" variant="headingMd">{t('title')}</Text>
+            <Text as="p" tone="subdued">{t('description')}</Text>
+          </div>
+          <Banner tone="info">
+            <p>
+              <a href="#guardrails" className="text-primary hover:text-primary/80 font-semibold transition-colors">
+                {t('guardrailsLink')}
+              </a>
+            </p>
+          </Banner>
+        </div>
+      </PolarisCard>
 
       {/* ── Notification Settings ──────────────────────────── */}
       <Card hover className="overflow-hidden shadow-lg">
@@ -1439,5 +1455,8 @@ export default function SettingsPage() {
         </DialogContent>
       </Dialog>
     </div>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }

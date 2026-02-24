@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { Button, Card, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
 import { useTranslations, useLocale } from 'next-intl';
 
 interface ConversationMessage {
@@ -156,49 +157,54 @@ export default function ConversationDetailPage() {
 
   if (loading) {
     return (
-
+      <SkeletonPage title={t('backToConversations')}>
+        <Layout>
+          <Layout.Section>
       <div className="space-y-6">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-zinc-200 rounded w-1/4"></div>
           <div className="h-96 bg-zinc-200 rounded"></div>
         </div>
       </div>
-
+          </Layout.Section>
+        </Layout>
+      </SkeletonPage>
     );
   }
 
   if (!conversation) {
     return (
-
+      <Page title={t('backToConversations')}>
+        <Layout>
+          <Layout.Section>
       <div className="space-y-6">
-        <div className="bg-card rounded-lg border border-border shadow-sm p-12 text-center">
-          <p className="text-zinc-600">{t('notFound')}</p>
-          <button
-            onClick={() => router.push('/dashboard/conversations')}
-            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"
-          >
-            {t('backToConversations')}
-          </button>
-        </div>
+        <Card>
+          <div className="p-12 text-center">
+            <Text as="p" tone="subdued">{t('notFound')}</Text>
+            <div className="mt-4 flex justify-center">
+              <Button onClick={() => router.push('/dashboard/conversations')}>{t('backToConversations')}</Button>
+            </div>
+          </div>
+        </Card>
       </div>
-
+          </Layout.Section>
+        </Layout>
+      </Page>
     );
   }
 
   return (
-
+    <Page title={conversation.userName} subtitle={conversation.phone} fullWidth>
+      <Layout>
+        <Layout.Section>
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-card rounded-lg border border-border shadow-sm p-6">
-        <button
-          onClick={() => router.push('/dashboard/conversations')}
-          className="text-sm text-primary hover:underline mb-4 flex items-center gap-1 font-medium"
-        >
-          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          {t('backToConversations')}
-        </button>
+        <div className="mb-4">
+          <Button onClick={() => router.push('/dashboard/conversations')} variant="plain">
+            {t('backToConversations')}
+          </Button>
+        </div>
 
         <div className="flex flex-col md:flex-row items-start md:items-start justify-between gap-6">
           <div className="flex items-start gap-3 sm:gap-4 min-w-0">
@@ -257,40 +263,46 @@ export default function ConversationDetailPage() {
             </div>
             <div className="flex items-center gap-2 justify-start md:justify-end flex-wrap mt-2">
               {conversation.conversationStatus === 'ai' && (
-                <button
+                <Button
                   onClick={() => handleToggleStatus('human')}
                   disabled={togglingStatus}
-                  className="px-3 py-1.5 text-xs font-medium bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors shrink-0"
+                  size="micro"
+                  tone="critical"
+                  variant="primary"
                 >
                   {t('stopAi')}
-                </button>
+                </Button>
               )}
               {conversation.conversationStatus === 'human' && (
                 <>
-                  <button
+                  <Button
                     onClick={() => handleToggleStatus('ai')}
                     disabled={togglingStatus}
-                    className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity shrink-0"
+                    size="micro"
+                    variant="primary"
                   >
                     {t('startAi')}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => handleToggleStatus('resolved')}
                     disabled={togglingStatus}
-                    className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shrink-0"
+                    size="micro"
+                    tone="success"
+                    variant="primary"
                   >
                     {t('resolved')}
-                  </button>
+                  </Button>
                 </>
               )}
               {conversation.conversationStatus === 'resolved' && (
-                <button
+                <Button
                   onClick={() => handleToggleStatus('ai')}
                   disabled={togglingStatus}
-                  className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity shrink-0"
+                  size="micro"
+                  variant="primary"
                 >
                   {t('reopen')}
-                </button>
+                </Button>
               )}
             </div>
             <div className="text-sm text-zinc-600 mt-2">
@@ -362,13 +374,14 @@ export default function ConversationDetailPage() {
               disabled={sending || conversation.conversationStatus === 'resolved'}
               className="flex-1 px-4 py-2.5 rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-zinc-100 disabled:cursor-not-allowed text-sm"
             />
-            <button
+            <Button
               onClick={handleSendReply}
               disabled={!replyText.trim() || sending || conversation.conversationStatus === 'resolved'}
-              className="px-5 py-2.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              loading={sending}
+              variant="primary"
             >
               {sending ? t('sending') : t('send')}
-            </button>
+            </Button>
           </div>
           {conversation.conversationStatus === 'ai' && (
             <p className="text-xs text-zinc-500 mt-2">
@@ -427,6 +440,8 @@ export default function ConversationDetailPage() {
         </div>
       </div>
     </div>
-
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }

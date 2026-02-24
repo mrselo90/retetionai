@@ -24,15 +24,7 @@ export function InlineError({ message, onDismiss, className = '', fieldLevel = f
         return (
             <p
                 role="alert"
-                style={{
-                    color: '#dc2626',
-                    fontSize: 13,
-                    marginTop: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                }}
-                className={className}
+                className={`mt-1 flex items-center gap-1 text-xs text-destructive ${className}`}
             >
                 <span aria-hidden="true">⚠</span>
                 {message}
@@ -43,37 +35,15 @@ export function InlineError({ message, onDismiss, className = '', fieldLevel = f
     return (
         <div
             role="alert"
-            style={{
-                background: '#fff0f0',
-                border: '1px solid #dc2626',
-                borderRadius: 8,
-                padding: '12px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                color: '#dc2626',
-                marginBottom: 16,
-                fontSize: 14,
-                fontWeight: 500,
-            }}
-            className={className}
+            className={`mb-4 flex items-center gap-2 rounded-lg border border-destructive/25 bg-card px-4 py-3 text-sm font-medium text-destructive ${className}`}
         >
-            <span aria-hidden="true" style={{ fontSize: 16 }}>⚠</span>
-            <span style={{ flex: 1 }}>{message}</span>
+            <span aria-hidden="true" className="text-base">⚠</span>
+            <span className="flex-1">{message}</span>
             {onDismiss && (
                 <button
                     aria-label="Dismiss error"
                     onClick={onDismiss}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: '#dc2626',
-                        fontWeight: 700,
-                        fontSize: 16,
-                        lineHeight: 1,
-                        padding: '0 2px',
-                    }}
+                    className="rounded p-0.5 text-destructive hover:bg-destructive/10"
                 >
                     ✕
                 </button>

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { Badge } from './badge';
 import { X } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface Shortcut {
   key: string;
@@ -66,14 +65,14 @@ export function KeyboardShortcuts({ shortcuts }: KeyboardShortcutsProps) {
   }, {} as Record<string, Shortcut[]>);
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-      <Card className="max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl animate-scale-in">
-        <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-transparent">
+    <div className="fixed inset-0 bg-background/70 flex items-center justify-center z-50 p-4 animate-fade-in">
+      <Card className="max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-sm animate-scale-in">
+        <CardHeader className="border-b">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl">Keyboard Shortcuts</CardTitle>
+            <CardTitle className="text-base">Keyboard Shortcuts</CardTitle>
             <button
               onClick={() => setShowHelp(false)}
-              className="p-2 rounded-lg hover:bg-muted transition-colors"
+              className="p-2 rounded-md hover:bg-muted transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -82,7 +81,7 @@ export function KeyboardShortcuts({ shortcuts }: KeyboardShortcutsProps) {
         <CardContent className="p-6 space-y-6">
           {Object.entries(groupedShortcuts).map(([category, categoryShortcuts]) => (
             <div key={category}>
-              <h3 className="text-lg font-bold mb-3 text-primary">{category}</h3>
+              <h3 className="text-sm font-semibold mb-3 text-foreground">{category}</h3>
               <div className="space-y-2">
                 {categoryShortcuts.map((shortcut, idx) => (
                   <div key={idx} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
@@ -90,7 +89,7 @@ export function KeyboardShortcuts({ shortcuts }: KeyboardShortcutsProps) {
                     <div className="flex items-center gap-1">
                       {shortcut.key.split('+').map((key, i) => (
                         <React.Fragment key={i}>
-                          <Badge variant="outline" size="sm" className="font-mono font-bold px-2 py-1">
+                          <Badge variant="outline" size="sm" className="font-mono font-medium px-2 py-1">
                             {key.trim()}
                           </Badge>
                           {i < shortcut.key.split('+').length - 1 && <span className="text-muted-foreground">+</span>}
