@@ -2,10 +2,27 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import type { KeyboardEvent } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Button, Card, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
+import {
+  Badge as PolarisBadge,
+  BlockStack,
+  Box,
+  Button,
+  Card,
+  InlineGrid,
+  InlineStack,
+  Layout,
+  Page,
+  SkeletonBodyText,
+  SkeletonDisplayText,
+  SkeletonPage,
+  Text,
+  TextField,
+} from '@shopify/polaris';
+import { MessageSquare, Clock, User, ShoppingBag, Bot } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
 interface ConversationMessage {
@@ -41,6 +58,20 @@ interface ConversationDetail {
     deliveryDate?: string;
   };
   returnPreventionAttempt?: ReturnPreventionAttempt;
+}
+
+function DetailIconSurface({
+  icon,
+  background = 'bg-surface-secondary',
+}: {
+  icon: React.ReactNode;
+  background?: React.ComponentProps<typeof Box>['background'];
+}) {
+  return (
+    <Box background={background} borderRadius="200" padding="300" minWidth="44px" minHeight="44px">
+      {icon}
+    </Box>
+  );
 }
 
 export default function ConversationDetailPage() {
@@ -160,12 +191,17 @@ export default function ConversationDetailPage() {
       <SkeletonPage title={t('backToConversations')}>
         <Layout>
           <Layout.Section>
-      <div className="space-y-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-zinc-200 rounded w-1/4"></div>
-          <div className="h-96 bg-zinc-200 rounded"></div>
-        </div>
-      </div>
+            <BlockStack gap="400">
+              <Card>
+                <BlockStack gap="300">
+                  <SkeletonDisplayText size="small" maxWidth="18ch" />
+                  <SkeletonBodyText lines={3} />
+                </BlockStack>
+              </Card>
+              <Card>
+                <SkeletonBodyText lines={10} />
+              </Card>
+            </BlockStack>
           </Layout.Section>
         </Layout>
       </SkeletonPage>
@@ -177,16 +213,14 @@ export default function ConversationDetailPage() {
       <Page title={t('backToConversations')}>
         <Layout>
           <Layout.Section>
-      <div className="space-y-6">
-        <Card>
-          <div className="p-12 text-center">
-            <Text as="p" tone="subdued">{t('notFound')}</Text>
-            <div className="mt-4 flex justify-center">
-              <Button onClick={() => router.push('/dashboard/conversations')}>{t('backToConversations')}</Button>
-            </div>
-          </div>
-        </Card>
-      </div>
+            <Card>
+              <Box padding="600">
+                <BlockStack gap="300" inlineAlign="center">
+                  <Text as="p" tone="subdued">{t('notFound')}</Text>
+                  <Button onClick={() => router.push('/dashboard/conversations')}>{t('backToConversations')}</Button>
+                </BlockStack>
+              </Box>
+            </Card>
           </Layout.Section>
         </Layout>
       </Page>
@@ -197,71 +231,67 @@ export default function ConversationDetailPage() {
     <Page title={conversation.userName} subtitle={conversation.phone} fullWidth>
       <Layout>
         <Layout.Section>
-    <div className="space-y-6">
+    <BlockStack gap="400">
       {/* Header */}
-      <div className="bg-card rounded-lg border border-border shadow-sm p-6">
-        <div className="mb-4">
+      <Card>
+        <BlockStack gap="400">
           <Button onClick={() => router.push('/dashboard/conversations')} variant="plain">
             {t('backToConversations')}
           </Button>
-        </div>
 
-        <div className="flex flex-col md:flex-row items-start md:items-start justify-between gap-6">
-          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-              <svg className="w-6 h-6 md:w-8 md:h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-xl md:text-2xl font-bold text-zinc-900 truncate max-w-[200px] sm:max-w-xs">{conversation.userName}</h1>
-              <p className="text-sm md:text-base text-zinc-600 mt-0.5 sm:mt-1 truncate max-w-[200px] sm:max-w-xs">{conversation.phone}</p>
+        <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+          <InlineStack gap="300" blockAlign="start">
+            <DetailIconSurface
+              background="bg-fill-info-secondary"
+              icon={<User className="w-6 h-6 text-blue-700" />}
+            />
+            <BlockStack gap="100">
+              <Text as="h1" variant="headingLg">{conversation.userName}</Text>
+              <Text as="p" tone="subdued">{conversation.phone}</Text>
               {conversation.order && (
-                <div className="flex items-center gap-1.5 sm:gap-2 mt-2 text-xs sm:text-sm flex-wrap">
-                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                  </svg>
-                  <span className="text-zinc-900 font-medium truncate max-w-[150px] sm:max-w-xs">{t('order')}: #{conversation.order.externalOrderId}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium shrink-0 ${conversation.order.status === 'delivered'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-info/20 text-info'
-                    }`}>
+                <InlineStack gap="150" blockAlign="center" wrap>
+                  <ShoppingBag className="w-4 h-4 text-zinc-600" />
+                  <Text as="p" variant="bodySm">{t('order')}: #{conversation.order.externalOrderId}</Text>
+                  <PolarisBadge tone={conversation.order.status === 'delivered' ? 'success' : 'info'}>
                     {conversation.order.status}
-                  </span>
-                </div>
+                  </PolarisBadge>
+                </InlineStack>
               )}
-            </div>
-          </div>
-          <div className="w-full md:w-auto text-left md:text-right space-y-3 pt-4 border-t border-zinc-100 md:border-0 md:pt-0">
-            <div className="flex flex-col sm:flex-row items-center gap-2 justify-start md:justify-end flex-wrap">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shrink-0 ${conversation.conversationStatus === 'human'
-                ? 'bg-orange-100 text-orange-800'
-                : conversation.conversationStatus === 'resolved'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-info/20 text-info'
-                }`}>
+            </BlockStack>
+          </InlineStack>
+
+          <BlockStack gap="300">
+            <InlineStack gap="200" wrap>
+              <PolarisBadge tone={
+                conversation.conversationStatus === 'human'
+                  ? 'critical'
+                  : conversation.conversationStatus === 'resolved'
+                    ? 'success'
+                    : 'info'
+              }>
                 {conversation.conversationStatus === 'human' ? t('statusHuman') :
                   conversation.conversationStatus === 'resolved' ? t('statusResolved') : t('statusAi')}
-              </span>
+              </PolarisBadge>
               {conversation.returnPreventionAttempt && (
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shrink-0 ${conversation.returnPreventionAttempt.outcome === 'prevented'
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : conversation.returnPreventionAttempt.outcome === 'returned'
-                    ? 'bg-red-100 text-red-800'
-                    : conversation.returnPreventionAttempt.outcome === 'escalated'
-                      ? 'bg-orange-100 text-orange-800'
-                      : 'bg-zinc-100 text-zinc-600'
-                  }`}>
-                  🛡️ {rp('badgeLabel')} · {
+                <PolarisBadge tone={
+                  conversation.returnPreventionAttempt.outcome === 'prevented'
+                    ? 'success'
+                    : conversation.returnPreventionAttempt.outcome === 'returned'
+                      ? 'critical'
+                      : conversation.returnPreventionAttempt.outcome === 'escalated'
+                        ? 'warning'
+                        : 'enabled'
+                }>
+                  {`${rp('badgeLabel')} · ${
                     conversation.returnPreventionAttempt.outcome === 'prevented' ? rp('outcomePrevented') :
                       conversation.returnPreventionAttempt.outcome === 'returned' ? rp('outcomeReturned') :
                         conversation.returnPreventionAttempt.outcome === 'escalated' ? rp('outcomeEscalated') :
                           rp('outcomePending')
-                  }
-                </span>
+                  }`}
+                </PolarisBadge>
               )}
-            </div>
-            <div className="flex items-center gap-2 justify-start md:justify-end flex-wrap mt-2">
+            </InlineStack>
+            <InlineStack gap="200" wrap>
               {conversation.conversationStatus === 'ai' && (
                 <Button
                   onClick={() => handleToggleStatus('human')}
@@ -304,32 +334,36 @@ export default function ConversationDetailPage() {
                   {t('reopen')}
                 </Button>
               )}
-            </div>
-            <div className="text-sm text-zinc-600 mt-2">
-              <p>{t('started')}: {formatDateTime(conversation.createdAt)}</p>
-              <p className="mt-1">{t('lastUpdate')}: {formatDateTime(conversation.updatedAt)}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+            </InlineStack>
+            <BlockStack gap="050">
+              <Text as="p" variant="bodySm" tone="subdued">{t('started')}: {formatDateTime(conversation.createdAt)}</Text>
+              <Text as="p" variant="bodySm" tone="subdued">{t('lastUpdate')}: {formatDateTime(conversation.updatedAt)}</Text>
+            </BlockStack>
+          </BlockStack>
+        </InlineGrid>
+        </BlockStack>
+      </Card>
 
       {/* Chat Messages */}
-      <div className="bg-card rounded-lg border border-border shadow-sm">
-        <div className="p-6 border-b border-zinc-200">
-          <h2 className="text-lg font-semibold text-zinc-900">{t('messageHistory')}</h2>
-          <p className="text-sm text-zinc-600 mt-1">
+      <Card>
+        <Box padding="400" borderBlockEndWidth="025" borderColor="border">
+          <Text as="h2" variant="headingSm">{t('messageHistory')}</Text>
+          <Box paddingBlockStart="100">
+            <Text as="p" variant="bodySm" tone="subdued">
             {t('messageCount', { count: conversation.history.length })}
-          </p>
-        </div>
+            </Text>
+          </Box>
+        </Box>
 
-        <div className="p-6 space-y-4 max-h-[600px] overflow-y-auto">
+        <Box padding="400">
+        <div className="space-y-4 max-h-[600px] overflow-y-auto">
           {conversation.history.length === 0 ? (
-            <div className="text-center py-12 text-zinc-500">
-              <svg className="mx-auto h-12 w-12 text-zinc-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-              </svg>
-              <p>{t('noMessages')}</p>
-            </div>
+            <Box padding="600">
+              <BlockStack gap="300" inlineAlign="center">
+                <DetailIconSurface icon={<MessageSquare className="w-6 h-6 text-muted-foreground" />} />
+                <Text as="p" tone="subdued">{t('noMessages')}</Text>
+              </BlockStack>
+            </Box>
           ) : (
             <>
               {conversation.history.map((message, index) => (
@@ -361,19 +395,31 @@ export default function ConversationDetailPage() {
             </>
           )}
         </div>
+        </Box>
 
         {/* Reply Input */}
-        <div className="p-4 border-t border-zinc-200">
-          <div className="flex items-center gap-3">
-            <input
-              type="text"
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }}
-              placeholder={conversation.conversationStatus === 'resolved' ? t('placeholderResolved') : t('placeholderReply')}
-              disabled={sending || conversation.conversationStatus === 'resolved'}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-zinc-100 disabled:cursor-not-allowed text-sm"
-            />
+        <Box padding="400" borderBlockStartWidth="025" borderColor="border">
+          <InlineStack gap="300" blockAlign="center">
+            <Box width="100%">
+              <div
+                onKeyDown={(e: KeyboardEvent) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendReply();
+                  }
+                }}
+              >
+                <TextField
+                  label={t('send')}
+                  labelHidden
+                  autoComplete="off"
+                  value={replyText}
+                  onChange={(value) => setReplyText(value)}
+                  placeholder={conversation.conversationStatus === 'resolved' ? t('placeholderResolved') : t('placeholderReply')}
+                  disabled={sending || conversation.conversationStatus === 'resolved'}
+                />
+              </div>
+            </Box>
             <Button
               onClick={handleSendReply}
               disabled={!replyText.trim() || sending || conversation.conversationStatus === 'resolved'}
@@ -382,64 +428,52 @@ export default function ConversationDetailPage() {
             >
               {sending ? t('sending') : t('send')}
             </Button>
-          </div>
+          </InlineStack>
           {conversation.conversationStatus === 'ai' && (
-            <p className="text-xs text-zinc-500 mt-2">
-              {t('humanModeNote')}
-            </p>
+            <Box paddingBlockStart="200">
+              <Text as="p" variant="bodyXs" tone="subdued">{t('humanModeNote')}</Text>
+            </Box>
           )}
-        </div>
-      </div>
+        </Box>
+      </Card>
 
       {/* Conversation Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-card rounded-lg border border-border shadow-sm p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm text-zinc-600">{t('totalMessages')}</p>
-              <p className="text-2xl font-bold text-zinc-900">{conversation.history.length}</p>
-            </div>
-          </div>
-        </div>
+      <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
+        <Card>
+          <InlineStack gap="300" blockAlign="center">
+            <DetailIconSurface background="bg-fill-info-secondary" icon={<MessageSquare className="w-5 h-5 text-blue-700" />} />
+            <BlockStack gap="050">
+              <Text as="p" variant="bodySm" tone="subdued">{t('totalMessages')}</Text>
+              <Text as="p" variant="headingLg" fontWeight="semibold">{conversation.history.length}</Text>
+            </BlockStack>
+          </InlineStack>
+        </Card>
 
-        <div className="bg-card rounded-lg border border-border shadow-sm p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm text-zinc-600">{t('customerMessage')}</p>
-              <p className="text-2xl font-bold text-zinc-900">
+        <Card>
+          <InlineStack gap="300" blockAlign="center">
+            <DetailIconSurface background="bg-fill-success-secondary" icon={<User className="w-5 h-5 text-green-700" />} />
+            <BlockStack gap="050">
+              <Text as="p" variant="bodySm" tone="subdued">{t('customerMessage')}</Text>
+              <Text as="p" variant="headingLg" fontWeight="semibold">
                 {conversation.history.filter((m) => m.role === 'user').length}
-              </p>
-            </div>
-          </div>
-        </div>
+              </Text>
+            </BlockStack>
+          </InlineStack>
+        </Card>
 
-        <div className="bg-card rounded-lg border border-border shadow-sm p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm text-zinc-600">{t('botResponse')}</p>
-              <p className="text-2xl font-bold text-zinc-900">
+        <Card>
+          <InlineStack gap="300" blockAlign="center">
+            <DetailIconSurface background="bg-surface-secondary" icon={<Bot className="w-5 h-5 text-zinc-700" />} />
+            <BlockStack gap="050">
+              <Text as="p" variant="bodySm" tone="subdued">{t('botResponse')}</Text>
+              <Text as="p" variant="headingLg" fontWeight="semibold">
                 {conversation.history.filter((m) => m.role === 'assistant').length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+              </Text>
+            </BlockStack>
+          </InlineStack>
+        </Card>
+      </InlineGrid>
+    </BlockStack>
         </Layout.Section>
       </Layout>
     </Page>

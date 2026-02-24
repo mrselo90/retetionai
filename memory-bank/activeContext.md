@@ -44,6 +44,9 @@
 - **Conversations Polaris Migration (step 3)**:
   - Mobile conversation rows refactored to Polaris layout primitives (`Box`, `InlineStack`, `BlockStack`, `Text`) to reduce Tailwind-specific row composition
   - Removed placeholder header spacer from Conversations page structure
+- **Conversation Detail Polaris Migration (step 1)**:
+  - Header, message history wrapper, reply composer, and stats cards refactored to Polaris-first primitives (`Card`, `Box`, `InlineGrid`, `InlineStack`, `BlockStack`, `TextField`, `Badge`)
+  - Preserved functional behavior (reply send, status toggles, polling) while removing a large share of custom Tailwind layout shells
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.
