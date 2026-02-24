@@ -9,6 +9,7 @@ const API_BASE = process.env.EVAL_API_BASE || 'http://localhost:3001';
 const TOKEN = process.env.EVAL_TOKEN || '';
 const INTERNAL_SECRET = process.env.EVAL_INTERNAL_SECRET || process.env.INTERNAL_SERVICE_SECRET || '';
 const INTERNAL_MERCHANT_ID = process.env.EVAL_MERCHANT_ID || '';
+const REQUEST_TIMEOUT_MS = Number(process.env.EVAL_REQUEST_TIMEOUT_MS || 45000);
 const OUTPUT = process.env.EVAL_OUTPUT || path.join(root, 'tmp/cosmetics-rag-eval-report.json');
 const PRODUCT_IDS = process.env.EVAL_PRODUCT_IDS
   ? process.env.EVAL_PRODUCT_IDS.split(',').map((s) => s.trim()).filter(Boolean)
@@ -51,25 +52,45 @@ function scoreHeuristics(caseRun) {
 
 async function runCase(query, lang, presetId, conversationHistory) {
   const startedAt = Date.now();
-  const res = await fetch(`${API_BASE}/api/test/rag/answer`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: JSON.stringify({
-      query,
-      ...(Array.isArray(conversationHistory) && conversationHistory.length
-        ? { conversationHistory }
-        : {}),
-      ...(PRODUCT_IDS?.length ? { productIds: PRODUCT_IDS } : {}),
-    }),
-  });
-  const json = await res.json().catch(() => ({}));
-  return {
-    status: res.status,
-    latencyMs: Date.now() - startedAt,
-    presetId,
-    requestProductIds: PRODUCT_IDS || null,
-    response: json,
-  };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${API_BASE}/api/test/rag/answer`, {
+      method: 'POST',
+      headers: authHeaders(),
+      signal: controller.signal,
+      body: JSON.stringify({
+        query,
+        ...(Array.isArray(conversationHistory) && conversationHistory.length
+          ? { conversationHistory }
+          : {}),
+        ...(PRODUCT_IDS?.length ? { productIds: PRODUCT_IDS } : {}),
+      }),
+    });
+    const json = await res.json().catch(() => ({}));
+    return {
+      status: res.status,
+      latencyMs: Date.now() - startedAt,
+      presetId,
+      requestProductIds: PRODUCT_IDS || null,
+      response: json,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      status: 599,
+      latencyMs: Date.now() - startedAt,
+      presetId,
+      requestProductIds: PRODUCT_IDS || null,
+      response: {
+        error: 'Eval request failed',
+        message,
+        timeout: /abort|aborted/i.test(message),
+      },
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function main() {
