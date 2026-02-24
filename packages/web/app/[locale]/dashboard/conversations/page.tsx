@@ -222,9 +222,6 @@ export default function ConversationsPage() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
-      {/* Header */}
-      <div className="space-y-1" />
-
       {/* Needs Attention Alert */}
       {(() => {
         const humanConvs = conversations.filter(c => c.conversationStatus === 'human');
@@ -288,14 +285,14 @@ export default function ConversationsPage() {
                   href={`/dashboard/conversations/${conversation.id}`}
                   className="block p-4 hover:bg-muted/50 active:bg-muted transition-colors min-h-[88px]"
                 >
-                  <div className="flex flex-col gap-3">
-                    <div className="flex gap-3 flex-1 min-w-0">
+                  <BlockStack gap="300">
+                    <InlineStack gap="300" blockAlign="start">
                       <ConversationIconSurface icon={<User className="w-5 h-5 text-muted-foreground" />} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                          <p className="text-sm font-semibold text-foreground truncate max-w-[160px]">
+                      <Box minWidth="0" width="100%">
+                        <InlineStack gap="150" blockAlign="center" wrap>
+                          <Text as="p" variant="bodySm" fontWeight="semibold">
                             {conversation.userName || conversation.user?.name || t('list.guest')}
-                          </p>
+                          </Text>
                           <PolarisBadge tone={getSentimentBadgeTone(conversation.sentiment)}>
                             {`${getSentimentIcon(conversation.sentiment)} ${conversation.sentiment}`}
                           </PolarisBadge>
@@ -305,29 +302,35 @@ export default function ConversationsPage() {
                           {conversation.conversationStatus === 'resolved' && (
                             <PolarisBadge tone="success">{t('statusBadge.resolved')}</PolarisBadge>
                           )}
-                        </div>
-                        <p className="text-xs text-muted-foreground truncate mb-0.5">
+                        </InlineStack>
+                        <Box paddingBlockStart="050">
+                          <Text as="p" variant="bodyXs" tone="subdued">
                           {conversation.phone || conversation.user?.phone}
-                        </p>
+                          </Text>
+                        </Box>
                         {conversation.order && (
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                          <InlineStack gap="150" blockAlign="center" wrap>
                             <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate max-w-[180px]">{t('list.order')}: #{conversation.order.external_order_id}</span>
+                            <Text as="p" variant="bodyXs" tone="subdued">
+                              {t('list.order')}: #{conversation.order.external_order_id}
+                            </Text>
                             <PolarisBadge tone={conversation.order.status === 'delivered' ? 'success' : 'enabled'}>
                               {conversation.order.status}
                             </PolarisBadge>
-                          </div>
+                          </InlineStack>
                         )}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 border-t border-border/50 pt-3">
-                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      </Box>
+                    </InlineStack>
+                    <Box borderBlockStartWidth="025" borderColor="border" paddingBlockStart="300">
+                      <InlineStack align="space-between" blockAlign="center" gap="200">
+                        <InlineStack gap="150" blockAlign="center">
                         <Clock className="w-3.5 h-3.5 shrink-0" />
-                        <span>{formatDateTime(conversation.last_message_at)}</span>
-                      </p>
-                      <PolarisBadge>{`${conversation.message_count} ${t('list.messages')}`}</PolarisBadge>
-                    </div>
-                  </div>
+                          <Text as="p" variant="bodyXs" tone="subdued">{formatDateTime(conversation.last_message_at)}</Text>
+                        </InlineStack>
+                        <PolarisBadge>{`${conversation.message_count} ${t('list.messages')}`}</PolarisBadge>
+                      </InlineStack>
+                    </Box>
+                  </BlockStack>
                 </Link>
               </div>
             ))}

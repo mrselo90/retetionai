@@ -41,6 +41,9 @@
 - **Conversations Polaris Migration (step 2)**:
   - Sentiment and status filters migrated from custom button rows to Polaris `Tabs` (two-tab-bar filter layout)
   - Mobile horizontal-scroll hacks removed in favor of Polaris tab disclosure behavior
+- **Conversations Polaris Migration (step 3)**:
+  - Mobile conversation rows refactored to Polaris layout primitives (`Box`, `InlineStack`, `BlockStack`, `Text`) to reduce Tailwind-specific row composition
+  - Removed placeholder header spacer from Conversations page structure
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.
