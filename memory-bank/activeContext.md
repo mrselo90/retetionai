@@ -123,6 +123,10 @@
   - Fixed a production crash caused by passing `lucide-react` icon components into Polaris `Button` `icon` props (Polaris expected a different icon source type)
   - Removed incompatible `icon={...}` usage in `settings`, `admin/merchants`, and `admin/system` Polaris buttons
   - Deployed web update (commit `1157c73`) and verified successful Next.js build + PM2 `web` restart
+- **Runtime Crash Fix (React #31, follow-up sweep)**:
+  - Additional incompatible Polaris button icon props removed from `dashboard/customers/[id]`, `dashboard/integrations`, and internal `dashboard/test`
+  - Full scan confirms no remaining `Polaris Button icon={...}` usages with React icon components in app pages/components
+  - Deployed web update (commit `8039355`) and verified successful build + PM2 `web` restart
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
