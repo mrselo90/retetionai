@@ -83,9 +83,15 @@
   - Integrations header/support banner and the two most visible list sections (`Discover integrations`, `Active integrations`) standardized further with Polaris cards/badges/buttons
   - Connection CTA buttons for Shopify/WhatsApp/CSV/manual rows now use Polaris button styles, improving Shopify-admin consistency
   - Modals remain mixed (custom dialog + inputs/buttons) and are planned for a later pass
+- **Integrations Polaris Migration (step 2)**:
+  - Shopify / CSV / Manual / WhatsApp modals now use Polaris form controls and action buttons (`TextField`, Polaris `Button`) while keeping existing dialog shell/logic
+  - Merchant integration setup flows are more consistent with Shopify admin interaction patterns
 - **Analytics Polaris Migration (step 1)**:
   - Analytics loading surfaces and header/date-range container moved toward Polaris-first card/layout primitives
   - Date range controls still use native date inputs (inside Polaris surfaces) to preserve behavior while improving visual consistency
+- **Analytics Polaris Migration (step 2)**:
+  - Key metric cards, ROI stat cards, and return-prevention summary stat cards migrated to Polaris-first cards/layout primitives
+  - Return-prevention top-products summary card also moved to Polaris card/badge styling; chart sections remain for later refactor
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart

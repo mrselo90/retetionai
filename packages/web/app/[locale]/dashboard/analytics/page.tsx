@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { Link } from '@/i18n/routing';
-import { Banner, BlockStack, Box, Card as PolarisCard, InlineGrid, InlineStack, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
+import { Badge as PolarisBadge, Banner, BlockStack, Box, Card as PolarisCard, InlineGrid, InlineStack, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -115,6 +115,12 @@ export default function AnalyticsPage() {
     return 'destructive';
   };
 
+  const getSentimentBadgeTone = (score: number): Parameters<typeof PolarisBadge>[0]['tone'] => {
+    if (score >= 4) return 'success';
+    if (score >= 3) return 'attention';
+    return 'critical';
+  };
+
   if (loading) {
     return (
       <SkeletonPage title={t('title')}>
@@ -186,205 +192,124 @@ export default function AnalyticsPage() {
       {analytics ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            <Card hover className="group overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-semibold text-muted-foreground">{t('metrics.avgSentiment')}</CardTitle>
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center ">
-                  <TrendingUp className="h-5 w-5 text-success" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className={`text-3xl font-bold tracking-tight ${getSentimentColor(analytics.metrics.avgSentiment)}`}>
-                  {analytics.metrics.avgSentiment.toFixed(2)}
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge variant={getSentimentBadgeVariant(analytics.metrics.avgSentiment)} size="sm">
-                    {getSentimentLabel(analytics.metrics.avgSentiment)}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
+            <PolarisCard>
+              <Box padding="400">
+                <BlockStack gap="300">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="p" variant="bodySm" tone="subdued">{t('metrics.avgSentiment')}</Text>
+                    <Box background="bg-fill-success-secondary" borderRadius="300" padding="200">
+                      <TrendingUp className="h-5 w-5 text-emerald-700" />
+                    </Box>
+                  </InlineStack>
+                  <Text as="p" variant="headingLg">{analytics.metrics.avgSentiment.toFixed(2)}</Text>
+                  <InlineStack>
+                    <PolarisBadge tone={getSentimentBadgeTone(analytics.metrics.avgSentiment)}>
+                      {getSentimentLabel(analytics.metrics.avgSentiment)}
+                    </PolarisBadge>
+                  </InlineStack>
+                </BlockStack>
+              </Box>
+            </PolarisCard>
 
-            <Card hover className="group overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-semibold text-muted-foreground">{t('metrics.interactionRate')}</CardTitle>
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center ">
-                  <BarChart3 className="h-5 w-5 text-info" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold tracking-tight text-info">{analytics.metrics.interactionRate}%</div>
-                <p className="text-xs text-muted-foreground mt-2 font-medium">
-                  {analytics.metrics.totalUsers} {t('metrics.activeUsers')}
-                </p>
-              </CardContent>
-            </Card>
+            <PolarisCard>
+              <Box padding="400">
+                <BlockStack gap="300">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="p" variant="bodySm" tone="subdued">{t('metrics.interactionRate')}</Text>
+                    <Box background="bg-fill-info-secondary" borderRadius="300" padding="200">
+                      <BarChart3 className="h-5 w-5 text-sky-700" />
+                    </Box>
+                  </InlineStack>
+                  <Text as="p" variant="headingLg">{`${analytics.metrics.interactionRate}%`}</Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    {analytics.metrics.totalUsers} {t('metrics.activeUsers')}
+                  </Text>
+                </BlockStack>
+              </Box>
+            </PolarisCard>
 
-            <Card hover className="group overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-semibold text-muted-foreground">{t('metrics.returnRate')}</CardTitle>
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center group-hover:bg-destructive/20 transition-colors">
-                  <TrendingDown className="h-5 w-5 text-destructive" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold tracking-tight text-destructive">{analytics.metrics.returnRate}%</div>
-                <p className="text-xs text-muted-foreground mt-2 font-medium">
-                  {analytics.metrics.totalOrders} {t('metrics.orders')}
-                </p>
-              </CardContent>
-            </Card>
+            <PolarisCard>
+              <Box padding="400">
+                <BlockStack gap="300">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="p" variant="bodySm" tone="subdued">{t('metrics.returnRate')}</Text>
+                    <Box background="bg-fill-critical-secondary" borderRadius="300" padding="200">
+                      <TrendingDown className="h-5 w-5 text-red-700" />
+                    </Box>
+                  </InlineStack>
+                  <Text as="p" variant="headingLg">{`${analytics.metrics.returnRate}%`}</Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    {analytics.metrics.totalOrders} {t('metrics.orders')}
+                  </Text>
+                </BlockStack>
+              </Box>
+            </PolarisCard>
 
-            <Card hover className="group overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-semibold text-muted-foreground">{t('metrics.totalUsers')}</CardTitle>
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center ">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold tracking-tight">{analytics.metrics.totalUsers}</div>
-                <p className="text-xs text-muted-foreground mt-2 font-medium">{t('metrics.activeUsers')}</p>
-              </CardContent>
-            </Card>
+            <PolarisCard>
+              <Box padding="400">
+                <BlockStack gap="300">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="p" variant="bodySm" tone="subdued">{t('metrics.totalUsers')}</Text>
+                    <Box background="bg-fill-secondary" borderRadius="300" padding="200">
+                      <Users className="h-5 w-5 text-indigo-700" />
+                    </Box>
+                  </InlineStack>
+                  <Text as="p" variant="headingLg">{String(analytics.metrics.totalUsers)}</Text>
+                  <Text as="p" variant="bodySm" tone="subdued">{t('metrics.activeUsers')}</Text>
+                </BlockStack>
+              </Box>
+            </PolarisCard>
           </div>
 
           {/* ROI Section */}
           {roi && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              <Card hover className="overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-semibold">{t('roi.savedReturns')}</CardTitle>
-                  <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center ">
-                    <TrendingUp className="h-5 w-5 text-success" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{roi.savedReturns}</div>
-                  <p className="text-xs text-muted-foreground mt-2 font-medium">{t('roi.savedReturnsDesc')}</p>
-                </CardContent>
-              </Card>
+              <PolarisCard><Box padding="400"><BlockStack gap="300"><InlineStack align="space-between"><Text as="p" variant="bodySm">{t('roi.savedReturns')}</Text><Box background="bg-fill-success-secondary" borderRadius="300" padding="200"><TrendingUp className="h-5 w-5 text-emerald-700" /></Box></InlineStack><Text as="p" variant="headingMd">{String(roi.savedReturns)}</Text><Text as="p" variant="bodySm" tone="subdued">{t('roi.savedReturnsDesc')}</Text></BlockStack></Box></PolarisCard>
 
-              <Card hover className="overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-semibold">{t('roi.repeatPurchases')}</CardTitle>
-                  <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center ">
-                    <Users className="h-5 w-5 text-info" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{roi.repeatPurchases}</div>
-                  <p className="text-xs text-muted-foreground mt-2 font-medium">{t('roi.repeatPurchasesDesc')}</p>
-                </CardContent>
-              </Card>
+              <PolarisCard><Box padding="400"><BlockStack gap="300"><InlineStack align="space-between"><Text as="p" variant="bodySm">{t('roi.repeatPurchases')}</Text><Box background="bg-fill-info-secondary" borderRadius="300" padding="200"><Users className="h-5 w-5 text-sky-700" /></Box></InlineStack><Text as="p" variant="headingMd">{String(roi.repeatPurchases)}</Text><Text as="p" variant="bodySm" tone="subdued">{t('roi.repeatPurchasesDesc')}</Text></BlockStack></Box></PolarisCard>
 
-              <Card hover className="overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-semibold">{t('roi.resolvedConversations')}</CardTitle>
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center ">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{roi.resolvedConversations}</div>
-                  <p className="text-xs text-muted-foreground mt-2 font-medium">{t('roi.resolvedTotalDesc', { total: roi.totalConversations })}</p>
-                </CardContent>
-              </Card>
+              <PolarisCard><Box padding="400"><BlockStack gap="300"><InlineStack align="space-between"><Text as="p" variant="bodySm">{t('roi.resolvedConversations')}</Text><Box background="bg-fill-secondary" borderRadius="300" padding="200"><TrendingUp className="h-5 w-5 text-indigo-700" /></Box></InlineStack><Text as="p" variant="headingMd">{String(roi.resolvedConversations)}</Text><Text as="p" variant="bodySm" tone="subdued">{t('roi.resolvedTotalDesc', { total: roi.totalConversations })}</Text></BlockStack></Box></PolarisCard>
 
-              <Card hover className="overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-semibold">{t('roi.messagesTotalLabel')}</CardTitle>
-                  <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center ">
-                    <BarChart3 className="h-5 w-5 text-warning" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{roi.messagesTotal}</div>
-                  <p className="text-xs text-muted-foreground mt-2 font-medium">{t('roi.interactionRateDesc', { withConv: roi.usersWithConversations, total: roi.totalUsers })}</p>
-                </CardContent>
-              </Card>
+              <PolarisCard><Box padding="400"><BlockStack gap="300"><InlineStack align="space-between"><Text as="p" variant="bodySm">{t('roi.messagesTotalLabel')}</Text><Box background="bg-fill-caution-secondary" borderRadius="300" padding="200"><BarChart3 className="h-5 w-5 text-amber-700" /></Box></InlineStack><Text as="p" variant="headingMd">{String(roi.messagesTotal)}</Text><Text as="p" variant="bodySm" tone="subdued">{t('roi.interactionRateDesc', { withConv: roi.usersWithConversations, total: roi.totalUsers })}</Text></BlockStack></Box></PolarisCard>
             </div>
           )}
 
           {/* Return Prevention Section */}
           {prevention && prevention.totalAttempts > 0 && (
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
+              <InlineStack gap="200" blockAlign="center">
                 <ShieldCheck className="w-6 h-6 text-amber-600" />
-                <h2 className="text-xl font-bold">{rp('analyticsTitle')}</h2>
-              </div>
+                <Text as="h2" variant="headingMd">{rp('analyticsTitle')}</Text>
+              </InlineStack>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                <Card hover className="overflow-hidden">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                    <CardTitle className="text-sm font-semibold">{rp('returnsPrevented')}</CardTitle>
-                    <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-                      <ShieldCheck className="h-5 w-5 text-success" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{prevention.prevented}</div>
-                    <p className="text-xs text-muted-foreground mt-2 font-medium">
-                      {prevention.totalAttempts} {rp('totalAttempts').toLowerCase()}
-                    </p>
-                  </CardContent>
-                </Card>
+                <PolarisCard><Box padding="400"><BlockStack gap="300"><InlineStack align="space-between"><Text as="p" variant="bodySm">{rp('returnsPrevented')}</Text><Box background="bg-fill-success-secondary" borderRadius="300" padding="200"><ShieldCheck className="h-5 w-5 text-emerald-700" /></Box></InlineStack><Text as="p" variant="headingMd">{String(prevention.prevented)}</Text><Text as="p" variant="bodySm" tone="subdued">{prevention.totalAttempts} {rp('totalAttempts').toLowerCase()}</Text></BlockStack></Box></PolarisCard>
 
-                <Card hover className="overflow-hidden">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                    <CardTitle className="text-sm font-semibold">{rp('preventionRate')}</CardTitle>
-                    <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5 text-info" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{prevention.preventionRate}%</div>
-                  </CardContent>
-                </Card>
+                <PolarisCard><Box padding="400"><BlockStack gap="300"><InlineStack align="space-between"><Text as="p" variant="bodySm">{rp('preventionRate')}</Text><Box background="bg-fill-info-secondary" borderRadius="300" padding="200"><TrendingUp className="h-5 w-5 text-sky-700" /></Box></InlineStack><Text as="p" variant="headingMd">{`${prevention.preventionRate}%`}</Text></BlockStack></Box></PolarisCard>
 
-                <Card hover className="overflow-hidden">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                    <CardTitle className="text-sm font-semibold">{rp('escalated')}</CardTitle>
-                    <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-warning" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{prevention.escalated}</div>
-                  </CardContent>
-                </Card>
+                <PolarisCard><Box padding="400"><BlockStack gap="300"><InlineStack align="space-between"><Text as="p" variant="bodySm">{rp('escalated')}</Text><Box background="bg-fill-caution-secondary" borderRadius="300" padding="200"><Users className="h-5 w-5 text-amber-700" /></Box></InlineStack><Text as="p" variant="headingMd">{String(prevention.escalated)}</Text></BlockStack></Box></PolarisCard>
 
-                <Card hover className="overflow-hidden">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                    <CardTitle className="text-sm font-semibold">{rp('returned')}</CardTitle>
-                    <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
-                      <TrendingDown className="h-5 w-5 text-destructive" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{prevention.returned}</div>
-                  </CardContent>
-                </Card>
+                <PolarisCard><Box padding="400"><BlockStack gap="300"><InlineStack align="space-between"><Text as="p" variant="bodySm">{rp('returned')}</Text><Box background="bg-fill-critical-secondary" borderRadius="300" padding="200"><TrendingDown className="h-5 w-5 text-red-700" /></Box></InlineStack><Text as="p" variant="headingMd">{String(prevention.returned)}</Text></BlockStack></Box></PolarisCard>
               </div>
 
               {prevention.topProducts.length > 0 && (
-                <Card hover className="overflow-hidden">
-                  <CardHeader>
-                    <CardTitle className="text-lg">{rp('topProducts')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="divide-y divide-zinc-100">
+                <PolarisCard>
+                  <Box padding="400">
+                    <BlockStack gap="300">
+                      <Text as="h3" variant="headingMd">{rp('topProducts')}</Text>
+                      <div className="divide-y divide-zinc-100">
                       {prevention.topProducts.map((product) => (
                         <div key={product.productId} className="flex items-center justify-between py-3">
-                          <span className="font-medium text-sm">{product.productName}</span>
-                          <div className="flex items-center gap-4 text-sm">
-                            <span className="text-muted-foreground">{product.attempts} {rp('attempts')}</span>
-                            <Badge variant="default" size="sm">{product.prevented} {rp('prevented')}</Badge>
-                          </div>
+                          <Text as="span" variant="bodySm" fontWeight="medium">{product.productName}</Text>
+                          <InlineStack gap="300" blockAlign="center">
+                            <Text as="span" variant="bodySm" tone="subdued">{product.attempts} {rp('attempts')}</Text>
+                            <PolarisBadge tone="success">{`${product.prevented} ${rp('prevented')}`}</PolarisBadge>
+                          </InlineStack>
                         </div>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
+                    </BlockStack>
+                  </Box>
+                </PolarisCard>
               )}
             </div>
           )}

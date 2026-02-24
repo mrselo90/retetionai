@@ -5,10 +5,6 @@ import { supabase } from '@/lib/supabase';
 import { authenticatedRequest, getApiUrl, getApiBaseUrlForDisplay } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { Badge as PolarisBadge, Banner, BlockStack, Box, Button as PolarisButton, Card as PolarisCard, InlineStack, Layout, Page, SkeletonPage, Text, TextField } from '@shopify/polaris';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Loader2, X, Trash2, Pencil, Plug, Upload, Code, MessageSquare, ShoppingBag, MessageCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useTranslations, useLocale } from 'next-intl';
@@ -650,42 +646,35 @@ export default function IntegrationsPage() {
           <DialogHeader>
             <DialogTitle>{t('modals.shopify.title')}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                {t('modals.shopify.shopLabel')}
-              </label>
-              <Input
-                type="text"
-                value={shopifyShop}
-                onChange={(e) => setShopifyShop(e.target.value)}
-                placeholder={t('modals.shopify.shopPlaceholder')}
-                disabled={connectingShopify}
-                className="h-11"
-              />
-              <p className="text-xs text-muted-foreground">
-                {t('modals.shopify.helper')}
-              </p>
-            </div>
+          <BlockStack gap="400">
+            <TextField
+              label={t('modals.shopify.shopLabel')}
+              value={shopifyShop}
+              onChange={setShopifyShop}
+              placeholder={t('modals.shopify.shopPlaceholder')}
+              disabled={connectingShopify}
+              autoComplete="off"
+              helpText={t('modals.shopify.helper')}
+            />
 
             <DialogFooter className="gap-3 sm:gap-3">
-              <button
+              <PolarisButton
                 onClick={() => setShowShopifyModal(false)}
                 disabled={connectingShopify}
-                className="bg-white hover:bg-zinc-50 text-[#1a1a1a] shadow-sm ring-1 ring-black/5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
+                variant="secondary"
               >
                 {t('modals.shopify.cancel')}
-              </button>
-              <button
+              </PolarisButton>
+              <PolarisButton
                 onClick={handleConnectShopify}
                 disabled={connectingShopify}
-                className="bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-transparent rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center"
+                variant="primary"
+                loading={connectingShopify}
               >
-                {connectingShopify && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
                 {connectingShopify ? t('modals.shopify.connecting') : t('modals.shopify.connect')}
-              </button>
+              </PolarisButton>
             </DialogFooter>
-          </div>
+          </BlockStack>
         </DialogContent>
       </Dialog>
 
@@ -697,7 +686,7 @@ export default function IntegrationsPage() {
           <DialogHeader>
             <DialogTitle>{t('modals.csv.title')}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
+          <BlockStack gap="400">
             <div className="space-y-2">
               <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 {t('modals.csv.fileLabel')}
@@ -723,23 +712,23 @@ export default function IntegrationsPage() {
             </div>
 
             <DialogFooter className="gap-3 sm:gap-3">
-              <button
+              <PolarisButton
                 onClick={() => setShowCsvModal(false)}
                 disabled={importing}
-                className="bg-white hover:bg-zinc-50 text-[#1a1a1a] shadow-sm ring-1 ring-black/5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
+                variant="secondary"
               >
                 {t('modals.csv.cancel')}
-              </button>
-              <button
+              </PolarisButton>
+              <PolarisButton
                 onClick={handleImportCsv}
                 disabled={importing || !csvFile}
-                className="bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-transparent rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center"
+                variant="primary"
+                loading={importing}
               >
-                {importing && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
                 {importing ? t('modals.csv.importing') : t('modals.csv.import')}
-              </button>
+              </PolarisButton>
             </DialogFooter>
-          </div>
+          </BlockStack>
         </DialogContent>
       </Dialog>
 
@@ -749,34 +738,32 @@ export default function IntegrationsPage() {
           <DialogHeader>
             <DialogTitle>{t('modals.manual.title')}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="bg-muted/50 border border-border rounded-lg p-4">
-              <p className="text-sm font-medium mb-2">
-                {t('modals.manual.webhookLabel')}
-              </p>
-              <code className="block bg-white px-3 py-2 rounded border text-sm font-mono">
-                {getApiBaseUrlForDisplay()}/api/webhooks/manual
-              </code>
-              <p className="text-xs text-muted-foreground mt-2">
-                {t('modals.manual.webhookHelper')}
-              </p>
-            </div>
+          <BlockStack gap="400">
+            <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
+              <BlockStack gap="200">
+                <Text as="p" variant="bodyMd" fontWeight="medium">{t('modals.manual.webhookLabel')}</Text>
+                <Box padding="200" borderWidth="025" borderColor="border" borderRadius="200" background="bg-surface">
+                  <code className="text-sm">{getApiBaseUrlForDisplay()}/api/webhooks/manual</code>
+                </Box>
+                <Text as="p" variant="bodySm" tone="subdued">{t('modals.manual.webhookHelper')}</Text>
+              </BlockStack>
+            </Box>
 
             <DialogFooter className="gap-3 sm:gap-3">
-              <button
+              <PolarisButton
                 onClick={() => setShowManualModal(false)}
-                className="bg-white hover:bg-zinc-50 text-[#1a1a1a] shadow-sm ring-1 ring-black/5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                variant="secondary"
               >
                 {t('modals.manual.cancel')}
-              </button>
-              <button
+              </PolarisButton>
+              <PolarisButton
                 onClick={handleCreateManualIntegration}
-                className="bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-transparent rounded-lg px-3 py-1.5 text-sm font-medium transition-colors inline-flex items-center justify-center"
+                variant="primary"
               >
                 {t('modals.manual.create')}
-              </button>
+              </PolarisButton>
             </DialogFooter>
-          </div>
+          </BlockStack>
         </DialogContent>
       </Dialog>
 
@@ -793,70 +780,59 @@ export default function IntegrationsPage() {
               {t('modals.whatsapp.description')}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('modals.whatsapp.displayLabel')}</label>
-              <Input
-                type="text"
-                value={whatsappPhoneDisplay}
-                onChange={(e) => setWhatsappPhoneDisplay(e.target.value)}
-                placeholder={t('modals.whatsapp.displayPlaceholder')}
-                disabled={connectingWhatsApp}
-                className="h-11"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('modals.whatsapp.phoneIdLabel')}</label>
-              <Input
-                type="text"
-                value={whatsappPhoneNumberId}
-                onChange={(e) => setWhatsappPhoneNumberId(e.target.value)}
-                placeholder={t('modals.whatsapp.phoneIdPlaceholder')}
-                disabled={connectingWhatsApp}
-                className="h-11 font-mono text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('modals.whatsapp.tokenLabel')}</label>
-              <Input
-                type="password"
-                value={whatsappAccessToken}
-                onChange={(e) => setWhatsappAccessToken(e.target.value)}
-                placeholder={t('modals.whatsapp.tokenPlaceholder')}
-                disabled={connectingWhatsApp}
-                className="h-11 font-mono text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('modals.whatsapp.verifyLabel')}</label>
-              <Input
-                type="text"
-                value={whatsappVerifyToken}
-                onChange={(e) => setWhatsappVerifyToken(e.target.value)}
-                placeholder={t('modals.whatsapp.verifyPlaceholder')}
-                disabled={connectingWhatsApp}
-                className="h-11 font-mono text-sm"
-              />
-            </div>
+          <BlockStack gap="400">
+            <TextField
+              label={t('modals.whatsapp.displayLabel')}
+              value={whatsappPhoneDisplay}
+              onChange={setWhatsappPhoneDisplay}
+              placeholder={t('modals.whatsapp.displayPlaceholder')}
+              disabled={connectingWhatsApp}
+              autoComplete="off"
+            />
+            <TextField
+              label={t('modals.whatsapp.phoneIdLabel')}
+              value={whatsappPhoneNumberId}
+              onChange={setWhatsappPhoneNumberId}
+              placeholder={t('modals.whatsapp.phoneIdPlaceholder')}
+              disabled={connectingWhatsApp}
+              autoComplete="off"
+            />
+            <TextField
+              label={t('modals.whatsapp.tokenLabel')}
+              type="password"
+              value={whatsappAccessToken}
+              onChange={setWhatsappAccessToken}
+              placeholder={t('modals.whatsapp.tokenPlaceholder')}
+              disabled={connectingWhatsApp}
+              autoComplete="off"
+            />
+            <TextField
+              label={t('modals.whatsapp.verifyLabel')}
+              value={whatsappVerifyToken}
+              onChange={setWhatsappVerifyToken}
+              placeholder={t('modals.whatsapp.verifyPlaceholder')}
+              disabled={connectingWhatsApp}
+              autoComplete="off"
+            />
 
             <DialogFooter className="gap-3 sm:gap-3">
-              <button
+              <PolarisButton
                 onClick={() => setShowWhatsAppModal(false)}
                 disabled={connectingWhatsApp}
-                className="bg-white hover:bg-zinc-50 text-[#1a1a1a] shadow-sm ring-1 ring-black/5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50"
+                variant="secondary"
               >
                 {t('modals.whatsapp.cancel')}
-              </button>
-              <button
+              </PolarisButton>
+              <PolarisButton
                 onClick={handleSaveWhatsApp}
                 disabled={connectingWhatsApp || !whatsappPhoneNumberId.trim() || !whatsappAccessToken.trim() || !whatsappVerifyToken.trim()}
-                className="bg-[#1a1a1a] hover:bg-[#303030] text-white shadow-sm ring-1 ring-transparent rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center"
+                variant="primary"
+                loading={connectingWhatsApp}
               >
-                {connectingWhatsApp && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
                 {connectingWhatsApp ? t('modals.whatsapp.saving') : editingWhatsAppId ? t('modals.whatsapp.update') : t('modals.whatsapp.save')}
-              </button>
+              </PolarisButton>
             </DialogFooter>
-          </div>
+          </BlockStack>
         </DialogContent>
       </Dialog>
     </div>
