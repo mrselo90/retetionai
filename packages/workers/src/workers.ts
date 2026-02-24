@@ -208,6 +208,12 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
     logger.info({ productId, url, merchantId }, '[Scrape Job] Processing product');
 
     try {
+      const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
+      const internalHeaders = {
+        'Content-Type': 'application/json',
+        ...(internalSecret ? { 'X-Internal-Secret': internalSecret } : {}),
+      };
+
       // Step 1: Scrape product
       const scrapeResult = await scrapeProductPage(url);
 
@@ -222,7 +228,7 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
       try {
         const enrichRes = await fetch(`${apiUrl}/api/products/enrich`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: internalHeaders,
           body: JSON.stringify({
             rawText: rawContent,
             title: scrapeResult.product?.title || 'Unknown Product',
@@ -262,7 +268,7 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
 
       const embedRes = await fetch(`${apiUrl}/api/products/${productId}/generate-embeddings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: internalHeaders,
       });
 
       if (!embedRes.ok) {

@@ -8,7 +8,7 @@ import { Logger } from 'pino';
 declare module 'hono' {
   interface ContextVariableMap {
     merchantId: string;
-    authMethod: 'jwt' | 'api_key';
+    authMethod: 'jwt' | 'api_key' | 'internal';
     /** Set when request is for internal product routes (enrich / generate-embeddings) with no user auth */
     internalCall?: boolean;
     validatedBody?: unknown;

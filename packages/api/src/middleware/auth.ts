@@ -15,7 +15,7 @@ import {
 
 export interface AuthContext {
   merchantId: string;
-  authMethod: 'jwt' | 'api_key';
+  authMethod: 'jwt' | 'api_key' | 'internal';
 }
 
 /**
@@ -189,14 +189,63 @@ async function authenticateShopifyToken(token: string): Promise<string | null> {
 }
 
 
-/** Paths that allow unauthenticated access (worker calling enrich / generate-embeddings) */
-const INTERNAL_PATHS = [
+/** Internal product routes (worker -> API) */
+const INTERNAL_PRODUCT_PATHS = [
   '/api/products/enrich',
   /^\/api\/products\/[^/]+\/generate-embeddings$/,
 ];
 
-function isInternalPath(path: string): boolean {
-  return path === INTERNAL_PATHS[0] || (INTERNAL_PATHS[1] as RegExp).test(path);
+/** Internal eval/test routes (server-side eval runner) */
+const INTERNAL_EVAL_PATHS = [
+  '/api/test/rag',
+  '/api/test/rag/answer',
+];
+
+function isInternalProductPath(path: string): boolean {
+  return path === INTERNAL_PRODUCT_PATHS[0] || (INTERNAL_PRODUCT_PATHS[1] as RegExp).test(path);
+}
+
+function isInternalEvalPath(path: string): boolean {
+  return INTERNAL_EVAL_PATHS.includes(path);
+}
+
+function authenticateInternalSecret(c: Context): {
+  ok: boolean;
+  merchantId?: string;
+  error?: string;
+  internalCall?: boolean;
+} | null {
+  const path = c.req.path;
+  const isProduct = isInternalProductPath(path);
+  const isEval = isInternalEvalPath(path);
+  if (!isProduct && !isEval) return null;
+
+  const expectedSecret = process.env.INTERNAL_SERVICE_SECRET;
+  const providedSecret = c.req.header('X-Internal-Secret');
+
+  // Transitional behavior for existing worker deployments: if no internal secret is configured yet,
+  // keep allowing current internal product routes, but do NOT allow internal eval access.
+  if (!expectedSecret) {
+    if (isProduct) {
+      return { ok: true, merchantId: '', internalCall: true };
+    }
+    return { ok: false, error: 'Internal eval requires INTERNAL_SERVICE_SECRET' };
+  }
+
+  if (!providedSecret || providedSecret !== expectedSecret) {
+    return { ok: false, error: 'Unauthorized: Invalid internal secret' };
+  }
+
+  const merchantIdHeader = c.req.header('X-Internal-Merchant-Id')?.trim() || '';
+  if (isEval && !merchantIdHeader) {
+    return { ok: false, error: 'Unauthorized: Missing X-Internal-Merchant-Id for internal eval route' };
+  }
+
+  return {
+    ok: true,
+    merchantId: merchantIdHeader,
+    internalCall: isProduct,
+  };
 }
 
 /**
@@ -206,10 +255,14 @@ function isInternalPath(path: string): boolean {
  */
 export async function authMiddleware(c: Context, next: Next) {
   const path = c.req.path;
-  if (isInternalPath(path)) {
-    c.set('internalCall', true);
-    c.set('merchantId', '');
-    c.set('authMethod', 'api_key');
+  const internal = authenticateInternalSecret(c);
+  if (internal) {
+    if (!internal.ok) {
+      return c.json({ error: internal.error || 'Unauthorized: Internal auth failed' }, 401);
+    }
+    if (internal.internalCall) c.set('internalCall', true);
+    c.set('merchantId', internal.merchantId || '');
+    c.set('authMethod', 'internal');
     return next();
   }
 
@@ -252,6 +305,14 @@ export async function authMiddleware(c: Context, next: Next) {
  * Useful for public endpoints that can optionally use auth
  */
 export async function optionalAuthMiddleware(c: Context, next: Next) {
+  const internal = authenticateInternalSecret(c);
+  if (internal?.ok) {
+    if (internal.internalCall) c.set('internalCall', true);
+    c.set('merchantId', internal.merchantId || '');
+    c.set('authMethod', 'internal');
+    return next();
+  }
+
   const token = extractToken(c);
 
   if (token) {

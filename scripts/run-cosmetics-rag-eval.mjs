@@ -7,6 +7,8 @@ const templatesPath = path.join(root, 'packages/api/evals/cosmetics/scenario-tem
 
 const API_BASE = process.env.EVAL_API_BASE || 'http://localhost:3001';
 const TOKEN = process.env.EVAL_TOKEN || '';
+const INTERNAL_SECRET = process.env.EVAL_INTERNAL_SECRET || process.env.INTERNAL_SERVICE_SECRET || '';
+const INTERNAL_MERCHANT_ID = process.env.EVAL_MERCHANT_ID || '';
 const OUTPUT = process.env.EVAL_OUTPUT || path.join(root, 'tmp/cosmetics-rag-eval-report.json');
 const PRODUCT_IDS = process.env.EVAL_PRODUCT_IDS
   ? process.env.EVAL_PRODUCT_IDS.split(',').map((s) => s.trim()).filter(Boolean)
@@ -18,6 +20,13 @@ const ADMIN_PRESETS = [
 ];
 
 function authHeaders() {
+  if (INTERNAL_SECRET) {
+    return {
+      'Content-Type': 'application/json',
+      'X-Internal-Secret': INTERNAL_SECRET,
+      ...(INTERNAL_MERCHANT_ID ? { 'X-Internal-Merchant-Id': INTERNAL_MERCHANT_ID } : {}),
+    };
+  }
   if (!TOKEN) return { 'Content-Type': 'application/json' };
   return {
     'Content-Type': 'application/json',
@@ -64,6 +73,13 @@ async function runCase(query, lang, presetId, conversationHistory) {
 }
 
 async function main() {
+  if (INTERNAL_SECRET && !INTERNAL_MERCHANT_ID) {
+    throw new Error('EVAL_MERCHANT_ID is required when using EVAL_INTERNAL_SECRET');
+  }
+  if (!INTERNAL_SECRET && !TOKEN) {
+    throw new Error('Provide EVAL_INTERNAL_SECRET + EVAL_MERCHANT_ID, or EVAL_TOKEN');
+  }
+
   const templates = JSON.parse(await fs.readFile(templatesPath, 'utf8'));
   const runs = [];
 

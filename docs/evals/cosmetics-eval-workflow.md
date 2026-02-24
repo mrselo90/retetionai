@@ -6,9 +6,21 @@ This project includes a lightweight evaluation pipeline for the cosmetics RAG bo
 
 Runs the prepared multilingual scenarios against `/api/test/rag/answer` and stores raw responses.
 
+Internal secret mode (recommended for server-side eval; no merchant API key needed):
+
+```bash
+EVAL_API_BASE=http://localhost:3002 \
+EVAL_INTERNAL_SECRET=<INTERNAL_SERVICE_SECRET> \
+EVAL_MERCHANT_ID=<merchant_uuid> \
+EVAL_PRODUCT_IDS=<product_uuid_1>,<product_uuid_2> \
+node scripts/run-cosmetics-rag-eval.mjs
+```
+
+JWT/API key mode (legacy fallback):
+
 ```bash
 EVAL_API_BASE=http://localhost:3001 \
-EVAL_TOKEN=<ACCESS_TOKEN> \
+EVAL_TOKEN=<ACCESS_TOKEN_OR_API_KEY> \
 EVAL_PRODUCT_IDS=<product_uuid_1>,<product_uuid_2> \
 node scripts/run-cosmetics-rag-eval.mjs
 ```

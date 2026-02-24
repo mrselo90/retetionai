@@ -93,7 +93,7 @@ app.use('/*', async (c, next) => {
   // Allowed headers
   c.header(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-Api-Key, X-Requested-With, Accept, Origin'
+    'Content-Type, Authorization, X-Api-Key, X-Internal-Secret, X-Internal-Merchant-Id, X-Requested-With, Accept, Origin'
   );
 
   // Exposed headers (for rate limiting)
