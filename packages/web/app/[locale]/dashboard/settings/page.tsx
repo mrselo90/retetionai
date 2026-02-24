@@ -119,6 +119,7 @@ export default function SettingsPage() {
   const [guardrailValue, setGuardrailValue] = useState('');
   const [guardrailAction, setGuardrailAction] = useState<'block' | 'escalate'>('block');
   const [guardrailSuggestedResponse, setGuardrailSuggestedResponse] = useState('');
+  const apiKeysFeatureEnabled = false;
 
   useEffect(() => {
     loadData();
@@ -153,11 +154,15 @@ export default function SettingsPage() {
       );
       setNotificationPhone(merchantResponse.merchant.notification_phone || '');
 
-      const keysResponse = await authenticatedRequest<{ apiKeys: ApiKey[]; count: number }>(
-        '/api/auth/api-keys',
-        session.access_token
-      );
-      setApiKeys(keysResponse.apiKeys);
+      if (apiKeysFeatureEnabled) {
+        const keysResponse = await authenticatedRequest<{ apiKeys: ApiKey[]; count: number }>(
+          '/api/auth/api-keys',
+          session.access_token
+        );
+        setApiKeys(keysResponse.apiKeys);
+      } else {
+        setApiKeys([]);
+      }
 
       try {
         const guardrailsResponse = await authenticatedRequest<{
@@ -1049,8 +1054,8 @@ export default function SettingsPage() {
         </div>
       </Card>
 
-      {/* API Keys */}
-      <Card hover className="overflow-hidden shadow-lg">
+      {/* API Keys (removed) */}
+      {apiKeysFeatureEnabled && (<Card hover className="overflow-hidden shadow-lg">
         <CardHeader className="bg-gradient-to-r from-warning/5 to-transparent">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -1157,7 +1162,7 @@ export default function SettingsPage() {
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card>)}
 
       {/* GDPR & Data Management */}
       <Card hover className="overflow-hidden shadow-lg">
@@ -1402,8 +1407,8 @@ export default function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* New API Key Modal */}
-      <Dialog open={showNewKeyModal} onOpenChange={(open) => {
+      {/* New API Key Modal (removed) */}
+      {apiKeysFeatureEnabled && (<Dialog open={showNewKeyModal} onOpenChange={(open) => {
         if (!open) {
           setShowNewKeyModal(false);
           setNewApiKey(null);
@@ -1453,7 +1458,7 @@ export default function SettingsPage() {
             </DialogFooter>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog>)}
     </div>
         </Layout.Section>
       </Layout>

@@ -112,20 +112,13 @@ async function checkRateLimit(
  * Get client identifier for rate limiting
  */
 function getClientIdentifier(c: Context): {
-  type: 'ip' | 'apiKey' | 'merchant';
+  type: 'ip' | 'merchant';
   identifier: string;
 } {
   // Try to get merchant ID from context (JWT auth)
   const merchantId = c.get('merchantId');
   if (merchantId) {
     return { type: 'merchant', identifier: merchantId };
-  }
-
-  // Try to get API key from header
-  const authHeader = c.req.header('Authorization') || c.req.header('X-Api-Key');
-  if (authHeader && authHeader.startsWith('gg_live_')) {
-    // API key format detected
-    return { type: 'apiKey', identifier: authHeader };
   }
 
   // Fall back to IP address
@@ -139,7 +132,7 @@ function getClientIdentifier(c: Context): {
 
 /**
  * Rate limit middleware
- * Applies rate limiting based on client type (IP, API key, or merchant)
+ * Applies rate limiting based on client type (IP or merchant)
  */
 export async function rateLimitMiddleware(c: Context, next: Next) {
   const { type, identifier } = getClientIdentifier(c);

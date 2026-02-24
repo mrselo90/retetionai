@@ -93,7 +93,7 @@ app.use('/*', async (c, next) => {
   // Allowed headers
   c.header(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-Api-Key, X-Internal-Secret, X-Internal-Merchant-Id, X-Requested-With, Accept, Origin'
+    'Content-Type, Authorization, X-Internal-Secret, X-Internal-Merchant-Id, X-Requested-With, Accept, Origin'
   );
 
   // Exposed headers (for rate limiting)
@@ -212,12 +212,6 @@ app.get('/api/docs/openapi.json', (c) => {
           bearerFormat: 'JWT',
           description: 'JWT token from /api/auth/login',
         },
-        ApiKeyAuth: {
-          type: 'apiKey',
-          in: 'header',
-          name: 'X-Api-Key',
-          description: 'API key (format: gg_live_...)',
-        },
       },
     },
     paths: {
@@ -278,12 +272,7 @@ app.get('/health', async (c) => {
   return c.json(health, allHealthy ? 200 : 503);
 });
 
-// Schedule API key expiration cleanup (runs daily)
-import { scheduleApiKeyExpirationCleanup } from './lib/apiKeyExpirationScheduler.js';
 import { logger } from '@recete/shared';
-scheduleApiKeyExpirationCleanup().catch((err) => {
-  logger.error(err, 'Failed to schedule API key expiration cleanup');
-});
 
 // Production: Nginx proxies to API on 3002; avoid 3000 (conflict with web)
 const rawPort = Number(process.env.PORT) || 3002;

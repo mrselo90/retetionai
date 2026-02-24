@@ -8,8 +8,7 @@ import { apiRequest } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, CheckCircle, Copy, Loader2, Check } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export default function SignupPage() {
@@ -23,9 +22,6 @@ export default function SignupPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [apiKeyCopied, setApiKeyCopied] = useState(false);
 
   const handleGoogleSignIn = async () => {
     setError(null);
@@ -84,7 +80,6 @@ export default function SignupPage() {
       const response = await apiRequest<{
         message: string;
         merchant: { id: string; name: string };
-        apiKey: string;
         requiresEmailConfirmation?: boolean;
       }>('/api/auth/signup', {
         method: 'POST',
@@ -93,23 +88,11 @@ export default function SignupPage() {
 
       // Check if email confirmation is required
       if (response.requiresEmailConfirmation) {
-        // Store API key in sessionStorage temporarily (will be shown after email confirmation)
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('pending_api_key', response.apiKey);
-          sessionStorage.setItem('pending_email', email);
-        }
-
-        // Show email confirmation message instead of API key modal
         setError(null);
-        setShowApiKeyModal(false);
         // Show success message with email confirmation instructions
         setSuccessMessage(t('successMessage', { email }));
         return;
       }
-
-      // Email confirmation not required - show API key modal immediately
-      setApiKey(response.apiKey);
-      setShowApiKeyModal(true);
 
       // Sign in to get session
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -122,8 +105,7 @@ export default function SignupPage() {
         return;
       }
 
-      // Don't redirect yet - wait for user to close modal
-      // Modal will handle redirect
+      router.push('/dashboard');
     } catch (err: any) {
       console.error('Signup error:', err);
       // Extract error message from API response
@@ -142,86 +124,13 @@ export default function SignupPage() {
 
       setError(displayError);
       setSuccessMessage(null);
-      setShowApiKeyModal(false);
     } finally {
       setLoading(false);
     }
   };
 
-  const copyApiKey = () => {
-    if (apiKey) {
-      navigator.clipboard.writeText(apiKey);
-      setApiKeyCopied(true);
-      setTimeout(() => setApiKeyCopied(false), 2000);
-    }
-  };
-
-  const handleApiKeyModalClose = () => {
-    setShowApiKeyModal(false);
-    setApiKey(null);
-    // Redirect to dashboard after closing modal
-    router.push('/dashboard');
-  };
-
   return (
     <>
-      {/* API Key Modal */}
-      {showApiKeyModal && apiKey && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md animate-fade-in shadow-2xl">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>{t('apiKeyModal.title')}</CardTitle>
-                <Button variant="ghost" size="icon" onClick={handleApiKeyModalClose}>
-                  <span className="sr-only">Close</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3 text-amber-800">
-                <AlertCircle className="w-5 h-5 shrink-0" />
-                <p className="text-sm">
-                  <strong>{t('apiKeyModal.important')}</strong> {t('apiKeyModal.warning')}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t('apiKeyModal.label')}</label>
-                <div className="flex items-center gap-2">
-                  <Input readOnly value={apiKey} className="font-mono text-sm" />
-                  <Button
-                    size="icon"
-                    onClick={copyApiKey}
-                    className={cn(apiKeyCopied && "bg-green-600 hover:bg-green-700")}
-                  >
-                    {apiKeyCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="apiKeySaved"
-                  className="rounded border-input text-primary focus:ring-primary"
-                />
-                <label htmlFor="apiKeySaved" className="text-sm text-muted-foreground">
-                  {t('apiKeyModal.savedCheckbox')}
-                </label>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button onClick={handleApiKeyModalClose} className="w-full">
-                {t('apiKeyModal.goToDashboard')}
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      )}
-
       <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-8">
         <Card className="w-full max-w-md animate-fade-in shadow-lg border-muted/60">
           <CardHeader className="text-center">

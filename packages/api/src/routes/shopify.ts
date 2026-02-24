@@ -3,7 +3,7 @@
  */
 
 import { Hono } from 'hono';
-import { getSupabaseServiceClient, generateApiKey, hashApiKey } from '@recete/shared';
+import { getSupabaseServiceClient } from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
 import {
   fetchShopifyProducts,
@@ -13,7 +13,6 @@ import {
   exchangeCodeForToken,
 } from '../lib/shopify.js';
 import { verifyShopifySessionToken } from '../lib/shopifySession.js';
-import { createApiKeyObject } from '../lib/apiKeyManager.js';
 import { logger } from '@recete/shared';
 import * as crypto from 'crypto';
 
@@ -246,17 +245,12 @@ shopify.post('/verify-session', async (c) => {
       } else {
         // Create New Merchant & Integration
         const newMerchantId = crypto.randomUUID();
-        const apiKey = generateApiKey();
-        const { keyObject } = createApiKeyObject('Default', 90);
-        keyObject.hash = hashApiKey(apiKey);
-
         // Create Merchant
         const { error: merchantError } = await serviceClient
           .from('merchants')
           .insert({
             id: newMerchantId,
             name: shop.replace('.myshopify.com', ''),
-            api_keys: [keyObject],
           });
 
         if (merchantError) {

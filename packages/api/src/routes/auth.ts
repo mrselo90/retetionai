@@ -1,26 +1,16 @@
 /**
  * Authentication routes
- * Merchant signup, login, API key management
+ * Merchant signup and login
  */
 
 import { Hono } from 'hono';
 import { getSupabaseServiceClient } from '@recete/shared';
-import { getAuthClient, generateApiKey, hashApiKey } from '@recete/shared';
+import { getAuthClient } from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
-import { validateBody, validateParams } from '../middleware/validation.js';
-import { signupSchema, loginSchema, createApiKeySchema, revokeApiKeySchema, SignupInput, LoginInput } from '../schemas/auth.js';
+import { validateBody } from '../middleware/validation.js';
+import { signupSchema, loginSchema, SignupInput, LoginInput } from '../schemas/auth.js';
 import { captureException, setUserContext } from '../lib/sentry.js';
 import { logger } from '@recete/shared';
-import {
-  createApiKeyObject,
-  normalizeApiKeys,
-  rotateApiKey,
-  removeExpiredKeys,
-  getApiKeyByHash,
-  isApiKeyExpired,
-  isApiKeyExpiringSoon,
-} from '../lib/apiKeyManager.js';
-import { z } from 'zod';
 
 const auth = new Hono();
 
@@ -118,22 +108,15 @@ auth.post('/signup', validateBody(signupSchema), async (c) => {
           id: merchantRecord.id,
           name: merchantRecord.name,
         },
-        apiKey: '********',
         requiresEmailConfirmation,
       }, 200);
     }
-
-    // Generate API key for new merchant
-    const apiKey = generateApiKey();
-    const { keyObject } = createApiKeyObject(undefined, 90);
-    keyObject.hash = hashApiKey(apiKey);
 
     const { data: merchant, error: merchantError } = await serviceClient
       .from('merchants')
       .insert({
         id: userId,
         name,
-        api_keys: [keyObject],
       })
       .select()
       .single();
@@ -165,7 +148,6 @@ auth.post('/signup', validateBody(signupSchema), async (c) => {
         id: merchant.id,
         name: merchant.name,
       },
-      apiKey,
       requiresEmailConfirmation,
     }, 201);
   } catch (error) {
@@ -232,15 +214,11 @@ auth.post('/login', validateBody(loginSchema), async (c) => {
         (data.user.email?.split('@')[0]) || 
         'Merchant';
 
-      // Generate API key for new merchant
-      const { apiKey, keyObject } = createApiKeyObject(undefined, 90);
-
       const { data: newMerchant, error: createError } = await serviceClient
         .from('merchants')
         .insert({
           id: data.user.id,
           name: typeof name === 'string' ? name.slice(0, 255) : 'Merchant',
-          api_keys: [keyObject],
         })
         .select('id, name')
         .single();
@@ -312,259 +290,6 @@ auth.get('/me', authMiddleware, async (c) => {
 
     return c.json({ merchant });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, 500);
-  }
-});
-
-/**
- * Generate New API Key (Protected)
- * POST /api/auth/api-keys
- */
-auth.post('/api-keys', authMiddleware, validateBody(createApiKeySchema), async (c) => {
-  try {
-    const merchantId = c.get('merchantId') as string;
-
-    const serviceClient = getSupabaseServiceClient();
-
-    // Get current merchant
-    const { data: merchant, error: fetchError } = await serviceClient
-      .from('merchants')
-      .select('api_keys')
-      .eq('id', merchantId)
-      .single();
-
-    if (fetchError || !merchant) {
-      return c.json({ error: 'Merchant not found' }, 404);
-    }
-
-    // Normalize existing keys (migrate legacy format)
-    const normalizedKeys = normalizeApiKeys((merchant.api_keys as any) || []);
-
-    // Remove expired keys
-    const activeKeys = removeExpiredKeys(normalizedKeys);
-
-    // Check limit (max 5 keys per merchant)
-    if (activeKeys.length >= 5) {
-      return c.json({ error: 'Maximum 5 API keys allowed' }, 400);
-    }
-
-    // Get optional name from request body
-    const validatedBody = c.get('validatedBody') as { name?: string };
-    const { apiKey, keyObject } = createApiKeyObject(validatedBody?.name, 90); // 90 days expiration
-
-    const updatedKeys = [...activeKeys, keyObject];
-
-    // Update merchant
-    const { error: updateError } = await serviceClient
-      .from('merchants')
-      .update({ api_keys: updatedKeys })
-      .eq('id', merchantId);
-
-    if (updateError) {
-      return c.json({ error: 'Failed to create API key' }, 500);
-    }
-
-    return c.json({
-      message: 'API key created successfully',
-      apiKey, // Return only once!
-      keyInfo: {
-        name: keyObject.name,
-        expires_at: keyObject.expires_at,
-        created_at: keyObject.created_at,
-      },
-      // Note: In production, send via secure channel
-    }, 201);
-  } catch (error) {
-    captureException(error instanceof Error ? error : new Error(String(error)), {
-      endpoint: '/api/auth/api-keys',
-    });
-    return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, 500);
-  }
-});
-
-/**
- * List API Keys (Protected)
- * GET /api/auth/api-keys
- */
-auth.get('/api-keys', authMiddleware, async (c) => {
-  try {
-    const merchantId = c.get('merchantId') as string;
-
-    const serviceClient = getSupabaseServiceClient();
-    const { data: merchant, error } = await serviceClient
-      .from('merchants')
-      .select('api_keys')
-      .eq('id', merchantId)
-      .single();
-
-    if (error || !merchant) {
-      return c.json({ error: 'Merchant not found' }, 404);
-    }
-
-    // Normalize keys (migrate legacy format)
-    const normalizedKeys = normalizeApiKeys((merchant.api_keys as any) || []);
-
-    // Remove expired keys
-    const activeKeys = removeExpiredKeys(normalizedKeys);
-
-    // Return key list with metadata
-    const keyList = activeKeys.map((key, index) => ({
-      id: index,
-      hash: key.hash.substring(0, 8) + '...', // Show only first 8 chars for display
-      hash_full: key.hash, // Full hash for operations (rotate/revoke)
-      name: key.name || 'Unnamed',
-      created_at: key.created_at,
-      expires_at: key.expires_at,
-      last_used_at: key.last_used_at,
-      is_expired: isApiKeyExpired(key),
-      is_expiring_soon: isApiKeyExpiringSoon(key),
-      days_until_expiration: key.expires_at
-        ? Math.ceil((new Date(key.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-        : null,
-    }));
-
-    return c.json({
-      apiKeys: keyList,
-      count: activeKeys.length,
-      maxKeys: 5,
-    });
-  } catch (error) {
-    captureException(error instanceof Error ? error : new Error(String(error)), {
-      endpoint: '/api/auth/api-keys',
-    });
-    return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, 500);
-  }
-});
-
-/**
- * Rotate API Key (Protected)
- * POST /api/auth/api-keys/:keyHash/rotate
- */
-const keyHashSchema = z.object({
-  keyHash: z.string().min(1),
-});
-
-auth.post('/api-keys/:keyHash/rotate', authMiddleware, validateParams(keyHashSchema), validateBody(createApiKeySchema), async (c) => {
-  try {
-    const merchantId = c.get('merchantId') as string;
-    const { keyHash } = c.get('validatedParams') as { keyHash: string };
-    const validatedBody = c.get('validatedBody') as { name?: string };
-
-    const serviceClient = getSupabaseServiceClient();
-
-    // Get current merchant
-    const { data: merchant, error: fetchError } = await serviceClient
-      .from('merchants')
-      .select('api_keys')
-      .eq('id', merchantId)
-      .single();
-
-    if (fetchError || !merchant) {
-      return c.json({ error: 'Merchant not found' }, 404);
-    }
-
-    // Normalize keys
-    const normalizedKeys = normalizeApiKeys((merchant.api_keys as any) || []);
-    const keyObject = getApiKeyByHash(normalizedKeys, keyHash);
-
-    if (!keyObject) {
-      return c.json({ error: 'API key not found' }, 404);
-    }
-
-    // Rotate key
-    const { newApiKey, newKeyObject, updatedKeys } = rotateApiKey(
-      normalizedKeys,
-      keyHash,
-      validatedBody?.name
-    );
-
-    // Update merchant
-    const { error: updateError } = await serviceClient
-      .from('merchants')
-      .update({ api_keys: updatedKeys })
-      .eq('id', merchantId);
-
-    if (updateError) {
-      return c.json({ error: 'Failed to rotate API key' }, 500);
-    }
-
-    return c.json({
-      message: 'API key rotated successfully',
-      apiKey: newApiKey, // Return only once!
-      keyInfo: {
-        name: newKeyObject.name,
-        expires_at: newKeyObject.expires_at,
-        created_at: newKeyObject.created_at,
-      },
-      note: 'Old key will expire in 24 hours. Update your integrations with the new key.',
-    }, 201);
-  } catch (error) {
-    captureException(error instanceof Error ? error : new Error(String(error)), {
-      endpoint: '/api/auth/api-keys/:keyHash/rotate',
-    });
-    return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, 500);
-  }
-});
-
-/**
- * Revoke API Key (Protected)
- * DELETE /api/auth/api-keys/:keyHash
- */
-auth.delete('/api-keys/:keyHash', authMiddleware, validateParams(keyHashSchema), async (c) => {
-  try {
-    const merchantId = c.get('merchantId') as string;
-    const { keyHash } = c.get('validatedParams') as { keyHash: string };
-
-    const serviceClient = getSupabaseServiceClient();
-
-    // Get current merchant
-    const { data: merchant, error: fetchError } = await serviceClient
-      .from('merchants')
-      .select('api_keys')
-      .eq('id', merchantId)
-      .single();
-
-    if (fetchError || !merchant) {
-      return c.json({ error: 'Merchant not found' }, 404);
-    }
-
-    // Normalize and find key
-    const normalizedKeys = normalizeApiKeys((merchant.api_keys as any) || []);
-    const keyObject = getApiKeyByHash(normalizedKeys, keyHash);
-
-    if (!keyObject) {
-      return c.json({ error: 'API key not found' }, 404);
-    }
-
-    const updatedKeys = normalizedKeys.filter((key) => key.hash !== keyHash);
-
-    // Update merchant
-    const { error: updateError } = await serviceClient
-      .from('merchants')
-      .update({ api_keys: updatedKeys })
-      .eq('id', merchantId);
-
-    if (updateError) {
-      return c.json({ error: 'Failed to revoke API key' }, 500);
-    }
-
-    return c.json({ message: 'API key revoked successfully' });
-  } catch (error) {
-    captureException(error instanceof Error ? error : new Error(String(error)), {
-      endpoint: '/api/auth/api-keys/:keyHash',
-    });
     return c.json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error'

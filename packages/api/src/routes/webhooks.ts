@@ -168,101 +168,10 @@ webhooks.post('/commerce/shopify', async (c) => {
  * Accepts normalized events from merchants (API push or manual webhook)
  */
 webhooks.post('/commerce/event', async (c) => {
-  try {
-    // Get API key from header
-    const apiKey = c.req.header('X-Api-Key') || c.req.header('Authorization')?.replace('Bearer ', '');
-
-    if (!apiKey) {
-      return c.json({ error: 'Missing API key' }, 401);
-    }
-
-    // Find merchant by API key
-    const serviceClient = getSupabaseServiceClient();
-    const { data: merchants } = await serviceClient
-      .from('merchants')
-      .select('id, api_keys');
-
-    if (!merchants) {
-      return c.json({ error: 'Authentication failed' }, 401);
-    }
-
-    // Hash API key and find merchant
-    const { hashApiKey } = await import('@recete/shared');
-    const hashedKey = hashApiKey(apiKey);
-
-    const merchant = merchants.find((m) => {
-      const apiKeys = (m.api_keys as string[]) || [];
-      return apiKeys.includes(hashedKey);
-    });
-
-    if (!merchant) {
-      return c.json({ error: 'Invalid API key' }, 401);
-    }
-
-    // Parse normalized event
-    const body = await c.req.json();
-    const event: NormalizedEvent = body;
-
-    // Validate required fields
-    if (!event.event_type || !event.external_order_id || !event.occurred_at) {
-      return c.json({
-        error: 'Missing required fields: event_type, external_order_id, occurred_at',
-      }, 400);
-    }
-
-    // Set merchant_id (override if provided)
-    event.merchant_id = merchant.id;
-
-    // Generate idempotency key
-    const idempotencyKey = generateIdempotencyKey(
-      event.source || 'manual',
-      event.event_type,
-      event.external_order_id,
-      event.occurred_at
-    );
-
-    // Store in external_events
-    const { error: insertError } = await serviceClient
-      .from('external_events')
-      .insert({
-        merchant_id: event.merchant_id,
-        integration_id: event.integration_id,
-        source: event.source || 'manual',
-        event_type: event.event_type,
-        payload: event as any,
-        idempotency_key: idempotencyKey,
-      })
-      .select()
-      .single();
-
-    // Handle duplicate
-    if (insertError) {
-      if (insertError.code === '23505') {
-        return c.json({ message: 'Event already processed (idempotent)' }, 200);
-      }
-      return c.json({ error: 'Failed to store event' }, 500);
-    }
-
-    // Process event immediately (upsert order/user)
-    try {
-      await processNormalizedEvent(event);
-    } catch (processError) {
-      // Log error but don't fail webhook (event is stored, can be retried)
-      console.error('Error processing event:', processError);
-    }
-
-    return c.json({
-      message: 'Event received, stored, and processed',
-      eventType: event.event_type,
-      idempotencyKey,
-    });
-  } catch (error) {
-    console.error('Event processing error:', error);
-    return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    }, 500);
-  }
+  return c.json({
+    error: 'Manual commerce webhook API-key ingestion has been removed',
+    message: 'Use Shopify webhooks (HMAC-verified) or an internal ingestion endpoint.',
+  }, 410);
 });
 
 export default webhooks;

@@ -1,25 +1,18 @@
 /**
  * Authentication middleware for Hono
- * Validates merchant authentication via JWT or API key
+ * Validates merchant authentication via JWT / Shopify session token / internal secret
  */
 
 import { Context, Next } from 'hono';
 import { getSupabaseServiceClient } from '@recete/shared';
-import { isValidApiKeyFormat, hashApiKey } from '@recete/shared';
-import {
-  normalizeApiKeys,
-  getApiKeyByHash,
-  isApiKeyExpired,
-  updateApiKeyLastUsed,
-} from '../lib/apiKeyManager.js';
 
 export interface AuthContext {
   merchantId: string;
-  authMethod: 'jwt' | 'api_key' | 'internal';
+  authMethod: 'jwt' | 'internal';
 }
 
 /**
- * Extract token from Authorization or X-Api-Key header
+ * Extract token from Authorization header
  */
 function extractToken(c: Context): string | null {
   const authHeader = c.req.header('Authorization');
@@ -30,7 +23,7 @@ function extractToken(c: Context): string | null {
     return authHeader;
   }
 
-  return c.req.header('X-Api-Key') || null;
+  return null;
 }
 
 /**
@@ -74,7 +67,6 @@ async function authenticateJWT(token: string): Promise<string | null> {
         .insert({
           id: user.id,
           name: typeof name === 'string' ? name.slice(0, 255) : 'Merchant',
-          api_keys: [],
         })
         .select('id')
         .single();
@@ -90,60 +82,6 @@ async function authenticateJWT(token: string): Promise<string | null> {
     return merchant.id;
   } catch (err) {
     console.error('JWT Authentication exception:', err);
-    return null;
-  }
-}
-
-/**
- * Authenticate via API key
- */
-async function authenticateApiKey(apiKey: string): Promise<string | null> {
-  if (!isValidApiKeyFormat(apiKey)) {
-    return null;
-  }
-
-  try {
-    const supabase = getSupabaseServiceClient();
-    const hashedKey = hashApiKey(apiKey);
-
-    // Query merchants where api_keys array contains the hashed key
-    // Supports both legacy string format ["hash"] and new object format [{"hash": "hash"}]
-    const { data: merchants, error } = await supabase
-      .from('merchants')
-      .select('id, api_keys')
-      .or(`api_keys.cs.["${hashedKey}"],api_keys.cs.[{"hash":"${hashedKey}"}]`)
-      .limit(1);
-
-    if (error || !merchants || merchants.length === 0) {
-      if (error) console.error('API key lookup error:', error.message);
-      return null;
-    }
-
-    const merchant = merchants[0];
-
-    // Normalize and check if key is expired
-    const normalizedKeys = normalizeApiKeys((merchant.api_keys as any) || []);
-    const keyObject = getApiKeyByHash(normalizedKeys, hashedKey);
-
-    if (!keyObject) {
-      return null;
-    }
-
-    // Check if key is expired
-    if (isApiKeyExpired(keyObject)) {
-      return null;
-    }
-
-    // Update last used timestamp (async, don't wait)
-    const updatedKeys = updateApiKeyLastUsed(normalizedKeys, hashedKey);
-    void supabase
-      .from('merchants')
-      .update({ api_keys: updatedKeys })
-      .eq('id', merchant.id);
-
-    return merchant.id;
-  } catch (err) {
-    console.error('API Key Authentication exception:', err);
     return null;
   }
 }
@@ -250,7 +188,7 @@ function authenticateInternalSecret(c: Context): {
 
 /**
  * Auth middleware
- * Supports both JWT (Supabase Auth) and API key authentication.
+ * Supports JWT (Supabase Auth), Shopify Session Token, and internal-secret authentication.
  * Allows unauthenticated access for internal product routes (enrich, generate-embeddings) so the worker can call them.
  */
 export async function authMiddleware(c: Context, next: Next) {
@@ -274,13 +212,7 @@ export async function authMiddleware(c: Context, next: Next) {
 
   // Try JWT first (Supabase Auth)
   let merchantId = await authenticateJWT(token);
-  let authMethod: 'jwt' | 'api_key' = 'jwt';
-
-  // If JWT fails, try API key
-  if (!merchantId) {
-    merchantId = await authenticateApiKey(token);
-    authMethod = 'api_key';
-  }
+  let authMethod: 'jwt' = 'jwt';
 
   // If API key fails, try Shopify Session Token
   if (!merchantId) {
@@ -290,7 +222,7 @@ export async function authMiddleware(c: Context, next: Next) {
   }
 
   if (!merchantId) {
-    return c.json({ error: 'Unauthorized: Invalid token or API key' }, 401);
+    return c.json({ error: 'Unauthorized: Invalid token' }, 401);
   }
 
   // Add merchant context to request
@@ -318,12 +250,7 @@ export async function optionalAuthMiddleware(c: Context, next: Next) {
   if (token) {
     // Try to authenticate
     let merchantId = await authenticateJWT(token);
-    let authMethod: 'jwt' | 'api_key' = 'jwt';
-
-    if (!merchantId) {
-      merchantId = await authenticateApiKey(token);
-      authMethod = 'api_key';
-    }
+    let authMethod: 'jwt' = 'jwt';
 
     if (merchantId) {
       c.set('merchantId', merchantId);
