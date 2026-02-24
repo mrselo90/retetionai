@@ -3,14 +3,15 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { ArrowRight, Calendar } from 'lucide-react';
+import { SButton, SCard, SSection } from './PolarisWc';
 
 export function CTA() {
     const t = useTranslations('Landing.cta');
 
     return (
-        <section id="cta" className="py-14 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
+        <SSection id="cta" className="block py-14 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
             <div className="max-w-5xl mx-auto">
-                <div
+                <SCard
                     className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-[#0A3D2E]/10 px-4 py-10 sm:px-8 sm:py-14 md:px-12 md:py-16 text-center"
                     style={{
                         background: 'linear-gradient(135deg, #0A3D2E 0%, #0d4a38 60%, #125542 100%)',
@@ -35,26 +36,32 @@ export function CTA() {
                     <div className="relative mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap gap-3 justify-center items-stretch sm:items-center">
                         <Link
                             href="/signup"
-                            className="inline-flex items-center justify-center gap-2 font-bold text-sm sm:text-base py-3.5 px-6 sm:py-4 sm:px-8 rounded-xl no-underline shadow-lg transition-all hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A3D2E] min-h-[44px] sm:min-h-0"
-                            style={{
-                                background: '#F8F5E6',
-                                color: '#0A3D2E',
-                                boxShadow: '0 8px 28px rgba(248,245,230,0.25)',
-                            }}
+                            className="inline-block"
                         >
-                            {t('primaryCta')} <ArrowRight size={18} aria-hidden />
+                            <SButton
+                                className="inline-flex items-center justify-center gap-2 font-bold text-sm sm:text-base py-3.5 px-6 sm:py-4 sm:px-8 rounded-xl no-underline shadow-lg transition-all hover:opacity-95 min-h-[44px] sm:min-h-0"
+                                style={{
+                                    background: '#F8F5E6',
+                                    color: '#0A3D2E',
+                                    boxShadow: '0 8px 28px rgba(248,245,230,0.25)',
+                                }}
+                            >
+                                {t('primaryCta')} <ArrowRight size={18} aria-hidden />
+                            </SButton>
                         </Link>
                         <Link
                             href="/signup"
-                            className="inline-flex items-center justify-center gap-2 py-3.5 px-6 sm:py-4 sm:px-8 rounded-xl font-semibold text-sm sm:text-base no-underline border border-[#F8F5E6]/30 bg-white/5 backdrop-blur-sm transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A3D2E] min-h-[44px] sm:min-h-0 text-[#F8F5E6]"
+                            className="inline-block"
                         >
-                            <Calendar size={18} aria-hidden /> {t('secondaryCta')}
+                            <SButton className="inline-flex items-center justify-center gap-2 py-3.5 px-6 sm:py-4 sm:px-8 rounded-xl font-semibold text-sm sm:text-base no-underline border border-[#F8F5E6]/30 bg-white/5 backdrop-blur-sm transition-colors hover:bg-white/10 min-h-[44px] sm:min-h-0 text-[#F8F5E6]">
+                                <Calendar size={18} aria-hidden /> {t('secondaryCta')}
+                            </SButton>
                         </Link>
                     </div>
 
                     <p className="relative mt-4 sm:mt-6 text-xs sm:text-[13px] opacity-75 text-[#F8F5E6] px-2">{t('footnote')}</p>
-                </div>
+                </SCard>
             </div>
-        </section>
+        </SSection>
     );
 }

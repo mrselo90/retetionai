@@ -131,6 +131,27 @@
       "bullets": "Everything in Growth · Higher message volume · Multi-team workflows · Priority support"
     }
   },
+  "faq": {
+    "eyebrow": "FAQ",
+    "title": "Common questions from Shopify merchants",
+    "subtitle": "Everything you need to evaluate Recete before installing.",
+    "q1": {
+      "question": "How long does setup take?",
+      "answer": "Most merchants connect Shopify and configure their first flows in under 15 minutes. You can start with default templates and refine later."
+    },
+    "q2": {
+      "question": "Do I need a support team to use it?",
+      "answer": "No. Recete is designed to reduce manual support workload. You can still enable human handoff for escalations or sensitive conversations."
+    },
+    "q3": {
+      "question": "How does Recete reduce returns?",
+      "answer": "It sends proactive post-purchase messages, usage guidance, and timely follow-ups that answer common questions before they become return requests."
+    },
+    "q4": {
+      "question": "Is customer data secure?",
+      "answer": "Yes. We use encrypted data handling and merchant-level controls to protect customer information and operational access."
+    }
+  },
   "footer": {
             "description": "Recete helps brands reduce returns and increase LTV through proactive AI-driven WhatsApp conversations.",
             "tagline": "Post-purchase AI that helps Shopify merchants reduce returns and boost customer loyalty.",

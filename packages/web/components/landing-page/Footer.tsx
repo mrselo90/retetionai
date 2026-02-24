@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Link } from '@/i18n/routing';
 import { Twitter, Github, Linkedin } from 'lucide-react';
+import { SCard } from './PolarisWc';
 
 const productLinks = ['features', 'howItWorks', 'pricing', 'bookDemo'] as const;
 const companyLinks = ['aboutUs', 'blog', 'careers', 'contact'] as const;
@@ -17,7 +18,7 @@ export function Footer() {
     return (
         <footer className="border-t border-black/5 pt-12 pb-8 px-4 sm:px-6 bg-[#f6f4ea]">
             <div className="max-w-6xl mx-auto">
-                <div className="rounded-2xl sm:rounded-3xl border border-black/5 bg-white p-6 sm:p-8 md:p-10 shadow-[0_12px_40px_rgba(10,61,46,.05)]">
+                <SCard className="block rounded-2xl sm:rounded-3xl border border-black/5 bg-white p-6 sm:p-8 md:p-10 shadow-[0_12px_40px_rgba(10,61,46,.05)]">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 md:gap-12 mb-10 sm:mb-12">
                     {/* Brand — Recete */}
                     <div className="col-span-2 md:col-span-1">
@@ -94,7 +95,7 @@ export function Footer() {
                         Built for Shopify ✓
                     </span>
                 </div>
-                </div>
+                </SCard>
             </div>
         </footer>
     );

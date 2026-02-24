@@ -131,6 +131,27 @@
       "bullets": "Growth içeriği + · Daha yüksek mesaj hacmi · Çoklu ekip iş akışları · Öncelikli destek"
     }
   },
+  "faq": {
+    "eyebrow": "SSS",
+    "title": "Shopify mağazalarından gelen yaygın sorular",
+    "subtitle": "Yüklemeden önce Recete'yi değerlendirmek için bilmeniz gerekenler.",
+    "q1": {
+      "question": "Kurulum ne kadar sürer?",
+      "answer": "Çoğu mağaza Shopify bağlantısını kurup ilk akışlarını 15 dakikadan kısa sürede aktif eder. Varsayılan şablonlarla başlayıp sonra geliştirebilirsiniz."
+    },
+    "q2": {
+      "question": "Kullanmak için bir destek ekibi gerekir mi?",
+      "answer": "Hayır. Recete manuel destek yükünü azaltmak için tasarlanmıştır. Yine de escalasyon veya hassas konuşmalar için insan devralma açabilirsiniz."
+    },
+    "q3": {
+      "question": "Recete iadeleri nasıl azaltır?",
+      "answer": "Sipariş sonrası proaktif mesajlar, kullanım rehberleri ve zamanında takipler göndererek müşterilerin sorularını iade talebine dönüşmeden önce yanıtlar."
+    },
+    "q4": {
+      "question": "Müşteri verileri güvenli mi?",
+      "answer": "Evet. Müşteri bilgilerini ve operasyon erişimini korumak için şifreli veri işleme ve mağaza seviyesinde kontroller kullanıyoruz."
+    }
+  },
   "footer": {
             "description": "Recete, proaktif AI destekli WhatsApp konuşmalarıyla markaların iadeleri azaltmasına ve LTV'yi artırmasına yardımcı olur.",
             "tagline": "Shopify mağazalarının iadeleri azaltmasına ve müşteri sadakatini artırmasına yardımcı olan sipariş sonrası AI.",

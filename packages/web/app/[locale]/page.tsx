@@ -9,8 +9,10 @@ import { Features } from '@/components/landing-page/Features';
 import { SocialProof } from '@/components/landing-page/SocialProof';
 import { HowItWorks } from '@/components/landing-page/HowItWorks';
 import { PricingPreview } from '@/components/landing-page/PricingPreview';
+import { FAQ } from '@/components/landing-page/FAQ';
 import { CTA } from '@/components/landing-page/CTA';
 import { Footer } from '@/components/landing-page/Footer';
+import { SButton, SCard, SPage } from '@/components/landing-page/PolarisWc';
 
 export default function Home() {
   const t = useTranslations('Landing');
@@ -19,14 +21,14 @@ export default function Home() {
   const isEn = locale === 'en';
 
   return (
-    <main
+    <SPage
       className="min-h-screen bg-[#f6f4ea] text-[#17231f] flex flex-col overflow-x-hidden"
       role="main"
       aria-label={t('title')}
     >
       {/* Header — mobile-first: logo + nav, no overflow */}
       <header className="sticky top-0 z-50 border-b border-black/5 bg-[#f6f4ea]/90 backdrop-blur-xl shrink-0">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3 min-w-0">
+        <SCard className="block max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3 min-w-0 bg-transparent border-0 shadow-none">
           <Link
             href="/"
             className="flex items-center gap-2 min-w-0 shrink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg"
@@ -40,50 +42,61 @@ export default function Home() {
               { href: '/#features', label: tFooter('features') },
               { href: '/#how-it-works', label: tFooter('howItWorks') },
               { href: '/#pricing', label: tFooter('pricing') },
+              { href: '/#faq', label: 'FAQ' },
               { href: '/#cta', label: tFooter('bookDemo') },
             ].map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="px-3 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-white/80 transition-colors"
+                className="inline-block"
               >
-                {item.label}
+                <SButton className="px-3 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-white/80 transition-colors">
+                  {item.label}
+                </SButton>
               </Link>
             ))}
           </nav>
           <nav className="flex items-center gap-2 sm:gap-3 shrink-0" aria-label="Language and account">
-            <div className="flex rounded-lg border border-border bg-muted/30 p-0.5" role="group" aria-label="Language">
+            <SCard className="block flex rounded-lg border border-border bg-muted/30 p-0.5 shadow-none" role="group" aria-label="Language">
               <Link
                 href="/"
                 locale="en"
-                className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${isEn ? 'bg-[#0a3d2e] text-[#f8f5e6] shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-white/80'}`}
+                className="inline-block"
                 aria-current={isEn ? 'page' : undefined}
               >
-                EN
+                <SButton className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${isEn ? 'bg-[#0a3d2e] text-[#f8f5e6] shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-white/80'}`}>
+                  EN
+                </SButton>
               </Link>
               <Link
                 href="/"
                 locale="tr"
-                className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${!isEn ? 'bg-[#0a3d2e] text-[#f8f5e6] shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-white/80'}`}
+                className="inline-block"
                 aria-current={!isEn ? 'page' : undefined}
               >
-                TR
+                <SButton className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${!isEn ? 'bg-[#0a3d2e] text-[#f8f5e6] shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-white/80'}`}>
+                  TR
+                </SButton>
               </Link>
-            </div>
+            </SCard>
             <Link
               href="/login"
-              className="hidden sm:inline-flex py-2 px-3 sm:px-4 text-xs sm:text-sm font-medium text-zinc-800 hover:bg-white rounded-lg border border-transparent hover:border-black/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              className="hidden sm:inline-block"
             >
-              {t('login')}
+              <SButton className="py-2 px-3 sm:px-4 text-xs sm:text-sm font-medium text-zinc-800 hover:bg-white rounded-lg border border-transparent hover:border-black/5 transition-colors">
+                {t('login')}
+              </SButton>
             </Link>
             <Link
               href="/signup"
-              className="py-2 px-3 sm:px-5 text-xs sm:text-sm font-semibold bg-[#0a3d2e] text-[#f8f5e6] rounded-lg shadow-[0_8px_24px_rgba(10,61,46,0.2)] hover:opacity-95 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 whitespace-nowrap"
+              className="inline-block"
             >
-              {t('signup')}
+              <SButton className="py-2 px-3 sm:px-5 text-xs sm:text-sm font-semibold bg-[#0a3d2e] text-[#f8f5e6] rounded-lg shadow-[0_8px_24px_rgba(10,61,46,0.2)] hover:opacity-95 transition-opacity whitespace-nowrap">
+                {t('signup')}
+              </SButton>
             </Link>
           </nav>
-        </div>
+        </SCard>
       </header>
 
       <div className="relative">
@@ -99,28 +112,33 @@ export default function Home() {
       </div>
       <Stats />
       <Features />
-      <SocialProof />
       <HowItWorks />
+      <SocialProof />
       <PricingPreview />
+      <FAQ />
       <CTA />
       <Footer />
 
       <div className="sm:hidden fixed bottom-3 inset-x-3 z-40">
-        <div className="rounded-2xl border border-black/10 bg-white/95 backdrop-blur shadow-[0_18px_45px_rgba(10,61,46,.14)] p-2 flex items-center gap-2">
+        <SCard className="block rounded-2xl border border-black/10 bg-white/95 backdrop-blur shadow-[0_18px_45px_rgba(10,61,46,.14)] p-2 flex items-center gap-2">
           <Link
             href="/signup"
-            className="flex-1 inline-flex items-center justify-center rounded-xl bg-[#0a3d2e] px-4 py-3 text-sm font-semibold text-[#f8f5e6]"
+            className="flex-1 inline-block"
           >
-            {t('signup')}
+            <SButton className="w-full inline-flex items-center justify-center rounded-xl bg-[#0a3d2e] px-4 py-3 text-sm font-semibold text-[#f8f5e6]">
+              {t('signup')}
+            </SButton>
           </Link>
           <Link
             href="/#pricing"
-            className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-[#f6f4ea] px-4 py-3 text-sm font-semibold text-[#0a3d2e]"
+            className="inline-block"
           >
-            {tFooter('pricing')}
+            <SButton className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-[#f6f4ea] px-4 py-3 text-sm font-semibold text-[#0a3d2e]">
+              {tFooter('pricing')}
+            </SButton>
           </Link>
-        </div>
+        </SCard>
       </div>
-    </main>
+    </SPage>
   );
 }

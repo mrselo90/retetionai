@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Store, Bot, LineChart } from 'lucide-react';
+import { SBadge, SCard, SSection } from './PolarisWc';
 
 /* Recete brand: Deep Forest Green, Cream, emerald, gold */
 const steps = [
@@ -35,11 +36,11 @@ export function HowItWorks() {
     const t = useTranslations('Landing.howItWorks');
 
     return (
-        <section id="how-it-works" className="py-14 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
+        <SSection id="how-it-works" className="block py-14 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
             <div className="max-w-6xl mx-auto">
-                <div className="rounded-2xl sm:rounded-3xl border border-black/5 bg-white p-6 sm:p-8 lg:p-10 shadow-[0_16px_50px_rgba(10,61,46,.06)]">
+                <SCard className="block rounded-2xl sm:rounded-3xl border border-black/5 bg-white p-6 sm:p-8 lg:p-10 shadow-[0_16px_50px_rgba(10,61,46,.06)]">
                 <div className="text-center mb-10 sm:mb-14">
-                    <span
+                    <SBadge
                         className="inline-block rounded-full border px-4 py-1.5 text-xs sm:text-[13px] font-semibold uppercase tracking-wider mb-3 sm:mb-4"
                         style={{
                             background: 'rgba(10,61,46,.04)',
@@ -48,7 +49,7 @@ export function HowItWorks() {
                         }}
                     >
                         How it Works
-                    </span>
+                    </SBadge>
                     <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold mb-3 sm:mb-4 leading-tight text-[#0A3D2E] px-2 tracking-tight">
                         {t('title')}
                     </h2>
@@ -87,8 +88,8 @@ export function HowItWorks() {
                         );
                     })}
                 </div>
-                </div>
+                </SCard>
             </div>
-        </section>
+        </SSection>
     );
 }

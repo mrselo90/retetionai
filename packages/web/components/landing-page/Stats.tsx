@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { SCard, SSection } from './PolarisWc';
 
 /* Recete brand: Deep Forest Green, Cream, emerald, gold */
 const statColors = ['#F8F5E6', '#10b981', '#F8F5E6', '#f59e0b'];
@@ -17,9 +18,9 @@ export function Stats() {
     ];
 
     return (
-        <section className="px-4 sm:px-6 py-6 sm:py-8 bg-[#f6f4ea]">
+        <SSection className="block px-4 sm:px-6 py-6 sm:py-8 bg-[#f6f4ea]">
             <div className="max-w-6xl mx-auto">
-                <div className="rounded-2xl sm:rounded-3xl border border-black/5 bg-white shadow-[0_18px_60px_rgba(10,61,46,0.07)] overflow-hidden">
+                <SCard className="block rounded-2xl sm:rounded-3xl border border-black/5 bg-white shadow-[0_18px_60px_rgba(10,61,46,0.07)] overflow-hidden">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-black/5">
                         {stats.map((stat, i) => (
                             <div
@@ -41,8 +42,8 @@ export function Stats() {
                             </div>
                         ))}
                     </div>
-                </div>
+                </SCard>
             </div>
-        </section>
+        </SSection>
     );
 }

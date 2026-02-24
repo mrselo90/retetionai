@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Quote, ShieldCheck, Store, MessageCircleMore } from 'lucide-react';
+import { SBadge, SCard, SSection } from './PolarisWc';
 
 export function SocialProof() {
   const t = useTranslations('Landing.socialProof');
@@ -34,14 +35,14 @@ export function SocialProof() {
   ];
 
   return (
-    <section className="py-14 sm:py-20 px-4 sm:px-6 bg-[#f6f4ea]">
+    <SSection className="block py-14 sm:py-20 px-4 sm:px-6 bg-[#f6f4ea]">
       <div className="max-w-6xl mx-auto">
-        <div className="rounded-2xl sm:rounded-3xl border border-black/5 bg-white p-5 sm:p-7 lg:p-8 shadow-[0_14px_50px_rgba(10,61,46,.06)]">
+        <SCard className="block rounded-2xl sm:rounded-3xl border border-black/5 bg-white p-5 sm:p-7 lg:p-8 shadow-[0_14px_50px_rgba(10,61,46,.06)]">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-6 sm:mb-8">
             <div>
-              <div className="inline-flex items-center rounded-full border border-[#0a3d2e]/10 bg-[#0a3d2e]/5 px-3 py-1 text-xs font-semibold text-[#0a3d2e]">
+              <SBadge className="inline-flex items-center rounded-full border border-[#0a3d2e]/10 bg-[#0a3d2e]/5 px-3 py-1 text-xs font-semibold text-[#0a3d2e]">
                 {t('eyebrow')}
-              </div>
+              </SBadge>
               <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-[#0a3d2e]">
                 {t('title')}
               </h2>
@@ -87,8 +88,8 @@ export function SocialProof() {
               </article>
             ))}
           </div>
-        </div>
+        </SCard>
       </div>
-    </section>
+    </SSection>
   );
 }

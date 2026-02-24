@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Check, ArrowRight } from 'lucide-react';
+import { SBadge, SButton, SCard, SSection } from './PolarisWc';
 
 export function PricingPreview() {
   const t = useTranslations('Landing.pricing');
@@ -26,12 +27,12 @@ export function PricingPreview() {
   ] as const;
 
   return (
-    <section id="pricing" className="py-14 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
+    <SSection id="pricing" className="block py-14 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8 sm:mb-10">
-          <div className="inline-flex items-center rounded-full border border-[#0a3d2e]/10 bg-[#0a3d2e]/5 px-3 py-1 text-xs font-semibold text-[#0a3d2e]">
+          <SBadge className="inline-flex items-center rounded-full border border-[#0a3d2e]/10 bg-[#0a3d2e]/5 px-3 py-1 text-xs font-semibold text-[#0a3d2e]">
             {t('eyebrow')}
-          </div>
+          </SBadge>
           <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-[#0a3d2e]">
             {t('title')}
           </h2>
@@ -39,7 +40,7 @@ export function PricingPreview() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
           {plans.map((plan) => (
-            <div
+            <SCard
               key={plan.key}
               className={`relative rounded-2xl border p-5 sm:p-6 bg-white ${
                 plan.featured
@@ -81,28 +82,31 @@ export function PricingPreview() {
                 ))}
               </ul>
 
-              <Link
-                href="/signup"
-                className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                  plan.featured
-                    ? 'bg-[#0a3d2e] text-[#f8f5e6] hover:bg-[#0d4a38]'
-                    : 'border border-black/10 bg-[#f6f4ea] text-[#0a3d2e] hover:bg-white'
-                }`}
-              >
-                {t('cta')}
-                <ArrowRight className="w-4 h-4" aria-hidden />
+              <Link href="/signup" className="mt-6 inline-block w-full">
+                <SButton
+                  className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                    plan.featured
+                      ? 'bg-[#0a3d2e] text-[#f8f5e6] hover:bg-[#0d4a38]'
+                      : 'border border-black/10 bg-[#f6f4ea] text-[#0a3d2e] hover:bg-white'
+                  }`}
+                >
+                  {t('cta')}
+                  <ArrowRight className="w-4 h-4" aria-hidden />
+                </SButton>
               </Link>
-            </div>
+            </SCard>
           ))}
         </div>
 
-        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 sm:px-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <SCard className="block mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 sm:px-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <p className="text-sm text-emerald-900 font-medium">{t('roiNote')}</p>
           <Link href="/signup" className="text-sm font-semibold text-emerald-800 hover:text-emerald-900">
             {t('secondaryCta')}
           </Link>
         </div>
+        </SCard>
       </div>
-    </section>
+    </SSection>
   );
 }

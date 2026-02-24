@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import Image from 'next/image';
 import { ArrowRight, Sparkles, ShieldCheck, Zap } from 'lucide-react';
+import { SBadge, SButton, SCard, SSection } from './PolarisWc';
 
 export function Hero() {
   const t = useTranslations('Landing');
@@ -16,7 +17,7 @@ export function Hero() {
   ];
 
   return (
-    <section className="relative overflow-hidden pt-8 pb-10 sm:pt-12 sm:pb-14 md:pt-16 md:pb-20">
+    <SSection className="block relative overflow-hidden pt-8 pb-10 sm:pt-12 sm:pb-14 md:pt-16 md:pb-20">
       <div aria-hidden className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-x-0 top-0 h-[420px] bg-[linear-gradient(180deg,#0a3d2e_0%,#0d4a38_65%,transparent_100%)]" />
         <div className="absolute top-10 left-[-8%] w-56 h-56 rounded-full bg-emerald-400/15 blur-3xl" />
@@ -25,13 +26,13 @@ export function Hero() {
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-[1.02fr_.98fr] gap-6 lg:gap-8 items-stretch">
-          <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0a3d2e] text-[#f8f5e6] p-5 sm:p-7 lg:p-8 shadow-[0_24px_80px_rgba(10,61,46,0.25)]">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs sm:text-sm font-semibold">
+          <SCard className="block rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0a3d2e] text-[#f8f5e6] p-5 sm:p-7 lg:p-8 shadow-[0_24px_80px_rgba(10,61,46,0.25)]">
+            <SBadge className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs sm:text-sm font-semibold">
               <span className="inline-flex w-5 h-5 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-300">
                 <Sparkles className="w-3.5 h-3.5" aria-hidden />
               </span>
               {t('forShopify')}
-            </div>
+            </SBadge>
 
             <h1
               className="mt-4 sm:mt-6 font-extrabold tracking-tight leading-[1.05]"
@@ -50,16 +51,20 @@ export function Hero() {
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
               <Link
                 href="/signup"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#f8f5e6] px-5 py-3.5 text-sm sm:text-base font-bold text-[#0a3d2e] shadow-[0_10px_30px_rgba(248,245,230,.18)] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="inline-block"
               >
-                {t('signup')}
-                <ArrowRight className="w-4 h-4" aria-hidden />
+                <SButton className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#f8f5e6] px-5 py-3.5 text-sm sm:text-base font-bold text-[#0a3d2e] shadow-[0_10px_30px_rgba(248,245,230,.18)] transition-transform hover:-translate-y-0.5">
+                  {t('signup')}
+                  <ArrowRight className="w-4 h-4" aria-hidden />
+                </SButton>
               </Link>
               <Link
                 href="/login"
-                className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 px-5 py-3.5 text-sm sm:text-base font-semibold text-[#f8f5e6] backdrop-blur transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="inline-block"
               >
-                {t('login')}
+                <SButton className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 px-5 py-3.5 text-sm sm:text-base font-semibold text-[#f8f5e6] backdrop-blur transition-colors hover:bg-white/10">
+                  {t('login')}
+                </SButton>
               </Link>
             </div>
 
@@ -67,18 +72,18 @@ export function Hero() {
 
             <div className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3">
               {highlights.map(({ icon: Icon, value, label }) => (
-                <div key={label} className="rounded-xl border border-white/10 bg-white/5 p-3 sm:p-4">
+                <SCard key={label} className="block rounded-xl border border-white/10 bg-white/5 p-3 sm:p-4">
                   <div className="flex items-center gap-2 text-[#f8f5e6]/70">
                     <Icon className="w-4 h-4 text-emerald-300" aria-hidden />
                     <span className="text-xs font-medium">{label}</span>
                   </div>
                   <div className="mt-1.5 text-xl sm:text-2xl font-extrabold tracking-tight">{value}</div>
-                </div>
+                </SCard>
               ))}
             </div>
-          </div>
+          </SCard>
 
-          <div className="relative rounded-2xl sm:rounded-3xl border border-black/5 bg-white shadow-[0_24px_80px_rgba(10,61,46,0.12)] overflow-hidden">
+          <SCard className="block relative rounded-2xl sm:rounded-3xl border border-black/5 bg-white shadow-[0_24px_80px_rgba(10,61,46,0.12)] overflow-hidden">
             <div className="absolute inset-x-0 top-0 h-28 bg-[linear-gradient(180deg,rgba(10,61,46,.06),transparent)]" aria-hidden />
             <div className="relative p-4 sm:p-5 border-b border-black/5 bg-white/90">
               <div className="flex items-center gap-2">
@@ -132,9 +137,9 @@ export function Hero() {
                 </div>
               </div>
             </div>
-          </div>
+          </SCard>
         </div>
       </div>
-    </section>
+    </SSection>
   );
 }
