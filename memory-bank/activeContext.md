@@ -71,6 +71,10 @@
   - Guardrails system/custom list rows standardized further with Polaris layout primitives (`Box`, `BlockStack`, `InlineStack`, `Text`)
   - GDPR export/delete inner panels and links section moved to Polaris-style boxed surfaces while preserving existing actions
   - Custom UI buttons remain where tied to existing shared button variants/dialog patterns, but surrounding layout is now Polaris-first
+- **Customers Polaris Migration (step 1)**:
+  - Segment filter migrated from custom button row to Polaris `Tabs`
+  - Desktop customer list now uses Polaris `IndexTable` (mobile stacked list retained for mobile-first usability)
+  - Search + pagination behavior preserved while moving list page closer to Shopify index patterns
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart

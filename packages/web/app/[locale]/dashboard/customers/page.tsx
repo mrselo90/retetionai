@@ -11,14 +11,17 @@ import {
   Box,
   Button as PolarisButton,
   Card as PolarisCard,
+  IndexTable,
   InlineStack,
   Layout,
   Page,
   SkeletonBodyText,
   SkeletonDisplayText,
   SkeletonPage,
+  Tabs,
   Text,
   TextField,
+  useBreakpoints,
 } from '@shopify/polaris';
 import { Users, Search, ShoppingBag, MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -47,6 +50,7 @@ const SEGMENT_TONES: Record<string, Parameters<typeof PolarisBadge>[0]['tone']> 
 
 export default function CustomersPage() {
   const t = useTranslations('Customers');
+  const { mdUp } = useBreakpoints();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -83,6 +87,11 @@ export default function CustomersPage() {
   };
 
   const totalPages = Math.ceil(total / 20);
+  const segmentTabs = ['all', 'champions', 'loyal', 'promising', 'at_risk', 'lost', 'new'].map((s) => ({
+    id: s,
+    content: s === 'all' ? t('filterAll') : t(`segment.${s}`),
+  }));
+  const selectedSegmentTab = Math.max(0, segmentTabs.findIndex((tab) => tab.id === segment));
 
   if (loading) {
     return (
@@ -108,7 +117,7 @@ export default function CustomersPage() {
           <BlockStack gap="400">
 
       {/* Search + Segment Filter */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+      <div className="flex flex-col gap-3">
         <div className="w-full sm:max-w-sm">
           <TextField
             label={t('searchPlaceholder')}
@@ -120,21 +129,19 @@ export default function CustomersPage() {
             prefix={<Search className="w-4 h-4" aria-hidden />}
           />
         </div>
-        <div className="flex gap-2 flex-wrap">
-          {['all', 'champions', 'loyal', 'promising', 'at_risk', 'lost', 'new'].map((s) => (
-            <PolarisButton
-              key={s}
-              variant={segment === s ? 'primary' : 'secondary'}
-              size="slim"
-              onClick={() => { setSegment(s); setPage(1); }}
-            >
-              {s === 'all' ? t('filterAll') : t(`segment.${s}`)}
-            </PolarisButton>
-          ))}
+        <Tabs
+          tabs={segmentTabs}
+          selected={selectedSegmentTab}
+          onSelect={(index) => {
+            setSegment(segmentTabs[index]?.id || 'all');
+            setPage(1);
+          }}
+        />
+        <InlineStack align="start">
           <PolarisButton variant="secondary" size="slim" onClick={handleSearch}>
             {t('search')}
           </PolarisButton>
-        </div>
+        </InlineStack>
       </div>
 
       {/* Customer List */}
@@ -147,6 +154,66 @@ export default function CustomersPage() {
               <Text as="p" variant="bodyMd" tone="subdued" alignment="center">{t('empty.description')}</Text>
             </BlockStack>
           </Box>
+        </PolarisCard>
+      ) : mdUp ? (
+        <PolarisCard padding="0">
+          <IndexTable
+            resourceName={{ singular: 'customer', plural: 'customers' }}
+            itemCount={customers.length}
+            selectable={false}
+            headings={[
+              { title: t('title') },
+              { title: t('orders') },
+              { title: t('conversations') },
+              { title: 'Churn' },
+            ]}
+          >
+            {customers.map((customer, index) => (
+              <IndexTable.Row
+                id={customer.id}
+                key={customer.id}
+                position={index}
+                onClick={() => { window.location.href = `/dashboard/customers/${customer.id}`; }}
+              >
+                <IndexTable.Cell>
+                  <InlineStack gap="300" blockAlign="center">
+                    <Box background="bg-surface-secondary" borderRadius="full" padding="200">
+                      <Users className="w-4 h-4 text-zinc-700" />
+                    </Box>
+                    <BlockStack gap="100">
+                      <InlineStack gap="200" blockAlign="center">
+                        <Text as="span" variant="bodyMd" fontWeight="semibold">{customer.name}</Text>
+                        <PolarisBadge tone={SEGMENT_TONES[customer.segment] || 'enabled'}>
+                          {t(`segment.${customer.segment}`) || customer.segment}
+                        </PolarisBadge>
+                        {customer.churnProbability > 0.6 && (
+                          <PolarisBadge tone="critical">{`Risk ${Math.round(customer.churnProbability * 100)}%`}</PolarisBadge>
+                        )}
+                      </InlineStack>
+                      <Text as="span" variant="bodySm" tone="subdued">{customer.phone}</Text>
+                    </BlockStack>
+                  </InlineStack>
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                  <InlineStack gap="100" blockAlign="center">
+                    <ShoppingBag className="w-4 h-4 text-zinc-500" />
+                    <Text as="span" variant="bodySm">{String(customer.orderCount)}</Text>
+                  </InlineStack>
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                  <InlineStack gap="100" blockAlign="center">
+                    <MessageSquare className="w-4 h-4 text-zinc-500" />
+                    <Text as="span" variant="bodySm">{String(customer.conversationCount)}</Text>
+                  </InlineStack>
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                  <Text as="span" variant="bodySm">
+                    {`${Math.round(customer.churnProbability * 100)}%`}
+                  </Text>
+                </IndexTable.Cell>
+              </IndexTable.Row>
+            ))}
+          </IndexTable>
         </PolarisCard>
       ) : (
         <PolarisCard>
