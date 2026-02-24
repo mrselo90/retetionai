@@ -317,11 +317,10 @@ export default function AnalyticsPage() {
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* DAU Chart */}
-            <Card hover className="overflow-hidden">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base font-semibold">{t('charts.dau.title')}</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
+            <PolarisCard>
+              <Box padding="400">
+                <BlockStack gap="300">
+                  <Text as="h3" variant="headingMd">{t('charts.dau.title')}</Text>
                 <div className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={analytics.dau} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -355,15 +354,15 @@ export default function AnalyticsPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </CardContent>
-            </Card>
+                </BlockStack>
+              </Box>
+            </PolarisCard>
 
             {/* Message Volume Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t('charts.volume.title')}</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <PolarisCard>
+              <Box padding="400">
+                <BlockStack gap="300">
+                  <Text as="h3" variant="headingMd">{t('charts.volume.title')}</Text>
                 <div className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={analytics.messageVolume} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -413,26 +412,28 @@ export default function AnalyticsPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </CardContent>
-            </Card>
+                </BlockStack>
+              </Box>
+            </PolarisCard>
           </div>
         </>
       ) : (
         <PolarisCard>
-          <div className="p-4">
+          <Box padding="300">
             <Banner tone="info">
               <p>{t('empty.description')}</p>
             </Banner>
-          </div>
-          <CardContent className="p-12 pt-2 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-              <BarChart3 className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">{t('empty.title')}</h3>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              {t('empty.description')}
-            </p>
-            <div className="flex justify-center gap-3">
+          </Box>
+          <Box padding="800">
+            <BlockStack gap="300" inlineAlign="center">
+              <Box background="bg-surface-secondary" borderRadius="full" padding="400">
+                <BarChart3 className="w-8 h-8 text-zinc-500" />
+              </Box>
+              <Text as="h3" variant="headingMd">{t('empty.title')}</Text>
+              <Text as="p" tone="subdued" alignment="center">
+                {t('empty.description')}
+              </Text>
+              <div className="flex justify-center gap-3">
               <Button asChild>
                 <Link href="/dashboard/products">
                   <Package className="w-4 h-4 mr-2" />
@@ -445,8 +446,9 @@ export default function AnalyticsPage() {
                   {t('empty.setupIntegration')}
                 </Link>
               </Button>
-            </div>
-          </CardContent>
+              </div>
+            </BlockStack>
+          </Box>
         </PolarisCard>
       )}
     </div>

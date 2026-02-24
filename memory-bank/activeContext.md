@@ -92,6 +92,9 @@
 - **Analytics Polaris Migration (step 2)**:
   - Key metric cards, ROI stat cards, and return-prevention summary stat cards migrated to Polaris-first cards/layout primitives
   - Return-prevention top-products summary card also moved to Polaris card/badge styling; chart sections remain for later refactor
+- **Analytics Polaris Migration (step 3)**:
+  - Remaining chart wrappers (DAU + message volume) and empty state card sections moved to Polaris-first card/box/layout primitives
+  - Recharts charts themselves are unchanged; only surrounding presentation shells were standardized
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
