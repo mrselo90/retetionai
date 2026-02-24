@@ -377,9 +377,11 @@ export default function ProductsPage() {
       {products.length > 0 && (
         <PolarisCard>
           <div className="p-4 sm:p-5 space-y-4">
-            <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
-              <div className="flex-1 min-w-0">
-                <label htmlFor="products-search" className="sr-only">{t('filters.searchLabel')}</label>
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:gap-4 xl:items-end">
+              <div className="min-w-0 flex flex-col gap-1">
+                <Label htmlFor="products-search" className="text-xs text-muted-foreground font-medium">
+                  {t('filters.searchLabel')}
+                </Label>
                 <Input
                   id="products-search"
                   value={searchQuery}
@@ -389,7 +391,7 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:flex lg:items-center lg:gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:gap-4 xl:items-end">
                 <div className="flex flex-col gap-1">
                   <Label htmlFor="products-status-filter" className="text-xs text-muted-foreground font-medium">
                     {t('filters.status')}
@@ -398,7 +400,7 @@ export default function ProductsPage() {
                     id="products-status-filter"
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as ProductStatusFilter)}
-                    className="h-10 min-w-[180px] rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="h-10 w-full xl:min-w-[180px] rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="all">{t('filters.statusOptions.all')}</option>
                     <option value="rag_ready">{t('filters.statusOptions.ragReady')}</option>
@@ -417,7 +419,7 @@ export default function ProductsPage() {
                     id="products-sort"
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as ProductSortOption)}
-                    className="h-10 min-w-[200px] rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="h-10 w-full xl:min-w-[220px] rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="updated_desc">{t('filters.sortOptions.updatedDesc')}</option>
                     <option value="updated_asc">{t('filters.sortOptions.updatedAsc')}</option>

@@ -27,6 +27,7 @@
   - List view is mobile-first (stacked rows on small screens, table-like columns on desktop) and preserves existing RAG status badges/actions
   - Added Shopify-like product index controls: search, status filter, sort, result count, and reset filters (shared across grid/list views)
   - Follow-up runtime fixes: moved `useDeferredValue` above conditional returns (React hook order) and fixed dashboard summary rich-text translation formatting for Polaris subtitle
+  - Filter toolbar alignment refined: search/status/sort fields now share the same label/control rhythm and responsive grid alignment
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.
