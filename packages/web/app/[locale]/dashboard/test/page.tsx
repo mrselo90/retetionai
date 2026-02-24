@@ -72,6 +72,7 @@ interface ChatMessage {
 }
 
 export default function TestInterfacePage() {
+  const PRODUCT_CHAT_ONLY_MODE = true;
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
   const [orderData, setOrderData] = useState<OrderData | null>(null);
@@ -90,7 +91,7 @@ export default function TestInterfacePage() {
   const [chatMessage, setChatMessage] = useState('Bu ürünü nasıl kullanmalıyım?');
 
   // Advanced section
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(PRODUCT_CHAT_ONLY_MODE);
   const [advancedTab, setAdvancedTab] = useState<'rag' | 'health' | 'tasks'>('rag');
 
   // RAG test state
@@ -493,10 +494,10 @@ export default function TestInterfacePage() {
   }, [showAdvanced, advancedTab]);
 
   useEffect(() => {
-    if (showAdvanced && advancedTab === 'rag' && !ragProductsLoaded && !ragProductsLoading) {
+    if ((PRODUCT_CHAT_ONLY_MODE || (showAdvanced && advancedTab === 'rag')) && !ragProductsLoaded && !ragProductsLoading) {
       loadRAGProducts();
     }
-  }, [showAdvanced, advancedTab, ragProductsLoaded, ragProductsLoading]);
+  }, [PRODUCT_CHAT_ONLY_MODE, showAdvanced, advancedTab, ragProductsLoaded, ragProductsLoading]);
 
   const filteredRagProducts = ragProductsList.filter((product) => {
     const matchesSearch =
@@ -510,10 +511,10 @@ export default function TestInterfacePage() {
   const selectedRagIds = parseSelectedRagProductIds();
   const selectedRagIdSet = new Set(selectedRagIds);
   const advancedTabs = [
-    { id: 'rag', content: 'RAG Test' },
-    { id: 'health', content: 'System Health' },
-    { id: 'tasks', content: 'Scheduled Tasks' },
-  ];
+            { id: 'rag', content: 'Ürün Chatbot Testi' },
+            { id: 'health', content: 'System Health' },
+            { id: 'tasks', content: 'Scheduled Tasks' },
+          ];
 
   return (
     <Page title="Test & Development Interface" subtitle="Siparis olusturup bot ile konusarak sistemi test edin" fullWidth>
@@ -525,13 +526,17 @@ export default function TestInterfacePage() {
         <Box padding="400">
           <BlockStack gap="200">
             <Text as="h2" variant="headingMd">Test & Development Interface</Text>
-            <Text as="p" tone="subdued">Sipariş oluşturup bot ile konuşarak sistemi test edin</Text>
+            <Text as="p" tone="subdued">
+              {PRODUCT_CHAT_ONLY_MODE
+                ? 'Scrape edilmiş ürünleri seçip chatbot ile ürün sorularını manuel test edin'
+                : 'Sipariş oluşturup bot ile konuşarak sistemi test edin'}
+            </Text>
           </BlockStack>
         </Box>
       </Card>
 
       {/* Step Indicator */}
-      <Card>
+      {!PRODUCT_CHAT_ONLY_MODE && <Card>
         <Box padding="400">
           <InlineGrid columns={{ xs: '1fr', md: '1fr auto' }} gap="300" alignItems="center">
             <InlineStack gap="300" wrap>
@@ -580,10 +585,10 @@ export default function TestInterfacePage() {
             )}
           </InlineGrid>
         </Box>
-      </Card>
+      </Card>}
 
       {/* Step 1: Create Order */}
-      {currentStep === 1 && (
+      {!PRODUCT_CHAT_ONLY_MODE && currentStep === 1 && (
         <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
           <div>
             <h2 className="text-xl font-semibold text-zinc-900">Adım 1: Sipariş Oluştur</h2>
@@ -710,7 +715,7 @@ export default function TestInterfacePage() {
       )}
 
       {/* Step 2: Trigger Delivery */}
-      {currentStep === 2 && orderData && (
+      {!PRODUCT_CHAT_ONLY_MODE && currentStep === 2 && orderData && (
         <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
           <div>
             <h2 className="text-xl font-semibold text-zinc-900">Adım 2: Teslimat Eventi Tetikle</h2>
@@ -741,7 +746,7 @@ export default function TestInterfacePage() {
       )}
 
       {/* Step 3: Chat with Bot */}
-      {currentStep === 3 && orderData && (
+      {!PRODUCT_CHAT_ONLY_MODE && currentStep === 3 && orderData && (
         <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
           <div>
             <h2 className="text-xl font-semibold text-zinc-900">Adım 3: Bot ile Sohbet Et</h2>
@@ -794,34 +799,36 @@ export default function TestInterfacePage() {
         </div>
       )}
 
-      {/* Advanced Section */}
-      <div className="border-t border-zinc-200 pt-6">
-        <button
+      {/* Product Chat / Advanced Section */}
+      <div className={PRODUCT_CHAT_ONLY_MODE ? '' : 'border-t border-zinc-200 pt-6'}>
+        {!PRODUCT_CHAT_ONLY_MODE && <button
           type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="flex items-center space-x-2 text-zinc-700 hover:text-zinc-900 font-medium"
         >
           {showAdvanced ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           <span>Gelişmiş Test Araçları</span>
-        </button>
+        </button>}
 
-        {showAdvanced && (
+        {(PRODUCT_CHAT_ONLY_MODE || showAdvanced) && (
           <div className="mt-4 space-y-4">
             {/* Advanced Tabs */}
-            <Tabs
+            {!PRODUCT_CHAT_ONLY_MODE && <Tabs
               tabs={advancedTabs}
               selected={advancedTabs.findIndex((tab) => tab.id === advancedTab)}
               onSelect={(index) => setAdvancedTab(advancedTabs[index].id as 'rag' | 'health' | 'tasks')}
-            />
+            />}
 
             {/* RAG Test Tab */}
-            {advancedTab === 'rag' && (
+            {(PRODUCT_CHAT_ONLY_MODE || advancedTab === 'rag') && (
               <div className="bg-white rounded-lg shadow p-6 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
-                    <h3 className="text-lg font-semibold text-zinc-900">RAG Pipeline Testi</h3>
+                    <h3 className="text-lg font-semibold text-zinc-900">
+                      {PRODUCT_CHAT_ONLY_MODE ? 'Ürün Chatbot Testi' : 'RAG Pipeline Testi'}
+                    </h3>
                     <p className="text-sm text-zinc-600 mt-1">
-                      Mevcut scrape edilmiş ürünleri seçip ürün sorularını manuel test edin.
+                      Mevcut scrape edilmiş ürünleri seçip chatbot’un ürün sorularına verdiği cevapları manuel test edin.
                     </p>
                   </div>
                   <button
@@ -989,22 +996,22 @@ export default function TestInterfacePage() {
                   </p>
                 </div>
 
-                <div className="flex space-x-3">
-                  <button
+                <div className="flex flex-wrap gap-3">
+                  {!PRODUCT_CHAT_ONLY_MODE && <button
                     type="button"
                     onClick={handleRAGTest}
                     disabled={ragLoading}
                     className="px-4 py-2 bg-zinc-200 text-zinc-800 rounded-lg hover:bg-zinc-300 transition-colors disabled:opacity-50"
                   >
                     {ragLoading ? 'İşleniyor...' : 'Sadece RAG'}
-                  </button>
+                  </button>}
                   <button
                     type="button"
                     onClick={handleRAGAnswer}
                     disabled={ragLoading}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                   >
-                    {ragLoading ? 'İşleniyor...' : 'RAG + AI Cevap'}
+                    {ragLoading ? 'İşleniyor...' : (PRODUCT_CHAT_ONLY_MODE ? 'Chatbot Cevabı Al' : 'RAG + AI Cevap')}
                   </button>
                 </div>
 
@@ -1050,7 +1057,7 @@ export default function TestInterfacePage() {
             )}
 
             {/* System Health Tab */}
-            {advancedTab === 'health' && (
+            {!PRODUCT_CHAT_ONLY_MODE && advancedTab === 'health' && (
               <div className="bg-white rounded-lg shadow p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-zinc-900">System Health</h3>
@@ -1145,7 +1152,7 @@ export default function TestInterfacePage() {
             )}
 
             {/* Scheduled Tasks Tab */}
-            {advancedTab === 'tasks' && (
+            {!PRODUCT_CHAT_ONLY_MODE && advancedTab === 'tasks' && (
               <div className="bg-white rounded-lg shadow p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-zinc-900">Scheduled Tasks</h3>
