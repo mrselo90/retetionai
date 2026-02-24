@@ -45,7 +45,7 @@ export function SocialProof() {
               <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-[#0a3d2e]">
                 {t('title')}
               </h2>
-              <p className="mt-2 text-sm sm:text-base text-zinc-600 max-w-2xl">{t('subtitle')}</p>
+              <p className="mt-2 text-sm sm:text-base text-zinc-600 max-w-2xl text-center lg:text-left">{t('subtitle')}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto lg:min-w-[520px]">

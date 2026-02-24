@@ -52,7 +52,7 @@ export function HowItWorks() {
                     <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold mb-3 sm:mb-4 leading-tight text-[#0A3D2E] px-2 tracking-tight">
                         {t('title')}
                     </h2>
-                    <p className="text-sm sm:text-base max-w-[28rem] mx-auto text-zinc-600 px-2">{t('subtitle')}</p>
+                    <p className="text-sm sm:text-base max-w-[28rem] mx-auto text-zinc-600 px-2 text-center">{t('subtitle')}</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-8 lg:gap-10 relative">

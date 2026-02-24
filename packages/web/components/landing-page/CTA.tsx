@@ -32,7 +32,7 @@ export function CTA() {
                     <h2 className="relative text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold mb-3 sm:mb-4 leading-tight text-[#F8F5E6] px-2">
                         {t('title')}
                     </h2>
-                    <p className="relative text-sm sm:text-base max-w-[32rem] mx-auto mb-8 sm:mb-10 leading-relaxed opacity-90 text-[#F8F5E6] px-2">
+                    <p className="relative text-sm sm:text-base max-w-[32rem] mx-auto mb-8 sm:mb-10 leading-relaxed opacity-90 text-[#F8F5E6] px-2 text-center">
                         {t('subtitle')}
                     </p>
 
