@@ -47,6 +47,13 @@
 - **Conversation Detail Polaris Migration (step 1)**:
   - Header, message history wrapper, reply composer, and stats cards refactored to Polaris-first primitives (`Card`, `Box`, `InlineGrid`, `InlineStack`, `BlockStack`, `TextField`, `Badge`)
   - Preserved functional behavior (reply send, status toggles, polling) while removing a large share of custom Tailwind layout shells
+- **Product Detail Polaris Migration (step 1)**:
+  - `/dashboard/products/[id]` refactored to Polaris-first layout for product info, bot instructions, scraped content, return-prevention fields, and metadata sections
+  - Custom `input/textarea/card` Tailwind shells replaced with Polaris `Card`, `Box`, `BlockStack`, `InlineGrid`, `InlineStack`, `TextField`, and `Badge`
+  - Existing local behavior preserved (save, re-scrape, generate embeddings, instruction warning toast)
+- **Web Deploy Sync (latest Polaris changes)**:
+  - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
+  - `api`, `web`, and `workers` all confirmed `online` after restart
 - **Product Enrichment Assessment**: Verified and tested the product data enrichment process (LLM enrichment, worker flow, API endpoints). Best practices are followed (error handling, chunking, OpenAI usage limits). Added missing unit tests for `enrichProduct.ts`.
 - **BFS Gap Closure**:
   - **G1**: `verify-session` now returns Supabase magic link for auto-login.

@@ -5,7 +5,23 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Banner, Button, Card, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
+import {
+  Banner,
+  Badge,
+  BlockStack,
+  Box,
+  Button,
+  Card,
+  InlineGrid,
+  InlineStack,
+  Layout,
+  Page,
+  SkeletonBodyText,
+  SkeletonDisplayText,
+  SkeletonPage,
+  Text,
+  TextField,
+} from '@shopify/polaris';
 import { useTranslations } from 'next-intl';
 
 interface ProductInstruction {
@@ -175,8 +191,12 @@ export default function ProductDetailPage() {
             method: 'POST',
           }
         );
-      } catch (err) {
+      } catch (err: any) {
         console.error('Embedding generation failed:', err);
+        toast.warning(
+          t('toasts.embeddingWarning.title'),
+          err.message || t('toasts.embeddingWarning.message')
+        );
       }
 
       await loadProduct();
@@ -231,258 +251,251 @@ export default function ProductDetailPage() {
   // Determine RAG quality status for the alert
   const hasGoodInstructions = usageInstructions.trim().length >= 50;
   const hasAnyInstructions = usageInstructions.trim().length > 0;
+  const instructionCharStatus = usageInstructions.trim().length > 0
+    ? `${usageInstructions.length} karakter — ${hasGoodInstructions ? '✅ Yeterli' : '⚠️ 50+ karakter girin'}`
+    : t('botInstructions.usageHint');
 
   return (
     <Page title={t('editProduct')} subtitle={t('editDescription')} fullWidth>
       <Layout>
         <Layout.Section>
-    <div className="space-y-6">
+          <BlockStack gap="500">
 
-      {/* ── RAG Quality Alert ──────────────────────────────────────── */}
-      {!hasGoodInstructions && (
-        <Banner tone="warning" title={!hasAnyInstructions ? t('ragAlert.emptyTitle') : t('ragAlert.thinTitle')}>
-          <p>{!hasAnyInstructions ? t('ragAlert.emptyDesc') : t('ragAlert.thinDesc')}</p>
-        </Banner>
-      )}
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="mb-2">
-            <Button onClick={() => router.push('/dashboard/products')} variant="plain">
-              {t('backToProducts')}
-            </Button>
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">{t('editProduct')}</h1>
-          <p className="mt-2 text-zinc-600">{t('editDescription')}</p>
-        </div>
-        <div className="flex w-full sm:w-auto gap-3">
-          <Button onClick={handleRescrape} disabled={rescraping} loading={rescraping}>
-            {rescraping ? t('rescraping') : t('rescrape')}
-          </Button>
-          <Button onClick={handleSave} disabled={saving} loading={saving} variant="primary">
-            {saving ? t('saving') : t('save')}
-          </Button>
-        </div>
-      </div>
+            {!hasGoodInstructions && (
+              <Banner tone="warning" title={!hasAnyInstructions ? t('ragAlert.emptyTitle') : t('ragAlert.thinTitle')}>
+                <p>{!hasAnyInstructions ? t('ragAlert.emptyDesc') : t('ragAlert.thinDesc')}</p>
+              </Banner>
+            )}
 
-      {/* Product Info */}
-      <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-6">
-        <div>
-          <label className="form-label">
-            {t('productName')}
-          </label>
-          <input
-            type="text"
-            value={editedName}
-            onChange={(e) => setEditedName(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900"
-          />
-        </div>
+            <Card>
+              <Box padding="400">
+                <InlineGrid columns={{ xs: '1fr', md: '2fr auto' }} gap="400" alignItems="center">
+                  <BlockStack gap="200">
+                    <Button onClick={() => router.push('/dashboard/products')} variant="plain" textAlign="left">
+                      {t('backToProducts')}
+                    </Button>
+                    <BlockStack gap="100">
+                      <Text as="h1" variant="headingLg">
+                        {t('editProduct')}
+                      </Text>
+                      <Text as="p" tone="subdued">
+                        {t('editDescription')}
+                      </Text>
+                    </BlockStack>
+                  </BlockStack>
+                  <InlineStack gap="300" wrap={false} align="end">
+                    <Button onClick={handleRescrape} disabled={rescraping} loading={rescraping}>
+                      {rescraping ? t('rescraping') : t('rescrape')}
+                    </Button>
+                    <Button onClick={handleSave} disabled={saving} loading={saving} variant="primary">
+                      {saving ? t('saving') : t('save')}
+                    </Button>
+                  </InlineStack>
+                </InlineGrid>
+              </Box>
+            </Card>
 
-        <div>
-          <label className="form-label">
-            {t('productUrl')}
-          </label>
-          <input
-            type="url"
-            value={editedUrl}
-            onChange={(e) => setEditedUrl(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900"
-          />
-          <a
-            href={editedUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1 text-sm text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1"
-          >
-            {t('openPage')}
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
-        </div>
+            <Card>
+              <Box padding="400">
+                <BlockStack gap="400">
+                  <Text as="h2" variant="headingMd">
+                    {t('productName')}
+                  </Text>
+                  <TextField
+                    label={t('productName')}
+                    labelHidden
+                    value={editedName}
+                    onChange={setEditedName}
+                    autoComplete="off"
+                  />
+                  <BlockStack gap="200">
+                    <Text as="h2" variant="headingMd">
+                      {t('productUrl')}
+                    </Text>
+                    <TextField
+                      label={t('productUrl')}
+                      labelHidden
+                      type="url"
+                      value={editedUrl}
+                      onChange={setEditedUrl}
+                      autoComplete="off"
+                    />
+                    {editedUrl && (
+                      <InlineStack align="start">
+                        <Button url={editedUrl} target="_blank" variant="plain">
+                          {t('openPage')}
+                        </Button>
+                      </InlineStack>
+                    )}
+                  </BlockStack>
 
-        {product.external_id && (
-          <div>
-            <label className="form-label">
-              External ID
-            </label>
-            <input
-              type="text"
-              value={product.external_id}
-              disabled
-              className="w-full px-3 py-2 border border-zinc-300 rounded-lg bg-zinc-50 text-zinc-500"
-            />
-          </div>
-        )}
-      </div>
+                  {product.external_id && (
+                    <TextField
+                      label="External ID"
+                      value={product.external_id}
+                      disabled
+                      autoComplete="off"
+                    />
+                  )}
+                </BlockStack>
+              </Box>
+            </Card>
 
-      {/* ── Bot Instructions ──────────────────────────────────────── */}
-      <div className={`bg-card rounded-lg border-2 shadow-sm p-6 space-y-5 ${!hasGoodInstructions ? 'border-amber-300' : 'border-border'
-        }`}>
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">{t('botInstructions.title')}</h2>
-            <p className="text-sm text-zinc-500 mt-1">{t('botInstructions.description')}</p>
-          </div>
-          {hasGoodInstructions && (
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full shrink-0">
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              {t('botInstructions.readyBadge')}
-            </span>
-          )}
-        </div>
+            <Card background={!hasGoodInstructions ? 'bg-surface-warning' : undefined}>
+              <Box padding="400">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="start" gap="300">
+                    <BlockStack gap="100">
+                      <Text as="h2" variant="headingMd">
+                        {t('botInstructions.title')}
+                      </Text>
+                      <Text as="p" tone="subdued">
+                        {t('botInstructions.description')}
+                      </Text>
+                    </BlockStack>
+                    {hasGoodInstructions && <Badge tone="success">{t('botInstructions.readyBadge')}</Badge>}
+                  </InlineStack>
 
-        {/* Usage Instructions — the main RAG field */}
-        <div>
-          <label className="form-label">
-            {t('botInstructions.usageLabel')}
-            <span className="text-amber-500 ml-1">*</span>
-          </label>
-          <textarea
-            value={usageInstructions}
-            onChange={(e) => setUsageInstructions(e.target.value)}
-            rows={6}
-            placeholder={t('botInstructions.usagePlaceholder')}
-            className={`w-full px-3 py-2.5 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 text-zinc-900 text-sm resize-y transition-colors ${!hasAnyInstructions
-              ? 'border-amber-300 focus:border-primary bg-amber-50/30'
-              : !hasGoodInstructions
-                ? 'border-yellow-300 focus:border-primary'
-                : 'border-zinc-200 focus:border-primary'
-              }`}
-          />
-          <p className="text-xs text-zinc-500 mt-1.5">
-            {usageInstructions.trim().length > 0
-              ? `${usageInstructions.length} karakter — ${hasGoodInstructions ? '✅ Yeterli' : '⚠️ 50+ karakter girin'}`
-              : t('botInstructions.usageHint')
-            }
-          </p>
-        </div>
+                  <TextField
+                    label={`${t('botInstructions.usageLabel')} *`}
+                    multiline={6}
+                    value={usageInstructions}
+                    onChange={setUsageInstructions}
+                    placeholder={t('botInstructions.usagePlaceholder')}
+                    autoComplete="off"
+                    helpText={instructionCharStatus}
+                  />
 
-        {/* Video URL */}
-        <div>
-          <label className="form-label">
-            {t('botInstructions.videoLabel')}
-          </label>
-          <input
-            type="url"
-            value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
-            placeholder={t('botInstructions.videoPlaceholder')}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 text-zinc-900 text-sm"
-          />
-          <p className="text-xs text-zinc-500 mt-1">{t('botInstructions.videoHint')}</p>
-        </div>
+                  <TextField
+                    label={t('botInstructions.videoLabel')}
+                    type="url"
+                    value={videoUrl}
+                    onChange={setVideoUrl}
+                    placeholder={t('botInstructions.videoPlaceholder')}
+                    autoComplete="off"
+                    helpText={t('botInstructions.videoHint')}
+                  />
 
-        {/* Prevention Tips */}
-        <div>
-          <label className="form-label">
-            {t('botInstructions.preventionLabel')}
-          </label>
-          <textarea
-            value={preventionTips}
-            onChange={(e) => setPreventionTips(e.target.value)}
-            rows={3}
-            placeholder={t('botInstructions.preventionPlaceholder')}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 text-zinc-900 text-sm"
-          />
-          <p className="text-xs text-zinc-500 mt-1">{t('botInstructions.preventionHint')}</p>
-        </div>
-      </div>
+                  <TextField
+                    label={t('botInstructions.preventionLabel')}
+                    multiline={3}
+                    value={preventionTips}
+                    onChange={setPreventionTips}
+                    placeholder={t('botInstructions.preventionPlaceholder')}
+                    autoComplete="off"
+                    helpText={t('botInstructions.preventionHint')}
+                  />
+                </BlockStack>
+              </Box>
+            </Card>
 
-      <div className="bg-card rounded-lg border border-border shadow-sm p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-          <h2 className="text-xl font-semibold text-foreground">{t('scrapedContent')}</h2>
-          <Button onClick={handleRescrape} disabled={rescraping} loading={rescraping} variant="plain">
-            {rescraping ? t('rescraping') : t('rescrape')}
-          </Button>
-        </div>
+            <Card>
+              <Box padding="400">
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="center" gap="300">
+                    <Text as="h2" variant="headingMd">
+                      {t('scrapedContent')}
+                    </Text>
+                    <Button onClick={handleRescrape} disabled={rescraping} loading={rescraping} variant="plain">
+                      {rescraping ? t('rescraping') : t('rescrape')}
+                    </Button>
+                  </InlineStack>
 
-        {editedRawText ? (
-          <div className="space-y-4">
-            <textarea
-              value={editedRawText}
-              onChange={(e) => setEditedRawText(e.target.value)}
-              rows={20}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm text-zinc-900"
-              placeholder={t('scrapedPlaceholder')}
-            />
-            <p className="text-sm text-zinc-600">
-              {t('scrapedChars', { chars: editedRawText.length.toLocaleString('tr-TR') })} • {t('scrapedLines', { lines: editedRawText.split('\n').length })}
-            </p>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p className="mt-2 text-zinc-600">{t('notScrapedYet')}</p>
-            <div className="mt-4">
-              <Button onClick={handleRescrape} disabled={rescraping} loading={rescraping} variant="primary">
-                {rescraping ? t('rescraping') : t('scrapeNow')}
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
+                  {editedRawText ? (
+                    <BlockStack gap="300">
+                      <TextField
+                        label={t('scrapedContent')}
+                        labelHidden
+                        value={editedRawText}
+                        onChange={setEditedRawText}
+                        multiline={20}
+                        autoComplete="off"
+                        placeholder={t('scrapedPlaceholder')}
+                      />
+                      <Text as="p" tone="subdued">
+                        {t('scrapedChars', { chars: editedRawText.length.toLocaleString('tr-TR') })} •{' '}
+                        {t('scrapedLines', { lines: editedRawText.split('\n').length })}
+                      </Text>
+                    </BlockStack>
+                  ) : (
+                    <Box paddingBlock="800">
+                      <BlockStack gap="300" align="center">
+                        <Text as="p" tone="subdued">
+                          {t('notScrapedYet')}
+                        </Text>
+                        <Button onClick={handleRescrape} disabled={rescraping} loading={rescraping} variant="primary">
+                          {rescraping ? t('rescraping') : t('scrapeNow')}
+                        </Button>
+                      </BlockStack>
+                    </Box>
+                  )}
+                </BlockStack>
+              </Box>
+            </Card>
 
-      {/* Return Prevention Content */}
-      <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-5">
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">{rp('analyticsTitle')}</h2>
-          <p className="text-sm text-zinc-500 mt-1">{rp('moduleDescription')}</p>
-        </div>
+            <Card>
+              <Box padding="400">
+                <BlockStack gap="400">
+                  <BlockStack gap="100">
+                    <Text as="h2" variant="headingMd">
+                      {rp('analyticsTitle')}
+                    </Text>
+                    <Text as="p" tone="subdued">
+                      {rp('moduleDescription')}
+                    </Text>
+                  </BlockStack>
 
-        <div>
-          <label className="form-label">
-            {rp('videoUrl')}
-          </label>
-          <input
-            type="url"
-            value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
-            placeholder={rp('videoUrlPlaceholder')}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900"
-          />
-          <p className="text-xs text-zinc-500 mt-1">{rp('videoUrlDescription')}</p>
-        </div>
+                  <TextField
+                    label={rp('videoUrl')}
+                    type="url"
+                    value={videoUrl}
+                    onChange={setVideoUrl}
+                    placeholder={rp('videoUrlPlaceholder')}
+                    autoComplete="off"
+                    helpText={rp('videoUrlDescription')}
+                  />
 
-        <div>
-          <label className="form-label">
-            {rp('preventionTips')}
-          </label>
-          <textarea
-            value={preventionTips}
-            onChange={(e) => setPreventionTips(e.target.value)}
-            rows={4}
-            placeholder={rp('preventionTipsPlaceholder')}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900"
-          />
-          <p className="text-xs text-zinc-500 mt-1">{rp('preventionTipsDescription')}</p>
-        </div>
-      </div>
+                  <TextField
+                    label={rp('preventionTips')}
+                    multiline={4}
+                    value={preventionTips}
+                    onChange={setPreventionTips}
+                    placeholder={rp('preventionTipsPlaceholder')}
+                    autoComplete="off"
+                    helpText={rp('preventionTipsDescription')}
+                  />
+                </BlockStack>
+              </Box>
+            </Card>
 
-      {/* Metadata */}
-      <div className="bg-card rounded-lg border border-border shadow-sm p-6 mt-6">
-        <h2 className="text-xl font-semibold text-foreground mb-4">Metadata</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-zinc-600">Oluşturulma:</span>
-            <p className="text-zinc-900 font-medium mt-1">
-              {new Date(product.created_at).toLocaleString('tr-TR')}
-            </p>
-          </div>
-          <div>
-            <span className="text-zinc-600">Son Güncelleme:</span>
-            <p className="text-zinc-900 font-medium mt-1">
-              {new Date(product.updated_at).toLocaleString('tr-TR')}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+            <Card>
+              <Box padding="400">
+                <BlockStack gap="400">
+                  <Text as="h2" variant="headingMd">
+                    Metadata
+                  </Text>
+                  <InlineGrid columns={{ xs: '1fr', sm: '1fr 1fr' }} gap="400">
+                    <BlockStack gap="100">
+                      <Text as="span" tone="subdued">
+                        Oluşturulma:
+                      </Text>
+                      <Text as="p" variant="bodyMd" fontWeight="medium">
+                        {new Date(product.created_at).toLocaleString('tr-TR')}
+                      </Text>
+                    </BlockStack>
+                    <BlockStack gap="100">
+                      <Text as="span" tone="subdued">
+                        Son Güncelleme:
+                      </Text>
+                      <Text as="p" variant="bodyMd" fontWeight="medium">
+                        {new Date(product.updated_at).toLocaleString('tr-TR')}
+                      </Text>
+                    </BlockStack>
+                  </InlineGrid>
+                </BlockStack>
+              </Box>
+            </Card>
+          </BlockStack>
         </Layout.Section>
       </Layout>
     </Page>
