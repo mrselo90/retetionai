@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Button, Card, Layout, Page, Text } from '@shopify/polaris';
+import { BlockStack, Box, Button, Card, InlineGrid, InlineStack, Layout, Page, Tabs, Text } from '@shopify/polaris';
 import { ChevronDown, ChevronUp, Check, ArrowRight, Plus, X, RefreshCw } from 'lucide-react';
 
 interface ScheduledTask {
@@ -509,6 +509,11 @@ export default function TestInterfacePage() {
 
   const selectedRagIds = parseSelectedRagProductIds();
   const selectedRagIdSet = new Set(selectedRagIds);
+  const advancedTabs = [
+    { id: 'rag', content: 'RAG Test' },
+    { id: 'health', content: 'System Health' },
+    { id: 'tasks', content: 'Scheduled Tasks' },
+  ];
 
   return (
     <Page title="Test & Development Interface" subtitle="Siparis olusturup bot ile konusarak sistemi test edin" fullWidth>
@@ -517,64 +522,64 @@ export default function TestInterfacePage() {
     <div className="space-y-6">
       {/* Header */}
       <Card>
-        <div className="p-5">
-          <Text as="h2" variant="headingMd">Test & Development Interface</Text>
-          <div className="mt-2">
+        <Box padding="400">
+          <BlockStack gap="200">
+            <Text as="h2" variant="headingMd">Test & Development Interface</Text>
             <Text as="p" tone="subdued">Sipariş oluşturup bot ile konuşarak sistemi test edin</Text>
-          </div>
-        </div>
+          </BlockStack>
+        </Box>
       </Card>
 
       {/* Step Indicator */}
       <Card>
-      <div className="p-5 flex items-center justify-between max-w-2xl">
-        <div className="flex items-center space-x-2">
-          <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-            currentStep >= 1 ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 text-zinc-400'
-          }`}>
-            {currentStep > 1 ? <Check className="w-5 h-5" /> : '1'}
-          </div>
-          <span className={`text-sm font-medium ${currentStep >= 1 ? 'text-zinc-900' : 'text-zinc-400'}`}>
-            Sipariş Oluştur
-          </span>
-        </div>
-
-        <ArrowRight className="w-5 h-5 text-zinc-300" />
-
-        <div className="flex items-center space-x-2">
-          <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-            currentStep >= 2 ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 text-zinc-400'
-          }`}>
-            {currentStep > 2 ? <Check className="w-5 h-5" /> : '2'}
-          </div>
-          <span className={`text-sm font-medium ${currentStep >= 2 ? 'text-zinc-900' : 'text-zinc-400'}`}>
-            Teslimat Eventi
-          </span>
-        </div>
-
-        <ArrowRight className="w-5 h-5 text-zinc-300" />
-
-        <div className="flex items-center space-x-2">
-          <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-            currentStep >= 3 ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 text-zinc-400'
-          }`}>
-            3
-          </div>
-          <span className={`text-sm font-medium ${currentStep >= 3 ? 'text-zinc-900' : 'text-zinc-400'}`}>
-            Bot ile Sohbet
-          </span>
-        </div>
-
-        {currentStep > 1 && (
-          <Button
-            onClick={handleReset}
-            variant="plain"
-            icon={RefreshCw}
-          >
-            Sıfırla
-          </Button>
-        )}
-      </div>
+        <Box padding="400">
+          <InlineGrid columns={{ xs: '1fr', md: '1fr auto' }} gap="300" alignItems="center">
+            <InlineStack gap="300" wrap>
+              {[
+                { step: 1, label: 'Sipariş Oluştur' },
+                { step: 2, label: 'Teslimat Eventi' },
+                { step: 3, label: 'Bot ile Sohbet' },
+              ].map(({ step, label }, idx) => {
+                const active = currentStep >= step;
+                const completed = currentStep > step;
+                return (
+                  <InlineStack key={step} gap="200" blockAlign="center">
+                    <Box
+                      as="span"
+                      borderRadius="full"
+                      borderWidth="025"
+                      borderColor={active ? 'border-emphasis' : 'border'}
+                      background={active ? 'bg-fill-brand' : 'bg-surface'}
+                      minWidth="40px"
+                      minHeight="40px"
+                    >
+                      <div className="flex h-10 w-10 items-center justify-center">
+                        {completed ? (
+                          <Check className="h-4 w-4 text-white" />
+                        ) : (
+                          <span className={active ? 'text-white text-sm font-medium' : 'text-zinc-500 text-sm font-medium'}>
+                            {step}
+                          </span>
+                        )}
+                      </div>
+                    </Box>
+                    <Text as="span" variant="bodySm" fontWeight="medium" tone={active ? undefined : 'subdued'}>
+                      {label}
+                    </Text>
+                    {idx < 2 && <ArrowRight className="h-4 w-4 text-zinc-300" />}
+                  </InlineStack>
+                );
+              })}
+            </InlineStack>
+            {currentStep > 1 && (
+              <InlineStack align="end">
+                <Button onClick={handleReset} variant="plain" icon={RefreshCw}>
+                  Sıfırla
+                </Button>
+              </InlineStack>
+            )}
+          </InlineGrid>
+        </Box>
       </Card>
 
       {/* Step 1: Create Order */}
@@ -803,41 +808,11 @@ export default function TestInterfacePage() {
         {showAdvanced && (
           <div className="mt-4 space-y-4">
             {/* Advanced Tabs */}
-            <div className="flex space-x-4 border-b border-zinc-200">
-              <button
-                type="button"
-                onClick={() => setAdvancedTab('rag')}
-                className={`pb-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  advancedTab === 'rag'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-zinc-500 hover:text-zinc-700'
-                }`}
-              >
-                RAG Test
-              </button>
-              <button
-                type="button"
-                onClick={() => setAdvancedTab('health')}
-                className={`pb-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  advancedTab === 'health'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-zinc-500 hover:text-zinc-700'
-                }`}
-              >
-                System Health
-              </button>
-              <button
-                type="button"
-                onClick={() => setAdvancedTab('tasks')}
-                className={`pb-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  advancedTab === 'tasks'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-zinc-500 hover:text-zinc-700'
-                }`}
-              >
-                Scheduled Tasks
-              </button>
-            </div>
+            <Tabs
+              tabs={advancedTabs}
+              selected={advancedTabs.findIndex((tab) => tab.id === advancedTab)}
+              onSelect={(index) => setAdvancedTab(advancedTabs[index].id as 'rag' | 'health' | 'tasks')}
+            />
 
             {/* RAG Test Tab */}
             {advancedTab === 'rag' && (

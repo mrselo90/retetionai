@@ -51,6 +51,10 @@
   - `/dashboard/products/[id]` refactored to Polaris-first layout for product info, bot instructions, scraped content, return-prevention fields, and metadata sections
   - Custom `input/textarea/card` Tailwind shells replaced with Polaris `Card`, `Box`, `BlockStack`, `InlineGrid`, `InlineStack`, `TextField`, and `Badge`
   - Existing local behavior preserved (save, re-scrape, generate embeddings, instruction warning toast)
+- **Test Page Polaris Migration (step 1)**:
+  - `Dashboard / Test` header and step indicator refactored to Polaris layout primitives (`Box`, `BlockStack`, `InlineGrid`, `InlineStack`) while preserving mobile-first behavior
+  - Advanced section tabs migrated from custom button row to Polaris `Tabs`
+  - Core test flows (order create / delivery trigger / chat / RAG test tools) preserved for further incremental migration
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart

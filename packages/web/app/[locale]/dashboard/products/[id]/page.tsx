@@ -214,13 +214,15 @@ export default function ProductDetailPage() {
       <SkeletonPage title={t('editProduct')}>
         <Layout>
           <Layout.Section>
-      <div className="space-y-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-zinc-200 rounded w-1/4"></div>
-          <div className="h-4 bg-zinc-200 rounded w-1/2"></div>
-          <div className="h-64 bg-zinc-200 rounded"></div>
-        </div>
-      </div>
+            <Card>
+              <Box padding="400">
+                <BlockStack gap="400">
+                  <SkeletonDisplayText size="medium" />
+                  <SkeletonBodyText lines={2} />
+                  <SkeletonBodyText lines={8} />
+                </BlockStack>
+              </Box>
+            </Card>
           </Layout.Section>
         </Layout>
       </SkeletonPage>
@@ -232,16 +234,18 @@ export default function ProductDetailPage() {
       <Page title={t('editProduct')}>
         <Layout>
           <Layout.Section>
-      <div className="space-y-6">
-        <Card>
-          <div className="p-12 text-center">
-            <Text as="p" tone="subdued">{t('notFound')}</Text>
-            <div className="mt-4 flex justify-center">
-              <Button onClick={() => router.push('/dashboard/products')}>{t('backToProducts')}</Button>
-            </div>
-          </div>
-        </Card>
-      </div>
+            <Card>
+              <Box padding="800">
+                <BlockStack gap="300" align="center">
+                  <Text as="p" tone="subdued">
+                    {t('notFound')}
+                  </Text>
+                  <Button onClick={() => router.push('/dashboard/products')}>
+                    {t('backToProducts')}
+                  </Button>
+                </BlockStack>
+              </Box>
+            </Card>
           </Layout.Section>
         </Layout>
       </Page>
