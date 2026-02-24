@@ -230,6 +230,7 @@ test.post('/rag/answer', async (c) => {
     const query = typeof body?.query === 'string' ? body.query.trim() : '';
     const productIds = Array.isArray(body?.productIds) ? body.productIds : undefined;
     const topK = typeof body?.topK === 'number' ? body.topK : 5;
+    const stream = body?.stream === true;
     const conversationHistory = Array.isArray(body?.conversationHistory)
       ? body.conversationHistory
           .filter((m: any) => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant' || m.role === 'merchant'))
@@ -304,11 +305,13 @@ test.post('/rag/answer', async (c) => {
 
     let answer = '';
     let completion: any = null;
+    let streamUsage: any = null;
     let llmRequestMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
     const llmConfig = {
       model: 'gpt-4o-mini',
       temperature: 0.5,
       max_tokens: 500,
+      stream,
     } as const;
     if (planned) {
       answer = planned.answer;
@@ -322,13 +325,31 @@ test.post('/rag/answer', async (c) => {
         })),
         { role: 'user', content: query },
       ];
-      completion = await openai.chat.completions.create({
-        model: llmConfig.model,
-        messages: llmRequestMessages,
-        temperature: llmConfig.temperature,
-        max_tokens: llmConfig.max_tokens,
-      });
-      answer = completion.choices[0]?.message?.content?.trim() || '';
+      if (stream) {
+        const streamResp = await openai.chat.completions.create({
+          model: llmConfig.model,
+          messages: llmRequestMessages,
+          temperature: llmConfig.temperature,
+          max_tokens: llmConfig.max_tokens,
+          stream: true,
+          stream_options: { include_usage: true },
+        });
+        let buffer = '';
+        for await (const event of streamResp as any) {
+          const delta = event?.choices?.[0]?.delta?.content;
+          if (typeof delta === 'string') buffer += delta;
+          if (event?.usage) streamUsage = event.usage;
+        }
+        answer = buffer.trim();
+      } else {
+        completion = await openai.chat.completions.create({
+          model: llmConfig.model,
+          messages: llmRequestMessages,
+          temperature: llmConfig.temperature,
+          max_tokens: llmConfig.max_tokens,
+        });
+        answer = completion.choices[0]?.message?.content?.trim() || '';
+      }
     }
 
     const styleCompliance = evaluateStyleCompliance(answer, (merchant as any)?.persona_settings || {});
@@ -353,7 +374,7 @@ test.post('/rag/answer', async (c) => {
         deterministicFactsQueryType: planned?.queryType || null,
         deterministicEvidenceUsed: planned?.evidenceQuotesUsed?.length || 0,
         styleCompliance,
-        tokens: completion?.usage || null,
+        tokens: completion?.usage || streamUsage || null,
         aiDebug: {
           mode: planned ? 'deterministic_facts' : 'llm_chat_completion',
           model: planned ? null : llmConfig.model,
@@ -365,6 +386,8 @@ test.post('/rag/answer', async (c) => {
           contextChars: contextText.length,
           requestMessages: llmRequestMessages,
           llmConfig: planned ? null : llmConfig,
+          streamRequested: stream,
+          streamUsed: Boolean(!planned && stream),
           deterministicAnswerUsed: Boolean(planned),
           deterministicUsedFactKeys: planned?.usedFactKeys || [],
           deterministicEvidenceQuotes: planned?.evidenceQuotesUsed || [],

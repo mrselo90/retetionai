@@ -364,6 +364,7 @@ export default function TestInterfacePage() {
               ? ragProductIds.split(',').map((id) => id.trim()).filter(Boolean)
               : undefined,
             topK: 5,
+            stream: true,
           }),
         }
       );
