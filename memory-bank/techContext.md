@@ -9,8 +9,8 @@
 - **Queue**: BullMQ + Redis
 - **LLM Orchestration**: LangChain.js
 - **LLM Models**: 
-  - GPT-4o (reasoning & complex queries)
-  - GPT-3.5-Turbo (sentiment analysis & summarization - cost optimization)
+  - GPT-4o / GPT-4o-mini (reasoning, generation, enrichment, eval judge)
+  - Multilingual embeddings via OpenAI (`text-embedding-3-small`)
 - **Messaging**: WhatsApp Business API (Meta Cloud API)
 
 ### Frontend (packages/web)
@@ -22,7 +22,7 @@
 
 ### Workers (packages/workers)
 - **Queue**: BullMQ (Redis-backed)
-- **Jobs**: Order processing, scheduled messages, product scraping, analytics, API key expiration
+- **Jobs**: Order processing, scheduled messages, product scraping, analytics
 - **Intelligence Workers**: RFM analysis (daily 2AM), churn prediction (weekly Mon 3AM), product recommendations (weekly Tue 4AM), abandoned cart reminders, feedback/NPS requests
 
 ### Shared (packages/shared)
@@ -84,7 +84,7 @@ pm2 restart all --update-env
 ## Database Schema (Key Tables)
 
 ### Core Tables
-- `merchants` — Merchant accounts, API keys, guardrail_settings
+- `merchants` — Merchant accounts, guardrail_settings (merchant API key feature removed from active app paths)
 - `users` — End users/customers with phone, consent, rfm_score (JSONB), segment, churn_probability
 - `orders` — Order records linked to merchants and users
 - `products` — Product catalog with embeddings (pgvector)
@@ -173,12 +173,27 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<key>
 - `POST /api/auth/login` - User login
 - `GET /api/auth/me` - Current user
 - `GET/POST/PUT/DELETE /api/integrations` - Integration CRUD
-- `POST /webhooks/commerce/event` - Commerce event ingestion
+- `POST /webhooks/commerce/event` - Commerce event ingestion (manual API-key variant deprecated/disabled)
 - `POST /api/import/orders/csv` - CSV order import
 - `POST /webhooks/whatsapp/inbound` - WhatsApp inbound messages
 - `GET /api/analytics/dashboard` - Analytics data
 - `GET/PUT /api/merchant/persona` - Persona settings
 - `POST /api/test/*` - Test interface endpoints
+
+## Authentication Notes (Current)
+
+- **Merchant/admin app auth**: Supabase JWT + Shopify session token
+- **Internal service auth**: `INTERNAL_SERVICE_SECRET` via `X-Internal-Secret` (worker/internal eval/debug routes)
+- **Merchant API keys**: Removed from active runtime flows (UI/auth/routes). Shopify `SHOPIFY_API_KEY` / `SHOPIFY_API_SECRET` remain required for Shopify app integration.
+
+## RAG / Eval Notes (Feb 24, 2026)
+
+- Added multilingual cosmetics eval tooling (`run/score/judge/summarize` scripts)
+- Server-side eval now runs using internal-secret auth (no merchant API key)
+- Maruderm HU product set (10 products) ingested for realistic cosmetics testing
+- Chunk counts verified in `knowledge_chunks`; products dashboard false `RAG not ready` issue fixed by:
+  - hardening `/api/products/chunks/batch` JSON parsing
+  - frontend `unknown` chunk-status fallback instead of `0 chunk`
 
 ## Key Dependencies
 

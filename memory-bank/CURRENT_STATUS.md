@@ -1,4 +1,4 @@
-# Current Status — February 20, 2026
+# Current Status — February 24, 2026
 
 ## 🟢 Application is LIVE
 
@@ -46,8 +46,26 @@ cd /root/retetionai && git pull && pnpm install && cd packages/web && pnpm build
 
 **Ports & "Could not reach the API"**: Fixed inside PM2 process via `.env` by setting **INTERNAL_API_URL=http://127.0.0.1:3002**. 
 
+## Recent Operational Changes (Feb 24)
+
+- **Merchant API key system removed from active app flows**
+  - Auth now relies on `Supabase JWT` / `Shopify session token` / `INTERNAL_SERVICE_SECRET` (internal routes only)
+  - Settings + signup API key UI/flows removed
+  - Manual API-key webhook ingestion deprecated
+- **Internal service auth added for ops/eval**
+  - `X-Internal-Secret` + `X-Internal-Merchant-Id`
+  - Used by workers and server-side eval scripts
+- **Maruderm HU test ingestion completed**
+  - 10 products from `https://maruderm.hu` ingested into test merchant
+  - Scrape + enrich + embeddings succeeded; products produced ~9–10 chunks each
+- **Products dashboard false-negative RAG status fixed**
+  - `chunks/batch` JSON parse failure no longer causes silent `chunkCount=0` fallback
+  - UI now shows `RAG status unknown` if chunk-count fetch fails, instead of false `RAG not ready`
+- **Internal debug auth extended**
+  - `/api/products/chunks/batch` and `/api/products/:id/chunks` now accept internal-secret auth (for server-side debugging)
+
 ### Next Steps
-1.  **Database Migration:** ✅ User MUST execute `004_subscription_system.sql` manually in Supabase SQL Editor to resolve missing `get_merchant_usage` function.
-2.  **SSL/Domain:** Configure custom domain and Let's Encrypt SSL.
-3.  **App Store Listing:** Complete Partner Dashboard listing (G6).
-4.  **Integrations:** Verify Shopify OAuth and WhatsApp API.
+1. **Eval quality tuning (TR/EN/HU)**: Re-run and tune multilingual/product-scoped evals using Maruderm products (facts-first coverage, language consistency, grounding).
+2. **Prod DB migration alignment**: Verify/apply latest `product_facts` / chunk metadata migrations in Supabase (schema drift observed during eval checks).
+3. **SSL/Domain**: Configure custom domain and Let's Encrypt SSL.
+4. **Integrations**: Verify Shopify OAuth and WhatsApp API in end-to-end flows.
