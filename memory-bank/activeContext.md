@@ -60,6 +60,10 @@
   - Notification settings card migrated to Polaris-first (`Polaris Card`, `TextField`)
   - Bot Persona top controls migrated to Polaris controls (`TextField`, `ChoiceList`, `Checkbox`, `RangeSlider`) while preserving save flow and embedded `ShopifySaveBar`
   - Product scope / WhatsApp sender option blocks now use Polaris choice controls with helper summaries and banners
+- **Settings Polaris Migration (step 2)**:
+  - `Modules`, `Guardrails`, and `GDPR` sections migrated to Polaris-first outer containers/headers (`Polaris Card`, `Box`, `BlockStack`, `InlineStack`)
+  - Existing business logic/actions preserved (add-on toggle dialog, guardrail CRUD actions, GDPR export/delete actions)
+  - Inner list rows still partially custom/Tailwind and can be standardized further in later passes
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart

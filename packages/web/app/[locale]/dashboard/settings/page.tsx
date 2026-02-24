@@ -696,21 +696,20 @@ export default function SettingsPage() {
       </Card>
 
       {/* Add-on Modules */}
-      <Card id="modules" hover className="scroll-mt-4 overflow-hidden shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-warning/5 to-transparent">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-warning to-warning/80 text-warning-foreground shadow-lg">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl">Modules</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1.5 font-medium">
-                Optional paid modules to enhance your AI capabilities
-              </p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
+      <PolarisCard>
+        <Box id="modules" padding="400">
+          <BlockStack gap="400">
+            <InlineStack gap="300" blockAlign="start">
+              <Box background="bg-fill-caution" borderRadius="300" padding="300">
+                <ShieldCheck className="w-5 h-5 text-white" />
+              </Box>
+              <BlockStack gap="100">
+                <Text as="h2" variant="headingMd">Modules</Text>
+                <Text as="p" tone="subdued">
+                  Optional paid modules to enhance your AI capabilities
+                </Text>
+              </BlockStack>
+            </InlineStack>
           {addons.map((addon) => (
             <PlanGatedFeature
               key={addon.key}
@@ -751,8 +750,9 @@ export default function SettingsPage() {
           {addons.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">No modules available</p>
           )}
-        </CardContent>
-      </Card>
+          </BlockStack>
+        </Box>
+      </PolarisCard>
 
       {/* Add-on confirmation dialog */}
       <Dialog open={!!showAddonConfirm} onOpenChange={(open) => !open && setShowAddonConfirm(null)}>
@@ -785,30 +785,27 @@ export default function SettingsPage() {
       </Dialog>
 
       {/* Guardrails */}
-      <Card id="guardrails" hover className="scroll-mt-4 overflow-hidden shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-success/5 to-transparent">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-success to-success/80 text-success-foreground shadow-lg">
-                <Shield className="w-6 h-6" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl">{t('guardrails.title')}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1.5 font-medium">
-                  {t('guardrails.description')}
-                </p>
-              </div>
-            </div>
-            <Button onClick={openAddGuardrail} size="lg" variant="success" className="shadow-lg">
-              <Plus className="w-5 h-5 mr-2" />
-              {t('guardrails.addButton')}
-            </Button>
-          </div>
-        </CardHeader>
-        <div className="p-6 space-y-6">
+      <PolarisCard>
+        <Box id="guardrails" padding="400">
+          <BlockStack gap="500">
+            <InlineStack align="space-between" blockAlign="start" gap="300">
+              <InlineStack gap="300" blockAlign="start">
+                <Box background="bg-fill-success" borderRadius="300" padding="300">
+                  <Shield className="w-5 h-5 text-white" />
+                </Box>
+                <BlockStack gap="100">
+                  <Text as="h2" variant="headingMd">{t('guardrails.title')}</Text>
+                  <Text as="p" tone="subdued">{t('guardrails.description')}</Text>
+                </BlockStack>
+              </InlineStack>
+              <Button onClick={openAddGuardrail} size="lg" variant="success" className="shadow-lg">
+                <Plus className="w-5 h-5 mr-2" />
+                {t('guardrails.addButton')}
+              </Button>
+            </InlineStack>
           {/* System guardrails (read-only) */}
           <div>
-            <h3 className="text-sm font-semibold text-zinc-700 mb-2">{t('guardrails.systemTitle')}</h3>
+            <Text as="h3" variant="headingSm">{t('guardrails.systemTitle')}</Text>
             <ul className="space-y-3">
               {systemGuardrails.map((g) => (
                 <li
@@ -832,7 +829,7 @@ export default function SettingsPage() {
           </div>
           {/* Custom guardrails */}
           <div>
-            <h3 className="text-sm font-semibold text-zinc-700 mb-2">{t('guardrails.customTitle')}</h3>
+            <Text as="h3" variant="headingSm">{t('guardrails.customTitle')}</Text>
             {customGuardrails.length === 0 ? (
               <p className="text-sm text-zinc-500 py-4">{t('guardrails.empty')}</p>
             ) : (
@@ -880,26 +877,24 @@ export default function SettingsPage() {
               </ul>
             )}
           </div>
-        </div>
-      </Card>
+          </BlockStack>
+        </Box>
+      </PolarisCard>
 
 
       {/* GDPR & Data Management */}
-      <Card hover className="overflow-hidden shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-info/5 to-transparent">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-info to-info/80 text-info-foreground shadow-lg">
-              <Database className="w-6 h-6" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl">{t('gdpr.title')}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1.5 font-medium">
-                {t('gdpr.description')}
-              </p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <PolarisCard>
+        <Box padding="400">
+          <BlockStack gap="400">
+            <InlineStack gap="300" blockAlign="start">
+              <Box background="bg-fill-info" borderRadius="300" padding="300">
+                <Database className="w-5 h-5 text-white" />
+              </Box>
+              <BlockStack gap="100">
+                <Text as="h2" variant="headingMd">{t('gdpr.title')}</Text>
+                <Text as="p" tone="subdued">{t('gdpr.description')}</Text>
+              </BlockStack>
+            </InlineStack>
           {/* Data Export */}
           <div className="p-4 border border-border rounded-lg">
             <div className="flex items-start justify-between">
@@ -960,8 +955,9 @@ export default function SettingsPage() {
               </a>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          </BlockStack>
+        </Box>
+      </PolarisCard>
 
       {/* Guardrail Add/Edit Modal */}
       <Dialog open={showGuardrailModal} onOpenChange={(open) => {
