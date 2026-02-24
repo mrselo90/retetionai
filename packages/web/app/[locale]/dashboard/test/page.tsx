@@ -573,7 +573,7 @@ export default function TestInterfacePage() {
             </InlineStack>
             {currentStep > 1 && (
               <InlineStack align="end">
-                <Button onClick={handleReset} variant="plain" icon={RefreshCw}>
+                <Button onClick={handleReset} variant="plain">
                   Sıfırla
                 </Button>
               </InlineStack>

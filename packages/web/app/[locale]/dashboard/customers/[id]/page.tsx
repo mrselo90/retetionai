@@ -125,7 +125,7 @@ export default function CustomerDetailPage() {
         <Box padding="400">
           <BlockStack gap="300">
             <InlineStack align="start">
-              <Button variant="plain" icon={ArrowLeft} onClick={() => router.push('/dashboard/customers')}>
+              <Button variant="plain" onClick={() => router.push('/dashboard/customers')}>
                 {t('backToCustomers')}
               </Button>
             </InlineStack>

@@ -501,7 +501,6 @@ export default function IntegrationsPage() {
                   onClick={() => setShowCsvModal(true)}
                   variant="secondary"
                   size="slim"
-                  icon={Upload}
                 >
                   {t('providers.csv.action')}
                 </PolarisButton>
@@ -530,7 +529,6 @@ export default function IntegrationsPage() {
                     onClick={() => setShowManualModal(true)}
                     variant="secondary"
                     size="slim"
-                    icon={Code}
                   >
                     {hasManual ? t('providers.manual.action.connected') : t('providers.manual.action.setup')}
                   </PolarisButton>
