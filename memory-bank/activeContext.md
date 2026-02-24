@@ -64,6 +64,9 @@
   - `Modules`, `Guardrails`, and `GDPR` sections migrated to Polaris-first outer containers/headers (`Polaris Card`, `Box`, `BlockStack`, `InlineStack`)
   - Existing business logic/actions preserved (add-on toggle dialog, guardrail CRUD actions, GDPR export/delete actions)
   - Inner list rows still partially custom/Tailwind and can be standardized further in later passes
+- **Settings Polaris Migration (step 3)**:
+  - Guardrail add/edit modal form inputs migrated from native inputs/selects/textarea to Polaris `TextField` + `Select`
+  - Merchant-critical guardrail configuration workflow is now closer to Shopify/Polaris form behavior while keeping existing dialog logic intact
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart

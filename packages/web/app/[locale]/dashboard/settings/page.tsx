@@ -5,7 +5,7 @@ import { Link } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Banner, BlockStack, Box, Card as PolarisCard, Checkbox, ChoiceList, Divider, InlineStack, Layout, Page, RangeSlider, SkeletonPage, Text, TextField } from '@shopify/polaris';
+import { Banner, BlockStack, Box, Card as PolarisCard, Checkbox, ChoiceList, Divider, InlineStack, Layout, Page, RangeSlider, Select, SkeletonPage, Text, TextField } from '@shopify/polaris';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -972,83 +972,64 @@ export default function SettingsPage() {
               {editingGuardrail ? t('guardrails.modal.titleEdit') : t('guardrails.modal.titleAdd')}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.nameLabel')}</label>
-              <input
-                type="text"
-                value={guardrailName}
-                onChange={(e) => setGuardrailName(e.target.value)}
-                placeholder="e.g. Competitor mention"
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.descLabel')}</label>
-              <input
-                type="text"
-                value={guardrailDescription}
-                onChange={(e) => setGuardrailDescription(e.target.value)}
-                placeholder="Brief description of the rule"
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.applyToLabel')}</label>
-              <select
-                value={guardrailApplyTo}
-                onChange={(e) => setGuardrailApplyTo(e.target.value as 'user_message' | 'ai_response' | 'both')}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              >
-                <option value="both">{t('guardrails.types.both')}</option>
-                <option value="user_message">{t('guardrails.types.user_message')}</option>
-                <option value="ai_response">{t('guardrails.types.ai_response')}</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.matchTypeLabel')}</label>
-              <select
-                value={guardrailMatchType}
-                onChange={(e) => setGuardrailMatchType(e.target.value as 'keywords' | 'phrase')}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              >
-                <option value="keywords">{t('guardrails.modal.matchTypes.keywords')}</option>
-                <option value="phrase">{t('guardrails.modal.matchTypes.phrase')}</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">
-                {t('guardrails.modal.valueLabel')}
-              </label>
-              <input
-                type="text"
-                value={guardrailValue}
-                onChange={(e) => setGuardrailValue(e.target.value)}
-                placeholder={guardrailMatchType === 'keywords' ? 'competitor, price, discount' : 'This product cures'}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.actionLabel')}</label>
-              <select
-                value={guardrailAction}
-                onChange={(e) => setGuardrailAction(e.target.value as 'block' | 'escalate')}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              >
-                <option value="block">{t('guardrails.actions.block')}</option>
-                <option value="escalate">{t('guardrails.actions.escalate')}</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">{t('guardrails.modal.responseLabel')}</label>
-              <textarea
-                value={guardrailSuggestedResponse}
-                onChange={(e) => setGuardrailSuggestedResponse(e.target.value)}
-                placeholder="Text to show when rule is triggered"
-                rows={2}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
+          <BlockStack gap="400">
+            <TextField
+              label={t('guardrails.modal.nameLabel')}
+              value={guardrailName}
+              onChange={setGuardrailName}
+              placeholder="e.g. Competitor mention"
+              autoComplete="off"
+            />
+            <TextField
+              label={t('guardrails.modal.descLabel')}
+              value={guardrailDescription}
+              onChange={setGuardrailDescription}
+              placeholder="Brief description of the rule"
+              autoComplete="off"
+            />
+            <Select
+              label={t('guardrails.modal.applyToLabel')}
+              options={[
+                { label: t('guardrails.types.both'), value: 'both' },
+                { label: t('guardrails.types.user_message'), value: 'user_message' },
+                { label: t('guardrails.types.ai_response'), value: 'ai_response' },
+              ]}
+              value={guardrailApplyTo}
+              onChange={(value) => setGuardrailApplyTo(value as 'user_message' | 'ai_response' | 'both')}
+            />
+            <Select
+              label={t('guardrails.modal.matchTypeLabel')}
+              options={[
+                { label: t('guardrails.modal.matchTypes.keywords'), value: 'keywords' },
+                { label: t('guardrails.modal.matchTypes.phrase'), value: 'phrase' },
+              ]}
+              value={guardrailMatchType}
+              onChange={(value) => setGuardrailMatchType(value as 'keywords' | 'phrase')}
+            />
+            <TextField
+              label={t('guardrails.modal.valueLabel')}
+              value={guardrailValue}
+              onChange={setGuardrailValue}
+              placeholder={guardrailMatchType === 'keywords' ? 'competitor, price, discount' : 'This product cures'}
+              autoComplete="off"
+            />
+            <Select
+              label={t('guardrails.modal.actionLabel')}
+              options={[
+                { label: t('guardrails.actions.block'), value: 'block' },
+                { label: t('guardrails.actions.escalate'), value: 'escalate' },
+              ]}
+              value={guardrailAction}
+              onChange={(value) => setGuardrailAction(value as 'block' | 'escalate')}
+            />
+            <TextField
+              label={t('guardrails.modal.responseLabel')}
+              value={guardrailSuggestedResponse}
+              onChange={setGuardrailSuggestedResponse}
+              placeholder="Text to show when rule is triggered"
+              multiline={2}
+              autoComplete="off"
+            />
             <DialogFooter className="gap-3 sm:gap-0">
               <Button
                 variant="outline"
@@ -1065,7 +1046,7 @@ export default function SettingsPage() {
                 {savingGuardrails ? t('guardrails.modal.saving') : (editingGuardrail ? t('guardrails.modal.save') : t('guardrails.modal.save'))}
               </Button>
             </DialogFooter>
-          </div>
+          </BlockStack>
         </DialogContent>
       </Dialog>
 
