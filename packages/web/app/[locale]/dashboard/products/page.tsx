@@ -5,14 +5,23 @@ import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { Link } from '@/i18n/routing';
-import { Card as PolarisCard, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
+import {
+  ButtonGroup as PolarisButtonGroup,
+  Card as PolarisCard,
+  Layout,
+  Page,
+  Select as PolarisSelect,
+  SkeletonPage,
+  Text,
+  TextField as PolarisTextField,
+} from '@shopify/polaris';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Package, Plus, Trash2, ExternalLink, FileText, CheckCircle, Loader2, ArrowRight, LayoutGrid, List } from 'lucide-react';
+import { Package, Plus, Trash2, ExternalLink, FileText, CheckCircle, Loader2, ArrowRight, LayoutGrid, List, Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useTranslations } from 'next-intl';
 import { SESSION_RECHECK_MS } from '@/lib/constants';
@@ -330,14 +339,14 @@ export default function ProductsPage() {
             <Text as="p" tone="subdued">{t('description')}</Text>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="inline-flex items-center rounded-lg border border-border bg-muted/40 p-1">
+            <PolarisButtonGroup>
               <button
                 type="button"
                 onClick={() => handleViewModeChange('grid')}
-                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors border ${
                   viewMode === 'grid'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-[var(--p-color-bg-fill)] text-white border-[var(--p-color-bg-fill)]'
+                    : 'bg-white text-zinc-700 border-[var(--p-color-border)] hover:bg-zinc-50'
                 }`}
                 aria-pressed={viewMode === 'grid'}
                 title={t('view.grid')}
@@ -348,10 +357,10 @@ export default function ProductsPage() {
               <button
                 type="button"
                 onClick={() => handleViewModeChange('list')}
-                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors border ${
                   viewMode === 'list'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-[var(--p-color-bg-fill)] text-white border-[var(--p-color-bg-fill)]'
+                    : 'bg-white text-zinc-700 border-[var(--p-color-border)] hover:bg-zinc-50'
                 }`}
                 aria-pressed={viewMode === 'list'}
                 title={t('view.list')}
@@ -359,7 +368,7 @@ export default function ProductsPage() {
                 <List className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">{t('view.list')}</span>
               </button>
-            </div>
+            </PolarisButtonGroup>
             <Button variant="outline" size="lg" asChild>
               <Link href="/dashboard/products/shopify-map">
                 <ArrowRight className="w-4 h-4 mr-2" />
@@ -378,57 +387,45 @@ export default function ProductsPage() {
         <PolarisCard>
           <div className="p-4 sm:p-5 space-y-4">
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:gap-4 xl:items-end">
-              <div className="min-w-0 flex flex-col gap-1">
-                <Label htmlFor="products-search" className="text-xs text-muted-foreground font-medium">
-                  {t('filters.searchLabel')}
-                </Label>
-                <Input
-                  id="products-search"
+              <div className="min-w-0">
+                <PolarisTextField
+                  label={t('filters.searchLabel')}
+                  autoComplete="off"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={setSearchQuery}
                   placeholder={t('filters.searchPlaceholder')}
-                  className="h-10 bg-background"
+                  prefix={<Search className="w-4 h-4 text-zinc-500" aria-hidden />}
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:gap-4 xl:items-end">
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="products-status-filter" className="text-xs text-muted-foreground font-medium">
-                    {t('filters.status')}
-                  </Label>
-                  <select
-                    id="products-status-filter"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as ProductStatusFilter)}
-                    className="h-10 w-full xl:min-w-[180px] rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="all">{t('filters.statusOptions.all')}</option>
-                    <option value="rag_ready">{t('filters.statusOptions.ragReady')}</option>
-                    <option value="rag_not_ready">{t('filters.statusOptions.ragNotReady')}</option>
-                    <option value="rag_unknown">{t('filters.statusOptions.ragUnknown')}</option>
-                    <option value="scraped">{t('filters.statusOptions.scraped')}</option>
-                    <option value="not_scraped">{t('filters.statusOptions.notScraped')}</option>
-                  </select>
-                </div>
+                <PolarisSelect
+                  label={t('filters.status')}
+                  options={[
+                    { label: t('filters.statusOptions.all'), value: 'all' },
+                    { label: t('filters.statusOptions.ragReady'), value: 'rag_ready' },
+                    { label: t('filters.statusOptions.ragNotReady'), value: 'rag_not_ready' },
+                    { label: t('filters.statusOptions.ragUnknown'), value: 'rag_unknown' },
+                    { label: t('filters.statusOptions.scraped'), value: 'scraped' },
+                    { label: t('filters.statusOptions.notScraped'), value: 'not_scraped' },
+                  ]}
+                  value={statusFilter}
+                  onChange={(value) => setStatusFilter(value as ProductStatusFilter)}
+                />
 
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="products-sort" className="text-xs text-muted-foreground font-medium">
-                    {t('filters.sort')}
-                  </Label>
-                  <select
-                    id="products-sort"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as ProductSortOption)}
-                    className="h-10 w-full xl:min-w-[220px] rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="updated_desc">{t('filters.sortOptions.updatedDesc')}</option>
-                    <option value="updated_asc">{t('filters.sortOptions.updatedAsc')}</option>
-                    <option value="name_asc">{t('filters.sortOptions.nameAsc')}</option>
-                    <option value="name_desc">{t('filters.sortOptions.nameDesc')}</option>
-                    <option value="chunks_desc">{t('filters.sortOptions.chunksDesc')}</option>
-                    <option value="chunks_asc">{t('filters.sortOptions.chunksAsc')}</option>
-                  </select>
-                </div>
+                <PolarisSelect
+                  label={t('filters.sort')}
+                  options={[
+                    { label: t('filters.sortOptions.updatedDesc'), value: 'updated_desc' },
+                    { label: t('filters.sortOptions.updatedAsc'), value: 'updated_asc' },
+                    { label: t('filters.sortOptions.nameAsc'), value: 'name_asc' },
+                    { label: t('filters.sortOptions.nameDesc'), value: 'name_desc' },
+                    { label: t('filters.sortOptions.chunksDesc'), value: 'chunks_desc' },
+                    { label: t('filters.sortOptions.chunksAsc'), value: 'chunks_asc' },
+                  ]}
+                  value={sortBy}
+                  onChange={(value) => setSortBy(value as ProductSortOption)}
+                />
               </div>
             </div>
 
