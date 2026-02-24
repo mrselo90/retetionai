@@ -11,10 +11,9 @@ import { Hono } from 'hono';
 import webhookRoutes from '../../routes/webhooks';
 import { getSupabaseServiceClient } from '@recete/shared';
 import { mockSupabaseClient } from '../mocks';
-import { createTestIntegration, createTestShopifyEvent, createTestMerchant } from '../fixtures';
+import { createTestIntegration, createTestShopifyEvent } from '../fixtures';
 import { testRequest } from './setup';
 import * as crypto from 'crypto';
-import { hashApiKey } from '@recete/shared';
 
 // Mock dependencies
 vi.mock('@recete/shared', async () => {
@@ -124,79 +123,3 @@ describe('POST /webhooks/commerce/shopify', () => {
     expect(response.data).toHaveProperty('error');
   });
 });
-
-describe('POST /webhooks/commerce/event', () => {
-  let app: Hono;
-
-  beforeEach(() => {
-    app = new Hono();
-    app.route('/webhooks', webhookRoutes);
-    vi.clearAllMocks();
-    (getSupabaseServiceClient as any).mockReturnValue(mockSupabaseClient);
-  });
-
-  it('should process generic webhook with API key', async () => {
-    const merchant = createTestMerchant();
-    const apiKey = 'gg_live_test123456789012345678901234567890';
-    const keyHash = hashApiKey(apiKey);
-
-    // Mock: find merchant by API key
-    // The code does: serviceClient.from('merchants').select('id, api_keys')
-    // Then manually finds merchant with matching API key in the array
-    const merchantsQ = mockSupabaseClient.from('merchants') as any;
-    merchantsQ.__setDefaultResult({
-      data: [
-        {
-          ...merchant,
-          api_keys: [keyHash], // legacy: array of hashes
-        },
-      ],
-      error: null,
-    });
-
-    // Mock: insert external event
-    const eventsQ = mockSupabaseClient.from('external_events') as any;
-    eventsQ.__setDefaultResult({
-      data: {
-        id: 'event-id',
-        merchant_id: merchant.id,
-        source: 'generic',
-        event_type: 'order_created',
-      },
-      error: null,
-    });
-
-    const response = await testRequest(app, 'POST', '/webhooks/commerce/event', {
-      body: {
-        source: 'generic',
-        event_type: 'order_created',
-        external_order_id: 'ORD-123',
-        occurred_at: new Date().toISOString(),
-        customer: {
-          phone: '+905551112233',
-          name: 'Test Customer',
-        },
-        order: {
-          status: 'created',
-          created_at: new Date().toISOString(),
-        },
-      },
-      headers: {
-        'X-Api-Key': apiKey,
-      },
-    });
-
-    expect(response.status).toBe(200);
-  });
-
-  it('should reject webhook without API key', async () => {
-    const response = await testRequest(app, 'POST', '/webhooks/commerce/event', {
-      body: {
-        event_type: 'order_created',
-      },
-    });
-
-    expect(response.status).toBe(401);
-  });
-});
-

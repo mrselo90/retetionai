@@ -89,7 +89,7 @@ export async function testRequest(
     body?: any;
     headers?: Record<string, string>;
     merchantId?: string; // Override default merchant ID
-    authMethod?: 'jwt' | 'api-key';
+    authMethod?: 'jwt' | 'internal';
   }
 ) {
   const headers = new Headers({

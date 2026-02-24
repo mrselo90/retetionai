@@ -12,7 +12,6 @@ import { randomUUID } from 'crypto';
 export const createTestMerchant = (overrides?: Partial<any>) => ({
   id: randomUUID(),
   name: 'Test Merchant',
-  api_keys: [],
   webhook_secret: 'test-webhook-secret',
   persona_settings: {
     bot_name: 'Test Bot',
@@ -180,19 +179,6 @@ export const createTestNormalizedEvent = (merchantId: string, integrationId: str
       url: 'https://example.com/product',
     },
   ],
-  ...overrides,
-});
-
-// ============================================================================
-// API Key Fixtures
-// ============================================================================
-
-export const createTestApiKey = (overrides?: Partial<any>) => ({
-  hash: 'test-hash-' + randomUUID(),
-  name: 'Test API Key',
-  created_at: new Date().toISOString(),
-  expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days from now
-  last_used_at: null,
   ...overrides,
 });
 

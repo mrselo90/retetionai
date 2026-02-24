@@ -29,41 +29,9 @@ test.describe('Settings', () => {
     }
   });
 
-  test('should display API keys section', async ({ authenticatedPage }) => {
+  test('should not display merchant API keys section', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/dashboard/settings');
-    
-    // Should show API keys section
-    await expect(authenticatedPage.locator('text=/API Key|API Anahtarı/i')).toBeVisible();
-  });
 
-  test('should generate new API key', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/dashboard/settings');
-    
-    // Click generate API key button
-    const generateButton = authenticatedPage.locator('button:has-text("Generate"), button:has-text("Oluştur")');
-    
-    if (await generateButton.count() > 0) {
-      await generateButton.click();
-      
-      // Should show API key (may be masked)
-      await expect(authenticatedPage.locator('text=/gg_live_/')).toBeVisible({ timeout: 5000 });
-    }
-  });
-
-  test('should revoke API key', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/dashboard/settings');
-    
-    // Look for revoke/delete buttons
-    const revokeButton = authenticatedPage.locator('button:has-text("Revoke"), button:has-text("Sil")');
-    
-    if (await revokeButton.count() > 0) {
-      await revokeButton.first().click();
-      
-      // Should confirm deletion
-      await authenticatedPage.click('button:has-text("Confirm"), button:has-text("Onayla")');
-      
-      // Should show success message
-      await expect(authenticatedPage.locator('text=/success|başarı/i')).toBeVisible({ timeout: 5000 });
-    }
+    await expect(authenticatedPage.locator('text=/API Key|API Anahtarı/i')).toHaveCount(0);
   });
 });

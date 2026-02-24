@@ -105,31 +105,6 @@ describe('rateLimitMiddleware', () => {
     expect(redisKey).toContain('192.168.1.100');
   });
 
-  it('should identify client by API key', async () => {
-    const context = createMockContext({
-      req: {
-        header: vi.fn((name: string) => {
-          if (name === 'X-Api-Key') return 'gg_live_test123456789012345678901234567890';
-          return undefined;
-        }),
-        method: 'GET',
-        path: '/api/products',
-      } as any,
-    });
-
-    mockRedisClient.zrangebyscore.mockResolvedValue([]);
-    mockRedisClient.zadd.mockResolvedValue(1);
-    mockRedisClient.pexpire.mockResolvedValue(1);
-    mockRedisClient.zremrangebyscore.mockResolvedValue(0);
-
-    const next = vi.fn();
-    await rateLimitMiddleware(context as any, next);
-
-    expect(mockRedisClient.zrangebyscore).toHaveBeenCalled();
-    const redisKey = (mockRedisClient.zrangebyscore as any).mock.calls[0][0];
-    expect(redisKey).toContain('ratelimit:apikey:');
-  });
-
   it('should set rate limit headers', async () => {
     const context = createMockContext({
       req: {

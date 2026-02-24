@@ -331,9 +331,6 @@ export function getAllWorkers() {
   return [scheduledMessagesWorker, scrapeJobsWorker, analyticsWorker];
 }
 
-// Note: API key expiration worker is in a separate file due to circular dependency
-// Import it separately: import { apiKeyExpirationWorker } from './apiKeyExpirationWorker.js';
-
 /**
  * Close all workers (graceful shutdown)
  */

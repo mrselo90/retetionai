@@ -120,7 +120,6 @@ describe('getCachedMerchant', () => {
     const cachedMerchant = {
       id: merchantId,
       name: 'Test Merchant',
-      api_keys: [],
     };
 
     mockRedisClient.get.mockResolvedValue(JSON.stringify(cachedMerchant));
@@ -153,7 +152,6 @@ describe('setCachedMerchant', () => {
     const merchant = {
       id: 'merchant-id',
       name: 'Test Merchant',
-      api_keys: [],
     };
     const ttl = 3600; // 1 hour
 

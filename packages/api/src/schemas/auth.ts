@@ -44,31 +44,3 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
-
-/**
- * API key name schema (for creating named API keys)
- */
-export const apiKeyNameSchema = z
-  .string()
-  .min(1, 'API key name is required')
-  .max(50, 'API key name must be less than 50 characters')
-  .trim()
-  .optional();
-
-/**
- * Create API key request schema
- */
-export const createApiKeySchema = z.object({
-  name: apiKeyNameSchema,
-});
-
-export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;
-
-/**
- * Revoke API key request schema
- */
-export const revokeApiKeySchema = z.object({
-  keyId: z.string().uuid('Invalid API key ID format'),
-});
-
-export type RevokeApiKeyInput = z.infer<typeof revokeApiKeySchema>;

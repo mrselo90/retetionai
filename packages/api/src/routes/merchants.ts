@@ -282,13 +282,6 @@ merchants.put('/me/bot-info', async (c) => {
   }
 });
 
-merchants.get('/me/api-keys', async (c) => {
-  return c.json({
-    error: 'API key feature removed',
-    message: 'Merchant API keys are no longer supported. Use Shopify session tokens or internal service auth.',
-  }, 410);
-});
-
 /**
  * Get Dashboard Statistics (Protected)
  * GET /api/merchants/me/stats

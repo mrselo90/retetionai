@@ -25,7 +25,7 @@ interface Integration {
   shop_domain?: string;
 }
 
-/** Manual integration is not in plan for now; API keys are still used for webhooks/API auth in Settings. */
+/** Manual integration is not in plan for now. */
 const ENABLE_MANUAL_INTEGRATION = false;
 
 export default function IntegrationsPage() {
@@ -47,12 +47,10 @@ export default function IntegrationsPage() {
   const [whatsappAccessToken, setWhatsappAccessToken] = useState('');
   const [whatsappVerifyToken, setWhatsappVerifyToken] = useState('');
   const [editingWhatsAppId, setEditingWhatsAppId] = useState<string | null>(null);
-  const [apiKeys, setApiKeys] = useState<Array<{ id: number; hash: string }>>([]);
   const [platformWhatsApp, setPlatformWhatsApp] = useState<string>('');
 
   useEffect(() => {
     loadIntegrations();
-    if (ENABLE_MANUAL_INTEGRATION) loadApiKeys();
     loadPlatformContact();
   }, []);
 
@@ -72,21 +70,6 @@ export default function IntegrationsPage() {
       }
     } catch {
       setPlatformWhatsApp('+905545736900');
-    }
-  };
-
-  const loadApiKeys = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const response = await authenticatedRequest<{ apiKeys: Array<{ id: number; hash: string }> }>(
-          '/api/merchants/me/api-keys',
-          session.access_token
-        );
-        setApiKeys(response.apiKeys);
-      }
-    } catch (err) {
-      console.error('Failed to load API keys:', err);
     }
   };
 
@@ -785,15 +768,6 @@ export default function IntegrationsPage() {
                 {t('modals.manual.webhookHelper')}
               </p>
             </div>
-
-            {apiKeys.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('modals.manual.apiKeyLabel')}</p>
-                <code className="block bg-muted px-3 py-2 rounded border text-sm font-mono">
-                  {apiKeys[0]?.hash.substring(0, 20)}...
-                </code>
-              </div>
-            )}
 
             <DialogFooter className="gap-3 sm:gap-3">
               <button

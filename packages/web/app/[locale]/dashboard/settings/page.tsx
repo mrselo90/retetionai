@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Bot, Shield, Key, Database, Loader2, Plus, Copy, Trash2, Pencil, X, Download, AlertTriangle, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Settings, Bot, Shield, Database, Loader2, Plus, Trash2, Pencil, X, Download, AlertTriangle, ExternalLink, ShieldCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useTranslations, useLocale } from 'next-intl';
 import { ShopifySaveBar } from '@/components/ui/ShopifySaveBar';
@@ -60,32 +60,15 @@ interface Merchant {
   created_at: string;
 }
 
-interface ApiKey {
-  id: number;
-  hash: string;
-  hash_full?: string;
-  name?: string;
-  created_at: string;
-  expires_at?: string;
-  last_used_at?: string;
-  is_expired?: boolean;
-  is_expiring_soon?: boolean;
-  days_until_expiration?: number | null;
-}
-
 export default function SettingsPage() {
   const t = useTranslations('Settings');
   const rp = useTranslations('ReturnPrevention');
   const locale = useLocale();
   const [merchant, setMerchant] = useState<Merchant | null>(null);
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
-  const [creatingKey, setCreatingKey] = useState(false);
-  const [newApiKey, setNewApiKey] = useState<string | null>(null);
-  const [showNewKeyModal, setShowNewKeyModal] = useState(false);
   const [exportingData, setExportingData] = useState(false);
   const [deletingData, setDeletingData] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -119,8 +102,6 @@ export default function SettingsPage() {
   const [guardrailValue, setGuardrailValue] = useState('');
   const [guardrailAction, setGuardrailAction] = useState<'block' | 'escalate'>('block');
   const [guardrailSuggestedResponse, setGuardrailSuggestedResponse] = useState('');
-  const apiKeysFeatureEnabled = false;
-
   useEffect(() => {
     loadData();
   }, []);
@@ -153,16 +134,6 @@ export default function SettingsPage() {
         persona.whatsapp_sender_mode === 'corporate' ? 'corporate' : 'merchant_own'
       );
       setNotificationPhone(merchantResponse.merchant.notification_phone || '');
-
-      if (apiKeysFeatureEnabled) {
-        const keysResponse = await authenticatedRequest<{ apiKeys: ApiKey[]; count: number }>(
-          '/api/auth/api-keys',
-          session.access_token
-        );
-        setApiKeys(keysResponse.apiKeys);
-      } else {
-        setApiKeys([]);
-      }
 
       try {
         const guardrailsResponse = await authenticatedRequest<{
@@ -396,66 +367,6 @@ export default function SettingsPage() {
       toast.error(t('toasts.guardrailError.title'), err.message || t('toasts.guardrailError.message'));
     } finally {
       setSavingGuardrails(false);
-    }
-  };
-
-  const handleCreateApiKey = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      setCreatingKey(true);
-
-      const response = await authenticatedRequest<{ apiKey: string }>(
-        '/api/auth/api-keys',
-        session.access_token,
-        {
-          method: 'POST',
-          body: JSON.stringify({ name: `Key from ${new Date().toLocaleDateString()}` }),
-        }
-      );
-
-      setNewApiKey(response.apiKey);
-      setShowNewKeyModal(true);
-      await loadData();
-    } catch (err: any) {
-      console.error('Failed to create API key:', err);
-      toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
-    } finally {
-      setCreatingKey(false);
-    }
-  };
-
-  const handleCopyApiKey = (keyHash: string) => {
-    navigator.clipboard.writeText(keyHash);
-    toast.success(t('toasts.copySuccess.title'), t('toasts.copySuccess.message'));
-  };
-
-  const handleRevokeApiKey = async (keyHash: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      await authenticatedRequest(
-        `/api/auth/api-keys/${keyHash}`,
-        session.access_token,
-        {
-          method: 'DELETE',
-        }
-      );
-
-      toast.success(t('toasts.apiKeyRevokeSuccess.title'), t('toasts.apiKeyRevokeSuccess.message'));
-      await loadData();
-    } catch (err: any) {
-      console.error('Failed to revoke API key:', err);
-      toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
-    }
-  };
-
-  const copyApiKey = () => {
-    if (newApiKey) {
-      navigator.clipboard.writeText(newApiKey);
-      toast.success(t('toasts.copySuccess.title'), t('toasts.copySuccess.message'));
     }
   };
 
@@ -1054,115 +965,6 @@ export default function SettingsPage() {
         </div>
       </Card>
 
-      {/* API Keys (removed) */}
-      {apiKeysFeatureEnabled && (<Card hover className="overflow-hidden shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-warning/5 to-transparent">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-warning to-warning/80 text-warning-foreground shadow-lg">
-                <Key className="w-6 h-6" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl">{t('apiKeys.title')}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1.5 font-medium">
-                  {t('apiKeys.description')}
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={handleCreateApiKey}
-              disabled={creatingKey || apiKeys.length >= 5}
-              size="lg"
-              variant="warning"
-              className="shadow-lg"
-            >
-              {creatingKey ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Plus className="w-5 h-5 mr-2" />}
-              {creatingKey ? t('apiKeys.creating') : t('apiKeys.createButton')}
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent className="p-6">
-          {apiKeys.length === 0 ? (
-            <div className="text-center py-12 text-zinc-500">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
-                <Key className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <p className="font-medium">{t('apiKeys.empty')}</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {apiKeys.map((key, idx) => {
-                const keyHash = key.hash_full || key.hash;
-
-                return (
-                  <div
-                    key={key.id}
-                    className="flex items-center justify-between p-5 border-2 rounded-xl border-border hover:border-primary/20 transition-all bg-gradient-to-r from-muted/20 to-transparent"
-                    style={{ animationDelay: `${idx * 50}ms` }}
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <code className="text-sm font-mono text-zinc-900 bg-white px-3 py-1.5 rounded-lg border font-bold">{key.hash}</code>
-                        {key.name && (
-                          <Badge variant="outline" size="sm">
-                            {key.name}
-                          </Badge>
-                        )}
-                        {key.is_expired && (
-                          <Badge variant="destructive" size="sm">
-                            {t('apiKeys.expired')}
-                          </Badge>
-                        )}
-                        {key.is_expiring_soon && !key.is_expired && (
-                          <Badge variant="warning" size="sm">
-                            {t('apiKeys.expiresIn', { days: key.days_until_expiration ?? 0 })}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="mt-3 text-xs text-zinc-600 space-y-1 font-medium">
-                        <p>{t('apiKeys.created', { date: new Date(key.created_at).toLocaleDateString() })}</p>
-                        {key.expires_at && (
-                          <p>
-                            {t('apiKeys.expires', { date: new Date(key.expires_at).toLocaleDateString() })}
-                            {key.days_until_expiration !== null && (
-                              <span className="ml-2">
-                                ({key.days_until_expiration} days)
-                              </span>
-                            )}
-                          </p>
-                        )}
-                        {key.last_used_at && (
-                          <p>{t('apiKeys.lastUsed', { date: new Date(key.last_used_at).toLocaleDateString() })}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 ml-4">
-                      <Button variant="ghost" size="sm" onClick={() => handleCopyApiKey(keyHash)}>
-                        <Copy className="w-4 h-4 mr-1.5" />
-                        {t('apiKeys.copy')}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => {
-                          if (confirm('Are you sure you want to revoke this API key?')) {
-                            handleRevokeApiKey(keyHash);
-                          }
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4 mr-1.5" />
-                        {t('apiKeys.revoke')}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>)}
 
       {/* GDPR & Data Management */}
       <Card hover className="overflow-hidden shadow-lg">
@@ -1407,58 +1209,6 @@ export default function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* New API Key Modal (removed) */}
-      {apiKeysFeatureEnabled && (<Dialog open={showNewKeyModal} onOpenChange={(open) => {
-        if (!open) {
-          setShowNewKeyModal(false);
-          setNewApiKey(null);
-        }
-      }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Key className="w-5 h-5 text-primary" />
-              {t('apiKeys.modal.title')}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-sm text-amber-800">
-                <strong>{t('apiKeys.modal.important')}</strong> {t('apiKeys.modal.warning')}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium mb-1 block">{t('apiKeys.modal.label')}</label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="text"
-                  value={newApiKey || ''}
-                  readOnly
-                  className="flex-1 font-mono text-sm"
-                />
-                <Button onClick={copyApiKey}>
-                  <Copy className="w-4 h-4 mr-2" />
-                  {t('apiKeys.copy')}
-                </Button>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  setShowNewKeyModal(false);
-                  setNewApiKey(null);
-                }}
-              >
-                {t('apiKeys.modal.close')}
-              </Button>
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>)}
     </div>
         </Layout.Section>
       </Layout>

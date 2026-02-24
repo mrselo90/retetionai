@@ -106,9 +106,9 @@ describe('POST /api/integrations', () => {
     const response = await testRequest(app, 'POST', '/api/integrations', {
       body: {
         provider: 'manual',
-        auth_type: 'api_key',
+        auth_type: 'token',
         auth_data: {
-          api_key: 'test-api-key',
+          token: 'test-token',
         },
       },
       merchantId,

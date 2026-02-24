@@ -1,6 +1,5 @@
 /**
  * Authentication utilities
- * Merchant authentication and API key management
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -27,37 +26,6 @@ export function getAuthClient(): SupabaseClient {
       persistSession: true,
     },
   });
-}
-
-/**
- * Generate API key for merchant
- * Format: gg_live_<random_32_chars>
- */
-export function generateApiKey(): string {
-  const randomBytes = crypto.randomBytes(16).toString('hex');
-  return `gg_live_${randomBytes}`;
-}
-
-/**
- * Validate API key format
- */
-export function isValidApiKeyFormat(apiKey: string): boolean {
-  return /^gg_live_[a-f0-9]{32}$/.test(apiKey);
-}
-
-/**
- * Hash API key for storage (one-way hash)
- */
-export function hashApiKey(apiKey: string): string {
-  return crypto.createHash('sha256').update(apiKey).digest('hex');
-}
-
-/**
- * Verify API key against hash
- */
-export function verifyApiKey(apiKey: string, hash: string): boolean {
-  const computedHash = hashApiKey(apiKey);
-  return computedHash === hash;
 }
 
 /**

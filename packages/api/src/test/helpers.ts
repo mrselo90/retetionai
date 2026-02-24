@@ -6,7 +6,7 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { vi } from 'vitest';
-import { createTestMerchant, createTestApiKey } from './fixtures';
+import { createTestMerchant } from './fixtures';
 import { mockSupabaseClient, mockRedisClient } from './mocks';
 
 // ============================================================================
@@ -72,25 +72,12 @@ export function createTestJWT(merchantId: string): string {
 }
 
 /**
- * Create a test API key
- */
-export function createTestApiKeyHeader(): string {
-  return 'gg_live_test123456789012345678901234567890';
-}
-
-/**
  * Setup authenticated request headers
  */
-export function createAuthHeaders(type: 'jwt' | 'api_key' = 'jwt', merchantId?: string) {
-  if (type === 'jwt') {
-    return {
-      Authorization: `Bearer ${createTestJWT(merchantId || 'test-merchant-id')}`,
-    };
-  } else {
-    return {
-      'X-Api-Key': createTestApiKeyHeader(),
-    };
-  }
+export function createAuthHeaders(type: 'jwt' = 'jwt', merchantId?: string) {
+  return {
+    Authorization: `Bearer ${createTestJWT(merchantId || 'test-merchant-id')}`,
+  };
 }
 
 // ============================================================================
@@ -179,4 +166,3 @@ export function assertErrorResponse(response: any, expectedStatus: number, expec
     expect(response.body.error).toContain(expectedError);
   }
 }
-
