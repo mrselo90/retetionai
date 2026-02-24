@@ -709,7 +709,13 @@ products.get('/:id/chunks', async (c) => {
  */
 products.post('/chunks/batch', async (c) => {
   const merchantId = c.get('merchantId');
-  const body = await c.req.json();
+  let body: any = {};
+  try {
+    const raw = await c.req.text();
+    body = raw?.trim() ? JSON.parse(raw) : {};
+  } catch (err) {
+    return c.json({ error: 'Invalid JSON body', message: 'Expected { productIds: string[] }' }, 400);
+  }
   const { productIds } = body;
 
   if (!Array.isArray(productIds) || productIds.length === 0) {

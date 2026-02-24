@@ -29,6 +29,7 @@ interface Product {
 
 interface ProductWithChunks extends Product {
   chunkCount?: number;
+  chunkCountUnavailable?: boolean;
 }
 
 export default function ProductsPage() {
@@ -86,13 +87,14 @@ export default function ProductsPage() {
           const productsWithChunks = list.map(product => ({
             ...product,
             chunkCount: chunkCountMap.get(product.id) ?? 0,
+            chunkCountUnavailable: false,
           }));
 
           setProducts(productsWithChunks);
         } catch (chunkError) {
           console.error('Failed to load chunk counts:', chunkError);
-          // Fall back to products without chunk counts
-          setProducts(list.map(p => ({ ...p, chunkCount: 0 })));
+          // Fall back without lying that chunk count is zero.
+          setProducts(list.map(p => ({ ...p, chunkCount: undefined, chunkCountUnavailable: true })));
         }
       } else {
         setProducts([]);
@@ -306,7 +308,7 @@ export default function ProductsPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="outline-primary" size="sm" className="gap-1.5">
                     <FileText className="w-3.5 h-3.5" />
-                    {product.chunkCount || 0} {t('card.chunks')}
+                    {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
                   </Badge>
                   {product.raw_text && (
                     <Badge variant="success" size="sm" className="gap-1.5 shadow-sm">
@@ -314,13 +316,19 @@ export default function ProductsPage() {
                       {t('card.scraped')}
                     </Badge>
                   )}
-                  {product.raw_text && (product.chunkCount || 0) > 0 && (
+                  {product.raw_text && !product.chunkCountUnavailable && (product.chunkCount || 0) > 0 && (
                     <Badge variant="success" size="sm" className="gap-1.5 shadow-sm">
                       <CheckCircle className="w-3.5 h-3.5" />
                       {t('card.ragReady')}
                     </Badge>
                   )}
-                  {product.raw_text && (product.chunkCount || 0) === 0 && (
+                  {product.raw_text && product.chunkCountUnavailable && (
+                    <Badge variant="outline" size="sm" className="gap-1.5">
+                      <FileText className="w-3.5 h-3.5" />
+                      {t('card.ragStatusUnknown')}
+                    </Badge>
+                  )}
+                  {product.raw_text && !product.chunkCountUnavailable && (product.chunkCount || 0) === 0 && (
                     <Badge variant="outline" size="sm" className="gap-1.5">
                       <FileText className="w-3.5 h-3.5" />
                       {t('card.ragNotReady')}

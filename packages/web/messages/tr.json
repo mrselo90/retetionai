@@ -328,7 +328,9 @@
             "scraped": "Tarandı",
             "ragReady": "RAG Hazır",
             "ragNotReady": "RAG Hazır Değil",
+            "ragStatusUnknown": "RAG durumu bilinmiyor",
             "chunks": "parça",
+            "chunksUnknown": "Parça sayısı alınamadı",
             "edit": "Düzenle",
             "deleteConfirm": "Bu ürünü silmek istediğinizden emin misiniz?"
         },

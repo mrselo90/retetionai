@@ -328,7 +328,9 @@
             "scraped": "Scraped",
             "ragReady": "RAG Ready",
             "ragNotReady": "RAG not ready",
+            "ragStatusUnknown": "RAG status unknown",
             "chunks": "chunks",
+            "chunksUnknown": "Chunk count unavailable",
             "edit": "Edit",
             "deleteConfirm": "Are you sure you want to delete this product?"
         },
