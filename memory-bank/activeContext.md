@@ -75,6 +75,10 @@
   - Segment filter migrated from custom button row to Polaris `Tabs`
   - Desktop customer list now uses Polaris `IndexTable` (mobile stacked list retained for mobile-first usability)
   - Search + pagination behavior preserved while moving list page closer to Shopify index patterns
+- **Customers Polaris Migration (step 2)**:
+  - Customer detail page (`/dashboard/customers/[id]`) refactored heavily toward Polaris-first layout
+  - Header, metric cards, and orders/conversations/feedback sections now use Polaris `Card`, `Box`, `BlockStack`, `InlineStack`, `InlineGrid`, `Badge`, and `Button`
+  - Existing navigation/data loading behaviors preserved while replacing most custom shadcn card shells
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
