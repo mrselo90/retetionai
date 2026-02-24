@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { BlockStack, Box, Card, InlineGrid, InlineStack, Layout, Page, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
 import { Users, ShoppingBag, MessageSquare, BarChart3, TrendingUp } from 'lucide-react';
 
 interface GlobalStats {
@@ -37,14 +37,29 @@ export default function AdminDashboardPage() {
 
     if (loading || !stats) {
         return (
-            <div className="space-y-6 animate-pulse">
-                <div className="h-10 w-64 bg-zinc-200 rounded-lg"></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="h-32 bg-zinc-200 rounded-xl"></div>
-                    ))}
-                </div>
-            </div>
+            <SkeletonPage title="Platform Overview">
+                <Layout>
+                    <Layout.Section>
+                        <BlockStack gap="500">
+                            <Card>
+                                <Box padding="400">
+                                    <BlockStack gap="300">
+                                        <SkeletonDisplayText size="small" />
+                                        <SkeletonBodyText lines={2} />
+                                    </BlockStack>
+                                </Box>
+                            </Card>
+                            <InlineGrid columns={{ xs: '1fr', md: '1fr 1fr', lg: 'repeat(4, minmax(0, 1fr))' }} gap="400">
+                                {[1, 2, 3, 4].map((i) => (
+                                    <Card key={i}>
+                                        <Box padding="400"><div className="h-24 animate-pulse rounded bg-zinc-100" /></Box>
+                                    </Card>
+                                ))}
+                            </InlineGrid>
+                        </BlockStack>
+                    </Layout.Section>
+                </Layout>
+            </SkeletonPage>
         );
     }
 
@@ -80,53 +95,58 @@ export default function AdminDashboardPage() {
     ];
 
     return (
-        <div className="space-y-8">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Platform Overview</h1>
-                <p className="text-zinc-500 mt-2">Global metrics across all merchants on Recete AI.</p>
-            </div>
+        <Page title="Platform Overview" subtitle="Global metrics across all merchants on Recete AI." fullWidth>
+            <Layout>
+                <Layout.Section>
+                    <BlockStack gap="500">
+                        <InlineGrid columns={{ xs: '1fr', md: '1fr 1fr', lg: 'repeat(4, minmax(0, 1fr))' }} gap="400">
+                            {statCards.map((card) => {
+                                const Icon = card.icon;
+                                return (
+                                    <Card key={card.title}>
+                                        <Box padding="400">
+                                            <BlockStack gap="300">
+                                                <InlineStack align="space-between" blockAlign="center">
+                                                    <Text as="p" variant="bodySm" tone="subdued">{card.title}</Text>
+                                                    <Box borderRadius="300" padding="200" background="bg-surface-secondary">
+                                                        <Icon className={`h-5 w-5 ${card.color}`} />
+                                                    </Box>
+                                                </InlineStack>
+                                                <InlineStack gap="200" blockAlign="center">
+                                                    <Text as="h2" variant="headingLg">{card.value}</Text>
+                                                    <InlineStack gap="100" blockAlign="center">
+                                                        <TrendingUp className="w-3 h-3 text-emerald-600" />
+                                                        <Text as="span" variant="bodySm" tone="success">Live</Text>
+                                                    </InlineStack>
+                                                </InlineStack>
+                                            </BlockStack>
+                                        </Box>
+                                    </Card>
+                                );
+                            })}
+                        </InlineGrid>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {statCards.map((card) => {
-                    const Icon = card.icon;
-                    return (
-                        <Card key={card.title} className="border-none shadow-md overflow-hidden group">
-                            <CardContent className="p-6">
-                                <div className="flex items-center justify-between space-y-0 pb-4">
-                                    <p className="text-sm font-medium text-zinc-500">{card.title}</p>
-                                    <div className={`p-2.5 rounded-lg ${card.bg} transition-transform group-hover:scale-110`}>
-                                        <Icon className={`h-5 w-5 ${card.color}`} />
-                                    </div>
-                                </div>
-                                <div className="flex items-baseline space-x-2">
-                                    <h2 className="text-3xl font-bold tracking-tight text-zinc-900">{card.value}</h2>
-                                    <span className="flex items-center text-sm font-medium text-emerald-600">
-                                        <TrendingUp className="w-3 h-3 mr-1" />
-                                        Live
-                                    </span>
-                                </div>
-                            </CardContent>
+                        <Card>
+                            <Box padding="400">
+                                <BlockStack gap="300">
+                                    <BlockStack gap="100">
+                                        <Text as="h2" variant="headingMd">Recent Platform Activity</Text>
+                                        <Text as="p" tone="subdued">System events and new signups across the platform.</Text>
+                                    </BlockStack>
+                                    <Box padding="800" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
+                                        <BlockStack gap="300" inlineAlign="center">
+                                            <BarChart3 className="w-12 h-12 text-zinc-400" />
+                                            <Text as="p" tone="subdued" alignment="center">
+                                                Activity feed feature not yet implemented. Coming in v1.1.
+                                            </Text>
+                                        </BlockStack>
+                                    </Box>
+                                </BlockStack>
+                            </Box>
                         </Card>
-                    );
-                })}
-            </div>
-
-            <Card className="border-none shadow-md">
-                <CardHeader>
-                    <CardTitle>Recent Platform Activity</CardTitle>
-                    <CardDescription>System events and new signups across the platform.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50">
-                        <div className="flex flex-col items-center justify-center text-center space-y-3">
-                            <BarChart3 className="w-12 h-12 text-zinc-300" />
-                            <p className="text-zinc-500 max-w-sm">
-                                Activity feed feature not yet implemented. Coming in v1.1.
-                            </p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+                    </BlockStack>
+                </Layout.Section>
+            </Layout>
+        </Page>
     );
 }

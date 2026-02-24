@@ -3,11 +3,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Badge, BlockStack, Box, Button, Card, InlineGrid, InlineStack, Layout, Page, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
 import { Database, Server, Activity, RefreshCw, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { Button } from '@/components/ui/button';
 
 interface QueueStats {
     waiting: number;
@@ -74,30 +72,44 @@ export default function SystemHealthPage() {
 
     if (loading && !health) {
         return (
-            <div className="space-y-6 animate-pulse">
-                <div className="h-10 w-64 bg-zinc-200 rounded-lg"></div>
-                <div className="h-32 bg-zinc-200 rounded-xl"></div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-64 bg-zinc-200 rounded-xl"></div>
-                    ))}
-                </div>
-            </div>
+            <SkeletonPage title="System Health">
+                <Layout>
+                    <Layout.Section>
+                        <BlockStack gap="500">
+                            <Card><Box padding="400"><BlockStack gap="200"><SkeletonDisplayText size="small" /><SkeletonBodyText lines={2} /></BlockStack></Box></Card>
+                            <Card><Box padding="400"><div className="h-32 rounded bg-zinc-100 animate-pulse" /></Box></Card>
+                            <InlineGrid columns={{ xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }} gap="400">
+                                {[1, 2, 3].map((i) => <Card key={i}><Box padding="400"><div className="h-56 rounded bg-zinc-100 animate-pulse" /></Box></Card>)}
+                            </InlineGrid>
+                        </BlockStack>
+                    </Layout.Section>
+                </Layout>
+            </SkeletonPage>
         );
     }
 
     if (error && !health) {
         return (
-            <div className="p-6 bg-red-50 text-red-600 rounded-lg border border-red-200 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                <div>
-                    <h3 className="font-semibold text-lg">System connection failed</h3>
-                    <p className="mt-1 text-sm text-red-500">{error}</p>
-                    <Button variant="outline" size="sm" className="mt-4 bg-white" onClick={fetchHealth}>
-                        Try Again
-                    </Button>
-                </div>
-            </div>
+            <Page title="System Health">
+                <Layout>
+                    <Layout.Section>
+                        <Card>
+                            <Box padding="400">
+                                <InlineStack gap="200" blockAlign="start">
+                                    <AlertCircle className="w-5 h-5 mt-0.5 text-red-600" />
+                                    <BlockStack gap="200">
+                                        <Text as="h3" variant="headingMd" tone="critical">System connection failed</Text>
+                                        <Text as="p" tone="critical">{error}</Text>
+                                        <InlineStack align="start">
+                                            <Button variant="secondary" size="slim" onClick={fetchHealth}>Try Again</Button>
+                                        </InlineStack>
+                                    </BlockStack>
+                                </InlineStack>
+                            </Box>
+                        </Card>
+                    </Layout.Section>
+                </Layout>
+            </Page>
         );
     }
 
@@ -108,26 +120,24 @@ export default function SystemHealthPage() {
         const hasBacklog = stats.waiting > 1000;
 
         return (
-            <Card className="border-none shadow-md overflow-hidden relative">
+            <Card>
                 {/* Status indicator bar */}
                 <div className={`absolute top-0 left-0 w-full h-1 ${hasFailed ? 'bg-red-500' : hasBacklog ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-
-                <CardHeader className="pb-2">
+                <Box padding="400">
+                    <BlockStack gap="300">
                     <div className="flex items-center justify-between">
-                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                        <InlineStack gap="200" blockAlign="center">
                             <div className={`p-2 rounded-lg ${colorClass} bg-opacity-10`}>
                                 <Icon className={`w-4 h-4 ${colorClass}`} />
                             </div>
-                            {title}
-                        </CardTitle>
+                            <Text as="h3" variant="headingSm">{title}</Text>
+                        </InlineStack>
                         {hasFailed && (
-                            <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 border-none font-semibold text-xs py-0">
-                                {stats.failed} Errors
+                            <Badge tone="critical">
+                                {`${stats.failed} Errors`}
                             </Badge>
                         )}
                     </div>
-                </CardHeader>
-                <CardContent>
                     <div className="grid grid-cols-2 gap-4 mt-4">
                         <div className="bg-zinc-50 rounded-lg p-3 border border-zinc-100">
                             <div className="text-xs text-zinc-500 font-medium mb-1">Active / Pending</div>
@@ -146,48 +156,35 @@ export default function SystemHealthPage() {
                             </div>
                         </div>
                     </div>
-                </CardContent>
+                    </BlockStack>
+                </Box>
             </Card>
         );
     };
 
     return (
-        <div className="space-y-6 pb-12">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-zinc-900">System Health</h1>
-                    <p className="text-zinc-500 mt-2 flex items-center gap-2">
-                        Monitoring background workers and infrastructure
-                        {health && (
-                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 flex items-center">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
-                                Live
-                            </span>
-                        )}
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <span className="text-xs text-zinc-400 font-medium">
+        <Page title="System Health" subtitle="Monitoring background workers and infrastructure" fullWidth>
+            <Layout>
+                <Layout.Section>
+        <BlockStack gap="500">
+            <InlineGrid columns={{ xs: '1fr', md: '1fr auto' }} gap="300" alignItems="center">
+                <InlineStack gap="200" blockAlign="center">
+                    {health && <Badge tone="success">Live</Badge>}
+                </InlineStack>
+                <InlineStack align="end" gap="300" blockAlign="center">
+                    <Text as="span" variant="bodySm" tone="subdued">
                         Last checked: {formatDistanceToNow(lastUpdated)} ago
-                    </span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={fetchHealth}
-                        disabled={isRefreshing}
-                        className="bg-white"
-                    >
-                        <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </Text>
+                    <Button variant="secondary" size="slim" onClick={fetchHealth} disabled={isRefreshing} icon={RefreshCw}>
                         Refresh
                     </Button>
-                </div>
-            </div>
+                </InlineStack>
+            </InlineGrid>
 
             {/* Core Infrastructure */}
             {health && (
-                <Card className="border-none shadow-md overflow-hidden bg-gradient-to-br from-zinc-900 to-zinc-950 text-white">
-                    <CardContent className="p-6">
+                <Card>
+                    <Box padding="400">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-xl bg-zinc-800 flex items-center justify-center border border-zinc-700 shadow-inner">
@@ -197,9 +194,9 @@ export default function SystemHealthPage() {
                                     <h2 className="text-lg font-semibold flex items-center gap-2">
                                         Redis Message Broker
                                         {health.redis.connected ? (
-                                            <Badge className="bg-emerald-500/20 text-emerald-400 border-none hover:bg-emerald-500/20">Connected</Badge>
+                                            <Badge tone="success">Connected</Badge>
                                         ) : (
-                                            <Badge variant="destructive" className="border-none">Disconnected</Badge>
+                                            <Badge tone="critical">Disconnected</Badge>
                                         )}
                                     </h2>
                                     <p className="text-zinc-400 text-sm mt-1">Used for BullMQ job queues and rate limiting across instances.</p>
@@ -219,13 +216,13 @@ export default function SystemHealthPage() {
                                 </div>
                             </div>
                         </div>
-                    </CardContent>
+                    </Box>
                 </Card>
             )}
 
             {/* Background Worker Queues */}
             <div>
-                <h3 className="text-lg font-semibold mb-4 mt-8 flex items-center text-zinc-800">
+                <h3 className="text-lg font-semibold mb-4 mt-2 flex items-center text-zinc-800">
                     <Activity className="w-5 h-5 mr-2 text-zinc-500" />
                     Distributed Queues (BullMQ)
                 </h3>
@@ -251,7 +248,7 @@ export default function SystemHealthPage() {
                 </div>
             </div>
 
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 flex items-start gap-3 mt-6">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 flex items-start gap-3 mt-2">
                 <div className="mt-0.5 rounded-full bg-blue-100 p-1 flex-shrink-0">
                     <AlertCircle className="w-4 h-4 text-blue-600" />
                 </div>
@@ -260,6 +257,9 @@ export default function SystemHealthPage() {
                     <p className="text-blue-700/80">In a future update, you will be able to pause queues, retry failed jobs in bulk, and clear backlogs directly from this dashboard.</p>
                 </div>
             </div>
-        </div>
+        </BlockStack>
+                </Layout.Section>
+            </Layout>
+        </Page>
     );
 }

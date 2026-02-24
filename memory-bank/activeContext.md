@@ -95,6 +95,10 @@
 - **Analytics Polaris Migration (step 3)**:
   - Remaining chart wrappers (DAU + message volume) and empty state card sections moved to Polaris-first card/box/layout primitives
   - Recharts charts themselves are unchanged; only surrounding presentation shells were standardized
+- **Admin Polaris Migration (step 1)**:
+  - `/admin` dashboard migrated to Polaris `Page/Layout/Card` structure with Polaris metric cards and placeholder activity panel
+  - `/admin/merchants` migrated to Polaris page structure and desktop `IndexTable`-style listing with Polaris badges/buttons
+  - `/admin/system` migrated to Polaris page/layout, error/loading states, and queue/infrastructure card shells (queue content logic preserved)
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
