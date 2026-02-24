@@ -5,7 +5,7 @@ import { Link } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Banner, Card as PolarisCard, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
+import { Banner, BlockStack, Box, Card as PolarisCard, Checkbox, ChoiceList, Divider, InlineStack, Layout, Page, RangeSlider, SkeletonPage, Text, TextField } from '@shopify/polaris';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -445,14 +445,11 @@ export default function SettingsPage() {
       <SkeletonPage title={t('title')}>
         <Layout>
           <Layout.Section>
-      <div className="space-y-6 animate-fade-in">
-        <div className="space-y-3">
-          <div className="h-10 w-40 bg-gradient-to-r from-zinc-200 to-zinc-100 rounded-xl animate-pulse" />
-          <div className="h-5 w-80 bg-gradient-to-r from-zinc-100 to-zinc-50 rounded-lg animate-pulse" />
-        </div>
-        <div className="h-80 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" />
-        <div className="h-64 bg-white border-2 border-zinc-100 rounded-xl animate-pulse shadow-sm" />
-      </div>
+            <BlockStack gap="500">
+              <PolarisCard><Box padding="400"><div className="h-20 bg-zinc-100 rounded-lg animate-pulse" /></Box></PolarisCard>
+              <PolarisCard><Box padding="400"><div className="h-80 bg-zinc-100 rounded-lg animate-pulse" /></Box></PolarisCard>
+              <PolarisCard><Box padding="400"><div className="h-64 bg-zinc-100 rounded-lg animate-pulse" /></Box></PolarisCard>
+            </BlockStack>
           </Layout.Section>
         </Layout>
       </SkeletonPage>
@@ -466,54 +463,48 @@ export default function SettingsPage() {
     <div className="space-y-6 animate-fade-in pb-8">
       {/* Header */}
       <PolarisCard>
-        <div className="p-5 space-y-3">
-          <div className="space-y-1.5">
-            <Text as="h2" variant="headingMd">{t('title')}</Text>
-            <Text as="p" tone="subdued">{t('description')}</Text>
-          </div>
-          <Banner tone="info">
-            <p>
-              <a href="#guardrails" className="text-primary hover:text-primary/80 font-semibold transition-colors">
-                {t('guardrailsLink')}
-              </a>
-            </p>
-          </Banner>
-        </div>
+        <Box padding="400">
+          <BlockStack gap="300">
+            <BlockStack gap="100">
+              <Text as="h2" variant="headingMd">{t('title')}</Text>
+              <Text as="p" tone="subdued">{t('description')}</Text>
+            </BlockStack>
+            <Banner tone="info">
+              <p>
+                <a href="#guardrails" className="text-primary hover:text-primary/80 font-semibold transition-colors">
+                  {t('guardrailsLink')}
+                </a>
+              </p>
+            </Banner>
+          </BlockStack>
+        </Box>
       </PolarisCard>
 
       {/* ── Notification Settings ──────────────────────────── */}
-      <Card hover className="overflow-hidden shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-orange-500/5 to-transparent">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl">{t('notifications.title')}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1.5 font-medium">
-                {t('notifications.description')}
-              </p>
-            </div>
-          </div>
-        </CardHeader>
-        <div className="p-6 space-y-4">
-          <div className="space-y-2.5">
-            <label className="text-sm font-bold text-foreground">
-              {t('notifications.phoneLabel')}
-            </label>
-            <Input
+      <PolarisCard>
+        <Box padding="400">
+          <BlockStack gap="400">
+            <InlineStack gap="300" blockAlign="start">
+              <Box background="bg-fill-warning" borderRadius="300" padding="300">
+                <AlertTriangle className="w-5 h-5 text-white" />
+              </Box>
+              <BlockStack gap="100">
+                <Text as="h2" variant="headingMd">{t('notifications.title')}</Text>
+                <Text as="p" tone="subdued">{t('notifications.description')}</Text>
+              </BlockStack>
+            </InlineStack>
+            <TextField
+              label={t('notifications.phoneLabel')}
               type="tel"
               value={notificationPhone}
-              onChange={(e) => { setNotificationPhone(e.target.value); setIsDirty(true); }}
+              onChange={(value) => { setNotificationPhone(value); setIsDirty(true); }}
               placeholder={t('notifications.phonePlaceholder')}
-              className="h-12"
+              autoComplete="off"
+              helpText={t('notifications.phoneHint')}
             />
-            <p className="text-xs text-muted-foreground">
-              {t('notifications.phoneHint')}
-            </p>
-          </div>
-        </div>
-      </Card>
+          </BlockStack>
+        </Box>
+      </PolarisCard>
 
       {/* Bot Persona Settings */}
       <Card hover className="overflow-hidden shadow-lg">
@@ -536,213 +527,140 @@ export default function SettingsPage() {
 
         <div className="p-6 space-y-6">
           {/* Bot Name */}
-          <div className="space-y-2.5">
-            <label className="text-sm font-bold text-foreground">
-              {t('botPersona.nameLabel')}
-            </label>
-            <Input
-              type="text"
-              value={botName}
-              onChange={(e) => setBotName(e.target.value)}
-              placeholder={t('botPersona.namePlaceholder')}
-              className="h-12"
-            />
-          </div>
+          <TextField
+            label={t('botPersona.nameLabel')}
+            type="text"
+            value={botName}
+            onChange={(value) => { setBotName(value); setIsDirty(true); }}
+            placeholder={t('botPersona.namePlaceholder')}
+            autoComplete="off"
+          />
 
           {/* Tone */}
-          <div>
-            <label className="text-sm font-bold text-foreground block mb-3">
-              {t('botPersona.toneLabel')}
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              {(['friendly', 'professional', 'casual', 'formal'] as const).map((tKey) => (
-                <button
-                  key={tKey}
-                  onClick={() => setTone(tKey)}
-                  className={`px-5 py-4 rounded-xl border-2 transition-all duration-200 font-bold ${tone === tKey
-                    ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 text-primary shadow-md scale-105'
-                    : 'border-zinc-200 text-zinc-700 hover:border-primary/30 hover:bg-zinc-50'
-                    }`}
-                >
-                  {t(`botPersona.tones.${tKey}`)}
-                </button>
-              ))}
-            </div>
-          </div>
+          <ChoiceList
+            title={t('botPersona.toneLabel')}
+            choices={(['friendly', 'professional', 'casual', 'formal'] as const).map((tKey) => ({
+              label: t(`botPersona.tones.${tKey}`),
+              value: tKey,
+            }))}
+            selected={[tone]}
+            onChange={(selected) => {
+              const next = selected[0] as typeof tone | undefined;
+              if (next) {
+                setTone(next);
+                setIsDirty(true);
+              }
+            }}
+          />
 
           {/* Emoji */}
-          <div className="flex items-center justify-between p-5 bg-gradient-to-r from-muted/50 to-transparent rounded-xl border border-border">
-            <div>
-              <p className="font-bold text-zinc-900 text-base">{t('botPersona.emojiLabel')}</p>
-              <p className="text-sm text-zinc-600 mt-1">{t('botPersona.emojiDesc')}</p>
-            </div>
-            <button
-              onClick={() => setEmoji(!emoji)}
-              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-all duration-200 shadow-inner ${emoji ? 'bg-primary' : 'bg-zinc-300'
-                }`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md ${emoji ? 'translate-x-8' : 'translate-x-1'
-                  }`}
-              />
-            </button>
-          </div>
+          <Checkbox
+            label={t('botPersona.emojiLabel')}
+            helpText={t('botPersona.emojiDesc')}
+            checked={emoji}
+            onChange={(checked) => { setEmoji(checked); setIsDirty(true); }}
+          />
 
           {/* Response Length */}
-          <div>
-            <label className="text-sm font-bold text-foreground block mb-3">
-              {t('botPersona.responseLengthLabel')}
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {(['short', 'medium', 'long'] as const).map((length) => (
-                <button
-                  key={length}
-                  onClick={() => setResponseLength(length)}
-                  className={`px-5 py-4 rounded-xl border-2 transition-all duration-200 font-bold ${responseLength === length
-                    ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 text-primary shadow-md scale-105'
-                    : 'border-zinc-200 text-zinc-700 hover:border-primary/30 hover:bg-zinc-50'
-                    }`}
-                >
-                  {t(`botPersona.lengths.${length}`)}
-                </button>
-              ))}
-            </div>
-          </div>
+          <ChoiceList
+            title={t('botPersona.responseLengthLabel')}
+            choices={(['short', 'medium', 'long'] as const).map((length) => ({
+              label: t(`botPersona.lengths.${length}`),
+              value: length,
+            }))}
+            selected={[responseLength]}
+            onChange={(selected) => {
+              const next = selected[0] as typeof responseLength | undefined;
+              if (next) {
+                setResponseLength(next);
+                setIsDirty(true);
+              }
+            }}
+          />
 
           {/* Temperature */}
-          <div>
-            <label className="text-sm font-bold text-foreground block mb-3">
+          <BlockStack gap="200">
+            <Text as="p" variant="bodyMd" fontWeight="medium">
               {t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
+            </Text>
+            <RangeSlider
+              label={t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
+              labelHidden
+              min={0}
+              max={1}
+              step={0.1}
               value={temperature}
-              onChange={(e) => setTemperature(parseFloat(e.target.value))}
-              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:cursor-pointer "
+              onChange={(value) => { setTemperature(Number(value)); setIsDirty(true); }}
             />
-            <div className="flex justify-between text-xs text-zinc-600 mt-2 font-semibold">
-              <span>{t('botPersona.tempLabels.consistent')}</span>
-              <span>{t('botPersona.tempLabels.balanced')}</span>
-              <span>{t('botPersona.tempLabels.creative')}</span>
-            </div>
-          </div>
+            <InlineStack align="space-between">
+              <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.consistent')}</Text>
+              <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.balanced')}</Text>
+              <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.creative')}</Text>
+            </InlineStack>
+          </BlockStack>
 
           {/* Product instructions scope (WhatsApp answers) — one must be chosen */}
-          <div className="pt-2 border-t border-zinc-200">
-            <label className="form-label block mb-2">
-              {t('botPersona.productScopeLabel')}
-            </label>
-            <p className="text-sm text-zinc-600 mb-3">
-              {t('botPersona.productScopeDesc')}
-            </p>
-            <div className="space-y-3">
-              <label
-                className={`flex gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${productInstructionsScope === 'order_only'
-                  ? 'border-teal-600 bg-teal-50/80'
-                  : 'border-zinc-200 hover:bg-zinc-50/80'
-                  }`}
-              >
-                <input
-                  type="radio"
-                  name="product_instructions_scope"
-                  value="order_only"
-                  checked={productInstructionsScope === 'order_only'}
-                  onChange={() => setProductInstructionsScope('order_only')}
-                  className="mt-1 h-4 w-4 text-teal-600 border-zinc-300 focus:ring-teal-500"
-                />
-                <div>
-                  <span className="font-medium text-zinc-900">{t('botPersona.productScopes.orderOnly.label')}</span>
-                  <p className="text-sm text-zinc-600 mt-0.5">
-                    {t('botPersona.productScopes.orderOnly.desc')}
-                  </p>
-                </div>
-              </label>
-              <label
-                className={`flex gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${productInstructionsScope === 'rag_products_too'
-                  ? 'border-teal-600 bg-teal-50/80'
-                  : 'border-zinc-200 hover:bg-zinc-50/80'
-                  }`}
-              >
-                <input
-                  type="radio"
-                  name="product_instructions_scope"
-                  value="rag_products_too"
-                  checked={productInstructionsScope === 'rag_products_too'}
-                  onChange={() => setProductInstructionsScope('rag_products_too')}
-                  className="mt-1 h-4 w-4 text-teal-600 border-zinc-300 focus:ring-teal-500"
-                />
-                <div>
-                  <span className="font-medium text-zinc-900">{t('botPersona.productScopes.ragProductsToo.label')}</span>
-                  <p className="text-sm text-zinc-600 mt-0.5">
-                    {t('botPersona.productScopes.ragProductsToo.desc')}
-                  </p>
-                </div>
-              </label>
-            </div>
-          </div>
+          <Divider />
+          <BlockStack gap="200">
+            <ChoiceList
+              title={t('botPersona.productScopeLabel')}
+              choices={[
+                { label: t('botPersona.productScopes.orderOnly.label'), value: 'order_only' },
+                { label: t('botPersona.productScopes.ragProductsToo.label'), value: 'rag_products_too' },
+              ]}
+              selected={[productInstructionsScope]}
+              onChange={(selected) => {
+                const next = selected[0] as ProductInstructionsScope | undefined;
+                if (next) {
+                  setProductInstructionsScope(next);
+                  setIsDirty(true);
+                }
+              }}
+            />
+            <Text as="p" tone="subdued">{t('botPersona.productScopeDesc')}</Text>
+            <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
+              <BlockStack gap="200">
+                <Text as="p" variant="bodySm"><strong>{t('botPersona.productScopes.orderOnly.label')}</strong></Text>
+                <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.productScopes.orderOnly.desc')}</Text>
+                <Text as="p" variant="bodySm"><strong>{t('botPersona.productScopes.ragProductsToo.label')}</strong></Text>
+                <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.productScopes.ragProductsToo.desc')}</Text>
+              </BlockStack>
+            </Box>
+          </BlockStack>
 
           {/* WhatsApp sender: merchant's number vs corporate number — one must be chosen */}
-          <div className="pt-2 border-t border-zinc-200">
-            <label className="form-label block mb-2">
-              {t('botPersona.whatsappSenderLabel')}
-            </label>
-            <p className="text-sm text-zinc-600 mb-3">
-              {t('botPersona.whatsappSenderDesc')}
-            </p>
-            <div className="space-y-3">
-              <label
-                className={`flex gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${whatsappSenderMode === 'merchant_own'
-                  ? 'border-teal-600 bg-teal-50/80'
-                  : 'border-zinc-200 hover:bg-zinc-50/80'
-                  }`}
-              >
-                <input
-                  type="radio"
-                  name="whatsapp_sender_mode"
-                  value="merchant_own"
-                  checked={whatsappSenderMode === 'merchant_own'}
-                  onChange={() => setWhatsappSenderMode('merchant_own')}
-                  className="mt-1 h-4 w-4 text-teal-600 border-zinc-300 focus:ring-teal-500"
-                />
-                <div>
-                  <span className="font-medium text-zinc-900">{t('botPersona.whatsappSenders.merchantOwn.label')}</span>
-                  <p className="text-sm text-zinc-600 mt-0.5">
-                    {t('botPersona.whatsappSenders.merchantOwn.desc')}
-                  </p>
-                </div>
-              </label>
-              <label
-                className={`flex gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${whatsappSenderMode === 'corporate'
-                  ? 'border-teal-600 bg-teal-50/80'
-                  : 'border-zinc-200 hover:bg-zinc-50/80'
-                  }`}
-              >
-                <input
-                  type="radio"
-                  name="whatsapp_sender_mode"
-                  value="corporate"
-                  checked={whatsappSenderMode === 'corporate'}
-                  onChange={() => setWhatsappSenderMode('corporate')}
-                  className="mt-1 h-4 w-4 text-teal-600 border-zinc-300 focus:ring-teal-500"
-                />
-                <div>
-                  <span className="font-medium text-zinc-900">{t('botPersona.whatsappSenders.corporate.label')}</span>
-                  <p className="text-sm text-zinc-600 mt-0.5">
-                    {t('botPersona.whatsappSenders.corporate.desc')}
-                  </p>
-                </div>
-              </label>
-            </div>
-            <div className="mt-3 p-3 rounded-lg bg-zinc-100/80 border border-zinc-200">
-              <p className="text-sm font-medium text-zinc-800 mb-1">{t('botPersona.whatsappHelpTitle')}</p>
-              <p className="text-sm text-zinc-600">
-                {t('botPersona.whatsappHelpText')}
+          <Divider />
+          <BlockStack gap="200">
+            <ChoiceList
+              title={t('botPersona.whatsappSenderLabel')}
+              choices={[
+                { label: t('botPersona.whatsappSenders.merchantOwn.label'), value: 'merchant_own' },
+                { label: t('botPersona.whatsappSenders.corporate.label'), value: 'corporate' },
+              ]}
+              selected={[whatsappSenderMode]}
+              onChange={(selected) => {
+                const next = selected[0] as typeof whatsappSenderMode | undefined;
+                if (next) {
+                  setWhatsappSenderMode(next);
+                  setIsDirty(true);
+                }
+              }}
+            />
+            <Text as="p" tone="subdued">{t('botPersona.whatsappSenderDesc')}</Text>
+            <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
+              <BlockStack gap="200">
+                <Text as="p" variant="bodySm"><strong>{t('botPersona.whatsappSenders.merchantOwn.label')}</strong></Text>
+                <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.whatsappSenders.merchantOwn.desc')}</Text>
+                <Text as="p" variant="bodySm"><strong>{t('botPersona.whatsappSenders.corporate.label')}</strong></Text>
+                <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.whatsappSenders.corporate.desc')}</Text>
+              </BlockStack>
+            </Box>
+            <Banner tone="info">
+              <p>
+                <strong>{t('botPersona.whatsappHelpTitle')}</strong> {t('botPersona.whatsappHelpText')}
               </p>
-            </div>
-          </div>
+            </Banner>
+          </BlockStack>
 
           {/* Save Button */}
           <div className="pt-6 border-t border-border">

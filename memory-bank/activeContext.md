@@ -55,6 +55,11 @@
   - `Dashboard / Test` header and step indicator refactored to Polaris layout primitives (`Box`, `BlockStack`, `InlineGrid`, `InlineStack`) while preserving mobile-first behavior
   - Advanced section tabs migrated from custom button row to Polaris `Tabs`
   - Core test flows (order create / delivery trigger / chat / RAG test tools) preserved for further incremental migration
+- **Settings Polaris Migration (step 1)**:
+  - Header and loading skeleton surfaces moved to Polaris card/box primitives
+  - Notification settings card migrated to Polaris-first (`Polaris Card`, `TextField`)
+  - Bot Persona top controls migrated to Polaris controls (`TextField`, `ChoiceList`, `Checkbox`, `RangeSlider`) while preserving save flow and embedded `ShopifySaveBar`
+  - Product scope / WhatsApp sender option blocks now use Polaris choice controls with helper summaries and banners
 - **Web Deploy Sync (latest Polaris changes)**:
   - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
