@@ -337,6 +337,55 @@ export default function ProductsPage() {
     </div>
   );
 
+  const renderProductStatusCompact = (product: ProductWithChunks) => {
+    const hasRaw = Boolean(product.raw_text);
+    const ragReady = hasRaw && !product.chunkCountUnavailable && (product.chunkCount || 0) > 0;
+    const ragUnknown = hasRaw && product.chunkCountUnavailable;
+    const ragNotReady = hasRaw && !product.chunkCountUnavailable && (product.chunkCount || 0) === 0;
+
+    return (
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="outline-primary" size="sm" className="gap-1.5">
+            <FileText className="w-3.5 h-3.5" />
+            {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
+          </Badge>
+          {hasRaw && (
+            <Badge variant="success" size="sm" className="gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5" />
+              {t('card.scraped')}
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {ragReady && (
+            <Badge variant="success" size="sm" className="gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5" />
+              {t('card.ragReady')}
+            </Badge>
+          )}
+          {ragUnknown && (
+            <Badge variant="outline" size="sm" className="gap-1.5">
+              <FileText className="w-3.5 h-3.5" />
+              {t('card.ragStatusUnknown')}
+            </Badge>
+          )}
+          {ragNotReady && (
+            <Badge variant="outline" size="sm" className="gap-1.5">
+              <FileText className="w-3.5 h-3.5" />
+              {t('card.ragNotReady')}
+            </Badge>
+          )}
+          {!hasRaw && (
+            <Text as="span" variant="bodySm" tone="subdued">
+              {t('filters.statusOptions.notScraped')}
+            </Text>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const getStatusFilterLabel = (value: ProductStatusFilter) => {
     switch (value) {
       case 'rag_ready':
@@ -548,14 +597,14 @@ export default function ProductsPage() {
             <Text as="h2" variant="headingMd">{t('title')}</Text>
             <Text as="p" tone="subdued">{t('description')}</Text>
           </div>
-          <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-none lg:auto-cols-max lg:grid-flow-col lg:items-center">
+          <div className="grid w-full gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-none xl:auto-cols-max xl:grid-flow-col xl:items-center">
             <PolarisButtonGroup>
               <button
                 type="button"
                 onClick={() => handleViewModeChange('grid')}
-                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors border ${
+                className={`inline-flex min-w-[76px] items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors border ${
                   viewMode === 'grid'
-                    ? 'bg-[var(--p-color-bg-fill)] text-white border-[var(--p-color-bg-fill)]'
+                    ? 'bg-[#1f6f53] text-white border-[#1f6f53]'
                     : 'bg-white text-zinc-700 border-[var(--p-color-border)] hover:bg-zinc-50'
                 }`}
                 aria-pressed={viewMode === 'grid'}
@@ -567,16 +616,16 @@ export default function ProductsPage() {
               <button
                 type="button"
                 onClick={() => handleViewModeChange('list')}
-                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors border ${
+                className={`inline-flex min-w-[76px] items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors border ${
                   viewMode === 'list'
-                    ? 'bg-[var(--p-color-bg-fill)] text-white border-[var(--p-color-bg-fill)]'
+                    ? 'bg-[#1f6f53] text-white border-[#1f6f53]'
                     : 'bg-white text-zinc-700 border-[var(--p-color-border)] hover:bg-zinc-50'
                 }`}
                 aria-pressed={viewMode === 'list'}
                 title={t('view.list')}
               >
                 <List className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{t('view.list')}</span>
+                <span className="hidden md:inline">{t('view.list')}</span>
               </button>
             </PolarisButtonGroup>
             <Button variant="outline" size="sm" className="justify-center" asChild>
@@ -939,7 +988,7 @@ export default function ProductsPage() {
               ))}
 
               <div className="hidden md:block overflow-x-auto">
-                <div className="min-w-[1120px]">
+                <div className="min-w-[1320px]">
                 <IndexTable
                   selectable={false}
                   itemCount={filteredAndSortedProducts.length}
@@ -964,7 +1013,7 @@ export default function ProductsPage() {
                         />
                       </IndexTable.Cell>
                       <IndexTable.Cell>
-                        <div className="min-w-0 max-w-[280px]">
+                        <div className="min-w-0 max-w-[320px]">
                           <Link
                             href={`/dashboard/products/${product.id}`}
                             className="block font-semibold text-foreground hover:text-primary line-clamp-2 break-words"
@@ -975,25 +1024,25 @@ export default function ProductsPage() {
                         </div>
                       </IndexTable.Cell>
                       <IndexTable.Cell>
-                        <div className="min-w-0 max-w-[320px]">
+                        <div className="min-w-0 max-w-[440px]">
                           <a
                             href={product.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm text-primary hover:text-primary/80 line-clamp-2 inline-flex items-start gap-2"
+                            className="text-sm text-primary hover:text-primary/80 line-clamp-1 inline-flex items-start gap-2"
                           >
                             <ExternalLink className="w-4 h-4 shrink-0 mt-0.5" />
-                            <span className="break-all line-clamp-2">{product.url}</span>
+                            <span className="truncate max-w-[390px]">{product.url}</span>
                           </a>
                         </div>
                       </IndexTable.Cell>
                       <IndexTable.Cell>
-                        <div className="max-w-[260px]">
-                          {renderProductStatusBadges(product)}
+                        <div className="w-[280px]">
+                          {renderProductStatusCompact(product)}
                         </div>
                       </IndexTable.Cell>
                       <IndexTable.Cell>
-                        <div className="flex flex-wrap items-center justify-end gap-2 min-w-[170px]">
+                        <div className="flex items-center justify-end gap-2 min-w-[160px] whitespace-nowrap">
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/dashboard/products/${product.id}`}>
                               {t('card.edit')}
