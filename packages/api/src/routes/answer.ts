@@ -10,6 +10,9 @@ import { ShopSettingsService } from '../lib/multiLangRag/shopSettingsService.js'
 import { logger } from '@recete/shared';
 import { getDefaultLlmModel } from '../lib/runtimeModelSettings.js';
 import { trackAiUsageEvent } from '../lib/aiUsageEvents.js';
+import { getActiveProductFactsContext, getActiveProductFactsSnapshots } from '../lib/productFactsQuery.js';
+import { planStructuredFactAnswer } from '../lib/productFactsPlanner.js';
+import { getProductInstructionsByProductIds } from '@recete/shared';
 
 const answer = new Hono();
 answer.use('/*', authMiddleware);
@@ -77,7 +80,42 @@ answer.post('/', async (c) => {
       similarityThreshold: 0.6,
       preferredLanguage: userLang,
     });
-    const context = formatRAGResultsForLLM(rag.results);
+    const factsProductIds = Array.from(new Set(rag.results.map((r) => r.productId)));
+    const factsContext = await getActiveProductFactsContext(shopId, factsProductIds);
+    const factsSnapshots = await getActiveProductFactsSnapshots(shopId, factsProductIds);
+    const planned = planStructuredFactAnswer(question, userLang, factsSnapshots, {
+      responseLength: undefined,
+      includeEvidenceQuote: true,
+    });
+
+    if (planned) {
+      void runShadowRead();
+      return c.json({
+        answer: planned.answer,
+        lang_detected: userLang,
+        used_fallback: false,
+        fallback_lang: null,
+        cited_products: factsProductIds,
+        latency_ms: Date.now() - start,
+      });
+    }
+
+    const instructions = factsProductIds.length > 0
+      ? await getProductInstructionsByProductIds(shopId, factsProductIds)
+      : [];
+    const recipeBlocks = instructions.map((r: any) => {
+      let block = `[${r.product_name ?? 'Product'}]\nUsage / Recipe: ${r.usage_instructions}`;
+      if (r.recipe_summary) block += `\nSummary: ${r.recipe_summary}`;
+      if (r.video_url) block += `\nTutorial Video: ${r.video_url}`;
+      if (r.prevention_tips) block += `\nReturn Prevention Tips: ${r.prevention_tips}`;
+      return block;
+    });
+    const ragContext = formatRAGResultsForLLM(rag.results);
+    const context = [
+      factsContext.text || '',
+      ragContext || '',
+      recipeBlocks.length > 0 ? `--- Product usage instructions (recipes) ---\n${recipeBlocks.join('\n\n')}` : '',
+    ].filter(Boolean).join('\n\n');
     const client = getOpenAIClient();
     const model = await getDefaultLlmModel();
     const completion = await client.chat.completions.create({

@@ -5,6 +5,8 @@
 
 import { getSupabaseServiceClient } from '@recete/shared';
 import { generateEmbedding } from './embeddings.js';
+import { getCache, setCache } from './cache.js';
+import crypto from 'node:crypto';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -21,6 +23,10 @@ export interface RAGQueryOptions {
   preferredSectionTypes?: string[];
   preferredLanguage?: 'tr' | 'en' | 'hu' | string;
   candidateMultiplier?: number;
+  diversityRerank?: boolean;
+  cacheKey?: string;
+  cacheTtlSeconds?: number;
+  cacheEmbedding?: boolean;
 }
 
 export interface RAGResult {
@@ -65,6 +71,10 @@ export async function queryKnowledgeBase(
     preferredSectionTypes,
     preferredLanguage,
     candidateMultiplier,
+    diversityRerank = true,
+    cacheKey,
+    cacheTtlSeconds = 900,
+    cacheEmbedding = true,
   } = options;
 
   // Only use product IDs that are valid UUIDs (avoids "invalid input syntax for type uuid" when query is pasted into Product IDs field)
@@ -73,8 +83,35 @@ export async function queryKnowledgeBase(
       ? rawProductIds.filter(isValidUUID)
       : undefined;
 
-  // Generate embedding for query
-  const { embedding: queryEmbedding } = await generateEmbedding(query);
+  if (cacheKey) {
+    const cached = await getCache<{ results: RAGResult[]; totalResults: number }>('rag_query_v2', cacheKey);
+    if (cached) {
+      return {
+        query,
+        results: cached.results,
+        totalResults: cached.totalResults,
+        executionTime: Date.now() - startTime,
+      };
+    }
+  }
+
+  let queryEmbedding: number[] | null = null;
+  if (cacheEmbedding) {
+    const embedKey = crypto.createHash('sha256').update(query).digest('hex');
+    const cachedEmbedding = await getCache<number[]>('rag_embed_v1', embedKey);
+    if (cachedEmbedding) {
+      queryEmbedding = cachedEmbedding;
+    }
+  }
+
+  if (!queryEmbedding) {
+    const embeddingResult = await generateEmbedding(query);
+    queryEmbedding = embeddingResult.embedding;
+    if (cacheEmbedding) {
+      const embedKey = crypto.createHash('sha256').update(query).digest('hex');
+      void setCache('rag_embed_v1', embedKey, queryEmbedding, 3600);
+    }
+  }
 
   const serviceClient = getSupabaseServiceClient();
 
@@ -100,12 +137,16 @@ export async function queryKnowledgeBase(
   }
 
   if (!rows || rows.length === 0) {
-    return {
+    const response = {
       query,
       results: [],
       totalResults: 0,
       executionTime: Date.now() - startTime,
     };
+    if (cacheKey) {
+      void setCache('rag_query_v2', cacheKey, { results: response.results, totalResults: response.totalResults }, cacheTtlSeconds);
+    }
+    return response;
   }
 
   let results: RAGResult[] = (rows as any[]).map((row) => ({
@@ -129,18 +170,60 @@ export async function queryKnowledgeBase(
         if (preferredLanguage && r.languageCode && r.languageCode.toLowerCase() === preferredLanguage.toLowerCase()) score += 0.03;
         return { ...r, similarity: Math.min(0.999, score) };
       })
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, topK);
+      .sort((a, b) => b.similarity - a.similarity);
+  } else {
+    results = results.sort((a, b) => b.similarity - a.similarity);
+  }
+
+  if (diversityRerank && results.length > 1) {
+    results = rerankWithDiversity(results, topK);
   } else {
     results = results.slice(0, topK);
   }
 
-  return {
+  const response = {
     query,
     results,
     totalResults: results.length,
     executionTime: Date.now() - startTime,
   };
+
+  if (cacheKey) {
+    void setCache('rag_query_v2', cacheKey, { results: response.results, totalResults: response.totalResults }, cacheTtlSeconds);
+  }
+
+  return response;
+}
+
+function rerankWithDiversity(results: RAGResult[], topK: number): RAGResult[] {
+  const selected: RAGResult[] = [];
+  const remaining = [...results].sort((a, b) => b.similarity - a.similarity);
+
+  while (selected.length < topK && remaining.length > 0) {
+    let bestIdx = 0;
+    let bestScore = -Infinity;
+
+    for (let i = 0; i < remaining.length; i++) {
+      const candidate = remaining[i];
+      const sameProductCount = selected.filter((s) => s.productId === candidate.productId).length;
+      const sameSection = candidate.sectionType
+        ? selected.some((s) => s.sectionType && s.sectionType === candidate.sectionType)
+        : false;
+
+      const productPenalty = Math.min(0.12, sameProductCount * 0.06);
+      const sectionPenalty = sameSection ? 0.04 : 0;
+      const score = candidate.similarity - productPenalty - sectionPenalty;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestIdx = i;
+      }
+    }
+
+    selected.push(remaining.splice(bestIdx, 1)[0]);
+  }
+
+  return selected;
 }
 
 /**
@@ -153,9 +236,12 @@ export function formatRAGResultsForLLM(results: RAGResult[]): string {
 
   const formatted = results
     .map((result, index) => {
+      const section = result.sectionType ? `Section: ${result.sectionType}` : '';
+      const url = result.productUrl ? `Source: ${result.productUrl}` : '';
+      const metaLines = [section, url].filter(Boolean).join('\n');
       return `[${index + 1}] ${result.productName}
-${result.chunkText}
-(Relevance: ${(result.similarity * 100).toFixed(1)}%)`;
+${metaLines ? `${metaLines}\n` : ''}${result.chunkText}
+Similarity: ${(result.similarity * 100).toFixed(1)}%`;
     })
     .join('\n\n---\n\n');
 

@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "notes": "Fill in with real product questions and expected products/facts.",
+  "cases": [
+    {
+      "id": "usage-001",
+      "lang": "tr",
+      "question": "Bu ürünü nasıl kullanmalıyım?",
+      "expected_product_names": [""],
+      "expected_fact_hints": ["usage", "frequency"]
+    },
+    {
+      "id": "ingredients-001",
+      "lang": "tr",
+      "question": "İçindekiler neler?",
+      "expected_product_names": [""],
+      "expected_fact_hints": ["ingredients", "active_ingredients"]
+    },
+    {
+      "id": "warnings-001",
+      "lang": "tr",
+      "question": "Göz çevresinde kullanabilir miyim?",
+      "expected_product_names": [""],
+      "expected_fact_hints": ["warnings"]
+    },
+    {
+      "id": "specs-001",
+      "lang": "tr",
+      "question": "Kaç ml?",
+      "expected_product_names": [""],
+      "expected_fact_hints": ["volume", "specs"]
+    }
+  ]
+}

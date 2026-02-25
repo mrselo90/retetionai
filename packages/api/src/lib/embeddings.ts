@@ -78,55 +78,83 @@ export async function generateEmbeddingsBatch(
  * Uses sentence-based chunking with configurable overlap
  */
 export function chunkText(text: string, maxChunkSize: number = 1000, overlapSize: number = 150): TextChunk[] {
-  // Clean text
-  const cleaned = text.trim().replace(/\s+/g, ' ');
+  const normalized = text
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .trim();
 
-  if (cleaned.length === 0) {
+  if (normalized.length === 0) {
     return [];
   }
 
-  // If text is small enough, return as single chunk
-  if (cleaned.length <= maxChunkSize) {
-    return [{ text: cleaned, index: 0 }];
+  if (normalized.length <= maxChunkSize) {
+    return [{ text: normalized, index: 0 }];
   }
 
-  // Split by sentences (basic approach)
-  const sentences = cleaned.match(/[^.!?]+[.!?]+/g) || [cleaned];
+  const sentencesFromParagraph = (para: string): string[] => {
+    const cleaned = para.replace(/\s+/g, ' ').trim();
+    if (!cleaned) return [];
+    return cleaned.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [cleaned];
+  };
+
+  const paragraphs = normalized.split(/\n{2,}/g).map((p) => p.trim()).filter(Boolean);
+  const segments: string[] = [];
+  if (paragraphs.length > 1) {
+    for (const para of paragraphs) {
+      if (para.length > maxChunkSize) {
+        segments.push(...sentencesFromParagraph(para));
+      } else {
+        segments.push(para);
+      }
+    }
+  } else {
+    segments.push(...sentencesFromParagraph(normalized));
+  }
 
   const chunks: TextChunk[] = [];
   let currentChunk = '';
   let chunkIndex = 0;
-  let overlapText = ''; // Trailing text from previous chunk for context continuity
+  let overlapText = '';
 
-  for (const sentence of sentences) {
-    const trimmedSentence = sentence.trim();
+  for (const segment of segments) {
+    const trimmedSegment = segment.trim();
+    if (!trimmedSegment) continue;
 
-    // If adding this sentence exceeds max size, save current chunk and start new one
-    if (currentChunk.length + trimmedSentence.length > maxChunkSize && currentChunk.length > 0) {
+    if (trimmedSegment.length > maxChunkSize) {
+      let start = 0;
+      while (start < trimmedSegment.length) {
+        const slice = trimmedSegment.slice(start, start + maxChunkSize);
+        if (currentChunk.trim()) {
+          chunks.push({ text: currentChunk.trim(), index: chunkIndex });
+          chunkIndex++;
+          currentChunk = '';
+        }
+        chunks.push({ text: slice.trim(), index: chunkIndex });
+        chunkIndex++;
+        start += maxChunkSize;
+      }
+      overlapText = '';
+      continue;
+    }
+
+    if (currentChunk.length + trimmedSegment.length > maxChunkSize && currentChunk.length > 0) {
       const chunkContent = currentChunk.trim();
-      chunks.push({
-        text: chunkContent,
-        index: chunkIndex,
-      });
+      chunks.push({ text: chunkContent, index: chunkIndex });
       chunkIndex++;
 
-      // Carry over the tail of the previous chunk as overlap for context
-      overlapText = overlapSize > 0 && chunkContent.length > overlapSize
-        ? chunkContent.slice(-overlapSize).trim()
-        : '';
+      overlapText =
+        overlapSize > 0 && chunkContent.length > overlapSize
+          ? chunkContent.slice(-overlapSize).trim()
+          : '';
 
-      currentChunk = overlapText ? overlapText + ' ' + trimmedSentence : trimmedSentence;
+      currentChunk = overlapText ? `${overlapText} ${trimmedSegment}` : trimmedSegment;
     } else {
-      currentChunk += (currentChunk ? ' ' : '') + trimmedSentence;
+      currentChunk += (currentChunk ? ' ' : '') + trimmedSegment;
     }
   }
 
-  // Add last chunk
   if (currentChunk.trim()) {
-    chunks.push({
-      text: currentChunk.trim(),
-      index: chunkIndex,
-    });
+    chunks.push({ text: currentChunk.trim(), index: chunkIndex });
   }
 
   return chunks;

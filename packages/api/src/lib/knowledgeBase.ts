@@ -43,7 +43,10 @@ function chunkTextForRAG(text: string, maxChunkSize: number, overlap: number): T
 
 function detectChunkLanguage(textToProcess: string): string | null {
   const m = textToProcess.match(/\[LANG:([a-z]{2})\]/i);
-  return m?.[1]?.toLowerCase() ?? null;
+  if (!m || typeof m.index !== 'number') return null;
+  // Only trust explicit lang markers near the start to avoid false positives.
+  if (m.index > 200) return null;
+  return m[1]?.toLowerCase() ?? null;
 }
 
 function inferSectionType(chunkText: string): string {

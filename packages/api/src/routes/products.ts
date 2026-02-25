@@ -14,9 +14,17 @@ import { enrichProductDataDetailed } from '../lib/llm/enrichProduct.js';
 import { persistProductFactsSnapshot } from '../lib/productFactsStore.js';
 import { validateBody, validateParams } from '../middleware/validation.js';
 import { createProductSchema, updateProductSchema, productIdSchema, productInstructionSchema, CreateProductInput, UpdateProductInput, ProductIdParams, ProductInstructionInput } from '../schemas/products.js';
-import { getCachedProduct, setCachedProduct, invalidateProductCache } from '../lib/cache.js';
+import {
+  getCachedProduct,
+  setCachedProduct,
+  invalidateProductCache,
+  getCachedApiResponse,
+  setCachedApiResponse,
+  invalidateApiCache,
+} from '../lib/cache.js';
 import { enforceStorageLimit } from '../lib/planLimits.js';
 import { MultiLangRagShadowWriteService } from '../lib/multiLangRag/shadowWriteService.js';
+import { getProductsCacheTtlSeconds } from '../lib/runtimeModelSettings.js';
 
 const products = new Hono();
 const multiLangShadowWrite = new MultiLangRagShadowWriteService();
@@ -33,6 +41,12 @@ products.get('/', async (c) => {
   const merchantId = c.get('merchantId');
   const serviceClient = getSupabaseServiceClient();
 
+  const cacheKey = `products:${merchantId}`;
+  const cached = await getCachedApiResponse(cacheKey);
+  if (cached) {
+    return c.json(cached);
+  }
+
   const { data: products, error } = await serviceClient
     .from('products')
     .select('*')
@@ -43,7 +57,10 @@ products.get('/', async (c) => {
     return c.json({ error: 'Failed to fetch products' }, 500);
   }
 
-  return c.json({ products });
+  const payload = { products };
+  const ttlSeconds = await getProductsCacheTtlSeconds();
+  await setCachedApiResponse(cacheKey, payload, ttlSeconds);
+  return c.json(payload);
 });
 
 /**
@@ -229,6 +246,7 @@ products.post('/', validateBody(createProductSchema), async (c) => {
 
   // Cache new product
   await setCachedProduct(product.id, product, 600);
+  await invalidateApiCache(`products:${merchantId}`);
   void multiLangShadowWrite.syncProduct(String(merchantId), product.id).catch((e) => {
     console.warn('Multi-lang shadow write failed after create product:', e);
   });
@@ -295,6 +313,7 @@ products.put('/:id', validateParams(productIdSchema), validateBody(updateProduct
 
   // Update cache
   await setCachedProduct(productId, product, 600);
+  await invalidateApiCache(`products:${merchantId}`);
   void multiLangShadowWrite.syncProduct(String(merchantId), productId).catch((e) => {
     console.warn('Multi-lang shadow write failed after update product:', e);
   });
@@ -335,6 +354,7 @@ products.delete('/:id', async (c) => {
 
   // Remove product from cache
   await invalidateProductCache(productId);
+  await invalidateApiCache(`products:${merchantId}`);
 
   return c.json({ message: 'Product deleted' });
 });

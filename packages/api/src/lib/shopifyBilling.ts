@@ -171,28 +171,32 @@ export async function getShopifyRecurringCharge(
   updatedAt: string;
 } | null> {
   try {
-    const url = `https://${shop}/admin/api/2024-01/recurring_application_charges/${chargeId}.json`;
+    const gid = `gid://shopify/AppSubscription/${chargeId}`;
+    const query = `
+      query appSubscription($id: ID!) {
+        appSubscription(id: $id) {
+          status
+          createdAt
+          updatedAt
+        }
+      }
+    `;
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-      },
-    });
+    const response = await shopifyGraphQL(shop, accessToken, query, { id: gid });
+    const data = response.data as any;
+    const errors = response.errors as any;
 
-    if (!response.ok) {
-      const error = await response.text();
-      logger.error({ error, shop, chargeId }, 'Failed to get Shopify recurring charge');
+    if (errors || !data?.appSubscription) {
+      logger.error({ shop, chargeId, errors }, 'Failed to get Shopify AppSubscription via GraphQL');
       return null;
     }
 
-    const data = await response.json() as { recurring_application_charge: any };
-    const charge = data.recurring_application_charge;
+    const normalizedStatus = (data.appSubscription.status || '').toLowerCase();
 
     return {
-      status: charge.status,
-      createdAt: charge.created_at,
-      updatedAt: charge.updated_at,
+      status: normalizedStatus as 'pending' | 'accepted' | 'active' | 'declined' | 'expired' | 'cancelled',
+      createdAt: data.appSubscription.createdAt || '',
+      updatedAt: data.appSubscription.updatedAt || '',
     };
   } catch (error) {
     logger.error({ error, shop, chargeId }, 'Error getting Shopify recurring charge');
@@ -209,18 +213,28 @@ export async function cancelShopifyRecurringCharge(
   chargeId: number
 ): Promise<boolean> {
   try {
-    const url = `https://${shop}/admin/api/2024-01/recurring_application_charges/${chargeId}.json`;
+    const gid = `gid://shopify/AppSubscription/${chargeId}`;
+    const mutation = `
+      mutation appSubscriptionCancel($id: ID!) {
+        appSubscriptionCancel(id: $id) {
+          appSubscription {
+            id
+            status
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
 
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-      },
-    });
+    const response = await shopifyGraphQL(shop, accessToken, mutation, { id: gid });
+    const data = response.data as any;
+    const errors = response.errors as any;
 
-    if (!response.ok) {
-      const error = await response.text();
-      logger.error({ error, shop, chargeId }, 'Failed to cancel Shopify recurring charge');
+    if (errors || data?.appSubscriptionCancel?.userErrors?.length > 0) {
+      logger.error({ shop, chargeId, errors, userErrors: data?.appSubscriptionCancel?.userErrors }, 'Failed to cancel Shopify AppSubscription via GraphQL');
       return false;
     }
 

@@ -347,6 +347,13 @@ admin.put('/ai-settings', async (c) => {
         const conversationMemoryMode = body.conversation_memory_mode === 'full' ? 'full' : 'last_n';
         const conversationMemoryCount =
             typeof body.conversation_memory_count === 'number' ? body.conversation_memory_count : 10;
+        const rawProductsCacheTtl = body.products_cache_ttl_seconds;
+        const productsCacheTtlSeconds =
+            typeof rawProductsCacheTtl === 'number'
+                ? rawProductsCacheTtl
+                : typeof rawProductsCacheTtl === 'string'
+                    ? Number(rawProductsCacheTtl)
+                    : undefined;
         if (!defaultLlmModel) {
             return c.json({ error: 'default_llm_model is required' }, 400);
         }
@@ -355,6 +362,7 @@ admin.put('/ai-settings', async (c) => {
             allowed_llm_models: allowedLlmModels,
             conversation_memory_mode: conversationMemoryMode,
             conversation_memory_count: conversationMemoryCount,
+            products_cache_ttl_seconds: productsCacheTtlSeconds,
         });
         return c.json({ settings });
     } catch (error) {

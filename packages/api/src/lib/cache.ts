@@ -145,6 +145,11 @@ export async function setCachedApiResponse(
   return setCache('api', key, data, ttl);
 }
 
+export async function invalidateApiCache(endpoint: string, params?: Record<string, any>) {
+  const key = params ? `${endpoint}:${JSON.stringify(params)}` : endpoint;
+  return deleteCache('api', key);
+}
+
 /**
  * Cache RAG query results
  */

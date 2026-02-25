@@ -147,38 +147,44 @@ export default function ProductsPage() {
 
       const list = response?.products ?? [];
 
-      // Batch fetch chunk counts for all products
-      if (list.length > 0) {
-        try {
-          const productIds = list.map(p => p.id);
-          const chunksResponse = await authenticatedRequest<{ chunkCounts: Array<{ productId: string; chunkCount: number }> }>(
-            '/api/products/chunks/batch',
-            session.access_token,
-            {
-              method: 'POST',
-              body: JSON.stringify({ productIds }),
-            }
-          );
-
-          // Map chunk counts to products
-          const chunkCountMap = new Map(
-            chunksResponse.chunkCounts.map(cc => [cc.productId, cc.chunkCount])
-          );
-
-          const productsWithChunks = list.map(product => ({
-            ...product,
-            chunkCount: chunkCountMap.get(product.id) ?? 0,
-            chunkCountUnavailable: false,
-          }));
-
-          setProducts(productsWithChunks);
-        } catch (chunkError) {
-          console.error('Failed to load chunk counts:', chunkError);
-          // Fall back without lying that chunk count is zero.
-          setProducts(list.map(p => ({ ...p, chunkCount: undefined, chunkCountUnavailable: true })));
-        }
-      } else {
+      if (list.length === 0) {
         setProducts([]);
+        setLoading(false);
+        return;
+      }
+
+      // Render the product list immediately; hydrate chunk counts in background.
+      setProducts(list.map((p) => ({ ...p, chunkCount: undefined, chunkCountUnavailable: true })));
+      setLoading(false);
+
+      try {
+        const productIds = list.map((p) => p.id);
+        const chunksResponse = await authenticatedRequest<{ chunkCounts: Array<{ productId: string; chunkCount: number }> }>(
+          '/api/products/chunks/batch',
+          session.access_token,
+          {
+            method: 'POST',
+            body: JSON.stringify({ productIds }),
+          }
+        );
+
+        const chunkCountMap = new Map(
+          chunksResponse.chunkCounts.map((cc) => [cc.productId, cc.chunkCount])
+        );
+
+        setProducts((prev) =>
+          prev.map((product) => ({
+            ...product,
+            chunkCount: chunkCountMap.get(product.id),
+            chunkCountUnavailable: false,
+          }))
+        );
+      } catch (chunkError) {
+        console.error('Failed to load chunk counts:', chunkError);
+        // Keep list visible; just leave counts unavailable.
+        setProducts((prev) =>
+          prev.map((p) => ({ ...p, chunkCount: undefined, chunkCountUnavailable: true }))
+        );
       }
     } catch (err: any) {
       console.error('Failed to load products:', err);
@@ -189,6 +195,7 @@ export default function ProductsPage() {
         toast.error(t('toasts.loadError.title'), t('toasts.loadError.message'));
       }
     } finally {
+      // loading is cleared once base list arrives (or on error)
       setLoading(false);
     }
   };

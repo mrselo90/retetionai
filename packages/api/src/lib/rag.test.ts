@@ -26,6 +26,11 @@ vi.mock('./embeddings', () => ({
   generateEmbedding: vi.fn(),
 }));
 
+vi.mock('./cache', () => ({
+  getCache: vi.fn().mockResolvedValue(null),
+  setCache: vi.fn().mockResolvedValue(true),
+}));
+
 describe('queryKnowledgeBase', () => {
   beforeEach(() => {
     vi.clearAllMocks();

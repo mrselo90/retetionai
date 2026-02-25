@@ -6,6 +6,7 @@ type PlatformAiSettingsRow = {
   allowed_llm_models: string[] | null;
   conversation_memory_mode?: 'last_n' | 'full';
   conversation_memory_count?: number;
+  products_cache_ttl_seconds?: number;
 };
 
 let cache: { value: PlatformAiSettingsRow; expiresAt: number } | null = null;
@@ -14,6 +15,7 @@ const CACHE_TTL_MS = 30_000;
 const DEFAULT_ALLOWED = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'];
 const DEFAULT_MEMORY_MODE: 'last_n' | 'full' = 'last_n';
 const DEFAULT_MEMORY_COUNT = 10;
+const DEFAULT_PRODUCTS_CACHE_TTL_SECONDS = 300;
 
 function normalizeAllowed(value: unknown): string[] {
   if (!Array.isArray(value)) return DEFAULT_ALLOWED;
@@ -31,13 +33,14 @@ export async function getPlatformAiSettings(): Promise<PlatformAiSettingsRow> {
     allowed_llm_models: DEFAULT_ALLOWED,
     conversation_memory_mode: DEFAULT_MEMORY_MODE,
     conversation_memory_count: DEFAULT_MEMORY_COUNT,
+    products_cache_ttl_seconds: DEFAULT_PRODUCTS_CACHE_TTL_SECONDS,
   };
 
   try {
     const svc = getSupabaseServiceClient();
     const { data, error } = await svc
       .from('platform_ai_settings')
-      .select('id, default_llm_model, allowed_llm_models, conversation_memory_mode, conversation_memory_count')
+      .select('id, default_llm_model, allowed_llm_models, conversation_memory_mode, conversation_memory_count, products_cache_ttl_seconds')
       .eq('id', 'default')
       .maybeSingle();
 
@@ -60,6 +63,9 @@ export async function getPlatformAiSettings(): Promise<PlatformAiSettingsRow> {
           conversation_memory_count: typeof data.conversation_memory_count === 'number'
             ? Math.max(1, Math.min(200, Math.floor(data.conversation_memory_count)))
             : DEFAULT_MEMORY_COUNT,
+          products_cache_ttl_seconds: typeof data.products_cache_ttl_seconds === 'number'
+            ? Math.max(30, Math.min(3600, Math.floor(data.products_cache_ttl_seconds)))
+            : DEFAULT_PRODUCTS_CACHE_TTL_SECONDS,
         }
       : fallback;
 
@@ -85,11 +91,19 @@ export async function getConversationMemorySettings(): Promise<{ mode: 'last_n' 
   };
 }
 
+export async function getProductsCacheTtlSeconds(): Promise<number> {
+  const settings = await getPlatformAiSettings();
+  return typeof settings.products_cache_ttl_seconds === 'number'
+    ? settings.products_cache_ttl_seconds
+    : DEFAULT_PRODUCTS_CACHE_TTL_SECONDS;
+}
+
 export async function updatePlatformAiSettings(input: {
   default_llm_model: string;
   allowed_llm_models?: string[];
   conversation_memory_mode?: 'last_n' | 'full';
   conversation_memory_count?: number;
+  products_cache_ttl_seconds?: number;
 }): Promise<PlatformAiSettingsRow> {
   const svc = getSupabaseServiceClient();
   const defaultModel = String(input.default_llm_model || '').trim();
@@ -100,6 +114,9 @@ export async function updatePlatformAiSettings(input: {
   const memoryCount = typeof input.conversation_memory_count === 'number'
     ? Math.max(1, Math.min(200, Math.floor(input.conversation_memory_count)))
     : DEFAULT_MEMORY_COUNT;
+  const productsCacheTtlSeconds = typeof input.products_cache_ttl_seconds === 'number'
+    ? Math.max(30, Math.min(3600, Math.floor(input.products_cache_ttl_seconds)))
+    : DEFAULT_PRODUCTS_CACHE_TTL_SECONDS;
 
   const { data, error } = await svc
     .from('platform_ai_settings')
@@ -110,11 +127,12 @@ export async function updatePlatformAiSettings(input: {
         allowed_llm_models: allowed,
         conversation_memory_mode: memoryMode,
         conversation_memory_count: memoryCount,
+        products_cache_ttl_seconds: productsCacheTtlSeconds,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'id' }
     )
-    .select('id, default_llm_model, allowed_llm_models, conversation_memory_mode, conversation_memory_count')
+    .select('id, default_llm_model, allowed_llm_models, conversation_memory_mode, conversation_memory_count, products_cache_ttl_seconds')
     .single();
 
   if (error) throw new Error(`platform_ai_settings update failed: ${error.message}`);
@@ -127,6 +145,9 @@ export async function updatePlatformAiSettings(input: {
     conversation_memory_count: typeof data.conversation_memory_count === 'number'
       ? Math.max(1, Math.min(200, Math.floor(data.conversation_memory_count)))
       : DEFAULT_MEMORY_COUNT,
+    products_cache_ttl_seconds: typeof data.products_cache_ttl_seconds === 'number'
+      ? Math.max(30, Math.min(3600, Math.floor(data.products_cache_ttl_seconds)))
+      : DEFAULT_PRODUCTS_CACHE_TTL_SECONDS,
   };
   cache = { value: row, expiresAt: Date.now() + CACHE_TTL_MS };
   return row;

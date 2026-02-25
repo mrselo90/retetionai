@@ -27,6 +27,7 @@ import {
   getLocalizedEscalationResponse,
   type SupportedLanguage,
 } from './i18n.js';
+import crypto from 'node:crypto';
 import { getActiveProductFactsContext, getActiveProductFactsSnapshots } from './productFactsQuery.js';
 import { planStructuredFactAnswer } from './productFactsPlanner.js';
 
@@ -77,6 +78,10 @@ function getPreferredSectionsForProfile(profile: string): string[] | undefined {
     default:
       return undefined;
   }
+}
+
+function buildRagCacheKey(input: Record<string, unknown>): string {
+  return crypto.createHash('sha256').update(JSON.stringify(input)).digest('hex');
 }
 
 type PostDeliveryFollowUpType =
@@ -438,6 +443,16 @@ export async function generateAIResponse(
       // Safety: when an order exists but we cannot resolve products, do NOT broaden to all merchant products.
       const ragConfig = getCosmeticRAGConfig(ragQuery);
       const queryLang = userLang;
+      const preferredSections = getPreferredSectionsForProfile(ragConfig.profile);
+      const ragCacheKey = buildRagCacheKey({
+        merchantId,
+        query: ragQuery,
+        productIds: orderProductIds?.length ? orderProductIds : null,
+        topK: ragConfig.topK,
+        similarityThreshold: ragConfig.similarityThreshold,
+        preferredSectionTypes: preferredSections || null,
+        preferredLanguage: queryLang,
+      });
       const ragResult =
         orderId && (!orderProductIds || orderProductIds.length === 0)
           ? {
@@ -452,8 +467,10 @@ export async function generateAIResponse(
               productIds: orderProductIds?.length ? orderProductIds : undefined,
               topK: ragConfig.topK,
               similarityThreshold: ragConfig.similarityThreshold,
-              preferredSectionTypes: getPreferredSectionsForProfile(ragConfig.profile),
+              preferredSectionTypes: preferredSections,
               preferredLanguage: queryLang,
+              cacheKey: ragCacheKey,
+              cacheTtlSeconds: 900,
             });
 
       logger.info(

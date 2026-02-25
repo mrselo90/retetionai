@@ -15,8 +15,8 @@ export interface ProcessProductResult {
   error?: string;
 }
 
-function chunkTextForRAG(text: string, maxChunkSize: number) {
-  if (!text.includes('[SECTION:')) return chunkText(text, maxChunkSize);
+function chunkTextForRAG(text: string, maxChunkSize: number, overlap: number) {
+  if (!text.includes('[SECTION:')) return chunkText(text, maxChunkSize, overlap);
 
   const sections = text
     .split(/\n(?=\[SECTION:)/g)
@@ -25,7 +25,7 @@ function chunkTextForRAG(text: string, maxChunkSize: number) {
   const allChunks: Array<{ text: string; index: number }> = [];
   let index = 0;
   for (const section of sections) {
-    for (const chunk of chunkText(section, maxChunkSize)) {
+    for (const chunk of chunkText(section, maxChunkSize, overlap)) {
       allChunks.push({ ...chunk, index });
       index++;
     }
@@ -35,7 +35,9 @@ function chunkTextForRAG(text: string, maxChunkSize: number) {
 
 function detectChunkLanguage(textToProcess: string): string | null {
   const m = textToProcess.match(/\[LANG:([a-z]{2})\]/i);
-  return m?.[1]?.toLowerCase() ?? null;
+  if (!m || typeof m.index !== 'number') return null;
+  if (m.index > 200) return null;
+  return m[1]?.toLowerCase() ?? null;
 }
 
 function inferSectionType(chunkText: string): string {
@@ -75,7 +77,7 @@ export async function processProductForRAG(
       };
     }
 
-    const chunks = chunkTextForRAG(rawContent, 1000);
+    const chunks = chunkTextForRAG(rawContent, 1000, 150);
 
     if (chunks.length === 0) {
       return {
