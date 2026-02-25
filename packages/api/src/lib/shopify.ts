@@ -206,6 +206,20 @@ export interface ShopifyProductVariant {
   title: string;
   price: string;
   sku: string | null;
+  inventoryQuantity?: number | null;
+}
+
+export interface ShopifyLiveProductQuote {
+  id: string;
+  title: string;
+  status: string;
+  variants: Array<{
+    id: string;
+    title: string;
+    price: string;
+    sku: string | null;
+    inventoryQuantity: number | null;
+  }>;
 }
 
 /** Shopify product (Admin GraphQL) – includes details for AI bot context */
@@ -362,4 +376,87 @@ export async function fetchShopifyProducts(
     hasNextPage: data.pageInfo?.hasNextPage ?? false,
     endCursor: data.pageInfo?.endCursor,
   };
+}
+
+/**
+ * Fetch live product quotes (price/stock) by Shopify product IDs
+ * Uses Admin GraphQL nodes query to avoid scanning all products.
+ */
+export async function fetchShopifyLiveProductQuotes(
+  shop: string,
+  accessToken: string,
+  productIds: string[]
+): Promise<ShopifyLiveProductQuote[]> {
+  const cleanShop = shop.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const url = `https://${cleanShop}/admin/api/2024-01/graphql.json`;
+  const gids = [...new Set(productIds.map((id) => String(id).trim()).filter(Boolean))].map(
+    (id) => (id.startsWith('gid://') ? id : `gid://shopify/Product/${id}`)
+  );
+  if (!gids.length) return [];
+
+  const query = `
+    query getProductQuotes($ids: [ID!]!) {
+      nodes(ids: $ids) {
+        ... on Product {
+          id
+          title
+          status
+          variants(first: 10) {
+            edges {
+              node {
+                id
+                title
+                price
+                sku
+                inventoryQuantity
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': accessToken,
+    },
+    body: JSON.stringify({ query, variables: { ids: gids } }),
+  });
+
+  const raw = await res.text();
+  if (!res.ok) {
+    throw new Error(`Shopify GraphQL quote fetch failed: ${raw || res.status}`);
+  }
+  let json: any;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    throw new Error('Shopify GraphQL quote fetch invalid JSON');
+  }
+  if (json?.errors?.length) {
+    throw new Error(json.errors[0]?.message || 'Shopify GraphQL quote fetch error');
+  }
+  const nodes = Array.isArray(json?.data?.nodes) ? json.data.nodes : [];
+  return nodes
+    .filter((n: any) => n && n.id)
+    .map((n: any) => ({
+      id: String(n.id).replace('gid://shopify/Product/', ''),
+      title: n.title || '',
+      status: n.status || '',
+      variants: Array.isArray(n.variants?.edges)
+        ? n.variants.edges.map((ve: any) => {
+          const v = ve?.node || {};
+          return {
+            id: String(v.id || '').replace('gid://shopify/ProductVariant/', ''),
+            title: v.title || '',
+            price: v.price || '',
+            sku: v.sku ?? null,
+            inventoryQuantity: typeof v.inventoryQuantity === 'number' ? v.inventoryQuantity : null,
+          };
+        })
+        : [],
+    }));
 }

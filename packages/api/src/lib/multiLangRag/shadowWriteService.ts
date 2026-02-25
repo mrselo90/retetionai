@@ -8,10 +8,25 @@ import { getMultiLangRagFlags } from './config.js';
 import type { ProductI18nSnapshot } from './types.js';
 
 function snapshotFromProductRow(product: any): ProductI18nSnapshot {
+  const instructionParts = [
+    product?.product_instructions?.usage_instructions,
+    product?.product_instructions?.recipe_summary,
+    product?.product_instructions?.prevention_tips,
+  ].filter((v) => typeof v === 'string' && v.trim().length > 0) as string[];
+  const descriptionParts = [product.enriched_text, product.raw_text]
+    .filter((v) => typeof v === 'string' && v.trim().length > 0)
+    .map(String);
+  if (instructionParts.length) {
+    descriptionParts.push(`<section><h3>Instructions</h3><p>${instructionParts.join('\n\n')}</p></section>`);
+  }
   return {
     title: product.name || 'Product',
-    description_html: product.enriched_text || product.raw_text || '',
-    specs_json: (product.multilang_specs_json && typeof product.multilang_specs_json === 'object') ? product.multilang_specs_json : {},
+    description_html: descriptionParts.join('\n\n'),
+    specs_json: {
+      ...((product.multilang_specs_json && typeof product.multilang_specs_json === 'object') ? product.multilang_specs_json : {}),
+      ...(product?.product_instructions?.usage_instructions ? { usage_instructions: product.product_instructions.usage_instructions } : {}),
+      ...(product?.product_instructions?.prevention_tips ? { prevention_tips: product.product_instructions.prevention_tips } : {}),
+    },
     faq_json: Array.isArray(product.multilang_faq_json) ? product.multilang_faq_json : [],
   };
 }
@@ -46,8 +61,15 @@ export class MultiLangRagShadowWriteService {
       return;
     }
 
+    const { data: productInstruction } = await svc
+      .from('product_instructions')
+      .select('usage_instructions, recipe_summary, prevention_tips')
+      .eq('merchant_id', shopId)
+      .eq('product_id', productId)
+      .maybeSingle();
+
     const settings = await this.settingsService.getOrCreate(shopId, sourceText);
-    const sourceSnapshot = snapshotFromProductRow(product);
+    const sourceSnapshot = snapshotFromProductRow({ ...product, product_instructions: productInstruction || null });
     const i18nResults = await this.i18nService.upsertTranslations({
       shopId,
       productId,
@@ -96,4 +118,3 @@ export class MultiLangRagShadowWriteService {
     );
   }
 }
-

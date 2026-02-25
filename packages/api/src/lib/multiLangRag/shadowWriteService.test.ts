@@ -5,7 +5,7 @@ import { buildEmbeddingContentHash, buildEmbeddingDocument } from './utils.js';
 
 vi.mock('@recete/shared', () => ({
   getSupabaseServiceClient: () => ({
-    from: () => ({
+    from: (table: string) => ({
       select: () => ({
         eq: () => ({
           eq: () => ({
@@ -17,6 +17,10 @@ vi.mock('@recete/shared', () => ({
                 raw_text: 'raw',
                 enriched_text: 'enriched',
               },
+              error: null,
+            }),
+            maybeSingle: async () => ({
+              data: table === 'product_instructions' ? null : null,
               error: null,
             }),
           }),

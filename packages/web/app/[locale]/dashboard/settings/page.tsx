@@ -60,6 +60,13 @@ interface Merchant {
   created_at: string;
 }
 
+interface MultiLangRagSettings {
+  shop_id: string;
+  default_source_lang: string;
+  enabled_langs: string[];
+  multi_lang_rag_enabled: boolean;
+}
+
 export default function SettingsPage() {
   const t = useTranslations('Settings');
   const rp = useTranslations('ReturnPrevention');
@@ -83,6 +90,11 @@ export default function SettingsPage() {
   const [productInstructionsScope, setProductInstructionsScope] = useState<ProductInstructionsScope>('order_only');
   const [whatsappSenderMode, setWhatsappSenderMode] = useState<'merchant_own' | 'corporate'>('merchant_own');
   const [notificationPhone, setNotificationPhone] = useState('');
+  const [multiLangRagSettings, setMultiLangRagSettings] = useState<MultiLangRagSettings | null>(null);
+  const [multiLangRagSaving, setMultiLangRagSaving] = useState(false);
+  const [multiLangEnabledLangs, setMultiLangEnabledLangs] = useState<string[]>(['en']);
+  const [multiLangDefaultSourceLang, setMultiLangDefaultSourceLang] = useState<string>('en');
+  const [multiLangEnabled, setMultiLangEnabled] = useState(false);
 
   // Add-ons
   const [addons, setAddons] = useState<Array<{ key: string; name: string; description: string; priceMonthly: number; status: string; planAllowed: boolean }>>([]);
@@ -159,6 +171,22 @@ export default function SettingsPage() {
         console.warn('Addons load failed (migration 011 may not be run)');
         setAddons([]);
       }
+
+      try {
+        const multiLangResponse = await authenticatedRequest<{ settings: MultiLangRagSettings }>(
+          '/api/merchants/me/multi-lang-rag-settings',
+          session.access_token
+        );
+        setMultiLangRagSettings(multiLangResponse.settings);
+        setMultiLangEnabledLangs(Array.isArray(multiLangResponse.settings.enabled_langs) && multiLangResponse.settings.enabled_langs.length
+          ? multiLangResponse.settings.enabled_langs
+          : [multiLangResponse.settings.default_source_lang || 'en']);
+        setMultiLangDefaultSourceLang(multiLangResponse.settings.default_source_lang || 'en');
+        setMultiLangEnabled(Boolean(multiLangResponse.settings.multi_lang_rag_enabled));
+      } catch (e) {
+        console.warn('Multi-language RAG settings load failed (migration 019 may not be run):', e);
+        setMultiLangRagSettings(null);
+      }
     } catch (err: any) {
       console.error('Failed to load settings:', err);
       if (err.status === 401) {
@@ -168,6 +196,45 @@ export default function SettingsPage() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const allLangOptions = [
+    { value: 'en', label: 'English' },
+    { value: 'tr', label: 'Turkish' },
+    { value: 'hu', label: 'Hungarian' },
+    { value: 'de', label: 'German' },
+    { value: 'el', label: 'Greek' },
+  ] as const;
+
+  const handleSaveMultiLangRagSettings = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      setMultiLangRagSaving(true);
+      const enabled = [...new Set([multiLangDefaultSourceLang, ...multiLangEnabledLangs])];
+      const response = await authenticatedRequest<{ settings: MultiLangRagSettings }>(
+        '/api/merchants/me/multi-lang-rag-settings',
+        session.access_token,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            default_source_lang: multiLangDefaultSourceLang,
+            enabled_langs: enabled,
+            multi_lang_rag_enabled: multiLangEnabled,
+          }),
+        }
+      );
+      setMultiLangRagSettings(response.settings);
+      setMultiLangEnabledLangs(response.settings.enabled_langs);
+      setMultiLangDefaultSourceLang(response.settings.default_source_lang);
+      setMultiLangEnabled(Boolean(response.settings.multi_lang_rag_enabled));
+      toast.success('Multi-language RAG settings saved', 'New settings will apply to shadow write/read immediately via feature flags.');
+    } catch (err: any) {
+      console.error('Failed to save multi-language RAG settings:', err);
+      toast.error('Failed to save multi-language RAG settings', err.message || 'Unknown error');
+    } finally {
+      setMultiLangRagSaving(false);
     }
   };
 
@@ -502,6 +569,79 @@ export default function SettingsPage() {
               autoComplete="off"
               helpText={t('notifications.phoneHint')}
             />
+          </BlockStack>
+        </Box>
+      </PolarisCard>
+
+      {/* Multi-language RAG (Option A: lang-specific retrieval + fallback) */}
+      <PolarisCard>
+        <Box padding="400">
+          <BlockStack gap="400">
+            <InlineStack gap="300" blockAlign="start">
+              <Box background="bg-fill-brand" borderRadius="300" padding="300">
+                <Settings className="w-5 h-5 text-white" />
+              </Box>
+              <BlockStack gap="100">
+                <Text as="h2" variant="headingMd">Multi-language RAG (Option A)</Text>
+                <Text as="p" tone="subdued">
+                  Configure source language, enabled target languages and per-shop rollout. Works with feature flags and shadow write/read.
+                </Text>
+              </BlockStack>
+            </InlineStack>
+
+            <Select
+              label="Default source language"
+              value={multiLangDefaultSourceLang}
+              options={allLangOptions.map((o) => ({ value: o.value, label: o.label }))}
+              onChange={(value) => {
+                setMultiLangDefaultSourceLang(value);
+                if (!multiLangEnabledLangs.includes(value)) {
+                  setMultiLangEnabledLangs((prev) => [...new Set([value, ...prev])]);
+                }
+              }}
+            />
+
+            <ChoiceList
+              title="Enabled languages (translations + per-lang embeddings)"
+              allowMultiple
+              choices={allLangOptions.map((o) => ({ value: o.value, label: o.label }))}
+              selected={multiLangEnabledLangs}
+              onChange={(selected) => {
+                const next = [...new Set(selected)];
+                if (!next.includes(multiLangDefaultSourceLang)) next.unshift(multiLangDefaultSourceLang);
+                setMultiLangEnabledLangs(next);
+              }}
+            />
+
+            <Checkbox
+              label="Enable multi-language RAG for this shop"
+              helpText="Safe rollout: global env flags still control shadow write/read and final answer path."
+              checked={multiLangEnabled}
+              onChange={setMultiLangEnabled}
+            />
+
+            <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
+              <BlockStack gap="100">
+                <Text as="p" variant="bodySm">
+                  <strong>Current state:</strong>{' '}
+                  {multiLangRagSettings ? 'Configured' : 'Not available yet (migration 019 may not be applied)'}
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Shadow write creates `product_i18n` + `product_embeddings`. Shadow read runs retrieval in parallel for logs. Final answers use the new flow only when both shop toggle and env flag are enabled.
+                </Text>
+              </BlockStack>
+            </Box>
+
+            <InlineStack align="end">
+              <PolarisButton
+                variant="primary"
+                onClick={handleSaveMultiLangRagSettings}
+                loading={multiLangRagSaving}
+                disabled={multiLangRagSaving}
+              >
+                Save multi-language RAG settings
+              </PolarisButton>
+            </InlineStack>
           </BlockStack>
         </Box>
       </PolarisCard>

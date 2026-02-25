@@ -158,6 +158,10 @@ products.put('/:id/instruction', validateParams(productIdSchema), validateBody(p
     return c.json({ error: 'Failed to save instruction' }, 500);
   }
 
+  void multiLangShadowWrite.syncProduct(String(merchantId), productId).catch((e) => {
+    console.warn('Multi-lang shadow write failed after instruction save:', e);
+  });
+
   return c.json({ instruction });
 });
 
@@ -225,6 +229,9 @@ products.post('/', validateBody(createProductSchema), async (c) => {
 
   // Cache new product
   await setCachedProduct(product.id, product, 600);
+  void multiLangShadowWrite.syncProduct(String(merchantId), product.id).catch((e) => {
+    console.warn('Multi-lang shadow write failed after create product:', e);
+  });
 
   return c.json({ product }, 201);
 });
@@ -288,6 +295,9 @@ products.put('/:id', validateParams(productIdSchema), validateBody(updateProduct
 
   // Update cache
   await setCachedProduct(productId, product, 600);
+  void multiLangShadowWrite.syncProduct(String(merchantId), productId).catch((e) => {
+    console.warn('Multi-lang shadow write failed after update product:', e);
+  });
 
   return c.json({ product });
 });

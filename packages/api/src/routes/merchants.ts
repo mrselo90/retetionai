@@ -8,6 +8,7 @@ import { getSupabaseServiceClient } from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
 import { getMerchantBotInfo, setMerchantBotInfoKey } from '../lib/botInfo.js';
 import { SYSTEM_GUARDRAILS, type CustomGuardrail } from '../lib/guardrails.js';
+import { ShopSettingsService } from '../lib/multiLangRag/shopSettingsService.js';
 
 const merchants = new Hono();
 
@@ -95,6 +96,70 @@ merchants.put('/me', async (c) => {
     return c.json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+/**
+ * Get Multi-language RAG settings (per shop/merchant)
+ * GET /api/merchants/me/multi-lang-rag-settings
+ */
+merchants.get('/me/multi-lang-rag-settings', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const service = new ShopSettingsService();
+    const settings = await service.getOrCreate(merchantId);
+    return c.json({ settings });
+  } catch (error) {
+    return c.json({
+      error: 'Failed to load multi-language RAG settings',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    }, 500);
+  }
+});
+
+/**
+ * Update Multi-language RAG settings (per shop/merchant)
+ * PUT /api/merchants/me/multi-lang-rag-settings
+ */
+merchants.put('/me/multi-lang-rag-settings', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const body = await c.req.json().catch(() => ({}));
+
+    const patch: Record<string, any> = {};
+    if (body.default_source_lang !== undefined) {
+      if (typeof body.default_source_lang !== 'string' || !body.default_source_lang.trim()) {
+        return c.json({ error: 'default_source_lang must be a non-empty string' }, 400);
+      }
+      patch.default_source_lang = body.default_source_lang;
+    }
+
+    if (body.enabled_langs !== undefined) {
+      if (!Array.isArray(body.enabled_langs) || body.enabled_langs.some((x: unknown) => typeof x !== 'string')) {
+        return c.json({ error: 'enabled_langs must be an array of language codes' }, 400);
+      }
+      patch.enabled_langs = body.enabled_langs;
+    }
+
+    if (body.multi_lang_rag_enabled !== undefined) {
+      if (typeof body.multi_lang_rag_enabled !== 'boolean') {
+        return c.json({ error: 'multi_lang_rag_enabled must be a boolean' }, 400);
+      }
+      patch.multi_lang_rag_enabled = body.multi_lang_rag_enabled;
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return c.json({ error: 'No valid fields to update' }, 400);
+    }
+
+    const service = new ShopSettingsService();
+    const settings = await service.update(merchantId, patch);
+    return c.json({ settings });
+  } catch (error) {
+    return c.json({
+      error: 'Failed to update multi-language RAG settings',
+      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });

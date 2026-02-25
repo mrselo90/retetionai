@@ -43,5 +43,43 @@ export class ShopSettingsService {
       multi_lang_rag_enabled: Boolean(inserted.multi_lang_rag_enabled),
     };
   }
-}
 
+  async update(
+    shopId: string,
+    patch: Partial<Pick<ShopSettingsRecord, 'default_source_lang' | 'enabled_langs' | 'multi_lang_rag_enabled'>>
+  ): Promise<ShopSettingsRecord> {
+    const current = await this.getOrCreate(shopId);
+    const nextDefault = patch.default_source_lang ? normalizeLangCode(patch.default_source_lang) : current.default_source_lang;
+    const nextEnabled = Array.isArray(patch.enabled_langs)
+      ? [...new Set(patch.enabled_langs.map((x) => normalizeLangCode(String(x))).filter(Boolean))]
+      : current.enabled_langs;
+    if (!nextEnabled.includes(nextDefault)) nextEnabled.unshift(nextDefault);
+
+    const nextEnabledFinal = [...new Set(nextEnabled)];
+    const nextEnabledFiltered = nextEnabledFinal.filter(Boolean);
+
+    const svc = getSupabaseServiceClient();
+    const { data, error } = await svc
+      .from('shop_settings')
+      .upsert(
+        {
+          shop_id: shopId,
+          default_source_lang: nextDefault,
+          enabled_langs: nextEnabledFiltered,
+          multi_lang_rag_enabled: patch.multi_lang_rag_enabled ?? current.multi_lang_rag_enabled,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'shop_id' }
+      )
+      .select('shop_id, default_source_lang, enabled_langs, multi_lang_rag_enabled')
+      .single();
+
+    if (error) throw new Error(`shop_settings update failed: ${error.message}`);
+    return {
+      shop_id: data.shop_id,
+      default_source_lang: normalizeLangCode(data.default_source_lang),
+      enabled_langs: Array.isArray(data.enabled_langs) ? data.enabled_langs.map((x: any) => normalizeLangCode(String(x))) : [nextDefault],
+      multi_lang_rag_enabled: Boolean(data.multi_lang_rag_enabled),
+    };
+  }
+}

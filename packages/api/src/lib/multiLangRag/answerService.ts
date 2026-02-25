@@ -1,6 +1,7 @@
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { detectLanguage, type SupportedLanguage } from '../i18n.js';
 import { getOpenAIClient } from '../openaiClient.js';
+import { fetchShopifyLiveProductQuotes } from '../shopify.js';
 import { EmbeddingService } from './embeddingService.js';
 import { VectorSearchService } from './vectorSearchService.js';
 import { TranslationService } from './translationService.js';
@@ -34,6 +35,42 @@ function evidenceMetrics(scores: number[]): { max: number; avgTop3: number } {
 
 function isPriceOrStockQuestion(q: string): boolean {
   return /\b(price|fiyat|ár|stock|stok|inventory|in stock|készlet)\b/i.test(q);
+}
+
+async function getShopifyAuthForMerchant(shopId: string): Promise<{ shop: string; accessToken: string } | null> {
+  const svc = getSupabaseServiceClient();
+  const { data, error } = await svc
+    .from('integrations')
+    .select('auth_data,status')
+    .eq('merchant_id', shopId)
+    .eq('provider', 'shopify')
+    .in('status', ['active', 'pending'])
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  const authData = data.auth_data as { shop?: string; access_token?: string } | null;
+  if (!authData?.shop || !authData?.access_token) return null;
+  return { shop: authData.shop, accessToken: authData.access_token };
+}
+
+function formatLiveQuoteAnswer(userLang: string, items: Array<{ name: string; priceLines: string[]; stockLines: string[] }>, ts: string): string {
+  if (!items.length) {
+    if (userLang === 'tr') return `Canlı fiyat/stok için ürün eşleşmesi bulamadım. Hangi ürünü kastettiğinizi netleştirir misiniz? Kontrol zamanı: ${ts}`;
+    if (userLang === 'hu') return `Nem találtam egyező terméket az élő ár/készlet ellenőrzéshez. Pontosítaná, melyik termékről van szó? Ellenőrzés ideje: ${ts}`;
+    return `I couldn't match a product for live price/stock verification. Could you clarify which product you mean? Checked at: ${ts}`;
+  }
+  const intro =
+    userLang === 'tr' ? `Canlı Shopify verisine göre (${ts})` :
+      userLang === 'hu' ? `Élő Shopify adatok alapján (${ts})` :
+        `Based on live Shopify data (${ts})`;
+  const lines: string[] = [intro];
+  for (const item of items.slice(0, 3)) {
+    lines.push(`- ${item.name}`);
+    for (const p of item.priceLines.slice(0, 3)) lines.push(`  ${userLang === 'hu' ? 'Ár' : userLang === 'tr' ? 'Fiyat' : 'Price'}: ${p}`);
+    for (const s of item.stockLines.slice(0, 3)) lines.push(`  ${userLang === 'hu' ? 'Készlet' : userLang === 'tr' ? 'Stok' : 'Stock'}: ${s}`);
+  }
+  return lines.join('\n');
 }
 
 export class MultiLangRagAnswerService {
@@ -120,13 +157,52 @@ export class MultiLangRagAnswerService {
     const tGen = Date.now();
     if (isPriceOrStockQuestion(input.question)) {
       const ts = new Date().toISOString();
-      // Best-effort placeholder until live commerce fetch is wired for this endpoint.
-      const base = userLang === 'tr'
-        ? `Canlı fiyat/stok bilgisini bu test endpoint'inden doğrulayamıyorum. Lütfen Shopify canlı verisini kontrol edin. Kontrol zamanı: ${ts}`
-        : userLang === 'hu'
-          ? `Ezen az endpointen nem tudok élő ár/készlet adatot ellenőrizni. Kérjük, ellenőrizze a Shopify élő adatát. Ellenőrzés ideje: ${ts}`
-          : `I can't verify live price/stock from this endpoint. Please check Shopify live data. Checked at: ${ts}`;
-      answerText = base;
+      const tLive = Date.now();
+      const svc = getSupabaseServiceClient();
+      const auth = await getShopifyAuthForMerchant(input.shopId);
+      let liveAnswer: string | null = null;
+      if (auth && citedProductIds.length) {
+        try {
+          const { data: localProducts } = await svc
+            .from('products')
+            .select('id,name,external_id')
+            .eq('merchant_id', input.shopId)
+            .in('id', citedProductIds);
+          const localRows = (localProducts || []) as Array<{ id: string; name?: string; external_id?: string | null }>;
+          const extIds = localRows.map((p) => String(p.external_id || '').trim()).filter(Boolean);
+          if (extIds.length) {
+            const quotes = await fetchShopifyLiveProductQuotes(auth.shop, auth.accessToken, extIds);
+            const quoteByExtId = new Map(quotes.map((q) => [q.id, q]));
+            const rows = localRows.map((p) => {
+              const q = p.external_id ? quoteByExtId.get(String(p.external_id)) : undefined;
+              if (!q) return null;
+              const priceLines = q.variants.length
+                ? q.variants.map((v) => `${v.title || 'Default'} = ${v.price}`)
+                : [];
+              const stockLines = q.variants.length
+                ? q.variants.map((v) => `${v.title || 'Default'} = ${v.inventoryQuantity == null ? 'N/A' : String(v.inventoryQuantity)}`)
+                : [];
+              return {
+                name: p.name || q.title || 'Product',
+                priceLines,
+                stockLines,
+              };
+            }).filter(Boolean) as Array<{ name: string; priceLines: string[]; stockLines: string[] }>;
+            liveAnswer = formatLiveQuoteAnswer(userLang, rows, ts);
+          }
+        } catch (err) {
+          logger.warn({ err, shopId: input.shopId, citedProductIds }, 'multi_lang_rag_live_quote_fetch_failed');
+        }
+      }
+      if (!liveAnswer) {
+        liveAnswer = userLang === 'tr'
+          ? `Canlı fiyat/stok için eşleşen Shopify ürünü bulamadım. Hangi ürünü kastettiğinizi netleştirir misiniz? Kontrol zamanı: ${ts}`
+          : userLang === 'hu'
+            ? `Nem találtam egyező Shopify terméket élő ár/készlet ellenőrzéshez. Pontosítaná a terméket? Ellenőrzés ideje: ${ts}`
+            : `I couldn't match a Shopify product for live price/stock verification. Could you clarify which product you mean? Checked at: ${ts}`;
+      }
+      timings.live_fetch = Date.now() - tLive;
+      answerText = liveAnswer;
     } else if (contextItems.length === 0) {
       answerText = userLang === 'tr'
         ? 'Ürün içeriklerinde bu soruya dair ilgili bilgi bulamadım. Hangi ürün olduğunu netleştirir misiniz?'
@@ -186,4 +262,3 @@ export class MultiLangRagAnswerService {
     };
   }
 }
-

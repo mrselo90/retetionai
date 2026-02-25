@@ -162,3 +162,10 @@
   - Added server-side services for translation, multi-lang embeddings, vector search, shadow write, and `/api/answer` feature-flagged flow
   - Integrated shadow write hook into product scrape / embedding generation routes (no-op unless `MULTI_LANG_RAG_SHADOW_WRITE=true`)
   - Added `/api/answer` legacy-compatible route with shadow-read + gradual enable via `shop_settings.multi_lang_rag_enabled`
+- **Multi-lang RAG (Option A) completion pass**:
+  - Added merchant API endpoints for shop-level multi-lang RAG settings (`/api/merchants/me/multi-lang-rag-settings`)
+  - Added Settings UI controls for `default_source_lang`, `enabled_langs`, and per-shop `multi_lang_rag_enabled`
+  - Extended shadow-write coverage to product create/update and product instruction save routes
+  - Shadow-write snapshot now incorporates `product_instructions` fields (`usage_instructions`, `recipe_summary`, `prevention_tips`)
+  - `/api/answer` live price/stock questions now attempt Shopify Admin GraphQL live fetch using existing Shopify integration credentials (with timestamped fallback if no match/integration)
+  - API/web typecheck and multi-lang RAG unit tests pass after changes
