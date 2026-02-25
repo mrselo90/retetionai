@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
-import { Badge, BlockStack, Box, Button, Card, IndexTable, InlineStack, Layout, Page, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
+import { Badge, BlockStack, Box, Button, Card, IndexTable, InlineStack, Layout, Page, Select, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
 import { Store, Calendar, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/lib/toast';
@@ -20,6 +20,7 @@ interface Merchant {
         estimated_cost_usd: number;
         top_model: string | null;
         by_model: Array<{ model: string; total_tokens: number; estimated_cost_usd: number }>;
+        by_feature?: Array<{ feature: string; total_tokens: number; estimated_cost_usd: number }>;
     };
 }
 
@@ -28,13 +29,14 @@ export default function AdminMerchantsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [impersonatingMap, setImpersonatingMap] = useState<Record<string, boolean>>({});
+    const [aiWindow, setAiWindow] = useState<'mtd' | '30d' | '7d'>('mtd');
 
     const fetchMerchants = async () => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            const data = await authenticatedRequest<{ merchants: Merchant[] }>('/api/admin/merchants', session.access_token);
+            const data = await authenticatedRequest<{ merchants: Merchant[]; ai_window?: string }>(`/api/admin/merchants?ai_window=${aiWindow}`, session.access_token);
             setMerchants(data.merchants || []);
         } catch (err: any) {
             setError(err.message || 'Failed to fetch merchants');
@@ -91,7 +93,7 @@ export default function AdminMerchantsPage() {
 
     useEffect(() => {
         fetchMerchants();
-    }, []);
+    }, [aiWindow]);
 
     if (loading) {
         return (
@@ -134,6 +136,26 @@ export default function AdminMerchantsPage() {
         <Page title="Merchants" subtitle={`Viewing all ${merchants.length} registered merchants on the platform.`} fullWidth>
             <Layout>
                 <Layout.Section>
+                    <Box paddingBlockEnd="300">
+                        <InlineStack align="space-between" blockAlign="end" gap="300">
+                            <Text as="p" tone="subdued">
+                                AI usage values below are estimated OpenAI costs aggregated per merchant and model.
+                            </Text>
+                            <Box minWidth="160px">
+                                <Select
+                                    label="AI usage window"
+                                    labelHidden
+                                    value={aiWindow}
+                                    onChange={(v) => setAiWindow((v as 'mtd' | '30d' | '7d') || 'mtd')}
+                                    options={[
+                                        { label: 'MTD', value: 'mtd' },
+                                        { label: 'Last 30 days', value: '30d' },
+                                        { label: 'Last 7 days', value: '7d' },
+                                    ]}
+                                />
+                            </Box>
+                        </InlineStack>
+                    </Box>
                     <Card padding="0">
                         <IndexTable
                             resourceName={{ singular: 'merchant', plural: 'merchants' }}
@@ -228,6 +250,22 @@ export default function AdminMerchantsPage() {
                                                         <Badge tone="info">{merchant.ai_usage_mtd.top_model}</Badge>
                                                     )}
                                                 </InlineStack>
+                                                {!!merchant.ai_usage_mtd?.by_model?.length && (
+                                                    <Text as="span" variant="bodySm" tone="subdued" alignment="end">
+                                                        {merchant.ai_usage_mtd.by_model
+                                                            .slice(0, 2)
+                                                            .map((m) => `${m.model}: ${(m.estimated_cost_usd || 0).toFixed(4)}$`)
+                                                            .join(' · ')}
+                                                    </Text>
+                                                )}
+                                                {!!merchant.ai_usage_mtd?.by_feature?.length && (
+                                                    <Text as="span" variant="bodySm" tone="subdued" alignment="end">
+                                                        {merchant.ai_usage_mtd.by_feature
+                                                            .slice(0, 2)
+                                                            .map((f) => `${f.feature}: ${f.total_tokens.toLocaleString()}t`)
+                                                            .join(' · ')}
+                                                    </Text>
+                                                )}
                                             </BlockStack>
                                         </IndexTable.Cell>
                                         <IndexTable.Cell>

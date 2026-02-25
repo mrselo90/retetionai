@@ -77,8 +77,21 @@ admin.get('/merchants', async (c) => {
     `;
 
     try {
+        const aiWindow = (c.req.query('ai_window') || 'mtd').toLowerCase();
         const now = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const periodStart = (() => {
+            if (aiWindow === '7d') {
+                const d = new Date(now);
+                d.setDate(d.getDate() - 7);
+                return d.toISOString();
+            }
+            if (aiWindow === '30d') {
+                const d = new Date(now);
+                d.setDate(d.getDate() - 30);
+                return d.toISOString();
+            }
+            return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        })();
         const resultFull = await serviceClient
             .from('merchants')
             .select(fullSelect)
@@ -86,8 +99,8 @@ admin.get('/merchants', async (c) => {
 
         if (!resultFull.error) {
             const merchants = resultFull.data ?? [];
-            const enriched = await attachAiUsageMTD(serviceClient, merchants, monthStart);
-            return c.json({ merchants: enriched });
+            const enriched = await attachAiUsageSummary(serviceClient, merchants, periodStart);
+            return c.json({ merchants: enriched, ai_window: aiWindow });
         }
 
         const resultWithoutSettings = await serviceClient
@@ -100,8 +113,8 @@ admin.get('/merchants', async (c) => {
                 ...m,
                 settings: undefined,
             }));
-            const enriched = await attachAiUsageMTD(serviceClient, merchants, monthStart);
-            return c.json({ merchants: enriched });
+            const enriched = await attachAiUsageSummary(serviceClient, merchants, periodStart);
+            return c.json({ merchants: enriched, ai_window: aiWindow });
         }
 
         const resultMinimal = await serviceClient
@@ -116,22 +129,22 @@ admin.get('/merchants', async (c) => {
             settings: undefined,
             integrations: [],
         }));
-        const enriched = await attachAiUsageMTD(serviceClient, merchants, monthStart);
-        return c.json({ merchants: enriched });
+        const enriched = await attachAiUsageSummary(serviceClient, merchants, periodStart);
+        return c.json({ merchants: enriched, ai_window: aiWindow });
     } catch (error) {
         console.error('Failed to fetch all merchants:', error);
         return c.json({ error: 'Failed to fetch merchants list' }, 500);
     }
 });
 
-async function attachAiUsageMTD(serviceClient: ReturnType<typeof getSupabaseServiceClient>, merchants: any[], monthStartIso: string) {
+async function attachAiUsageSummary(serviceClient: ReturnType<typeof getSupabaseServiceClient>, merchants: any[], periodStartIso: string) {
     const merchantIds = merchants.map((m: any) => m.id).filter(Boolean);
     if (!merchantIds.length) return merchants;
     const { data: usageRows, error } = await serviceClient
         .from('ai_usage_events')
-        .select('merchant_id, model, total_tokens, estimated_cost_usd')
+        .select('merchant_id, model, feature, total_tokens, estimated_cost_usd')
         .in('merchant_id', merchantIds)
-        .gte('created_at', monthStartIso);
+        .gte('created_at', periodStartIso);
 
     if (error) {
         if (error.code !== '42P01' && error.code !== '42703') {
@@ -144,6 +157,7 @@ async function attachAiUsageMTD(serviceClient: ReturnType<typeof getSupabaseServ
                 estimated_cost_usd: 0,
                 top_model: null,
                 by_model: [],
+                by_feature: [],
             },
         }));
     }
@@ -152,20 +166,26 @@ async function attachAiUsageMTD(serviceClient: ReturnType<typeof getSupabaseServ
         totalTokens: number;
         totalCostUsd: number;
         byModel: Map<string, { tokens: number; costUsd: number }>;
+        byFeature: Map<string, { tokens: number; costUsd: number }>;
     }>();
 
     for (const row of (usageRows || []) as any[]) {
         const merchantId = row.merchant_id as string;
         const model = String(row.model || 'unknown');
+        const feature = String(row.feature || 'unknown');
         const totalTokens = Number(row.total_tokens || 0);
         const costUsd = Number(row.estimated_cost_usd || 0);
-        const entry = agg.get(merchantId) || { totalTokens: 0, totalCostUsd: 0, byModel: new Map() };
+        const entry = agg.get(merchantId) || { totalTokens: 0, totalCostUsd: 0, byModel: new Map(), byFeature: new Map() };
         entry.totalTokens += totalTokens;
         entry.totalCostUsd += costUsd;
         const byModel = entry.byModel.get(model) || { tokens: 0, costUsd: 0 };
         byModel.tokens += totalTokens;
         byModel.costUsd += costUsd;
         entry.byModel.set(model, byModel);
+        const byFeature = entry.byFeature.get(feature) || { tokens: 0, costUsd: 0 };
+        byFeature.tokens += totalTokens;
+        byFeature.costUsd += costUsd;
+        entry.byFeature.set(feature, byFeature);
         agg.set(merchantId, entry);
     }
 
@@ -179,11 +199,15 @@ async function attachAiUsageMTD(serviceClient: ReturnType<typeof getSupabaseServ
                     estimated_cost_usd: 0,
                     top_model: null,
                     by_model: [],
+                    by_feature: [],
                 },
             };
         }
         const byModel = [...a.byModel.entries()]
             .map(([model, v]) => ({ model, total_tokens: v.tokens, estimated_cost_usd: Number(v.costUsd.toFixed(6)) }))
+            .sort((x, y) => y.total_tokens - x.total_tokens);
+        const byFeature = [...a.byFeature.entries()]
+            .map(([feature, v]) => ({ feature, total_tokens: v.tokens, estimated_cost_usd: Number(v.costUsd.toFixed(6)) }))
             .sort((x, y) => y.total_tokens - x.total_tokens);
         return {
             ...m,
@@ -192,6 +216,7 @@ async function attachAiUsageMTD(serviceClient: ReturnType<typeof getSupabaseServ
                 estimated_cost_usd: Number(a.totalCostUsd.toFixed(6)),
                 top_model: byModel[0]?.model || null,
                 by_model: byModel,
+                by_feature: byFeature,
             },
         };
     });
