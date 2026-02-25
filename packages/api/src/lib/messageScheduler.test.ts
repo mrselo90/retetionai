@@ -73,6 +73,7 @@ describe('Message Scheduler Module', () => {
             expect(result).toEqual({ taskId: 'task-123', jobId: 'job-123' });
             expect(decryptPhone).toHaveBeenCalledWith('encrypted_1234567890');
             expect(mockSupabase.insert).toHaveBeenCalledWith({
+                merchant_id: mockOptions.merchantId,
                 user_id: mockOptions.userId,
                 order_id: mockOptions.orderId,
                 task_type: mockOptions.messageType,
@@ -243,13 +244,15 @@ describe('Message Scheduler Module', () => {
     });
 
     describe('cancelOrderMessages', () => {
+        const mockMerchantId = 'merchant-123';
+
         it('should cancel pending messages', async () => {
             mockSupabase.select.mockResolvedValue({
                 data: [{ id: 'task-1' }, { id: 'task-2' }],
                 error: null,
             });
 
-            const result = await cancelOrderMessages('order-123');
+            const result = await cancelOrderMessages('order-123', mockMerchantId);
 
             expect(result.cancelled).toBe(2);
             expect(mockSupabase.update).toHaveBeenCalledWith({ status: 'cancelled' });
@@ -263,7 +266,7 @@ describe('Message Scheduler Module', () => {
                 error: null,
             });
 
-            const result = await cancelOrderMessages('order-123');
+            const result = await cancelOrderMessages('order-123', mockMerchantId);
 
             expect(result.cancelled).toBe(0);
         });
@@ -274,7 +277,7 @@ describe('Message Scheduler Module', () => {
                 error: { message: 'Update failed' },
             });
 
-            await expect(cancelOrderMessages('order-123')).rejects.toThrow('Failed to cancel messages');
+            await expect(cancelOrderMessages('order-123', mockMerchantId)).rejects.toThrow('Failed to cancel messages');
         });
     });
 

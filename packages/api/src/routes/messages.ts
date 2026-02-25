@@ -143,7 +143,7 @@ messages.post('/cancel-order', async (c) => {
   }
 
   try {
-    const result = await cancelOrderMessages(orderId);
+    const result = await cancelOrderMessages(orderId, merchantId);
 
     return c.json({
       message: 'Messages cancelled successfully',

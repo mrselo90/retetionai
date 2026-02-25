@@ -8,12 +8,17 @@ import { Logger } from 'pino';
 declare module 'hono' {
   interface ContextVariableMap {
     merchantId: string;
-    authMethod: 'jwt' | 'api_key' | 'internal';
+    authMethod: 'jwt' | 'shopify' | 'internal';
+    user: {
+      merchantId: string;
+      authMethod: 'jwt' | 'shopify' | 'internal';
+    };
     /** Set when request is for internal product routes (enrich / generate-embeddings) with no user auth */
     internalCall?: boolean;
     validatedBody?: unknown;
     validatedQuery?: unknown;
     validatedParams?: unknown;
+    whatsappWebhookBody?: unknown;
     logger: Logger; // Added for structured logging
   }
 }

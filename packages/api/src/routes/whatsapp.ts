@@ -5,6 +5,7 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
+import { verifyWhatsAppWebhookSignature } from '../middleware/whatsappWebhookSignature.js';
 import {
   sendWhatsAppMessage,
   verifyWhatsAppWebhook,
@@ -20,7 +21,6 @@ import {
   updateConversationState,
 } from '../lib/conversation.js';
 import { generateAIResponse } from '../lib/aiAgent.js';
-import { incrementMessageCount } from '../lib/usageTracking.js';
 
 const whatsapp = new Hono();
 
@@ -55,9 +55,12 @@ whatsapp.get('/webhooks/whatsapp', async (c) => {
  * WhatsApp webhook receiver (POST)
  * Receives incoming messages from WhatsApp
  */
-whatsapp.post('/webhooks/whatsapp', async (c) => {
+whatsapp.post('/webhooks/whatsapp', verifyWhatsAppWebhookSignature, async (c) => {
   try {
-    const body = await c.req.json();
+    const body = c.get('whatsappWebhookBody');
+    if (!body || typeof body !== 'object') {
+      return c.json({ error: 'Invalid webhook body' }, 400);
+    }
 
     // Parse webhook messages
     const messages = parseWhatsAppWebhook(body);

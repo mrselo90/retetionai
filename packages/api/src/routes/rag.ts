@@ -126,7 +126,7 @@ rag.get('/order/:orderId/context', async (c) => {
   const orderId = c.req.param('orderId');
 
   try {
-    const context = await getOrderProductContext(orderId);
+    const context = await getOrderProductContext(orderId, merchantId);
 
     return c.json({
       orderId,

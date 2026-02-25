@@ -430,7 +430,7 @@ export async function generateAIResponse(
       let orderProductIds: string[] | undefined;
       let orderScopeSource: string | undefined;
       if (orderId) {
-        const orderScope = await getOrderProductContextResolved(orderId);
+        const orderScope = await getOrderProductContextResolved(orderId, merchantId);
         orderProductIds = orderScope.productIds;
         orderScopeSource = orderScope.source;
       }

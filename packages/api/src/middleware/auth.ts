@@ -8,7 +8,7 @@ import { getSupabaseServiceClient } from '@recete/shared';
 
 export interface AuthContext {
   merchantId: string;
-  authMethod: 'jwt' | 'internal';
+  authMethod: 'jwt' | 'shopify' | 'internal';
 }
 
 /**
@@ -126,6 +126,10 @@ async function authenticateShopifyToken(token: string): Promise<string | null> {
   }
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
 
 /** Internal product routes (worker -> API) */
 const INTERNAL_PRODUCT_PATHS = [
@@ -156,6 +160,7 @@ function authenticateInternalSecret(c: Context): {
   merchantId?: string;
   error?: string;
   internalCall?: boolean;
+  status?: 403 | 500;
 } | null {
   const path = c.req.path;
   const isProduct = isInternalProductPath(path);
@@ -164,23 +169,34 @@ function authenticateInternalSecret(c: Context): {
 
   const expectedSecret = process.env.INTERNAL_SERVICE_SECRET;
   const providedSecret = c.req.header('X-Internal-Secret');
+  const merchantIdHeaderRaw = c.req.header('X-Internal-Merchant-Id');
+  const merchantIdHeader = merchantIdHeaderRaw?.trim() || '';
 
-  // Transitional behavior for existing worker deployments: if no internal secret is configured yet,
-  // keep allowing current internal product routes, but do NOT allow internal eval access.
-  if (!expectedSecret) {
-    if (isProduct) {
-      return { ok: true, merchantId: '', internalCall: true };
-    }
-    return { ok: false, error: 'Internal eval requires INTERNAL_SERVICE_SECRET' };
+  if (!isNonEmptyString(expectedSecret)) {
+    return {
+      ok: false,
+      status: 500,
+      error: 'Internal auth is not configured',
+    };
   }
 
-  if (!providedSecret || providedSecret !== expectedSecret) {
-    return { ok: false, error: 'Unauthorized: Invalid internal secret' };
+  if (!isNonEmptyString(providedSecret) || providedSecret !== expectedSecret) {
+    return {
+      ok: false,
+      status: 403,
+      error: 'Forbidden: Invalid internal secret',
+    };
   }
 
-  const merchantIdHeader = c.req.header('X-Internal-Merchant-Id')?.trim() || '';
-  if (isEval && !merchantIdHeader) {
-    return { ok: false, error: 'Unauthorized: Missing X-Internal-Merchant-Id for internal eval route' };
+  // Fail-closed: internal routes must always carry an explicit merchant context.
+  if (!merchantIdHeader) {
+    return {
+      ok: false,
+      status: 403,
+      error: isEval
+        ? 'Forbidden: Missing X-Internal-Merchant-Id for internal eval route'
+        : 'Forbidden: Missing X-Internal-Merchant-Id for internal product route',
+    };
   }
 
   return {
@@ -188,6 +204,15 @@ function authenticateInternalSecret(c: Context): {
     merchantId: merchantIdHeader,
     internalCall: isProduct,
   };
+}
+
+function setAuthenticatedUser(
+  c: Context,
+  user: AuthContext
+) {
+  c.set('merchantId', user.merchantId);
+  c.set('authMethod', user.authMethod);
+  c.set('user', user);
 }
 
 /**
@@ -203,17 +228,16 @@ export async function authMiddleware(c: Context, next: Next) {
   if (token) {
     // Try JWT first (Supabase Auth)
     let merchantId = await authenticateJWT(token);
-    let authMethod: 'jwt' = 'jwt';
+    let authMethod: 'jwt' | 'shopify' = 'jwt';
 
     // If JWT fails, try Shopify Session Token
     if (!merchantId) {
       merchantId = await authenticateShopifyToken(token);
-      authMethod = 'jwt';
+      authMethod = 'shopify';
     }
 
-    if (merchantId) {
-      c.set('merchantId', merchantId);
-      c.set('authMethod', authMethod);
+    if (isNonEmptyString(merchantId)) {
+      setAuthenticatedUser(c, { merchantId, authMethod });
       await next();
       return;
     }
@@ -222,11 +246,16 @@ export async function authMiddleware(c: Context, next: Next) {
   const internal = authenticateInternalSecret(c);
   if (internal) {
     if (!internal.ok) {
-      return c.json({ error: internal.error || 'Unauthorized: Internal auth failed' }, 401);
+      return c.json(
+        { error: internal.error || 'Forbidden: Internal auth failed' },
+        internal.status || 403
+      );
     }
     if (internal.internalCall) c.set('internalCall', true);
-    c.set('merchantId', internal.merchantId || '');
-    c.set('authMethod', 'internal');
+    if (!isNonEmptyString(internal.merchantId)) {
+      return c.json({ error: 'Forbidden: Missing internal merchant context' }, 403);
+    }
+    setAuthenticatedUser(c, { merchantId: internal.merchantId, authMethod: 'internal' });
     return next();
   }
 
@@ -242,23 +271,35 @@ export async function authMiddleware(c: Context, next: Next) {
  */
 export async function optionalAuthMiddleware(c: Context, next: Next) {
   const internal = authenticateInternalSecret(c);
+  if (internal && !internal.ok) {
+    return c.json(
+      { error: internal.error || 'Forbidden: Internal auth failed' },
+      internal.status || 403
+    );
+  }
   if (internal?.ok) {
     if (internal.internalCall) c.set('internalCall', true);
-    c.set('merchantId', internal.merchantId || '');
-    c.set('authMethod', 'internal');
+    if (!isNonEmptyString(internal.merchantId)) {
+      return c.json({ error: 'Forbidden: Missing internal merchant context' }, 403);
+    }
+    setAuthenticatedUser(c, { merchantId: internal.merchantId, authMethod: 'internal' });
     return next();
   }
 
   const token = extractToken(c);
 
   if (token) {
-    // Try to authenticate
+    // Try JWT first, then Shopify session token
     let merchantId = await authenticateJWT(token);
-    let authMethod: 'jwt' = 'jwt';
+    let authMethod: 'jwt' | 'shopify' = 'jwt';
 
-    if (merchantId) {
-      c.set('merchantId', merchantId);
-      c.set('authMethod', authMethod);
+    if (!merchantId) {
+      merchantId = await authenticateShopifyToken(token);
+      authMethod = 'shopify';
+    }
+
+    if (isNonEmptyString(merchantId)) {
+      setAuthenticatedUser(c, { merchantId, authMethod });
     }
   }
 

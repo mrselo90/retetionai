@@ -167,9 +167,10 @@ ${result.chunkText}
  * Retrieves all chunks for products in the order
  */
 export async function getOrderProductContext(
-  orderId: string
+  orderId: string,
+  merchantId: string
 ): Promise<RAGResult[]> {
-  const result = await getOrderProductContextResolved(orderId);
+  const result = await getOrderProductContextResolved(orderId, merchantId);
   return result.chunks;
 }
 
@@ -179,7 +180,8 @@ export async function getOrderProductContext(
  * Returns empty scope (instead of all merchant products) when order items cannot be resolved.
  */
 export async function getOrderProductContextResolved(
-  orderId: string
+  orderId: string,
+  merchantId: string
 ): Promise<OrderScopeResolution> {
   const serviceClient = getSupabaseServiceClient();
 
@@ -191,6 +193,7 @@ export async function getOrderProductContextResolved(
     .from('orders')
     .select('id, merchant_id, user_id, external_order_id')
     .eq('id', orderId)
+    .eq('merchant_id', merchantId)
     .single();
 
   if (orderError || !order) {

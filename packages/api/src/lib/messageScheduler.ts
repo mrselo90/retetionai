@@ -44,6 +44,7 @@ export async function scheduleUserMessage(
   const { data: task, error: taskError } = await serviceClient
     .from('scheduled_tasks')
     .insert({
+      merchant_id: options.merchantId,
       user_id: options.userId,
       order_id: options.orderId || null,
       task_type: options.messageType,
@@ -141,7 +142,8 @@ export async function scheduleOrderMessages(
  * Cancel scheduled messages for an order
  */
 export async function cancelOrderMessages(
-  orderId: string
+  orderId: string,
+  merchantId: string
 ): Promise<{ cancelled: number }> {
   const serviceClient = getSupabaseServiceClient();
 
@@ -150,6 +152,7 @@ export async function cancelOrderMessages(
     .from('scheduled_tasks')
     .update({ status: 'cancelled' })
     .eq('order_id', orderId)
+    .eq('merchant_id', merchantId)
     .eq('status', 'pending')
     .select('id');
 
@@ -177,6 +180,7 @@ export async function getUserScheduledMessages(
     .from('scheduled_tasks')
     .select('*')
     .eq('user_id', userId)
+    .eq('merchant_id', merchantId)
     .eq('status', 'pending')
     .order('execute_at', { ascending: true });
 
