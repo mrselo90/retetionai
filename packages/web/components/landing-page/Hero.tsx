@@ -17,7 +17,7 @@ export function Hero() {
   ];
 
   return (
-    <SSection className="block relative overflow-hidden pt-8 pb-10 sm:pt-12 sm:pb-14 md:pt-16 md:pb-20">
+    <SSection className="block relative overflow-hidden pt-8 pb-8 sm:pt-11 sm:pb-12 md:pt-14 md:pb-16">
       <div aria-hidden className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-x-0 top-0 h-[420px] bg-[linear-gradient(180deg,#0a3d2e_0%,#0d4a38_65%,transparent_100%)]" />
         <div className="absolute top-10 left-[-8%] w-56 h-56 rounded-full bg-emerald-400/15 blur-3xl" />
@@ -25,8 +25,8 @@ export function Hero() {
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[1.02fr_.98fr] gap-6 lg:gap-8 items-stretch">
-          <SCard className="block rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0a3d2e] text-[#f8f5e6] p-5 sm:p-7 lg:p-8 shadow-[0_24px_80px_rgba(10,61,46,0.25)]">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.02fr_.98fr] gap-5 sm:gap-6 lg:gap-8 items-stretch">
+          <SCard className="block rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0a3d2e] text-[#f8f5e6] p-5 sm:p-6 lg:p-8 shadow-[0_24px_80px_rgba(10,61,46,0.25)]">
             <SBadge className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs sm:text-sm font-semibold">
               <span className="inline-flex w-5 h-5 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-300">
                 <Sparkles className="w-3.5 h-3.5" aria-hidden />
@@ -35,7 +35,7 @@ export function Hero() {
             </SBadge>
 
             <h1
-              className="mt-4 sm:mt-6 font-extrabold tracking-tight leading-[1.05]"
+              className="mt-4 sm:mt-5 font-extrabold tracking-tight leading-[1.05]"
               style={{ fontSize: 'clamp(2rem, 3vw + 1.2rem, 4.2rem)', letterSpacing: '-0.03em' }}
             >
               {t('heroLine')}
@@ -48,7 +48,7 @@ export function Hero() {
               {t('description')}
             </p>
 
-            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <div className="mt-5 sm:mt-7 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
               <Link
                 href="/signup"
                 className="inline-block"
@@ -70,7 +70,7 @@ export function Hero() {
 
             <div className="mt-4 text-xs sm:text-sm text-[#f8f5e6]/75">{t('signupSmall')}</div>
 
-            <div className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="mt-5 sm:mt-7 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
               {highlights.map(({ icon: Icon, value, label }) => (
                 <SCard key={label} className="block rounded-xl border border-white/10 bg-white/5 p-3 sm:p-4">
                   <div className="flex items-center gap-2 text-[#f8f5e6]/70">
@@ -94,7 +94,7 @@ export function Hero() {
                   app.recete.ai/dashboard
                 </div>
               </div>
-              <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="mt-3 sm:mt-4 grid grid-cols-3 gap-2">
                 {[
                   { label: tStats('merchantsLabel'), value: tStats('merchants') },
                   { label: tStats('returnsLabel'), value: tStats('returns') },
@@ -111,7 +111,7 @@ export function Hero() {
             <div className="p-2 sm:p-3 bg-[#f6f4ea]">
               <div className="relative rounded-xl sm:rounded-2xl border border-black/5 overflow-hidden bg-white">
                 <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-white/70 to-transparent z-10 pointer-events-none" />
-                <div className="relative w-full aspect-[16/11] sm:aspect-[16/10] min-h-[220px]">
+                <div className="relative w-full aspect-[16/11] sm:aspect-[16/10] min-h-[200px] sm:min-h-[220px]">
                   <Image
                     src="/dashboard-preview.png"
                     alt={t('dashboardAlt')}

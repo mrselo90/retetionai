@@ -27,9 +27,9 @@ export function PricingPreview() {
   ] as const;
 
   return (
-    <SSection id="pricing" className="block py-16 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
+    <SSection id="pricing" className="block py-14 sm:py-16 lg:py-20 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-8 sm:mb-10 lg:mb-12">
+        <div className="text-center mb-7 sm:mb-8 lg:mb-10">
           <SBadge className="inline-flex items-center rounded-full border border-[#0a3d2e]/10 bg-[#0a3d2e]/5 px-3 py-1 text-xs font-semibold text-[#0a3d2e]">
             {t('eyebrow')}
           </SBadge>
@@ -38,11 +38,11 @@ export function PricingPreview() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
           {plans.map((plan) => (
             <SCard
               key={plan.key}
-              className={`relative rounded-2xl border p-5 sm:p-6 bg-white h-full flex flex-col ${
+              className={`relative rounded-2xl border p-5 sm:p-5 lg:p-6 bg-white h-full flex flex-col ${
                 plan.featured
                   ? 'border-[#0a3d2e]/25 shadow-[0_20px_50px_rgba(10,61,46,.12)]'
                   : 'border-black/5 shadow-[0_10px_28px_rgba(10,61,46,.05)]'
@@ -61,7 +61,7 @@ export function PricingPreview() {
                 </div>
               </div>
 
-              <div className="mt-5">
+              <div className="mt-4">
                 <div className="flex items-end gap-2">
                   <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0a3d2e]">
                     {t(`${plan.key}.price`)}
@@ -71,7 +71,7 @@ export function PricingPreview() {
                 <p className="mt-1 text-xs text-zinc-500">{t(`${plan.key}.note`)}</p>
               </div>
 
-              <ul className="mt-5 space-y-2.5 min-h-0">
+              <ul className="mt-4 space-y-2.5 min-h-0">
                 {plan.bullets.map((bullet) => (
                   <li key={bullet} className="flex items-start gap-2 text-sm text-zinc-700">
                     <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 border border-emerald-200">
@@ -82,7 +82,7 @@ export function PricingPreview() {
                 ))}
               </ul>
 
-              <Link href="/signup" className="mt-6 inline-block w-full mt-auto">
+              <Link href="/signup" className="inline-block w-full mt-auto pt-5">
                 <SButton
                   className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
                     plan.featured
@@ -98,7 +98,7 @@ export function PricingPreview() {
           ))}
         </div>
 
-        <SCard className="block mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 sm:px-5">
+        <SCard className="block mt-5 sm:mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 sm:px-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-center sm:text-left">
           <p className="text-sm text-emerald-900 font-medium">{t('roiNote')}</p>
           <Link href="/signup" className="text-sm font-semibold text-emerald-800 hover:text-emerald-900 self-center sm:self-auto">

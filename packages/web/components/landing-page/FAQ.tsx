@@ -14,9 +14,9 @@ export function FAQ() {
   ] as const;
 
   return (
-    <SSection id="faq" className="block py-16 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
+    <SSection id="faq" className="block py-14 sm:py-16 lg:py-20 px-4 sm:px-6 bg-[#f6f4ea] scroll-mt-24">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8 sm:mb-10 lg:mb-12">
+        <div className="text-center mb-7 sm:mb-8 lg:mb-10">
           <SBadge className="inline-flex items-center rounded-full border border-[#0a3d2e]/10 bg-[#0a3d2e]/5 px-3 py-1 text-xs font-semibold text-[#0a3d2e]">
             {t('eyebrow')}
           </SBadge>
