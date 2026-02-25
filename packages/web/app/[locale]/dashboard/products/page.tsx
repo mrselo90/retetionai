@@ -694,8 +694,8 @@ export default function ProductsPage() {
             </div>
 
             <div className="rounded-xl border border-[var(--p-color-border-secondary)] bg-[var(--p-color-bg-surface-secondary)]/35 p-3 sm:p-4">
-              <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_260px_260px] xl:items-end">
-                <div className="min-w-0">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_260px_260px] 2xl:items-end">
+                <div className="min-w-0 lg:col-span-2 2xl:col-span-1">
                   <PolarisTextField
                     label={t('filters.searchLabel')}
                     autoComplete="off"
