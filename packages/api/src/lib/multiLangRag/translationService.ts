@@ -1,6 +1,7 @@
 import { getOpenAIClient } from '../openaiClient.js';
 import { getDefaultLlmModel } from '../runtimeModelSettings.js';
 import { normalizeWhitespace } from './utils.js';
+import { trackAiUsageEvent } from '../aiUsageEvents.js';
 import type { ProductI18nSnapshot } from './types.js';
 
 function stripFences(text: string): string {
@@ -11,7 +12,8 @@ export class TranslationService {
   async translateProductSnapshot(
     snapshot: ProductI18nSnapshot,
     sourceLang: string,
-    targetLang: string
+    targetLang: string,
+    usageContext?: { merchantId?: string; productId?: string; feature?: string }
   ): Promise<ProductI18nSnapshot> {
     if (sourceLang === targetLang) return snapshot;
 
@@ -31,8 +33,9 @@ export class TranslationService {
       snapshot,
     };
 
+    const model = await getDefaultLlmModel();
     const resp = await openai.chat.completions.create({
-      model: await getDefaultLlmModel(),
+      model,
       temperature: 0,
       max_tokens: 1800,
       messages: [
@@ -42,6 +45,22 @@ export class TranslationService {
     });
 
     const raw = resp.choices[0]?.message?.content?.trim() || '';
+    if (usageContext?.merchantId) {
+      void trackAiUsageEvent({
+        merchantId: usageContext.merchantId,
+        feature: usageContext.feature || 'multi_lang_translate_product_snapshot',
+        model,
+        requestKind: 'translation',
+        promptTokens: (resp as any).usage?.prompt_tokens || 0,
+        completionTokens: (resp as any).usage?.completion_tokens || 0,
+        totalTokens: (resp as any).usage?.total_tokens || 0,
+        metadata: {
+          sourceLang,
+          targetLang,
+          productId: usageContext.productId || null,
+        },
+      });
+    }
     const parsed = JSON.parse(stripFences(raw));
 
     return {
@@ -52,11 +71,17 @@ export class TranslationService {
     };
   }
 
-  async translateText(text: string, sourceLang: string, targetLang: string): Promise<string> {
+  async translateText(
+    text: string,
+    sourceLang: string,
+    targetLang: string,
+    usageContext?: { merchantId?: string; feature?: string; metadata?: Record<string, unknown> }
+  ): Promise<string> {
     if (!text.trim() || sourceLang === targetLang) return text;
     const openai = getOpenAIClient();
+    const model = await getDefaultLlmModel();
     const resp = await openai.chat.completions.create({
-      model: await getDefaultLlmModel(),
+      model,
       temperature: 0,
       max_tokens: 700,
       messages: [
@@ -70,6 +95,22 @@ export class TranslationService {
         },
       ],
     });
+    if (usageContext?.merchantId) {
+      void trackAiUsageEvent({
+        merchantId: usageContext.merchantId,
+        feature: usageContext.feature || 'multi_lang_translate_text',
+        model,
+        requestKind: 'translation',
+        promptTokens: (resp as any).usage?.prompt_tokens || 0,
+        completionTokens: (resp as any).usage?.completion_tokens || 0,
+        totalTokens: (resp as any).usage?.total_tokens || 0,
+        metadata: {
+          sourceLang,
+          targetLang,
+          ...(usageContext.metadata || {}),
+        },
+      });
+    }
     return (resp.choices[0]?.message?.content || text).trim();
   }
 }

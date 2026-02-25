@@ -6,6 +6,7 @@
 import { getSupabaseServiceClient } from '@recete/shared';
 import { chunkText, generateEmbeddingsBatch, type TextChunk } from './embeddings.js';
 import crypto from 'node:crypto';
+import { trackAiUsageEvent } from './aiUsageEvents.js';
 
 export interface ProcessProductResult {
   productId: string;
@@ -78,10 +79,11 @@ export async function processProductForRAG(
     // Fetch product name for chunk prefix (improves retrieval relevance)
     const { data: productRow } = await serviceClient
       .from('products')
-      .select('name')
+      .select('name, merchant_id')
       .eq('id', productId)
       .single();
     const productName = productRow?.name || '';
+    const merchantId = (productRow as any)?.merchant_id as string | undefined;
 
     const textToProcess = enrichedText && enrichedText.trim().length > 0 ? enrichedText : rawContent;
     const chunkLanguage = detectChunkLanguage(textToProcess);
@@ -141,6 +143,16 @@ export async function processProductForRAG(
     }
 
     const totalTokens = embeddings.reduce((sum, e) => sum + e.tokenCount, 0);
+    if (merchantId) {
+      void trackAiUsageEvent({
+        merchantId,
+        feature: 'product_embeddings_rag',
+        model: 'text-embedding-3-small',
+        requestKind: 'embedding',
+        totalTokens,
+        metadata: { productId, chunksCreated: chunks.length },
+      });
+    }
 
     return {
       productId,

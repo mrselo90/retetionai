@@ -3,6 +3,7 @@ import { detectLanguage, type SupportedLanguage } from '../i18n.js';
 import { getOpenAIClient } from '../openaiClient.js';
 import { fetchShopifyLiveProductQuotes } from '../shopify.js';
 import { getDefaultLlmModel } from '../runtimeModelSettings.js';
+import { trackAiUsageEvent } from '../aiUsageEvents.js';
 import { EmbeddingService } from './embeddingService.js';
 import { VectorSearchService } from './vectorSearchService.js';
 import { TranslationService } from './translationService.js';
@@ -125,7 +126,11 @@ export class MultiLangRagAnswerService {
 
     if (weakEvidence && defaultSourceLang && defaultSourceLang !== userLang) {
       const tTrans = Date.now();
-      translatedQuestion = await this.translator.translateText(input.question, userLang, defaultSourceLang);
+      translatedQuestion = await this.translator.translateText(input.question, userLang, defaultSourceLang, {
+        merchantId: input.shopId,
+        feature: 'multi_lang_query_translate_fallback',
+        metadata: { stage: 'query_fallback' },
+      });
       timings.translate_query = Date.now() - tTrans;
       const second = await retrieve(defaultSourceLang, translatedQuestion);
       timings.embed_fallback = second.embedMs;
@@ -231,12 +236,30 @@ export class MultiLangRagAnswerService {
       });
       answerText = completion.choices[0]?.message?.content?.trim() || '';
       timings.generate_tokens = completion.usage?.total_tokens || 0;
+      void trackAiUsageEvent({
+        merchantId: input.shopId,
+        feature: 'multi_lang_rag_answer',
+        model: String((completion as any).model || (await getDefaultLlmModel())),
+        requestKind: 'chat_completion',
+        promptTokens: completion.usage?.prompt_tokens || 0,
+        completionTokens: completion.usage?.completion_tokens || 0,
+        totalTokens: completion.usage?.total_tokens || 0,
+        metadata: {
+          user_lang: userLang,
+          effective_lang: effectiveLang,
+          used_fallback: usedFallback,
+        },
+      });
     }
     timings.generate = Date.now() - tGen;
 
     if (usedFallback && effectiveLang !== userLang && answerText) {
       const tOut = Date.now();
-      answerText = await this.translator.translateText(answerText, effectiveLang, userLang);
+      answerText = await this.translator.translateText(answerText, effectiveLang, userLang, {
+        merchantId: input.shopId,
+        feature: 'multi_lang_answer_translate_output',
+        metadata: { stage: 'answer_output', used_fallback: usedFallback },
+      });
       timings.translate_answer = Date.now() - tOut;
     }
 

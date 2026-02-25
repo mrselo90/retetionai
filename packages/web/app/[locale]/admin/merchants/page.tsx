@@ -15,6 +15,12 @@ interface Merchant {
     is_super_admin: boolean;
     settings?: { capped_amount?: number;[key: string]: any };
     integrations: Array<{ provider: string; status: string }>;
+    ai_usage_mtd?: {
+        total_tokens: number;
+        estimated_cost_usd: number;
+        top_model: string | null;
+        by_model: Array<{ model: string; total_tokens: number; estimated_cost_usd: number }>;
+    };
 }
 
 export default function AdminMerchantsPage() {
@@ -138,6 +144,7 @@ export default function AdminMerchantsPage() {
                                 { title: 'Status' },
                                 { title: 'Integrations' },
                                 { title: 'Registered', alignment: 'end' },
+                                { title: 'AI (MTD)', alignment: 'end' },
                                 { title: 'Limit', alignment: 'end' },
                                 { title: 'Actions', alignment: 'center' },
                             ]}
@@ -205,6 +212,23 @@ export default function AdminMerchantsPage() {
                                                     {merchant.created_at ? format(new Date(merchant.created_at), 'MMM d, yyyy') : 'Unknown'}
                                                 </Text>
                                             </InlineStack>
+                                        </IndexTable.Cell>
+                                        <IndexTable.Cell>
+                                            <BlockStack gap="100">
+                                                <InlineStack align="end" gap="100" blockAlign="center">
+                                                    <Text as="span" variant="bodyMd" fontWeight="medium">
+                                                        {(merchant.ai_usage_mtd?.total_tokens || 0).toLocaleString()} tok
+                                                    </Text>
+                                                </InlineStack>
+                                                <InlineStack align="end" gap="100" blockAlign="center">
+                                                    <Text as="span" variant="bodySm" tone="subdued">
+                                                        ${(merchant.ai_usage_mtd?.estimated_cost_usd || 0).toFixed(4)}
+                                                    </Text>
+                                                    {merchant.ai_usage_mtd?.top_model && (
+                                                        <Badge tone="info">{merchant.ai_usage_mtd.top_model}</Badge>
+                                                    )}
+                                                </InlineStack>
+                                            </BlockStack>
                                         </IndexTable.Cell>
                                         <IndexTable.Cell>
                                             <InlineStack align="end">

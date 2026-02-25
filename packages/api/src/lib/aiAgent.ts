@@ -6,6 +6,7 @@
 import type OpenAI from 'openai';
 import { getOpenAIClient } from './openaiClient.js';
 import { getConversationMemorySettings, getDefaultLlmModel } from './runtimeModelSettings.js';
+import { trackAiUsageEvent } from './aiUsageEvents.js';
 import { queryKnowledgeBase, formatRAGResultsForLLM, getOrderProductContextResolved } from './rag.js';
 import { getSupabaseServiceClient, logger, getProductInstructionsByProductIds } from '@recete/shared';
 import type { ConversationMessage } from './conversation.js';
@@ -237,7 +238,7 @@ export function detectPostDeliveryFollowUpSignal(
 /**
  * Classify message intent
  */
-export async function classifyIntent(message: string): Promise<Intent> {
+export async function classifyIntent(message: string, merchantId?: string): Promise<Intent> {
   try {
     const openai = getOpenAIClient();
     const model = await getDefaultLlmModel();
@@ -266,6 +267,16 @@ Respond with ONLY the category name.`,
       ],
       temperature: 0.1, // Low temperature for consistent classification
       max_tokens: 10,
+    });
+    void trackAiUsageEvent({
+      merchantId: merchantId || '',
+      feature: 'ai_agent_intent_classification',
+      model,
+      requestKind: 'chat_completion',
+      promptTokens: (response as any).usage?.prompt_tokens || 0,
+      completionTokens: (response as any).usage?.completion_tokens || 0,
+      totalTokens: (response as any).usage?.total_tokens || 0,
+      metadata: { internal: true },
     });
 
     const intent = response.choices[0]?.message?.content?.trim().toLowerCase();
@@ -345,7 +356,7 @@ export async function generateAIResponse(
   }
 
   // Step 2: Classify intent
-  let intent = await classifyIntent(message);
+  let intent = await classifyIntent(message, merchantId);
   const postDeliveryFollowUp = detectPostDeliveryFollowUpSignal(message, conversationHistory);
   if (postDeliveryFollowUp.detected && postDeliveryFollowUp.promoteIntentToQuestion && intent === 'chat') {
     intent = 'question';
@@ -622,6 +633,21 @@ export async function generateAIResponse(
       messages,
       temperature: persona.temperature || 0.7,
       max_tokens: 500,
+    });
+    void trackAiUsageEvent({
+      merchantId,
+      feature: 'ai_agent_response',
+      model: llmModel,
+      requestKind: 'chat_completion',
+      promptTokens: (response as any).usage?.prompt_tokens || 0,
+      completionTokens: (response as any).usage?.completion_tokens || 0,
+      totalTokens: (response as any).usage?.total_tokens || 0,
+      metadata: {
+        conversationId,
+        orderId: orderId || null,
+        intent,
+        ragUsed: Boolean(ragContext),
+      },
     });
 
     let aiResponse = response.choices[0]?.message?.content || '';

@@ -77,13 +77,17 @@ admin.get('/merchants', async (c) => {
     `;
 
     try {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const resultFull = await serviceClient
             .from('merchants')
             .select(fullSelect)
             .order('created_at', { ascending: false });
 
         if (!resultFull.error) {
-            return c.json({ merchants: resultFull.data ?? [] });
+            const merchants = resultFull.data ?? [];
+            const enriched = await attachAiUsageMTD(serviceClient, merchants, monthStart);
+            return c.json({ merchants: enriched });
         }
 
         const resultWithoutSettings = await serviceClient
@@ -96,7 +100,8 @@ admin.get('/merchants', async (c) => {
                 ...m,
                 settings: undefined,
             }));
-            return c.json({ merchants });
+            const enriched = await attachAiUsageMTD(serviceClient, merchants, monthStart);
+            return c.json({ merchants: enriched });
         }
 
         const resultMinimal = await serviceClient
@@ -111,12 +116,86 @@ admin.get('/merchants', async (c) => {
             settings: undefined,
             integrations: [],
         }));
-        return c.json({ merchants });
+        const enriched = await attachAiUsageMTD(serviceClient, merchants, monthStart);
+        return c.json({ merchants: enriched });
     } catch (error) {
         console.error('Failed to fetch all merchants:', error);
         return c.json({ error: 'Failed to fetch merchants list' }, 500);
     }
 });
+
+async function attachAiUsageMTD(serviceClient: ReturnType<typeof getSupabaseServiceClient>, merchants: any[], monthStartIso: string) {
+    const merchantIds = merchants.map((m: any) => m.id).filter(Boolean);
+    if (!merchantIds.length) return merchants;
+    const { data: usageRows, error } = await serviceClient
+        .from('ai_usage_events')
+        .select('merchant_id, model, total_tokens, estimated_cost_usd')
+        .in('merchant_id', merchantIds)
+        .gte('created_at', monthStartIso);
+
+    if (error) {
+        if (error.code !== '42P01' && error.code !== '42703') {
+            console.warn('Failed to load ai_usage_events for admin merchants:', error);
+        }
+        return merchants.map((m: any) => ({
+            ...m,
+            ai_usage_mtd: {
+                total_tokens: 0,
+                estimated_cost_usd: 0,
+                top_model: null,
+                by_model: [],
+            },
+        }));
+    }
+
+    const agg = new Map<string, {
+        totalTokens: number;
+        totalCostUsd: number;
+        byModel: Map<string, { tokens: number; costUsd: number }>;
+    }>();
+
+    for (const row of (usageRows || []) as any[]) {
+        const merchantId = row.merchant_id as string;
+        const model = String(row.model || 'unknown');
+        const totalTokens = Number(row.total_tokens || 0);
+        const costUsd = Number(row.estimated_cost_usd || 0);
+        const entry = agg.get(merchantId) || { totalTokens: 0, totalCostUsd: 0, byModel: new Map() };
+        entry.totalTokens += totalTokens;
+        entry.totalCostUsd += costUsd;
+        const byModel = entry.byModel.get(model) || { tokens: 0, costUsd: 0 };
+        byModel.tokens += totalTokens;
+        byModel.costUsd += costUsd;
+        entry.byModel.set(model, byModel);
+        agg.set(merchantId, entry);
+    }
+
+    return merchants.map((m: any) => {
+        const a = agg.get(m.id);
+        if (!a) {
+            return {
+                ...m,
+                ai_usage_mtd: {
+                    total_tokens: 0,
+                    estimated_cost_usd: 0,
+                    top_model: null,
+                    by_model: [],
+                },
+            };
+        }
+        const byModel = [...a.byModel.entries()]
+            .map(([model, v]) => ({ model, total_tokens: v.tokens, estimated_cost_usd: Number(v.costUsd.toFixed(6)) }))
+            .sort((x, y) => y.total_tokens - x.total_tokens);
+        return {
+            ...m,
+            ai_usage_mtd: {
+                total_tokens: a.totalTokens,
+                estimated_cost_usd: Number(a.totalCostUsd.toFixed(6)),
+                top_model: byModel[0]?.model || null,
+                by_model: byModel,
+            },
+        };
+    });
+}
 
 /**
  * System Health

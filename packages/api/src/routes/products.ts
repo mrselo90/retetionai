@@ -386,7 +386,12 @@ products.post('/:id/scrape', async (c) => {
     const enrichResult = await enrichProductDataDetailed(
       rawContent,
       scrapeResult.product?.title || product.name || 'Unknown Product',
-      { rawSections: scrapeResult.product?.rawSections }
+      {
+        rawSections: scrapeResult.product?.rawSections,
+        merchantId: String(merchantId),
+        productId,
+        sourceType: 'scrape_enrich_manual',
+      }
     );
     if (enrichResult.enrichedText) enrichedText = enrichResult.enrichedText;
     if (enrichResult.facts) {
@@ -616,16 +621,37 @@ products.post('/enrich', async (c) => {
   }
 
   try {
-    const enrichResult = await enrichProductDataDetailed(rawText, title || 'Unknown Product', { rawSections });
-
-    // Internal worker may send productId so we can persist structured facts centrally in API package
-    if (typeof productId === 'string' && productId.trim() && enrichResult.facts) {
+    let productForInternal: { id: string; merchant_id: string; url?: string | null } | null = null;
+    if (typeof productId === 'string' && productId.trim()) {
       const serviceClient = getSupabaseServiceClient();
       const { data: p } = await serviceClient
         .from('products')
         .select('id, merchant_id, url')
         .eq('id', productId)
-        .single();
+        .maybeSingle();
+      if (p?.merchant_id) {
+        productForInternal = p as any;
+      }
+    }
+
+    const enrichResult = await enrichProductDataDetailed(rawText, title || 'Unknown Product', {
+      rawSections,
+      merchantId: productForInternal?.merchant_id,
+      productId: typeof productId === 'string' ? productId : undefined,
+      sourceType: typeof sourceType === 'string' ? sourceType : 'scrape_enrich_internal',
+    });
+
+    // Internal worker may send productId so we can persist structured facts centrally in API package
+    if (typeof productId === 'string' && productId.trim() && enrichResult.facts) {
+      const p = productForInternal ?? await (async () => {
+        const serviceClient = getSupabaseServiceClient();
+        const { data } = await serviceClient
+          .from('products')
+          .select('id, merchant_id, url')
+          .eq('id', productId)
+          .single();
+        return data as any;
+      })();
       if (p?.merchant_id) {
         await persistProductFactsSnapshot({
           productId: p.id,

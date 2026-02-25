@@ -9,6 +9,7 @@ import { MultiLangRagAnswerService } from '../lib/multiLangRag/answerService.js'
 import { ShopSettingsService } from '../lib/multiLangRag/shopSettingsService.js';
 import { logger } from '@recete/shared';
 import { getDefaultLlmModel } from '../lib/runtimeModelSettings.js';
+import { trackAiUsageEvent } from '../lib/aiUsageEvents.js';
 
 const answer = new Hono();
 answer.use('/*', authMiddleware);
@@ -86,6 +87,16 @@ answer.post('/', async (c) => {
       messages: [
         { role: 'system', content: legacyAnswerPrompt(question, context, userLang) },
       ],
+    });
+    void trackAiUsageEvent({
+      merchantId: shopId,
+      feature: 'api_answer_legacy',
+      model,
+      requestKind: 'chat_completion',
+      promptTokens: (completion as any).usage?.prompt_tokens || 0,
+      completionTokens: (completion as any).usage?.completion_tokens || 0,
+      totalTokens: (completion as any).usage?.total_tokens || 0,
+      metadata: { route: '/api/answer', flow: 'legacy' },
     });
     const legacyAnswer = completion.choices[0]?.message?.content?.trim() || '';
     void runShadowRead();

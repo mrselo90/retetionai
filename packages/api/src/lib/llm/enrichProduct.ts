@@ -1,6 +1,7 @@
 import { getOpenAIClient } from '../openaiClient.js';
 import { logger } from '@recete/shared';
 import { getDefaultLlmModel } from '../runtimeModelSettings.js';
+import { trackAiUsageEvent } from '../aiUsageEvents.js';
 import {
   type EnrichProductResult,
   formatProductFactsForRAG,
@@ -11,6 +12,9 @@ import {
 
 interface EnrichContext {
   rawSections?: Record<string, string | undefined>;
+  merchantId?: string;
+  productId?: string;
+  sourceType?: string;
 }
 
 /**
@@ -91,6 +95,22 @@ export async function enrichProductDataDetailed(
       temperature: 0.1,
       max_tokens: 1500,
     });
+    if (context?.merchantId) {
+      void trackAiUsageEvent({
+        merchantId: context.merchantId,
+        feature: 'product_enrich_structured',
+        model,
+        requestKind: 'enrich',
+        promptTokens: (response as any).usage?.prompt_tokens || 0,
+        completionTokens: (response as any).usage?.completion_tokens || 0,
+        totalTokens: (response as any).usage?.total_tokens || 0,
+        metadata: {
+          productId: context.productId || null,
+          sourceType: context.sourceType || null,
+          stage: 'structured_extract',
+        },
+      });
+    }
 
     const modelText = response.choices[0]?.message?.content?.trim() || '';
     const facts = tryParseProductFacts(modelText);
@@ -104,11 +124,11 @@ export async function enrichProductDataDetailed(
         };
       }
       logger.warn({ productTitle, ruleErrors }, 'Product facts extraction failed business validation; falling back to summary enrichment');
-      return await fallbackSummaryEnrichment(openai, rawText, productTitle, facts, ruleErrors, model);
+      return await fallbackSummaryEnrichment(openai, rawText, productTitle, facts, ruleErrors, model, context);
     } else {
       logger.warn({ productTitle }, 'Product facts extraction JSON parse/validation failed; falling back to summary enrichment');
     }
-    return await fallbackSummaryEnrichment(openai, rawText, productTitle, null, ['JSON parse/validation failed'], model);
+    return await fallbackSummaryEnrichment(openai, rawText, productTitle, null, ['JSON parse/validation failed'], model, context);
   } catch (error) {
     logger.error({ error, productTitle }, 'Failed to enrich product data');
     // Fallback to raw text if LLM call fails
@@ -126,7 +146,8 @@ async function fallbackSummaryEnrichment(
   productTitle: string,
   facts: ProductFacts | null,
   factsValidationErrors: string[],
-  model: string
+  model: string,
+  context?: EnrichContext
 ): Promise<EnrichProductResult> {
   const fallback = await openai.chat.completions.create({
     model,
@@ -143,6 +164,22 @@ async function fallbackSummaryEnrichment(
     temperature: 0.1,
     max_tokens: 1200,
   });
+  if (context?.merchantId) {
+    void trackAiUsageEvent({
+      merchantId: context.merchantId,
+      feature: 'product_enrich_summary_fallback',
+      model,
+      requestKind: 'enrich',
+      promptTokens: (fallback as any).usage?.prompt_tokens || 0,
+      completionTokens: (fallback as any).usage?.completion_tokens || 0,
+      totalTokens: (fallback as any).usage?.total_tokens || 0,
+      metadata: {
+        productId: context.productId || null,
+        sourceType: context.sourceType || null,
+        stage: 'summary_fallback',
+      },
+    });
+  }
 
   return {
     enrichedText: fallback.choices[0]?.message?.content?.trim() || rawText,

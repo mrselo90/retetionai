@@ -49,7 +49,11 @@ export class ProductI18nService {
         continue;
       }
       try {
-        const translated = await this.translator.translateProductSnapshot(options.sourceSnapshot, sourceLang, lang);
+        const translated = await this.translator.translateProductSnapshot(options.sourceSnapshot, sourceLang, lang, {
+          merchantId: options.shopId,
+          productId: options.productId,
+          feature: 'multi_lang_product_i18n_translation',
+        });
         await this.upsertSingle(options.shopId, options.productId, lang, sourceLang, sourceHash, translated);
         results.push({ lang, skipped: false });
       } catch (error) {
@@ -115,4 +119,3 @@ export class ProductI18nService {
     return (data || []) as any[];
   }
 }
-
