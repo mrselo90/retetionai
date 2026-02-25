@@ -543,12 +543,12 @@ export default function ProductsPage() {
     <div className="space-y-6 animate-fade-in pb-8">
       {/* Header */}
       <PolarisCard>
-        <div className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-1.5">
             <Text as="h2" variant="headingMd">{t('title')}</Text>
             <Text as="p" tone="subdued">{t('description')}</Text>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-none lg:auto-cols-max lg:grid-flow-col lg:items-center">
             <PolarisButtonGroup>
               <button
                 type="button"
@@ -579,13 +579,13 @@ export default function ProductsPage() {
                 <span className="hidden sm:inline">{t('view.list')}</span>
               </button>
             </PolarisButtonGroup>
-            <Button variant="outline" size="lg" asChild>
+            <Button variant="outline" size="sm" className="justify-center" asChild>
               <Link href="/dashboard/products/shopify-map">
                 <ArrowRight className="w-4 h-4 mr-2" />
                 {t('shopifyMapButton')}
               </Link>
             </Button>
-            <Button size="lg" onClick={() => setShowAddModal(true)}>
+            <Button size="sm" className="justify-center" onClick={() => setShowAddModal(true)}>
               <Plus className="w-5 h-5 mr-2" />
               {t('addProductButton')}
             </Button>
@@ -637,14 +637,14 @@ export default function ProductsPage() {
               </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 xl:justify-end">
+              <div className="flex flex-wrap gap-2 xl:justify-end xl:self-start">
                 <Button variant="outline" size="sm" onClick={saveCurrentView}>
                   {t('savedViews.saveCurrent')}
                 </Button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:gap-4 xl:items-end">
+            <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_420px] gap-3 xl:gap-4 xl:items-end">
               <div className="min-w-0">
                 <PolarisTextField
                   label={t('filters.searchLabel')}
@@ -656,7 +656,7 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:gap-4 xl:items-end">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:gap-4 xl:items-end min-w-0">
                 <PolarisSelect
                   label={t('filters.status')}
                   options={[
@@ -744,7 +744,7 @@ export default function ProductsPage() {
 
       {products.length > 0 && (
         <PolarisCard>
-          <div className="p-4 sm:p-5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+          <div className="p-4 sm:p-5 grid gap-3 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-center">
             <div className="flex flex-wrap items-center gap-2 min-w-0">
               <button
                 type="button"
@@ -769,7 +769,7 @@ export default function ProductsPage() {
               </Text>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 xl:flex xl:flex-wrap">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 2xl:min-w-[420px]">
               <Button
                 variant="outline"
                 size="sm"
@@ -938,7 +938,8 @@ export default function ProductsPage() {
                 </div>
               ))}
 
-              <div className="hidden md:block">
+              <div className="hidden md:block overflow-x-auto">
+                <div className="min-w-[1120px]">
                 <IndexTable
                   selectable={false}
                   itemCount={filteredAndSortedProducts.length}
@@ -963,10 +964,10 @@ export default function ProductsPage() {
                         />
                       </IndexTable.Cell>
                       <IndexTable.Cell>
-                        <div className="min-w-0">
+                        <div className="min-w-0 max-w-[280px]">
                           <Link
                             href={`/dashboard/products/${product.id}`}
-                            className="block font-semibold text-foreground hover:text-primary line-clamp-2"
+                            className="block font-semibold text-foreground hover:text-primary line-clamp-2 break-words"
                           >
                             {product.name}
                           </Link>
@@ -992,7 +993,7 @@ export default function ProductsPage() {
                         </div>
                       </IndexTable.Cell>
                       <IndexTable.Cell>
-                        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-end gap-2 min-w-[120px]">
+                        <div className="flex flex-wrap items-center justify-end gap-2 min-w-[170px]">
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/dashboard/products/${product.id}`}>
                               {t('card.edit')}
@@ -1015,6 +1016,7 @@ export default function ProductsPage() {
                     </IndexTable.Row>
                   ))}
                 </IndexTable>
+                </div>
               </div>
 
             </div>

@@ -196,6 +196,10 @@
   - `/admin/merchants` now avoids table crowding by keeping row AI cell compact and moving detailed breakdowns into an `AI Usage Details` modal
   - Added mobile-first merchant card layout for `/admin/merchants`; desktop keeps Polaris `IndexTable`
   - AI usage window toolbar and row actions were adjusted for responsive wrapping to prevent overlap
+- **Products page responsive overlap fix (`/dashboard/products`)**:
+  - Desktop list (`IndexTable`) now uses horizontal scroll + minimum table width to prevent cell overlap under dense columns
+  - Product actions/status/name cells were tightened (wrap/truncate/min-width) to avoid text/button collisions
+  - Header actions, saved views toolbar, filter controls, and bulk action bar were reflowed for better desktop/tablet spacing
 - **Conversation Memory Behavior (current)**:
   - Customer conversation history is used in AI responses, but prompt context includes only the most recent 10 messages (`aiAgent` and test RAG chat path)
   - This means the system "remembers" recent dialog turns, but not unlimited full-history memory inside a single model call
