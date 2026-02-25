@@ -8,6 +8,7 @@ import { getMultiLangRagFlags } from '../lib/multiLangRag/config.js';
 import { MultiLangRagAnswerService } from '../lib/multiLangRag/answerService.js';
 import { ShopSettingsService } from '../lib/multiLangRag/shopSettingsService.js';
 import { logger } from '@recete/shared';
+import { getDefaultLlmModel } from '../lib/runtimeModelSettings.js';
 
 const answer = new Hono();
 answer.use('/*', authMiddleware);
@@ -77,8 +78,9 @@ answer.post('/', async (c) => {
     });
     const context = formatRAGResultsForLLM(rag.results);
     const client = getOpenAIClient();
+    const model = await getDefaultLlmModel();
     const completion = await client.chat.completions.create({
-      model: flags.llmModel,
+      model,
       temperature: 0.2,
       max_tokens: 500,
       messages: [

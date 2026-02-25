@@ -14,6 +14,7 @@ import { generateAIResponse, detectPostDeliveryFollowUpSignal } from '../lib/aiA
 import { queryKnowledgeBase, formatRAGResultsForLLM } from '../lib/rag.js';
 import { getMerchantBotInfo } from '../lib/botInfo.js';
 import { getOpenAIClient } from '../lib/openaiClient.js';
+import { getDefaultLlmModel } from '../lib/runtimeModelSettings.js';
 import { detectLanguage } from '../lib/i18n.js';
 import { evaluateStyleCompliance } from '../lib/styleCompliance.js';
 import { getActiveProductFactsContext } from '../lib/productFactsQuery.js';
@@ -308,7 +309,7 @@ test.post('/rag/answer', async (c) => {
     let streamUsage: any = null;
     let llmRequestMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
     const llmConfig = {
-      model: 'gpt-4o-mini',
+      model: await getDefaultLlmModel(),
       temperature: 0.5,
       max_tokens: 500,
       stream,

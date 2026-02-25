@@ -5,6 +5,7 @@
 
 import type OpenAI from 'openai';
 import { getOpenAIClient } from './openaiClient.js';
+import { getDefaultLlmModel } from './runtimeModelSettings.js';
 import { queryKnowledgeBase, formatRAGResultsForLLM, getOrderProductContextResolved } from './rag.js';
 import { getSupabaseServiceClient, logger, getProductInstructionsByProductIds } from '@recete/shared';
 import type { ConversationMessage } from './conversation.js';
@@ -239,8 +240,9 @@ export function detectPostDeliveryFollowUpSignal(
 export async function classifyIntent(message: string): Promise<Intent> {
   try {
     const openai = getOpenAIClient();
+    const model = await getDefaultLlmModel();
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Faster and cheaper for classification
+      model,
       messages: [
         {
           role: 'system',
@@ -299,6 +301,7 @@ export async function generateAIResponse(
   personaSettings?: any
 ): Promise<AIResponse> {
   const openai = getOpenAIClient();
+  const llmModel = await getDefaultLlmModel();
 
   // Step 0: Get merchant (persona + guardrails) so we can run user guardrails with custom rules
   const { data: merchant } = await getSupabaseServiceClient()
@@ -612,7 +615,7 @@ export async function generateAIResponse(
   // Step 6: Generate response
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Use GPT-4o-mini for better logic and reasoning
+      model: llmModel,
       messages,
       temperature: persona.temperature || 0.7,
       max_tokens: 500,

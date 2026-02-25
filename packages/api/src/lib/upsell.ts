@@ -5,6 +5,7 @@
 
 import { getSupabaseServiceClient } from '@recete/shared';
 import { getOpenAIClient } from './openaiClient.js';
+import { getDefaultLlmModel } from './runtimeModelSettings.js';
 
 export interface SatisfactionResult {
   satisfied: boolean;
@@ -27,8 +28,9 @@ export async function detectSatisfaction(
 ): Promise<SatisfactionResult> {
   try {
     const openai = getOpenAIClient();
+    const model = await getDefaultLlmModel();
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Fast and cheap for sentiment
+      model,
       messages: [
         {
           role: 'system',
@@ -125,8 +127,9 @@ export async function generateUpsellMessage(
 
   try {
     const openai = getOpenAIClient();
+    const model = await getDefaultLlmModel();
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model,
       messages: [
         {
           role: 'system',

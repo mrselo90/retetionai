@@ -3,6 +3,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { adminAuthMiddleware } from '../middleware/adminAuth.js';
 import { getSupabaseServiceClient, getRedisClient } from '@recete/shared';
 import { getQueueStats } from '../queues.js';
+import { getPlatformAiSettings, updatePlatformAiSettings } from '../lib/runtimeModelSettings.js';
 
 const admin = new Hono();
 
@@ -137,6 +138,43 @@ admin.get('/system-health', async (c) => {
     } catch (error) {
         console.error('Failed to fetch system health:', error);
         return c.json({ error: 'Failed to fetch system health' }, 500);
+    }
+});
+
+/**
+ * Get / Update global AI model settings (super admin)
+ */
+admin.get('/ai-settings', async (c) => {
+    try {
+        const settings = await getPlatformAiSettings();
+        return c.json({ settings });
+    } catch (error) {
+        console.error('Failed to fetch AI settings:', error);
+        return c.json({ error: 'Failed to fetch AI settings' }, 500);
+    }
+});
+
+admin.put('/ai-settings', async (c) => {
+    try {
+        const body = await c.req.json();
+        const defaultLlmModel = typeof body.default_llm_model === 'string' ? body.default_llm_model.trim() : '';
+        const allowedLlmModels = Array.isArray(body.allowed_llm_models)
+            ? body.allowed_llm_models.map((x: unknown) => String(x)).filter(Boolean)
+            : undefined;
+        if (!defaultLlmModel) {
+            return c.json({ error: 'default_llm_model is required' }, 400);
+        }
+        const settings = await updatePlatformAiSettings({
+            default_llm_model: defaultLlmModel,
+            allowed_llm_models: allowedLlmModels,
+        });
+        return c.json({ settings });
+    } catch (error) {
+        console.error('Failed to update AI settings:', error);
+        return c.json({
+            error: 'Failed to update AI settings',
+            message: error instanceof Error ? error.message : 'Unknown error',
+        }, 500);
     }
 });
 

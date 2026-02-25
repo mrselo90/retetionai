@@ -2,6 +2,7 @@ import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { detectLanguage, type SupportedLanguage } from '../i18n.js';
 import { getOpenAIClient } from '../openaiClient.js';
 import { fetchShopifyLiveProductQuotes } from '../shopify.js';
+import { getDefaultLlmModel } from '../runtimeModelSettings.js';
 import { EmbeddingService } from './embeddingService.js';
 import { VectorSearchService } from './vectorSearchService.js';
 import { TranslationService } from './translationService.js';
@@ -220,7 +221,7 @@ export class MultiLangRagAnswerService {
         promptLang === 'tr' ? 'Answer in Turkish.' : promptLang === 'hu' ? 'Válaszolj magyarul.' : 'Answer in English.',
       ].join(' ');
       const completion = await openai.chat.completions.create({
-        model: flags.llmModel,
+        model: await getDefaultLlmModel(),
         temperature: 0.2,
         max_tokens: 500,
         messages: [

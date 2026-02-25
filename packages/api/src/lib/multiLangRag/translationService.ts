@@ -1,5 +1,5 @@
 import { getOpenAIClient } from '../openaiClient.js';
-import { getMultiLangRagFlags } from './config.js';
+import { getDefaultLlmModel } from '../runtimeModelSettings.js';
 import { normalizeWhitespace } from './utils.js';
 import type { ProductI18nSnapshot } from './types.js';
 
@@ -15,7 +15,6 @@ export class TranslationService {
   ): Promise<ProductI18nSnapshot> {
     if (sourceLang === targetLang) return snapshot;
 
-    const flags = getMultiLangRagFlags();
     const openai = getOpenAIClient();
 
     const system = [
@@ -33,7 +32,7 @@ export class TranslationService {
     };
 
     const resp = await openai.chat.completions.create({
-      model: flags.llmModel,
+      model: await getDefaultLlmModel(),
       temperature: 0,
       max_tokens: 1800,
       messages: [
@@ -55,10 +54,9 @@ export class TranslationService {
 
   async translateText(text: string, sourceLang: string, targetLang: string): Promise<string> {
     if (!text.trim() || sourceLang === targetLang) return text;
-    const flags = getMultiLangRagFlags();
     const openai = getOpenAIClient();
     const resp = await openai.chat.completions.create({
-      model: flags.llmModel,
+      model: await getDefaultLlmModel(),
       temperature: 0,
       max_tokens: 700,
       messages: [
@@ -75,4 +73,3 @@ export class TranslationService {
     return (resp.choices[0]?.message?.content || text).trim();
   }
 }
-

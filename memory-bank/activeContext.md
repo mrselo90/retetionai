@@ -169,3 +169,9 @@
   - Shadow-write snapshot now incorporates `product_instructions` fields (`usage_instructions`, `recipe_summary`, `prevention_tips`)
   - `/api/answer` live price/stock questions now attempt Shopify Admin GraphQL live fetch using existing Shopify integration credentials (with timestamped fallback if no match/integration)
   - API/web typecheck and multi-lang RAG unit tests pass after changes
+- **Super Admin AI Model Selection (global runtime)**:
+  - Added additive migration `020_platform_ai_settings.sql` for DB-backed global default LLM selection
+  - Added `GET/PUT /api/admin/ai-settings` (super admin only)
+  - Added "Global AI Model" card in `/admin/system` to select and save runtime default LLM
+  - Added runtime resolver (`platform_ai_settings` -> env fallback) and wired major AI paths (`aiAgent`, `/api/answer`, multi-lang answer/translation, enrichProduct, upsell, test RAG AI endpoint)
+  - Migration not yet applied => system gracefully falls back to env `LLM_MODEL` / `gpt-4o-mini`

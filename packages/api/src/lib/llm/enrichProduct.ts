@@ -1,5 +1,6 @@
 import { getOpenAIClient } from '../openaiClient.js';
 import { logger } from '@recete/shared';
+import { getDefaultLlmModel } from '../runtimeModelSettings.js';
 import {
   type EnrichProductResult,
   formatProductFactsForRAG,
@@ -40,6 +41,7 @@ export async function enrichProductDataDetailed(
 
   try {
     const openai = getOpenAIClient();
+    const model = await getDefaultLlmModel();
     const sectionHints = context?.rawSections
       ? Object.entries(context.rawSections)
           .filter(([, v]) => typeof v === 'string' && v.trim().length > 0)
@@ -48,7 +50,7 @@ export async function enrichProductDataDetailed(
       : '';
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model,
       messages: [
         {
           role: 'system',
@@ -102,11 +104,11 @@ export async function enrichProductDataDetailed(
         };
       }
       logger.warn({ productTitle, ruleErrors }, 'Product facts extraction failed business validation; falling back to summary enrichment');
-      return await fallbackSummaryEnrichment(openai, rawText, productTitle, facts, ruleErrors);
+      return await fallbackSummaryEnrichment(openai, rawText, productTitle, facts, ruleErrors, model);
     } else {
       logger.warn({ productTitle }, 'Product facts extraction JSON parse/validation failed; falling back to summary enrichment');
     }
-    return await fallbackSummaryEnrichment(openai, rawText, productTitle, null, ['JSON parse/validation failed']);
+    return await fallbackSummaryEnrichment(openai, rawText, productTitle, null, ['JSON parse/validation failed'], model);
   } catch (error) {
     logger.error({ error, productTitle }, 'Failed to enrich product data');
     // Fallback to raw text if LLM call fails
@@ -123,10 +125,11 @@ async function fallbackSummaryEnrichment(
   rawText: string,
   productTitle: string,
   facts: ProductFacts | null,
-  factsValidationErrors: string[]
+  factsValidationErrors: string[],
+  model: string
 ): Promise<EnrichProductResult> {
   const fallback = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model,
     messages: [
       {
         role: 'system',

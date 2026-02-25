@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
-import { Badge, Banner, BlockStack, Box, Button, Card, InlineGrid, InlineStack, Layout, Page, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
+import { Badge, Banner, BlockStack, Box, Button, Card, InlineGrid, InlineStack, Layout, Page, Select, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
 import { Database, Server, Activity, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -29,12 +29,21 @@ interface SystemHealth {
     };
 }
 
+interface PlatformAiSettings {
+    id: string;
+    default_llm_model: string;
+    allowed_llm_models: string[];
+}
+
 export default function SystemHealthPage() {
     const [health, setHealth] = useState<SystemHealth | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [aiSettings, setAiSettings] = useState<PlatformAiSettings | null>(null);
+    const [savingAiSettings, setSavingAiSettings] = useState(false);
+    const [selectedLlmModel, setSelectedLlmModel] = useState('gpt-4o-mini');
 
     const fetchHealth = async () => {
         setIsRefreshing(true);
@@ -44,6 +53,9 @@ export default function SystemHealthPage() {
 
             const data = await authenticatedRequest<SystemHealth>('/api/admin/system-health', session.access_token);
             setHealth(data);
+            const ai = await authenticatedRequest<{ settings: PlatformAiSettings }>('/api/admin/ai-settings', session.access_token);
+            setAiSettings(ai.settings);
+            setSelectedLlmModel(ai.settings.default_llm_model || 'gpt-4o-mini');
             setLastUpdated(new Date());
             setError('');
         } catch (err: any) {
@@ -51,6 +63,31 @@ export default function SystemHealthPage() {
         } finally {
             setLoading(false);
             setIsRefreshing(false);
+        }
+    };
+
+    const saveAiSettings = async () => {
+        setSavingAiSettings(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            const next = await authenticatedRequest<{ settings: PlatformAiSettings }>(
+                '/api/admin/ai-settings',
+                session.access_token,
+                {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        default_llm_model: selectedLlmModel,
+                        allowed_llm_models: aiSettings?.allowed_llm_models || ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'],
+                    }),
+                }
+            );
+            setAiSettings(next.settings);
+            setSelectedLlmModel(next.settings.default_llm_model);
+        } catch (err: any) {
+            setError(err.message || 'Failed to save AI settings');
+        } finally {
+            setSavingAiSettings(false);
         }
     };
 
@@ -223,6 +260,37 @@ export default function SystemHealthPage() {
                     </Box>
                 </Card>
             )}
+
+            {/* Global AI Model Settings */}
+            <Card>
+                <Box padding="400">
+                    <BlockStack gap="300">
+                        <InlineStack align="space-between" blockAlign="center" gap="200">
+                            <BlockStack gap="100">
+                                <Text as="h2" variant="headingMd">Global AI Model</Text>
+                                <Text as="p" tone="subdued">
+                                    Super admin runtime default model for chatbot and RAG answer generation (env fallback remains if DB setting unavailable).
+                                </Text>
+                            </BlockStack>
+                            {aiSettings && <Badge tone="info">Runtime configurable</Badge>}
+                        </InlineStack>
+                        <InlineGrid columns={{ xs: '1fr', md: 'minmax(0,1fr) auto' }} gap="300" alignItems="end">
+                            <Select
+                                label="Default LLM model"
+                                options={(aiSettings?.allowed_llm_models || ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1']).map((m) => ({
+                                    label: m,
+                                    value: m,
+                                }))}
+                                value={selectedLlmModel}
+                                onChange={setSelectedLlmModel}
+                            />
+                            <Button variant="primary" onClick={saveAiSettings} loading={savingAiSettings} disabled={savingAiSettings}>
+                                Save AI Model
+                            </Button>
+                        </InlineGrid>
+                    </BlockStack>
+                </Box>
+            </Card>
 
             {/* Background Worker Queues */}
             <BlockStack gap="300">
