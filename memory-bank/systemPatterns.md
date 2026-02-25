@@ -63,7 +63,8 @@
 - **Data Isolation**: Every query must include `WHERE merchant_id = X` (RLS)
 - **PII Encryption**: Phone numbers encrypted at rest
 - **Idempotency**: All events use idempotency_key to prevent duplicates
-- **API Authentication**: X-Api-Key header + optional HMAC signature
+- **API Authentication (current runtime)**: `Authorization: Bearer <token>` (Supabase JWT or Shopify session token) + scoped internal auth via `X-Internal-Secret` (only whitelisted internal routes; fail-closed)
+- **Webhook Verification**: Shopify/Shopify GDPR HMAC verification and WhatsApp Meta `X-Hub-Signature-256` HMAC verification on inbound webhook routes
 - **Rate Limiting**: Sliding window (Redis-based) — IP: 100/min, API Key: 1000/hr
 - **Security Headers**: CSP, HSTS, X-Frame-Options, X-Content-Type-Options
 - **Input Validation**: Zod schemas for all endpoints

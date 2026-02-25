@@ -1,14 +1,24 @@
 # Active Context
 
-## Current Focus: Cosmetics RAG Reliability + Eval Quality
-- **Status**: API-key-free internal auth path is live (`INTERNAL_SERVICE_SECRET`), Maruderm HU test products ingested (10 products, chunked), and products dashboard chunk-status false negatives fixed.
-- **Next Step**: Improve multilingual (TR/EN/HU) eval quality with proper product scoping, stronger facts-first usage, and better grounding.
+## Current Focus: Cosmetics RAG Reliability + Secure Superadmin Test Execution
+- **Status**: API-key-free internal auth path is live (`INTERNAL_SERVICE_SECRET`), auth/authz hardening landed (fail-closed internal auth + tenant isolation fixes + webhook HMAC), and superadmin `/admin/system` now has a predefined RAG smoke-suite runner for 10 chunk-ready products.
+- **Next Step**: Use superadmin panel RAG suites to validate retrieval/answer quality quickly, then iterate on multilingual (TR/EN/HU) grounding/facts-first tuning.
 
 ## Recent Accomplishments
 - **Merchant API Key Removal (Active Paths)**:
   - Merchant API key auth removed from runtime auth middleware and admin UI flows
   - Internal service auth (`X-Internal-Secret`) added for worker/eval/debug routes
   - Shopify app keys remain (Shopify requirements only)
+- **Auth/Authz Hardening (Feb 25)**:
+  - `auth.ts` internal whitelist auth is fail-closed (`INTERNAL_SERVICE_SECRET` required, invalid secret denied)
+  - `req.user.authMethod` now correctly distinguishes `jwt`, `shopify`, and `internal`
+  - IDOR/cross-tenant protections added to RAG order context + message scheduler helpers via `merchant_id` scoping
+  - WhatsApp inbound webhook now enforces Meta `X-Hub-Signature-256` HMAC verification
+  - `/api/events/process` restricted to internal-secret or super-admin (no normal merchant trigger)
+- **Superadmin RAG Suite Runner (Admin/System)**:
+  - Added predefined UI suite `rag_superadmin_10_products_smoke`
+  - Auto-selects first 10 products with `chunkCount > 0`
+  - Supports query presets (`short`, `medium`, `wide`), run mode (`RAG only` vs `RAG + Answer`), and product exclusion toggles for next runs
 - **Maruderm Test Dataset Ingestion**:
   - 10 real products from `maruderm.hu` ingested into test merchant
   - scrape + enrich + embedding pipeline validated end-to-end (chunks created)
@@ -151,6 +161,7 @@
 - [x] Ingest Maruderm HU test products (10) and generate chunks
 - [x] Fix false `RAG not ready` state in Products dashboard
 - [ ] Re-run product-scoped multilingual cosmetics evals and tune results
+- [ ] Run superadmin panel smoke suites after each RAG/auth deploy and track regressions manually (UI-only, no DB persistence)
 - [ ] Align prod DB migrations for `product_facts` / chunk metadata
 
 ## Known Issues / Notes

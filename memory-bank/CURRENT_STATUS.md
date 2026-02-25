@@ -1,4 +1,4 @@
-# Current Status — February 24, 2026
+# Current Status — February 25, 2026
 
 ## 🟢 Application is LIVE
 
@@ -46,7 +46,7 @@ cd /root/retetionai && git pull && pnpm install && cd packages/web && pnpm build
 
 **Ports & "Could not reach the API"**: Fixed inside PM2 process via `.env` by setting **INTERNAL_API_URL=http://127.0.0.1:3002**. 
 
-## Recent Operational Changes (Feb 24)
+## Recent Operational Changes (Feb 24-25)
 
 - **Merchant API key system removed from active app flows**
   - Auth now relies on `Supabase JWT` / `Shopify session token` / `INTERNAL_SERVICE_SECRET` (internal routes only)
@@ -63,6 +63,16 @@ cd /root/retetionai && git pull && pnpm install && cd packages/web && pnpm build
   - UI now shows `RAG status unknown` if chunk-count fetch fails, instead of false `RAG not ready`
 - **Internal debug auth extended**
   - `/api/products/chunks/batch` and `/api/products/:id/chunks` now accept internal-secret auth (for server-side debugging)
+- **Auth/Authz hardening (IDOR + webhook security)**
+  - `auth.ts` internal-secret whitelist paths are now fail-closed (missing/invalid `INTERNAL_SERVICE_SECRET` no longer pass)
+  - `req.user.authMethod` now distinguishes `jwt` vs `shopify` vs `internal`
+  - Merchant isolation enforced for RAG order context and message scheduler helpers (`merchant_id` scoping)
+  - WhatsApp inbound webhook now validates Meta `X-Hub-Signature-256` HMAC
+  - `/api/events/process` restricted to internal-secret or super-admin only
+- **Super Admin RAG Smoke Suite (UI)**
+  - `/admin/system` includes a predefined `rag_superadmin_10_products_smoke` runner
+  - Dynamically selects first 10 chunk-ready products and runs RAG / RAG+Answer smoke checks
+  - UI supports query-set presets, `RAG only` mode, and product exclusion for next run
 
 ### Next Steps
 1. **Eval quality tuning (TR/EN/HU)**: Re-run and tune multilingual/product-scoped evals using Maruderm products (facts-first coverage, language consistency, grounding).

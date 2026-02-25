@@ -174,23 +174,27 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<key>
 - `GET /api/auth/me` - Current user
 - `GET/POST/PUT/DELETE /api/integrations` - Integration CRUD
 - `POST /webhooks/commerce/event` - Commerce event ingestion (manual API-key variant deprecated/disabled)
-- `POST /api/import/orders/csv` - CSV order import
-- `POST /webhooks/whatsapp/inbound` - WhatsApp inbound messages
+- `POST /api/integrations/:integrationId/import/csv` - CSV order import
+- `GET /api/whatsapp/webhooks/whatsapp` - WhatsApp webhook verify challenge
+- `POST /api/whatsapp/webhooks/whatsapp` - WhatsApp inbound messages (Meta HMAC verified)
 - `GET /api/analytics/dashboard` - Analytics data
-- `GET/PUT /api/merchant/persona` - Persona settings
+- `GET/PUT /api/merchants/me` - Merchant profile/settings
+- `GET/PUT /api/merchants/me/bot-info` - Merchant bot info/persona-style guidance
 - `POST /api/test/*` - Test interface endpoints
 
 ## Authentication Notes (Current)
 
 - **Merchant/admin app auth**: Supabase JWT + Shopify session token
-- **Internal service auth**: `INTERNAL_SERVICE_SECRET` via `X-Internal-Secret` (worker/internal eval/debug routes)
+- **Internal service auth**: `INTERNAL_SERVICE_SECRET` via `X-Internal-Secret` (+ `X-Internal-Merchant-Id` on eval/internal product routes), fail-closed on internal whitelist paths
 - **Merchant API keys**: Removed from active runtime flows (UI/auth/routes). Shopify `SHOPIFY_API_KEY` / `SHOPIFY_API_SECRET` remain required for Shopify app integration.
+- **Authz / isolation**: High-risk resource reads/updates must chain merchant scope filters (e.g. `.eq('id', resourceId).eq('merchant_id', merchantId)`); RAG order context and message scheduler paths were hardened accordingly.
 
 ## RAG / Eval Notes (Feb 24, 2026)
 
 - Added multilingual cosmetics eval tooling (`run/score/judge/summarize` scripts)
 - Server-side eval now runs using internal-secret auth (no merchant API key)
 - Maruderm HU product set (10 products) ingested for realistic cosmetics testing
+- Superadmin `/admin/system` now includes a predefined UI RAG smoke suite (`rag_superadmin_10_products_smoke`) with query presets and on-screen results (no DB persistence)
 - Chunk counts verified in `knowledge_chunks`; products dashboard false `RAG not ready` issue fixed by:
   - hardening `/api/products/chunks/batch` JSON parsing
   - frontend `unknown` chunk-status fallback instead of `0 chunk`
