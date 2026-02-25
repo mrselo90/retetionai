@@ -10,7 +10,6 @@ import { SocialProof } from '@/components/landing-page/SocialProof';
 import { HowItWorks } from '@/components/landing-page/HowItWorks';
 import { PricingPreview } from '@/components/landing-page/PricingPreview';
 import { FAQ } from '@/components/landing-page/FAQ';
-import { CTA } from '@/components/landing-page/CTA';
 import { Footer } from '@/components/landing-page/Footer';
 import { SButton, SCard, SPage } from '@/components/landing-page/PolarisWc';
 
@@ -43,7 +42,6 @@ export default function Home() {
               { href: '/#how-it-works', label: tFooter('howItWorks') },
               { href: '/#pricing', label: tFooter('pricing') },
               { href: '/#faq', label: 'FAQ' },
-              { href: '/#cta', label: tFooter('bookDemo') },
             ].map((item) => (
               <Link
                 key={item.href}
@@ -116,7 +114,6 @@ export default function Home() {
       <SocialProof />
       <PricingPreview />
       <FAQ />
-      <CTA />
       <Footer />
 
       <div className="sm:hidden fixed bottom-3 inset-x-3 z-40 pb-[max(env(safe-area-inset-bottom),0px)]">
