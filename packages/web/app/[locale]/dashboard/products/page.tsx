@@ -693,46 +693,50 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 xl:gap-4">
-              <div className="min-w-0">
-                <PolarisTextField
-                  label={t('filters.searchLabel')}
-                  autoComplete="off"
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder={t('filters.searchPlaceholder')}
-                  prefix={<Search className="w-4 h-4 text-zinc-500" aria-hidden />}
-                />
-              </div>
+            <div className="rounded-xl border border-[var(--p-color-border-secondary)] bg-[var(--p-color-bg-surface-secondary)]/35 p-3 sm:p-4">
+              <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_260px_260px] xl:items-end">
+                <div className="min-w-0">
+                  <PolarisTextField
+                    label={t('filters.searchLabel')}
+                    autoComplete="off"
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    placeholder={t('filters.searchPlaceholder')}
+                    prefix={<Search className="w-4 h-4 text-zinc-500" aria-hidden />}
+                  />
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:gap-4 min-w-0 xl:max-w-[760px] xl:ml-auto">
-                <PolarisSelect
-                  label={t('filters.status')}
-                  options={[
-                    { label: t('filters.statusOptions.all'), value: 'all' },
-                    { label: t('filters.statusOptions.ragReady'), value: 'rag_ready' },
-                    { label: t('filters.statusOptions.ragNotReady'), value: 'rag_not_ready' },
-                    { label: t('filters.statusOptions.ragUnknown'), value: 'rag_unknown' },
-                    { label: t('filters.statusOptions.scraped'), value: 'scraped' },
-                    { label: t('filters.statusOptions.notScraped'), value: 'not_scraped' },
-                  ]}
-                  value={statusFilter}
-                  onChange={(value) => setStatusFilter(value as ProductStatusFilter)}
-                />
+                <div className="min-w-0">
+                  <PolarisSelect
+                    label={t('filters.status')}
+                    options={[
+                      { label: t('filters.statusOptions.all'), value: 'all' },
+                      { label: t('filters.statusOptions.ragReady'), value: 'rag_ready' },
+                      { label: t('filters.statusOptions.ragNotReady'), value: 'rag_not_ready' },
+                      { label: t('filters.statusOptions.ragUnknown'), value: 'rag_unknown' },
+                      { label: t('filters.statusOptions.scraped'), value: 'scraped' },
+                      { label: t('filters.statusOptions.notScraped'), value: 'not_scraped' },
+                    ]}
+                    value={statusFilter}
+                    onChange={(value) => setStatusFilter(value as ProductStatusFilter)}
+                  />
+                </div>
 
-                <PolarisSelect
-                  label={t('filters.sort')}
-                  options={[
-                    { label: t('filters.sortOptions.updatedDesc'), value: 'updated_desc' },
-                    { label: t('filters.sortOptions.updatedAsc'), value: 'updated_asc' },
-                    { label: t('filters.sortOptions.nameAsc'), value: 'name_asc' },
-                    { label: t('filters.sortOptions.nameDesc'), value: 'name_desc' },
-                    { label: t('filters.sortOptions.chunksDesc'), value: 'chunks_desc' },
-                    { label: t('filters.sortOptions.chunksAsc'), value: 'chunks_asc' },
-                  ]}
-                  value={sortBy}
-                  onChange={(value) => setSortBy(value as ProductSortOption)}
-                />
+                <div className="min-w-0">
+                  <PolarisSelect
+                    label={t('filters.sort')}
+                    options={[
+                      { label: t('filters.sortOptions.updatedDesc'), value: 'updated_desc' },
+                      { label: t('filters.sortOptions.updatedAsc'), value: 'updated_asc' },
+                      { label: t('filters.sortOptions.nameAsc'), value: 'name_asc' },
+                      { label: t('filters.sortOptions.nameDesc'), value: 'name_desc' },
+                      { label: t('filters.sortOptions.chunksDesc'), value: 'chunks_desc' },
+                      { label: t('filters.sortOptions.chunksAsc'), value: 'chunks_asc' },
+                    ]}
+                    value={sortBy}
+                    onChange={(value) => setSortBy(value as ProductSortOption)}
+                  />
+                </div>
               </div>
             </div>
 
