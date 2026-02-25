@@ -78,7 +78,7 @@ export default function SystemHealthPage() {
     const [ragSuiteRunning, setRagSuiteRunning] = useState(false);
     const [ragSuiteError, setRagSuiteError] = useState('');
     const [ragSuiteResult, setRagSuiteResult] = useState<RagSuiteRunResult | null>(null);
-    const [ragSuiteQueryPreset, setRagSuiteQueryPreset] = useState<'short' | 'medium' | 'wide'>('short');
+    const [ragSuiteQueryPreset, setRagSuiteQueryPreset] = useState<'short' | 'medium' | 'wide' | 'hungarian'>('short');
     const [ragSuiteMode, setRagSuiteMode] = useState<'rag_only' | 'rag_and_answer'>('rag_and_answer');
     const [ragSuiteExcludedProductIds, setRagSuiteExcludedProductIds] = useState<string[]>([]);
 
@@ -138,7 +138,7 @@ export default function SystemHealthPage() {
     };
 
     const runSuperAdminRagSuite = async () => {
-        const suiteQueriesByPreset: Record<'short' | 'medium' | 'wide', string[]> = {
+        const suiteQueriesByPreset: Record<'short' | 'medium' | 'wide' | 'hungarian', string[]> = {
             short: [
                 'Bu ürün nasıl kullanılır?',
                 'İçindekiler nelerdir?',
@@ -168,6 +168,20 @@ export default function SystemHealthPage() {
                 'Hangi saatlerde kullanmak daha uygundur?',
                 'Farklı ürünlerle birlikte kullanılabilir mi?',
                 'Hassas ciltler için uygun mu?',
+            ],
+            hungarian: [
+                'Hogyan kell használni ezt a terméket?',
+                'Milyen összetevőket tartalmaz?',
+                'Mire való ez a termék?',
+                'Hogyan kell tárolni?',
+                'Kinek ajánlott ez a termék?',
+                'Naponta hányszor érdemes használni?',
+                'Mennyi ideig javasolt használni?',
+                'Van valamilyen fontos figyelmeztetés?',
+                'Felbontás után meddig használható?',
+                'Érzékeny bőrre is megfelelő?',
+                'Használható más termékekkel együtt?',
+                'Mikor várható látható eredmény?',
             ],
         };
         const suiteQueries = suiteQueriesByPreset[ragSuiteQueryPreset];
@@ -569,9 +583,10 @@ export default function SystemHealthPage() {
                                     { label: 'Kısa (4 soru)', value: 'short' },
                                     { label: 'Orta (8 soru)', value: 'medium' },
                                     { label: 'Geniş (12 soru)', value: 'wide' },
+                                    { label: 'Macarca (12 soru)', value: 'hungarian' },
                                 ]}
                                 value={ragSuiteQueryPreset}
-                                onChange={(value) => setRagSuiteQueryPreset((value === 'medium' || value === 'wide') ? value : 'short')}
+                                onChange={(value) => setRagSuiteQueryPreset((value === 'medium' || value === 'wide' || value === 'hungarian') ? value : 'short')}
                             />
                             <Select
                                 label="Run mode"
