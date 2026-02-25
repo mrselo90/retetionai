@@ -55,6 +55,14 @@ export default function Home() {
             ))}
           </nav>
           <nav className="flex items-center gap-2 sm:gap-3 shrink-0" aria-label="Language and account">
+            <Link
+              href="/landing-v2"
+              className="hidden lg:inline-block"
+            >
+              <SButton className="py-2 px-3 text-xs font-semibold text-[#0a3d2e] rounded-lg border border-[#0a3d2e]/15 bg-white/70 hover:bg-white transition-colors">
+                V2 Preview
+              </SButton>
+            </Link>
             <SCard className="block flex rounded-lg border border-border bg-muted/30 p-0.5 shadow-none" role="group" aria-label="Language">
               <Link
                 href="/"
@@ -117,6 +125,13 @@ export default function Home() {
       <Footer />
 
       <div className="sm:hidden fixed bottom-3 inset-x-3 z-40 pb-[max(env(safe-area-inset-bottom),0px)]">
+        <div className="mb-2 text-center">
+          <Link href="/landing-v2" className="inline-block">
+            <SButton className="rounded-full border border-[#0a3d2e]/15 bg-white/90 px-3 py-1.5 text-xs font-semibold text-[#0a3d2e] shadow-sm">
+              Preview New Landing (V2)
+            </SButton>
+          </Link>
+        </div>
         <SCard className="block rounded-2xl border border-black/10 bg-white/95 backdrop-blur shadow-[0_18px_45px_rgba(10,61,46,.14)] p-2 flex items-center gap-2">
           <Link
             href="/signup"
