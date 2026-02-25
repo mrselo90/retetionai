@@ -175,3 +175,11 @@
   - Added "Global AI Model" card in `/admin/system` to select and save runtime default LLM
   - Added runtime resolver (`platform_ai_settings` -> env fallback) and wired major AI paths (`aiAgent`, `/api/answer`, multi-lang answer/translation, enrichProduct, upsell, test RAG AI endpoint)
   - Migration not yet applied => system gracefully falls back to env `LLM_MODEL` / `gpt-4o-mini`
+- **Super Admin Conversation Memory Controls**:
+  - Added additive migration `021_platform_ai_settings_memory_controls.sql` (`conversation_memory_mode`, `conversation_memory_count`)
+  - `/api/admin/ai-settings` now supports `conversation_memory_mode` (`last_n` / `full`) and `conversation_memory_count`
+  - `/admin/system` AI settings card now includes conversation memory mode + count controls
+  - Customer chatbot (`aiAgent`) and test RAG AI chat path now use runtime memory settings (full history or configurable last-N)
+- **Conversation Memory Behavior (current)**:
+  - Customer conversation history is used in AI responses, but prompt context includes only the most recent 10 messages (`aiAgent` and test RAG chat path)
+  - This means the system "remembers" recent dialog turns, but not unlimited full-history memory inside a single model call

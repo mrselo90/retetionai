@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
-import { Badge, Banner, BlockStack, Box, Button, Card, InlineGrid, InlineStack, Layout, Page, Select, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
+import { Badge, Banner, BlockStack, Box, Button, Card, InlineGrid, InlineStack, Layout, Page, Select, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text, TextField } from '@shopify/polaris';
 import { Database, Server, Activity, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -33,6 +33,8 @@ interface PlatformAiSettings {
     id: string;
     default_llm_model: string;
     allowed_llm_models: string[];
+    conversation_memory_mode?: 'last_n' | 'full';
+    conversation_memory_count?: number;
 }
 
 export default function SystemHealthPage() {
@@ -44,6 +46,8 @@ export default function SystemHealthPage() {
     const [aiSettings, setAiSettings] = useState<PlatformAiSettings | null>(null);
     const [savingAiSettings, setSavingAiSettings] = useState(false);
     const [selectedLlmModel, setSelectedLlmModel] = useState('gpt-4o-mini');
+    const [conversationMemoryMode, setConversationMemoryMode] = useState<'last_n' | 'full'>('last_n');
+    const [conversationMemoryCount, setConversationMemoryCount] = useState('10');
 
     const fetchHealth = async () => {
         setIsRefreshing(true);
@@ -56,6 +60,8 @@ export default function SystemHealthPage() {
             const ai = await authenticatedRequest<{ settings: PlatformAiSettings }>('/api/admin/ai-settings', session.access_token);
             setAiSettings(ai.settings);
             setSelectedLlmModel(ai.settings.default_llm_model || 'gpt-4o-mini');
+            setConversationMemoryMode(ai.settings.conversation_memory_mode === 'full' ? 'full' : 'last_n');
+            setConversationMemoryCount(String(ai.settings.conversation_memory_count ?? 10));
             setLastUpdated(new Date());
             setError('');
         } catch (err: any) {
@@ -79,11 +85,15 @@ export default function SystemHealthPage() {
                     body: JSON.stringify({
                         default_llm_model: selectedLlmModel,
                         allowed_llm_models: aiSettings?.allowed_llm_models || ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'],
+                        conversation_memory_mode: conversationMemoryMode,
+                        conversation_memory_count: Math.max(1, Math.min(200, parseInt(conversationMemoryCount || '10', 10) || 10)),
                     }),
                 }
             );
             setAiSettings(next.settings);
             setSelectedLlmModel(next.settings.default_llm_model);
+            setConversationMemoryMode(next.settings.conversation_memory_mode === 'full' ? 'full' : 'last_n');
+            setConversationMemoryCount(String(next.settings.conversation_memory_count ?? 10));
         } catch (err: any) {
             setError(err.message || 'Failed to save AI settings');
         } finally {
@@ -275,15 +285,39 @@ export default function SystemHealthPage() {
                             {aiSettings && <Badge tone="info">Runtime configurable</Badge>}
                         </InlineStack>
                         <InlineGrid columns={{ xs: '1fr', md: 'minmax(0,1fr) auto' }} gap="300" alignItems="end">
-                            <Select
-                                label="Default LLM model"
-                                options={(aiSettings?.allowed_llm_models || ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1']).map((m) => ({
-                                    label: m,
-                                    value: m,
-                                }))}
-                                value={selectedLlmModel}
-                                onChange={setSelectedLlmModel}
-                            />
+                            <BlockStack gap="300">
+                                <Select
+                                    label="Default LLM model"
+                                    options={(aiSettings?.allowed_llm_models || ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1']).map((m) => ({
+                                        label: m,
+                                        value: m,
+                                    }))}
+                                    value={selectedLlmModel}
+                                    onChange={setSelectedLlmModel}
+                                />
+                                <Select
+                                    label="Conversation memory mode"
+                                    options={[
+                                        { label: 'Last N messages', value: 'last_n' },
+                                        { label: 'Full conversation', value: 'full' },
+                                    ]}
+                                    value={conversationMemoryMode}
+                                    onChange={(value) => setConversationMemoryMode(value === 'full' ? 'full' : 'last_n')}
+                                    helpText="Controls how much conversation history is sent to the model for customer chat responses."
+                                />
+                                {conversationMemoryMode === 'last_n' && (
+                                    <TextField
+                                        label="Conversation memory count"
+                                        type="number"
+                                        min={1}
+                                        max={200}
+                                        autoComplete="off"
+                                        value={conversationMemoryCount}
+                                        onChange={setConversationMemoryCount}
+                                        helpText="Number of latest messages to include in model context (1-200)."
+                                    />
+                                )}
+                            </BlockStack>
                             <Button variant="primary" onClick={saveAiSettings} loading={savingAiSettings} disabled={savingAiSettings}>
                                 Save AI Model
                             </Button>

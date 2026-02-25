@@ -161,12 +161,17 @@ admin.put('/ai-settings', async (c) => {
         const allowedLlmModels = Array.isArray(body.allowed_llm_models)
             ? body.allowed_llm_models.map((x: unknown) => String(x)).filter(Boolean)
             : undefined;
+        const conversationMemoryMode = body.conversation_memory_mode === 'full' ? 'full' : 'last_n';
+        const conversationMemoryCount =
+            typeof body.conversation_memory_count === 'number' ? body.conversation_memory_count : 10;
         if (!defaultLlmModel) {
             return c.json({ error: 'default_llm_model is required' }, 400);
         }
         const settings = await updatePlatformAiSettings({
             default_llm_model: defaultLlmModel,
             allowed_llm_models: allowedLlmModels,
+            conversation_memory_mode: conversationMemoryMode,
+            conversation_memory_count: conversationMemoryCount,
         });
         return c.json({ settings });
     } catch (error) {

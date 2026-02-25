@@ -14,7 +14,7 @@ import { generateAIResponse, detectPostDeliveryFollowUpSignal } from '../lib/aiA
 import { queryKnowledgeBase, formatRAGResultsForLLM } from '../lib/rag.js';
 import { getMerchantBotInfo } from '../lib/botInfo.js';
 import { getOpenAIClient } from '../lib/openaiClient.js';
-import { getDefaultLlmModel } from '../lib/runtimeModelSettings.js';
+import { getConversationMemorySettings, getDefaultLlmModel } from '../lib/runtimeModelSettings.js';
 import { detectLanguage } from '../lib/i18n.js';
 import { evaluateStyleCompliance } from '../lib/styleCompliance.js';
 import { getActiveProductFactsContext } from '../lib/productFactsQuery.js';
@@ -307,6 +307,7 @@ test.post('/rag/answer', async (c) => {
     let answer = '';
     let completion: any = null;
     let streamUsage: any = null;
+    let memorySettings: { mode: 'last_n' | 'full'; count: number } | null = null;
     let llmRequestMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
     const llmConfig = {
       model: await getDefaultLlmModel(),
@@ -318,9 +319,13 @@ test.post('/rag/answer', async (c) => {
       answer = planned.answer;
     } else {
       const openai = getOpenAIClient();
+      memorySettings = await getConversationMemorySettings();
+      const recentHistory = memorySettings.mode === 'full'
+        ? conversationHistory
+        : conversationHistory.slice(-Math.max(1, memorySettings.count));
       llmRequestMessages = [
         { role: 'system', content: systemPrompt },
-        ...conversationHistory.slice(-10).map((m: any) => ({
+        ...recentHistory.map((m: any) => ({
           role: m.role === 'user' ? 'user' as const : 'assistant' as const,
           content: m.content,
         })),
@@ -387,6 +392,8 @@ test.post('/rag/answer', async (c) => {
           contextChars: contextText.length,
           requestMessages: llmRequestMessages,
           llmConfig: planned ? null : llmConfig,
+          conversationMemoryMode: planned ? null : memorySettings?.mode || null,
+          conversationMemoryCount: planned ? null : memorySettings?.count || null,
           streamRequested: stream,
           streamUsed: Boolean(!planned && stream),
           deterministicAnswerUsed: Boolean(planned),

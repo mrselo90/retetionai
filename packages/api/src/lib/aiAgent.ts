@@ -5,7 +5,7 @@
 
 import type OpenAI from 'openai';
 import { getOpenAIClient } from './openaiClient.js';
-import { getDefaultLlmModel } from './runtimeModelSettings.js';
+import { getConversationMemorySettings, getDefaultLlmModel } from './runtimeModelSettings.js';
 import { queryKnowledgeBase, formatRAGResultsForLLM, getOrderProductContextResolved } from './rag.js';
 import { getSupabaseServiceClient, logger, getProductInstructionsByProductIds } from '@recete/shared';
 import type { ConversationMessage } from './conversation.js';
@@ -598,7 +598,10 @@ export async function generateAIResponse(
   ];
 
   // Add conversation history (last 10 messages)
-  const recentHistory = conversationHistory.slice(-10);
+  const memorySettings = await getConversationMemorySettings();
+  const recentHistory = memorySettings.mode === 'full'
+    ? conversationHistory
+    : conversationHistory.slice(-Math.max(1, memorySettings.count));
   for (const msg of recentHistory) {
     messages.push({
       role: msg.role === 'user' ? 'user' : 'assistant',
