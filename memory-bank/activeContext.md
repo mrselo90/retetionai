@@ -191,6 +191,11 @@
   - Added tracking for multi-lang translations and product enrichment LLM calls (merchant-scoped usage events)
   - `/api/admin/merchants` now supports AI usage window filter (`mtd`, `30d`, `7d`)
   - Admin merchants list can switch AI usage window and shows compact `by_model` + `by_feature` breakdown snippets
+- **Admin Merchants AI Usage UI/UX fix (overlap + drill-down)**:
+  - Added `GET /api/admin/merchants/:id/ai-usage?ai_window=...` detail endpoint (summary + recent events, super admin only)
+  - `/admin/merchants` now avoids table crowding by keeping row AI cell compact and moving detailed breakdowns into an `AI Usage Details` modal
+  - Added mobile-first merchant card layout for `/admin/merchants`; desktop keeps Polaris `IndexTable`
+  - AI usage window toolbar and row actions were adjusted for responsive wrapping to prevent overlap
 - **Conversation Memory Behavior (current)**:
   - Customer conversation history is used in AI responses, but prompt context includes only the most recent 10 messages (`aiAgent` and test RAG chat path)
   - This means the system "remembers" recent dialog turns, but not unlimited full-history memory inside a single model call

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
-import { Badge, BlockStack, Box, Button, Card, IndexTable, InlineStack, Layout, Page, Select, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
+import { Badge, BlockStack, Box, Button, Card, IndexTable, InlineStack, Layout, Modal, Page, Select, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
 import { Store, Calendar, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/lib/toast';
@@ -24,12 +24,37 @@ interface Merchant {
     };
 }
 
+interface MerchantAiUsageDetailResponse {
+    merchant: { id: string; name: string };
+    ai_window: 'mtd' | '30d' | '7d';
+    summary: {
+        total_tokens: number;
+        estimated_cost_usd: number;
+        by_model: Array<{ model: string; total_tokens: number; estimated_cost_usd: number; count: number }>;
+        by_feature: Array<{ feature: string; total_tokens: number; estimated_cost_usd: number; count: number }>;
+    };
+    recent_events: Array<{
+        id: string;
+        model: string;
+        feature: string;
+        request_kind: string;
+        prompt_tokens: number;
+        completion_tokens: number;
+        total_tokens: number;
+        estimated_cost_usd: number;
+        created_at: string;
+    }>;
+}
+
 export default function AdminMerchantsPage() {
     const [merchants, setMerchants] = useState<Merchant[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [impersonatingMap, setImpersonatingMap] = useState<Record<string, boolean>>({});
     const [aiWindow, setAiWindow] = useState<'mtd' | '30d' | '7d'>('mtd');
+    const [aiUsageModalMerchant, setAiUsageModalMerchant] = useState<Merchant | null>(null);
+    const [aiUsageDetail, setAiUsageDetail] = useState<MerchantAiUsageDetailResponse | null>(null);
+    const [aiUsageDetailLoading, setAiUsageDetailLoading] = useState(false);
 
     const fetchMerchants = async () => {
         try {
@@ -91,6 +116,25 @@ export default function AdminMerchantsPage() {
         }
     };
 
+    const openAiUsageDetail = async (merchant: Merchant) => {
+        setAiUsageModalMerchant(merchant);
+        setAiUsageDetail(null);
+        setAiUsageDetailLoading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            const data = await authenticatedRequest<MerchantAiUsageDetailResponse>(
+                `/api/admin/merchants/${merchant.id}/ai-usage?ai_window=${aiWindow}`,
+                session.access_token
+            );
+            setAiUsageDetail(data);
+        } catch (err: any) {
+            toast.error('Failed to load AI usage detail', err.message || 'Unknown error');
+        } finally {
+            setAiUsageDetailLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchMerchants();
     }, [aiWindow]);
@@ -137,11 +181,18 @@ export default function AdminMerchantsPage() {
             <Layout>
                 <Layout.Section>
                     <Box paddingBlockEnd="300">
-                        <InlineStack align="space-between" blockAlign="end" gap="300">
-                            <Text as="p" tone="subdued">
-                                AI usage values below are estimated OpenAI costs aggregated per merchant and model.
-                            </Text>
-                            <Box minWidth="160px">
+                        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px] lg:items-end">
+                            <Box>
+                                <BlockStack gap="100">
+                                    <Text as="p" tone="subdued">
+                                        AI usage values below are estimated OpenAI costs aggregated per merchant and model.
+                                    </Text>
+                                    <Text as="p" variant="bodySm" tone="subdued">
+                                        Open AI Details for per-model and per-feature breakdowns without crowding the table.
+                                    </Text>
+                                </BlockStack>
+                            </Box>
+                            <Box>
                                 <Select
                                     label="AI usage window"
                                     labelHidden
@@ -154,9 +205,117 @@ export default function AdminMerchantsPage() {
                                     ]}
                                 />
                             </Box>
-                        </InlineStack>
+                        </div>
                     </Box>
+                    <div className="md:hidden">
+                        <BlockStack gap="300">
+                            {merchants.map((merchant) => {
+                                const shopifyInt = merchant.integrations?.find(i => i.provider === 'shopify');
+                                const whatsappInt = merchant.integrations?.find(i => i.provider === 'whatsapp');
+                                return (
+                                    <Card key={merchant.id}>
+                                        <Box padding="400">
+                                            <BlockStack gap="300">
+                                                <InlineStack align="space-between" blockAlign="start" wrap>
+                                                    <InlineStack gap="300" blockAlign="center" wrap={false}>
+                                                        <Box background="bg-surface-secondary" borderRadius="300" padding="200">
+                                                            <Store className="w-5 h-5 text-zinc-500" />
+                                                        </Box>
+                                                        <BlockStack gap="100">
+                                                            <InlineStack gap="200" blockAlign="center" wrap>
+                                                                <Text as="span" variant="bodyMd" fontWeight="semibold">
+                                                                    {merchant.name || 'Unnamed Store'}
+                                                                </Text>
+                                                                {merchant.is_super_admin && <Badge tone="critical">ADMIN</Badge>}
+                                                            </InlineStack>
+                                                            <Text as="span" variant="bodySm" tone="subdued">
+                                                                {merchant.id.split('-')[0]}...
+                                                            </Text>
+                                                        </BlockStack>
+                                                    </InlineStack>
+                                                    {shopifyInt?.status === 'active' ? (
+                                                        <Badge tone="success">Active Store</Badge>
+                                                    ) : (
+                                                        <Badge tone="enabled">Pending Setup</Badge>
+                                                    )}
+                                                </InlineStack>
+
+                                                <InlineStack gap="200" wrap>
+                                                    {shopifyInt && <Badge tone={shopifyInt.status === 'active' ? 'success' : 'enabled'}>Shopify</Badge>}
+                                                    {whatsappInt && <Badge tone={whatsappInt.status === 'active' ? 'success' : 'enabled'}>WhatsApp</Badge>}
+                                                    {!shopifyInt && !whatsappInt && <Text as="span" variant="bodySm" tone="subdued">No integrations</Text>}
+                                                </InlineStack>
+
+                                                <InlineStack align="space-between" wrap gap="200">
+                                                    <Text as="span" variant="bodySm" tone="subdued">
+                                                        {merchant.created_at ? format(new Date(merchant.created_at), 'MMM d, yyyy') : 'Unknown'}
+                                                    </Text>
+                                                    <Text as="span" variant="bodyMd" fontWeight="medium">
+                                                        ${merchant.settings?.capped_amount || 100}
+                                                    </Text>
+                                                </InlineStack>
+
+                                                <Box background="bg-surface-secondary" borderRadius="200" padding="300">
+                                                    <BlockStack gap="150">
+                                                        <InlineStack align="space-between" gap="200" wrap>
+                                                            <Text as="span" variant="bodySm" tone="subdued">AI ({aiWindow.toUpperCase()})</Text>
+                                                            <Button variant="plain" size="micro" onClick={() => openAiUsageDetail(merchant)}>
+                                                                Details
+                                                            </Button>
+                                                        </InlineStack>
+                                                        <InlineStack gap="200" wrap>
+                                                            <Text as="span" variant="bodyMd" fontWeight="medium">
+                                                                {(merchant.ai_usage_mtd?.total_tokens || 0).toLocaleString()} tok
+                                                            </Text>
+                                                            <Text as="span" variant="bodySm" tone="subdued">
+                                                                ${(merchant.ai_usage_mtd?.estimated_cost_usd || 0).toFixed(4)}
+                                                            </Text>
+                                                        </InlineStack>
+                                                        {merchant.ai_usage_mtd?.top_model && (
+                                                            <Text as="p" variant="bodySm" tone="subdued" truncate>
+                                                                Top model: {merchant.ai_usage_mtd.top_model}
+                                                            </Text>
+                                                        )}
+                                                    </BlockStack>
+                                                </Box>
+
+                                                <InlineStack gap="200" wrap>
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="slim"
+                                                        disabled={impersonatingMap[merchant.id]}
+                                                        onClick={() => handleSetLimit(merchant.id, merchant.settings?.capped_amount || 100)}
+                                                    >
+                                                        Set Limit
+                                                    </Button>
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="slim"
+                                                        disabled={impersonatingMap[merchant.id]}
+                                                        loading={!!impersonatingMap[merchant.id]}
+                                                        onClick={() => handleImpersonate(merchant.id)}
+                                                    >
+                                                        Login As
+                                                    </Button>
+                                                </InlineStack>
+                                            </BlockStack>
+                                        </Box>
+                                    </Card>
+                                );
+                            })}
+                            {merchants.length === 0 && (
+                                <Card>
+                                    <Box padding="500">
+                                        <Text as="p" tone="subdued" alignment="center">No merchants found in the system.</Text>
+                                    </Box>
+                                </Card>
+                            )}
+                        </BlockStack>
+                    </div>
+
+                    <div className="hidden md:block">
                     <Card padding="0">
+                        <div className="overflow-x-auto">
                         <IndexTable
                             resourceName={{ singular: 'merchant', plural: 'merchants' }}
                             itemCount={merchants.length}
@@ -166,7 +325,7 @@ export default function AdminMerchantsPage() {
                                 { title: 'Status' },
                                 { title: 'Integrations' },
                                 { title: 'Registered', alignment: 'end' },
-                                { title: 'AI (MTD)', alignment: 'end' },
+                                { title: `AI (${aiWindow.toUpperCase()})`, alignment: 'end' },
                                 { title: 'Limit', alignment: 'end' },
                                 { title: 'Actions', alignment: 'center' },
                             ]}
@@ -237,35 +396,32 @@ export default function AdminMerchantsPage() {
                                         </IndexTable.Cell>
                                         <IndexTable.Cell>
                                             <BlockStack gap="100">
-                                                <InlineStack align="end" gap="100" blockAlign="center">
+                                                <InlineStack align="end" gap="100" blockAlign="center" wrap>
                                                     <Text as="span" variant="bodyMd" fontWeight="medium">
                                                         {(merchant.ai_usage_mtd?.total_tokens || 0).toLocaleString()} tok
                                                     </Text>
                                                 </InlineStack>
-                                                <InlineStack align="end" gap="100" blockAlign="center">
+                                                <InlineStack align="end" gap="100" blockAlign="center" wrap>
                                                     <Text as="span" variant="bodySm" tone="subdued">
                                                         ${(merchant.ai_usage_mtd?.estimated_cost_usd || 0).toFixed(4)}
                                                     </Text>
                                                     {merchant.ai_usage_mtd?.top_model && (
-                                                        <Badge tone="info">{merchant.ai_usage_mtd.top_model}</Badge>
+                                                        <Box maxWidth="140px">
+                                                            <Text as="span" variant="bodySm" tone="subdued" truncate>
+                                                                {merchant.ai_usage_mtd.top_model}
+                                                            </Text>
+                                                        </Box>
                                                     )}
                                                 </InlineStack>
-                                                {!!merchant.ai_usage_mtd?.by_model?.length && (
-                                                    <Text as="span" variant="bodySm" tone="subdued" alignment="end">
-                                                        {merchant.ai_usage_mtd.by_model
-                                                            .slice(0, 2)
-                                                            .map((m) => `${m.model}: ${(m.estimated_cost_usd || 0).toFixed(4)}$`)
-                                                            .join(' · ')}
-                                                    </Text>
-                                                )}
-                                                {!!merchant.ai_usage_mtd?.by_feature?.length && (
-                                                    <Text as="span" variant="bodySm" tone="subdued" alignment="end">
-                                                        {merchant.ai_usage_mtd.by_feature
-                                                            .slice(0, 2)
-                                                            .map((f) => `${f.feature}: ${f.total_tokens.toLocaleString()}t`)
-                                                            .join(' · ')}
-                                                    </Text>
-                                                )}
+                                                <InlineStack align="end">
+                                                    <Button
+                                                        variant="plain"
+                                                        size="micro"
+                                                        onClick={() => openAiUsageDetail(merchant)}
+                                                    >
+                                                        Details
+                                                    </Button>
+                                                </InlineStack>
                                             </BlockStack>
                                         </IndexTable.Cell>
                                         <IndexTable.Cell>
@@ -276,7 +432,7 @@ export default function AdminMerchantsPage() {
                                             </InlineStack>
                                         </IndexTable.Cell>
                                         <IndexTable.Cell>
-                                            <InlineStack align="center" gap="200" wrap>
+                                            <InlineStack align="center" gap="200" wrap={false}>
                                                 <Button
                                                     variant="secondary"
                                                     size="slim"
@@ -300,12 +456,14 @@ export default function AdminMerchantsPage() {
                                 );
                             })}
                         </IndexTable>
+                        </div>
                         {merchants.length === 0 && (
                             <Box padding="800">
                                 <Text as="p" tone="subdued" alignment="center">No merchants found in the system.</Text>
                             </Box>
                         )}
                     </Card>
+                    </div>
                     <Box paddingBlockStart="300">
                         <Text as="p" variant="bodySm" tone="subdued">
                             Admin actions here are operational tools. Use “Login As” to validate merchant-facing behavior in the real dashboard context.
@@ -313,6 +471,103 @@ export default function AdminMerchantsPage() {
                     </Box>
                 </Layout.Section>
             </Layout>
+
+            <Modal
+                open={Boolean(aiUsageModalMerchant)}
+                onClose={() => { setAiUsageModalMerchant(null); setAiUsageDetail(null); }}
+                title={`AI Usage Details${aiUsageModalMerchant ? ` · ${aiUsageModalMerchant.name}` : ''}`}
+                primaryAction={undefined}
+                secondaryActions={[
+                    {
+                        content: 'Close',
+                        onAction: () => { setAiUsageModalMerchant(null); setAiUsageDetail(null); },
+                    },
+                ]}
+            >
+                <Modal.Section>
+                    {aiUsageDetailLoading ? (
+                        <BlockStack gap="300">
+                            <Text as="p" tone="subdued">Loading AI usage details...</Text>
+                        </BlockStack>
+                    ) : aiUsageDetail ? (
+                        <BlockStack gap="400">
+                            <InlineStack gap="200" wrap>
+                                <Badge tone="info">{aiUsageDetail.ai_window.toUpperCase()}</Badge>
+                                <Badge>{`${aiUsageDetail.summary.total_tokens.toLocaleString()} tokens`}</Badge>
+                                <Badge tone="success">{`$${aiUsageDetail.summary.estimated_cost_usd.toFixed(4)}`}</Badge>
+                            </InlineStack>
+
+                            <Card>
+                                <Box padding="300">
+                                    <BlockStack gap="200">
+                                        <Text as="h3" variant="headingSm">By Model</Text>
+                                        {aiUsageDetail.summary.by_model.length === 0 ? (
+                                            <Text as="p" tone="subdued">No AI usage events yet.</Text>
+                                        ) : aiUsageDetail.summary.by_model.map((m) => (
+                                            <InlineStack key={m.model} align="space-between" gap="300" wrap>
+                                                <Text as="span">{m.model}</Text>
+                                                <InlineStack gap="200" wrap>
+                                                    <Text as="span" tone="subdued">{m.total_tokens.toLocaleString()} tok</Text>
+                                                    <Text as="span" tone="subdued">${m.estimated_cost_usd.toFixed(4)}</Text>
+                                                    <Badge>{`${m.count} events`}</Badge>
+                                                </InlineStack>
+                                            </InlineStack>
+                                        ))}
+                                    </BlockStack>
+                                </Box>
+                            </Card>
+
+                            <Card>
+                                <Box padding="300">
+                                    <BlockStack gap="200">
+                                        <Text as="h3" variant="headingSm">By Feature</Text>
+                                        {aiUsageDetail.summary.by_feature.length === 0 ? (
+                                            <Text as="p" tone="subdued">No feature-level usage yet.</Text>
+                                        ) : aiUsageDetail.summary.by_feature.map((f) => (
+                                            <InlineStack key={f.feature} align="space-between" gap="300" wrap>
+                                                <Text as="span">{f.feature}</Text>
+                                                <InlineStack gap="200" wrap>
+                                                    <Text as="span" tone="subdued">{f.total_tokens.toLocaleString()} tok</Text>
+                                                    <Text as="span" tone="subdued">${f.estimated_cost_usd.toFixed(4)}</Text>
+                                                    <Badge>{`${f.count} events`}</Badge>
+                                                </InlineStack>
+                                            </InlineStack>
+                                        ))}
+                                    </BlockStack>
+                                </Box>
+                            </Card>
+
+                            <Card>
+                                <Box padding="300">
+                                    <BlockStack gap="200">
+                                        <Text as="h3" variant="headingSm">Recent Events</Text>
+                                        {aiUsageDetail.recent_events.length === 0 ? (
+                                            <Text as="p" tone="subdued">No recent events.</Text>
+                                        ) : aiUsageDetail.recent_events.map((e) => (
+                                            <Box key={e.id} paddingBlock="150" borderBlockEndWidth="025" borderColor="border">
+                                                <div className="grid gap-1 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+                                                    <BlockStack gap="050">
+                                                        <Text as="p" variant="bodyMd">{e.feature}</Text>
+                                                        <Text as="p" variant="bodySm" tone="subdued">
+                                                            {e.model} · {e.request_kind} · {format(new Date(e.created_at), 'MMM d, HH:mm')}
+                                                        </Text>
+                                                    </BlockStack>
+                                                    <InlineStack gap="200" wrap>
+                                                        <Text as="span" variant="bodySm" tone="subdued">{e.total_tokens.toLocaleString()} tok</Text>
+                                                        <Text as="span" variant="bodySm" tone="subdued">${Number(e.estimated_cost_usd || 0).toFixed(4)}</Text>
+                                                    </InlineStack>
+                                                </div>
+                                            </Box>
+                                        ))}
+                                    </BlockStack>
+                                </Box>
+                            </Card>
+                        </BlockStack>
+                    ) : (
+                        <Text as="p" tone="subdued">Select a merchant to view AI usage details.</Text>
+                    )}
+                </Modal.Section>
+            </Modal>
         </Page>
     );
 }

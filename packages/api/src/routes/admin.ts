@@ -11,6 +11,22 @@ const admin = new Hono();
 admin.use('/*', authMiddleware);
 admin.use('/*', adminAuthMiddleware);
 
+function resolveAiWindowStart(aiWindowRaw: string | undefined): { key: 'mtd' | '30d' | '7d'; periodStart: string } {
+    const aiWindow = (aiWindowRaw || 'mtd').toLowerCase();
+    const now = new Date();
+    if (aiWindow === '7d') {
+        const d = new Date(now);
+        d.setDate(d.getDate() - 7);
+        return { key: '7d', periodStart: d.toISOString() };
+    }
+    if (aiWindow === '30d') {
+        const d = new Date(now);
+        d.setDate(d.getDate() - 30);
+        return { key: '30d', periodStart: d.toISOString() };
+    }
+    return { key: 'mtd', periodStart: new Date(now.getFullYear(), now.getMonth(), 1).toISOString() };
+}
+
 /**
  * Get Global Platform Statistics
  * GET /api/admin/stats
@@ -77,21 +93,7 @@ admin.get('/merchants', async (c) => {
     `;
 
     try {
-        const aiWindow = (c.req.query('ai_window') || 'mtd').toLowerCase();
-        const now = new Date();
-        const periodStart = (() => {
-            if (aiWindow === '7d') {
-                const d = new Date(now);
-                d.setDate(d.getDate() - 7);
-                return d.toISOString();
-            }
-            if (aiWindow === '30d') {
-                const d = new Date(now);
-                d.setDate(d.getDate() - 30);
-                return d.toISOString();
-            }
-            return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        })();
+        const { key: aiWindow, periodStart } = resolveAiWindowStart(c.req.query('ai_window'));
         const resultFull = await serviceClient
             .from('merchants')
             .select(fullSelect)
@@ -134,6 +136,83 @@ admin.get('/merchants', async (c) => {
     } catch (error) {
         console.error('Failed to fetch all merchants:', error);
         return c.json({ error: 'Failed to fetch merchants list' }, 500);
+    }
+});
+
+/**
+ * Merchant AI usage detail (super admin)
+ * GET /api/admin/merchants/:id/ai-usage?ai_window=mtd|30d|7d
+ */
+admin.get('/merchants/:id/ai-usage', async (c) => {
+    const serviceClient = getSupabaseServiceClient();
+    const merchantId = c.req.param('id');
+    const { key: aiWindow, periodStart } = resolveAiWindowStart(c.req.query('ai_window'));
+
+    try {
+        const { data: merchant, error: merchantError } = await serviceClient
+            .from('merchants')
+            .select('id, name')
+            .eq('id', merchantId)
+            .maybeSingle();
+        if (merchantError || !merchant) {
+            return c.json({ error: 'Merchant not found' }, 404);
+        }
+
+        const { data: usageRows, error } = await serviceClient
+            .from('ai_usage_events')
+            .select('id, model, feature, request_kind, prompt_tokens, completion_tokens, total_tokens, estimated_cost_usd, created_at, metadata')
+            .eq('merchant_id', merchantId)
+            .gte('created_at', periodStart)
+            .order('created_at', { ascending: false })
+            .limit(200);
+
+        if (error) {
+            if (error.code === '42P01' || error.code === '42703') {
+                return c.json({
+                    merchant,
+                    ai_window: aiWindow,
+                    summary: { total_tokens: 0, estimated_cost_usd: 0, by_model: [], by_feature: [] },
+                    recent_events: [],
+                });
+            }
+            throw error;
+        }
+
+        const rows = (usageRows || []) as any[];
+        const byModel = new Map<string, { total_tokens: number; estimated_cost_usd: number; count: number }>();
+        const byFeature = new Map<string, { total_tokens: number; estimated_cost_usd: number; count: number }>();
+        let totalTokens = 0;
+        let totalCost = 0;
+
+        for (const r of rows) {
+            const model = String(r.model || 'unknown');
+            const feature = String(r.feature || 'unknown');
+            const tokens = Number(r.total_tokens || 0);
+            const cost = Number(r.estimated_cost_usd || 0);
+            totalTokens += tokens;
+            totalCost += cost;
+            const m = byModel.get(model) || { total_tokens: 0, estimated_cost_usd: 0, count: 0 };
+            m.total_tokens += tokens; m.estimated_cost_usd += cost; m.count += 1; byModel.set(model, m);
+            const f = byFeature.get(feature) || { total_tokens: 0, estimated_cost_usd: 0, count: 0 };
+            f.total_tokens += tokens; f.estimated_cost_usd += cost; f.count += 1; byFeature.set(feature, f);
+        }
+
+        return c.json({
+            merchant,
+            ai_window: aiWindow,
+            summary: {
+                total_tokens: totalTokens,
+                estimated_cost_usd: Number(totalCost.toFixed(6)),
+                by_model: [...byModel.entries()].map(([model, v]) => ({ model, ...v, estimated_cost_usd: Number(v.estimated_cost_usd.toFixed(6)) }))
+                    .sort((a, b) => b.total_tokens - a.total_tokens),
+                by_feature: [...byFeature.entries()].map(([feature, v]) => ({ feature, ...v, estimated_cost_usd: Number(v.estimated_cost_usd.toFixed(6)) }))
+                    .sort((a, b) => b.total_tokens - a.total_tokens),
+            },
+            recent_events: rows.slice(0, 20),
+        });
+    } catch (error) {
+        console.error('Failed to fetch merchant AI usage detail:', error);
+        return c.json({ error: 'Failed to fetch merchant AI usage detail' }, 500);
     }
 });
 
