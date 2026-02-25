@@ -693,7 +693,7 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_420px] gap-3 xl:gap-4 xl:items-end">
+            <div className="grid grid-cols-1 gap-3 xl:gap-4">
               <div className="min-w-0">
                 <PolarisTextField
                   label={t('filters.searchLabel')}
@@ -705,7 +705,7 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:gap-4 xl:items-end min-w-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:gap-4 min-w-0 xl:max-w-[760px] xl:ml-auto">
                 <PolarisSelect
                   label={t('filters.status')}
                   options={[

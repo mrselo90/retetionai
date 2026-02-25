@@ -201,6 +201,7 @@
   - Product actions/status/name cells were tightened (wrap/truncate/min-width) to avoid text/button collisions
   - Header actions, saved views toolbar, filter controls, and bulk action bar were reflowed for better desktop/tablet spacing
   - Follow-up desktop polish increased table min-width and compacted status rendering in list rows to prevent `RAG Status`/`Edit` collisions on medium-width laptops
+  - Filter card desktop layout was simplified (search on its own row; status/sort grouped in a right-aligned row) to prevent Polaris input overlap on wide screens
 - **Conversation Memory Behavior (current)**:
   - Customer conversation history is used in AI responses, but prompt context includes only the most recent 10 messages (`aiAgent` and test RAG chat path)
   - This means the system "remembers" recent dialog turns, but not unlimited full-history memory inside a single model call
