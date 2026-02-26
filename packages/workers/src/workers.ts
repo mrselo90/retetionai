@@ -46,6 +46,30 @@ const WORKER_TEMPLATES: Record<WorkerLang, Record<string, string>> = {
   },
 };
 
+function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.map((v) => (typeof v === 'string' ? v.trim() : '')).filter(Boolean))];
+}
+
+function buildProductListText(productNames: string[]): string {
+  if (productNames.length === 0) return '-';
+  return productNames.map((name) => `- ${name}`).join('\n');
+}
+
+function applyWelcomeTemplate(
+  template: string,
+  context: {
+    orderNumber?: string | null;
+    productList?: string | null;
+  }
+): string {
+  const orderNumber = context.orderNumber?.trim() || '-';
+  const productList = context.productList?.trim() || '-';
+
+  return template
+    .replace(/\{\{\s*order_number\s*\}\}/gi, orderNumber)
+    .replace(/\{\{\s*product_list\s*\}\}/gi, productList);
+}
+
 import {
   scheduledMessagesQueue,
   scrapeJobsQueue,
@@ -94,13 +118,49 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           .select('persona_settings')
           .eq('id', merchantId)
           .single();
-        const lang: WorkerLang = (merchantRow?.persona_settings as any)?.default_language || 'tr';
+        const personaSettings = (merchantRow?.persona_settings as any) || {};
+        const lang: WorkerLang = personaSettings?.default_language || 'tr';
         const tpl = WORKER_TEMPLATES[lang] || WORKER_TEMPLATES.tr;
+        const customWelcomeTemplate =
+          typeof personaSettings?.whatsapp_welcome_template === 'string' &&
+          personaSettings.whatsapp_welcome_template.trim().length > 0
+            ? personaSettings.whatsapp_welcome_template.trim()
+            : null;
 
         // T+0 welcome: build beauty-consultant message from product usage instructions
         if (type === 'welcome' && productIds && productIds.length > 0) {
           const instructions = await getUsageInstructionsForProductIds(merchantId, productIds);
-          if (instructions.length > 0) {
+          const instructionProductNames = uniqueNonEmpty(
+            instructions.map((row: ProductInstructionRow) => row.product_name)
+          );
+          let productNames = instructionProductNames;
+
+          if (productNames.length === 0) {
+            const { data: products } = await serviceClient
+              .from('products')
+              .select('name, external_id')
+              .eq('merchant_id', merchantId)
+              .in('external_id', productIds);
+            productNames = uniqueNonEmpty((products || []).map((p: any) => p.name));
+          }
+
+          let orderNumber: string | null = null;
+          if (orderId) {
+            const { data: orderRow } = await serviceClient
+              .from('orders')
+              .select('external_order_id')
+              .eq('id', orderId)
+              .eq('merchant_id', merchantId)
+              .single();
+            orderNumber = (orderRow as { external_order_id?: string } | null)?.external_order_id || null;
+          }
+
+          if (customWelcomeTemplate) {
+            message = applyWelcomeTemplate(customWelcomeTemplate, {
+              orderNumber,
+              productList: buildProductListText(productNames),
+            });
+          } else if (instructions.length > 0) {
             const parts = instructions.map(
               (row: ProductInstructionRow) =>
                 `**${row.product_name ?? (lang === 'hu' ? 'Termék' : 'Ürün')}**\n${row.usage_instructions}${row.recipe_summary ? `\n${lang === 'hu' ? 'Összefoglaló' : 'Özet'}: ${row.recipe_summary}` : ''}`
@@ -112,6 +172,21 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           } else {
             message = tpl.welcome;
           }
+        } else if (type === 'welcome' && customWelcomeTemplate) {
+          let orderNumber: string | null = null;
+          if (orderId) {
+            const { data: orderRow } = await serviceClient
+              .from('orders')
+              .select('external_order_id')
+              .eq('id', orderId)
+              .eq('merchant_id', merchantId)
+              .single();
+            orderNumber = (orderRow as { external_order_id?: string } | null)?.external_order_id || null;
+          }
+          message = applyWelcomeTemplate(customWelcomeTemplate, {
+            orderNumber,
+            productList: '-',
+          });
         } else {
           message = tpl[type] || tpl.welcome;
         }

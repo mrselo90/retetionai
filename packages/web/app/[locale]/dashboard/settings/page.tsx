@@ -56,6 +56,7 @@ interface Merchant {
     temperature?: number;
     product_instructions_scope?: ProductInstructionsScope;
     whatsapp_sender_mode?: 'merchant_own' | 'corporate';
+    whatsapp_welcome_template?: string;
   };
   created_at: string;
 }
@@ -89,6 +90,7 @@ export default function SettingsPage() {
   const [temperature, setTemperature] = useState(0.7);
   const [productInstructionsScope, setProductInstructionsScope] = useState<ProductInstructionsScope>('order_only');
   const [whatsappSenderMode, setWhatsappSenderMode] = useState<'merchant_own' | 'corporate'>('merchant_own');
+  const [whatsappWelcomeTemplate, setWhatsappWelcomeTemplate] = useState('');
   const [notificationPhone, setNotificationPhone] = useState('');
   const [multiLangRagSettings, setMultiLangRagSettings] = useState<MultiLangRagSettings | null>(null);
   const [multiLangRagSaving, setMultiLangRagSaving] = useState(false);
@@ -145,6 +147,7 @@ export default function SettingsPage() {
       setWhatsappSenderMode(
         persona.whatsapp_sender_mode === 'corporate' ? 'corporate' : 'merchant_own'
       );
+      setWhatsappWelcomeTemplate(typeof persona.whatsapp_welcome_template === 'string' ? persona.whatsapp_welcome_template : '');
       setNotificationPhone(merchantResponse.merchant.notification_phone || '');
 
       try {
@@ -260,6 +263,7 @@ export default function SettingsPage() {
               temperature,
               product_instructions_scope: productInstructionsScope,
               whatsapp_sender_mode: whatsappSenderMode,
+              whatsapp_welcome_template: whatsappWelcomeTemplate.trim() || undefined,
             },
           }),
         }
@@ -800,6 +804,26 @@ export default function SettingsPage() {
                 <strong>{t('botPersona.whatsappHelpTitle')}</strong> {t('botPersona.whatsappHelpText')}
               </p>
             </Banner>
+          </BlockStack>
+
+          <Divider />
+          <BlockStack gap="200">
+            <TextField
+              label={t('botPersona.welcomeTemplateLabel')}
+              value={whatsappWelcomeTemplate}
+              onChange={(value) => { setWhatsappWelcomeTemplate(value); setIsDirty(true); }}
+              placeholder={t('botPersona.welcomeTemplatePlaceholder')}
+              multiline={6}
+              autoComplete="off"
+            />
+            <Text as="p" tone="subdued">{t('botPersona.welcomeTemplateDesc')}</Text>
+            <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
+              <BlockStack gap="150">
+                <Text as="p" variant="bodySm" fontWeight="medium">{t('botPersona.welcomeTemplatePlaceholdersTitle')}</Text>
+                <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.welcomeTemplatePlaceholderOrder')}</Text>
+                <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.welcomeTemplatePlaceholderProducts')}</Text>
+              </BlockStack>
+            </Box>
           </BlockStack>
 
           {/* Save Button */}

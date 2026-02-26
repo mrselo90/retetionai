@@ -777,6 +777,12 @@
             },
             "whatsappHelpTitle": "Where do I get my own number?",
             "whatsappHelpText": "You can get a WhatsApp Business API number from Meta for Developers. Once you have a Phone Number ID, connect it in the Integrations page.",
+            "welcomeTemplateLabel": "Initial WhatsApp message template (T+0 welcome)",
+            "welcomeTemplatePlaceholder": "Hello 😊\nYour products should have been delivered. Do you have any questions about how to use them?\n\nOrder No: {{order_number}}\nProducts:\n{{product_list}}\n\nIf you want, I can prepare a personalized care routine for the products you bought.",
+            "welcomeTemplateDesc": "If left empty, the system default welcome message is used. If filled, this template is used for the T+0 message.",
+            "welcomeTemplatePlaceholdersTitle": "Available placeholders",
+            "welcomeTemplatePlaceholderOrder": "{{order_number}} : Order number (external order id)",
+            "welcomeTemplatePlaceholderProducts": "{{product_list}} : Products in the order (one per line)",
             "saveButton": "Save Settings",
             "saving": "Saving..."
         },

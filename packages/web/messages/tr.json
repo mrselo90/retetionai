@@ -777,6 +777,12 @@
             },
             "whatsappHelpTitle": "Kendi numaramı nereden alacağım?",
             "whatsappHelpText": "WhatsApp Business API numaranızı Meta for Developers üzerinden alabilirsiniz. Phone Number ID'nizi Entegrasyonlar sayfasından bağlayın.",
+            "welcomeTemplateLabel": "İlk WhatsApp mesajı şablonu (T+0 welcome)",
+            "welcomeTemplatePlaceholder": "Merhaba 😊\nÜrünlerinizin teslim edilmiş olması gerekiyor. Kullanım konusunda aklınıza takılan bir nokta var mı?\n\nSipariş No: {{order_number}}\nÜrünler:\n{{product_list}}\n\nDilerseniz, aldığınız ürünlere özel kişisel bir bakım rutini hazırlayabilirim.",
+            "welcomeTemplateDesc": "Boş bırakırsanız sistem varsayılan welcome mesajını kullanır. Doldurursanız T+0 mesajında bu şablon kullanılır.",
+            "welcomeTemplatePlaceholdersTitle": "Kullanılabilir placeholder'lar",
+            "welcomeTemplatePlaceholderOrder": "{{order_number}} : Sipariş numarası (external order id)",
+            "welcomeTemplatePlaceholderProducts": "{{product_list}} : Siparişteki ürünler (satır satır)",
             "saveButton": "Ayarları Kaydet",
             "saving": "Kaydediliyor..."
         },
