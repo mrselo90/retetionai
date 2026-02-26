@@ -47,22 +47,15 @@ webhooks.post('/commerce/shopify', async (c) => {
       return c.json({ error: 'Invalid HMAC signature' }, 401);
     }
 
-    // Find integration by shop domain
+    // Find integration directly by shop domain (efficient single-row lookup)
     const serviceClient = getSupabaseServiceClient();
-    const { data: integrations } = await serviceClient
+    const { data: integration } = await serviceClient
       .from('integrations')
       .select('id, merchant_id, auth_data')
       .eq('provider', 'shopify')
-      .eq('status', 'active');
-
-    if (!integrations || integrations.length === 0) {
-      return c.json({ error: 'No active Shopify integration found' }, 404);
-    }
-
-    // Find matching integration by shop
-    const integration = integrations.find(
-      (i) => (i.auth_data as any)?.shop === shop
-    );
+      .eq('status', 'active')
+      .contains('auth_data', { shop })
+      .maybeSingle();
 
     if (!integration) {
       return c.json({ error: 'Integration not found for shop' }, 404);
@@ -145,7 +138,7 @@ webhooks.post('/commerce/shopify', async (c) => {
       await processNormalizedEvent(normalizedEvent);
     } catch (processError) {
       // Log error but don't fail webhook (event is stored, can be retried)
-      console.error('Error processing event:', processError);
+      logger.error({ processError, shop }, 'Error processing event');
     }
 
     return c.json({
@@ -154,7 +147,7 @@ webhooks.post('/commerce/shopify', async (c) => {
       idempotencyKey,
     });
   } catch (error) {
-    console.error('Webhook processing error:', error);
+    logger.error({ error }, 'Webhook processing error');
     return c.json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',

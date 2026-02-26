@@ -143,14 +143,16 @@ billing.post('/subscribe', validateBody(subscribeSchema), async (c) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   const returnUrl = `${frontendUrl}/dashboard/settings?billing=success`;
 
-  // Create recurring charge in Shopify
+  // Create recurring charge in Shopify (pass billingCycle for correct interval)
   const chargeResult = await createShopifyRecurringCharge(
     shop,
     accessToken,
     planId,
     planName,
     price,
-    returnUrl
+    returnUrl,
+    100.0, // default capped amount
+    billingCycle
   );
 
   if (!chargeResult) {
@@ -205,7 +207,22 @@ billing.post('/cancel', async (c) => {
       const accessToken = authData?.access_token;
 
       if (shop && accessToken) {
+        // Cancel main subscription charge
         await cancelShopifyRecurringCharge(shop, accessToken, parseInt(subscription.subscriptionId));
+
+        // Also cancel any active add-on charges to prevent orphaned billing
+        const merchantAddons = await getMerchantAddons(merchantId);
+        for (const addon of merchantAddons) {
+          if (addon.status === 'active' && addon.billing_charge_id) {
+            try {
+              await cancelShopifyRecurringCharge(shop, accessToken, parseInt(addon.billing_charge_id));
+              await deactivateAddon(merchantId, addon.addon_key);
+              logger.info({ merchantId, addonKey: addon.addon_key }, 'Addon cancelled with main plan');
+            } catch (addonErr) {
+              logger.error({ addonErr, merchantId, addonKey: addon.addon_key }, 'Failed to cancel addon during plan cancellation');
+            }
+          }
+        }
       }
     }
   }
@@ -313,7 +330,7 @@ billing.post('/addons/:key/subscribe', async (c) => {
   const chargeResult = await createShopifyRecurringCharge(
     shop,
     accessToken,
-    'starter',
+    addonKey as any, // addon key used as plan identifier for Shopify
     `Add-on: ${definition.name}`,
     definition.priceMonthly,
     returnUrl

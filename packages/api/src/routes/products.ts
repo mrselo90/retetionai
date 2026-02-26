@@ -633,6 +633,15 @@ products.post('/:id/generate-embeddings', async (c) => {
  * POST /api/products/enrich
  */
 products.post('/enrich', async (c) => {
+  // Internal route security: verify internal API secret header
+  const internalSecret = process.env.INTERNAL_API_SECRET;
+  if (internalSecret) {
+    const providedSecret = c.req.header('x-internal-secret');
+    if (providedSecret !== internalSecret) {
+      return c.json({ error: 'Unauthorized: invalid internal secret' }, 401);
+    }
+  }
+
   const body = await c.req.json();
   const { rawText, title, rawSections, productId, sourceUrl, sourceType } = body;
 

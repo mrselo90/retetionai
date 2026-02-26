@@ -43,6 +43,7 @@ export interface WhatsAppWebhookMessage {
   timestamp: string;
   text?: string;
   type: 'text' | 'image' | 'video' | 'audio' | 'document' | 'location' | 'contacts';
+  phoneNumberId?: string; // Meta: phone_number_id (for multi-tenant merchant lookup)
 }
 
 /**
@@ -266,6 +267,9 @@ export function parseWhatsAppWebhook(
     }
 
     for (const change of entry.changes) {
+      // Extract phone_number_id for multi-tenant merchant lookup
+      const phoneNumberId: string | undefined = change.value?.metadata?.phone_number_id;
+
       if (change.value?.messages && Array.isArray(change.value.messages)) {
         for (const message of change.value.messages) {
           messages.push({
@@ -274,6 +278,7 @@ export function parseWhatsAppWebhook(
             timestamp: message.timestamp,
             text: message.text?.body,
             type: message.type || 'text',
+            phoneNumberId,
           });
         }
       }
@@ -414,6 +419,35 @@ function getEnvWhatsAppCredentials(): WhatsAppCredentials | null {
   if (providerPreference === 'meta') return metaCreds;
 
   return twilioCreds || metaCreds;
+}
+
+/**
+ * Find merchant_id by WhatsApp phone_number_id.
+ * Looks up the integrations table for a whatsapp provider where auth_data contains the given phone_number_id.
+ * Returns null if not found (fallback to DEFAULT_MERCHANT_ID or env config).
+ */
+export async function findMerchantByPhoneNumberId(
+  phoneNumberId: string
+): Promise<string | null> {
+  if (!phoneNumberId) return null;
+  const serviceClient = getSupabaseServiceClient();
+  // Query integrations where the whatsapp auth_data contains this phone_number_id
+  const { data: rows } = await serviceClient
+    .from('integrations')
+    .select('merchant_id, auth_data')
+    .eq('provider', 'whatsapp')
+    .in('status', ['active', 'pending']);
+
+  if (!rows || rows.length === 0) return null;
+
+  for (const row of rows) {
+    const auth = row.auth_data as WhatsAppAuthData | null;
+    if (auth?.phone_number_id === phoneNumberId || auth?.from_number === phoneNumberId) {
+      return row.merchant_id;
+    }
+  }
+
+  return null;
 }
 
 /**

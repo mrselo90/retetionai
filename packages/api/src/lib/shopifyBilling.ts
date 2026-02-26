@@ -43,7 +43,8 @@ export async function createShopifyRecurringCharge(
   planName: string,
   price: number,
   returnUrl: string,
-  cappedAmount: number = 100.0 // Default $100 Capped Amount
+  cappedAmount: number = 100.0, // Default $100 Capped Amount
+  billingCycle: 'monthly' | 'yearly' = 'monthly'
 ): Promise<{ confirmationUrl: string; chargeId: number } | null> {
   try {
     const mutation = `
@@ -70,7 +71,7 @@ export async function createShopifyRecurringCharge(
           plan: {
             appRecurringPricingDetails: {
               price: { amount: price, currencyCode: "USD" },
-              interval: "EVERY_30_DAYS"
+              interval: billingCycle === 'yearly' ? 'ANNUAL' : 'EVERY_30_DAYS'
             }
           }
         },

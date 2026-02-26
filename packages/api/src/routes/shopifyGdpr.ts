@@ -47,19 +47,51 @@ shopifyGdpr.post('/customers/redact', async (c) => {
             logger.info({ shopDomain, customerId }, '[GDPR] Müşteri spesifik silme isteği işleniyor.');
 
             if (customerId && shopDomain) {
-                // Bu adımda Supabase kullanarak müşteriyi anonimleştiriyoruz/siliyoruz.
-                const { error } = await supabase
-                    .from('customers')
-                    .update({
-                        first_name: 'Redacted',
-                        last_name: 'Redacted',
-                        email: 'redacted@deleted.com',
-                        phone: null
-                    })
-                    .eq('shopify_customer_id', customerId)
-                    .eq('shop_domain', shopDomain);
+                // Find the merchant via the Shopify integration
+                const { data: integration } = await supabase
+                    .from('integrations')
+                    .select('merchant_id')
+                    .eq('provider', 'shopify')
+                    .contains('auth_data', { shop: shopDomain })
+                    .maybeSingle();
 
-                if (error) throw error;
+                if (integration?.merchant_id) {
+                    // Anonymize PII in the 'users' table (real table, encrypted phone stored here)
+                    const { error: usersError } = await supabase
+                        .from('users')
+                        .update({
+                            name: 'Redacted',
+                            phone: null,
+                        })
+                        .eq('merchant_id', integration.merchant_id)
+                        .eq('shopify_customer_id', customerId);
+
+                    if (usersError) {
+                        logger.warn({ usersError, shopDomain, customerId }, '[GDPR] users tablosu güncellenirken hata (shopify_customer_id kolonu olmayabilir).');
+                    }
+
+                    // If no direct shopify_customer_id column on users, try via orders
+                    const { data: orderUsers } = await supabase
+                        .from('orders')
+                        .select('user_id')
+                        .eq('merchant_id', integration.merchant_id)
+                        .eq('external_order_id', customerId)
+                        .limit(100);
+
+                    if (orderUsers && orderUsers.length > 0) {
+                        const userIds = orderUsers.map((o: any) => o.user_id).filter(Boolean);
+                        if (userIds.length > 0) {
+                            await supabase
+                                .from('users')
+                                .update({ name: 'Redacted', phone: null })
+                                .in('id', userIds);
+                        }
+                    }
+
+                    logger.info({ shopDomain, customerId, merchantId: integration.merchant_id }, '[GDPR] Müşteri verisi anonimleştirildi.');
+                } else {
+                    logger.warn({ shopDomain, customerId }, '[GDPR] Merchant bulunamadı, müşteri verisi silinemedi.');
+                }
             }
         } catch (error) {
             logger.error({ error, payload }, '[GDPR] Spesifik müşteri silme (redact) işleminde hata oluştu.');
@@ -97,10 +129,9 @@ shopifyGdpr.post('/shop/redact', async (c) => {
                     await permanentlyDeleteMerchantData(integration.merchant_id);
                     logger.info({ shopDomain, merchantId: integration.merchant_id }, '[GDPR] Mağazaya ait tüm veriler (Vendor Data) başarıyla silindi.');
                 } else {
-                    logger.warn({ shopDomain }, '[GDPR] Mağaza silme isteği geldi ancak veritabanında eşleşen entegrasyon bulunamadı. Fallback olarak sadece customers tablosundaki eşleşen veriler silinecek.');
-
-                    // Fallback: Sadece shop_domain bilebilmekte olduğumuz tabloları temizlemeye çalışıyoruz
-                    await supabase.from('customers').delete().eq('shop_domain', shopDomain);
+                    logger.warn({ shopDomain }, '[GDPR] Mağaza silme isteği geldi ancak veritabanında eşleşen entegrasyon bulunamadı. Veri silinemedi.');
+                    // NOTE: 'customers' tablosu şemada mevcut değil; silme işlemi yapılmıyor.
+                    // Bu durum Shopify'a 200 OK döndürerek loglanır.
                 }
             }
         } catch (error) {

@@ -1,0 +1,225 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2868
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica-Light;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 You are an expert SaaS conversion copywriter and Shopify App Store landing page strategist.\
+\
+Your task is to rewrite and improve the landing page copy for our live product based on the CURRENT product context and the CURRENT source code structure.\
+\
+Product Context (Source-Aligned)\
+- Product name: Recete\
+- Brand tagline: Retention Agent\
+- Product type: Shopify app + SaaS dashboard (Shopify-first)\
+- Core channel: WhatsApp post-purchase customer engagement\
+- Primary business outcome: reduce returns and increase repeat purchases / LTV\
+- Primary mechanism: product-aware AI guidance (RAG-based), proactive timing, and retention automation\
+- Primary audience: Shopify merchants (cosmetics / dermocosmetics is a key ICP; broader product-led DTC can be referenced carefully)\
+- Languages in product UI: English + Turkish (landing page supports EN/TR toggle)\
+- Landing page copy generation target for this task: English only\
+\
+What Recete Is\
+Recete is a post-purchase AI retention agent for Shopify merchants.\
+It helps merchants guide customers after delivery through WhatsApp with product usage instructions, check-ins, and product-aware AI conversations.\
+It is designed to prevent avoidable returns and increase repeat purchases by improving product usage success.\
+\
+What Recete Does (Grounded in Product + Memory Bank)\
+- Connects to Shopify and syncs products/orders\
+- Triggers post-purchase journeys based on delivery/order events\
+- Sends proactive WhatsApp messages (welcome, tips, follow-ups)\
+- Uses product knowledge (RAG) to answer product-specific questions\
+- Provides usage guidance and support-like answers within a retention workflow\
+- Captures customer feedback signals that can reduce future returns\
+- Helps merchants monitor outcomes in a dashboard (engagement, ROI-oriented metrics)\
+- Supports multilingual customer conversations (the AI can respond in the customer's language)\
+\
+What Recete Is NOT (Must Be Explicit in Positioning)\
+- Not a generic campaign tool\
+- Not a flow builder\
+- Not a ticketing/helpdesk system\
+- Not only a chatbot widget\
+\
+Core Positioning (Must Be Clear)\
+- Shopify-first / Shopify-native\
+- Post-purchase retention, not top-of-funnel marketing\
+- Product usage guidance and return prevention\
+- WhatsApp-first customer engagement\
+- Product-aware AI (RAG) for better answers\
+- Calm, credible, merchant-operator tone (not hype)\
+\
+Important Accuracy Rules\
+- Do not invent certifications, compliance claims, integrations, or guarantees.\
+- If using metrics/testimonials/case studies, clearly mark placeholders as placeholders or "example results".\
+- Do not use legal language beyond high-level product messaging (privacy/security copy should stay non-legal).\
+- Avoid hard claims that are not explicitly provided (for example exact ROI outcomes) unless labeled as estimates/examples.\
+\
+Current Landing Page (Source Code Snapshot - Use This Structure Unless Improvement Is Justified)\
+The current landing page is implemented in:\
+- `packages/web/app/[locale]/page.tsx`\
+- `packages/web/components/landing-page/*`\
+- copy lives in `packages/web/messages/en.json` and `packages/web/messages/tr.json` under `Landing`\
+\
+Current section order in source:\
+1. Sticky Header / Navigation (with EN/TR toggle, Login, Get Started Free)\
+2. Hero (headline, subheadline, description, primary CTA, secondary CTA, highlight stats, dashboard preview)\
+3. Stats bar (4 metrics)\
+4. Features (6 cards)\
+5. How It Works (3 steps)\
+6. Social Proof (proof chips + 3 testimonial cards)\
+7. Pricing (3 tiers + ROI note)\
+8. FAQ (4 questions currently)\
+9. Footer\
+10. Mobile sticky CTA bar (Signup + Pricing)\
+\
+Current CTA Pattern (Source-Aligned)\
+- Primary CTA in most places: Get Started Free (/signup)\
+- Secondary CTA in header/hero: Login (/login)\
+- Pricing links also point to signup\
+- Footer includes "Book a Demo" text in links but current implementation routes many non-legal links to /signup\
+\
+Copy Goals for the Rewrite\
+- Explain value in under 5 seconds\
+- Make the audience clear immediately: Shopify merchants with post-purchase retention/return problems\
+- Clarify differentiation vs campaign/helpdesk tooling without sounding defensive\
+- Emphasize outcomes:\
+  - Fewer avoidable returns\
+  - Better product usage success\
+  - Higher repeat purchases / LTV\
+  - Lower repetitive support workload\
+- Keep tone calm, product-led, trustworthy, and operationally credible\
+- Be suitable for:\
+  - Website landing page\
+  - Shopify App Store listing adaptation\
+  - Investor / partner review\
+\
+Design/Tone Direction (match current product feel)\
+- Calm, confident, modern, product-led\
+- Short paragraphs and skimmable sections\
+- Specific over abstract\
+- Avoid buzzwords like "revolutionary", "game-changing", "disruptive"\
+- No exaggerated claims\
+\
+Rewrite Requirements\
+- Keep the structure compatible with the CURRENT section layout above (header -> hero -> stats -> features -> how-it-works -> social proof -> pricing -> FAQ -> footer)\
+- Improve clarity and conversion without changing the product category or core positioning\
+- Use Shopify-first language consistently\
+- Mention WhatsApp clearly early in the page (hero or immediately after)\
+- Mention product-aware AI / knowledge-based answers (RAG) in plain language\
+- Include security/privacy reassurance in appropriate sections (features/FAQ/footer) without legal overreach\
+- Keep testimonials and case studies realistic; label placeholders clearly if fictional\
+\
+Section-by-Section Output Requirements (In Order)\
+A) Header / Nav Copy\
+- Brand lockup line (optional micro-tagline)\
+- Nav labels: Features, How it Works, Pricing, FAQ\
+- Primary CTA label (source currently uses "Get Started Free")\
+- Secondary CTA label (source currently uses "Login"; optionally propose a better secondary CTA and note implementation impact)\
+\
+B) Hero\
+- H1 (clear, outcome-led, Shopify + WhatsApp + post-purchase context)\
+- Subheadline (1 sentence)\
+- Supporting line / description (1 sentence)\
+- Primary CTA label\
+- Secondary CTA label\
+- Trust microcopy (for example: no credit card required / uninstall anytime / Shopify-native)\
+- 3 highlight metric labels + values (use placeholders if needed, clearly marked)\
+- Dashboard preview caption/alt suggestion (copy only)\
+\
+C) Stats Bar (4 items)\
+Provide 4 short labels + values that are credible and skimmable.\
+If not validated, mark as placeholder examples.\
+\
+D) Features Grid (6 cards to match current UI)\
+For each feature provide:\
+- Title\
+- Description (1-2 sentences)\
+- 3 short chip bullets (formatted for current chip UI)\
+Recommended themes (align with current code but improve clarity):\
+- Automated WhatsApp engagement\
+- AI-powered product conversations\
+- Analytics / ROI visibility\
+- Real-time Shopify order sync\
+- One-click Shopify setup\
+- Security / data protection\
+\
+E) How It Works (3 steps to match current UI)\
+For each step provide:\
+- Step title\
+- Short description (1-2 sentences)\
+Use a simple merchant journey aligned with the current product:\
+1) Connect Shopify\
+2) AI engages customers after purchase/delivery\
+3) Track returns, satisfaction, and repeat purchase impact\
+\
+F) Social Proof Section\
+- Eyebrow\
+- Title\
+- Subtitle\
+- 3 proof chips (short labels)\
+- 3 testimonial cards:\
+  - Quote\
+  - Name\
+  - Role\
+  - Metric badge\
+If fictional/example content is used, label it explicitly as example results.\
+\
+G) Pricing Section (3 tiers)\
+Provide copy for:\
+- Eyebrow\
+- Title\
+- Optional subtitle\
+- "Most popular" badge label\
+- Per-month suffix\
+- Primary pricing CTA\
+- Secondary ROI CTA\
+- ROI reassurance note\
+For each plan (Starter / Growth / Scale):\
+- Name\
+- Description\
+- Price (can be placeholder)\
+- Note\
+- Bullet list (4 bullets)\
+Pricing should reflect value progression (not random feature inflation).\
+\
+H) FAQ (8-12 questions)\
+Expand beyond the current 4 while staying source-compatible in tone.\
+Include topics such as:\
+- setup time\
+- Shopify compatibility\
+- WhatsApp channel requirements\
+- multilingual support\
+- how product-aware answers work\
+- return prevention approach\
+- human handoff/escalation\
+- data security/privacy\
+- customization / brand voice\
+- medical advice disclaimer (for skincare contexts)\
+\
+I) Footer Copy\
+- Short tagline\
+- Optional one-line summary\
+- Product / Company / Legal link labels (text only)\
+- Copyright line\
+\
+J) Optional: Shopify App Store Adaptation Notes (Short)\
+Add a short section with guidance on how to adapt the same messaging for a Shopify App Store listing (short description, long description, key benefits, screenshots captions).\
+\
+Output Format (Important)\
+Return your answer in two parts:\
+\
+Part 1: Clean Markdown landing page copy (sectioned, ready for review)\
+Part 2: JSON draft mapped to our `Landing` translation shape for `packages/web/messages/en.json`\
+\
+JSON requirements:\
+- Follow the existing top-level structure under `Landing`\
+- Keep keys stable where possible (heroLine, subtitle, description, stats, features, howItWorks, socialProof, pricing, faq, footer)\
+- If you propose new keys, list them in a short "Key Changes" note before the JSON\
+\
+Final Quality Bar\
+- The copy must read like a real Shopify app for operators, not generic AI marketing.\
+- It must be clear what happens after purchase and why that reduces returns.\
+- It must feel trustworthy enough for a merchant to click "Get Started Free".\
+\
+Now produce the complete rewritten landing page copy and the JSON draft.\
+}

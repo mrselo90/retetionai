@@ -11,6 +11,7 @@ import {
   verifyWhatsAppWebhook,
   parseWhatsAppWebhook,
   getEffectiveWhatsAppCredentials,
+  findMerchantByPhoneNumberId,
 } from '../lib/whatsapp.js';
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 import {
@@ -79,50 +80,57 @@ whatsapp.post('/webhooks/whatsapp', verifyWhatsAppWebhookSignature, async (c) =>
         // Normalize phone number
         const normalizedPhone = message.from;
 
-        // Find merchant (for MVP, use first merchant or env var)
-        // In production, you'd need to determine merchant from phone number
-        // For now, we'll use a default merchant or get from webhook metadata
-        const defaultMerchantId = process.env.DEFAULT_MERCHANT_ID;
-        if (!defaultMerchantId) {
-          console.warn('DEFAULT_MERCHANT_ID not set, skipping message');
+        // --- MULTI-TENANT MERCHANT LOOKUP ---
+        // For Meta: use phone_number_id from webhook metadata to find the merchant.
+        // Fallback to DEFAULT_MERCHANT_ID for single-tenant / backward compat setups.
+        let merchantId: string | null = null;
+
+        if (message.phoneNumberId) {
+          merchantId = await findMerchantByPhoneNumberId(message.phoneNumberId);
+        }
+
+        if (!merchantId) {
+          merchantId = process.env.DEFAULT_MERCHANT_ID ?? null;
+        }
+
+        if (!merchantId) {
+          logger.warn({ phone: normalizedPhone, phoneNumberId: message.phoneNumberId }, 'Could not resolve merchant for incoming WhatsApp message, skipping');
           continue;
         }
 
-        // Find user by phone
-        const user = await findUserByPhone(normalizedPhone, defaultMerchantId);
+        const user = await findUserByPhone(normalizedPhone, merchantId);
 
         if (!user) {
-          console.log(`User not found for phone: ${normalizedPhone}`);
+          logger.info({ phone: normalizedPhone, merchantId }, 'User not found for incoming WhatsApp message');
           // Send default response for unknown users
-          const credentials = await getEffectiveWhatsAppCredentials(defaultMerchantId);
+          const credentials = await getEffectiveWhatsAppCredentials(merchantId);
           if (credentials && message.text) {
-            await sendWhatsAppMessage(
-              {
-                to: normalizedPhone,
-                text: 'Merhaba! Size nasıl yardımcı olabilirim? Lütfen sipariş numaranızı paylaşın.',
-              },
-              credentials
-            );
+            // Basic language detection: check for Turkish characters
+            const hasTurkishChars = /[çğışöüÇĞİŞÖÜ]/i.test(message.text);
+            const defaultText = hasTurkishChars
+              ? 'Merhaba! Size nasıl yardımcı olabilirim? Lütfen sipariş numaranızı paylaşın.'
+              : 'Hello! How can I help you? Please share your order number.';
+            await sendWhatsAppMessage({ to: normalizedPhone, text: defaultText }, credentials);
           }
           continue;
         }
 
-        // Get user's latest order
         const { data: latestOrder } = await serviceClient
           .from('orders')
           .select('id')
           .eq('user_id', user.userId)
-          .eq('merchant_id', defaultMerchantId)
+          .eq('merchant_id', merchantId)
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
 
         const orderId = latestOrder?.id;
 
-        // Get or create conversation
+        // Get or create conversation (with merchant isolation)
         const conversationId = await getOrCreateConversation(
           user.userId,
-          orderId
+          orderId,
+          merchantId
         );
 
         // Check conversation status - skip AI if in human mode
@@ -150,21 +158,41 @@ whatsapp.post('/webhooks/whatsapp', verifyWhatsAppWebhookSignature, async (c) =>
         const history = await getConversationHistory(conversationId);
 
         // Generate AI response
-        const credentials = await getEffectiveWhatsAppCredentials(defaultMerchantId);
+        const credentials = await getEffectiveWhatsAppCredentials(merchantId);
         if (!credentials) {
-          console.error('WhatsApp credentials not configured');
+          logger.error({ merchantId }, 'WhatsApp credentials not configured');
           continue;
         }
 
         if (message.text) {
-          const aiResponse = await generateAIResponse(
-            message.text,
-            defaultMerchantId,
-            user.userId,
-            conversationId,
-            orderId,
-            history
-          );
+          let aiResponse;
+          try {
+            aiResponse = await generateAIResponse(
+              message.text,
+              merchantId,
+              user.userId,
+              conversationId,
+              orderId,
+              history
+            );
+          } catch (llmError) {
+            // LLM failure: send fallback message so user is not left without response
+            logger.error({ llmError, conversationId, merchantId }, 'LLM generation failed, sending fallback response');
+            const hasTurkishChars = /[çğışöüÇĞİŞÖÜ]/i.test(message.text);
+            const fallbackText = hasTurkishChars
+              ? 'Şu an size yardımcı olamıyorum. Lütfen kısa süre sonra tekrar deneyin.'
+              : 'I am unable to assist you at the moment. Please try again shortly.';
+            await sendWhatsAppMessage({ to: normalizedPhone, text: fallbackText }, credentials);
+            await serviceClient
+              .from('conversations')
+              .update({
+                escalation_status: 'pending',
+                escalation_requested_at: new Date().toISOString(),
+                conversation_status: 'human',
+              })
+              .eq('id', conversationId);
+            continue;
+          }
 
           // Update conversation state
           await updateConversationState(conversationId, aiResponse.intent);
@@ -187,14 +215,12 @@ whatsapp.post('/webhooks/whatsapp', verifyWhatsAppWebhookSignature, async (c) =>
           );
 
           if (!sendResult.success) {
-            console.error('Failed to send WhatsApp response:', sendResult.error);
+            logger.error({ error: sendResult.error, phone: normalizedPhone }, 'Failed to send WhatsApp response');
           } else {
             if (aiResponse.guardrailBlocked) {
-              console.log(
-                `🛡️ Guardrail blocked response (${aiResponse.guardrailReason}) to ${normalizedPhone}`
-              );
+              logger.info({ reason: aiResponse.guardrailReason, phone: normalizedPhone }, 'Guardrail blocked response');
             } else {
-              console.log(`✅ Sent AI response to ${normalizedPhone}`);
+              logger.info({ phone: normalizedPhone, conversationId }, 'AI response sent successfully');
             }
           }
 
@@ -213,7 +239,7 @@ whatsapp.post('/webhooks/whatsapp', verifyWhatsAppWebhookSignature, async (c) =>
             );
 
             if (upsellResult.success) {
-              console.log(`💰 Sent upsell message to ${normalizedPhone}`);
+              logger.info({ phone: normalizedPhone }, 'Upsell message sent');
 
               // Mark upsell as sent in scheduled_tasks
               await serviceClient
@@ -228,24 +254,28 @@ whatsapp.post('/webhooks/whatsapp', verifyWhatsAppWebhookSignature, async (c) =>
             }
           }
 
-          // Log escalation if required
+          // Handle human escalation: write escalation state to DB for dashboard tracking
           if (aiResponse.requiresHuman) {
-            console.log(
-              `🚨 Human escalation required for conversation ${conversationId}`
-            );
-            // MVP: Escalations are logged to console (monitored via application logs)
-            // FUTURE: Create escalation record in escalations table for dashboard tracking
+            logger.info({ conversationId, merchantId }, 'Human escalation required, writing to DB');
+            await serviceClient
+              .from('conversations')
+              .update({
+                escalation_status: 'pending',
+                escalation_requested_at: new Date().toISOString(),
+                conversation_status: 'human',
+              })
+              .eq('id', conversationId);
           }
         }
       } catch (error) {
-        console.error('Error processing WhatsApp message:', error);
+        logger.error({ error, phone: message.from }, 'Error processing WhatsApp message');
         // Continue processing other messages
       }
     }
 
     return c.json({ message: 'Webhook processed' }, 200);
   } catch (error) {
-    console.error('WhatsApp webhook error:', error);
+    logger.error({ error }, 'WhatsApp webhook error');
     return c.json(
       {
         error: 'Webhook processing failed',

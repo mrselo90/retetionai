@@ -71,7 +71,8 @@ export async function findUserByPhone(
  */
 export async function getOrCreateConversation(
   userId: string,
-  orderId?: string
+  orderId?: string,
+  merchantId?: string
 ): Promise<string> {
   const serviceClient = getSupabaseServiceClient();
 
@@ -87,6 +88,11 @@ export async function getOrCreateConversation(
     query = query.is('order_id', null);
   }
 
+  // Add merchant isolation if merchantId is provided
+  if (merchantId) {
+    query = query.eq('merchant_id', merchantId);
+  }
+
   const { data: existing } = await query.single();
 
   if (existing) {
@@ -99,6 +105,7 @@ export async function getOrCreateConversation(
     .insert({
       user_id: userId,
       order_id: orderId || null,
+      merchant_id: merchantId || null,
       history: [],
       current_state: null,
     })

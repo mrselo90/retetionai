@@ -4,7 +4,7 @@
  */
 
 import { Hono } from 'hono';
-import { getSupabaseServiceClient } from '@recete/shared';
+import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
 import { getMerchantBotInfo, setMerchantBotInfoKey } from '../lib/botInfo.js';
 import { SYSTEM_GUARDRAILS, type CustomGuardrail } from '../lib/guardrails.js';
@@ -375,25 +375,13 @@ merchants.get('/me/stats', async (c) => {
       .eq('merchant_id', merchantId)
       .eq('consent_status', 'active');
 
-    // Messages Sent (this month) - from scheduled_tasks via users
-    // Get user IDs for this merchant first
-    const { data: merchantUsers } = await serviceClient
-      .from('users')
-      .select('id')
-      .eq('merchant_id', merchantId);
-
-    const userIds = merchantUsers?.map(u => u.id) || [];
-
-    let messagesCount = 0;
-    if (userIds.length > 0) {
-      const { count } = await serviceClient
-        .from('scheduled_tasks')
-        .select('*', { count: 'exact', head: true })
-        .in('user_id', userIds)
-        .eq('status', 'completed')
-        .gte('created_at', monthStart);
-      messagesCount = count || 0;
-    }
+    // Messages Sent (this month) - count scheduled_tasks via users with merchant_id
+    const { count: messagesCount } = await serviceClient
+      .from('scheduled_tasks')
+      .select('*, users!inner(merchant_id)', { count: 'exact', head: true })
+      .eq('users.merchant_id', merchantId)
+      .eq('status', 'completed')
+      .gte('created_at', monthStart);
 
     // Total Products
     const { count: productsCount } = await serviceClient
@@ -401,19 +389,14 @@ merchants.get('/me/stats', async (c) => {
       .select('*', { count: 'exact', head: true })
       .eq('merchant_id', merchantId);
 
-    // Response Rate (conversations with at least 2 messages / total conversations)
-    // Get conversations via user_id
-    let conversations: any[] = [];
-    if (userIds.length > 0) {
-      const { data } = await serviceClient
-        .from('conversations')
-        .select('id, history')
-        .in('user_id', userIds);
-      conversations = data || [];
-    }
+    // Response Rate — fetch conversations via users.merchant_id join
+    const { data: conversations } = await serviceClient
+      .from('conversations')
+      .select('id, history, users!inner(merchant_id)')
+      .eq('users.merchant_id', merchantId);
 
     // Calculate message count from history array
-    const conversationsWithCounts = conversations.map(c => ({
+    const conversationsWithCounts = (conversations || []).map((c: any) => ({
       id: c.id,
       messageCount: Array.isArray(c.history) ? c.history.length : 0,
     }));
@@ -432,24 +415,21 @@ merchants.get('/me/stats', async (c) => {
       .order('created_at', { ascending: false })
       .limit(5);
 
-    // Recent Conversations (last 5) - via user_id
-    let recentConversations: any[] = [];
-    if (userIds.length > 0) {
-      const { data } = await serviceClient
-        .from('conversations')
-        .select('id, user_id, updated_at, history, current_state')
-        .in('user_id', userIds)
-        .order('updated_at', { ascending: false })
-        .limit(5);
+    // Recent Conversations (last 5) - via users.merchant_id join
+    const { data: recentConvData } = await serviceClient
+      .from('conversations')
+      .select('id, user_id, updated_at, history, current_state, users!inner(merchant_id)')
+      .eq('users.merchant_id', merchantId)
+      .order('updated_at', { ascending: false })
+      .limit(5);
 
-      recentConversations = (data || []).map(c => ({
-        id: c.id,
-        user_id: c.user_id,
-        last_message_at: c.updated_at,
-        message_count: Array.isArray(c.history) ? c.history.length : 0,
-        status: c.current_state || 'active',
-      }));
-    }
+    const recentConversations = (recentConvData || []).map(c => ({
+      id: c.id,
+      user_id: c.user_id,
+      last_message_at: c.updated_at,
+      message_count: Array.isArray(c.history) ? c.history.length : 0,
+      status: c.current_state || 'active',
+    }));
 
     // Critical Alerts
     const alerts: Array<{ type: string; message: string; severity: 'error' | 'warning' | 'info' }> = [];
@@ -503,7 +483,7 @@ merchants.get('/me/stats', async (c) => {
       alerts,
     });
   } catch (error) {
-    console.error('Dashboard stats error:', error);
+    logger.error({ error }, 'Dashboard stats error');
     return c.json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error'
