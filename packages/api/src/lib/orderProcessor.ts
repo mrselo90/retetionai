@@ -4,8 +4,9 @@
  */
 
 import { getSupabaseServiceClient, logger } from '@recete/shared';
-import { encryptPhone } from './encryption.js';
+import { decryptPhone, encryptPhone } from './encryption.js';
 import type { NormalizedEvent } from './events.js';
+import { normalizePhone } from './events.js';
 import { scheduleOrderMessages } from './messageScheduler.js';
 import { scheduleMessage } from '../queues.js';
 
@@ -23,16 +24,29 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
   let userId: string;
 
   if (event.customer?.phone) {
+    const normalizedPhone = normalizePhone(event.customer.phone);
     // Encrypt phone
-    const encryptedPhone = encryptPhone(event.customer.phone);
+    const encryptedPhone = encryptPhone(normalizedPhone);
 
-    // Check if user exists
-    const { data: existingUser } = await serviceClient
+    // Phone is encrypted with random IV; compare by decrypting merchant users.
+    const { data: merchantUsers } = await serviceClient
       .from('users')
-      .select('id')
+      .select('id, phone')
       .eq('merchant_id', event.merchant_id)
-      .eq('phone', encryptedPhone)
-      .single();
+      .limit(5000);
+
+    let existingUser: { id: string } | null = null;
+    for (const row of (merchantUsers || []) as Array<{ id: string; phone: string }>) {
+      try {
+        const candidate = normalizePhone(decryptPhone(row.phone));
+        if (candidate === normalizedPhone) {
+          existingUser = { id: row.id };
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
 
     if (existingUser) {
       userId = existingUser.id;

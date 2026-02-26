@@ -6,14 +6,27 @@
 import * as crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
+let cachedEncryptionKeyHex: string | null = null;
+let warnedInvalidEncryptionKey = false;
 
 function getEncryptionKeyHex(): string {
+  if (cachedEncryptionKeyHex) return cachedEncryptionKeyHex;
+
   const key = process.env.ENCRYPTION_KEY;
   if (key && /^[0-9a-fA-F]{64}$/.test(key)) {
-    return key;
+    cachedEncryptionKeyHex = key;
+    return cachedEncryptionKeyHex;
+  }
+
+  if (key && !warnedInvalidEncryptionKey) {
+    warnedInvalidEncryptionKey = true;
+    console.warn(
+      'ENCRYPTION_KEY is invalid (must be 64 hex chars). Falling back to a process-local random key.'
+    );
   }
   // Fallback for local/dev/test convenience (still 32 bytes)
-  return crypto.randomBytes(32).toString('hex');
+  cachedEncryptionKeyHex = crypto.randomBytes(32).toString('hex');
+  return cachedEncryptionKeyHex;
 }
 
 /**

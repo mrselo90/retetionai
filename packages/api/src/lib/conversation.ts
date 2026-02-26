@@ -37,24 +37,33 @@ export async function findUserByPhone(
   } catch {
     return null;
   }
-  const encryptedPhone = encryptPhone(normalizedPhone);
-
-  // Find user
-  const { data: user, error } = await serviceClient
+  // NOTE: phone encryption uses random IV (AES-GCM), so ciphertext equality lookup is not reliable.
+  // We decrypt merchant users and compare normalized phone values.
+  const { data: users, error } = await serviceClient
     .from('users')
-    .select('id, name')
+    .select('id, name, phone')
     .eq('merchant_id', merchantId)
-    .eq('phone', encryptedPhone)
-    .single();
+    .limit(5000);
 
-  if (error || !user) {
-    return null;
+  if (error || !users || users.length === 0) return null;
+
+  for (const user of users as Array<{ id: string; name?: string | null; phone: string }>) {
+    try {
+      const decrypted = decryptPhone(user.phone);
+      const candidate = normalizePhone(decrypted);
+      if (candidate === normalizedPhone) {
+        return {
+          userId: user.id,
+          userName: user.name || undefined,
+        };
+      }
+    } catch {
+      // Skip rows that cannot be decrypted with current key
+      continue;
+    }
   }
 
-  return {
-    userId: user.id,
-    userName: user.name || undefined,
-  };
+  return null;
 }
 
 /**
