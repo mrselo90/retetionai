@@ -70,6 +70,84 @@ function applyWelcomeTemplate(
     .replace(/\{\{\s*product_list\s*\}\}/gi, productList);
 }
 
+type ConversationHistoryMessage = {
+  role: 'user' | 'assistant' | 'merchant';
+  content: string;
+  timestamp: string;
+};
+
+async function getOrCreateConversationForWorker(
+  serviceClient: ReturnType<typeof getSupabaseServiceClient>,
+  userId: string,
+  orderId?: string
+): Promise<string> {
+  let query = serviceClient.from('conversations').select('id').eq('user_id', userId);
+
+  if (orderId) {
+    query = query.eq('order_id', orderId);
+  } else {
+    query = query.is('order_id', null);
+  }
+
+  const { data: existing } = await query.single();
+  if (existing?.id) return existing.id;
+
+  const { data: created, error } = await serviceClient
+    .from('conversations')
+    .insert({
+      user_id: userId,
+      order_id: orderId ?? null,
+      history: [],
+      current_state: null,
+    })
+    .select('id')
+    .single();
+
+  if (error || !created?.id) {
+    throw new Error(`Failed to create conversation: ${error?.message || 'unknown error'}`);
+  }
+
+  return created.id;
+}
+
+async function appendAssistantMessageToConversation(
+  serviceClient: ReturnType<typeof getSupabaseServiceClient>,
+  conversationId: string,
+  content: string
+): Promise<void> {
+  const { data: conversation, error: fetchError } = await serviceClient
+    .from('conversations')
+    .select('history')
+    .eq('id', conversationId)
+    .single();
+
+  if (fetchError || !conversation) {
+    throw new Error(`Conversation not found: ${fetchError?.message || 'unknown error'}`);
+  }
+
+  const history = Array.isArray(conversation.history)
+    ? ([...conversation.history] as ConversationHistoryMessage[])
+    : [];
+
+  history.push({
+    role: 'assistant',
+    content,
+    timestamp: new Date().toISOString(),
+  });
+
+  const { error: updateError } = await serviceClient
+    .from('conversations')
+    .update({
+      history,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', conversationId);
+
+  if (updateError) {
+    throw new Error(`Failed to update conversation history: ${updateError.message}`);
+  }
+}
+
 import {
   scheduledMessagesQueue,
   scrapeJobsQueue,
@@ -204,6 +282,19 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
 
       if (!sendResult.success) {
         throw new Error(sendResult.error || 'Failed to send message');
+      }
+
+      // Best-effort: mirror outbound automated messages into conversations so they appear in the dashboard
+      try {
+        if (message && message.trim()) {
+          const conversationId = await getOrCreateConversationForWorker(serviceClient, userId, orderId);
+          await appendAssistantMessageToConversation(serviceClient, conversationId, message);
+        }
+      } catch (conversationLogError) {
+        logger.warn(
+          { err: conversationLogError, userId, orderId, type },
+          '[Scheduled Message] Failed to record outbound message in conversation history'
+        );
       }
 
       // Best-effort: increment usage tracking (if DB function exists)
