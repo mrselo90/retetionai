@@ -61,6 +61,47 @@ webhooks.post('/commerce/shopify', async (c) => {
       return c.json({ error: 'Integration not found for shop' }, 404);
     }
 
+    // Handle App Uninstall — Shopify App Store zorunlu gereksinim
+    // Mağaza uygulamayı kaldırdığında entegrasyonu deaktive et ve aboneliği iptal et
+    if (topic === 'app/uninstalled') {
+      try {
+        const merchantId = integration.merchant_id;
+        logger.info({ shop, merchantId }, '[Uninstall] Mağaza uygulamayı kaldırdı. Entegrasyon ve abonelik deaktive ediliyor.');
+
+        // 1. Entegrasyonu "uninstalled" olarak işaretle
+        const { error: intError } = await serviceClient
+          .from('integrations')
+          .update({
+            status: 'uninstalled',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', integration.id);
+
+        if (intError) {
+          logger.error({ intError, shop, merchantId }, '[Uninstall] Entegrasyon güncellenemedi.');
+        }
+
+        // 2. Merchant aboneliğini iptal et
+        const { error: merchError } = await serviceClient
+          .from('merchants')
+          .update({
+            subscription_status: 'cancelled',
+            cancelled_at: new Date().toISOString(),
+          })
+          .eq('id', merchantId);
+
+        if (merchError) {
+          logger.error({ merchError, shop, merchantId }, '[Uninstall] Merchant abonelik durumu güncellenemedi.');
+        }
+
+        logger.info({ shop, merchantId }, '[Uninstall] Mağaza başarıyla deaktive edildi.');
+        return c.json({ message: 'App uninstall processed' }, 200);
+      } catch (err) {
+        logger.error({ err, shop }, '[Uninstall] app/uninstalled webhook işlenirken hata oluştu.');
+        return c.json({ error: 'Failed to process app uninstall' }, 500);
+      }
+    }
+
     // Handle App Subscriptions (Shopify Billing)
     if (topic === 'app_subscriptions/update') {
       try {

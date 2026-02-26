@@ -18,7 +18,14 @@ import * as crypto from 'crypto';
 
 const shopify = new Hono();
 
-const SHOPIFY_OAUTH_SCOPES = ['read_orders', 'read_products', 'write_products', 'read_customers'];
+// Keep this aligned with `shopify.app.toml` managed-install scopes.
+const SHOPIFY_OAUTH_SCOPES = [
+  'read_products',
+  'read_orders',
+  'read_fulfillments',
+  'read_customers',
+  'write_webhooks',
+];
 
 /**
  * Start Shopify OAuth (standalone connect from Integrations page)
