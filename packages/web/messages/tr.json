@@ -64,7 +64,7 @@
             "step3Title": "Sonuçlarınızı takip edin",
             "step3Desc": "İade oranlarını, müşteri memnuniyetini ve ROI'yi analitik panelinizden izleyin."
         },
-  "cta": {
+        "cta": {
             "title": "İadeleri azaltmaya ve LTV'yi artırmaya hazır mısınız?",
             "subtitle": "Sipariş sonrası deneyimini dönüştüren mağazalara katılın.",
             "button": "Ücretsiz Denemeye Başla",
@@ -72,87 +72,87 @@
             "secondaryButton": "Demo Ayarla",
             "secondaryCta": "Demo Ayarla",
             "meta": "14 gün ücretsiz deneme · Kredi kartı gerekmez",
-    "footnote": "14 gün ücretsiz · Kredi kartı gerekmez · İstediğiniz zaman iptal edin"
-  },
-  "socialProof": {
-    "eyebrow": "Büyüme ekiplerinin tercihi",
-    "title": "Mağazalar checkout sonrası marjı korumak için Recete kullanıyor",
-    "subtitle": "Daha az iade, daha hızlı yanıt ve daha yüksek tekrar satın alma oranı isteyen Shopify mağazaları için tasarlandı.",
-    "proof1": "Shopify uyumlu kurulum",
-    "proof2": "WhatsApp odaklı etkileşim",
-    "proof3": "Güvenli mağaza kontrolleri",
-    "testimonial1": {
-      "quote": "Müşteri zorlanmadan önce kullanım rehberi göndererek önlenebilir iadeleri azalttık. Kurulum bir öğleden kısa sürdü.",
-      "name": "Ece Demir",
-      "role": "Kurucu, cilt bakım markası",
-      "metric": "%28 daha az iade"
-    },
-    "testimonial2": {
-      "quote": "Destek ekibimiz artık gerçek escalasyonlara odaklanıyor. Recete tekrar eden sipariş sonrası soruları otomatik çözüyor.",
-      "name": "Mark Jensen",
-      "role": "Operasyon lideri, DTC ev ürünleri",
-      "metric": "2.1x daha hızlı yanıt"
-    },
-    "testimonial3": {
-      "quote": "Analitik ekranı yatırımın karşılığını göstermeyi kolaylaştırdı. Kurtarılan iadeleri ve tekrar konuşmaları net gördük.",
-      "name": "Selin Kaya",
-      "role": "E-ticaret yöneticisi, wellness mağazası",
-      "metric": "%14 tekrar satış artışı"
-    }
-  },
-  "pricing": {
-    "eyebrow": "Fiyatlandırma",
-    "title": "Küçük başlayın. Hacim büyüdükçe yükseltin.",
-    "subtitle": "Shopify mağazaları için tasarlandı: ücretsiz başlayın, ROI'yi hızlıca kanıtlayın, sonra daha fazla otomasyon ve mesaj hacmiyle ölçekleyin.",
-    "mostPopular": "En popüler",
-    "perMonth": "/ay",
-    "cta": "Ücretsiz başla",
-    "secondaryCta": "ROI hesapla",
-    "roiNote": "Çoğu mağaza, ayda sadece birkaç iadeyi önleyerek abonelik maliyetini karşılar.",
-    "starter": {
-      "name": "Starter",
-      "desc": "Sipariş sonrası otomasyonu doğrulayan erken aşama mağazalar için.",
-      "price": "$49",
-      "note": "Düşük hacimli mağazalar için ideal",
-      "bullets": "Shopify entegrasyonu · Temel WhatsApp otomasyonu · Ürün rehber akışları · Temel analitik"
-    },
-    "growth": {
-      "name": "Growth",
-      "desc": "AI destek ve ROI görünürlüğü isteyen büyüyen mağazalar için.",
-      "price": "$149",
-      "note": "Büyüyen DTC ekipleri için ideal",
-      "bullets": "Starter içeriği + · AI konuşmaları (RAG) · Gelişmiş analitik ve ROI · İnsan devralma kontrolleri"
-    },
-    "scale": {
-      "name": "Scale",
-      "desc": "Daha fazla özelleştirme ve kontrol isteyen yüksek hacimli markalar için.",
-      "price": "$399",
-      "note": "Özel onboarding dahil",
-      "bullets": "Growth içeriği + · Daha yüksek mesaj hacmi · Çoklu ekip iş akışları · Öncelikli destek"
-    }
-  },
-  "faq": {
-    "eyebrow": "SSS",
-    "title": "Shopify mağazalarından gelen yaygın sorular",
-    "subtitle": "Yüklemeden önce Recete'yi değerlendirmek için bilmeniz gerekenler.",
-    "q1": {
-      "question": "Kurulum ne kadar sürer?",
-      "answer": "Çoğu mağaza Shopify bağlantısını kurup ilk akışlarını 15 dakikadan kısa sürede aktif eder. Varsayılan şablonlarla başlayıp sonra geliştirebilirsiniz."
-    },
-    "q2": {
-      "question": "Kullanmak için bir destek ekibi gerekir mi?",
-      "answer": "Hayır. Recete manuel destek yükünü azaltmak için tasarlanmıştır. Yine de escalasyon veya hassas konuşmalar için insan devralma açabilirsiniz."
-    },
-    "q3": {
-      "question": "Recete iadeleri nasıl azaltır?",
-      "answer": "Sipariş sonrası proaktif mesajlar, kullanım rehberleri ve zamanında takipler göndererek müşterilerin sorularını iade talebine dönüşmeden önce yanıtlar."
-    },
-    "q4": {
-      "question": "Müşteri verileri güvenli mi?",
-      "answer": "Evet. Müşteri bilgilerini ve operasyon erişimini korumak için şifreli veri işleme ve mağaza seviyesinde kontroller kullanıyoruz."
-    }
-  },
-  "footer": {
+            "footnote": "14 gün ücretsiz · Kredi kartı gerekmez · İstediğiniz zaman iptal edin"
+        },
+        "socialProof": {
+            "eyebrow": "Büyüme ekiplerinin tercihi",
+            "title": "Mağazalar checkout sonrası marjı korumak için Recete kullanıyor",
+            "subtitle": "Daha az iade, daha hızlı yanıt ve daha yüksek tekrar satın alma oranı isteyen Shopify mağazaları için tasarlandı.",
+            "proof1": "Shopify uyumlu kurulum",
+            "proof2": "WhatsApp odaklı etkileşim",
+            "proof3": "Güvenli mağaza kontrolleri",
+            "testimonial1": {
+                "quote": "Müşteri zorlanmadan önce kullanım rehberi göndererek önlenebilir iadeleri azalttık. Kurulum bir öğleden kısa sürdü.",
+                "name": "Ece Demir",
+                "role": "Kurucu, cilt bakım markası",
+                "metric": "%28 daha az iade"
+            },
+            "testimonial2": {
+                "quote": "Destek ekibimiz artık gerçek escalasyonlara odaklanıyor. Recete tekrar eden sipariş sonrası soruları otomatik çözüyor.",
+                "name": "Mark Jensen",
+                "role": "Operasyon lideri, DTC ev ürünleri",
+                "metric": "2.1x daha hızlı yanıt"
+            },
+            "testimonial3": {
+                "quote": "Analitik ekranı yatırımın karşılığını göstermeyi kolaylaştırdı. Kurtarılan iadeleri ve tekrar konuşmaları net gördük.",
+                "name": "Selin Kaya",
+                "role": "E-ticaret yöneticisi, wellness mağazası",
+                "metric": "%14 tekrar satış artışı"
+            }
+        },
+        "pricing": {
+            "eyebrow": "Fiyatlandırma",
+            "title": "Küçük başlayın. Hacim büyüdükçe yükseltin.",
+            "subtitle": "Shopify mağazaları için tasarlandı: ücretsiz başlayın, ROI'yi hızlıca kanıtlayın, sonra daha fazla otomasyon ve mesaj hacmiyle ölçekleyin.",
+            "mostPopular": "En popüler",
+            "perMonth": "/ay",
+            "cta": "Ücretsiz başla",
+            "secondaryCta": "ROI hesapla",
+            "roiNote": "Çoğu mağaza, ayda sadece birkaç iadeyi önleyerek abonelik maliyetini karşılar.",
+            "starter": {
+                "name": "Starter",
+                "desc": "Sipariş sonrası otomasyonu doğrulayan erken aşama mağazalar için.",
+                "price": "$49",
+                "note": "Düşük hacimli mağazalar için ideal",
+                "bullets": "Shopify entegrasyonu · Temel WhatsApp otomasyonu · Ürün rehber akışları · Temel analitik"
+            },
+            "growth": {
+                "name": "Growth",
+                "desc": "AI destek ve ROI görünürlüğü isteyen büyüyen mağazalar için.",
+                "price": "$149",
+                "note": "Büyüyen DTC ekipleri için ideal",
+                "bullets": "Starter içeriği + · AI konuşmaları · Gelişmiş analitik ve ROI · İnsan devralma kontrolleri"
+            },
+            "scale": {
+                "name": "Scale",
+                "desc": "Daha fazla özelleştirme ve kontrol isteyen yüksek hacimli markalar için.",
+                "price": "$399",
+                "note": "Özel onboarding dahil",
+                "bullets": "Growth içeriği + · Daha yüksek mesaj hacmi · Çoklu ekip iş akışları · Öncelikli destek"
+            }
+        },
+        "faq": {
+            "eyebrow": "SSS",
+            "title": "Shopify mağazalarından gelen yaygın sorular",
+            "subtitle": "Yüklemeden önce Recete'yi değerlendirmek için bilmeniz gerekenler.",
+            "q1": {
+                "question": "Kurulum ne kadar sürer?",
+                "answer": "Çoğu mağaza Shopify bağlantısını kurup ilk akışlarını 15 dakikadan kısa sürede aktif eder. Varsayılan şablonlarla başlayıp sonra geliştirebilirsiniz."
+            },
+            "q2": {
+                "question": "Kullanmak için bir destek ekibi gerekir mi?",
+                "answer": "Hayır. Recete manuel destek yükünü azaltmak için tasarlanmıştır. Yine de escalasyon veya hassas konuşmalar için insan devralma açabilirsiniz."
+            },
+            "q3": {
+                "question": "Recete iadeleri nasıl azaltır?",
+                "answer": "Sipariş sonrası proaktif mesajlar, kullanım rehberleri ve zamanında takipler göndererek müşterilerin sorularını iade talebine dönüşmeden önce yanıtlar."
+            },
+            "q4": {
+                "question": "Müşteri verileri güvenli mi?",
+                "answer": "Evet. Müşteri bilgilerini ve operasyon erişimini korumak için şifreli veri işleme ve mağaza seviyesinde kontroller kullanıyoruz."
+            }
+        },
+        "footer": {
             "description": "Recete, proaktif AI destekli WhatsApp konuşmalarıyla markaların iadeleri azaltmasına ve LTV'yi artırmasına yardımcı olur.",
             "tagline": "Shopify mağazalarının iadeleri azaltmasına ve müşteri sadakatini artırmasına yardımcı olan sipariş sonrası AI.",
             "product": "Ürün",
@@ -315,7 +315,7 @@
     },
     "Products": {
         "title": "Ürünler",
-        "description": "Ürünlerinizi yönetin ve RAG için hazırlayın.",
+        "description": "Ürünlerinizi yönetin ve Yapay Zeka (AI) için hazırlayın.",
         "view": {
             "grid": "Kart",
             "list": "Liste"
@@ -324,7 +324,7 @@
             "columns": {
                 "product": "Ürün",
                 "source": "Kaynak URL",
-                "status": "RAG Durumu",
+                "status": "AI Senkronizasyon",
                 "actions": "İşlemler"
             }
         },
@@ -342,9 +342,9 @@
             "noMatches": "Mevcut filtrelere uyan ürün bulunamadı.",
             "statusOptions": {
                 "all": "Tüm ürünler",
-                "ragReady": "RAG hazır",
-                "ragNotReady": "RAG hazır değil",
-                "ragUnknown": "RAG durumu bilinmiyor",
+                "ragReady": "AI'a Eklendi",
+                "ragNotReady": "AI'a Eklenmedi",
+                "ragUnknown": "Durum bilinmiyor",
                 "scraped": "Taranmış",
                 "notScraped": "Taranmamış"
             },
@@ -391,9 +391,9 @@
         },
         "card": {
             "scraped": "Tarandı",
-            "ragReady": "RAG Hazır",
-            "ragNotReady": "RAG Hazır Değil",
-            "ragStatusUnknown": "RAG durumu bilinmiyor",
+            "ragReady": "AI'a Eklendi",
+            "ragNotReady": "AI'a Eklenmedi",
+            "ragStatusUnknown": "Durum bilinmiyor",
             "chunks": "parça",
             "chunksUnknown": "Parça sayısı alınamadı",
             "edit": "Düzenle",
@@ -405,7 +405,7 @@
             "namePlaceholder": "Örn: Premium Cilt Bakım Kremi",
             "urlLabel": "Ürün URL",
             "urlPlaceholder": "https://ornek.com/urun",
-            "urlHelper": "Ürün sayfası otomatik olarak taranacak ve RAG için hazırlanacak.",
+            "urlHelper": "Ürün sayfası otomatik olarak taranacak ve AI sistemine eklenecek.",
             "cancel": "İptal",
             "submit": "Ekle ve Tara",
             "scraping": {

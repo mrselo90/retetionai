@@ -523,729 +523,729 @@ export default function SettingsPage() {
     <Page title={t('title')} subtitle={t('description')} fullWidth>
       <Layout>
         <Layout.Section>
-    <div className="space-y-6 animate-fade-in pb-8">
-      {/* Header */}
-      <PolarisCard>
-        <Box padding="400">
-          <BlockStack gap="300">
-            <BlockStack gap="100">
-              <Text as="h2" variant="headingMd">{t('title')}</Text>
-              <Text as="p" tone="subdued">{t('description')}</Text>
-            </BlockStack>
-            <Banner tone="info">
-              <p>
-                <a href="#guardrails" className="text-primary hover:text-primary/80 font-semibold transition-colors">
-                  {t('guardrailsLink')}
-                </a>
-              </p>
-            </Banner>
-          </BlockStack>
-        </Box>
-      </PolarisCard>
-
-      {/* ── Notification Settings ──────────────────────────── */}
-      <PolarisCard>
-        <Box padding="400">
-          <BlockStack gap="400">
-            <InlineStack gap="300" blockAlign="start">
-              <Box background="bg-fill-warning" borderRadius="300" padding="300">
-                <AlertTriangle className="w-5 h-5 text-white" />
-              </Box>
-              <BlockStack gap="100">
-                <Text as="h2" variant="headingMd">{t('notifications.title')}</Text>
-                <Text as="p" tone="subdued">{t('notifications.description')}</Text>
-              </BlockStack>
-            </InlineStack>
-            <TextField
-              label={t('notifications.phoneLabel')}
-              type="tel"
-              value={notificationPhone}
-              onChange={(value) => { setNotificationPhone(value); setIsDirty(true); }}
-              placeholder={t('notifications.phonePlaceholder')}
-              autoComplete="off"
-              helpText={t('notifications.phoneHint')}
-            />
-          </BlockStack>
-        </Box>
-      </PolarisCard>
-
-      {/* Multi-language RAG (Option A: lang-specific retrieval + fallback) */}
-      <PolarisCard>
-        <Box padding="400">
-          <BlockStack gap="400">
-            <InlineStack gap="300" blockAlign="start">
-              <Box background="bg-fill-brand" borderRadius="300" padding="300">
-                <Settings className="w-5 h-5 text-white" />
-              </Box>
-              <BlockStack gap="100">
-                <Text as="h2" variant="headingMd">Multi-language RAG (Option A)</Text>
-                <Text as="p" tone="subdued">
-                  Configure source language, enabled target languages and per-shop rollout. Works with feature flags and shadow write/read.
-                </Text>
-              </BlockStack>
-            </InlineStack>
-
-            <Select
-              label="Default source language"
-              value={multiLangDefaultSourceLang}
-              options={allLangOptions.map((o) => ({ value: o.value, label: o.label }))}
-              onChange={(value) => {
-                setMultiLangDefaultSourceLang(value);
-                if (!multiLangEnabledLangs.includes(value)) {
-                  setMultiLangEnabledLangs((prev) => [...new Set([value, ...prev])]);
-                }
-              }}
-            />
-
-            <ChoiceList
-              title="Enabled languages (translations + per-lang embeddings)"
-              allowMultiple
-              choices={allLangOptions.map((o) => ({ value: o.value, label: o.label }))}
-              selected={multiLangEnabledLangs}
-              onChange={(selected) => {
-                const next = [...new Set(selected)];
-                if (!next.includes(multiLangDefaultSourceLang)) next.unshift(multiLangDefaultSourceLang);
-                setMultiLangEnabledLangs(next);
-              }}
-            />
-
-            <Checkbox
-              label="Enable multi-language RAG for this shop"
-              helpText="Safe rollout: global env flags still control shadow write/read and final answer path."
-              checked={multiLangEnabled}
-              onChange={setMultiLangEnabled}
-            />
-
-            <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
-              <BlockStack gap="100">
-                <Text as="p" variant="bodySm">
-                  <strong>Current state:</strong>{' '}
-                  {multiLangRagSettings ? 'Configured' : 'Not available yet (migration 019 may not be applied)'}
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Shadow write creates `product_i18n` + `product_embeddings`. Shadow read runs retrieval in parallel for logs. Final answers use the new flow only when both shop toggle and env flag are enabled.
-                </Text>
-              </BlockStack>
-            </Box>
-
-            <InlineStack align="end">
-              <PolarisButton
-                variant="primary"
-                onClick={handleSaveMultiLangRagSettings}
-                loading={multiLangRagSaving}
-                disabled={multiLangRagSaving}
-              >
-                Save multi-language RAG settings
-              </PolarisButton>
-            </InlineStack>
-          </BlockStack>
-        </Box>
-      </PolarisCard>
-
-      {/* Bot Persona Settings */}
-      <Card hover className="overflow-hidden shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
-              <Bot className="w-6 h-6" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl">{t('botPersona.title')}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1.5 font-medium">
-                {t('botPersona.description')}{' '}
-                <Link href="/dashboard/settings/bot-info" className="text-primary hover:text-primary/80 font-bold transition-colors">
-                  {t('botPersona.botInfoLink')}
-                </Link>
-              </p>
-            </div>
-          </div>
-        </CardHeader>
-
-        <div className="p-6 space-y-6">
-          {/* Bot Name */}
-          <TextField
-            label={t('botPersona.nameLabel')}
-            type="text"
-            value={botName}
-            onChange={(value) => { setBotName(value); setIsDirty(true); }}
-            placeholder={t('botPersona.namePlaceholder')}
-            autoComplete="off"
-          />
-
-          {/* Tone */}
-          <ChoiceList
-            title={t('botPersona.toneLabel')}
-            choices={(['friendly', 'professional', 'casual', 'formal'] as const).map((tKey) => ({
-              label: t(`botPersona.tones.${tKey}`),
-              value: tKey,
-            }))}
-            selected={[tone]}
-            onChange={(selected) => {
-              const next = selected[0] as typeof tone | undefined;
-              if (next) {
-                setTone(next);
-                setIsDirty(true);
-              }
-            }}
-          />
-
-          {/* Emoji */}
-          <Checkbox
-            label={t('botPersona.emojiLabel')}
-            helpText={t('botPersona.emojiDesc')}
-            checked={emoji}
-            onChange={(checked) => { setEmoji(checked); setIsDirty(true); }}
-          />
-
-          {/* Response Length */}
-          <ChoiceList
-            title={t('botPersona.responseLengthLabel')}
-            choices={(['short', 'medium', 'long'] as const).map((length) => ({
-              label: t(`botPersona.lengths.${length}`),
-              value: length,
-            }))}
-            selected={[responseLength]}
-            onChange={(selected) => {
-              const next = selected[0] as typeof responseLength | undefined;
-              if (next) {
-                setResponseLength(next);
-                setIsDirty(true);
-              }
-            }}
-          />
-
-          {/* Temperature */}
-          <BlockStack gap="200">
-            <Text as="p" variant="bodyMd" fontWeight="medium">
-              {t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
-            </Text>
-            <RangeSlider
-              label={t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
-              labelHidden
-              min={0}
-              max={1}
-              step={0.1}
-              value={temperature}
-              onChange={(value) => { setTemperature(Number(value)); setIsDirty(true); }}
-            />
-            <InlineStack align="space-between">
-              <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.consistent')}</Text>
-              <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.balanced')}</Text>
-              <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.creative')}</Text>
-            </InlineStack>
-          </BlockStack>
-
-          {/* WhatsApp sender: merchant's number vs corporate number — one must be chosen */}
-          <Divider />
-          <BlockStack gap="200">
-            <ChoiceList
-              title={t('botPersona.whatsappSenderLabel')}
-              choices={[
-                { label: t('botPersona.whatsappSenders.merchantOwn.label'), value: 'merchant_own' },
-                { label: t('botPersona.whatsappSenders.corporate.label'), value: 'corporate' },
-              ]}
-              selected={[whatsappSenderMode]}
-              onChange={(selected) => {
-                const next = selected[0] as typeof whatsappSenderMode | undefined;
-                if (next) {
-                  setWhatsappSenderMode(next);
-                  setIsDirty(true);
-                }
-              }}
-            />
-            <Text as="p" tone="subdued">{t('botPersona.whatsappSenderDesc')}</Text>
-            <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
-              <BlockStack gap="200">
-                <Text as="p" variant="bodySm"><strong>{t('botPersona.whatsappSenders.merchantOwn.label')}</strong></Text>
-                <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.whatsappSenders.merchantOwn.desc')}</Text>
-                <Text as="p" variant="bodySm"><strong>{t('botPersona.whatsappSenders.corporate.label')}</strong></Text>
-                <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.whatsappSenders.corporate.desc')}</Text>
-              </BlockStack>
-            </Box>
-            <Banner tone="info">
-              <p>
-                <strong>{t('botPersona.whatsappHelpTitle')}</strong> {t('botPersona.whatsappHelpText')}
-              </p>
-            </Banner>
-          </BlockStack>
-
-          <Divider />
-          <BlockStack gap="200">
-            <TextField
-              label={t('botPersona.welcomeTemplateLabel')}
-              value={whatsappWelcomeTemplate}
-              onChange={(value) => { setWhatsappWelcomeTemplate(value); setIsDirty(true); }}
-              placeholder={t('botPersona.welcomeTemplatePlaceholder')}
-              multiline={6}
-              autoComplete="off"
-            />
-            <Text as="p" tone="subdued">{t('botPersona.welcomeTemplateDesc')}</Text>
-            <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
-              <BlockStack gap="150">
-                <Text as="p" variant="bodySm" fontWeight="medium">{t('botPersona.welcomeTemplatePlaceholdersTitle')}</Text>
-                <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.welcomeTemplatePlaceholderOrder')}</Text>
-                <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.welcomeTemplatePlaceholderProducts')}</Text>
-              </BlockStack>
-            </Box>
-          </BlockStack>
-
-          {/* Save Button */}
-          <div className="pt-6 border-t border-border">
-            {/* G4: Persistent inline error (BFS 4.2.4) */}
-            <InlineError message={saveError} onDismiss={() => setSaveError(null)} />
-
-            {/* G3: Contextual Save Bar when embedded (BFS 4.1.5) */}
-            <ShopifySaveBar
-              id="settings-persona-csb"
-              isDirty={isDirty}
-              onSave={handleSavePersona}
-              onDiscard={() => {
-                setIsDirty(false);
-                setSaveError(null);
-                loadData();
-              }}
-            />
-
-            {/* Inline Save Button — standalone mode only */}
-            {!isShopifyEmbedded() && (
-              <Button
-                onClick={handleSavePersona}
-                disabled={saving}
-                size="lg"
-                className="shadow-lg hover:shadow-xl"
-              >
-                {saving && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
-                {saving ? t('botPersona.saving') : t('botPersona.saveButton')}
-              </Button>
-            )}
-          </div>
-        </div>
-      </Card>
-
-      {/* Add-on Modules */}
-      <PolarisCard>
-        <Box id="modules" padding="400">
-          <BlockStack gap="400">
-            <InlineStack gap="300" blockAlign="start">
-              <Box background="bg-fill-caution" borderRadius="300" padding="300">
-                <ShieldCheck className="w-5 h-5 text-white" />
-              </Box>
-              <BlockStack gap="100">
-                <Text as="h2" variant="headingMd">Modules</Text>
-                <Text as="p" tone="subdued">
-                  Optional paid modules to enhance your AI capabilities
-                </Text>
-              </BlockStack>
-            </InlineStack>
-          {addons.map((addon) => (
-            <PlanGatedFeature
-              key={addon.key}
-              isLocked={!addon.planAllowed}
-              requiredPlan="Pro"
-            >
-              <div
-                className={`flex items-center justify-between p-5 rounded-xl border transition-all ${addon.status === 'active'
-                  ? 'bg-gradient-to-r from-success/5 to-transparent border-success/30'
-                  : 'bg-gradient-to-r from-muted/50 to-transparent border-border'
-                  }`}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <p className="font-bold text-zinc-900 text-base">{rp('moduleTitle')}</p>
-                    <PolarisBadge tone={addon.status === 'active' ? 'success' : undefined}>
-                      {addon.status === 'active' ? rp('statusActive') : rp('statusInactive')}
-                    </PolarisBadge>
-                  </div>
-                  <p className="text-sm text-zinc-600 mt-1">{rp('moduleDescription')}</p>
-                  <p className="text-sm font-semibold text-primary mt-1.5">
-                    +${addon.priceMonthly}/month
-                  </p>
-                </div>
-                <PolarisButton
-                  onClick={() => handleAddonToggle(addon.key, addon.status)}
-                  disabled={!addon.planAllowed}
-                  variant={addon.status === 'active' ? 'secondary' : 'primary'}
-                  size="slim"
-                >
-                  {addon.status === 'active' ? rp('disableConfirmButton') : rp('enableConfirmButton')}
-                </PolarisButton>
-              </div>
-            </PlanGatedFeature>
-          ))}
-
-          {addons.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">No modules available</p>
-          )}
-          </BlockStack>
-        </Box>
-      </PolarisCard>
-
-      {/* Add-on confirmation dialog */}
-      <Dialog open={!!showAddonConfirm} onOpenChange={(open) => !open && setShowAddonConfirm(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {addonAction === 'enable' ? rp('enableConfirmTitle') : rp('disableConfirmTitle')}
-            </DialogTitle>
-            <DialogDescription>
-              {addonAction === 'enable' ? rp('enableConfirmMessage') : rp('disableConfirmMessage')}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-3 sm:gap-3">
-            <PolarisButton
-              onClick={() => setShowAddonConfirm(null)}
-              variant="secondary"
-            >
-              {rp('cancel')}
-            </PolarisButton>
-            <PolarisButton
-              onClick={handleAddonConfirm}
-              variant={addonAction === 'enable' ? 'primary' : undefined}
-              tone={addonAction === 'enable' ? undefined : 'critical'}
-            >
-              {addonAction === 'enable' ? rp('enableConfirmButton') : rp('disableConfirmButton')}
-            </PolarisButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Guardrails */}
-      <PolarisCard>
-        <Box id="guardrails" padding="400">
-          <BlockStack gap="500">
-            <InlineStack align="space-between" blockAlign="start" gap="300">
-              <InlineStack gap="300" blockAlign="start">
-                <Box background="bg-fill-success" borderRadius="300" padding="300">
-                  <Shield className="w-5 h-5 text-white" />
-                </Box>
-                <BlockStack gap="100">
-                  <Text as="h2" variant="headingMd">{t('guardrails.title')}</Text>
-                  <Text as="p" tone="subdued">{t('guardrails.description')}</Text>
+          <div className="space-y-6 animate-fade-in pb-8">
+            {/* Header */}
+            <PolarisCard>
+              <Box padding="400">
+                <BlockStack gap="300">
+                  <BlockStack gap="100">
+                    <Text as="h2" variant="headingMd">{t('title')}</Text>
+                    <Text as="p" tone="subdued">{t('description')}</Text>
+                  </BlockStack>
+                  <Banner tone="info">
+                    <p>
+                      <a href="#guardrails" className="text-primary hover:text-primary/80 font-semibold transition-colors">
+                        {t('guardrailsLink')}
+                      </a>
+                    </p>
+                  </Banner>
                 </BlockStack>
-              </InlineStack>
-              <PolarisButton onClick={openAddGuardrail} variant="primary">
-                {t('guardrails.addButton')}
-              </PolarisButton>
-            </InlineStack>
-          {/* System guardrails (read-only) */}
-          <div>
-            <BlockStack gap="200">
-            <Text as="h3" variant="headingSm">{t('guardrails.systemTitle')}</Text>
-            <ul className="space-y-3">
-              {systemGuardrails.map((g) => (
-                <li
-                  key={g.id}
-                  className="rounded-lg border border-zinc-200 bg-zinc-50/80"
-                >
-                  <Box padding="300">
+              </Box>
+            </PolarisCard>
+
+            {/* ── Notification Settings ──────────────────────────── */}
+            <PolarisCard>
+              <Box padding="400">
+                <BlockStack gap="400">
+                  <InlineStack gap="300" blockAlign="start">
+                    <Box background="bg-fill-warning" borderRadius="300" padding="300">
+                      <AlertTriangle className="w-5 h-5 text-white" />
+                    </Box>
+                    <BlockStack gap="100">
+                      <Text as="h2" variant="headingMd">{t('notifications.title')}</Text>
+                      <Text as="p" tone="subdued">{t('notifications.description')}</Text>
+                    </BlockStack>
+                  </InlineStack>
+                  <TextField
+                    label={t('notifications.phoneLabel')}
+                    type="tel"
+                    value={notificationPhone}
+                    onChange={(value) => { setNotificationPhone(value); setIsDirty(true); }}
+                    placeholder={t('notifications.phonePlaceholder')}
+                    autoComplete="off"
+                    helpText={t('notifications.phoneHint')}
+                  />
+                </BlockStack>
+              </Box>
+            </PolarisCard>
+
+            {/* Multilingual Support Settings */}
+            <PolarisCard>
+              <Box padding="400">
+                <BlockStack gap="400">
+                  <InlineStack gap="300" blockAlign="start">
+                    <Box background="bg-fill-brand" borderRadius="300" padding="300">
+                      <Settings className="w-5 h-5 text-white" />
+                    </Box>
+                    <BlockStack gap="100">
+                      <Text as="h2" variant="headingMd">Multilingual Smart Answers</Text>
+                      <Text as="p" tone="subdued">
+                        Configure language settings for the AI response system. You can set a primary language and enable additional languages for your store.
+                      </Text>
+                    </BlockStack>
+                  </InlineStack>
+
+                  <Select
+                    label="Primary Store Language"
+                    value={multiLangDefaultSourceLang}
+                    options={allLangOptions.map((o) => ({ value: o.value, label: o.label }))}
+                    onChange={(value) => {
+                      setMultiLangDefaultSourceLang(value);
+                      if (!multiLangEnabledLangs.includes(value)) {
+                        setMultiLangEnabledLangs((prev) => [...new Set([value, ...prev])]);
+                      }
+                    }}
+                  />
+
+                  <ChoiceList
+                    title="Supported Languages"
+                    allowMultiple
+                    choices={allLangOptions.map((o) => ({ value: o.value, label: o.label }))}
+                    selected={multiLangEnabledLangs}
+                    onChange={(selected) => {
+                      const next = [...new Set(selected)];
+                      if (!next.includes(multiLangDefaultSourceLang)) next.unshift(multiLangDefaultSourceLang);
+                      setMultiLangEnabledLangs(next);
+                    }}
+                  />
+
+                  <Checkbox
+                    label="Enable Multilingual AI for this shop"
+                    helpText="Allow the AI to automatically respond to customers in their preferred language based on your store's supported languages."
+                    checked={multiLangEnabled}
+                    onChange={setMultiLangEnabled}
+                  />
+
+                  <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
+                    <BlockStack gap="100">
+                      <Text as="p" variant="bodySm">
+                        <strong>Current state:</strong>{' '}
+                        {multiLangRagSettings ? 'Configured' : 'Not configured yet'}
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        When enabled, the AI system will sync your multilingual product data and adapt its answers to the customer's language.
+                      </Text>
+                    </BlockStack>
+                  </Box>
+
+                  <InlineStack align="end">
+                    <PolarisButton
+                      variant="primary"
+                      onClick={handleSaveMultiLangRagSettings}
+                      loading={multiLangRagSaving}
+                      disabled={multiLangRagSaving}
+                    >
+                      Save Language Settings
+                    </PolarisButton>
+                  </InlineStack>
+                </BlockStack>
+              </Box>
+            </PolarisCard>
+
+            {/* Bot Persona Settings */}
+            <Card hover className="overflow-hidden shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
+                    <Bot className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl">{t('botPersona.title')}</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1.5 font-medium">
+                      {t('botPersona.description')}{' '}
+                      <Link href="/dashboard/settings/bot-info" className="text-primary hover:text-primary/80 font-bold transition-colors">
+                        {t('botPersona.botInfoLink')}
+                      </Link>
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <div className="p-6 space-y-6">
+                {/* Bot Name */}
+                <TextField
+                  label={t('botPersona.nameLabel')}
+                  type="text"
+                  value={botName}
+                  onChange={(value) => { setBotName(value); setIsDirty(true); }}
+                  placeholder={t('botPersona.namePlaceholder')}
+                  autoComplete="off"
+                />
+
+                {/* Tone */}
+                <ChoiceList
+                  title={t('botPersona.toneLabel')}
+                  choices={(['friendly', 'professional', 'casual', 'formal'] as const).map((tKey) => ({
+                    label: t(`botPersona.tones.${tKey}`),
+                    value: tKey,
+                  }))}
+                  selected={[tone]}
+                  onChange={(selected) => {
+                    const next = selected[0] as typeof tone | undefined;
+                    if (next) {
+                      setTone(next);
+                      setIsDirty(true);
+                    }
+                  }}
+                />
+
+                {/* Emoji */}
+                <Checkbox
+                  label={t('botPersona.emojiLabel')}
+                  helpText={t('botPersona.emojiDesc')}
+                  checked={emoji}
+                  onChange={(checked) => { setEmoji(checked); setIsDirty(true); }}
+                />
+
+                {/* Response Length */}
+                <ChoiceList
+                  title={t('botPersona.responseLengthLabel')}
+                  choices={(['short', 'medium', 'long'] as const).map((length) => ({
+                    label: t(`botPersona.lengths.${length}`),
+                    value: length,
+                  }))}
+                  selected={[responseLength]}
+                  onChange={(selected) => {
+                    const next = selected[0] as typeof responseLength | undefined;
+                    if (next) {
+                      setResponseLength(next);
+                      setIsDirty(true);
+                    }
+                  }}
+                />
+
+                {/* Temperature */}
+                <BlockStack gap="200">
+                  <Text as="p" variant="bodyMd" fontWeight="medium">
+                    {t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
+                  </Text>
+                  <RangeSlider
+                    label={t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
+                    labelHidden
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    value={temperature}
+                    onChange={(value) => { setTemperature(Number(value)); setIsDirty(true); }}
+                  />
+                  <InlineStack align="space-between">
+                    <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.consistent')}</Text>
+                    <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.balanced')}</Text>
+                    <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.creative')}</Text>
+                  </InlineStack>
+                </BlockStack>
+
+                {/* WhatsApp sender: merchant's number vs corporate number — one must be chosen */}
+                <Divider />
+                <BlockStack gap="200">
+                  <ChoiceList
+                    title={t('botPersona.whatsappSenderLabel')}
+                    choices={[
+                      { label: t('botPersona.whatsappSenders.merchantOwn.label'), value: 'merchant_own' },
+                      { label: t('botPersona.whatsappSenders.corporate.label'), value: 'corporate' },
+                    ]}
+                    selected={[whatsappSenderMode]}
+                    onChange={(selected) => {
+                      const next = selected[0] as typeof whatsappSenderMode | undefined;
+                      if (next) {
+                        setWhatsappSenderMode(next);
+                        setIsDirty(true);
+                      }
+                    }}
+                  />
+                  <Text as="p" tone="subdued">{t('botPersona.whatsappSenderDesc')}</Text>
+                  <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
+                    <BlockStack gap="200">
+                      <Text as="p" variant="bodySm"><strong>{t('botPersona.whatsappSenders.merchantOwn.label')}</strong></Text>
+                      <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.whatsappSenders.merchantOwn.desc')}</Text>
+                      <Text as="p" variant="bodySm"><strong>{t('botPersona.whatsappSenders.corporate.label')}</strong></Text>
+                      <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.whatsappSenders.corporate.desc')}</Text>
+                    </BlockStack>
+                  </Box>
+                  <Banner tone="info">
+                    <p>
+                      <strong>{t('botPersona.whatsappHelpTitle')}</strong> {t('botPersona.whatsappHelpText')}
+                    </p>
+                  </Banner>
+                </BlockStack>
+
+                <Divider />
+                <BlockStack gap="200">
+                  <TextField
+                    label={t('botPersona.welcomeTemplateLabel')}
+                    value={whatsappWelcomeTemplate}
+                    onChange={(value) => { setWhatsappWelcomeTemplate(value); setIsDirty(true); }}
+                    placeholder={t('botPersona.welcomeTemplatePlaceholder')}
+                    multiline={6}
+                    autoComplete="off"
+                  />
+                  <Text as="p" tone="subdued">{t('botPersona.welcomeTemplateDesc')}</Text>
+                  <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
+                    <BlockStack gap="150">
+                      <Text as="p" variant="bodySm" fontWeight="medium">{t('botPersona.welcomeTemplatePlaceholdersTitle')}</Text>
+                      <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.welcomeTemplatePlaceholderOrder')}</Text>
+                      <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.welcomeTemplatePlaceholderProducts')}</Text>
+                    </BlockStack>
+                  </Box>
+                </BlockStack>
+
+                {/* Save Button */}
+                <div className="pt-6 border-t border-border">
+                  {/* G4: Persistent inline error (BFS 4.2.4) */}
+                  <InlineError message={saveError} onDismiss={() => setSaveError(null)} />
+
+                  {/* G3: Contextual Save Bar when embedded (BFS 4.1.5) */}
+                  <ShopifySaveBar
+                    id="settings-persona-csb"
+                    isDirty={isDirty}
+                    onSave={handleSavePersona}
+                    onDiscard={() => {
+                      setIsDirty(false);
+                      setSaveError(null);
+                      loadData();
+                    }}
+                  />
+
+                  {/* Inline Save Button — standalone mode only */}
+                  {!isShopifyEmbedded() && (
+                    <Button
+                      onClick={handleSavePersona}
+                      disabled={saving}
+                      size="lg"
+                      className="shadow-lg hover:shadow-xl"
+                    >
+                      {saving && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
+                      {saving ? t('botPersona.saving') : t('botPersona.saveButton')}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            {/* Add-on Modules */}
+            <PolarisCard>
+              <Box id="modules" padding="400">
+                <BlockStack gap="400">
+                  <InlineStack gap="300" blockAlign="start">
+                    <Box background="bg-fill-caution" borderRadius="300" padding="300">
+                      <ShieldCheck className="w-5 h-5 text-white" />
+                    </Box>
+                    <BlockStack gap="100">
+                      <Text as="h2" variant="headingMd">Modules</Text>
+                      <Text as="p" tone="subdued">
+                        Optional paid modules to enhance your AI capabilities
+                      </Text>
+                    </BlockStack>
+                  </InlineStack>
+                  {addons.map((addon) => (
+                    <PlanGatedFeature
+                      key={addon.key}
+                      isLocked={!addon.planAllowed}
+                      requiredPlan="Pro"
+                    >
+                      <div
+                        className={`flex items-center justify-between p-5 rounded-xl border transition-all ${addon.status === 'active'
+                          ? 'bg-gradient-to-r from-success/5 to-transparent border-success/30'
+                          : 'bg-gradient-to-r from-muted/50 to-transparent border-border'
+                          }`}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <p className="font-bold text-zinc-900 text-base">{rp('moduleTitle')}</p>
+                            <PolarisBadge tone={addon.status === 'active' ? 'success' : undefined}>
+                              {addon.status === 'active' ? rp('statusActive') : rp('statusInactive')}
+                            </PolarisBadge>
+                          </div>
+                          <p className="text-sm text-zinc-600 mt-1">{rp('moduleDescription')}</p>
+                          <p className="text-sm font-semibold text-primary mt-1.5">
+                            +${addon.priceMonthly}/month
+                          </p>
+                        </div>
+                        <PolarisButton
+                          onClick={() => handleAddonToggle(addon.key, addon.status)}
+                          disabled={!addon.planAllowed}
+                          variant={addon.status === 'active' ? 'secondary' : 'primary'}
+                          size="slim"
+                        >
+                          {addon.status === 'active' ? rp('disableConfirmButton') : rp('enableConfirmButton')}
+                        </PolarisButton>
+                      </div>
+                    </PlanGatedFeature>
+                  ))}
+
+                  {addons.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">No modules available</p>
+                  )}
+                </BlockStack>
+              </Box>
+            </PolarisCard>
+
+            {/* Add-on confirmation dialog */}
+            <Dialog open={!!showAddonConfirm} onOpenChange={(open) => !open && setShowAddonConfirm(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {addonAction === 'enable' ? rp('enableConfirmTitle') : rp('disableConfirmTitle')}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {addonAction === 'enable' ? rp('enableConfirmMessage') : rp('disableConfirmMessage')}
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="gap-3 sm:gap-3">
+                  <PolarisButton
+                    onClick={() => setShowAddonConfirm(null)}
+                    variant="secondary"
+                  >
+                    {rp('cancel')}
+                  </PolarisButton>
+                  <PolarisButton
+                    onClick={handleAddonConfirm}
+                    variant={addonAction === 'enable' ? 'primary' : undefined}
+                    tone={addonAction === 'enable' ? undefined : 'critical'}
+                  >
+                    {addonAction === 'enable' ? rp('enableConfirmButton') : rp('disableConfirmButton')}
+                  </PolarisButton>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Guardrails */}
+            <PolarisCard>
+              <Box id="guardrails" padding="400">
+                <BlockStack gap="500">
+                  <InlineStack align="space-between" blockAlign="start" gap="300">
                     <InlineStack gap="300" blockAlign="start">
-                      <Text as="span" tone="subdued">🔒</Text>
+                      <Box background="bg-fill-success" borderRadius="300" padding="300">
+                        <Shield className="w-5 h-5 text-white" />
+                      </Box>
                       <BlockStack gap="100">
-                        <Text as="p" variant="bodyMd" fontWeight="medium">
-                          {locale === 'tr' ? (g.name_tr ?? g.name) : g.name}
-                        </Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {locale === 'tr' ? (g.description_tr ?? g.description) : g.description}
-                        </Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {t('guardrails.application', {
-                            type: g.apply_to === 'both' ? t('guardrails.types.both') : g.apply_to === 'user_message' ? t('guardrails.types.user_message') : t('guardrails.types.ai_response'),
-                            action: g.action === 'escalate' ? t('guardrails.actions.escalate') : t('guardrails.actions.block')
-                          })}
-                        </Text>
+                        <Text as="h2" variant="headingMd">{t('guardrails.title')}</Text>
+                        <Text as="p" tone="subdued">{t('guardrails.description')}</Text>
                       </BlockStack>
                     </InlineStack>
-                  </Box>
-                </li>
-              ))}
-            </ul>
-            </BlockStack>
-          </div>
-          {/* Custom guardrails */}
-          <div>
-            <BlockStack gap="200">
-            <Text as="h3" variant="headingSm">{t('guardrails.customTitle')}</Text>
-            {customGuardrails.length === 0 ? (
-              <p className="text-sm text-zinc-500 py-4">{t('guardrails.empty')}</p>
-            ) : (
-              <ul className="space-y-3">
-                {customGuardrails.map((g) => (
-                  <li
-                    key={g.id}
-                    className="rounded-lg border border-zinc-200 bg-white"
-                  >
-                    <Box padding="300">
-                      <InlineStack align="space-between" blockAlign="start" gap="300">
-                        <BlockStack gap="100">
-                          <Text as="p" variant="bodyMd" fontWeight="medium">{g.name}</Text>
-                          {g.description && (
-                            <Text as="p" variant="bodySm" tone="subdued">{g.description}</Text>
-                          )}
-                          <Text as="p" variant="bodySm" tone="subdued">
-                            {g.match_type === 'keywords'
-                              ? `${t('guardrails.modal.matchTypes.keywords')}: ${Array.isArray(g.value) ? g.value.join(', ') : g.value}`
-                              : `${t('guardrails.modal.matchTypes.phrase')}: ${typeof g.value === 'string' ? g.value : (Array.isArray(g.value) ? g.value[0] : '')}`}
-                            {' · '}
-                            {t('guardrails.application', {
-                              type: g.apply_to === 'both' ? t('guardrails.types.both') : g.apply_to === 'user_message' ? t('guardrails.types.user_message') : t('guardrails.types.ai_response'),
-                              action: g.action === 'escalate' ? t('guardrails.actions.escalate') : t('guardrails.actions.block')
-                            })}
-                          </Text>
-                        </BlockStack>
-                        <InlineStack gap="200">
-                          <PolarisButton
-                            onClick={() => openEditGuardrail(g)}
-                            variant="secondary"
-                            size="slim"
+                    <PolarisButton onClick={openAddGuardrail} variant="primary">
+                      {t('guardrails.addButton')}
+                    </PolarisButton>
+                  </InlineStack>
+                  {/* System guardrails (read-only) */}
+                  <div>
+                    <BlockStack gap="200">
+                      <Text as="h3" variant="headingSm">{t('guardrails.systemTitle')}</Text>
+                      <ul className="space-y-3">
+                        {systemGuardrails.map((g) => (
+                          <li
+                            key={g.id}
+                            className="rounded-lg border border-zinc-200 bg-zinc-50/80"
                           >
-                            {t('guardrails.edit')}
-                          </PolarisButton>
-                          <PolarisButton
-                            onClick={() => handleDeleteGuardrail(g.id)}
-                            disabled={savingGuardrails}
-                            tone="critical"
-                            size="slim"
-                          >
-                            {t('guardrails.delete')}
-                          </PolarisButton>
-                        </InlineStack>
-                      </InlineStack>
-                    </Box>
-                  </li>
-                ))}
-              </ul>
-            )}
-            </BlockStack>
-          </div>
-          </BlockStack>
-        </Box>
-      </PolarisCard>
-
-
-      {/* GDPR & Data Management */}
-      <PolarisCard>
-        <Box padding="400">
-          <BlockStack gap="400">
-            <InlineStack gap="300" blockAlign="start">
-              <Box background="bg-fill-info" borderRadius="300" padding="300">
-                <Database className="w-5 h-5 text-white" />
-              </Box>
-              <BlockStack gap="100">
-                <Text as="h2" variant="headingMd">{t('gdpr.title')}</Text>
-                <Text as="p" tone="subdued">{t('gdpr.description')}</Text>
-              </BlockStack>
-            </InlineStack>
-          {/* Data Export */}
-          <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300">
-            <InlineStack align="space-between" blockAlign="start" gap="300">
-              <BlockStack gap="100">
-                <Text as="h3" variant="headingSm">{t('gdpr.exportTitle')}</Text>
-                <Text as="p" tone="subdued">{t('gdpr.exportDesc')}</Text>
-              </BlockStack>
-              <PolarisButton
-                variant="secondary"
-                onClick={handleExportData}
-                disabled={exportingData}
-                loading={exportingData}
-              >
-                {exportingData ? t('gdpr.exporting') : t('gdpr.exportButton')}
-              </PolarisButton>
-            </InlineStack>
-          </Box>
-
-          {/* Data Deletion */}
-          <Box padding="300" borderWidth="025" borderColor="border-critical" borderRadius="300" background="bg-surface-critical">
-            <InlineStack align="space-between" blockAlign="start" gap="300">
-              <BlockStack gap="100">
-                <Text as="h3" variant="headingSm" tone="critical">{t('gdpr.deleteTitle')}</Text>
-                <Text as="p" tone="critical">{t('gdpr.deleteDesc')}</Text>
-                <InlineStack gap="100" blockAlign="center">
-                  <AlertTriangle className="w-3 h-3 text-red-700" />
-                  <Text as="span" variant="bodySm" tone="critical">{t('gdpr.deleteWarning')}</Text>
-                </InlineStack>
-              </BlockStack>
-              <PolarisButton
-                tone="critical"
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={deletingData}
-              >
-                {t('gdpr.deleteButton')}
-              </PolarisButton>
-            </InlineStack>
-          </Box>
-
-          {/* Links */}
-          <Box paddingBlockStart="300" borderBlockStartWidth="025" borderColor="border">
-            <div className="flex flex-wrap gap-4 text-sm">
-              <a href="/privacy-policy" target="_blank" className="text-primary hover:underline flex items-center gap-1">
-                <ExternalLink className="w-3 h-3" /> {t('gdpr.links.privacy')}
-              </a>
-              <a href="/terms-of-service" target="_blank" className="text-primary hover:underline flex items-center gap-1">
-                <ExternalLink className="w-3 h-3" /> {t('gdpr.links.terms')}
-              </a>
-              <a href="/cookie-policy" target="_blank" className="text-primary hover:underline flex items-center gap-1">
-                <ExternalLink className="w-3 h-3" /> {t('gdpr.links.cookie')}
-              </a>
-            </div>
-          </Box>
-          </BlockStack>
-        </Box>
-      </PolarisCard>
-
-      {/* Guardrail Add/Edit Modal */}
-      <Dialog open={showGuardrailModal} onOpenChange={(open) => {
-        if (!savingGuardrails) {
-          if (!open) closeGuardrailModal();
-          else setShowGuardrailModal(true);
-        }
-      }}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingGuardrail ? t('guardrails.modal.titleEdit') : t('guardrails.modal.titleAdd')}
-            </DialogTitle>
-          </DialogHeader>
-          <BlockStack gap="400">
-            <TextField
-              label={t('guardrails.modal.nameLabel')}
-              value={guardrailName}
-              onChange={setGuardrailName}
-              placeholder="e.g. Competitor mention"
-              autoComplete="off"
-            />
-            <TextField
-              label={t('guardrails.modal.descLabel')}
-              value={guardrailDescription}
-              onChange={setGuardrailDescription}
-              placeholder="Brief description of the rule"
-              autoComplete="off"
-            />
-            <Select
-              label={t('guardrails.modal.applyToLabel')}
-              options={[
-                { label: t('guardrails.types.both'), value: 'both' },
-                { label: t('guardrails.types.user_message'), value: 'user_message' },
-                { label: t('guardrails.types.ai_response'), value: 'ai_response' },
-              ]}
-              value={guardrailApplyTo}
-              onChange={(value) => setGuardrailApplyTo(value as 'user_message' | 'ai_response' | 'both')}
-            />
-            <Select
-              label={t('guardrails.modal.matchTypeLabel')}
-              options={[
-                { label: t('guardrails.modal.matchTypes.keywords'), value: 'keywords' },
-                { label: t('guardrails.modal.matchTypes.phrase'), value: 'phrase' },
-              ]}
-              value={guardrailMatchType}
-              onChange={(value) => setGuardrailMatchType(value as 'keywords' | 'phrase')}
-            />
-            <TextField
-              label={t('guardrails.modal.valueLabel')}
-              value={guardrailValue}
-              onChange={setGuardrailValue}
-              placeholder={guardrailMatchType === 'keywords' ? 'competitor, price, discount' : 'This product cures'}
-              autoComplete="off"
-            />
-            <Select
-              label={t('guardrails.modal.actionLabel')}
-              options={[
-                { label: t('guardrails.actions.block'), value: 'block' },
-                { label: t('guardrails.actions.escalate'), value: 'escalate' },
-              ]}
-              value={guardrailAction}
-              onChange={(value) => setGuardrailAction(value as 'block' | 'escalate')}
-            />
-            <TextField
-              label={t('guardrails.modal.responseLabel')}
-              value={guardrailSuggestedResponse}
-              onChange={setGuardrailSuggestedResponse}
-              placeholder="Text to show when rule is triggered"
-              multiline={2}
-              autoComplete="off"
-            />
-            <DialogFooter className="gap-3 sm:gap-3">
-              <PolarisButton
-                variant="secondary"
-                onClick={closeGuardrailModal}
-                disabled={savingGuardrails}
-              >
-                {t('guardrails.modal.cancel')}
-              </PolarisButton>
-              <PolarisButton
-                onClick={handleSaveGuardrail}
-                disabled={savingGuardrails}
-                loading={savingGuardrails}
-                variant="primary"
-              >
-                {savingGuardrails ? t('guardrails.modal.saving') : (editingGuardrail ? t('guardrails.modal.save') : t('guardrails.modal.save'))}
-              </PolarisButton>
-            </DialogFooter>
-          </BlockStack>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={showDeleteConfirm} onOpenChange={(open) => {
-        if (!deletingData) setShowDeleteConfirm(open);
-      }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              <InlineStack gap="200" blockAlign="center">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-                <Text as="span" variant="headingSm" tone="critical">{t('gdpr.modal.title')}</Text>
-              </InlineStack>
-            </DialogTitle>
-          </DialogHeader>
-          <Box paddingBlockStart="300">
-            <BlockStack gap="400">
-              <Box background="bg-surface-critical" borderColor="border-critical" borderWidth="025" borderRadius="300" padding="300">
-                <BlockStack gap="200">
-                  <Text as="p" variant="bodyMd" fontWeight="medium" tone="critical">
-                    {t('gdpr.modal.warning')}
-                  </Text>
-                  <BlockStack gap="100">
-                    <Text as="p" variant="bodySm" tone="critical">• {t('gdpr.modal.list.all')}</Text>
-                    <Text as="p" variant="bodySm" tone="critical">• {t('gdpr.modal.list.permanent')}</Text>
-                    <Text as="p" variant="bodySm" tone="critical">• {t('gdpr.modal.list.cancel')}</Text>
-                  </BlockStack>
+                            <Box padding="300">
+                              <InlineStack gap="300" blockAlign="start">
+                                <Text as="span" tone="subdued">🔒</Text>
+                                <BlockStack gap="100">
+                                  <Text as="p" variant="bodyMd" fontWeight="medium">
+                                    {locale === 'tr' ? (g.name_tr ?? g.name) : g.name}
+                                  </Text>
+                                  <Text as="p" variant="bodySm" tone="subdued">
+                                    {locale === 'tr' ? (g.description_tr ?? g.description) : g.description}
+                                  </Text>
+                                  <Text as="p" variant="bodySm" tone="subdued">
+                                    {t('guardrails.application', {
+                                      type: g.apply_to === 'both' ? t('guardrails.types.both') : g.apply_to === 'user_message' ? t('guardrails.types.user_message') : t('guardrails.types.ai_response'),
+                                      action: g.action === 'escalate' ? t('guardrails.actions.escalate') : t('guardrails.actions.block')
+                                    })}
+                                  </Text>
+                                </BlockStack>
+                              </InlineStack>
+                            </Box>
+                          </li>
+                        ))}
+                      </ul>
+                    </BlockStack>
+                  </div>
+                  {/* Custom guardrails */}
+                  <div>
+                    <BlockStack gap="200">
+                      <Text as="h3" variant="headingSm">{t('guardrails.customTitle')}</Text>
+                      {customGuardrails.length === 0 ? (
+                        <p className="text-sm text-zinc-500 py-4">{t('guardrails.empty')}</p>
+                      ) : (
+                        <ul className="space-y-3">
+                          {customGuardrails.map((g) => (
+                            <li
+                              key={g.id}
+                              className="rounded-lg border border-zinc-200 bg-white"
+                            >
+                              <Box padding="300">
+                                <InlineStack align="space-between" blockAlign="start" gap="300">
+                                  <BlockStack gap="100">
+                                    <Text as="p" variant="bodyMd" fontWeight="medium">{g.name}</Text>
+                                    {g.description && (
+                                      <Text as="p" variant="bodySm" tone="subdued">{g.description}</Text>
+                                    )}
+                                    <Text as="p" variant="bodySm" tone="subdued">
+                                      {g.match_type === 'keywords'
+                                        ? `${t('guardrails.modal.matchTypes.keywords')}: ${Array.isArray(g.value) ? g.value.join(', ') : g.value}`
+                                        : `${t('guardrails.modal.matchTypes.phrase')}: ${typeof g.value === 'string' ? g.value : (Array.isArray(g.value) ? g.value[0] : '')}`}
+                                      {' · '}
+                                      {t('guardrails.application', {
+                                        type: g.apply_to === 'both' ? t('guardrails.types.both') : g.apply_to === 'user_message' ? t('guardrails.types.user_message') : t('guardrails.types.ai_response'),
+                                        action: g.action === 'escalate' ? t('guardrails.actions.escalate') : t('guardrails.actions.block')
+                                      })}
+                                    </Text>
+                                  </BlockStack>
+                                  <InlineStack gap="200">
+                                    <PolarisButton
+                                      onClick={() => openEditGuardrail(g)}
+                                      variant="secondary"
+                                      size="slim"
+                                    >
+                                      {t('guardrails.edit')}
+                                    </PolarisButton>
+                                    <PolarisButton
+                                      onClick={() => handleDeleteGuardrail(g.id)}
+                                      disabled={savingGuardrails}
+                                      tone="critical"
+                                      size="slim"
+                                    >
+                                      {t('guardrails.delete')}
+                                    </PolarisButton>
+                                  </InlineStack>
+                                </InlineStack>
+                              </Box>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </BlockStack>
+                  </div>
                 </BlockStack>
               </Box>
+            </PolarisCard>
 
-              <BlockStack gap="200">
-                <PolarisButton
-                  tone="critical"
-                  fullWidth
-                  onClick={() => handleDeleteData(false)}
-                  disabled={deletingData}
-                  loading={deletingData}
-                >
-                  {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.softDelete')}
-                </PolarisButton>
-                <PolarisButton
-                  tone="critical"
-                  variant="secondary"
-                  fullWidth
-                  onClick={() => handleDeleteData(true)}
-                  disabled={deletingData}
-                >
-                  {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.hardDelete')}
-                </PolarisButton>
-                <PolarisButton
-                  variant="secondary"
-                  fullWidth
-                  onClick={() => setShowDeleteConfirm(false)}
-                  disabled={deletingData}
-                >
-                  {t('gdpr.modal.cancel')}
-                </PolarisButton>
-              </BlockStack>
-            </BlockStack>
-          </Box>
-        </DialogContent>
-      </Dialog>
 
-    </div>
+            {/* GDPR & Data Management */}
+            <PolarisCard>
+              <Box padding="400">
+                <BlockStack gap="400">
+                  <InlineStack gap="300" blockAlign="start">
+                    <Box background="bg-fill-info" borderRadius="300" padding="300">
+                      <Database className="w-5 h-5 text-white" />
+                    </Box>
+                    <BlockStack gap="100">
+                      <Text as="h2" variant="headingMd">{t('gdpr.title')}</Text>
+                      <Text as="p" tone="subdued">{t('gdpr.description')}</Text>
+                    </BlockStack>
+                  </InlineStack>
+                  {/* Data Export */}
+                  <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300">
+                    <InlineStack align="space-between" blockAlign="start" gap="300">
+                      <BlockStack gap="100">
+                        <Text as="h3" variant="headingSm">{t('gdpr.exportTitle')}</Text>
+                        <Text as="p" tone="subdued">{t('gdpr.exportDesc')}</Text>
+                      </BlockStack>
+                      <PolarisButton
+                        variant="secondary"
+                        onClick={handleExportData}
+                        disabled={exportingData}
+                        loading={exportingData}
+                      >
+                        {exportingData ? t('gdpr.exporting') : t('gdpr.exportButton')}
+                      </PolarisButton>
+                    </InlineStack>
+                  </Box>
+
+                  {/* Data Deletion */}
+                  <Box padding="300" borderWidth="025" borderColor="border-critical" borderRadius="300" background="bg-surface-critical">
+                    <InlineStack align="space-between" blockAlign="start" gap="300">
+                      <BlockStack gap="100">
+                        <Text as="h3" variant="headingSm" tone="critical">{t('gdpr.deleteTitle')}</Text>
+                        <Text as="p" tone="critical">{t('gdpr.deleteDesc')}</Text>
+                        <InlineStack gap="100" blockAlign="center">
+                          <AlertTriangle className="w-3 h-3 text-red-700" />
+                          <Text as="span" variant="bodySm" tone="critical">{t('gdpr.deleteWarning')}</Text>
+                        </InlineStack>
+                      </BlockStack>
+                      <PolarisButton
+                        tone="critical"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        disabled={deletingData}
+                      >
+                        {t('gdpr.deleteButton')}
+                      </PolarisButton>
+                    </InlineStack>
+                  </Box>
+
+                  {/* Links */}
+                  <Box paddingBlockStart="300" borderBlockStartWidth="025" borderColor="border">
+                    <div className="flex flex-wrap gap-4 text-sm">
+                      <a href="/privacy-policy" target="_blank" className="text-primary hover:underline flex items-center gap-1">
+                        <ExternalLink className="w-3 h-3" /> {t('gdpr.links.privacy')}
+                      </a>
+                      <a href="/terms-of-service" target="_blank" className="text-primary hover:underline flex items-center gap-1">
+                        <ExternalLink className="w-3 h-3" /> {t('gdpr.links.terms')}
+                      </a>
+                      <a href="/cookie-policy" target="_blank" className="text-primary hover:underline flex items-center gap-1">
+                        <ExternalLink className="w-3 h-3" /> {t('gdpr.links.cookie')}
+                      </a>
+                    </div>
+                  </Box>
+                </BlockStack>
+              </Box>
+            </PolarisCard>
+
+            {/* Guardrail Add/Edit Modal */}
+            <Dialog open={showGuardrailModal} onOpenChange={(open) => {
+              if (!savingGuardrails) {
+                if (!open) closeGuardrailModal();
+                else setShowGuardrailModal(true);
+              }
+            }}>
+              <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingGuardrail ? t('guardrails.modal.titleEdit') : t('guardrails.modal.titleAdd')}
+                  </DialogTitle>
+                </DialogHeader>
+                <BlockStack gap="400">
+                  <TextField
+                    label={t('guardrails.modal.nameLabel')}
+                    value={guardrailName}
+                    onChange={setGuardrailName}
+                    placeholder="e.g. Competitor mention"
+                    autoComplete="off"
+                  />
+                  <TextField
+                    label={t('guardrails.modal.descLabel')}
+                    value={guardrailDescription}
+                    onChange={setGuardrailDescription}
+                    placeholder="Brief description of the rule"
+                    autoComplete="off"
+                  />
+                  <Select
+                    label={t('guardrails.modal.applyToLabel')}
+                    options={[
+                      { label: t('guardrails.types.both'), value: 'both' },
+                      { label: t('guardrails.types.user_message'), value: 'user_message' },
+                      { label: t('guardrails.types.ai_response'), value: 'ai_response' },
+                    ]}
+                    value={guardrailApplyTo}
+                    onChange={(value) => setGuardrailApplyTo(value as 'user_message' | 'ai_response' | 'both')}
+                  />
+                  <Select
+                    label={t('guardrails.modal.matchTypeLabel')}
+                    options={[
+                      { label: t('guardrails.modal.matchTypes.keywords'), value: 'keywords' },
+                      { label: t('guardrails.modal.matchTypes.phrase'), value: 'phrase' },
+                    ]}
+                    value={guardrailMatchType}
+                    onChange={(value) => setGuardrailMatchType(value as 'keywords' | 'phrase')}
+                  />
+                  <TextField
+                    label={t('guardrails.modal.valueLabel')}
+                    value={guardrailValue}
+                    onChange={setGuardrailValue}
+                    placeholder={guardrailMatchType === 'keywords' ? 'competitor, price, discount' : 'This product cures'}
+                    autoComplete="off"
+                  />
+                  <Select
+                    label={t('guardrails.modal.actionLabel')}
+                    options={[
+                      { label: t('guardrails.actions.block'), value: 'block' },
+                      { label: t('guardrails.actions.escalate'), value: 'escalate' },
+                    ]}
+                    value={guardrailAction}
+                    onChange={(value) => setGuardrailAction(value as 'block' | 'escalate')}
+                  />
+                  <TextField
+                    label={t('guardrails.modal.responseLabel')}
+                    value={guardrailSuggestedResponse}
+                    onChange={setGuardrailSuggestedResponse}
+                    placeholder="Text to show when rule is triggered"
+                    multiline={2}
+                    autoComplete="off"
+                  />
+                  <DialogFooter className="gap-3 sm:gap-3">
+                    <PolarisButton
+                      variant="secondary"
+                      onClick={closeGuardrailModal}
+                      disabled={savingGuardrails}
+                    >
+                      {t('guardrails.modal.cancel')}
+                    </PolarisButton>
+                    <PolarisButton
+                      onClick={handleSaveGuardrail}
+                      disabled={savingGuardrails}
+                      loading={savingGuardrails}
+                      variant="primary"
+                    >
+                      {savingGuardrails ? t('guardrails.modal.saving') : (editingGuardrail ? t('guardrails.modal.save') : t('guardrails.modal.save'))}
+                    </PolarisButton>
+                  </DialogFooter>
+                </BlockStack>
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Modal */}
+            <Dialog open={showDeleteConfirm} onOpenChange={(open) => {
+              if (!deletingData) setShowDeleteConfirm(open);
+            }}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>
+                    <InlineStack gap="200" blockAlign="center">
+                      <AlertTriangle className="w-5 h-5 text-red-600" />
+                      <Text as="span" variant="headingSm" tone="critical">{t('gdpr.modal.title')}</Text>
+                    </InlineStack>
+                  </DialogTitle>
+                </DialogHeader>
+                <Box paddingBlockStart="300">
+                  <BlockStack gap="400">
+                    <Box background="bg-surface-critical" borderColor="border-critical" borderWidth="025" borderRadius="300" padding="300">
+                      <BlockStack gap="200">
+                        <Text as="p" variant="bodyMd" fontWeight="medium" tone="critical">
+                          {t('gdpr.modal.warning')}
+                        </Text>
+                        <BlockStack gap="100">
+                          <Text as="p" variant="bodySm" tone="critical">• {t('gdpr.modal.list.all')}</Text>
+                          <Text as="p" variant="bodySm" tone="critical">• {t('gdpr.modal.list.permanent')}</Text>
+                          <Text as="p" variant="bodySm" tone="critical">• {t('gdpr.modal.list.cancel')}</Text>
+                        </BlockStack>
+                      </BlockStack>
+                    </Box>
+
+                    <BlockStack gap="200">
+                      <PolarisButton
+                        tone="critical"
+                        fullWidth
+                        onClick={() => handleDeleteData(false)}
+                        disabled={deletingData}
+                        loading={deletingData}
+                      >
+                        {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.softDelete')}
+                      </PolarisButton>
+                      <PolarisButton
+                        tone="critical"
+                        variant="secondary"
+                        fullWidth
+                        onClick={() => handleDeleteData(true)}
+                        disabled={deletingData}
+                      >
+                        {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.hardDelete')}
+                      </PolarisButton>
+                      <PolarisButton
+                        variant="secondary"
+                        fullWidth
+                        onClick={() => setShowDeleteConfirm(false)}
+                        disabled={deletingData}
+                      >
+                        {t('gdpr.modal.cancel')}
+                      </PolarisButton>
+                    </BlockStack>
+                  </BlockStack>
+                </Box>
+              </DialogContent>
+            </Dialog>
+
+          </div>
         </Layout.Section>
       </Layout>
     </Page>
