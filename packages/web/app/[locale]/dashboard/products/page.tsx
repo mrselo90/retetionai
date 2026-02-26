@@ -633,10 +633,10 @@ export default function ProductsPage() {
                       <span className="hidden md:inline">{t('view.list')}</span>
                     </button>
                   </PolarisButtonGroup>
-                  <PolarisButton url={`/${locale}/dashboard/products/shopify-map`} icon={ArrowRight}>
+                  <PolarisButton url={`/${locale}/dashboard/products/shopify-map`}>
                     {t('shopifyMapButton')}
                   </PolarisButton>
-                  <PolarisButton variant="primary" onClick={() => setShowAddModal(true)} icon={Plus}>
+                  <PolarisButton variant="primary" onClick={() => setShowAddModal(true)}>
                     {t('addProductButton')}
                   </PolarisButton>
                 </div>
@@ -921,7 +921,7 @@ export default function ProductsPage() {
                           </div>
 
                           <div className="mt-4">
-                            <PolarisButton fullWidth url={`/${locale}/dashboard/products/${product.id}`} icon={ArrowRight}>
+                            <PolarisButton fullWidth url={`/${locale}/dashboard/products/${product.id}`}>
                               {t('card.edit')}
                             </PolarisButton>
                           </div>
@@ -976,7 +976,7 @@ export default function ProductsPage() {
 
                           {renderProductStatusBadges(product)}
 
-                          <PolarisButton url={`/${locale}/dashboard/products/${product.id}`} fullWidth icon={ArrowRight}>
+                          <PolarisButton url={`/${locale}/dashboard/products/${product.id}`} fullWidth>
                             {t('card.edit')}
                           </PolarisButton>
                         </div>
@@ -1126,7 +1126,7 @@ export default function ProductsPage() {
                         <PolarisButton onClick={() => setShowAddModal(false)}>
                           {t('addModal.cancel')}
                         </PolarisButton>
-                        <PolarisButton variant="primary" onClick={handleAddProduct} icon={Plus}>
+                        <PolarisButton variant="primary" onClick={handleAddProduct}>
                           {t('addModal.submit')}
                         </PolarisButton>
                       </DialogFooter>
