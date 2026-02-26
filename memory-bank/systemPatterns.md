@@ -13,7 +13,7 @@
 ## Database Schema (Multi-Tenant)
 
 ### Core Tables
-- `merchants`: id, name, api_keys, webhook_secret, persona_settings (JSONB). persona_settings includes: bot_name, tone, emoji, response_length, temperature, product_instructions_scope ('order_only' | 'rag_products_too'), whatsapp_sender_mode ('merchant_own' | 'corporate').
+- `merchants`: id, name, api_keys, webhook_secret, persona_settings (JSONB). persona_settings includes: bot_name, tone, emoji, response_length, temperature, whatsapp_sender_mode ('merchant_own' | 'corporate').
 - `integrations`: id, merchant_id, provider, status, auth_type, auth_data (JSONB). provider can be 'shopify' | 'woocommerce' | 'ticimax' | 'manual' | 'whatsapp'. For provider='whatsapp', auth_data: phone_number_id, access_token, verify_token, phone_number_display (optional).
 - `products`: id, merchant_id, external_id, name, url, raw_text, vector_id
 - `users`: id, merchant_id, phone, name, consent_status

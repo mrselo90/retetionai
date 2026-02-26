@@ -424,9 +424,6 @@ export async function generateAIResponse(
     } catch { /* non-critical */ }
   }
 
-  // product_instructions_scope: 'order_only' | 'rag_products_too' (required from settings)
-  const productInstructionsScope = (persona?.product_instructions_scope === 'rag_products_too' ? 'rag_products_too' : 'order_only') as 'order_only' | 'rag_products_too';
-
   // Step 3: Get RAG context if it's a question OR return_intent (knowledge_chunks + product_instructions)
   let ragContext = '';
   if (intent === 'question' || (intent === 'return_intent' && returnPreventionActive)) {
@@ -500,20 +497,10 @@ export async function generateAIResponse(
         ragContext = formatRAGResultsForLLM(ragResult.results);
       }
 
-      // Product IDs to fetch usage instructions for (depends on setting)
+      // Policy: usage instructions are only included for products in the customer's own order.
       let instructionProductIds: string[] = [];
-      if (productInstructionsScope === 'order_only') {
-        if (orderId && orderProductIds && orderProductIds.length > 0) {
-          instructionProductIds = orderProductIds;
-        }
-      } else {
-        // rag_products_too: include order products and/or products that appeared in RAG results
-        const ragProductIds = [...new Set(ragResult.results.map((r) => r.productId))];
-        if (orderId && orderProductIds && orderProductIds.length > 0) {
-          instructionProductIds = [...new Set([...orderProductIds, ...ragProductIds])];
-        } else {
-          instructionProductIds = ragProductIds;
-        }
+      if (orderId && orderProductIds && orderProductIds.length > 0) {
+        instructionProductIds = orderProductIds;
       }
 
       const factsProductIds =

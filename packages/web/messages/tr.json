@@ -751,18 +751,6 @@
                 "balanced": "Dengeli (0.7)",
                 "creative": "Yaratıcı (1.0)"
             },
-            "productScopeLabel": "Ürün talimatları (WhatsApp)",
-            "productScopeDesc": "Kullanım talimatları (Shopify → Kullanım Talimatı sayfasındaki metinler) hangi durumlarda AI yanıtına eklensin?",
-            "productScopes": {
-                "orderOnly": {
-                    "label": "Sadece siparişi olan müşteriler",
-                    "desc": "Kullanım talimatları yalnızca siparişi olan müşterilere gösterilir."
-                },
-                "ragProductsToo": {
-                    "label": "Tüm ürün sorularında",
-                    "desc": "Siparişi olmasa bile, soru hangi ürüne denk geliyorsa o ürünün talimatları kullanılır (RAG)."
-                }
-            },
             "whatsappSenderLabel": "WhatsApp iletişim numarası",
             "whatsappSenderDesc": "Müşterilere gönderilen mesajlar hangi numaradan gitsin?",
             "whatsappSenders": {

@@ -751,18 +751,6 @@
                 "balanced": "Balanced (0.7)",
                 "creative": "Creative (1.0)"
             },
-            "productScopeLabel": "Product instructions (WhatsApp)",
-            "productScopeDesc": "When should usage instructions be included in AI responses?",
-            "productScopes": {
-                "orderOnly": {
-                    "label": "Only customers with orders",
-                    "desc": "Instructions shown only to customers who bought the product."
-                },
-                "ragProductsToo": {
-                    "label": "All product questions",
-                    "desc": "Instructions included for any product question (matched via RAG)."
-                }
-            },
             "whatsappSenderLabel": "WhatsApp Sender Number",
             "whatsappSenderDesc": "Which number should be used for outgoing messages?",
             "whatsappSenders": {

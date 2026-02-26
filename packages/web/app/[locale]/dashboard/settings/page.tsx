@@ -18,8 +18,6 @@ import { InlineError } from '@/components/ui/InlineError';
 import { PlanGatedFeature } from '@/components/ui/PlanGatedFeature';
 import { isShopifyEmbedded } from '@/lib/shopifyEmbedded';
 
-export type ProductInstructionsScope = 'order_only' | 'rag_products_too';
-
 /** Read-only system guardrail (shown in UI) */
 interface SystemGuardrailDefinition {
   id: string;
@@ -54,7 +52,6 @@ interface Merchant {
     emoji?: boolean;
     response_length?: 'short' | 'medium' | 'long';
     temperature?: number;
-    product_instructions_scope?: ProductInstructionsScope;
     whatsapp_sender_mode?: 'merchant_own' | 'corporate';
     whatsapp_welcome_template?: string;
   };
@@ -88,7 +85,6 @@ export default function SettingsPage() {
   const [emoji, setEmoji] = useState(true);
   const [responseLength, setResponseLength] = useState<'short' | 'medium' | 'long'>('medium');
   const [temperature, setTemperature] = useState(0.7);
-  const [productInstructionsScope, setProductInstructionsScope] = useState<ProductInstructionsScope>('order_only');
   const [whatsappSenderMode, setWhatsappSenderMode] = useState<'merchant_own' | 'corporate'>('merchant_own');
   const [whatsappWelcomeTemplate, setWhatsappWelcomeTemplate] = useState('');
   const [notificationPhone, setNotificationPhone] = useState('');
@@ -141,9 +137,6 @@ export default function SettingsPage() {
       setEmoji(persona.emoji !== false);
       setResponseLength(persona.response_length || 'medium');
       setTemperature(persona.temperature || 0.7);
-      setProductInstructionsScope(
-        persona.product_instructions_scope === 'rag_products_too' ? 'rag_products_too' : 'order_only'
-      );
       setWhatsappSenderMode(
         persona.whatsapp_sender_mode === 'corporate' ? 'corporate' : 'merchant_own'
       );
@@ -261,7 +254,6 @@ export default function SettingsPage() {
               emoji,
               response_length: responseLength,
               temperature,
-              product_instructions_scope: productInstructionsScope,
               whatsapp_sender_mode: whatsappSenderMode,
               whatsapp_welcome_template: whatsappWelcomeTemplate.trim() || undefined,
             },
@@ -741,35 +733,6 @@ export default function SettingsPage() {
               <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.balanced')}</Text>
               <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.creative')}</Text>
             </InlineStack>
-          </BlockStack>
-
-          {/* Product instructions scope (WhatsApp answers) — one must be chosen */}
-          <Divider />
-          <BlockStack gap="200">
-            <ChoiceList
-              title={t('botPersona.productScopeLabel')}
-              choices={[
-                { label: t('botPersona.productScopes.orderOnly.label'), value: 'order_only' },
-                { label: t('botPersona.productScopes.ragProductsToo.label'), value: 'rag_products_too' },
-              ]}
-              selected={[productInstructionsScope]}
-              onChange={(selected) => {
-                const next = selected[0] as ProductInstructionsScope | undefined;
-                if (next) {
-                  setProductInstructionsScope(next);
-                  setIsDirty(true);
-                }
-              }}
-            />
-            <Text as="p" tone="subdued">{t('botPersona.productScopeDesc')}</Text>
-            <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
-              <BlockStack gap="200">
-                <Text as="p" variant="bodySm"><strong>{t('botPersona.productScopes.orderOnly.label')}</strong></Text>
-                <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.productScopes.orderOnly.desc')}</Text>
-                <Text as="p" variant="bodySm"><strong>{t('botPersona.productScopes.ragProductsToo.label')}</strong></Text>
-                <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.productScopes.ragProductsToo.desc')}</Text>
-              </BlockStack>
-            </Box>
           </BlockStack>
 
           {/* WhatsApp sender: merchant's number vs corporate number — one must be chosen */}
