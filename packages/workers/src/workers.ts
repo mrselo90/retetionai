@@ -94,7 +94,7 @@ const defaultWorkerOptions: WorkerOptions = {
 export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
   QUEUE_NAMES.SCHEDULED_MESSAGES,
   async (job) => {
-    const { type, userId, orderId, merchantId, messageTemplate, to, scheduledFor, productIds } = job.data;
+    const { type, userId, orderId, merchantId, messageTemplate, to, scheduledFor, productIds, productNames: jobProductNames } = job.data;
 
     logger.info({ type, userId, orderId }, '[Scheduled Message] Processing job');
 
@@ -133,7 +133,7 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           const instructionProductNames = uniqueNonEmpty(
             instructions.map((row: ProductInstructionRow) => row.product_name)
           );
-          let productNames = instructionProductNames;
+          let productNames = instructionProductNames.length > 0 ? instructionProductNames : uniqueNonEmpty(jobProductNames || []);
 
           if (productNames.length === 0) {
             const { data: products } = await serviceClient

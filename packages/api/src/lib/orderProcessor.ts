@@ -156,6 +156,9 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
       const productIds = (event.items ?? [])
         .map((i) => i.external_product_id)
         .filter((id): id is string => Boolean(id));
+      const productNames = (event.items ?? [])
+        .map((i) => (typeof i.name === 'string' ? i.name.trim() : ''))
+        .filter(Boolean);
       if (event.customer?.phone && productIds.length >= 0) {
         try {
           await scheduleMessage({
@@ -166,6 +169,7 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
             to: event.customer.phone,
             scheduledFor: new Date().toISOString(),
             productIds: productIds.length > 0 ? productIds : undefined,
+            productNames: productNames.length > 0 ? productNames : undefined,
           });
           logger.info({ orderId }, 'Queued T+0 welcome message for order');
         } catch (error) {
