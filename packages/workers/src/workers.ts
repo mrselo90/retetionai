@@ -124,8 +124,7 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           text: message,
           preview_url: false,
         },
-        credentials.accessToken,
-        credentials.phoneNumberId
+        credentials
       );
 
       if (!sendResult.success) {

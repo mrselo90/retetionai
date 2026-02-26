@@ -311,8 +311,7 @@ conversations.post('/:id/reply', async (c) => {
     // Send message via WhatsApp
     const result = await sendWhatsAppMessage(
       { to: userPhone, text },
-      credentials.accessToken,
-      credentials.phoneNumberId
+      credentials
     );
 
     if (!result.success) {

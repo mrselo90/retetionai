@@ -58,12 +58,13 @@ whatsapp.get('/webhooks/whatsapp', async (c) => {
 whatsapp.post('/webhooks/whatsapp', verifyWhatsAppWebhookSignature, async (c) => {
   try {
     const body = c.get('whatsappWebhookBody');
+    const webhookProvider = c.get('whatsappWebhookProvider') as 'meta' | 'twilio' | undefined;
     if (!body || typeof body !== 'object') {
       return c.json({ error: 'Invalid webhook body' }, 400);
     }
 
     // Parse webhook messages
-    const messages = parseWhatsAppWebhook(body);
+    const messages = parseWhatsAppWebhook(body, webhookProvider);
 
     if (messages.length === 0) {
       // Might be a status update or other webhook event
@@ -100,8 +101,7 @@ whatsapp.post('/webhooks/whatsapp', verifyWhatsAppWebhookSignature, async (c) =>
                 to: normalizedPhone,
                 text: 'Merhaba! Size nasıl yardımcı olabilirim? Lütfen sipariş numaranızı paylaşın.',
               },
-              credentials.accessToken,
-              credentials.phoneNumberId
+              credentials
             );
           }
           continue;
@@ -183,8 +183,7 @@ whatsapp.post('/webhooks/whatsapp', verifyWhatsAppWebhookSignature, async (c) =>
               text: aiResponse.response,
               preview_url: false,
             },
-            credentials.accessToken,
-            credentials.phoneNumberId
+            credentials
           );
 
           if (!sendResult.success) {
@@ -210,8 +209,7 @@ whatsapp.post('/webhooks/whatsapp', verifyWhatsAppWebhookSignature, async (c) =>
                 text: aiResponse.upsellMessage,
                 preview_url: true, // Enable preview for product links
               },
-              credentials.accessToken,
-              credentials.phoneNumberId
+              credentials
             );
 
             if (upsellResult.success) {
@@ -292,8 +290,7 @@ whatsapp.post('/send', authMiddleware, async (c) => {
       text,
       preview_url,
     },
-    credentials.accessToken,
-    credentials.phoneNumberId
+    credentials
   );
 
   if (!result.success) {
@@ -333,8 +330,10 @@ whatsapp.get('/test', authMiddleware, requireActiveSubscription as any, async (c
 
   return c.json({
     configured: true,
-    phoneNumberId: credentials.phoneNumberId,
-    // Don't expose access token
+    provider: credentials.provider,
+    ...(credentials.provider === 'meta'
+      ? { phoneNumberId: credentials.phoneNumberId }
+      : { fromNumber: credentials.fromNumber }),
   });
 });
 

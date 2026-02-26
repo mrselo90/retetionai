@@ -86,8 +86,7 @@ export async function notifyMerchantOfEscalation(params: {
 
         await sendWhatsAppMessage(
             { to: notificationPhone, text: notificationText },
-            credentials.accessToken,
-            credentials.phoneNumberId
+            credentials
         );
 
         console.log(`[Escalation] ✅ Merchant ${merchantId} notified at ${notificationPhone}`);

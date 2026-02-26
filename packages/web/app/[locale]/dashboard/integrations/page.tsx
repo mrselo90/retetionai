@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest, getApiUrl, getApiBaseUrlForDisplay } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Badge as PolarisBadge, Banner, BlockStack, Box, Button as PolarisButton, Card as PolarisCard, InlineStack, Layout, Page, SkeletonPage, Text, TextField } from '@shopify/polaris';
+import { Badge as PolarisBadge, Banner, BlockStack, Box, Button as PolarisButton, Card as PolarisCard, InlineStack, Layout, Page, Select, SkeletonPage, Text, TextField } from '@shopify/polaris';
 import { Loader2, X, Trash2, Pencil, Plug, Upload, Code, MessageSquare, ShoppingBag, MessageCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useTranslations, useLocale } from 'next-intl';
@@ -17,6 +17,8 @@ interface Integration {
   created_at: string;
   updated_at: string;
   phone_number_display?: string;
+  whatsapp_provider?: 'meta' | 'twilio';
+  from_number?: string;
   /** Shopify store domain (e.g. store.myshopify.com) when provider is shopify */
   shop_domain?: string;
 }
@@ -38,10 +40,14 @@ export default function IntegrationsPage() {
   const [showManualModal, setShowManualModal] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [connectingWhatsApp, setConnectingWhatsApp] = useState(false);
+  const [whatsappProviderType, setWhatsappProviderType] = useState<'meta' | 'twilio'>('twilio');
   const [whatsappPhoneDisplay, setWhatsappPhoneDisplay] = useState('');
   const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState('');
   const [whatsappAccessToken, setWhatsappAccessToken] = useState('');
   const [whatsappVerifyToken, setWhatsappVerifyToken] = useState('');
+  const [whatsappTwilioAccountSid, setWhatsappTwilioAccountSid] = useState('');
+  const [whatsappTwilioAuthToken, setWhatsappTwilioAuthToken] = useState('');
+  const [whatsappTwilioFromNumber, setWhatsappTwilioFromNumber] = useState('');
   const [editingWhatsAppId, setEditingWhatsAppId] = useState<string | null>(null);
   const [platformWhatsApp, setPlatformWhatsApp] = useState<string>('');
 
@@ -203,23 +209,35 @@ export default function IntegrationsPage() {
 
   const openWhatsAppModal = (integration?: Integration) => {
     if (integration?.provider === 'whatsapp') {
+      setWhatsappProviderType(integration.whatsapp_provider === 'meta' ? 'meta' : 'twilio');
       setEditingWhatsAppId(integration.id);
       setWhatsappPhoneDisplay(integration.phone_number_display || '');
+      setWhatsappTwilioFromNumber(integration.from_number || '');
       setWhatsappPhoneNumberId('');
       setWhatsappAccessToken('');
       setWhatsappVerifyToken('');
+      setWhatsappTwilioAccountSid('');
+      setWhatsappTwilioAuthToken('');
     } else {
+      setWhatsappProviderType('twilio');
       setEditingWhatsAppId(null);
       setWhatsappPhoneDisplay('');
+      setWhatsappTwilioFromNumber('');
       setWhatsappPhoneNumberId('');
       setWhatsappAccessToken('');
       setWhatsappVerifyToken('');
+      setWhatsappTwilioAccountSid('');
+      setWhatsappTwilioAuthToken('');
     }
     setShowWhatsAppModal(true);
   };
 
   const handleSaveWhatsApp = async () => {
-    if (!whatsappPhoneNumberId.trim() || !whatsappAccessToken.trim() || !whatsappVerifyToken.trim()) {
+    const isTwilio = whatsappProviderType === 'twilio';
+    if (
+      (isTwilio && (!whatsappTwilioAccountSid.trim() || !whatsappTwilioAuthToken.trim() || !whatsappTwilioFromNumber.trim())) ||
+      (!isTwilio && (!whatsappPhoneNumberId.trim() || !whatsappAccessToken.trim() || !whatsappVerifyToken.trim()))
+    ) {
       toast.warning(t('toasts.missingWhatsapp.title'), t('toasts.missingWhatsapp.message'));
       return;
     }
@@ -227,12 +245,21 @@ export default function IntegrationsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       setConnectingWhatsApp(true);
-      const auth_data = {
-        phone_number_id: whatsappPhoneNumberId.trim(),
-        access_token: whatsappAccessToken.trim(),
-        verify_token: whatsappVerifyToken.trim(),
-        phone_number_display: whatsappPhoneDisplay.trim() || undefined,
-      };
+      const auth_data = isTwilio
+        ? {
+            wa_provider: 'twilio' as const,
+            account_sid: whatsappTwilioAccountSid.trim(),
+            auth_token: whatsappTwilioAuthToken.trim(),
+            from_number: whatsappTwilioFromNumber.trim(),
+            phone_number_display: whatsappPhoneDisplay.trim() || undefined,
+          }
+        : {
+            wa_provider: 'meta' as const,
+            phone_number_id: whatsappPhoneNumberId.trim(),
+            access_token: whatsappAccessToken.trim(),
+            verify_token: whatsappVerifyToken.trim(),
+            phone_number_display: whatsappPhoneDisplay.trim() || undefined,
+          };
       if (editingWhatsAppId) {
         await authenticatedRequest(
           `/api/integrations/${editingWhatsAppId}`,
@@ -257,10 +284,14 @@ export default function IntegrationsPage() {
       }
       setShowWhatsAppModal(false);
       setEditingWhatsAppId(null);
+      setWhatsappProviderType('twilio');
       setWhatsappPhoneDisplay('');
       setWhatsappPhoneNumberId('');
       setWhatsappAccessToken('');
       setWhatsappVerifyToken('');
+      setWhatsappTwilioAccountSid('');
+      setWhatsappTwilioAuthToken('');
+      setWhatsappTwilioFromNumber('');
       await loadIntegrations();
     } catch (err: any) {
       toast.error(t('toasts.whatsappError.title'), err.message || t('toasts.whatsappError.message'));
@@ -794,31 +825,74 @@ export default function IntegrationsPage() {
               disabled={connectingWhatsApp}
               autoComplete="off"
             />
-            <TextField
-              label={t('modals.whatsapp.phoneIdLabel')}
-              value={whatsappPhoneNumberId}
-              onChange={setWhatsappPhoneNumberId}
-              placeholder={t('modals.whatsapp.phoneIdPlaceholder')}
+            <Select
+              label="WhatsApp Provider"
+              options={[
+                { label: 'Twilio (Recommended)', value: 'twilio' },
+                { label: 'Meta Cloud API', value: 'meta' },
+              ]}
+              value={whatsappProviderType}
+              onChange={(value) => setWhatsappProviderType(value as 'meta' | 'twilio')}
               disabled={connectingWhatsApp}
-              autoComplete="off"
             />
-            <TextField
-              label={t('modals.whatsapp.tokenLabel')}
-              type="password"
-              value={whatsappAccessToken}
-              onChange={setWhatsappAccessToken}
-              placeholder={t('modals.whatsapp.tokenPlaceholder')}
-              disabled={connectingWhatsApp}
-              autoComplete="off"
-            />
-            <TextField
-              label={t('modals.whatsapp.verifyLabel')}
-              value={whatsappVerifyToken}
-              onChange={setWhatsappVerifyToken}
-              placeholder={t('modals.whatsapp.verifyPlaceholder')}
-              disabled={connectingWhatsApp}
-              autoComplete="off"
-            />
+            {whatsappProviderType === 'twilio' ? (
+              <>
+                <TextField
+                  label="Twilio Account SID"
+                  value={whatsappTwilioAccountSid}
+                  onChange={setWhatsappTwilioAccountSid}
+                  placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  disabled={connectingWhatsApp}
+                  autoComplete="off"
+                />
+                <TextField
+                  label="Twilio Auth Token"
+                  type="password"
+                  value={whatsappTwilioAuthToken}
+                  onChange={setWhatsappTwilioAuthToken}
+                  placeholder="Twilio Auth Token"
+                  disabled={connectingWhatsApp}
+                  autoComplete="off"
+                />
+                <TextField
+                  label="Twilio WhatsApp From Number"
+                  value={whatsappTwilioFromNumber}
+                  onChange={setWhatsappTwilioFromNumber}
+                  placeholder="+14155238886"
+                  helpText="Use the sandbox number during testing, then switch to your approved Twilio WhatsApp sender."
+                  disabled={connectingWhatsApp}
+                  autoComplete="off"
+                />
+              </>
+            ) : (
+              <>
+                <TextField
+                  label={t('modals.whatsapp.phoneIdLabel')}
+                  value={whatsappPhoneNumberId}
+                  onChange={setWhatsappPhoneNumberId}
+                  placeholder={t('modals.whatsapp.phoneIdPlaceholder')}
+                  disabled={connectingWhatsApp}
+                  autoComplete="off"
+                />
+                <TextField
+                  label={t('modals.whatsapp.tokenLabel')}
+                  type="password"
+                  value={whatsappAccessToken}
+                  onChange={setWhatsappAccessToken}
+                  placeholder={t('modals.whatsapp.tokenPlaceholder')}
+                  disabled={connectingWhatsApp}
+                  autoComplete="off"
+                />
+                <TextField
+                  label={t('modals.whatsapp.verifyLabel')}
+                  value={whatsappVerifyToken}
+                  onChange={setWhatsappVerifyToken}
+                  placeholder={t('modals.whatsapp.verifyPlaceholder')}
+                  disabled={connectingWhatsApp}
+                  autoComplete="off"
+                />
+              </>
+            )}
 
             <DialogFooter className="gap-3 sm:gap-3">
               <PolarisButton
@@ -830,7 +904,12 @@ export default function IntegrationsPage() {
               </PolarisButton>
               <PolarisButton
                 onClick={handleSaveWhatsApp}
-                disabled={connectingWhatsApp || !whatsappPhoneNumberId.trim() || !whatsappAccessToken.trim() || !whatsappVerifyToken.trim()}
+                disabled={
+                  connectingWhatsApp ||
+                  (whatsappProviderType === 'twilio'
+                    ? !whatsappTwilioAccountSid.trim() || !whatsappTwilioAuthToken.trim() || !whatsappTwilioFromNumber.trim()
+                    : !whatsappPhoneNumberId.trim() || !whatsappAccessToken.trim() || !whatsappVerifyToken.trim())
+                }
                 variant="primary"
                 loading={connectingWhatsApp}
               >

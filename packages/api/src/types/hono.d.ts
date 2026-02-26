@@ -19,6 +19,7 @@ declare module 'hono' {
     validatedQuery?: unknown;
     validatedParams?: unknown;
     whatsappWebhookBody?: unknown;
+    whatsappWebhookProvider?: 'meta' | 'twilio';
     logger: Logger; // Added for structured logging
   }
 }

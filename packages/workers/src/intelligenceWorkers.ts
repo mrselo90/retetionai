@@ -290,8 +290,7 @@ export const abandonedCartWorker = new Worker(
 
     const result = await sendWhatsAppMessage(
       { to: phone, text: message, preview_url: true },
-      credentials.accessToken,
-      credentials.phoneNumberId
+      credentials
     );
 
     // Update cart status
@@ -352,8 +351,7 @@ export const feedbackWorker = new Worker(
 
     const result = await sendWhatsAppMessage(
       { to: phone, text: message },
-      credentials.accessToken,
-      credentials.phoneNumberId
+      credentials
     );
 
     await supabase

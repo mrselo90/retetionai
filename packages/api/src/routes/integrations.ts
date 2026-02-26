@@ -9,6 +9,78 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const integrations = new Hono();
 
+type WhatsAppAuthDataInput = {
+  wa_provider?: 'meta' | 'twilio';
+  provider_type?: 'meta' | 'twilio';
+  phone_number_id?: string;
+  access_token?: string;
+  verify_token?: string;
+  account_sid?: string;
+  auth_token?: string;
+  from_number?: string;
+  phone_number_display?: string;
+};
+
+function getWhatsAppProviderType(auth: WhatsAppAuthDataInput): 'meta' | 'twilio' {
+  const declared = auth.wa_provider || auth.provider_type;
+  if (declared === 'meta' || declared === 'twilio') return declared;
+  if (auth.account_sid || auth.auth_token || auth.from_number) return 'twilio';
+  return 'meta';
+}
+
+function validateWhatsAppAuthData(authData: unknown): { valid: true } | { valid: false; error: string } {
+  if (!authData || typeof authData !== 'object' || Array.isArray(authData)) {
+    return { valid: false, error: 'auth_data is required and must be an object' };
+  }
+
+  const wa = authData as WhatsAppAuthDataInput;
+  const providerType = getWhatsAppProviderType(wa);
+
+  if (providerType === 'twilio') {
+    if (!wa.account_sid || !wa.auth_token || !wa.from_number) {
+      return {
+        valid: false,
+        error:
+          'Twilio WhatsApp integration requires auth_data.account_sid, auth_data.auth_token, and auth_data.from_number',
+      };
+    }
+    return { valid: true };
+  }
+
+  if (!wa.phone_number_id || !wa.access_token || !wa.verify_token) {
+    return {
+      valid: false,
+      error: 'Meta WhatsApp integration requires auth_data.phone_number_id, auth_data.access_token, and auth_data.verify_token',
+    };
+  }
+
+  return { valid: true };
+}
+
+function sanitizeWhatsAppAuthData(authData: unknown): Record<string, unknown> {
+  if (!authData || typeof authData !== 'object' || Array.isArray(authData)) {
+    return {};
+  }
+
+  const wa = authData as WhatsAppAuthDataInput;
+  const providerType = getWhatsAppProviderType(wa);
+
+  if (providerType === 'twilio') {
+    return {
+      wa_provider: 'twilio',
+      phone_number_display: wa.phone_number_display,
+      from_number: wa.from_number,
+      account_sid: wa.account_sid,
+    };
+  }
+
+  return {
+    wa_provider: 'meta',
+    phone_number_display: wa.phone_number_display,
+    phone_number_id: wa.phone_number_id,
+  };
+}
+
 // All routes require authentication
 // integrations.use('/*', authMiddleware); // Removed global middleware to avoid affecting nested routes
 
@@ -31,11 +103,16 @@ integrations.get('/', authMiddleware, async (c) => {
       return c.json({ error: 'Failed to fetch integrations' }, 500);
     }
 
-    const integrationList = (rawList || []).map((row: { auth_data?: { phone_number_display?: string; shop?: string }; provider?: string; [k: string]: unknown }) => {
+    const integrationList = (rawList || []).map((row: { auth_data?: { phone_number_display?: string; shop?: string; wa_provider?: string; provider_type?: string; from_number?: string }; provider?: string; [k: string]: unknown }) => {
       const { auth_data, ...rest } = row;
       const out = { ...rest };
       if (row.provider === 'whatsapp' && auth_data && typeof auth_data === 'object' && 'phone_number_display' in auth_data) {
         (out as Record<string, unknown>).phone_number_display = (auth_data as { phone_number_display?: string }).phone_number_display;
+        const waAuth = auth_data as WhatsAppAuthDataInput;
+        (out as Record<string, unknown>).whatsapp_provider = getWhatsAppProviderType(waAuth);
+        if (waAuth.from_number) {
+          (out as Record<string, unknown>).from_number = waAuth.from_number;
+        }
       }
       if (row.provider === 'shopify' && auth_data && typeof auth_data === 'object' && 'shop' in auth_data) {
         (out as Record<string, unknown>).shop_domain = (auth_data as { shop?: string }).shop;
@@ -75,11 +152,7 @@ integrations.get('/:id', authMiddleware, async (c) => {
 
     // For WhatsApp, do not expose access_token or verify_token
     if (integration.provider === 'whatsapp' && integration.auth_data && typeof integration.auth_data === 'object') {
-      const auth = integration.auth_data as Record<string, unknown>;
-      integration.auth_data = {
-        phone_number_display: auth.phone_number_display,
-        phone_number_id: auth.phone_number_id,
-      };
+      integration.auth_data = sanitizeWhatsAppAuthData(integration.auth_data);
     }
 
     return c.json({ integration });
@@ -131,13 +204,11 @@ integrations.post('/', authMiddleware, async (c) => {
       return c.json({ error: 'auth_data is required and must be an object' }, 400);
     }
 
-    // WhatsApp: require phone_number_id, access_token, verify_token
+    // WhatsApp: validate provider-specific credentials (Meta or Twilio)
     if (provider === 'whatsapp') {
-      const wa = auth_data as { phone_number_id?: string; access_token?: string; verify_token?: string };
-      if (!wa.phone_number_id || !wa.access_token || !wa.verify_token) {
-        return c.json({
-          error: 'WhatsApp integration requires auth_data.phone_number_id, access_token, and verify_token',
-        }, 400);
+      const validation = validateWhatsAppAuthData(auth_data);
+      if (!validation.valid) {
+        return c.json({ error: validation.error }, 400);
       }
     }
 
@@ -222,13 +293,20 @@ integrations.put('/:id', authMiddleware, async (c) => {
     // Verify integration belongs to merchant
     const { data: existing } = await serviceClient
       .from('integrations')
-      .select('id')
+      .select('id, provider')
       .eq('id', integrationId)
       .eq('merchant_id', merchantId)
       .single();
 
     if (!existing) {
       return c.json({ error: 'Integration not found' }, 404);
+    }
+
+    if (body.auth_data !== undefined && (existing as { provider?: string }).provider === 'whatsapp') {
+      const validation = validateWhatsAppAuthData(body.auth_data);
+      if (!validation.valid) {
+        return c.json({ error: validation.error }, 400);
+      }
     }
 
     // Update integration

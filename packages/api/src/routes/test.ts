@@ -20,6 +20,7 @@ import { evaluateStyleCompliance } from '../lib/styleCompliance.js';
 import { getActiveProductFactsContext } from '../lib/productFactsQuery.js';
 import { getActiveProductFactsSnapshots } from '../lib/productFactsQuery.js';
 import { planStructuredFactAnswer } from '../lib/productFactsPlanner.js';
+import { getEffectiveWhatsAppCredentials, sendWhatsAppMessage } from '../lib/whatsapp.js';
 import { getRedisClient } from '@recete/shared';
 import { Queue } from 'bullmq';
 
@@ -156,6 +157,92 @@ test.post('/whatsapp', async (c) => {
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
+  }
+});
+
+/**
+ * WhatsApp Provider Smoke Test (authenticated)
+ * POST /api/test/whatsapp-live
+ * - Without `to`: returns provider/config status only
+ * - With `to`: sends a real WhatsApp message using configured provider credentials
+ */
+test.post('/whatsapp-live', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const body = await c.req.json().catch(() => ({} as Record<string, unknown>));
+
+    const to = typeof body?.to === 'string' ? body.to.trim() : '';
+    const text =
+      typeof body?.text === 'string' && body.text.trim()
+        ? body.text.trim()
+        : `Recete WhatsApp smoke test ${new Date().toISOString()}`;
+
+    const credentials = await getEffectiveWhatsAppCredentials(merchantId);
+    if (!credentials) {
+      return c.json(
+        {
+          configured: false,
+          error: 'WhatsApp not configured',
+          message: 'No effective WhatsApp credentials found for this merchant',
+        },
+        200
+      );
+    }
+
+    const providerInfo =
+      credentials.provider === 'twilio'
+        ? { provider: 'twilio', fromNumber: credentials.fromNumber }
+        : { provider: 'meta', phoneNumberId: credentials.phoneNumberId };
+
+    if (!to) {
+      return c.json({
+        configured: true,
+        sendAttempted: false,
+        ...providerInfo,
+        hint: 'Pass JSON body { "to": "+90555...", "text": "..." } to send a real test message.',
+      });
+    }
+
+    const result = await sendWhatsAppMessage(
+      {
+        to,
+        text,
+        preview_url: false,
+      },
+      credentials
+    );
+
+    if (!result.success) {
+      return c.json(
+        {
+          configured: true,
+          sendAttempted: true,
+          success: false,
+          ...providerInfo,
+          to,
+          error: result.error || 'Failed to send WhatsApp test message',
+        },
+        502
+      );
+    }
+
+    return c.json({
+      configured: true,
+      sendAttempted: true,
+      success: true,
+      ...providerInfo,
+      to,
+      messageId: result.messageId,
+      text,
+    });
+  } catch (error) {
+    return c.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
   }
 });
 
