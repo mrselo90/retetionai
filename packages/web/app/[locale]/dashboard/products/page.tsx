@@ -15,16 +15,15 @@ import {
   SkeletonPage,
   Text,
   TextField as PolarisTextField,
+  EmptyState,
+  Button as PolarisButton,
 } from '@shopify/polaris';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { EmptyState } from '@/components/ui/empty-state';
 import { Package, Plus, Trash2, ExternalLink, FileText, CheckCircle, Loader2, ArrowRight, LayoutGrid, List, Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { SESSION_RECHECK_MS } from '@/lib/constants';
 
 interface Product {
@@ -55,6 +54,7 @@ type ProductsSavedView = {
 
 export default function ProductsPage() {
   const t = useTranslations('Products');
+  const locale = useLocale();
   const [products, setProducts] = useState<ProductWithChunks[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ProductsViewMode>('grid');
@@ -596,564 +596,546 @@ export default function ProductsPage() {
     <Page title={t('title')} subtitle={t('description')} fullWidth>
       <Layout>
         <Layout.Section>
-    <div className="space-y-6 animate-fade-in pb-8">
-      {/* Header */}
-      <PolarisCard>
-        <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-1.5">
-            <Text as="h2" variant="headingMd">{t('title')}</Text>
-            <Text as="p" tone="subdued">{t('description')}</Text>
-          </div>
-          <div className="grid w-full gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-none xl:auto-cols-max xl:grid-flow-col xl:items-center">
-            <PolarisButtonGroup>
-              <button
-                type="button"
-                onClick={() => handleViewModeChange('grid')}
-                className={`inline-flex min-w-[76px] items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors border ${
-                  viewMode === 'grid'
-                    ? 'bg-[#1f6f53] text-white border-[#1f6f53]'
-                    : 'bg-white text-zinc-700 border-[var(--p-color-border)] hover:bg-zinc-50'
-                }`}
-                aria-pressed={viewMode === 'grid'}
-                title={t('view.grid')}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{t('view.grid')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleViewModeChange('list')}
-                className={`inline-flex min-w-[76px] items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors border ${
-                  viewMode === 'list'
-                    ? 'bg-[#1f6f53] text-white border-[#1f6f53]'
-                    : 'bg-white text-zinc-700 border-[var(--p-color-border)] hover:bg-zinc-50'
-                }`}
-                aria-pressed={viewMode === 'list'}
-                title={t('view.list')}
-              >
-                <List className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">{t('view.list')}</span>
-              </button>
-            </PolarisButtonGroup>
-            <Button variant="outline" size="sm" className="justify-center" asChild>
-              <Link href="/dashboard/products/shopify-map">
-                <ArrowRight className="w-4 h-4 mr-2" />
-                {t('shopifyMapButton')}
-              </Link>
-            </Button>
-            <Button size="sm" className="justify-center" onClick={() => setShowAddModal(true)}>
-              <Plus className="w-5 h-5 mr-2" />
-              {t('addProductButton')}
-            </Button>
-          </div>
-        </div>
-      </PolarisCard>
-
-      {products.length > 0 && (
-        <PolarisCard>
-          <div className="p-4 sm:p-5 space-y-4">
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:items-start">
-              <div className="min-w-0">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <button
-                  type="button"
-                  onClick={() => applySavedView('all')}
-                  className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    activeSavedViewId === 'all'
-                      ? 'border-[var(--p-color-border-emphasis)] bg-[var(--p-color-bg-fill-secondary)] text-[var(--p-color-text)]'
-                      : 'border-border bg-background text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {t('savedViews.all')}
-                </button>
-                {savedViews.map((view) => (
-                  <span key={view.id} className="inline-flex shrink-0 items-center rounded-full border border-border bg-background text-xs max-w-[220px]">
+          <div className="space-y-6 animate-fade-in pb-8">
+            {/* Header */}
+            <PolarisCard>
+              <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div className="space-y-1.5">
+                  <Text as="h2" variant="headingMd">{t('title')}</Text>
+                  <Text as="p" tone="subdued">{t('description')}</Text>
+                </div>
+                <div className="grid w-full gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-none xl:auto-cols-max xl:grid-flow-col xl:items-center">
+                  <PolarisButtonGroup>
                     <button
                       type="button"
-                      onClick={() => applySavedView(view.id)}
-                      className={`px-3 py-1.5 rounded-full transition-colors truncate ${
-                        activeSavedViewId === view.id
-                          ? 'bg-[var(--p-color-bg-fill-secondary)] text-[var(--p-color-text)]'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                      title={view.name}
+                      onClick={() => handleViewModeChange('grid')}
+                      className={`inline-flex min-w-[76px] items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors border ${viewMode === 'grid'
+                        ? 'bg-[#1f6f53] text-white border-[#1f6f53]'
+                        : 'bg-white text-zinc-700 border-[var(--p-color-border)] hover:bg-zinc-50'
+                        }`}
+                      aria-pressed={viewMode === 'grid'}
+                      title={t('view.grid')}
                     >
-                      {view.name}
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{t('view.grid')}</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => deleteSavedView(view.id)}
-                      className="pr-2 pl-1 text-muted-foreground hover:text-destructive"
-                      aria-label={t('savedViews.deleteAria', { name: view.name })}
+                      onClick={() => handleViewModeChange('list')}
+                      className={`inline-flex min-w-[76px] items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors border ${viewMode === 'list'
+                        ? 'bg-[#1f6f53] text-white border-[#1f6f53]'
+                        : 'bg-white text-zinc-700 border-[var(--p-color-border)] hover:bg-zinc-50'
+                        }`}
+                      aria-pressed={viewMode === 'list'}
+                      title={t('view.list')}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <List className="w-3.5 h-3.5" />
+                      <span className="hidden md:inline">{t('view.list')}</span>
                     </button>
-                  </span>
-                ))}
-              </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2 xl:justify-end xl:self-start">
-                <Button variant="outline" size="sm" onClick={saveCurrentView}>
-                  {t('savedViews.saveCurrent')}
-                </Button>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-[var(--p-color-border-secondary)] bg-[var(--p-color-bg-surface-secondary)]/35 p-3 sm:p-4">
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_260px_260px] 2xl:items-end">
-                <div className="min-w-0 lg:col-span-2 2xl:col-span-1">
-                  <PolarisTextField
-                    label={t('filters.searchLabel')}
-                    autoComplete="off"
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    placeholder={t('filters.searchPlaceholder')}
-                    prefix={<Search className="w-4 h-4 text-zinc-500" aria-hidden />}
-                  />
-                </div>
-
-                <div className="min-w-0">
-                  <PolarisSelect
-                    label={t('filters.status')}
-                    options={[
-                      { label: t('filters.statusOptions.all'), value: 'all' },
-                      { label: t('filters.statusOptions.ragReady'), value: 'rag_ready' },
-                      { label: t('filters.statusOptions.ragNotReady'), value: 'rag_not_ready' },
-                      { label: t('filters.statusOptions.ragUnknown'), value: 'rag_unknown' },
-                      { label: t('filters.statusOptions.scraped'), value: 'scraped' },
-                      { label: t('filters.statusOptions.notScraped'), value: 'not_scraped' },
-                    ]}
-                    value={statusFilter}
-                    onChange={(value) => setStatusFilter(value as ProductStatusFilter)}
-                  />
-                </div>
-
-                <div className="min-w-0">
-                  <PolarisSelect
-                    label={t('filters.sort')}
-                    options={[
-                      { label: t('filters.sortOptions.updatedDesc'), value: 'updated_desc' },
-                      { label: t('filters.sortOptions.updatedAsc'), value: 'updated_asc' },
-                      { label: t('filters.sortOptions.nameAsc'), value: 'name_asc' },
-                      { label: t('filters.sortOptions.nameDesc'), value: 'name_desc' },
-                      { label: t('filters.sortOptions.chunksDesc'), value: 'chunks_desc' },
-                      { label: t('filters.sortOptions.chunksAsc'), value: 'chunks_asc' },
-                    ]}
-                    value={sortBy}
-                    onChange={(value) => setSortBy(value as ProductSortOption)}
-                  />
+                  </PolarisButtonGroup>
+                  <PolarisButton url={`/${locale}/dashboard/products/shopify-map`} icon={ArrowRight}>
+                    {t('shopifyMapButton')}
+                  </PolarisButton>
+                  <PolarisButton variant="primary" onClick={() => setShowAddModal(true)} icon={Plus}>
+                    {t('addProductButton')}
+                  </PolarisButton>
                 </div>
               </div>
-            </div>
+            </PolarisCard>
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
-              <Text as="p" tone="subdued">
-                {t('filters.resultsCount', { shown: filteredAndSortedProducts.length, total: products.length })}
-              </Text>
-              {(searchQuery || statusFilter !== 'all' || sortBy !== 'updated_desc') && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setStatusFilter('all');
-                    setSortBy('updated_desc');
-                    setActiveSavedViewId('all');
-                  }}
-                  className="text-primary hover:text-primary/80 font-medium text-left sm:text-right"
-                >
-                  {t('filters.reset')}
-                </button>
-              )}
-            </div>
-
-            {(searchQuery || statusFilter !== 'all' || sortBy !== 'updated_desc') && (
-              <div className="flex flex-col sm:flex-row sm:items-start gap-2">
-                <span className="text-xs text-muted-foreground font-medium leading-7 shrink-0">{t('filters.applied')}:</span>
-                <div className="flex flex-wrap items-center gap-2 min-w-0">
-                {searchQuery && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
-                    {t('filters.searchChip', { value: searchQuery })}
-                    <button type="button" onClick={() => setSearchQuery('')} className="text-muted-foreground hover:text-foreground">
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {statusFilter !== 'all' && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
-                    {t('filters.statusChip', { value: getStatusFilterLabel(statusFilter) })}
-                    <button type="button" onClick={() => setStatusFilter('all')} className="text-muted-foreground hover:text-foreground">
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {sortBy !== 'updated_desc' && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
-                    {t('filters.sortChip', { value: getSortLabel(sortBy) })}
-                    <button type="button" onClick={() => setSortBy('updated_desc')} className="text-muted-foreground hover:text-foreground">
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                </div>
-              </div>
-            )}
-          </div>
-        </PolarisCard>
-      )}
-
-      {products.length > 0 && (
-        <PolarisCard>
-          <div className="p-4 sm:p-5 grid gap-3 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-center">
-            <div className="flex flex-wrap items-center gap-2 min-w-0">
-              <button
-                type="button"
-                onClick={toggleSelectAllVisibleProducts}
-                disabled={visibleProductIds.length === 0}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-background text-sm hover:bg-muted disabled:opacity-50"
-              >
-                <span
-                  aria-hidden
-                  className={`inline-flex h-4 w-4 items-center justify-center rounded border text-[10px] ${
-                    allVisibleSelected ? 'bg-primary text-primary-foreground border-primary' : 'border-zinc-300 text-transparent'
-                  }`}
-                >
-                  ✓
-                </span>
-                <span>
-                  {allVisibleSelected ? t('bulk.unselectVisible') : t('bulk.selectVisible')}
-                </span>
-              </button>
-              <Text as="p" tone="subdued">
-                {t('bulk.selectedCount', { count: selectedProductIds.length, visible: selectedVisibleCount })}
-              </Text>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 2xl:min-w-[420px]">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
-                onClick={clearSelectedProducts}
-              >
-                {t('bulk.clearSelection')}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
-                onClick={() => runBulkProductAction('scrape')}
-              >
-                {bulkActionLoading === 'scrape' ? t('bulk.scraping') : t('bulk.rescrape')}
-              </Button>
-              <Button
-                size="sm"
-                disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
-                onClick={() => runBulkProductAction('embeddings')}
-              >
-                {bulkActionLoading === 'embeddings' ? t('bulk.generatingEmbeddings') : t('bulk.generateEmbeddings')}
-              </Button>
-            </div>
-          </div>
-        </PolarisCard>
-      )}
-
-      {/* Products Grid/List */}
-      {products.length === 0 && !loading ? (
-        <EmptyState
-          icon={Package}
-          title={t('empty.title')}
-          description={t('empty.description')}
-          iconVariant="primary"
-          action={{
-            label: t('empty.button'),
-            onClick: () => setShowAddModal(true),
-            variant: 'default',
-          }}
-          secondaryAction={{
-            label: t('empty.refresh'),
-            onClick: () => {
-              setLoading(true);
-              loadProducts();
-            },
-            variant: 'outline',
-          }}
-        />
-      ) : (
-        filteredAndSortedProducts.length === 0 ? (
-          <PolarisCard>
-            <div className="p-8 text-center">
-              <Text as="p" tone="subdued">{t('filters.noMatches')}</Text>
-            </div>
-          </PolarisCard>
-        ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredAndSortedProducts.map((product) => (
-              <Card key={product.id} hover className="group overflow-hidden">
-                <CardHeader className="pb-4 ">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-2 min-w-0">
-                      <input
-                        type="checkbox"
-                        checked={selectedIdSet.has(product.id)}
-                        onChange={() => toggleProductSelection(product.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        aria-label={t('bulk.selectProduct', { name: product.name })}
-                        className="mt-1 rounded border-zinc-300"
-                      />
-                      <CardTitle className="text-lg line-clamp-2 pr-2 font-bold">{product.name}</CardTitle>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (confirm(t('card.deleteConfirm'))) {
-                          handleDeleteProduct(product.id);
-                        }
-                      }}
-                      type="button"
-                      title={t('card.deleteConfirm')}
-                      className="flex-shrink-0 p-2 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <a
-                    href={product.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:text-primary/80 line-clamp-1 flex items-center gap-2 font-medium transition-colors group/link"
-                  >
-                    <ExternalLink className="w-4 h-4 shrink-0 group-hover/link:scale-110 transition-transform" />
-                    <span className="truncate">{product.url}</span>
-                  </a>
-
-                  {renderProductStatusBadges(product)}
-
-                  <Button variant="outline" className="w-full group/btn" asChild size="lg">
-                    <Link href={`/dashboard/products/${product.id}`}>
-                      <ArrowRight className="w-4 h-4 mr-2 group-hover/btn:translate-x-1 transition-transform" />
-                      {t('card.edit')}
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <PolarisCard>
-            <div className="divide-y divide-border">
-              {filteredAndSortedProducts.map((product) => (
-                <div key={`mobile-${product.id}`} className="px-4 sm:px-5 py-4 md:hidden">
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex items-start gap-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedIdSet.has(product.id)}
-                          onChange={() => toggleProductSelection(product.id)}
-                          aria-label={t('bulk.selectProduct', { name: product.name })}
-                          className="mt-1 rounded border-zinc-300"
-                        />
-                        <div className="min-w-0">
-                          <p className="font-semibold text-foreground leading-snug line-clamp-2">{product.name}</p>
-                          <p className="mt-1 text-xs text-muted-foreground break-all">{product.id}</p>
-                        </div>
+            {products.length > 0 && (
+              <PolarisCard>
+                <div className="p-4 sm:p-5 space-y-4">
+                  <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:items-start">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <button
+                          type="button"
+                          onClick={() => applySavedView('all')}
+                          className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${activeSavedViewId === 'all'
+                            ? 'border-[var(--p-color-border-emphasis)] bg-[var(--p-color-bg-fill-secondary)] text-[var(--p-color-text)]'
+                            : 'border-border bg-background text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                          {t('savedViews.all')}
+                        </button>
+                        {savedViews.map((view) => (
+                          <span key={view.id} className="inline-flex shrink-0 items-center rounded-full border border-border bg-background text-xs max-w-[220px]">
+                            <button
+                              type="button"
+                              onClick={() => applySavedView(view.id)}
+                              className={`px-3 py-1.5 rounded-full transition-colors truncate ${activeSavedViewId === view.id
+                                ? 'bg-[var(--p-color-bg-fill-secondary)] text-[var(--p-color-text)]'
+                                : 'text-muted-foreground hover:text-foreground'
+                                }`}
+                              title={view.name}
+                            >
+                              {view.name}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteSavedView(view.id)}
+                              className="pr-2 pl-1 text-muted-foreground hover:text-destructive"
+                              aria-label={t('savedViews.deleteAria', { name: view.name })}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </span>
+                        ))}
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
-                        }}
-                        type="button"
-                        title={t('card.deleteConfirm')}
-                        className="flex-shrink-0 p-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
 
-                    <a
-                      href={product.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:text-primary/80 line-clamp-1 flex items-center gap-2 font-medium"
+                    <div className="flex flex-wrap gap-2 xl:justify-end xl:self-start">
+                      <PolarisButton onClick={saveCurrentView}>
+                        {t('savedViews.saveCurrent')}
+                      </PolarisButton>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-[var(--p-color-border-secondary)] bg-[var(--p-color-bg-surface-secondary)]/35 p-3 sm:p-4">
+                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_260px_260px] 2xl:items-end">
+                      <div className="min-w-0 lg:col-span-2 2xl:col-span-1">
+                        <PolarisTextField
+                          label={t('filters.searchLabel')}
+                          autoComplete="off"
+                          value={searchQuery}
+                          onChange={setSearchQuery}
+                          placeholder={t('filters.searchPlaceholder')}
+                          prefix={<Search className="w-4 h-4 text-zinc-500" aria-hidden />}
+                        />
+                      </div>
+
+                      <div className="min-w-0">
+                        <PolarisSelect
+                          label={t('filters.status')}
+                          options={[
+                            { label: t('filters.statusOptions.all'), value: 'all' },
+                            { label: t('filters.statusOptions.ragReady'), value: 'rag_ready' },
+                            { label: t('filters.statusOptions.ragNotReady'), value: 'rag_not_ready' },
+                            { label: t('filters.statusOptions.ragUnknown'), value: 'rag_unknown' },
+                            { label: t('filters.statusOptions.scraped'), value: 'scraped' },
+                            { label: t('filters.statusOptions.notScraped'), value: 'not_scraped' },
+                          ]}
+                          value={statusFilter}
+                          onChange={(value) => setStatusFilter(value as ProductStatusFilter)}
+                        />
+                      </div>
+
+                      <div className="min-w-0">
+                        <PolarisSelect
+                          label={t('filters.sort')}
+                          options={[
+                            { label: t('filters.sortOptions.updatedDesc'), value: 'updated_desc' },
+                            { label: t('filters.sortOptions.updatedAsc'), value: 'updated_asc' },
+                            { label: t('filters.sortOptions.nameAsc'), value: 'name_asc' },
+                            { label: t('filters.sortOptions.nameDesc'), value: 'name_desc' },
+                            { label: t('filters.sortOptions.chunksDesc'), value: 'chunks_desc' },
+                            { label: t('filters.sortOptions.chunksAsc'), value: 'chunks_asc' },
+                          ]}
+                          value={sortBy}
+                          onChange={(value) => setSortBy(value as ProductSortOption)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
+                    <Text as="p" tone="subdued">
+                      {t('filters.resultsCount', { shown: filteredAndSortedProducts.length, total: products.length })}
+                    </Text>
+                    {(searchQuery || statusFilter !== 'all' || sortBy !== 'updated_desc') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setStatusFilter('all');
+                          setSortBy('updated_desc');
+                          setActiveSavedViewId('all');
+                        }}
+                        className="text-primary hover:text-primary/80 font-medium text-left sm:text-right"
+                      >
+                        {t('filters.reset')}
+                      </button>
+                    )}
+                  </div>
+
+                  {(searchQuery || statusFilter !== 'all' || sortBy !== 'updated_desc') && (
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-2">
+                      <span className="text-xs text-muted-foreground font-medium leading-7 shrink-0">{t('filters.applied')}:</span>
+                      <div className="flex flex-wrap items-center gap-2 min-w-0">
+                        {searchQuery && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
+                            {t('filters.searchChip', { value: searchQuery })}
+                            <button type="button" onClick={() => setSearchQuery('')} className="text-muted-foreground hover:text-foreground">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </span>
+                        )}
+                        {statusFilter !== 'all' && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
+                            {t('filters.statusChip', { value: getStatusFilterLabel(statusFilter) })}
+                            <button type="button" onClick={() => setStatusFilter('all')} className="text-muted-foreground hover:text-foreground">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </span>
+                        )}
+                        {sortBy !== 'updated_desc' && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
+                            {t('filters.sortChip', { value: getSortLabel(sortBy) })}
+                            <button type="button" onClick={() => setSortBy('updated_desc')} className="text-muted-foreground hover:text-foreground">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </PolarisCard>
+            )}
+
+            {products.length > 0 && (
+              <PolarisCard>
+                <div className="p-4 sm:p-5 grid gap-3 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-center">
+                  <div className="flex flex-wrap items-center gap-2 min-w-0">
+                    <button
+                      type="button"
+                      onClick={toggleSelectAllVisibleProducts}
+                      disabled={visibleProductIds.length === 0}
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-background text-sm hover:bg-muted disabled:opacity-50"
                     >
-                      <ExternalLink className="w-4 h-4 shrink-0" />
-                      <span className="truncate">{product.url}</span>
-                    </a>
+                      <span
+                        aria-hidden
+                        className={`inline-flex h-4 w-4 items-center justify-center rounded border text-[10px] ${allVisibleSelected ? 'bg-primary text-primary-foreground border-primary' : 'border-zinc-300 text-transparent'
+                          }`}
+                      >
+                        ✓
+                      </span>
+                      <span>
+                        {allVisibleSelected ? t('bulk.unselectVisible') : t('bulk.selectVisible')}
+                      </span>
+                    </button>
+                    <Text as="p" tone="subdued">
+                      {t('bulk.selectedCount', { count: selectedProductIds.length, visible: selectedVisibleCount })}
+                    </Text>
+                  </div>
 
-                    {renderProductStatusBadges(product)}
-
-                    <Button variant="outline" className="w-full" asChild>
-                      <Link href={`/dashboard/products/${product.id}`}>
-                        <ArrowRight className="w-4 h-4 mr-2" />
-                        {t('card.edit')}
-                      </Link>
-                    </Button>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 2xl:min-w-[420px]">
+                    <PolarisButton
+                      disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
+                      onClick={clearSelectedProducts}
+                    >
+                      {t('bulk.clearSelection')}
+                    </PolarisButton>
+                    <PolarisButton
+                      disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
+                      onClick={() => runBulkProductAction('scrape')}
+                    >
+                      {bulkActionLoading === 'scrape' ? t('bulk.scraping') : t('bulk.rescrape')}
+                    </PolarisButton>
+                    <PolarisButton
+                      variant="primary"
+                      disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
+                      onClick={() => runBulkProductAction('embeddings')}
+                    >
+                      {bulkActionLoading === 'embeddings' ? t('bulk.generatingEmbeddings') : t('bulk.generateEmbeddings')}
+                    </PolarisButton>
                   </div>
                 </div>
-              ))}
+              </PolarisCard>
+            )}
 
-              <div className="hidden md:block overflow-x-auto">
-                <div className="min-w-[1320px]">
-                <IndexTable
-                  selectable={false}
-                  itemCount={filteredAndSortedProducts.length}
-                  resourceName={{ singular: t('list.columns.product'), plural: t('title') }}
-                  headings={[
-                    { title: '' },
-                    { title: t('list.columns.product') },
-                    { title: t('list.columns.source') },
-                    { title: t('list.columns.status') },
-                    { title: t('list.columns.actions'), alignment: 'end' },
-                  ]}
+            {/* Products Grid/List */}
+            {products.length === 0 && !loading ? (
+              <PolarisCard>
+                <EmptyState
+                  heading={t('empty.title')}
+                  action={{
+                    content: t('empty.button'),
+                    onAction: () => setShowAddModal(true),
+                  }}
+                  secondaryAction={{
+                    content: t('empty.refresh'),
+                    onAction: () => {
+                      setLoading(true);
+                      loadProducts();
+                    },
+                  }}
+                  image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
                 >
-                  {filteredAndSortedProducts.map((product, index) => (
-                    <IndexTable.Row id={product.id} key={product.id} position={index}>
-                      <IndexTable.Cell>
-                        <input
-                          type="checkbox"
-                          checked={selectedIdSet.has(product.id)}
-                          onChange={() => toggleProductSelection(product.id)}
-                          aria-label={t('bulk.selectProduct', { name: product.name })}
-                          className="rounded border-zinc-300"
-                        />
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>
-                        <div className="min-w-0 max-w-[320px]">
-                          <Link
-                            href={`/dashboard/products/${product.id}`}
-                            className="block font-semibold text-foreground hover:text-primary line-clamp-2 break-words"
-                          >
-                            {product.name}
-                          </Link>
-                          <p className="mt-1 text-xs text-muted-foreground truncate">{product.id}</p>
-                        </div>
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>
-                        <div className="min-w-0 max-w-[440px]">
-                          <a
-                            href={product.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-primary hover:text-primary/80 line-clamp-1 inline-flex items-start gap-2"
-                          >
-                            <ExternalLink className="w-4 h-4 shrink-0 mt-0.5" />
-                            <span className="truncate max-w-[390px]">{product.url}</span>
-                          </a>
-                        </div>
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>
-                        <div className="w-[280px]">
-                          {renderProductStatusCompact(product)}
-                        </div>
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>
-                        <div className="flex items-center justify-end gap-2 min-w-[160px] whitespace-nowrap">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/dashboard/products/${product.id}`}>
-                              {t('card.edit')}
-                            </Link>
-                          </Button>
+                  <p>{t('empty.description')}</p>
+                </EmptyState>
+              </PolarisCard>
+            ) : (
+              filteredAndSortedProducts.length === 0 ? (
+                <PolarisCard>
+                  <div className="p-8 text-center">
+                    <Text as="p" tone="subdued">{t('filters.noMatches')}</Text>
+                  </div>
+                </PolarisCard>
+              ) : viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {filteredAndSortedProducts.map((product) => (
+                    <PolarisCard key={product.id}>
+                      <div className="p-4 sm:p-5 flex flex-col h-full space-y-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-2 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={selectedIdSet.has(product.id)}
+                              onChange={() => toggleProductSelection(product.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              aria-label={t('bulk.selectProduct', { name: product.name })}
+                              className="mt-1 rounded border-zinc-300"
+                            />
+                            <h3 className="text-lg line-clamp-2 pr-2 font-bold text-foreground m-0">{product.name}</h3>
+                          </div>
                           <button
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
+                              if (confirm(t('card.deleteConfirm'))) {
+                                handleDeleteProduct(product.id);
+                              }
                             }}
                             type="button"
                             title={t('card.deleteConfirm')}
-                            className="p-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                            className="flex-shrink-0 p-2 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                      </IndexTable.Cell>
-                    </IndexTable.Row>
+                        <div className="space-y-4 flex flex-col flex-1">
+                          <a
+                            href={product.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:text-primary/80 line-clamp-1 flex items-center gap-2 font-medium transition-colors group/link"
+                          >
+                            <ExternalLink className="w-4 h-4 shrink-0 group-hover/link:scale-110 transition-transform" />
+                            <span className="truncate">{product.url}</span>
+                          </a>
+
+                          <div className="mb-auto">
+                            {renderProductStatusBadges(product)}
+                          </div>
+
+                          <div className="mt-4">
+                            <PolarisButton fullWidth url={`/${locale}/dashboard/products/${product.id}`} icon={ArrowRight}>
+                              {t('card.edit')}
+                            </PolarisButton>
+                          </div>
+                        </div>
+                      </div>
+                    </PolarisCard>
                   ))}
-                </IndexTable>
                 </div>
-              </div>
+              ) : (
+                <PolarisCard>
+                  <div className="divide-y divide-border">
+                    {filteredAndSortedProducts.map((product) => (
+                      <div key={`mobile-${product.id}`} className="px-4 sm:px-5 py-4 md:hidden">
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex items-start gap-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedIdSet.has(product.id)}
+                                onChange={() => toggleProductSelection(product.id)}
+                                aria-label={t('bulk.selectProduct', { name: product.name })}
+                                className="mt-1 rounded border-zinc-300"
+                              />
+                              <div className="min-w-0">
+                                <p className="font-semibold text-foreground leading-snug line-clamp-2">{product.name}</p>
+                                <p className="mt-1 text-xs text-muted-foreground break-all">{product.id}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
+                              }}
+                              type="button"
+                              title={t('card.deleteConfirm')}
+                              className="flex-shrink-0 p-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
 
-            </div>
-          </PolarisCard>
-        )
-      )}
+                          <a
+                            href={product.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:text-primary/80 line-clamp-1 flex items-center gap-2 font-medium"
+                          >
+                            <ExternalLink className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{product.url}</span>
+                          </a>
 
-      {/* Add Product Modal */}
-      <Dialog open={showAddModal} onOpenChange={(open) => {
-        if (!scraping) setShowAddModal(open);
-      }}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center ">
-                <Plus className="w-6 h-6" />
-              </div>
-              <DialogTitle className="text-2xl">{t('addModal.title')}</DialogTitle>
-            </div>
-          </DialogHeader>
+                          {renderProductStatusBadges(product)}
 
-          <div className="pt-4">
-            {scraping ? (
-              <div className="py-12 text-center">
-                <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                </div>
-                <p className="text-xl font-bold mb-2">{scrapeProgress}</p>
-                <p className="text-sm text-muted-foreground font-medium">{t('addModal.scraping.wait')}</p>
-                <div className="mt-6 w-full max-w-xs mx-auto bg-muted rounded-full h-2 overflow-hidden">
-                  <div className="h-full bg-primary animate-pulse rounded-full" style={{ width: '60%' }}></div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="product-name">{t('addModal.nameLabel')}</Label>
-                  <Input
-                    id="product-name"
-                    type="text"
-                    value={newProductName}
-                    onChange={(e) => setNewProductName(e.target.value)}
-                    placeholder={t('addModal.namePlaceholder')}
-                    className="h-10"
-                  />
-                </div>
+                          <PolarisButton url={`/${locale}/dashboard/products/${product.id}`} fullWidth icon={ArrowRight}>
+                            {t('card.edit')}
+                          </PolarisButton>
+                        </div>
+                      </div>
+                    ))}
 
-                <div className="space-y-2">
-                  <Label htmlFor="product-url">{t('addModal.urlLabel')}</Label>
-                  <Input
-                    id="product-url"
-                    type="url"
-                    value={newProductUrl}
-                    onChange={(e) => setNewProductUrl(e.target.value)}
-                    placeholder={t('addModal.urlPlaceholder')}
-                    className="h-10"
-                  />
-                  <p className="text-xs text-muted-foreground font-medium">
-                    {t('addModal.urlHelper')}
-                  </p>
-                </div>
+                    <div className="hidden md:block overflow-x-auto">
+                      <div className="min-w-[1320px]">
+                        <IndexTable
+                          selectable={false}
+                          itemCount={filteredAndSortedProducts.length}
+                          resourceName={{ singular: t('list.columns.product'), plural: t('title') }}
+                          headings={[
+                            { title: '' },
+                            { title: t('list.columns.product') },
+                            { title: t('list.columns.source') },
+                            { title: t('list.columns.status') },
+                            { title: t('list.columns.actions'), alignment: 'end' },
+                          ]}
+                        >
+                          {filteredAndSortedProducts.map((product, index) => (
+                            <IndexTable.Row id={product.id} key={product.id} position={index}>
+                              <IndexTable.Cell>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedIdSet.has(product.id)}
+                                  onChange={() => toggleProductSelection(product.id)}
+                                  aria-label={t('bulk.selectProduct', { name: product.name })}
+                                  className="rounded border-zinc-300"
+                                />
+                              </IndexTable.Cell>
+                              <IndexTable.Cell>
+                                <div className="min-w-0 max-w-[320px]">
+                                  <Link
+                                    href={`/dashboard/products/${product.id}`}
+                                    className="block font-semibold text-foreground hover:text-primary line-clamp-2 break-words"
+                                  >
+                                    {product.name}
+                                  </Link>
+                                  <p className="mt-1 text-xs text-muted-foreground truncate">{product.id}</p>
+                                </div>
+                              </IndexTable.Cell>
+                              <IndexTable.Cell>
+                                <div className="min-w-0 max-w-[440px]">
+                                  <a
+                                    href={product.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-primary hover:text-primary/80 line-clamp-1 inline-flex items-start gap-2"
+                                  >
+                                    <ExternalLink className="w-4 h-4 shrink-0 mt-0.5" />
+                                    <span className="truncate max-w-[390px]">{product.url}</span>
+                                  </a>
+                                </div>
+                              </IndexTable.Cell>
+                              <IndexTable.Cell>
+                                <div className="w-[280px]">
+                                  {renderProductStatusCompact(product)}
+                                </div>
+                              </IndexTable.Cell>
+                              <IndexTable.Cell>
+                                <div className="flex items-center justify-end gap-2 min-w-[160px] whitespace-nowrap">
+                                  <PolarisButton url={`/dashboard/products/${product.id}`}>
+                                    {t('card.edit')}
+                                  </PolarisButton>
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
+                                    }}
+                                    type="button"
+                                    title={t('card.deleteConfirm')}
+                                    className="p-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </IndexTable.Cell>
+                            </IndexTable.Row>
+                          ))}
+                        </IndexTable>
+                      </div>
+                    </div>
 
-                <DialogFooter className="pt-4 gap-3 sm:gap-0">
-                  <Button variant="outline" size="lg" className="flex-1 sm:flex-none" onClick={() => setShowAddModal(false)}>
-                    {t('addModal.cancel')}
-                  </Button>
-                  <Button size="lg" className="flex-1 sm:flex-none " onClick={handleAddProduct}>
-                    <Plus className="w-5 h-5 mr-2" />
-                    {t('addModal.submit')}
-                  </Button>
-                </DialogFooter>
-              </div>
+                  </div>
+                </PolarisCard>
+              )
             )}
+
+            {/* Add Product Modal */}
+            <Dialog open={showAddModal} onOpenChange={(open) => {
+              if (!scraping) setShowAddModal(open);
+            }}>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center ">
+                      <Plus className="w-6 h-6" />
+                    </div>
+                    <DialogTitle className="text-2xl">{t('addModal.title')}</DialogTitle>
+                  </div>
+                </DialogHeader>
+
+                <div className="pt-4">
+                  {scraping ? (
+                    <div className="py-12 text-center">
+                      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
+                        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                      </div>
+                      <p className="text-xl font-bold mb-2">{scrapeProgress}</p>
+                      <p className="text-sm text-muted-foreground font-medium">{t('addModal.scraping.wait')}</p>
+                      <div className="mt-6 w-full max-w-xs mx-auto bg-muted rounded-full h-2 overflow-hidden">
+                        <div className="h-full bg-primary animate-pulse rounded-full" style={{ width: '60%' }}></div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-5">
+                      <div className="space-y-2">
+                        <Label htmlFor="product-name">{t('addModal.nameLabel')}</Label>
+                        <Input
+                          id="product-name"
+                          type="text"
+                          value={newProductName}
+                          onChange={(e) => setNewProductName(e.target.value)}
+                          placeholder={t('addModal.namePlaceholder')}
+                          className="h-10"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="product-url">{t('addModal.urlLabel')}</Label>
+                        <Input
+                          id="product-url"
+                          type="url"
+                          value={newProductUrl}
+                          onChange={(e) => setNewProductUrl(e.target.value)}
+                          placeholder={t('addModal.urlPlaceholder')}
+                          className="h-10"
+                        />
+                        <p className="text-xs text-muted-foreground font-medium">
+                          {t('addModal.urlHelper')}
+                        </p>
+                      </div>
+
+                      <DialogFooter className="pt-4 gap-3 sm:gap-0">
+                        <PolarisButton onClick={() => setShowAddModal(false)}>
+                          {t('addModal.cancel')}
+                        </PolarisButton>
+                        <PolarisButton variant="primary" onClick={handleAddProduct} icon={Plus}>
+                          {t('addModal.submit')}
+                        </PolarisButton>
+                      </DialogFooter>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
         </Layout.Section>
       </Layout>
     </Page>
