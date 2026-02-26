@@ -6,7 +6,7 @@
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { decryptPhone, encryptPhone } from './encryption.js';
 import type { NormalizedEvent } from './events.js';
-import { normalizePhone } from './events.js';
+import { generateIdempotencyKey, normalizePhone } from './events.js';
 import { scheduleOrderMessages } from './messageScheduler.js';
 import { scheduleMessage } from '../queues.js';
 
@@ -19,6 +19,40 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
   created: boolean;
 }> {
   const serviceClient = getSupabaseServiceClient();
+
+  // Direct/manual callers may bypass the webhook ingestion path that persists external_events.
+  // Shadow-write the normalized event so order-scoped product context (RAG) can resolve items later.
+  try {
+    const idempotencyKey = generateIdempotencyKey(
+      event.source,
+      event.event_type,
+      event.external_order_id,
+      event.occurred_at
+    );
+
+    const { error: shadowInsertError } = await serviceClient
+      .from('external_events')
+      .insert({
+        merchant_id: event.merchant_id,
+        integration_id: event.integration_id ?? null,
+        source: event.source,
+        event_type: event.event_type,
+        payload: event as any,
+        idempotency_key: idempotencyKey,
+      });
+
+    if (shadowInsertError && shadowInsertError.code !== '23505') {
+      logger.warn(
+        { err: shadowInsertError, merchantId: event.merchant_id, externalOrderId: event.external_order_id },
+        'Failed to shadow-store normalized event'
+      );
+    }
+  } catch (error) {
+    logger.warn(
+      { err: error, merchantId: event.merchant_id, externalOrderId: event.external_order_id },
+      'Failed to shadow-store normalized event'
+    );
+  }
 
   // Step 1: Upsert user (by merchant_id + phone)
   let userId: string;

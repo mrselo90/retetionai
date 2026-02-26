@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { queryKnowledgeBase, formatRAGResultsForLLM } from './rag';
+import { queryKnowledgeBase, formatRAGResultsForLLM, getOrderProductContextResolved } from './rag';
 import { getSupabaseServiceClient } from '@recete/shared';
 import { mockSupabaseClient } from '../test/mocks';
 import { generateEmbedding } from './embeddings';
@@ -218,5 +218,64 @@ describe('formatRAGResultsForLLM', () => {
 
     expect(formatted).toBeDefined();
     // Should return empty or default message
+  });
+});
+
+describe('getOrderProductContextResolved', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSupabaseClient.__reset();
+    (getSupabaseServiceClient as any).mockReturnValue(mockSupabaseClient);
+  });
+
+  it('should resolve products by item name when external product IDs are not mapped', async () => {
+    const ordersBuilder: any = mockSupabaseClient.from('orders');
+    ordersBuilder.__pushResult({
+      data: {
+        id: 'order-1',
+        merchant_id: 'merchant-1',
+        user_id: 'user-1',
+        external_order_id: 'ORDER-001',
+      },
+      error: null,
+    });
+
+    const eventsBuilder: any = mockSupabaseClient.from('external_events');
+    eventsBuilder.__setDefaultResult({
+      data: [
+        {
+          payload: {
+            external_order_id: 'ORDER-001',
+            items: [
+              { external_product_id: 'manual-unmapped-1', name: 'Maruderm Vitamin C Cream' },
+              { name: 'Maruderm Cleanser Gel' },
+            ],
+          },
+        },
+      ],
+      error: null,
+    });
+
+    const productsBuilder: any = mockSupabaseClient.from('products');
+    // First query: external_id lookup -> no matches
+    productsBuilder.__pushResult({ data: [], error: null });
+    // Second query: merchant products for name fallback -> matches by name
+    productsBuilder.__pushResult({
+      data: [
+        { id: 'prod-1', name: 'Maruderm Vitamin C Cream' },
+        { id: 'prod-2', name: 'Maruderm Cleanser Gel' },
+        { id: 'prod-3', name: 'Unrelated Product' },
+      ],
+      error: null,
+    });
+
+    const chunksBuilder: any = mockSupabaseClient.from('knowledge_chunks');
+    chunksBuilder.__setDefaultResult({ data: [], error: null });
+
+    const result = await getOrderProductContextResolved('order-1', 'merchant-1');
+
+    expect(result.productIds).toEqual(['prod-1', 'prod-2']);
+    expect(result.source).toBe('external_events');
+    expect(result.chunks).toEqual([]);
   });
 });

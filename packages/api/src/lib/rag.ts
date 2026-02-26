@@ -54,6 +54,13 @@ interface OrderScopeResolution {
   source: 'external_events' | 'merchant_fallback_legacy' | 'none';
 }
 
+function normalizeProductNameForMatch(name: string): string {
+  return (name || '')
+    .trim()
+    .toLocaleLowerCase('tr-TR')
+    .replace(/\s+/g, ' ');
+}
+
 /**
  * Perform semantic search over knowledge base
  * Uses pgvector HNSW index via Supabase RPC for fast similarity search
@@ -297,10 +304,13 @@ export async function getOrderProductContextResolved(
       .order('received_at', { ascending: false })
       .limit(5);
 
+    const eventItems = (events || []).flatMap((e: any) =>
+      Array.isArray(e?.payload?.items) ? e.payload.items : []
+    );
+
     const externalProductIds = Array.from(
       new Set(
-        (events || [])
-          .flatMap((e: any) => Array.isArray(e?.payload?.items) ? e.payload.items : [])
+        eventItems
           .map((i: any) => (typeof i?.external_product_id === 'string' ? i.external_product_id.trim() : ''))
           .filter(Boolean)
       )
@@ -314,6 +324,34 @@ export async function getOrderProductContextResolved(
         .in('external_id', externalProductIds);
 
       resolvedProductIds = Array.from(new Set((products || []).map((p: any) => p.id)));
+    }
+
+    // Fallback for manual / CSV orders where external_product_id may be missing or not mapped.
+    if (resolvedProductIds.length === 0) {
+      const eventItemNames = Array.from(
+        new Set(
+          eventItems
+            .map((i: any) => (typeof i?.name === 'string' ? i.name.trim() : ''))
+            .filter(Boolean)
+        )
+      );
+
+      if (eventItemNames.length > 0) {
+        const { data: merchantProducts } = await serviceClient
+          .from('products')
+          .select('id, name')
+          .eq('merchant_id', order.merchant_id)
+          .limit(5000);
+
+        const requestedNames = new Set(eventItemNames.map(normalizeProductNameForMatch));
+        resolvedProductIds = Array.from(
+          new Set(
+            (merchantProducts || [])
+              .filter((p: any) => requestedNames.has(normalizeProductNameForMatch(String(p?.name || ''))))
+              .map((p: any) => p.id)
+          )
+        );
+      }
     }
   } catch {
     // Best-effort only. We'll return no scope rather than broadening incorrectly.
