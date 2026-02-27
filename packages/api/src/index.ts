@@ -182,6 +182,9 @@ app.route('/api/admin', adminRoutes);
 // Event processing routes
 app.route('/api/events', eventRoutes);
 
+// Billing & subscription routes
+app.route('/api/billing', billingRoutes);
+
 // Webhook routes (public endpoints, authenticated via HMAC/API key)
 app.route('/webhooks', webhookRoutes);
 
