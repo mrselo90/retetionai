@@ -695,14 +695,20 @@ export default function ProductsPage() {
                   <div className="rounded-xl border border-[var(--p-color-border-secondary)] bg-[var(--p-color-bg-surface-secondary)]/35 p-3 sm:p-4">
                     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_260px_260px] 2xl:items-end">
                       <div className="min-w-0 lg:col-span-2 2xl:col-span-1">
-                        <PolarisTextField
-                          label={t('filters.searchLabel')}
-                          autoComplete="off"
-                          value={searchQuery}
-                          onChange={setSearchQuery}
-                          placeholder={t('filters.searchPlaceholder')}
-                          prefix={<Search className="w-4 h-4 text-zinc-500" aria-hidden />}
-                        />
+                        <label className="block text-xs font-medium text-zinc-700 mb-1.5">
+                          {t('filters.searchLabel')}
+                        </label>
+                        <div className="relative flex items-center">
+                          <Search className="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none" aria-hidden />
+                          <input
+                            type="text"
+                            autoComplete="off"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder={t('filters.searchPlaceholder')}
+                            className="w-full rounded-lg border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-sm outline-none focus:border-[#1f6f53] focus:ring-2 focus:ring-[#1f6f53]/20 transition-colors"
+                          />
+                        </div>
                       </div>
 
                       <div className="min-w-0">
