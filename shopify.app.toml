@@ -7,7 +7,7 @@ embedded = true
 
 [access_scopes]
 # Scopes required for the app's functionality
-scopes = "read_products,read_orders,read_fulfillments,read_customers,write_webhooks"
+scopes = "read_products,read_orders,read_fulfillments,read_customers"
 
 [auth]
 redirect_urls = [
@@ -15,7 +15,7 @@ redirect_urls = [
 ]
 
 [webhooks]
-api_version = "2024-01"
+api_version = "2025-01"
 
   [[webhooks.subscriptions]]
   topics = [
