@@ -1,6 +1,9 @@
 'use client';
 
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { useLocale } from 'next-intl';
 import Image from 'next/image';
 import { Link } from '@/i18n/routing';
 import { Hero } from '@/components/landing-page/Hero';
@@ -17,7 +20,14 @@ export default function Home() {
   const t = useTranslations('Landing');
   const tFooter = useTranslations('Landing.footer');
   const locale = useLocale();
-  const isEn = locale === 'en';
+  const router = useRouter();
+
+  // Redirect non-English visitors to the English landing page
+  useEffect(() => {
+    if (locale !== 'en') {
+      router.replace('/en');
+    }
+  }, [locale, router]);
 
   return (
     <SPage
@@ -54,30 +64,7 @@ export default function Home() {
               </Link>
             ))}
           </nav>
-          <nav className="flex items-center gap-2 sm:gap-3 shrink-0" aria-label="Language and account">
-
-            <SCard className="block flex rounded-lg border border-border bg-muted/30 p-0.5 shadow-none" role="group" aria-label="Language">
-              <Link
-                href="/"
-                locale="en"
-                className="inline-block"
-                aria-current={isEn ? 'page' : undefined}
-              >
-                <SButton className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${isEn ? 'bg-[#0a3d2e] text-[#f8f5e6] shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-white/80'}`}>
-                  EN
-                </SButton>
-              </Link>
-              <Link
-                href="/"
-                locale="tr"
-                className="inline-block"
-                aria-current={!isEn ? 'page' : undefined}
-              >
-                <SButton className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${!isEn ? 'bg-[#0a3d2e] text-[#f8f5e6] shadow-sm' : 'text-zinc-600 hover:text-zinc-900 hover:bg-white/80'}`}>
-                  TR
-                </SButton>
-              </Link>
-            </SCard>
+          <nav className="flex items-center gap-2 sm:gap-3 shrink-0" aria-label="Account">
             <Link
               href="/login"
               className="hidden sm:inline-block"
