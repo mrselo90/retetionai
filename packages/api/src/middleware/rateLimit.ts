@@ -14,11 +14,18 @@ interface RateLimitConfig {
  * Default rate limit configurations
  */
 const RATE_LIMITS = {
-  // Per IP: 100 requests per minute
+  // Per IP: 100 requests per minute (general API)
   ip: {
     windowMs: 60 * 1000, // 1 minute
     maxRequests: 100,
     keyPrefix: 'ratelimit:ip:',
+  },
+  // Per IP: 200 requests per minute (Shopify webhook endpoint)
+  // Higher limit to accommodate legitimate Shopify burst traffic (many stores)
+  webhookIp: {
+    windowMs: 60 * 1000, // 1 minute
+    maxRequests: 200,
+    keyPrefix: 'ratelimit:webhook:ip:',
   },
   // Per API key: 1000 requests per hour
   apiKey: {
@@ -33,6 +40,7 @@ const RATE_LIMITS = {
     keyPrefix: 'ratelimit:merchant:',
   },
 } as const;
+
 
 /**
  * Sliding window rate limiter using Redis
@@ -178,6 +186,38 @@ export async function optionalRateLimitMiddleware(c: Context, next: Next) {
   if (result.remaining < config.maxRequests * 0.2) {
     console.warn(
       `Rate limit warning: ${type}:${identifier} has ${result.remaining} requests remaining`
+    );
+  }
+
+  await next();
+}
+
+/**
+ * Webhook-specific rate limit middleware
+ * 200 req/min per IP (separate bucket from general API limits)
+ * High enough for legitimate Shopify bursts, low enough to block floods
+ */
+export async function webhookRateLimitMiddleware(c: Context, next: Next) {
+  const ip =
+    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
+    c.req.header('x-real-ip') ||
+    'unknown';
+
+  const config = RATE_LIMITS.webhookIp;
+  const result = await checkRateLimit(ip, config);
+
+  c.header('X-RateLimit-Limit', result.limit.toString());
+  c.header('X-RateLimit-Remaining', result.remaining.toString());
+  c.header('X-RateLimit-Reset', result.reset.toString());
+
+  if (!result.allowed) {
+    return c.json(
+      {
+        error: 'Rate limit exceeded',
+        message: `Too many webhook requests from this IP. Limit: ${result.limit}/min.`,
+        retryAfter: result.reset - Math.floor(Date.now() / 1000),
+      },
+      429
     );
   }
 

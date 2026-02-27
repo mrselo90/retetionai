@@ -14,6 +14,7 @@ import {
 import { handleShopifyBillingWebhook } from '../lib/shopifyBilling.js';
 import { processNormalizedEvent } from '../lib/orderProcessor.js';
 import * as crypto from 'crypto';
+import { webhookRateLimitMiddleware } from '../middleware/rateLimit.js';
 
 const webhooks = new Hono();
 
@@ -22,7 +23,7 @@ const webhooks = new Hono();
  * POST /webhooks/commerce/shopify
  * Receives webhooks from Shopify (orders/create, orders/fulfilled, etc.)
  */
-webhooks.post('/commerce/shopify', async (c) => {
+webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
   try {
     // Get Shopify webhook headers
     const shop = c.req.header('x-shopify-shop-domain');
