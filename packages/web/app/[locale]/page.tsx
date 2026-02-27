@@ -1,9 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { useLocale } from 'next-intl';
 import Image from 'next/image';
 import { Link } from '@/i18n/routing';
 import { Hero } from '@/components/landing-page/Hero';
@@ -18,15 +15,6 @@ import { Footer } from '@/components/landing-page/Footer';
 export default function Home() {
   const t = useTranslations('Landing');
   const tFooter = useTranslations('Landing.footer');
-  const locale = useLocale();
-  const router = useRouter();
-
-  // Redirect non-English visitors to the English landing page
-  useEffect(() => {
-    if (locale !== 'en') {
-      router.replace('/en');
-    }
-  }, [locale, router]);
 
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden" style={{ background: '#f6f4ea', color: '#17231f' }}>
