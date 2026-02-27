@@ -875,9 +875,16 @@ export default function ProductsPage() {
             ) : (
               filteredAndSortedProducts.length === 0 ? (
                 <PolarisCard>
-                  <div className="p-8 text-center">
-                    <Text as="p" tone="subdued">{t('filters.noMatches')}</Text>
-                  </div>
+                  <EmptyState
+                    heading={t('filters.noMatches')}
+                    action={{
+                      content: t('bulk.clearSelection') || 'Clear search',
+                      onAction: () => setSearchQuery(''),
+                    }}
+                    image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                  >
+                    <p>{`No products found matching "${searchQuery}"`}</p>
+                  </EmptyState>
                 </PolarisCard>
               ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

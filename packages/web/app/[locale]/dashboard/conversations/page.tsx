@@ -24,7 +24,7 @@ import {
   EmptyState,
 } from '@shopify/polaris';
 import { User, ShoppingBag, Clock } from 'lucide-react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
 interface Conversation {
   id: string;
@@ -71,7 +71,6 @@ function ConversationIconSurface({
 
 export default function ConversationsPage() {
   const t = useTranslations('Conversations');
-  const locale = useLocale();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'positive' | 'neutral' | 'negative'>('all');
@@ -135,8 +134,10 @@ export default function ConversationsPage() {
     return () => clearInterval(interval);
   }, [loadConversations]);
 
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString: string | null | undefined) => {
+    if (!dateString) return '–';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '–';
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
@@ -148,7 +149,7 @@ export default function ConversationsPage() {
     if (diffHours < 24) return t('list.time.hoursAgo', { h: diffHours });
     if (diffDays < 7) return t('list.time.daysAgo', { d: diffDays });
 
-    return date.toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', {
+    return date.toLocaleDateString('en-US', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -266,7 +267,7 @@ export default function ConversationsPage() {
                   heading={t('empty.title')}
                   action={{
                     content: t('empty.button'),
-                    url: `/${locale}/dashboard/integrations`,
+                    url: '/dashboard/integrations',
                   }}
                   image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
                 >
