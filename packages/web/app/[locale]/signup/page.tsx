@@ -27,13 +27,11 @@ export default function SignupPage() {
     setError(null);
     setGoogleLoading(true);
     try {
-      // Get current locale from pathname
-      const locale = typeof window !== 'undefined' ? window.location.pathname.split('/')[1] || 'en' : 'en';
-
+      // localePrefix: 'never' — no locale in URL, auth/callback is at root level
       const redirectTo =
         typeof window !== 'undefined'
-          ? `${window.location.origin}/${locale}/auth/callback`
-          : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/en/auth/callback`;
+          ? `${window.location.origin}/auth/callback`
+          : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`;
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo },

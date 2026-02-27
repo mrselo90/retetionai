@@ -26,13 +26,11 @@ export default function LoginPage() {
     setError(null);
     setGoogleLoading(true);
     try {
-      // Get current locale from pathname
-      const locale = typeof window !== 'undefined' ? window.location.pathname.split('/')[1] || 'en' : 'en';
-      
+      // localePrefix: 'never' — no locale in URL, auth/callback is at root level
       const redirectTo =
         typeof window !== 'undefined'
-          ? `${window.location.origin}/${locale}/auth/callback`
-          : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/en/auth/callback`;
+          ? `${window.location.origin}/auth/callback`
+          : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`;
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo },
@@ -158,11 +156,11 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-50 via-white to-primary/5 px-4 py-12 relative overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMxNGI4YTYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djItaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bS0yIDJ2LTJoLTJ2Mmgyem0tNCAydi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bTI4IDMydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptLTIgMnYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-50"></div>
-      
+
       <Card className="w-full max-w-md animate-scale-in shadow-2xl border-2 relative z-10 overflow-hidden">
         {/* Card Header Gradient */}
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-primary via-primary/80 to-primary"></div>
-        
+
         <CardHeader className="space-y-2 text-center pt-8 pb-6">
           <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-lg">
             <span className="text-3xl font-extrabold">G</span>
