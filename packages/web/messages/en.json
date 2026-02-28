@@ -326,6 +326,10 @@
                 "source": "Source URL",
                 "status": "AI Sync Status",
                 "actions": "Actions"
+            },
+            "pagination": {
+                "showing": "Showing {from}–{to} of {total} products",
+                "page": "Page {current} of {total}"
             }
         },
         "filters": {

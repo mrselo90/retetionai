@@ -958,13 +958,20 @@ export default function ProductsPage() {
                     ))}
                   </div>
                   {totalPages > 1 && (
-                    <div className="mt-8 flex justify-center">
+                    <div className="mt-6 border-t border-subdued pt-4 flex flex-col items-center gap-2">
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        {t('list.pagination.showing', {
+                          from: (currentPage - 1) * itemsPerPage + 1,
+                          to: Math.min(currentPage * itemsPerPage, filteredAndSortedProducts.length),
+                          total: filteredAndSortedProducts.length,
+                        })}
+                      </Text>
                       <Pagination
                         hasPrevious={currentPage > 1}
                         onPrevious={() => setCurrentPage((prev) => prev - 1)}
                         hasNext={currentPage < totalPages}
                         onNext={() => setCurrentPage((prev) => prev + 1)}
-                        label={`${currentPage} ${t('list.pagination.of', { total: totalPages }) || `of ${totalPages}`}`}
+                        label={t('list.pagination.page', { current: currentPage, total: totalPages })}
                       />
                     </div>
                   )}
@@ -1102,13 +1109,20 @@ export default function ProductsPage() {
                     </div>
 
                     {totalPages > 1 && (
-                      <div className="py-4 border-t border-border flex justify-center bg-zinc-50/50 rounded-b-xl">
+                      <div className="py-4 border-t border-subdued flex flex-col items-center gap-2 bg-zinc-50/50 rounded-b-xl">
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          {t('list.pagination.showing', {
+                            from: (currentPage - 1) * itemsPerPage + 1,
+                            to: Math.min(currentPage * itemsPerPage, filteredAndSortedProducts.length),
+                            total: filteredAndSortedProducts.length,
+                          })}
+                        </Text>
                         <Pagination
                           hasPrevious={currentPage > 1}
                           onPrevious={() => setCurrentPage((prev) => prev - 1)}
                           hasNext={currentPage < totalPages}
                           onNext={() => setCurrentPage((prev) => prev + 1)}
-                          label={`${currentPage} ${t('list.pagination.of', { total: totalPages }) || `of ${totalPages}`}`}
+                          label={t('list.pagination.page', { current: currentPage, total: totalPages })}
                         />
                       </div>
                     )}

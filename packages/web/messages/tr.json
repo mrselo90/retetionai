@@ -326,6 +326,10 @@
                 "source": "Kaynak URL",
                 "status": "AI Senkronizasyon",
                 "actions": "İşlemler"
+            },
+            "pagination": {
+                "showing": "{from}–{to} / {total} ürün gösteriliyor",
+                "page": "Sayfa {current} / {total}"
             }
         },
         "filters": {
