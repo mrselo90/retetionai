@@ -294,9 +294,9 @@ shopify.post('/verify-session', async (c) => {
     const serviceClient = getSupabaseServiceClient();
 
     // Derive a stable email from the shop domain
-    // Format: <shop-handle>@shopify.recete.ai (deterministic, never shown to user)
+    // Format: <shop-handle>@shopify.recete.co.uk (deterministic, never shown to user)
     const shopHandle = shop.replace('.myshopify.com', '').replace(/[^a-z0-9-]/gi, '-');
-    const syntheticEmail = `${shopHandle}@shopify.recete.ai`;
+    const syntheticEmail = `${shopHandle}@shopify.recete.co.uk`;
 
     // Ensure the user exists in Supabase Auth (idempotent)
     const { data: existingUsers } = await serviceClient.auth.admin.listUsers();

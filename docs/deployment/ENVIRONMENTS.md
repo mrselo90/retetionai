@@ -84,12 +84,12 @@ REDIS_URL=redis://staging-redis:6379
 PORT=3001
 NODE_ENV=staging
 LOG_LEVEL=info
-ALLOWED_ORIGINS=https://staging.recete.ai
+ALLOWED_ORIGINS=https://staging.recete.co.uk
 
 # Frontend
 NEXT_PUBLIC_SUPABASE_URL=https://staging-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=staging-anon-key
-NEXT_PUBLIC_API_URL=https://api-staging.recete.ai
+NEXT_PUBLIC_API_URL=https://api-staging.recete.co.uk
 
 # OpenAI
 OPENAI_API_KEY=your-key
@@ -114,12 +114,12 @@ REDIS_URL=redis://production-redis:6379
 PORT=3001
 NODE_ENV=production
 LOG_LEVEL=warn
-ALLOWED_ORIGINS=https://app.recete.ai,https://recete.ai
+ALLOWED_ORIGINS=https://app.recete.co.uk,https://recete.co.uk
 
 # Frontend
 NEXT_PUBLIC_SUPABASE_URL=https://production-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=production-anon-key
-NEXT_PUBLIC_API_URL=https://api.recete.ai
+NEXT_PUBLIC_API_URL=https://api.recete.co.uk
 
 # OpenAI
 OPENAI_API_KEY=your-production-key

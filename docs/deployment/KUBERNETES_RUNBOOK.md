@@ -80,7 +80,7 @@ Create the `recete-secrets` Secret in the `recete` namespace. **Never commit rea
 |-----|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Same as `SUPABASE_URL` (public) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same as `SUPABASE_ANON_KEY` (public) |
-| `NEXT_PUBLIC_API_URL` | Public API base URL (e.g. `https://api.recete.ai`) |
+| `NEXT_PUBLIC_API_URL` | Public API base URL (e.g. `https://api.recete.co.uk`) |
 
 ### Create secret from env file
 

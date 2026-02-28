@@ -227,4 +227,4 @@ You'll be notified when:
 ## Need Help?
 
 - **API Documentation**: `/api/docs`
-- **Support**: support@recete.ai
+- **Support**: support@recete.co.uk

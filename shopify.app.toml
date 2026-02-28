@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "SHOPIFY_API_KEY"
-name = "Recete Retention Agent"
-application_url = "https://recete.ai"
+name = "Recete-Retention Agent"
+application_url = "https://recete.co.uk"
 embedded = true
 
 [access_scopes]
@@ -11,7 +11,7 @@ scopes = "read_products,read_orders,read_fulfillments,read_customers"
 
 [auth]
 redirect_urls = [
-  "https://recete.ai/api/integrations/shopify/oauth/callback"
+  "https://recete.co.uk/api/integrations/shopify/oauth/callback"
 ]
 
 [webhooks]

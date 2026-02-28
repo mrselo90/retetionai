@@ -117,7 +117,7 @@ ORD-002,+905559876543,Jane Smith,2024-01-16,2024-01-21,delivered
 Send POST requests to `/webhooks/commerce/event`:
 
 ```bash
-curl -X POST https://api.recete.ai/webhooks/commerce/event \
+curl -X POST https://api.recete.co.uk/webhooks/commerce/event \
   -H "X-Api-Key: gg_live_YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -244,5 +244,5 @@ If your Shopify integration stops working:
 ## Need Help?
 
 - **API Documentation**: `/api/docs`
-- **Support**: support@recete.ai
-- **Status Page**: status.recete.ai
+- **Support**: support@recete.co.uk
+- **Status Page**: status.recete.co.uk

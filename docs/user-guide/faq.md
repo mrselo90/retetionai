@@ -223,7 +223,7 @@ Yes! Go to "Settings" → "GDPR" → "Export Data"
 
 ### How do I contact support?
 
-- **Email**: support@recete.ai
+- **Email**: support@recete.co.uk
 - **In-app**: Settings → Support
 - **Documentation**: See guides in this section
 
@@ -246,4 +246,4 @@ Yes! We offer:
 
 - **Documentation**: Browse other guides
 - **API Docs**: Visit `/api/docs`
-- **Support**: support@recete.ai
+- **Support**: support@recete.co.uk

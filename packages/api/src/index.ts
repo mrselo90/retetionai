@@ -56,7 +56,7 @@ app.use('/*', async (c, next) => {
   const origin = c.req.header('Origin');
 
   // Get allowed origins from environment variable
-  // Format: "http://localhost:3000,https://app.recete.ai,https://staging.recete.ai"
+  // Format: "http://localhost:3000,https://app.recete.co.uk,https://staging.recete.co.uk"
   const allowedOriginsEnv = process.env.ALLOWED_ORIGINS;
   const allowedOrigins = allowedOriginsEnv
     ? allowedOriginsEnv.split(',').map((o) => o.trim())

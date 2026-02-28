@@ -39,9 +39,9 @@ Recete Retention Agent is an intelligent customer support assistant that automat
 
 **Support:**
 
-- Email: support@recete.ai
-- Documentation: https://docs.recete.ai
-- Help Center: https://help.recete.ai
+- Email: support@recete.co.uk
+- Documentation: https://docs.recete.co.uk
+- Help Center: https://help.recete.co.uk
 
 ---
 
@@ -67,11 +67,11 @@ Recete Retention Agent is an intelligent customer support assistant that automat
 
 ## Support Information
 
-**Support Email**: support@recete.ai  
+**Support Email**: support@recete.co.uk  
 **Support Hours**: Monday-Friday, 9 AM - 6 PM EST  
 **Response Time**: Within 24 hours  
-**Documentation**: https://docs.recete.ai  
-**Help Center**: https://help.recete.ai
+**Documentation**: https://docs.recete.co.uk  
+**Help Center**: https://help.recete.co.uk
 
 ---
 
@@ -83,7 +83,7 @@ Recete Retention Agent is an intelligent customer support assistant that automat
 - Customer consent management
 - Data export and deletion available on request
 
-See our [Privacy Policy](https://recete.ai/privacy-policy) for details.
+See our [Privacy Policy](https://recete.co.uk/privacy-policy) for details.
 
 ---
 
@@ -129,9 +129,9 @@ All plans include:
 
 ## Legal Documents
 
-- **Privacy Policy**: https://recete.ai/privacy-policy
-- **Terms of Service**: https://recete.ai/terms-of-service
-- **Cookie Policy**: https://recete.ai/cookie-policy
+- **Privacy Policy**: https://recete.co.uk/privacy-policy
+- **Terms of Service**: https://recete.co.uk/terms-of-service
+- **Cookie Policy**: https://recete.co.uk/cookie-policy
 
 All legal documents are hosted and publicly accessible.
 

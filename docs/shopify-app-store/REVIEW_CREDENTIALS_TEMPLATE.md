@@ -51,7 +51,7 @@ Key flows to test:
 4. Billing: Settings → upgrade plan; approve charge in Shopify; confirm plan updates. Optional: enable Return Prevention add-on and approve separate charge.
 5. Conversations: View Conversations list and a conversation detail (data may be empty in a fresh store).
 
-Support: support@recete.ai
+Support: support@recete.co.uk
 ```
 
 ---

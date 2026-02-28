@@ -11,8 +11,8 @@ The Recete API uses OpenAPI 3.1.0 specification for documentation. Swagger UI is
 - **OpenAPI JSON**: http://localhost:3001/api/docs/openapi.json
 
 ### Production
-- **Swagger UI**: https://api.recete.ai/api/docs
-- **OpenAPI JSON**: https://api.recete.ai/api/docs/openapi.json
+- **Swagger UI**: https://api.recete.co.uk/api/docs
+- **OpenAPI JSON**: https://api.recete.co.uk/api/docs/openapi.json
 
 ## Authentication
 

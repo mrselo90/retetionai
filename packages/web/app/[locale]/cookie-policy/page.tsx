@@ -76,8 +76,8 @@ export default function CookiePolicyPage() {
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">6. Contact Us</h2>
               <p className="text-zinc-700 mb-4">
                 For questions about our use of cookies, please contact us at{' '}
-                <a href="mailto:privacy@recete.ai" className="text-blue-600 hover:underline">
-                  privacy@recete.ai
+                <a href="mailto:privacy@recete.co.uk" className="text-blue-600 hover:underline">
+                  privacy@recete.co.uk
                 </a>
               </p>
             </section>

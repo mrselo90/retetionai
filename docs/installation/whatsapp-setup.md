@@ -132,7 +132,7 @@ Complete guide for setting up WhatsApp Business API with Recete.
 2. Find "Webhook" section
 3. Click "Edit"
 4. Enter:
-   - **Callback URL**: `https://api.recete.ai/webhooks/whatsapp`
+   - **Callback URL**: `https://api.recete.co.uk/webhooks/whatsapp`
    - **Verify Token**: Same as in Recete (Step 3.3)
 5. Click "Verify and Save"
 
@@ -274,8 +274,8 @@ If you have multiple WhatsApp Business numbers:
 ## Need Help?
 
 - **Meta Documentation**: [WhatsApp Business API Docs](https://developers.facebook.com/docs/whatsapp)
-- **Recete Support**: support@recete.ai
-- **Status**: status.recete.ai
+- **Recete Support**: support@recete.co.uk
+- **Status**: status.recete.co.uk
 
 ---
 

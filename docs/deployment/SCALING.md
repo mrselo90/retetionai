@@ -158,7 +158,7 @@ upstream api_backend {
 
 server {
     listen 80;
-    server_name api.recete.ai;
+    server_name api.recete.co.uk;
 
     location / {
         proxy_pass http://api_backend;

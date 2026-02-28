@@ -128,7 +128,7 @@ export function Hero() {
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
                 <div className="ml-2 flex-1 min-w-0 rounded-lg border border-black/5 bg-[#f6f4ea] px-3 py-1.5 text-xs font-mono text-zinc-500 truncate">
-                  app.recete.ai/dashboard
+                  app.recete.co.uk/dashboard
                 </div>
               </div>
               {/* Stats bar */}

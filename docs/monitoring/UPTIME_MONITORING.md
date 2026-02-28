@@ -26,20 +26,20 @@ Uptime monitoring ensures that your application is available and responding corr
 Set up monitors for the following endpoints:
 
 #### API Health Check
-- **URL**: `https://api.recete.ai/health`
+- **URL**: `https://api.recete.co.uk/health`
 - **Method**: GET
 - **Expected Status**: 200
 - **Expected Response**: `{"status":"ok","services":{"database":"connected","redis":"connected"}}`
 - **Check Interval**: 1 minute
 
 #### API Root
-- **URL**: `https://api.recete.ai/`
+- **URL**: `https://api.recete.co.uk/`
 - **Method**: GET
 - **Expected Status**: 200
 - **Check Interval**: 1 minute
 
 #### Frontend Root
-- **URL**: `https://app.recete.ai/`
+- **URL**: `https://app.recete.co.uk/`
 - **Method**: GET
 - **Expected Status**: 200
 - **Check Interval**: 1 minute
@@ -67,7 +67,7 @@ Set up monitors for the following endpoints:
 
 Create a public status page:
 - **Service**: UptimeRobot Status Page, Better Uptime Status Page, or custom
-- **URL**: `https://status.recete.ai`
+- **URL**: `https://status.recete.co.uk`
 - **Display**: 
   - API status
   - Frontend status
@@ -94,10 +94,10 @@ Combine uptime monitoring with:
 ```
 Monitor Name: Recete API Health
 Monitor Type: HTTP(s)
-URL: https://api.recete.ai/health
+URL: https://api.recete.co.uk/health
 Monitoring Interval: 5 minutes
 Alert Contacts: 
-  - Email: devops@recete.ai
+  - Email: devops@recete.co.uk
   - SMS: +1234567890 (critical only)
 ```
 

@@ -273,7 +273,7 @@ Private - All rights reserved
 ## 📞 Support
 
 For questions or issues:
-- Email: support@recete.ai (coming soon)
+- Email: support@recete.co.uk (coming soon)
 - Documentation: See `/docs` folder
 - Issues: Track in `memory-bank/` files
 

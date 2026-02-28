@@ -88,8 +88,8 @@ export default function PrivacyPolicyPage() {
               </ul>
               <p className="text-zinc-700 mb-4">
                 To exercise these rights, please contact us at{' '}
-                <a href="mailto:privacy@recete.ai" className="text-blue-600 hover:underline">
-                  privacy@recete.ai
+                <a href="mailto:privacy@recete.co.uk" className="text-blue-600 hover:underline">
+                  privacy@recete.co.uk
                 </a>{' '}
                 or use the data export/deletion features in your dashboard.
               </p>
@@ -133,8 +133,8 @@ export default function PrivacyPolicyPage() {
                 If you have questions about this Privacy Policy, please contact us:
               </p>
               <ul className="list-none text-zinc-700 mb-4">
-                <li>Email: privacy@recete.ai</li>
-                <li>Support: support@recete.ai</li>
+                <li>Email: privacy@recete.co.uk</li>
+                <li>Support: support@recete.co.uk</li>
               </ul>
             </section>
           </div>

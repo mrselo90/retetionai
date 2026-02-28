@@ -133,4 +133,4 @@ Use conventional commits:
 
 - **Issues**: GitHub Issues
 - **Discussions**: GitHub Discussions
-- **Email**: dev@recete.ai
+- **Email**: dev@recete.co.uk

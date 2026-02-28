@@ -398,7 +398,7 @@ admin.post('/impersonate', async (c) => {
 
         // Use Supabase Admin API to generate a link or custom token.
         // We capture the request Origin to properly redirect to the frontend callback
-        const origin = c.req.header('Origin') || c.req.header('Referer')?.split('/').slice(0, 3).join('/') || 'https://platform.recete.ai';
+        const origin = c.req.header('Origin') || c.req.header('Referer')?.split('/').slice(0, 3).join('/') || 'https://platform.recete.co.uk';
         const redirectTo = `${origin}/auth/callback`;
 
         const { data: linkData, error: linkError } = await serviceClient.auth.admin.generateLink({

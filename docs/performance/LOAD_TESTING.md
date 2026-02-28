@@ -38,7 +38,7 @@ npm install -g artillery
 **Installation:**
 ```bash
 # Built into macOS/Linux
-ab -n 1000 -c 10 https://api.recete.ai/health
+ab -n 1000 -c 10 https://api.recete.co.uk/health
 ```
 
 **Features:**
@@ -63,7 +63,7 @@ export const options = {
 };
 
 export default function () {
-  const res = http.get('https://api.recete.ai/health');
+  const res = http.get('https://api.recete.co.uk/health');
   check(res, {
     'status is 200': (r) => r.status === 200,
     'response time < 100ms': (r) => r.timings.duration < 100,
@@ -97,7 +97,7 @@ export default function () {
     headers: { 'Content-Type': 'application/json' },
   };
   
-  const res = http.post('https://api.recete.ai/api/auth/login', payload, params);
+  const res = http.post('https://api.recete.co.uk/api/auth/login', payload, params);
   check(res, {
     'login successful': (r) => r.status === 200,
   });
@@ -119,7 +119,7 @@ export const options = {
 
 export default function () {
   // Get auth token first
-  const loginRes = http.post('https://api.recete.ai/api/auth/login', 
+  const loginRes = http.post('https://api.recete.co.uk/api/auth/login', 
     JSON.stringify({ email: 'test@example.com', password: 'testpassword' }),
     { headers: { 'Content-Type': 'application/json' } }
   );
@@ -127,7 +127,7 @@ export default function () {
   const token = loginRes.json().token;
   
   // Test product listing
-  const res = http.get('https://api.recete.ai/api/products', {
+  const res = http.get('https://api.recete.co.uk/api/products', {
     headers: { 'Authorization': `Bearer ${token}` },
   });
   
@@ -160,7 +160,7 @@ export default function () {
     merchantId: __ENV.MERCHANT_ID,
   });
   
-  const res = http.post('https://api.recete.ai/api/rag/query', payload, {
+  const res = http.post('https://api.recete.co.uk/api/rag/query', payload, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -197,7 +197,7 @@ export default function () {
     }],
   });
   
-  const res = http.post('https://api.recete.ai/webhooks/whatsapp', payload, {
+  const res = http.post('https://api.recete.co.uk/webhooks/whatsapp', payload, {
     headers: { 'Content-Type': 'application/json' },
   });
   
