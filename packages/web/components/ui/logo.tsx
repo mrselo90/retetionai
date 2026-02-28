@@ -13,7 +13,7 @@ export function Logo({ theme = 'light', iconOnly = false, className = '' }: Logo
     const width = iconOnly ? 48 : 48; // Ensure consistent height for the icon
 
     return (
-        <div className={`flex items-center gap-2.5 ${className}`}>
+        <div className={`flex items-center ${iconOnly ? 'justify-center' : 'gap-2.5'} ${className}`}>
             <Image
                 src="/assets/logo.png"
                 alt="Recete Logo"

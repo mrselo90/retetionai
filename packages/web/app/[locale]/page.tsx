@@ -1,8 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 import { Link } from '@/i18n/routing';
+import { Logo } from '@/components/ui/logo';
 import { Hero } from '@/components/landing-page/Hero';
 import { Stats } from '@/components/landing-page/Stats';
 import { Features } from '@/components/landing-page/Features';
@@ -27,7 +27,7 @@ export default function Home() {
             className="flex items-center gap-2 min-w-0 shrink focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0a3d2e] focus-visible:ring-offset-2 rounded-lg"
             aria-label={t('brandName')}
           >
-            <Image src="/recete-logo.svg" alt="" className="h-7 w-auto min-w-[100px] sm:h-8 sm:min-w-[120px]" width={160} height={40} />
+            <Logo className="h-7 w-auto min-w-[100px] sm:h-8 sm:min-w-[120px]" />
             <span className="hidden lg:inline text-sm font-medium text-zinc-500 truncate">{t('brandTagline')}</span>
           </Link>
 
