@@ -19,7 +19,7 @@ export function Logo({ theme = 'light', iconOnly = false, className = '' }: Logo
                 alt="Recete Logo"
                 width={width}
                 height={width}
-                className="object-contain drop-shadow-sm rounded-lg"
+                className="object-contain"
                 priority
             />
             {!iconOnly && (
