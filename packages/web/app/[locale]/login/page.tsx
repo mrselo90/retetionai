@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Logo } from '@/components/ui/logo';
 
 export default function LoginPage() {
   const t = useTranslations('Login');
@@ -162,8 +163,8 @@ export default function LoginPage() {
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-primary via-primary/80 to-primary"></div>
 
         <CardHeader className="space-y-2 text-center pt-8 pb-6">
-          <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-lg">
-            <span className="text-3xl font-extrabold">G</span>
+          <div className="mx-auto mb-4 flex justify-center">
+            <Logo iconOnly className="w-16 h-16 drop-shadow-md" />
           </div>
           <CardTitle className="text-3xl font-extrabold tracking-tight">
             {t('title')}

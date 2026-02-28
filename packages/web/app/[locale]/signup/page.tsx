@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Logo } from '@/components/ui/logo';
 
 export default function SignupPage() {
   const t = useTranslations('Signup');
@@ -130,9 +131,15 @@ export default function SignupPage() {
   return (
     <>
       <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-8">
-        <Card className="w-full max-w-md animate-fade-in shadow-lg border-muted/60">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">{t('title')}</CardTitle>
+        <Card className="w-full max-w-md animate-fade-in shadow-2xl border-2 relative z-10 overflow-hidden">
+          {/* Card Header Gradient */}
+          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-primary via-primary/80 to-primary"></div>
+
+          <CardHeader className="text-center pt-8 pb-6">
+            <div className="mx-auto mb-4 flex justify-center">
+              <Logo iconOnly className="w-16 h-16 drop-shadow-md" />
+            </div>
+            <CardTitle className="text-3xl font-extrabold tracking-tight">{t('title')}</CardTitle>
             <CardDescription>
               {t('description')}
             </CardDescription>

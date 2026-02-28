@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Logo } from '@/components/ui/logo';
 
 export default function ForgotPasswordPage() {
   const t = useTranslations('ForgotPassword');
@@ -26,7 +27,7 @@ export default function ForgotPasswordPage() {
     try {
       // Get current locale from pathname
       const locale = typeof window !== 'undefined' ? window.location.pathname.split('/')[1] || 'en' : 'en';
-      
+
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/${locale}/reset-password`,
       });
@@ -47,13 +48,16 @@ export default function ForgotPasswordPage() {
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-        <Card className="w-full max-w-md animate-fade-in shadow-lg border-muted/60">
-          <CardHeader className="text-center">
+        <Card className="w-full max-w-md animate-fade-in shadow-2xl border-2 relative z-10 overflow-hidden">
+          {/* Card Header Gradient */}
+          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-primary via-primary/80 to-primary"></div>
+
+          <CardHeader className="text-center pt-8 pb-6">
             <div className="mx-auto w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl font-bold">{t('successTitle')}</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-2xl font-extrabold tracking-tight">{t('successTitle')}</CardTitle>
+            <CardDescription className="text-base font-medium">
               {t('successMessage', { email })}
             </CardDescription>
           </CardHeader>
@@ -72,9 +76,15 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-      <Card className="w-full max-w-md animate-fade-in shadow-lg border-muted/60">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">{t('title')}</CardTitle>
+      <Card className="w-full max-w-md animate-fade-in shadow-2xl border-2 relative z-10 overflow-hidden">
+        {/* Card Header Gradient */}
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-primary via-primary/80 to-primary"></div>
+
+        <CardHeader className="text-center pt-8 pb-6">
+          <div className="mx-auto mb-4 flex justify-center">
+            <Logo iconOnly className="w-16 h-16 drop-shadow-md" />
+          </div>
+          <CardTitle className="text-3xl font-extrabold tracking-tight">{t('title')}</CardTitle>
           <CardDescription>
             {t('description')}
           </CardDescription>
