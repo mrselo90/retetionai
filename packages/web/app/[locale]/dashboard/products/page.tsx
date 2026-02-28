@@ -1,6 +1,6 @@
 'use client';
 
-import { useDeferredValue, useEffect, useState } from 'react';
+import { useDeferredValue, useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
@@ -17,6 +17,7 @@ import {
   TextField as PolarisTextField,
   EmptyState,
   Button as PolarisButton,
+  Pagination,
 } from '@shopify/polaris';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -71,6 +72,13 @@ export default function ProductsPage() {
   const [scraping, setScraping] = useState(false);
   const [scrapeProgress, setScrapeProgress] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, sortBy]);
 
   useEffect(() => {
     loadProducts();
@@ -436,40 +444,49 @@ export default function ProductsPage() {
     return 'rag_not_ready';
   };
 
-  const filteredAndSortedProducts = [...products]
-    .filter((product) => {
-      const status = getProductStatus(product);
-      const matchesStatus =
-        statusFilter === 'all'
-          ? true
-          : statusFilter === 'scraped'
-            ? Boolean(product.raw_text)
-            : status === statusFilter;
+  const filteredAndSortedProducts = useMemo(() => {
+    return [...products]
+      .filter((product) => {
+        const status = getProductStatus(product);
+        const matchesStatus =
+          statusFilter === 'all'
+            ? true
+            : statusFilter === 'scraped'
+              ? Boolean(product.raw_text)
+              : status === statusFilter;
 
-      const haystack = `${product.name} ${product.url} ${product.id}`.toLowerCase();
-      const matchesSearch = !deferredSearchQuery || haystack.includes(deferredSearchQuery);
-      return matchesStatus && matchesSearch;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'name_asc':
-          return a.name.localeCompare(b.name);
-        case 'name_desc':
-          return b.name.localeCompare(a.name);
-        case 'updated_asc':
-          return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
-        case 'chunks_desc':
-          return (b.chunkCount ?? -1) - (a.chunkCount ?? -1);
-        case 'chunks_asc':
-          return (a.chunkCount ?? -1) - (b.chunkCount ?? -1);
-        case 'updated_desc':
-        default:
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-      }
-    });
+        const haystack = `${product.name} ${product.url} ${product.id}`.toLowerCase();
+        const matchesSearch = !deferredSearchQuery || haystack.includes(deferredSearchQuery);
+        return matchesStatus && matchesSearch;
+      })
+      .sort((a, b) => {
+        switch (sortBy) {
+          case 'name_asc':
+            return a.name.localeCompare(b.name);
+          case 'name_desc':
+            return b.name.localeCompare(a.name);
+          case 'updated_asc':
+            return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+          case 'chunks_desc':
+            return (b.chunkCount ?? -1) - (a.chunkCount ?? -1);
+          case 'chunks_asc':
+            return (a.chunkCount ?? -1) - (b.chunkCount ?? -1);
+          case 'updated_desc':
+          default:
+            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+        }
+      });
+  }, [products, statusFilter, deferredSearchQuery, sortBy]);
 
-  const visibleProductIds = filteredAndSortedProducts.map((p) => p.id);
-  const selectedIdSet = new Set(selectedProductIds);
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredAndSortedProducts.slice(start, start + itemsPerPage);
+  }, [filteredAndSortedProducts, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredAndSortedProducts.length / itemsPerPage);
+
+  const visibleProductIds = useMemo(() => paginatedProducts.map((p) => p.id), [paginatedProducts]);
+  const selectedIdSet = useMemo(() => new Set(selectedProductIds), [selectedProductIds]);
   const selectedVisibleCount = visibleProductIds.filter((id) => selectedIdSet.has(id)).length;
   const allVisibleSelected = visibleProductIds.length > 0 && selectedVisibleCount === visibleProductIds.length;
 
@@ -887,66 +904,79 @@ export default function ProductsPage() {
                   </EmptyState>
                 </PolarisCard>
               ) : viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {filteredAndSortedProducts.map((product) => (
-                    <PolarisCard key={product.id}>
-                      <div className="p-4 sm:p-5 flex flex-col h-full space-y-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-2 min-w-0">
-                            <input
-                              type="checkbox"
-                              checked={selectedIdSet.has(product.id)}
-                              onChange={() => toggleProductSelection(product.id)}
-                              onClick={(e) => e.stopPropagation()}
-                              aria-label={t('bulk.selectProduct', { name: product.name })}
-                              className="mt-1 rounded border-zinc-300"
-                            />
-                            <h3 className="text-lg line-clamp-2 pr-2 font-bold text-foreground m-0">{product.name}</h3>
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {paginatedProducts.map((product) => (
+                      <PolarisCard key={product.id}>
+                        <div className="p-4 sm:p-5 flex flex-col h-full space-y-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-2 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={selectedIdSet.has(product.id)}
+                                onChange={() => toggleProductSelection(product.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                aria-label={t('bulk.selectProduct', { name: product.name })}
+                                className="mt-1 rounded border-zinc-300"
+                              />
+                              <h3 className="text-lg line-clamp-2 pr-2 font-bold text-foreground m-0">{product.name}</h3>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (confirm(t('card.deleteConfirm'))) {
+                                  handleDeleteProduct(product.id);
+                                }
+                              }}
+                              type="button"
+                              title={t('card.deleteConfirm')}
+                              className="flex-shrink-0 p-2 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (confirm(t('card.deleteConfirm'))) {
-                                handleDeleteProduct(product.id);
-                              }
-                            }}
-                            type="button"
-                            title={t('card.deleteConfirm')}
-                            className="flex-shrink-0 p-2 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                        <div className="space-y-4 flex flex-col flex-1">
-                          <a
-                            href={product.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-primary hover:text-primary/80 line-clamp-1 flex items-center gap-2 font-medium transition-colors group/link"
-                          >
-                            <ExternalLink className="w-4 h-4 shrink-0 group-hover/link:scale-110 transition-transform" />
-                            <span className="truncate">{product.url}</span>
-                          </a>
+                          <div className="space-y-4 flex flex-col flex-1">
+                            <a
+                              href={product.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:text-primary/80 line-clamp-1 flex items-center gap-2 font-medium transition-colors group/link"
+                            >
+                              <ExternalLink className="w-4 h-4 shrink-0 group-hover/link:scale-110 transition-transform" />
+                              <span className="truncate">{product.url}</span>
+                            </a>
 
-                          <div className="mb-auto">
-                            {renderProductStatusBadges(product)}
-                          </div>
+                            <div className="mb-auto">
+                              {renderProductStatusBadges(product)}
+                            </div>
 
-                          <div className="mt-4">
-                            <PolarisButton fullWidth url={`/${locale}/dashboard/products/${product.id}`}>
-                              {t('card.edit')}
-                            </PolarisButton>
+                            <div className="mt-4">
+                              <PolarisButton fullWidth url={`/${locale}/dashboard/products/${product.id}`}>
+                                {t('card.edit')}
+                              </PolarisButton>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </PolarisCard>
-                  ))}
-                </div>
+                      </PolarisCard>
+                    ))}
+                  </div>
+                  {totalPages > 1 && (
+                    <div className="mt-8 flex justify-center">
+                      <Pagination
+                        hasPrevious={currentPage > 1}
+                        onPrevious={() => setCurrentPage((prev) => prev - 1)}
+                        hasNext={currentPage < totalPages}
+                        onNext={() => setCurrentPage((prev) => prev + 1)}
+                        label={`${currentPage} ${t('list.pagination.of', { total: totalPages }) || `of ${totalPages}`}`}
+                      />
+                    </div>
+                  )}
+                </>
               ) : (
                 <PolarisCard>
                   <div className="divide-y divide-border">
-                    {filteredAndSortedProducts.map((product) => (
+                    {paginatedProducts.map((product) => (
                       <div key={`mobile-${product.id}`} className="px-4 sm:px-5 py-4 md:hidden">
                         <div className="space-y-3">
                           <div className="flex items-start justify-between gap-3">
@@ -1000,7 +1030,7 @@ export default function ProductsPage() {
                       <div className="min-w-[1320px]">
                         <IndexTable
                           selectable={false}
-                          itemCount={filteredAndSortedProducts.length}
+                          itemCount={paginatedProducts.length}
                           resourceName={{ singular: t('list.columns.product'), plural: t('title') }}
                           headings={[
                             { title: '' },
@@ -1010,7 +1040,7 @@ export default function ProductsPage() {
                             { title: t('list.columns.actions'), alignment: 'end' },
                           ]}
                         >
-                          {filteredAndSortedProducts.map((product, index) => (
+                          {paginatedProducts.map((product, index) => (
                             <IndexTable.Row id={product.id} key={product.id} position={index}>
                               <IndexTable.Cell>
                                 <input
@@ -1075,6 +1105,17 @@ export default function ProductsPage() {
                       </div>
                     </div>
 
+                    {totalPages > 1 && (
+                      <div className="py-4 border-t border-border flex justify-center bg-zinc-50/50 rounded-b-xl">
+                        <Pagination
+                          hasPrevious={currentPage > 1}
+                          onPrevious={() => setCurrentPage((prev) => prev - 1)}
+                          hasNext={currentPage < totalPages}
+                          onNext={() => setCurrentPage((prev) => prev + 1)}
+                          label={`${currentPage} ${t('list.pagination.of', { total: totalPages }) || `of ${totalPages}`}`}
+                        />
+                      </div>
+                    )}
                   </div>
                 </PolarisCard>
               )
