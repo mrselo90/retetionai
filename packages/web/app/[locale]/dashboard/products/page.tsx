@@ -1,6 +1,6 @@
 'use client';
 
-import { useDeferredValue, useEffect, useState, useMemo } from 'react';
+import { useDeferredValue, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
@@ -135,49 +135,45 @@ export default function ProductsPage() {
     return 'rag_not_ready';
   };
 
-  const filteredAndSortedProducts = useMemo(() => {
-    return [...products]
-      .filter((product) => {
-        const status = getProductStatus(product);
-        const matchesStatus =
-          statusFilter === 'all'
-            ? true
-            : statusFilter === 'scraped'
-              ? Boolean(product.raw_text)
-              : status === statusFilter;
+  const filteredAndSortedProducts = [...products]
+    .filter((product) => {
+      const status = getProductStatus(product);
+      const matchesStatus =
+        statusFilter === 'all'
+          ? true
+          : statusFilter === 'scraped'
+            ? Boolean(product.raw_text)
+            : status === statusFilter;
 
-        const haystack = `${product.name} ${product.url} ${product.id}`.toLowerCase();
-        const matchesSearch = !deferredSearchQuery || haystack.includes(deferredSearchQuery);
-        return matchesStatus && matchesSearch;
-      })
-      .sort((a, b) => {
-        switch (sortBy) {
-          case 'name_asc':
-            return a.name.localeCompare(b.name);
-          case 'name_desc':
-            return b.name.localeCompare(a.name);
-          case 'updated_asc':
-            return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
-          case 'chunks_desc':
-            return (b.chunkCount ?? -1) - (a.chunkCount ?? -1);
-          case 'chunks_asc':
-            return (a.chunkCount ?? -1) - (b.chunkCount ?? -1);
-          case 'updated_desc':
-          default:
-            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-        }
-      });
-  }, [products, statusFilter, deferredSearchQuery, sortBy]);
+      const haystack = `${product.name} ${product.url} ${product.id}`.toLowerCase();
+      const matchesSearch = !deferredSearchQuery || haystack.includes(deferredSearchQuery);
+      return matchesStatus && matchesSearch;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'name_asc':
+          return a.name.localeCompare(b.name);
+        case 'name_desc':
+          return b.name.localeCompare(a.name);
+        case 'updated_asc':
+          return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+        case 'chunks_desc':
+          return (b.chunkCount ?? -1) - (a.chunkCount ?? -1);
+        case 'chunks_asc':
+          return (a.chunkCount ?? -1) - (b.chunkCount ?? -1);
+        case 'updated_desc':
+        default:
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      }
+    });
 
-  const paginatedProducts = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredAndSortedProducts.slice(start, start + itemsPerPage);
-  }, [filteredAndSortedProducts, currentPage, itemsPerPage]);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProducts = filteredAndSortedProducts.slice(startIndex, startIndex + itemsPerPage);
 
   const totalPages = Math.ceil(filteredAndSortedProducts.length / itemsPerPage);
 
-  const visibleProductIds = useMemo(() => paginatedProducts.map((p) => p.id), [paginatedProducts]);
-  const selectedIdSet = useMemo(() => new Set(selectedProductIds), [selectedProductIds]);
+  const visibleProductIds = paginatedProducts.map((p) => p.id);
+  const selectedIdSet = new Set(selectedProductIds);
   const selectedVisibleCount = visibleProductIds.filter((id) => selectedIdSet.has(id)).length;
   const allVisibleSelected = visibleProductIds.length > 0 && selectedVisibleCount === visibleProductIds.length;
 
