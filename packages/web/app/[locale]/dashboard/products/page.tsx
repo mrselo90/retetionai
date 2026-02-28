@@ -128,6 +128,59 @@ export default function ProductsPage() {
     setSelectedProductIds((prev) => prev.filter((id) => products.some((p) => p.id === id)));
   }, [products]);
 
+  const getProductStatus = (product: ProductWithChunks): ProductStatusFilter => {
+    if (!product.raw_text) return 'not_scraped';
+    if (product.chunkCountUnavailable) return 'rag_unknown';
+    if ((product.chunkCount || 0) > 0) return 'rag_ready';
+    return 'rag_not_ready';
+  };
+
+  const filteredAndSortedProducts = useMemo(() => {
+    return [...products]
+      .filter((product) => {
+        const status = getProductStatus(product);
+        const matchesStatus =
+          statusFilter === 'all'
+            ? true
+            : statusFilter === 'scraped'
+              ? Boolean(product.raw_text)
+              : status === statusFilter;
+
+        const haystack = `${product.name} ${product.url} ${product.id}`.toLowerCase();
+        const matchesSearch = !deferredSearchQuery || haystack.includes(deferredSearchQuery);
+        return matchesStatus && matchesSearch;
+      })
+      .sort((a, b) => {
+        switch (sortBy) {
+          case 'name_asc':
+            return a.name.localeCompare(b.name);
+          case 'name_desc':
+            return b.name.localeCompare(a.name);
+          case 'updated_asc':
+            return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+          case 'chunks_desc':
+            return (b.chunkCount ?? -1) - (a.chunkCount ?? -1);
+          case 'chunks_asc':
+            return (a.chunkCount ?? -1) - (b.chunkCount ?? -1);
+          case 'updated_desc':
+          default:
+            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+        }
+      });
+  }, [products, statusFilter, deferredSearchQuery, sortBy]);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredAndSortedProducts.slice(start, start + itemsPerPage);
+  }, [filteredAndSortedProducts, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredAndSortedProducts.length / itemsPerPage);
+
+  const visibleProductIds = useMemo(() => paginatedProducts.map((p) => p.id), [paginatedProducts]);
+  const selectedIdSet = useMemo(() => new Set(selectedProductIds), [selectedProductIds]);
+  const selectedVisibleCount = visibleProductIds.filter((id) => selectedIdSet.has(id)).length;
+  const allVisibleSelected = visibleProductIds.length > 0 && selectedVisibleCount === visibleProductIds.length;
+
   const handleViewModeChange = (mode: ProductsViewMode) => {
     setViewMode(mode);
     if (typeof window !== 'undefined') {
@@ -297,28 +350,6 @@ export default function ProductsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <SkeletonPage title={t('title')}>
-        <Layout>
-          <Layout.Section>
-            <div className="space-y-6 animate-fade-in">
-              <div className="space-y-3">
-                <div className="h-10 w-40 bg-zinc-200 rounded-xl animate-pulse" />
-                <div className="h-5 w-72 bg-zinc-100 rounded-lg animate-pulse" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-56 bg-card border border-border rounded-lg animate-pulse" />
-                ))}
-              </div>
-            </div>
-          </Layout.Section>
-        </Layout>
-      </SkeletonPage>
-    );
-  }
-
   const renderProductStatusBadges = (product: ProductWithChunks) => (
     <div className="flex items-center gap-2 flex-wrap">
       <Badge variant="outline-primary" size="sm" className="gap-1.5">
@@ -436,59 +467,6 @@ export default function ProductsPage() {
         return t('filters.sortOptions.updatedDesc');
     }
   };
-
-  const getProductStatus = (product: ProductWithChunks): ProductStatusFilter => {
-    if (!product.raw_text) return 'not_scraped';
-    if (product.chunkCountUnavailable) return 'rag_unknown';
-    if ((product.chunkCount || 0) > 0) return 'rag_ready';
-    return 'rag_not_ready';
-  };
-
-  const filteredAndSortedProducts = useMemo(() => {
-    return [...products]
-      .filter((product) => {
-        const status = getProductStatus(product);
-        const matchesStatus =
-          statusFilter === 'all'
-            ? true
-            : statusFilter === 'scraped'
-              ? Boolean(product.raw_text)
-              : status === statusFilter;
-
-        const haystack = `${product.name} ${product.url} ${product.id}`.toLowerCase();
-        const matchesSearch = !deferredSearchQuery || haystack.includes(deferredSearchQuery);
-        return matchesStatus && matchesSearch;
-      })
-      .sort((a, b) => {
-        switch (sortBy) {
-          case 'name_asc':
-            return a.name.localeCompare(b.name);
-          case 'name_desc':
-            return b.name.localeCompare(a.name);
-          case 'updated_asc':
-            return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
-          case 'chunks_desc':
-            return (b.chunkCount ?? -1) - (a.chunkCount ?? -1);
-          case 'chunks_asc':
-            return (a.chunkCount ?? -1) - (b.chunkCount ?? -1);
-          case 'updated_desc':
-          default:
-            return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-        }
-      });
-  }, [products, statusFilter, deferredSearchQuery, sortBy]);
-
-  const paginatedProducts = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredAndSortedProducts.slice(start, start + itemsPerPage);
-  }, [filteredAndSortedProducts, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredAndSortedProducts.length / itemsPerPage);
-
-  const visibleProductIds = useMemo(() => paginatedProducts.map((p) => p.id), [paginatedProducts]);
-  const selectedIdSet = useMemo(() => new Set(selectedProductIds), [selectedProductIds]);
-  const selectedVisibleCount = visibleProductIds.filter((id) => selectedIdSet.has(id)).length;
-  const allVisibleSelected = visibleProductIds.length > 0 && selectedVisibleCount === visibleProductIds.length;
 
   const toggleProductSelection = (productId: string) => {
     setSelectedProductIds((prev) =>
@@ -608,6 +586,28 @@ export default function ProductsPage() {
       setActiveSavedViewId('all');
     }
   };
+
+  if (loading) {
+    return (
+      <SkeletonPage title={t('title')}>
+        <Layout>
+          <Layout.Section>
+            <div className="space-y-6 animate-fade-in">
+              <div className="space-y-3">
+                <div className="h-10 w-40 bg-zinc-200 rounded-xl animate-pulse" />
+                <div className="h-5 w-72 bg-zinc-100 rounded-lg animate-pulse" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-56 bg-card border border-border rounded-lg animate-pulse" />
+                ))}
+              </div>
+            </div>
+          </Layout.Section>
+        </Layout>
+      </SkeletonPage>
+    );
+  }
 
   return (
     <Page title={t('title')} subtitle={t('description')} fullWidth>
