@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTranslations } from 'next-intl';
 import { useDashboardAuth } from '@/hooks/useDashboardAuth';
+import { Logo } from '@/components/ui/logo';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -94,8 +95,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               {/* Logo */}
               <div className="h-14 flex items-center px-4 border-b border-border">
                 <Link href="/dashboard" className="flex items-center gap-2.5 font-semibold text-[14px] tracking-normal text-foreground">
-                  <img src="/recete-icon.svg" alt="" className="w-8 h-8 rounded-md shrink-0" width="32" height="32" aria-hidden />
-                  <span className="text-foreground">Recete</span>
+                  <Logo iconOnly className="w-8 h-8 rounded-md shrink-0" />
+                  <span className="text-foreground -ml-1 text-lg font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', 'Times New Roman', serif" }}>recete</span>
                 </Link>
                 <button
                   className="ml-auto lg:hidden text-muted-foreground hover:text-foreground p-2 rounded-md hover:bg-muted transition-colors"
@@ -165,8 +166,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {!embedded && (
           <header className="lg:hidden h-14 bg-card border-b border-border flex items-center px-4 justify-between sticky top-0 z-30">
             <Link href="/dashboard" className="font-semibold text-sm text-foreground flex items-center gap-2">
-              <img src="/recete-icon.svg" alt="" className="w-7 h-7 rounded-md shrink-0" width="28" height="28" aria-hidden />
-              Recete
+              <Logo iconOnly className="w-7 h-7 rounded-md shrink-0" />
+              <span className="-ml-1 text-lg font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', 'Times New Roman', serif" }}>recete</span>
             </Link>
             <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)}>
               <Menu className="w-6 h-6" />
