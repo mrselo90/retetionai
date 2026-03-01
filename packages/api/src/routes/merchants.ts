@@ -444,7 +444,7 @@ merchants.get('/me/stats', async (c) => {
       if (integration.status === 'error') {
         alerts.push({
           type: 'integration_error',
-          message: `${integration.provider} entegrasyonunda hata var`,
+          message: `Integration error with ${integration.provider}`,
           severity: 'error',
         });
       }
@@ -454,7 +454,7 @@ merchants.get('/me/stats', async (c) => {
     if (!integrations || integrations.length === 0) {
       alerts.push({
         type: 'no_integration',
-        message: 'Henüz entegrasyon eklenmemiş',
+        message: 'No integrations added yet',
         severity: 'warning',
       });
     }
@@ -463,7 +463,7 @@ merchants.get('/me/stats', async (c) => {
     if (productsCount === 0) {
       alerts.push({
         type: 'no_products',
-        message: 'Henüz ürün eklenmemiş',
+        message: 'No products added yet',
         severity: 'info',
       });
     }

@@ -310,14 +310,25 @@ export default function DashboardPage() {
           <Layout.Section>
             <Banner title={t('actionRequired')} tone="critical">
               <BlockStack gap="200">
-                {criticalAlerts.map((alert, index) => (
-                  <Text as="p" variant="bodySm" key={`${alert.type}-${index}`}>
-                    <Text as="span" variant="bodySm" fontWeight="semibold">
-                      {alert.type}:
-                    </Text>{' '}
-                    {alert.message}
-                  </Text>
-                ))}
+                {criticalAlerts.map((alert, index) => {
+                  let typeLabel = alert.type;
+                  if (alert.type === 'no_integration') {
+                    typeLabel = 'Integration Missing';
+                  } else if (alert.type === 'integration_error') {
+                    typeLabel = 'Integration Error';
+                  } else {
+                    typeLabel = alert.type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                  }
+
+                  return (
+                    <Text as="p" variant="bodySm" key={`${alert.type}-${index}`}>
+                      <Text as="span" variant="bodySm" fontWeight="semibold">
+                        {typeLabel}:
+                      </Text>{' '}
+                      {alert.message}
+                    </Text>
+                  );
+                })}
               </BlockStack>
             </Banner>
           </Layout.Section>
@@ -358,13 +369,25 @@ export default function DashboardPage() {
         {hasAlerts && infoAlerts.length > 0 && (
           <Layout.Section>
             <BlockStack gap="300">
-              {infoAlerts.map((alert, index) => (
-                <Banner key={`${alert.type}-${index}`} title={alert.type} tone="info">
-                  <Text as="p" variant="bodySm">
-                    {alert.message}
-                  </Text>
-                </Banner>
-              ))}
+              {infoAlerts.map((alert, index) => {
+                let title = alert.type;
+                let action;
+
+                if (alert.type === 'no_products') {
+                  title = 'Products Needed';
+                  action = { content: t('quickActions.addProduct'), url: `/${locale}/dashboard/products` };
+                } else {
+                  title = alert.type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                }
+
+                return (
+                  <Banner key={`${alert.type}-${index}`} title={title} tone="info" action={action}>
+                    <Text as="p" variant="bodySm">
+                      {alert.message}
+                    </Text>
+                  </Banner>
+                );
+              })}
             </BlockStack>
           </Layout.Section>
         )}
