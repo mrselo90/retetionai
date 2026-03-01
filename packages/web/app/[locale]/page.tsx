@@ -19,7 +19,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden" style={{ background: '#f6f4ea', color: '#17231f' }}>
       {/* ── Header ── */}
-      <header className="sticky top-0 z-50 border-b border-black/5 backdrop-blur-xl shrink-0" style={{ background: 'rgba(246,244,234,0.92)' }}>
+      <header className="sticky top-0 z-50 border-b border-black/5 backdrop-blur-xl shrink-0" style={{ background: 'rgba(246,240,223,0.92)' }}>
         <div className="block w-full max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3 min-w-0">
           {/* Logo */}
           <Link
