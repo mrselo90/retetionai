@@ -778,6 +778,24 @@
             "saveButton": "Save Settings",
             "saving": "Saving..."
         },
+        "multilingual": {
+            "title": "Multilingual Smart Answers",
+            "description": "Configure language settings for the AI response system. Set a primary language and enable additional customer-facing languages.",
+            "primaryLanguageLabel": "Primary Store Language",
+            "supportedLanguagesLabel": "Supported Languages",
+            "enableLabel": "Enable Multilingual AI for this shop",
+            "enableHelp": "Allow the AI to automatically respond in the customer's preferred language based on your supported languages.",
+            "currentStateLabel": "Current state:",
+            "stateConfigured": "Configured",
+            "stateNotConfigured": "Not configured yet",
+            "stateHelp": "When enabled, the AI syncs multilingual product data and adapts responses to customer language.",
+            "saveButton": "Save Language Settings"
+        },
+        "modules": {
+            "title": "Modules",
+            "description": "Optional paid modules to enhance your AI capabilities.",
+            "empty": "No modules available"
+        },
         "guardrails": {
             "title": "Guardrails",
             "description": "Define rules for what the bot should not say or how it should react.",
@@ -810,8 +828,13 @@
                     "phrase": "Exact Phrase"
                 },
                 "valueLabel": "Keywords / Phrase *",
+                "namePlaceholder": "e.g. Competitor mention",
+                "descPlaceholder": "Brief description of the rule",
+                "keywordsPlaceholder": "competitor, price, discount",
+                "phrasePlaceholder": "This product cures",
                 "actionLabel": "Action",
                 "responseLabel": "Suggested Response (optional)",
+                "responsePlaceholder": "Text to show when this rule is triggered",
                 "cancel": "Cancel",
                 "save": "Save",
                 "saving": "Saving..."
@@ -876,6 +899,34 @@
             "saveError": {
                 "title": "Error saving",
                 "message": "Could not save your settings. Please try again."
+            },
+            "multiLangSuccess": {
+                "title": "Language settings saved",
+                "message": "Multilingual AI settings were saved successfully."
+            },
+            "multiLangError": {
+                "title": "Error saving language settings",
+                "message": "Could not save multilingual settings. Please try again."
+            },
+            "guardrailSuccess": {
+                "title": "Guardrails updated",
+                "message": "Guardrail settings were saved successfully."
+            },
+            "guardrailError": {
+                "title": "Guardrail error",
+                "message": "Could not update guardrail settings. Please review inputs and try again."
+            },
+            "exportSuccess": {
+                "title": "Data export ready",
+                "message": "Your data export download has started."
+            },
+            "deleteScheduled": {
+                "title": "Deletion scheduled",
+                "message": "Your account is scheduled for deletion on {date}."
+            },
+            "deletePermanent": {
+                "title": "Account deleted",
+                "message": "Your account and data were permanently deleted."
             }
         },
         "notifications": {

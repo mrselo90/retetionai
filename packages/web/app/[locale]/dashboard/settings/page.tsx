@@ -5,13 +5,35 @@ import { Link } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Badge as PolarisBadge, Banner, BlockStack, Box, Button as PolarisButton, Card as PolarisCard, Checkbox, ChoiceList, Divider, InlineStack, Layout, Page, RangeSlider, Select, SkeletonPage, Text, TextField } from '@shopify/polaris';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Settings, Bot, Shield, Database, Loader2, Pencil, X, AlertTriangle, ExternalLink, ShieldCheck } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import {
+  Badge as PolarisBadge,
+  Banner,
+  BlockStack,
+  Box,
+  Button as PolarisButton,
+  Card as PolarisCard,
+  Checkbox,
+  ChoiceList,
+  Divider,
+  InlineStack,
+  Layout,
+  Modal,
+  Page,
+  RangeSlider,
+  Select,
+  SkeletonPage,
+  Text,
+  TextField,
+} from '@shopify/polaris';
+import {
+  Settings,
+  Bot,
+  Shield,
+  Database,
+  AlertTriangle,
+  ExternalLink,
+  ShieldCheck,
+} from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { ShopifySaveBar } from '@/components/ui/ShopifySaveBar';
 import { InlineError } from '@/components/ui/InlineError';
@@ -65,11 +87,19 @@ interface MultiLangRagSettings {
   multi_lang_rag_enabled: boolean;
 }
 
+interface Addon {
+  key: string;
+  name: string;
+  description: string;
+  priceMonthly: number;
+  status: string;
+  planAllowed: boolean;
+}
+
 export default function SettingsPage() {
   const t = useTranslations('Settings');
   const rp = useTranslations('ReturnPrevention');
   const locale = useLocale();
-  const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -79,23 +109,26 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Form states
-  const [merchantName, setMerchantName] = useState('');
   const [botName, setBotName] = useState('');
   const [tone, setTone] = useState<'friendly' | 'professional' | 'casual' | 'formal'>('friendly');
   const [emoji, setEmoji] = useState(true);
   const [responseLength, setResponseLength] = useState<'short' | 'medium' | 'long'>('medium');
   const [temperature, setTemperature] = useState(0.7);
-  const [whatsappSenderMode, setWhatsappSenderMode] = useState<'merchant_own' | 'corporate'>('merchant_own');
+  const [whatsappSenderMode, setWhatsappSenderMode] = useState<'merchant_own' | 'corporate'>(
+    'merchant_own'
+  );
   const [whatsappWelcomeTemplate, setWhatsappWelcomeTemplate] = useState('');
   const [notificationPhone, setNotificationPhone] = useState('');
-  const [multiLangRagSettings, setMultiLangRagSettings] = useState<MultiLangRagSettings | null>(null);
+  const [multiLangRagSettings, setMultiLangRagSettings] = useState<MultiLangRagSettings | null>(
+    null
+  );
   const [multiLangRagSaving, setMultiLangRagSaving] = useState(false);
   const [multiLangEnabledLangs, setMultiLangEnabledLangs] = useState<string[]>(['en']);
   const [multiLangDefaultSourceLang, setMultiLangDefaultSourceLang] = useState<string>('en');
   const [multiLangEnabled, setMultiLangEnabled] = useState(false);
 
   // Add-ons
-  const [addons, setAddons] = useState<Array<{ key: string; name: string; description: string; priceMonthly: number; status: string; planAllowed: boolean }>>([]);
+  const [addons, setAddons] = useState<Addon[]>([]);
   const [showAddonConfirm, setShowAddonConfirm] = useState<string | null>(null);
   const [addonAction, setAddonAction] = useState<'enable' | 'disable'>('enable');
 
@@ -107,18 +140,36 @@ export default function SettingsPage() {
   const [editingGuardrail, setEditingGuardrail] = useState<CustomGuardrail | null>(null);
   const [guardrailName, setGuardrailName] = useState('');
   const [guardrailDescription, setGuardrailDescription] = useState('');
-  const [guardrailApplyTo, setGuardrailApplyTo] = useState<'user_message' | 'ai_response' | 'both'>('both');
+  const [guardrailApplyTo, setGuardrailApplyTo] = useState<'user_message' | 'ai_response' | 'both'>(
+    'both'
+  );
   const [guardrailMatchType, setGuardrailMatchType] = useState<'keywords' | 'phrase'>('keywords');
   const [guardrailValue, setGuardrailValue] = useState('');
   const [guardrailAction, setGuardrailAction] = useState<'block' | 'escalate'>('block');
   const [guardrailSuggestedResponse, setGuardrailSuggestedResponse] = useState('');
+
+  const getErrorMessage = (err: unknown, fallback: string) => {
+    if (err instanceof Error && err.message) return err.message;
+    return fallback;
+  };
+
+  const getErrorStatus = (err: unknown): number | undefined => {
+    if (typeof err === 'object' && err !== null && 'status' in err) {
+      const status = (err as { status?: unknown }).status;
+      if (typeof status === 'number') return status;
+    }
+    return undefined;
+  };
+
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         window.location.href = '/login';
         return;
@@ -128,8 +179,6 @@ export default function SettingsPage() {
         '/api/merchants/me',
         session.access_token
       );
-      setMerchant(merchantResponse.merchant);
-      setMerchantName(merchantResponse.merchant.name);
 
       const persona = merchantResponse.merchant.persona_settings || {};
       setBotName(persona.bot_name || t('botPersona.namePlaceholder'));
@@ -140,7 +189,11 @@ export default function SettingsPage() {
       setWhatsappSenderMode(
         persona.whatsapp_sender_mode === 'corporate' ? 'corporate' : 'merchant_own'
       );
-      setWhatsappWelcomeTemplate(typeof persona.whatsapp_welcome_template === 'string' ? persona.whatsapp_welcome_template : '');
+      setWhatsappWelcomeTemplate(
+        typeof persona.whatsapp_welcome_template === 'string'
+          ? persona.whatsapp_welcome_template
+          : ''
+      );
       setNotificationPhone(merchantResponse.merchant.notification_phone || '');
 
       try {
@@ -150,7 +203,7 @@ export default function SettingsPage() {
         }>('/api/merchants/me/guardrails', session.access_token);
         setSystemGuardrails(guardrailsResponse.system_guardrails ?? []);
         setCustomGuardrails(guardrailsResponse.custom_guardrails ?? []);
-      } catch (guardrailsErr: any) {
+      } catch (guardrailsErr: unknown) {
         console.warn('Guardrails load failed (migration 008 may not be run):', guardrailsErr);
         setSystemGuardrails([]);
         setCustomGuardrails([]);
@@ -158,7 +211,7 @@ export default function SettingsPage() {
       }
 
       try {
-        const addonsResponse = await authenticatedRequest<{ addons: any[] }>(
+        const addonsResponse = await authenticatedRequest<{ addons: Addon[] }>(
           '/api/billing/addons',
           session.access_token
         );
@@ -174,18 +227,21 @@ export default function SettingsPage() {
           session.access_token
         );
         setMultiLangRagSettings(multiLangResponse.settings);
-        setMultiLangEnabledLangs(Array.isArray(multiLangResponse.settings.enabled_langs) && multiLangResponse.settings.enabled_langs.length
-          ? multiLangResponse.settings.enabled_langs
-          : [multiLangResponse.settings.default_source_lang || 'en']);
+        setMultiLangEnabledLangs(
+          Array.isArray(multiLangResponse.settings.enabled_langs) &&
+            multiLangResponse.settings.enabled_langs.length
+            ? multiLangResponse.settings.enabled_langs
+            : [multiLangResponse.settings.default_source_lang || 'en']
+        );
         setMultiLangDefaultSourceLang(multiLangResponse.settings.default_source_lang || 'en');
         setMultiLangEnabled(Boolean(multiLangResponse.settings.multi_lang_rag_enabled));
       } catch (e) {
         console.warn('Multi-language RAG settings load failed (migration 019 may not be run):', e);
         setMultiLangRagSettings(null);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load settings:', err);
-      if (err.status === 401) {
+      if (getErrorStatus(err) === 401) {
         window.location.href = '/login';
       } else {
         toast.error(t('toasts.saveError.title'), t('toasts.saveError.message'));
@@ -205,7 +261,9 @@ export default function SettingsPage() {
 
   const handleSaveMultiLangRagSettings = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
       setMultiLangRagSaving(true);
       const enabled = [...new Set([multiLangDefaultSourceLang, ...multiLangEnabledLangs])];
@@ -225,10 +283,13 @@ export default function SettingsPage() {
       setMultiLangEnabledLangs(response.settings.enabled_langs);
       setMultiLangDefaultSourceLang(response.settings.default_source_lang);
       setMultiLangEnabled(Boolean(response.settings.multi_lang_rag_enabled));
-      toast.success('Multi-language RAG settings saved', 'New settings will apply to shadow write/read immediately via feature flags.');
-    } catch (err: any) {
+      toast.success(t('toasts.multiLangSuccess.title'), t('toasts.multiLangSuccess.message'));
+    } catch (err: unknown) {
       console.error('Failed to save multi-language RAG settings:', err);
-      toast.error('Failed to save multi-language RAG settings', err.message || 'Unknown error');
+      toast.error(
+        t('toasts.multiLangError.title'),
+        getErrorMessage(err, t('toasts.multiLangError.message'))
+      );
     } finally {
       setMultiLangRagSaving(false);
     }
@@ -236,38 +297,36 @@ export default function SettingsPage() {
 
   const handleSavePersona = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       setSaving(true);
 
-      await authenticatedRequest(
-        '/api/merchants/me',
-        session.access_token,
-        {
-          method: 'PUT',
-          body: JSON.stringify({
-            notification_phone: notificationPhone,
-            persona_settings: {
-              bot_name: botName,
-              tone,
-              emoji,
-              response_length: responseLength,
-              temperature,
-              whatsapp_sender_mode: whatsappSenderMode,
-              whatsapp_welcome_template: whatsappWelcomeTemplate.trim() || undefined,
-            },
-          }),
-        }
-      );
+      await authenticatedRequest('/api/merchants/me', session.access_token, {
+        method: 'PUT',
+        body: JSON.stringify({
+          notification_phone: notificationPhone,
+          persona_settings: {
+            bot_name: botName,
+            tone,
+            emoji,
+            response_length: responseLength,
+            temperature,
+            whatsapp_sender_mode: whatsappSenderMode,
+            whatsapp_welcome_template: whatsappWelcomeTemplate.trim() || undefined,
+          },
+        }),
+      });
 
       toast.success(t('toasts.saveSuccess.title'), t('toasts.saveSuccess.message'));
       setSaveError(null);
       setIsDirty(false);
       await loadData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to save persona:', err);
-      setSaveError(err.message || t('toasts.saveError.message'));
+      setSaveError(getErrorMessage(err, t('toasts.saveError.message')));
     } finally {
       setSaving(false);
     }
@@ -289,7 +348,9 @@ export default function SettingsPage() {
     setShowAddonConfirm(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       if (addonAction === 'enable') {
@@ -305,16 +366,14 @@ export default function SettingsPage() {
         // If no confirmation URL (e.g. manual billing), just reload
         await loadData();
       } else {
-        await authenticatedRequest(
-          `/api/billing/addons/${addonKey}/cancel`,
-          session.access_token,
-          { method: 'POST' }
-        );
+        await authenticatedRequest(`/api/billing/addons/${addonKey}/cancel`, session.access_token, {
+          method: 'POST',
+        });
         await loadData();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Addon action failed:', err);
-      toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
+      toast.error(t('toasts.saveError.title'), getErrorMessage(err, t('toasts.saveError.message')));
     }
   };
 
@@ -361,20 +420,39 @@ export default function SettingsPage() {
     const value: string[] | string =
       guardrailMatchType === 'phrase'
         ? valueStr
-        : valueStr.split(',').map((s) => s.trim()).filter(Boolean);
+        : valueStr
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
     if (guardrailMatchType === 'keywords' && Array.isArray(value) && value.length === 0) {
       toast.error(t('toasts.guardrailError.title'), t('guardrails.modal.valueLabel'));
       return;
     }
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
       setSavingGuardrails(true);
       const id = editingGuardrail?.id ?? `custom-${Date.now()}`;
       const next: CustomGuardrail[] = editingGuardrail
         ? customGuardrails.map((g) =>
-          g.id === editingGuardrail.id
-            ? {
+            g.id === editingGuardrail.id
+              ? {
+                  id,
+                  name,
+                  description: guardrailDescription.trim() || undefined,
+                  apply_to: guardrailApplyTo,
+                  match_type: guardrailMatchType,
+                  value,
+                  action: guardrailAction,
+                  suggested_response: guardrailSuggestedResponse.trim() || undefined,
+                }
+              : g
+          )
+        : [
+            ...customGuardrails,
+            {
               id,
               name,
               description: guardrailDescription.trim() || undefined,
@@ -383,22 +461,8 @@ export default function SettingsPage() {
               value,
               action: guardrailAction,
               suggested_response: guardrailSuggestedResponse.trim() || undefined,
-            }
-            : g
-        )
-        : [
-          ...customGuardrails,
-          {
-            id,
-            name,
-            description: guardrailDescription.trim() || undefined,
-            apply_to: guardrailApplyTo,
-            match_type: guardrailMatchType,
-            value,
-            action: guardrailAction,
-            suggested_response: guardrailSuggestedResponse.trim() || undefined,
-          },
-        ];
+            },
+          ];
       await authenticatedRequest('/api/merchants/me/guardrails', session.access_token, {
         method: 'PUT',
         body: JSON.stringify({ custom_guardrails: next }),
@@ -406,8 +470,11 @@ export default function SettingsPage() {
       setCustomGuardrails(next);
       toast.success(t('toasts.guardrailSuccess.title'), t('toasts.guardrailSuccess.message'));
       closeGuardrailModal();
-    } catch (err: any) {
-      toast.error(t('toasts.guardrailError.title'), err.message || t('toasts.guardrailError.message'));
+    } catch (err: unknown) {
+      toast.error(
+        t('toasts.guardrailError.title'),
+        getErrorMessage(err, t('toasts.guardrailError.message'))
+      );
     } finally {
       setSavingGuardrails(false);
     }
@@ -416,7 +483,9 @@ export default function SettingsPage() {
   const handleDeleteGuardrail = async (id: string) => {
     if (!confirm(t('guardrails.delete'))) return;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
       setSavingGuardrails(true);
       const next = customGuardrails.filter((g) => g.id !== id);
@@ -426,8 +495,11 @@ export default function SettingsPage() {
       });
       setCustomGuardrails(next);
       toast.success(t('toasts.guardrailSuccess.title'), t('toasts.guardrailSuccess.message'));
-    } catch (err: any) {
-      toast.error(t('toasts.guardrailError.title'), err.message || t('toasts.guardrailError.message'));
+    } catch (err: unknown) {
+      toast.error(
+        t('toasts.guardrailError.title'),
+        getErrorMessage(err, t('toasts.guardrailError.message'))
+      );
     } finally {
       setSavingGuardrails(false);
     }
@@ -435,11 +507,13 @@ export default function SettingsPage() {
 
   const handleExportData = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       setExportingData(true);
-      const response = await authenticatedRequest<{ data: any; exported_at: string }>(
+      const response = await authenticatedRequest<{ data: unknown; exported_at: string }>(
         '/api/gdpr/export',
         session.access_token,
         {
@@ -459,9 +533,9 @@ export default function SettingsPage() {
       URL.revokeObjectURL(url);
 
       toast.success(t('toasts.exportSuccess.title'), t('toasts.exportSuccess.message'));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to export data:', err);
-      toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
+      toast.error(t('toasts.saveError.title'), getErrorMessage(err, t('toasts.saveError.message')));
     } finally {
       setExportingData(false);
     }
@@ -469,18 +543,19 @@ export default function SettingsPage() {
 
   const handleDeleteData = async (permanent: boolean = false) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       setDeletingData(true);
-      const response = await authenticatedRequest<{ message: string; permanent_deletion_at?: string }>(
-        '/api/gdpr/delete',
-        session.access_token,
-        {
-          method: 'DELETE',
-          body: JSON.stringify({ confirm: true, permanent }),
-        }
-      );
+      const response = await authenticatedRequest<{
+        message: string;
+        permanent_deletion_at?: string;
+      }>('/api/gdpr/delete', session.access_token, {
+        method: 'DELETE',
+        body: JSON.stringify({ confirm: true, permanent }),
+      });
 
       if (permanent) {
         toast.warning(t('toasts.deletePermanent.title'), t('toasts.deletePermanent.message'));
@@ -491,13 +566,15 @@ export default function SettingsPage() {
       } else {
         toast.error(
           t('toasts.deleteScheduled.title'),
-          t('toasts.deleteScheduled.message', { date: new Date(response.permanent_deletion_at || '').toLocaleDateString() })
+          t('toasts.deleteScheduled.message', {
+            date: new Date(response.permanent_deletion_at || '').toLocaleDateString(),
+          })
         );
       }
       setShowDeleteConfirm(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to delete data:', err);
-      toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
+      toast.error(t('toasts.saveError.title'), getErrorMessage(err, t('toasts.saveError.message')));
     } finally {
       setDeletingData(false);
     }
@@ -509,9 +586,21 @@ export default function SettingsPage() {
         <Layout>
           <Layout.Section>
             <BlockStack gap="500">
-              <PolarisCard><Box padding="400"><div className="h-20 bg-zinc-100 rounded-lg animate-pulse" /></Box></PolarisCard>
-              <PolarisCard><Box padding="400"><div className="h-80 bg-zinc-100 rounded-lg animate-pulse" /></Box></PolarisCard>
-              <PolarisCard><Box padding="400"><div className="h-64 bg-zinc-100 rounded-lg animate-pulse" /></Box></PolarisCard>
+              <PolarisCard>
+                <Box padding="400">
+                  <div className="h-20 bg-zinc-100 rounded-lg animate-pulse" />
+                </Box>
+              </PolarisCard>
+              <PolarisCard>
+                <Box padding="400">
+                  <div className="h-80 bg-zinc-100 rounded-lg animate-pulse" />
+                </Box>
+              </PolarisCard>
+              <PolarisCard>
+                <Box padding="400">
+                  <div className="h-64 bg-zinc-100 rounded-lg animate-pulse" />
+                </Box>
+              </PolarisCard>
             </BlockStack>
           </Layout.Section>
         </Layout>
@@ -529,12 +618,19 @@ export default function SettingsPage() {
               <Box padding="400">
                 <BlockStack gap="300">
                   <BlockStack gap="100">
-                    <Text as="h2" variant="headingMd">{t('title')}</Text>
-                    <Text as="p" tone="subdued">{t('description')}</Text>
+                    <Text as="h2" variant="headingMd">
+                      {t('title')}
+                    </Text>
+                    <Text as="p" tone="subdued">
+                      {t('description')}
+                    </Text>
                   </BlockStack>
                   <Banner tone="info">
                     <p>
-                      <a href="#guardrails" className="text-primary hover:text-primary/80 font-semibold transition-colors">
+                      <a
+                        href="#guardrails"
+                        className="text-primary hover:text-primary/80 font-semibold transition-colors"
+                      >
                         {t('guardrailsLink')}
                       </a>
                     </p>
@@ -552,15 +648,22 @@ export default function SettingsPage() {
                       <AlertTriangle className="w-5 h-5 text-white" />
                     </Box>
                     <BlockStack gap="100">
-                      <Text as="h2" variant="headingMd">{t('notifications.title')}</Text>
-                      <Text as="p" tone="subdued">{t('notifications.description')}</Text>
+                      <Text as="h2" variant="headingMd">
+                        {t('notifications.title')}
+                      </Text>
+                      <Text as="p" tone="subdued">
+                        {t('notifications.description')}
+                      </Text>
                     </BlockStack>
                   </InlineStack>
                   <TextField
                     label={t('notifications.phoneLabel')}
                     type="tel"
                     value={notificationPhone}
-                    onChange={(value) => { setNotificationPhone(value); setIsDirty(true); }}
+                    onChange={(value) => {
+                      setNotificationPhone(value);
+                      setIsDirty(true);
+                    }}
                     placeholder={t('notifications.phonePlaceholder')}
                     autoComplete="off"
                     helpText={t('notifications.phoneHint')}
@@ -578,15 +681,17 @@ export default function SettingsPage() {
                       <Settings className="w-5 h-5 text-white" />
                     </Box>
                     <BlockStack gap="100">
-                      <Text as="h2" variant="headingMd">Multilingual Smart Answers</Text>
+                      <Text as="h2" variant="headingMd">
+                        {t('multilingual.title')}
+                      </Text>
                       <Text as="p" tone="subdued">
-                        Configure language settings for the AI response system. You can set a primary language and enable additional languages for your store.
+                        {t('multilingual.description')}
                       </Text>
                     </BlockStack>
                   </InlineStack>
 
                   <Select
-                    label="Primary Store Language"
+                    label={t('multilingual.primaryLanguageLabel')}
                     value={multiLangDefaultSourceLang}
                     options={allLangOptions.map((o) => ({ value: o.value, label: o.label }))}
                     onChange={(value) => {
@@ -598,32 +703,41 @@ export default function SettingsPage() {
                   />
 
                   <ChoiceList
-                    title="Supported Languages"
+                    title={t('multilingual.supportedLanguagesLabel')}
                     allowMultiple
                     choices={allLangOptions.map((o) => ({ value: o.value, label: o.label }))}
                     selected={multiLangEnabledLangs}
                     onChange={(selected) => {
                       const next = [...new Set(selected)];
-                      if (!next.includes(multiLangDefaultSourceLang)) next.unshift(multiLangDefaultSourceLang);
+                      if (!next.includes(multiLangDefaultSourceLang))
+                        next.unshift(multiLangDefaultSourceLang);
                       setMultiLangEnabledLangs(next);
                     }}
                   />
 
                   <Checkbox
-                    label="Enable Multilingual AI for this shop"
-                    helpText="Allow the AI to automatically respond to customers in their preferred language based on your store's supported languages."
+                    label={t('multilingual.enableLabel')}
+                    helpText={t('multilingual.enableHelp')}
                     checked={multiLangEnabled}
                     onChange={setMultiLangEnabled}
                   />
 
-                  <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
+                  <Box
+                    padding="300"
+                    borderWidth="025"
+                    borderColor="border"
+                    borderRadius="300"
+                    background="bg-surface-secondary"
+                  >
                     <BlockStack gap="100">
                       <Text as="p" variant="bodySm">
-                        <strong>Current state:</strong>{' '}
-                        {multiLangRagSettings ? 'Configured' : 'Not configured yet'}
+                        <strong>{t('multilingual.currentStateLabel')}</strong>{' '}
+                        {multiLangRagSettings
+                          ? t('multilingual.stateConfigured')
+                          : t('multilingual.stateNotConfigured')}
                       </Text>
                       <Text as="p" variant="bodySm" tone="subdued">
-                        When enabled, the AI system will sync your multilingual product data and adapt its answers to the customer's language.
+                        {t('multilingual.stateHelp')}
                       </Text>
                     </BlockStack>
                   </Box>
@@ -635,7 +749,7 @@ export default function SettingsPage() {
                       loading={multiLangRagSaving}
                       disabled={multiLangRagSaving}
                     >
-                      Save Language Settings
+                      {t('multilingual.saveButton')}
                     </PolarisButton>
                   </InlineStack>
                 </BlockStack>
@@ -643,184 +757,245 @@ export default function SettingsPage() {
             </PolarisCard>
 
             {/* Bot Persona Settings */}
-            <Card hover className="overflow-hidden shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
-                    <Bot className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-2xl">{t('botPersona.title')}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1.5 font-medium">
-                      {t('botPersona.description')}{' '}
-                      <Link href="/dashboard/settings/bot-info" className="text-primary hover:text-primary/80 font-bold transition-colors">
-                        {t('botPersona.botInfoLink')}
-                      </Link>
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-
-              <div className="p-6 space-y-6">
-                {/* Bot Name */}
-                <TextField
-                  label={t('botPersona.nameLabel')}
-                  type="text"
-                  value={botName}
-                  onChange={(value) => { setBotName(value); setIsDirty(true); }}
-                  placeholder={t('botPersona.namePlaceholder')}
-                  autoComplete="off"
-                />
-
-                {/* Tone */}
-                <ChoiceList
-                  title={t('botPersona.toneLabel')}
-                  choices={(['friendly', 'professional', 'casual', 'formal'] as const).map((tKey) => ({
-                    label: t(`botPersona.tones.${tKey}`),
-                    value: tKey,
-                  }))}
-                  selected={[tone]}
-                  onChange={(selected) => {
-                    const next = selected[0] as typeof tone | undefined;
-                    if (next) {
-                      setTone(next);
-                      setIsDirty(true);
-                    }
-                  }}
-                />
-
-                {/* Emoji */}
-                <Checkbox
-                  label={t('botPersona.emojiLabel')}
-                  helpText={t('botPersona.emojiDesc')}
-                  checked={emoji}
-                  onChange={(checked) => { setEmoji(checked); setIsDirty(true); }}
-                />
-
-                {/* Response Length */}
-                <ChoiceList
-                  title={t('botPersona.responseLengthLabel')}
-                  choices={(['short', 'medium', 'long'] as const).map((length) => ({
-                    label: t(`botPersona.lengths.${length}`),
-                    value: length,
-                  }))}
-                  selected={[responseLength]}
-                  onChange={(selected) => {
-                    const next = selected[0] as typeof responseLength | undefined;
-                    if (next) {
-                      setResponseLength(next);
-                      setIsDirty(true);
-                    }
-                  }}
-                />
-
-                {/* Temperature */}
-                <BlockStack gap="200">
-                  <Text as="p" variant="bodyMd" fontWeight="medium">
-                    {t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
-                  </Text>
-                  <RangeSlider
-                    label={t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
-                    labelHidden
-                    min={0}
-                    max={1}
-                    step={0.1}
-                    value={temperature}
-                    onChange={(value) => { setTemperature(Number(value)); setIsDirty(true); }}
-                  />
-                  <InlineStack align="space-between">
-                    <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.consistent')}</Text>
-                    <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.balanced')}</Text>
-                    <Text as="span" variant="bodySm" tone="subdued">{t('botPersona.tempLabels.creative')}</Text>
+            <PolarisCard>
+              <Box padding="400">
+                <BlockStack gap="400">
+                  <InlineStack gap="300" blockAlign="start">
+                    <Box background="bg-fill-brand" borderRadius="300" padding="300">
+                      <Bot className="w-5 h-5 text-white" />
+                    </Box>
+                    <BlockStack gap="100">
+                      <Text as="h2" variant="headingMd">
+                        {t('botPersona.title')}
+                      </Text>
+                      <Text as="p" tone="subdued">
+                        {t('botPersona.description')}{' '}
+                        <Link
+                          href="/dashboard/settings/bot-info"
+                          className="text-primary hover:text-primary/80 font-semibold transition-colors"
+                        >
+                          {t('botPersona.botInfoLink')}
+                        </Link>
+                      </Text>
+                    </BlockStack>
                   </InlineStack>
-                </BlockStack>
 
-                {/* WhatsApp sender: merchant's number vs corporate number — one must be chosen */}
-                <Divider />
-                <BlockStack gap="200">
+                  {/* Bot Name */}
+                  <TextField
+                    label={t('botPersona.nameLabel')}
+                    type="text"
+                    value={botName}
+                    onChange={(value) => {
+                      setBotName(value);
+                      setIsDirty(true);
+                    }}
+                    placeholder={t('botPersona.namePlaceholder')}
+                    autoComplete="off"
+                  />
+
+                  {/* Tone */}
                   <ChoiceList
-                    title={t('botPersona.whatsappSenderLabel')}
-                    choices={[
-                      { label: t('botPersona.whatsappSenders.merchantOwn.label'), value: 'merchant_own' },
-                      { label: t('botPersona.whatsappSenders.corporate.label'), value: 'corporate' },
-                    ]}
-                    selected={[whatsappSenderMode]}
+                    title={t('botPersona.toneLabel')}
+                    choices={(['friendly', 'professional', 'casual', 'formal'] as const).map(
+                      (tKey) => ({
+                        label: t(`botPersona.tones.${tKey}`),
+                        value: tKey,
+                      })
+                    )}
+                    selected={[tone]}
                     onChange={(selected) => {
-                      const next = selected[0] as typeof whatsappSenderMode | undefined;
+                      const next = selected[0] as typeof tone | undefined;
                       if (next) {
-                        setWhatsappSenderMode(next);
+                        setTone(next);
                         setIsDirty(true);
                       }
                     }}
                   />
-                  <Text as="p" tone="subdued">{t('botPersona.whatsappSenderDesc')}</Text>
-                  <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodySm"><strong>{t('botPersona.whatsappSenders.merchantOwn.label')}</strong></Text>
-                      <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.whatsappSenders.merchantOwn.desc')}</Text>
-                      <Text as="p" variant="bodySm"><strong>{t('botPersona.whatsappSenders.corporate.label')}</strong></Text>
-                      <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.whatsappSenders.corporate.desc')}</Text>
-                    </BlockStack>
-                  </Box>
-                  <Banner tone="info">
-                    <p>
-                      <strong>{t('botPersona.whatsappHelpTitle')}</strong> {t('botPersona.whatsappHelpText')}
-                    </p>
-                  </Banner>
-                </BlockStack>
 
-                <Divider />
-                <BlockStack gap="200">
-                  <TextField
-                    label={t('botPersona.welcomeTemplateLabel')}
-                    value={whatsappWelcomeTemplate}
-                    onChange={(value) => { setWhatsappWelcomeTemplate(value); setIsDirty(true); }}
-                    placeholder={t('botPersona.welcomeTemplatePlaceholder')}
-                    multiline={6}
-                    autoComplete="off"
-                  />
-                  <Text as="p" tone="subdued">{t('botPersona.welcomeTemplateDesc')}</Text>
-                  <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
-                    <BlockStack gap="150">
-                      <Text as="p" variant="bodySm" fontWeight="medium">{t('botPersona.welcomeTemplatePlaceholdersTitle')}</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.welcomeTemplatePlaceholderOrder')}</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">{t('botPersona.welcomeTemplatePlaceholderProducts')}</Text>
-                    </BlockStack>
-                  </Box>
-                </BlockStack>
-
-                {/* Save Button */}
-                <div className="pt-6 border-t border-border">
-                  {/* G4: Persistent inline error (BFS 4.2.4) */}
-                  <InlineError message={saveError} onDismiss={() => setSaveError(null)} />
-
-                  {/* G3: Contextual Save Bar when embedded (BFS 4.1.5) */}
-                  <ShopifySaveBar
-                    id="settings-persona-csb"
-                    isDirty={isDirty}
-                    onSave={handleSavePersona}
-                    onDiscard={() => {
-                      setIsDirty(false);
-                      setSaveError(null);
-                      loadData();
+                  {/* Emoji */}
+                  <Checkbox
+                    label={t('botPersona.emojiLabel')}
+                    helpText={t('botPersona.emojiDesc')}
+                    checked={emoji}
+                    onChange={(checked) => {
+                      setEmoji(checked);
+                      setIsDirty(true);
                     }}
                   />
 
-                  {/* Inline Save Button — standalone mode only */}
-                  {!isShopifyEmbedded() && (
-                    <Button
-                      onClick={handleSavePersona}
-                      disabled={saving}
-                      size="lg"
-                      className="shadow-lg hover:shadow-xl"
+                  {/* Response Length */}
+                  <ChoiceList
+                    title={t('botPersona.responseLengthLabel')}
+                    choices={(['short', 'medium', 'long'] as const).map((length) => ({
+                      label: t(`botPersona.lengths.${length}`),
+                      value: length,
+                    }))}
+                    selected={[responseLength]}
+                    onChange={(selected) => {
+                      const next = selected[0] as typeof responseLength | undefined;
+                      if (next) {
+                        setResponseLength(next);
+                        setIsDirty(true);
+                      }
+                    }}
+                  />
+
+                  {/* Temperature */}
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodyMd" fontWeight="medium">
+                      {t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
+                    </Text>
+                    <RangeSlider
+                      label={t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
+                      labelHidden
+                      min={0}
+                      max={1}
+                      step={0.1}
+                      value={temperature}
+                      onChange={(value) => {
+                        setTemperature(Number(value));
+                        setIsDirty(true);
+                      }}
+                    />
+                    <InlineStack align="space-between">
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        {t('botPersona.tempLabels.consistent')}
+                      </Text>
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        {t('botPersona.tempLabels.balanced')}
+                      </Text>
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        {t('botPersona.tempLabels.creative')}
+                      </Text>
+                    </InlineStack>
+                  </BlockStack>
+
+                  {/* WhatsApp sender: merchant's number vs corporate number — one must be chosen */}
+                  <Divider />
+                  <BlockStack gap="200">
+                    <ChoiceList
+                      title={t('botPersona.whatsappSenderLabel')}
+                      choices={[
+                        {
+                          label: t('botPersona.whatsappSenders.merchantOwn.label'),
+                          value: 'merchant_own',
+                        },
+                        {
+                          label: t('botPersona.whatsappSenders.corporate.label'),
+                          value: 'corporate',
+                        },
+                      ]}
+                      selected={[whatsappSenderMode]}
+                      onChange={(selected) => {
+                        const next = selected[0] as typeof whatsappSenderMode | undefined;
+                        if (next) {
+                          setWhatsappSenderMode(next);
+                          setIsDirty(true);
+                        }
+                      }}
+                    />
+                    <Text as="p" tone="subdued">
+                      {t('botPersona.whatsappSenderDesc')}
+                    </Text>
+                    <Box
+                      padding="300"
+                      borderWidth="025"
+                      borderColor="border"
+                      borderRadius="300"
+                      background="bg-surface-secondary"
                     >
-                      {saving && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
-                      {saving ? t('botPersona.saving') : t('botPersona.saveButton')}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </Card>
+                      <BlockStack gap="200">
+                        <Text as="p" variant="bodySm">
+                          <strong>{t('botPersona.whatsappSenders.merchantOwn.label')}</strong>
+                        </Text>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          {t('botPersona.whatsappSenders.merchantOwn.desc')}
+                        </Text>
+                        <Text as="p" variant="bodySm">
+                          <strong>{t('botPersona.whatsappSenders.corporate.label')}</strong>
+                        </Text>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          {t('botPersona.whatsappSenders.corporate.desc')}
+                        </Text>
+                      </BlockStack>
+                    </Box>
+                    <Banner tone="info">
+                      <p>
+                        <strong>{t('botPersona.whatsappHelpTitle')}</strong>{' '}
+                        {t('botPersona.whatsappHelpText')}
+                      </p>
+                    </Banner>
+                  </BlockStack>
+
+                  <Divider />
+                  <BlockStack gap="200">
+                    <TextField
+                      label={t('botPersona.welcomeTemplateLabel')}
+                      value={whatsappWelcomeTemplate}
+                      onChange={(value) => {
+                        setWhatsappWelcomeTemplate(value);
+                        setIsDirty(true);
+                      }}
+                      placeholder={t('botPersona.welcomeTemplatePlaceholder')}
+                      multiline={6}
+                      autoComplete="off"
+                    />
+                    <Text as="p" tone="subdued">
+                      {t('botPersona.welcomeTemplateDesc')}
+                    </Text>
+                    <Box
+                      padding="300"
+                      borderWidth="025"
+                      borderColor="border"
+                      borderRadius="300"
+                      background="bg-surface-secondary"
+                    >
+                      <BlockStack gap="150">
+                        <Text as="p" variant="bodySm" fontWeight="medium">
+                          {t('botPersona.welcomeTemplatePlaceholdersTitle')}
+                        </Text>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          {t('botPersona.welcomeTemplatePlaceholderOrder')}
+                        </Text>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          {t('botPersona.welcomeTemplatePlaceholderProducts')}
+                        </Text>
+                      </BlockStack>
+                    </Box>
+                  </BlockStack>
+
+                  <Box paddingBlockStart="300" borderBlockStartWidth="025" borderColor="border">
+                    <BlockStack gap="300">
+                      <InlineError message={saveError} onDismiss={() => setSaveError(null)} />
+
+                      <ShopifySaveBar
+                        id="settings-persona-csb"
+                        isDirty={isDirty}
+                        onSave={handleSavePersona}
+                        onDiscard={() => {
+                          setIsDirty(false);
+                          setSaveError(null);
+                          loadData();
+                        }}
+                      />
+
+                      {!isShopifyEmbedded() && (
+                        <InlineStack>
+                          <PolarisButton
+                            onClick={handleSavePersona}
+                            disabled={saving}
+                            loading={saving}
+                            variant="primary"
+                          >
+                            {saving ? t('botPersona.saving') : t('botPersona.saveButton')}
+                          </PolarisButton>
+                        </InlineStack>
+                      )}
+                    </BlockStack>
+                  </Box>
+                </BlockStack>
+              </Box>
+            </PolarisCard>
 
             {/* Add-on Modules */}
             <PolarisCard>
@@ -831,9 +1006,11 @@ export default function SettingsPage() {
                       <ShieldCheck className="w-5 h-5 text-white" />
                     </Box>
                     <BlockStack gap="100">
-                      <Text as="h2" variant="headingMd">Modules</Text>
+                      <Text as="h2" variant="headingMd">
+                        {t('modules.title')}
+                      </Text>
                       <Text as="p" tone="subdued">
-                        Optional paid modules to enhance your AI capabilities
+                        {t('modules.description')}
                       </Text>
                     </BlockStack>
                   </InlineStack>
@@ -844,16 +1021,19 @@ export default function SettingsPage() {
                       requiredPlan="Pro"
                     >
                       <div
-                        className={`flex items-center justify-between p-5 rounded-xl border transition-all ${addon.status === 'active'
-                          ? 'bg-gradient-to-r from-success/5 to-transparent border-success/30'
-                          : 'bg-gradient-to-r from-muted/50 to-transparent border-border'
-                          }`}
+                        className={`flex items-center justify-between p-5 rounded-xl border transition-all ${
+                          addon.status === 'active'
+                            ? 'bg-gradient-to-r from-success/5 to-transparent border-success/30'
+                            : 'bg-gradient-to-r from-muted/50 to-transparent border-border'
+                        }`}
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-3">
                             <p className="font-bold text-zinc-900 text-base">{rp('moduleTitle')}</p>
                             <PolarisBadge tone={addon.status === 'active' ? 'success' : undefined}>
-                              {addon.status === 'active' ? rp('statusActive') : rp('statusInactive')}
+                              {addon.status === 'active'
+                                ? rp('statusActive')
+                                : rp('statusInactive')}
                             </PolarisBadge>
                           </div>
                           <p className="text-sm text-zinc-600 mt-1">{rp('moduleDescription')}</p>
@@ -867,47 +1047,51 @@ export default function SettingsPage() {
                           variant={addon.status === 'active' ? 'secondary' : 'primary'}
                           size="slim"
                         >
-                          {addon.status === 'active' ? rp('disableConfirmButton') : rp('enableConfirmButton')}
+                          {addon.status === 'active'
+                            ? rp('disableConfirmButton')
+                            : rp('enableConfirmButton')}
                         </PolarisButton>
                       </div>
                     </PlanGatedFeature>
                   ))}
 
                   {addons.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">No modules available</p>
+                    <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                      {t('modules.empty')}
+                    </Text>
                   )}
                 </BlockStack>
               </Box>
             </PolarisCard>
 
             {/* Add-on confirmation dialog */}
-            <Dialog open={!!showAddonConfirm} onOpenChange={(open) => !open && setShowAddonConfirm(null)}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>
-                    {addonAction === 'enable' ? rp('enableConfirmTitle') : rp('disableConfirmTitle')}
-                  </DialogTitle>
-                  <DialogDescription>
-                    {addonAction === 'enable' ? rp('enableConfirmMessage') : rp('disableConfirmMessage')}
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter className="gap-3 sm:gap-3">
-                  <PolarisButton
-                    onClick={() => setShowAddonConfirm(null)}
-                    variant="secondary"
-                  >
-                    {rp('cancel')}
-                  </PolarisButton>
-                  <PolarisButton
-                    onClick={handleAddonConfirm}
-                    variant={addonAction === 'enable' ? 'primary' : undefined}
-                    tone={addonAction === 'enable' ? undefined : 'critical'}
-                  >
-                    {addonAction === 'enable' ? rp('enableConfirmButton') : rp('disableConfirmButton')}
-                  </PolarisButton>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Modal
+              open={!!showAddonConfirm}
+              onClose={() => setShowAddonConfirm(null)}
+              title={
+                addonAction === 'enable' ? rp('enableConfirmTitle') : rp('disableConfirmTitle')
+              }
+              primaryAction={{
+                content:
+                  addonAction === 'enable' ? rp('enableConfirmButton') : rp('disableConfirmButton'),
+                onAction: handleAddonConfirm,
+                destructive: addonAction !== 'enable',
+              }}
+              secondaryActions={[
+                {
+                  content: rp('cancel'),
+                  onAction: () => setShowAddonConfirm(null),
+                },
+              ]}
+            >
+              <Modal.Section>
+                <Text as="p" tone="subdued">
+                  {addonAction === 'enable'
+                    ? rp('enableConfirmMessage')
+                    : rp('disableConfirmMessage')}
+                </Text>
+              </Modal.Section>
+            </Modal>
 
             {/* Guardrails */}
             <PolarisCard>
@@ -919,8 +1103,12 @@ export default function SettingsPage() {
                         <Shield className="w-5 h-5 text-white" />
                       </Box>
                       <BlockStack gap="100">
-                        <Text as="h2" variant="headingMd">{t('guardrails.title')}</Text>
-                        <Text as="p" tone="subdued">{t('guardrails.description')}</Text>
+                        <Text as="h2" variant="headingMd">
+                          {t('guardrails.title')}
+                        </Text>
+                        <Text as="p" tone="subdued">
+                          {t('guardrails.description')}
+                        </Text>
                       </BlockStack>
                     </InlineStack>
                     <PolarisButton onClick={openAddGuardrail} variant="primary">
@@ -930,7 +1118,9 @@ export default function SettingsPage() {
                   {/* System guardrails (read-only) */}
                   <div>
                     <BlockStack gap="200">
-                      <Text as="h3" variant="headingSm">{t('guardrails.systemTitle')}</Text>
+                      <Text as="h3" variant="headingSm">
+                        {t('guardrails.systemTitle')}
+                      </Text>
                       <ul className="space-y-3">
                         {systemGuardrails.map((g) => (
                           <li
@@ -939,18 +1129,30 @@ export default function SettingsPage() {
                           >
                             <Box padding="300">
                               <InlineStack gap="300" blockAlign="start">
-                                <Text as="span" tone="subdued">🔒</Text>
+                                <Text as="span" tone="subdued">
+                                  🔒
+                                </Text>
                                 <BlockStack gap="100">
                                   <Text as="p" variant="bodyMd" fontWeight="medium">
                                     {locale === 'tr' ? (g.name_tr ?? g.name) : g.name}
                                   </Text>
                                   <Text as="p" variant="bodySm" tone="subdued">
-                                    {locale === 'tr' ? (g.description_tr ?? g.description) : g.description}
+                                    {locale === 'tr'
+                                      ? (g.description_tr ?? g.description)
+                                      : g.description}
                                   </Text>
                                   <Text as="p" variant="bodySm" tone="subdued">
                                     {t('guardrails.application', {
-                                      type: g.apply_to === 'both' ? t('guardrails.types.both') : g.apply_to === 'user_message' ? t('guardrails.types.user_message') : t('guardrails.types.ai_response'),
-                                      action: g.action === 'escalate' ? t('guardrails.actions.escalate') : t('guardrails.actions.block')
+                                      type:
+                                        g.apply_to === 'both'
+                                          ? t('guardrails.types.both')
+                                          : g.apply_to === 'user_message'
+                                            ? t('guardrails.types.user_message')
+                                            : t('guardrails.types.ai_response'),
+                                      action:
+                                        g.action === 'escalate'
+                                          ? t('guardrails.actions.escalate')
+                                          : t('guardrails.actions.block'),
                                     })}
                                   </Text>
                                 </BlockStack>
@@ -964,31 +1166,42 @@ export default function SettingsPage() {
                   {/* Custom guardrails */}
                   <div>
                     <BlockStack gap="200">
-                      <Text as="h3" variant="headingSm">{t('guardrails.customTitle')}</Text>
+                      <Text as="h3" variant="headingSm">
+                        {t('guardrails.customTitle')}
+                      </Text>
                       {customGuardrails.length === 0 ? (
                         <p className="text-sm text-zinc-500 py-4">{t('guardrails.empty')}</p>
                       ) : (
                         <ul className="space-y-3">
                           {customGuardrails.map((g) => (
-                            <li
-                              key={g.id}
-                              className="rounded-lg border border-zinc-200 bg-white"
-                            >
+                            <li key={g.id} className="rounded-lg border border-zinc-200 bg-white">
                               <Box padding="300">
                                 <InlineStack align="space-between" blockAlign="start" gap="300">
                                   <BlockStack gap="100">
-                                    <Text as="p" variant="bodyMd" fontWeight="medium">{g.name}</Text>
+                                    <Text as="p" variant="bodyMd" fontWeight="medium">
+                                      {g.name}
+                                    </Text>
                                     {g.description && (
-                                      <Text as="p" variant="bodySm" tone="subdued">{g.description}</Text>
+                                      <Text as="p" variant="bodySm" tone="subdued">
+                                        {g.description}
+                                      </Text>
                                     )}
                                     <Text as="p" variant="bodySm" tone="subdued">
                                       {g.match_type === 'keywords'
                                         ? `${t('guardrails.modal.matchTypes.keywords')}: ${Array.isArray(g.value) ? g.value.join(', ') : g.value}`
-                                        : `${t('guardrails.modal.matchTypes.phrase')}: ${typeof g.value === 'string' ? g.value : (Array.isArray(g.value) ? g.value[0] : '')}`}
+                                        : `${t('guardrails.modal.matchTypes.phrase')}: ${typeof g.value === 'string' ? g.value : Array.isArray(g.value) ? g.value[0] : ''}`}
                                       {' · '}
                                       {t('guardrails.application', {
-                                        type: g.apply_to === 'both' ? t('guardrails.types.both') : g.apply_to === 'user_message' ? t('guardrails.types.user_message') : t('guardrails.types.ai_response'),
-                                        action: g.action === 'escalate' ? t('guardrails.actions.escalate') : t('guardrails.actions.block')
+                                        type:
+                                          g.apply_to === 'both'
+                                            ? t('guardrails.types.both')
+                                            : g.apply_to === 'user_message'
+                                              ? t('guardrails.types.user_message')
+                                              : t('guardrails.types.ai_response'),
+                                        action:
+                                          g.action === 'escalate'
+                                            ? t('guardrails.actions.escalate')
+                                            : t('guardrails.actions.block'),
                                       })}
                                     </Text>
                                   </BlockStack>
@@ -1021,7 +1234,6 @@ export default function SettingsPage() {
               </Box>
             </PolarisCard>
 
-
             {/* GDPR & Data Management */}
             <PolarisCard>
               <Box padding="400">
@@ -1031,16 +1243,24 @@ export default function SettingsPage() {
                       <Database className="w-5 h-5 text-white" />
                     </Box>
                     <BlockStack gap="100">
-                      <Text as="h2" variant="headingMd">{t('gdpr.title')}</Text>
-                      <Text as="p" tone="subdued">{t('gdpr.description')}</Text>
+                      <Text as="h2" variant="headingMd">
+                        {t('gdpr.title')}
+                      </Text>
+                      <Text as="p" tone="subdued">
+                        {t('gdpr.description')}
+                      </Text>
                     </BlockStack>
                   </InlineStack>
                   {/* Data Export */}
                   <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300">
                     <InlineStack align="space-between" blockAlign="start" gap="300">
                       <BlockStack gap="100">
-                        <Text as="h3" variant="headingSm">{t('gdpr.exportTitle')}</Text>
-                        <Text as="p" tone="subdued">{t('gdpr.exportDesc')}</Text>
+                        <Text as="h3" variant="headingSm">
+                          {t('gdpr.exportTitle')}
+                        </Text>
+                        <Text as="p" tone="subdued">
+                          {t('gdpr.exportDesc')}
+                        </Text>
                       </BlockStack>
                       <PolarisButton
                         variant="secondary"
@@ -1054,14 +1274,26 @@ export default function SettingsPage() {
                   </Box>
 
                   {/* Data Deletion */}
-                  <Box padding="300" borderWidth="025" borderColor="border-critical" borderRadius="300" background="bg-surface-critical">
+                  <Box
+                    padding="300"
+                    borderWidth="025"
+                    borderColor="border-critical"
+                    borderRadius="300"
+                    background="bg-surface-critical"
+                  >
                     <InlineStack align="space-between" blockAlign="start" gap="300">
                       <BlockStack gap="100">
-                        <Text as="h3" variant="headingSm" tone="critical">{t('gdpr.deleteTitle')}</Text>
-                        <Text as="p" tone="critical">{t('gdpr.deleteDesc')}</Text>
+                        <Text as="h3" variant="headingSm" tone="critical">
+                          {t('gdpr.deleteTitle')}
+                        </Text>
+                        <Text as="p" tone="critical">
+                          {t('gdpr.deleteDesc')}
+                        </Text>
                         <InlineStack gap="100" blockAlign="center">
                           <AlertTriangle className="w-3 h-3 text-red-700" />
-                          <Text as="span" variant="bodySm" tone="critical">{t('gdpr.deleteWarning')}</Text>
+                          <Text as="span" variant="bodySm" tone="critical">
+                            {t('gdpr.deleteWarning')}
+                          </Text>
                         </InlineStack>
                       </BlockStack>
                       <PolarisButton
@@ -1077,13 +1309,25 @@ export default function SettingsPage() {
                   {/* Links */}
                   <Box paddingBlockStart="300" borderBlockStartWidth="025" borderColor="border">
                     <div className="flex flex-wrap gap-4 text-sm">
-                      <a href="/privacy-policy" target="_blank" className="text-primary hover:underline flex items-center gap-1">
+                      <a
+                        href="/privacy-policy"
+                        target="_blank"
+                        className="text-primary hover:underline flex items-center gap-1"
+                      >
                         <ExternalLink className="w-3 h-3" /> {t('gdpr.links.privacy')}
                       </a>
-                      <a href="/terms-of-service" target="_blank" className="text-primary hover:underline flex items-center gap-1">
+                      <a
+                        href="/terms-of-service"
+                        target="_blank"
+                        className="text-primary hover:underline flex items-center gap-1"
+                      >
                         <ExternalLink className="w-3 h-3" /> {t('gdpr.links.terms')}
                       </a>
-                      <a href="/cookie-policy" target="_blank" className="text-primary hover:underline flex items-center gap-1">
+                      <a
+                        href="/cookie-policy"
+                        target="_blank"
+                        className="text-primary hover:underline flex items-center gap-1"
+                      >
                         <ExternalLink className="w-3 h-3" /> {t('gdpr.links.cookie')}
                       </a>
                     </div>
@@ -1093,31 +1337,44 @@ export default function SettingsPage() {
             </PolarisCard>
 
             {/* Guardrail Add/Edit Modal */}
-            <Dialog open={showGuardrailModal} onOpenChange={(open) => {
-              if (!savingGuardrails) {
-                if (!open) closeGuardrailModal();
-                else setShowGuardrailModal(true);
+            <Modal
+              open={showGuardrailModal}
+              onClose={() => {
+                if (!savingGuardrails) closeGuardrailModal();
+              }}
+              title={
+                editingGuardrail ? t('guardrails.modal.titleEdit') : t('guardrails.modal.titleAdd')
               }
-            }}>
-              <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingGuardrail ? t('guardrails.modal.titleEdit') : t('guardrails.modal.titleAdd')}
-                  </DialogTitle>
-                </DialogHeader>
+              primaryAction={{
+                content: savingGuardrails
+                  ? t('guardrails.modal.saving')
+                  : t('guardrails.modal.save'),
+                onAction: handleSaveGuardrail,
+                loading: savingGuardrails,
+                disabled: savingGuardrails,
+              }}
+              secondaryActions={[
+                {
+                  content: t('guardrails.modal.cancel'),
+                  onAction: closeGuardrailModal,
+                  disabled: savingGuardrails,
+                },
+              ]}
+            >
+              <Modal.Section>
                 <BlockStack gap="400">
                   <TextField
                     label={t('guardrails.modal.nameLabel')}
                     value={guardrailName}
                     onChange={setGuardrailName}
-                    placeholder="e.g. Competitor mention"
+                    placeholder={t('guardrails.modal.namePlaceholder')}
                     autoComplete="off"
                   />
                   <TextField
                     label={t('guardrails.modal.descLabel')}
                     value={guardrailDescription}
                     onChange={setGuardrailDescription}
-                    placeholder="Brief description of the rule"
+                    placeholder={t('guardrails.modal.descPlaceholder')}
                     autoComplete="off"
                   />
                   <Select
@@ -1128,7 +1385,9 @@ export default function SettingsPage() {
                       { label: t('guardrails.types.ai_response'), value: 'ai_response' },
                     ]}
                     value={guardrailApplyTo}
-                    onChange={(value) => setGuardrailApplyTo(value as 'user_message' | 'ai_response' | 'both')}
+                    onChange={(value) =>
+                      setGuardrailApplyTo(value as 'user_message' | 'ai_response' | 'both')
+                    }
                   />
                   <Select
                     label={t('guardrails.modal.matchTypeLabel')}
@@ -1143,7 +1402,11 @@ export default function SettingsPage() {
                     label={t('guardrails.modal.valueLabel')}
                     value={guardrailValue}
                     onChange={setGuardrailValue}
-                    placeholder={guardrailMatchType === 'keywords' ? 'competitor, price, discount' : 'This product cures'}
+                    placeholder={
+                      guardrailMatchType === 'keywords'
+                        ? t('guardrails.modal.keywordsPlaceholder')
+                        : t('guardrails.modal.phrasePlaceholder')
+                    }
                     autoComplete="off"
                   />
                   <Select
@@ -1159,92 +1422,54 @@ export default function SettingsPage() {
                     label={t('guardrails.modal.responseLabel')}
                     value={guardrailSuggestedResponse}
                     onChange={setGuardrailSuggestedResponse}
-                    placeholder="Text to show when rule is triggered"
+                    placeholder={t('guardrails.modal.responsePlaceholder')}
                     multiline={2}
                     autoComplete="off"
                   />
-                  <DialogFooter className="gap-3 sm:gap-3">
-                    <PolarisButton
-                      variant="secondary"
-                      onClick={closeGuardrailModal}
-                      disabled={savingGuardrails}
-                    >
-                      {t('guardrails.modal.cancel')}
-                    </PolarisButton>
-                    <PolarisButton
-                      onClick={handleSaveGuardrail}
-                      disabled={savingGuardrails}
-                      loading={savingGuardrails}
-                      variant="primary"
-                    >
-                      {savingGuardrails ? t('guardrails.modal.saving') : (editingGuardrail ? t('guardrails.modal.save') : t('guardrails.modal.save'))}
-                    </PolarisButton>
-                  </DialogFooter>
                 </BlockStack>
-              </DialogContent>
-            </Dialog>
+              </Modal.Section>
+            </Modal>
 
             {/* Delete Confirmation Modal */}
-            <Dialog open={showDeleteConfirm} onOpenChange={(open) => {
-              if (!deletingData) setShowDeleteConfirm(open);
-            }}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>
-                    <InlineStack gap="200" blockAlign="center">
-                      <AlertTriangle className="w-5 h-5 text-red-600" />
-                      <Text as="span" variant="headingSm" tone="critical">{t('gdpr.modal.title')}</Text>
-                    </InlineStack>
-                  </DialogTitle>
-                </DialogHeader>
-                <Box paddingBlockStart="300">
-                  <BlockStack gap="400">
-                    <Box background="bg-surface-critical" borderColor="border-critical" borderWidth="025" borderRadius="300" padding="300">
-                      <BlockStack gap="200">
-                        <Text as="p" variant="bodyMd" fontWeight="medium" tone="critical">
-                          {t('gdpr.modal.warning')}
-                        </Text>
-                        <BlockStack gap="100">
-                          <Text as="p" variant="bodySm" tone="critical">• {t('gdpr.modal.list.all')}</Text>
-                          <Text as="p" variant="bodySm" tone="critical">• {t('gdpr.modal.list.permanent')}</Text>
-                          <Text as="p" variant="bodySm" tone="critical">• {t('gdpr.modal.list.cancel')}</Text>
-                        </BlockStack>
-                      </BlockStack>
-                    </Box>
-
-                    <BlockStack gap="200">
-                      <PolarisButton
-                        tone="critical"
-                        fullWidth
-                        onClick={() => handleDeleteData(false)}
-                        disabled={deletingData}
-                        loading={deletingData}
-                      >
-                        {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.softDelete')}
-                      </PolarisButton>
-                      <PolarisButton
-                        tone="critical"
-                        variant="secondary"
-                        fullWidth
-                        onClick={() => handleDeleteData(true)}
-                        disabled={deletingData}
-                      >
-                        {deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.hardDelete')}
-                      </PolarisButton>
-                      <PolarisButton
-                        variant="secondary"
-                        fullWidth
-                        onClick={() => setShowDeleteConfirm(false)}
-                        disabled={deletingData}
-                      >
-                        {t('gdpr.modal.cancel')}
-                      </PolarisButton>
-                    </BlockStack>
-                  </BlockStack>
-                </Box>
-              </DialogContent>
-            </Dialog>
-
+            <Modal
+              open={showDeleteConfirm}
+              onClose={() => {
+                if (!deletingData) setShowDeleteConfirm(false);
+              }}
+              title={t('gdpr.modal.title')}
+              primaryAction={{
+                content: deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.softDelete'),
+                onAction: () => handleDeleteData(false),
+                loading: deletingData,
+                destructive: true,
+              }}
+              secondaryActions={[
+                {
+                  content: deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.hardDelete'),
+                  onAction: () => handleDeleteData(true),
+                  destructive: true,
+                  disabled: deletingData,
+                },
+                {
+                  content: t('gdpr.modal.cancel'),
+                  onAction: () => setShowDeleteConfirm(false),
+                  disabled: deletingData,
+                },
+              ]}
+            >
+              <Modal.Section>
+                <BlockStack gap="300">
+                  <Banner tone="critical">
+                    <p>{t('gdpr.modal.warning')}</p>
+                    <ul className="list-disc pl-5 mt-2">
+                      <li>{t('gdpr.modal.list.all')}</li>
+                      <li>{t('gdpr.modal.list.permanent')}</li>
+                      <li>{t('gdpr.modal.list.cancel')}</li>
+                    </ul>
+                  </Banner>
+                </BlockStack>
+              </Modal.Section>
+            </Modal>
           </div>
         </Layout.Section>
       </Layout>
