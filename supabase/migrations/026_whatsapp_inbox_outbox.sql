@@ -111,13 +111,13 @@ DROP TRIGGER IF EXISTS update_whatsapp_inbound_events_updated_at ON whatsapp_inb
 CREATE TRIGGER update_whatsapp_inbound_events_updated_at
 BEFORE UPDATE ON whatsapp_inbound_events
 FOR EACH ROW
-EXECUTE FUNCTION update_updated_at();
+EXECUTE FUNCTION update_updated_at_column();
 
 DROP TRIGGER IF EXISTS update_whatsapp_outbound_events_updated_at ON whatsapp_outbound_events;
 CREATE TRIGGER update_whatsapp_outbound_events_updated_at
 BEFORE UPDATE ON whatsapp_outbound_events
 FOR EACH ROW
-EXECUTE FUNCTION update_updated_at();
+EXECUTE FUNCTION update_updated_at_column();
 
 -- 6) Keep internal by default (no public direct access)
 ALTER TABLE whatsapp_inbound_events ENABLE ROW LEVEL SECURITY;
