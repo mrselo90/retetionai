@@ -5,7 +5,13 @@
 
 import { Queue, QueueOptions } from 'bullmq';
 import { getRedisClient } from '@recete/shared';
-import { QUEUE_NAMES, ScheduledMessageJobData, ScrapeJobData, AnalyticsJobData } from '@recete/shared';
+import {
+  QUEUE_NAMES,
+  ScheduledMessageJobData,
+  ScrapeJobData,
+  AnalyticsJobData,
+  WhatsAppInboundJobData,
+} from '@recete/shared';
 
 const connection = getRedisClient();
 
@@ -84,10 +90,33 @@ export const analyticsQueue = new Queue<AnalyticsJobData>(
 );
 
 /**
+ * WhatsApp Inbound Queue
+ * For async processing of inbound WhatsApp messages
+ */
+export const whatsappInboundQueue = new Queue<WhatsAppInboundJobData>(
+  QUEUE_NAMES.WHATSAPP_INBOUND,
+  {
+    ...defaultQueueOptions,
+    defaultJobOptions: {
+      ...defaultQueueOptions.defaultJobOptions,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 3000,
+      },
+      removeOnComplete: {
+        age: 1 * 24 * 3600,
+        count: 2000,
+      },
+    },
+  }
+);
+
+/**
  * Get all queues (for health check, graceful shutdown, etc.)
  */
 export function getAllQueues() {
-  return [scheduledMessagesQueue, scrapeJobsQueue, analyticsQueue];
+  return [scheduledMessagesQueue, scrapeJobsQueue, analyticsQueue, whatsappInboundQueue];
 }
 
 /**
@@ -98,5 +127,6 @@ export async function closeAllQueues() {
     scheduledMessagesQueue.close(),
     scrapeJobsQueue.close(),
     analyticsQueue.close(),
+    whatsappInboundQueue.close(),
   ]);
 }

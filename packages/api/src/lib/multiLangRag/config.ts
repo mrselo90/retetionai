@@ -8,6 +8,7 @@ export interface MultiLangRagFlags {
 }
 
 let cachedFlags: MultiLangRagFlags | null = null;
+const MULTI_LANG_RAG_SCHEMA_EMBEDDING_MODEL = 'text-embedding-3-small';
 
 function parseBool(v: string | undefined, fallback: boolean): boolean {
   if (v == null) return fallback;
@@ -24,12 +25,20 @@ function parseNum(v: string | undefined, fallback: number): number {
 
 export function getMultiLangRagFlags(): MultiLangRagFlags {
   if (cachedFlags) return cachedFlags;
+  const requestedEmbeddingModel = (process.env.EMBEDDING_MODEL || '').trim();
+  const embeddingModel = requestedEmbeddingModel || MULTI_LANG_RAG_SCHEMA_EMBEDDING_MODEL;
+  // Current SQL schema/RPC for product_embeddings is fixed to vector(1536).
+  // Prevent runtime dimension mismatches by pinning to the compatible model.
+  const effectiveEmbeddingModel =
+    embeddingModel === MULTI_LANG_RAG_SCHEMA_EMBEDDING_MODEL
+      ? embeddingModel
+      : MULTI_LANG_RAG_SCHEMA_EMBEDDING_MODEL;
   cachedFlags = {
     enabled: parseBool(process.env.MULTI_LANG_RAG_ENABLED, false),
     shadowWrite: parseBool(process.env.MULTI_LANG_RAG_SHADOW_WRITE, false),
     shadowRead: parseBool(process.env.MULTI_LANG_RAG_SHADOW_READ, false),
     minSimilarity: parseNum(process.env.MULTI_LANG_RAG_MIN_SIM, 0.75),
-    embeddingModel: process.env.EMBEDDING_MODEL || 'text-embedding-3-small',
+    embeddingModel: effectiveEmbeddingModel,
     llmModel: process.env.LLM_MODEL || 'gpt-4o-mini',
   };
   return cachedFlags;
@@ -45,4 +54,3 @@ export function getEmbeddingDimensionForModel(model: string): number {
   if (normalized === 'text-embedding-3-large') return 3072;
   throw new Error(`Unsupported embedding model for multi-lang RAG: ${normalized}`);
 }
-

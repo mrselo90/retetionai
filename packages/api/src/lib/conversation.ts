@@ -4,8 +4,9 @@
  */
 
 import { getSupabaseServiceClient } from '@recete/shared';
-import { decryptPhone, encryptPhone } from './encryption.js';
+import { decryptPhone } from './encryption.js';
 import { normalizePhone } from './events.js';
+import { normalizeAndHashPhone } from './phoneLookup.js';
 
 export interface ConversationMessage {
   role: 'user' | 'assistant' | 'merchant';
@@ -21,6 +22,46 @@ export interface ConversationState {
   messageCount: number;
 }
 
+async function findUserByDecryptScan(
+  merchantId: string,
+  normalizedPhone: string,
+  phoneLookupHash: string
+): Promise<{ userId: string; userName?: string } | null> {
+  const serviceClient = getSupabaseServiceClient();
+  const { data: users, error } = await serviceClient
+    .from('users')
+    .select('id, name, phone, phone_lookup_hash')
+    .eq('merchant_id', merchantId)
+    .limit(5000);
+
+  if (error || !users || users.length === 0) return null;
+
+  for (const user of users as Array<{ id: string; name?: string | null; phone: string; phone_lookup_hash?: string | null }>) {
+    try {
+      const decrypted = decryptPhone(user.phone);
+      const candidate = normalizePhone(decrypted);
+      if (candidate === normalizedPhone) {
+        // Best-effort backfill for old rows that predate phone_lookup_hash.
+        if (!user.phone_lookup_hash) {
+          void serviceClient
+            .from('users')
+            .update({ phone_lookup_hash: phoneLookupHash })
+            .eq('id', user.id)
+            .eq('merchant_id', merchantId);
+        }
+        return {
+          userId: user.id,
+          userName: user.name || undefined,
+        };
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
 /**
  * Find user by phone number
  */
@@ -30,40 +71,42 @@ export async function findUserByPhone(
 ): Promise<{ userId: string; userName?: string } | null> {
   const serviceClient = getSupabaseServiceClient();
 
-  // Normalize phone
   let normalizedPhone: string;
+  let phoneLookupHash: string;
   try {
-    normalizedPhone = normalizePhone(phone);
+    const normalized = normalizeAndHashPhone(phone);
+    normalizedPhone = normalized.normalizedPhone;
+    phoneLookupHash = normalized.phoneLookupHash;
   } catch {
     return null;
   }
-  // NOTE: phone encryption uses random IV (AES-GCM), so ciphertext equality lookup is not reliable.
-  // We decrypt merchant users and compare normalized phone values.
-  const { data: users, error } = await serviceClient
+
+  // Preferred fast path: merchant_id + phone_lookup_hash index.
+  const { data: userByHash, error } = await serviceClient
     .from('users')
-    .select('id, name, phone')
+    .select('id, name')
     .eq('merchant_id', merchantId)
-    .limit(5000);
+    .eq('phone_lookup_hash', phoneLookupHash)
+    .maybeSingle();
 
-  if (error || !users || users.length === 0) return null;
-
-  for (const user of users as Array<{ id: string; name?: string | null; phone: string }>) {
-    try {
-      const decrypted = decryptPhone(user.phone);
-      const candidate = normalizePhone(decrypted);
-      if (candidate === normalizedPhone) {
-        return {
-          userId: user.id,
-          userName: user.name || undefined,
-        };
-      }
-    } catch {
-      // Skip rows that cannot be decrypted with current key
-      continue;
+  if (error) {
+    // Column may not exist yet if migration is pending; fall back to legacy scan.
+    if ((error as any)?.code === '42703') {
+      return findUserByDecryptScan(merchantId, normalizedPhone, phoneLookupHash);
     }
+    return null;
   }
 
-  return null;
+  if (userByHash) {
+    const matched = userByHash as { id: string; name?: string | null };
+    return {
+      userId: matched.id,
+      userName: matched.name || undefined,
+    };
+  }
+
+  // Backward compatibility for old rows without hash.
+  return findUserByDecryptScan(merchantId, normalizedPhone, phoneLookupHash);
 }
 
 /**
@@ -128,8 +171,22 @@ export async function addMessageToConversation(
   content: string
 ): Promise<void> {
   const serviceClient = getSupabaseServiceClient();
+  const timestampIso = new Date().toISOString();
 
-  // Get current conversation
+  const { error: appendError } = await serviceClient.rpc('append_conversation_message_atomic', {
+    conversation_uuid: conversationId,
+    message_role: role,
+    message_content: content,
+    message_timestamp: timestampIso,
+  });
+
+  if (!appendError) return;
+
+  // Function may not exist yet if migration is pending; fall back to legacy read-modify-write.
+  if ((appendError as any)?.code !== '42883') {
+    throw new Error(`Failed to append conversation message: ${appendError.message}`);
+  }
+
   const { data: conversation, error: fetchError } = await serviceClient
     .from('conversations')
     .select('history')
@@ -140,20 +197,18 @@ export async function addMessageToConversation(
     throw new Error('Conversation not found');
   }
 
-  // Add new message
   const history = (conversation.history as ConversationMessage[]) || [];
   history.push({
     role,
     content,
-    timestamp: new Date().toISOString(),
+    timestamp: timestampIso,
   });
 
-  // Update conversation
   const { error: updateError } = await serviceClient
     .from('conversations')
     .update({
       history,
-      updated_at: new Date().toISOString(),
+      updated_at: timestampIso,
     })
     .eq('id', conversationId);
 

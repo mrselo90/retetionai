@@ -18,11 +18,10 @@ import eventRoutes from './routes/events.js';
 import csvRoutes from './routes/csv.js';
 import productRoutes from './routes/products.js';
 import ragRoutes from './routes/rag.js';
-import whatsappRoutes from './routes/whatsapp.js';
+import whatsappRoutes, { whatsappWebhookRoutes } from './routes/whatsapp.js';
 import messageRoutes from './routes/messages.js';
 import conversationRoutes from './routes/conversations.js';
 import analyticsRoutes from './routes/analytics.js';
-import testRoutes from './routes/test.js';
 import gdprRoutes from './routes/gdpr.js';
 import billingRoutes from './routes/billing.js';
 import customerRoutes from './routes/customers.js';
@@ -152,8 +151,8 @@ app.route('/api/answer', answerRoutes);
 
 // WhatsApp routes
 app.route('/api/whatsapp', whatsappRoutes);
-// WhatsApp webhooks at root (Meta sends to /webhooks/whatsapp)
-// Note: These routes are handled in whatsappRoutes, but we keep them here for clarity
+// Root WhatsApp webhook alias for Meta/Twilio integrations configured at /webhooks/whatsapp
+app.route('/webhooks', whatsappWebhookRoutes);
 
 // Message scheduling routes
 app.route('/api/messages', messageRoutes);
@@ -163,9 +162,6 @@ app.route('/api/conversations', conversationRoutes);
 
 // Analytics routes
 app.route('/api/analytics', analyticsRoutes);
-
-// Test & Development routes
-app.route('/api/test', testRoutes);
 
 // GDPR compliance routes
 app.route('/api/gdpr', gdprRoutes);

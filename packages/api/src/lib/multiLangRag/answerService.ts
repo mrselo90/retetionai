@@ -35,6 +35,10 @@ function evidenceMetrics(scores: number[]): { max: number; avgTop3: number } {
   };
 }
 
+function applySimilarityGate<T extends { similarity: number }>(rows: T[], minSimilarity: number): T[] {
+  return rows.filter((r) => Number.isFinite(r.similarity) && r.similarity >= minSimilarity);
+}
+
 function isPriceOrStockQuestion(q: string): boolean {
   return /\b(price|fiyat|ár|stock|stok|inventory|in stock|készlet)\b/i.test(q);
 }
@@ -102,12 +106,13 @@ export class MultiLangRagAnswerService {
       const qEmb = await this.embeddingService.embedText(queryText);
       const embedMs = Date.now() - tEmbed;
       const tSearch = Date.now();
-      const rows = await this.vectorSearchService.searchByLanguage({
+      const rawRows = await this.vectorSearchService.searchByLanguage({
         shopId: input.shopId,
         lang,
         queryEmbedding: qEmb,
         matchCount: 8,
       });
+      const rows = applySimilarityGate(rawRows, flags.minSimilarity);
       const searchMs = Date.now() - tSearch;
       return { rows, embedMs, searchMs };
     };

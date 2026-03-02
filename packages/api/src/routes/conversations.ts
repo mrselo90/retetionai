@@ -7,7 +7,7 @@ import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
 import { getSupabaseServiceClient } from '@recete/shared';
-import { decryptPhone, encryptPhone } from '../lib/encryption.js';
+import { decryptPhone } from '../lib/encryption.js';
 import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from '../lib/whatsapp.js';
 import { addMessageToConversation } from '../lib/conversation.js';
 

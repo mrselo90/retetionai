@@ -10,6 +10,7 @@ export const QUEUE_NAMES = {
   SCHEDULED_MESSAGES: 'scheduled-messages',
   SCRAPE_JOBS: 'scrape-jobs',
   ANALYTICS: 'analytics',
+  WHATSAPP_INBOUND: 'whatsapp-inbound',
   RFM_ANALYSIS: 'rfm-analysis',
   CHURN_PREDICTION: 'churn-prediction',
   PRODUCT_RECOMMENDATIONS: 'product-recommendations',
@@ -63,4 +64,12 @@ export interface AnalyticsJobData {
   eventType: string;
   value: Record<string, unknown>;
   sentimentScore?: number;
+}
+
+/**
+ * WhatsApp inbound processing job data
+ */
+export interface WhatsAppInboundJobData {
+  inboundEventId: string;
+  merchantId: string;
 }

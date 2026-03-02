@@ -14,30 +14,18 @@ import {
   findMerchantByPhoneNumberId,
 } from '../lib/whatsapp.js';
 import { getSupabaseServiceClient, logger } from '@recete/shared';
-import {
-  findUserByPhone,
-  getOrCreateConversation,
-  addMessageToConversation,
-  getConversationHistory,
-  updateConversationState,
-} from '../lib/conversation.js';
-import { generateAIResponse } from '../lib/aiAgent.js';
+import { addWhatsAppInboundJob } from '../queues.js';
+import { processWhatsAppInboundEvent } from '../lib/whatsappInboundProcessor.js';
 
 const whatsapp = new Hono();
+export const whatsappWebhookRoutes = new Hono();
 
-/**
- * WhatsApp webhook verification (GET)
- * Meta requires this for webhook setup
- */
-whatsapp.get('/webhooks/whatsapp', async (c) => {
+async function webhookVerificationHandler(c: any) {
   const mode = c.req.query('hub.mode');
   const token = c.req.query('hub.verify_token');
   const challenge = c.req.query('hub.challenge');
 
-  // For MVP, use environment variable
-  // In production, this should be per-merchant
   const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || 'recete_verify_token';
-
   const challengeResponse = verifyWhatsAppWebhook(
     mode ?? null,
     token ?? null,
@@ -50,230 +38,131 @@ whatsapp.get('/webhooks/whatsapp', async (c) => {
   }
 
   return c.json({ error: 'Invalid verification' }, 403);
-});
+}
 
-/**
- * WhatsApp webhook receiver (POST)
- * Receives incoming messages from WhatsApp
- */
-whatsapp.post('/webhooks/whatsapp', verifyWhatsAppWebhookSignature, async (c) => {
+async function webhookInboundHandler(c: any) {
   try {
     const body = c.get('whatsappWebhookBody');
     const webhookProvider = c.get('whatsappWebhookProvider') as 'meta' | 'twilio' | undefined;
+    const provider = webhookProvider || 'meta';
+
     if (!body || typeof body !== 'object') {
       return c.json({ error: 'Invalid webhook body' }, 400);
     }
 
-    // Parse webhook messages
     const messages = parseWhatsAppWebhook(body, webhookProvider);
-
     if (messages.length === 0) {
-      // Might be a status update or other webhook event
       return c.json({ message: 'Webhook received, no messages' }, 200);
     }
 
     const serviceClient = getSupabaseServiceClient();
+    let queued = 0;
+    let duplicates = 0;
+    let skipped = 0;
+    let queueErrors = 0;
+    let fatalSchemaError: string | null = null;
 
-    // Process each message
     for (const message of messages) {
+      let merchantId: string | null = null;
       try {
-        // Normalize phone number
-        const normalizedPhone = message.from;
-
-        // --- MULTI-TENANT MERCHANT LOOKUP ---
-        // For Meta: use phone_number_id from webhook metadata to find the merchant.
-        // Fallback to DEFAULT_MERCHANT_ID for single-tenant / backward compat setups.
-        let merchantId: string | null = null;
-
         if (message.phoneNumberId) {
           merchantId = await findMerchantByPhoneNumberId(message.phoneNumberId);
         }
+        if (!merchantId) merchantId = process.env.DEFAULT_MERCHANT_ID ?? null;
 
         if (!merchantId) {
-          merchantId = process.env.DEFAULT_MERCHANT_ID ?? null;
-        }
-
-        if (!merchantId) {
-          logger.warn({ phone: normalizedPhone, phoneNumberId: message.phoneNumberId }, 'Could not resolve merchant for incoming WhatsApp message, skipping');
-          continue;
-        }
-
-        const user = await findUserByPhone(normalizedPhone, merchantId);
-
-        if (!user) {
-          logger.info({ phone: normalizedPhone, merchantId }, 'User not found for incoming WhatsApp message');
-          // Send default response for unknown users
-          const credentials = await getEffectiveWhatsAppCredentials(merchantId);
-          if (credentials && message.text) {
-            // Basic language detection: check for Turkish characters
-            const hasTurkishChars = /[çğışöüÇĞİŞÖÜ]/i.test(message.text);
-            const defaultText = hasTurkishChars
-              ? 'Merhaba! Size nasıl yardımcı olabilirim? Lütfen sipariş numaranızı paylaşın.'
-              : 'Hello! How can I help you? Please share your order number.';
-            await sendWhatsAppMessage({ to: normalizedPhone, text: defaultText }, credentials);
-          }
-          continue;
-        }
-
-        const { data: latestOrder } = await serviceClient
-          .from('orders')
-          .select('id')
-          .eq('user_id', user.userId)
-          .eq('merchant_id', merchantId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        const orderId = latestOrder?.id;
-
-        // Get or create conversation (with merchant isolation)
-        const conversationId = await getOrCreateConversation(
-          user.userId,
-          orderId,
-          merchantId
-        );
-
-        // Check conversation status - skip AI if in human mode
-        const { data: convData } = await serviceClient
-          .from('conversations')
-          .select('conversation_status')
-          .eq('id', conversationId)
-          .single();
-
-        // Add user message to conversation
-        if (message.text) {
-          await addMessageToConversation(
-            conversationId,
-            'user',
-            message.text
+          skipped += 1;
+          logger.warn(
+            { from: message.from, phoneNumberId: message.phoneNumberId || null },
+            'Could not resolve merchant for incoming WhatsApp message'
           );
-        }
-
-        if (convData?.conversation_status === 'human') {
-          logger.info({ conversationId }, 'Conversation in human mode, skipping AI response');
           continue;
         }
 
-        // Get conversation history before generating AI response
-        const history = await getConversationHistory(conversationId);
+        const insertPayload = {
+          merchant_id: merchantId,
+          provider,
+          external_message_id: message.messageId,
+          from_phone: message.from,
+          phone_number_id: message.phoneNumberId || null,
+          message_type: message.type,
+          message_text: message.text || null,
+          payload: {
+            provider,
+            message,
+          },
+          status: 'received',
+          received_at: new Date().toISOString(),
+        };
 
-        // Generate AI response
-        const credentials = await getEffectiveWhatsAppCredentials(merchantId);
-        if (!credentials) {
-          logger.error({ merchantId }, 'WhatsApp credentials not configured');
-          continue;
-        }
+        const { data: inserted, error: insertError } = await serviceClient
+          .from('whatsapp_inbound_events')
+          .insert(insertPayload)
+          .select('id')
+          .single();
 
-        if (message.text) {
-          let aiResponse;
-          try {
-            aiResponse = await generateAIResponse(
-              message.text,
-              merchantId,
-              user.userId,
-              conversationId,
-              orderId,
-              history
-            );
-          } catch (llmError) {
-            // LLM failure: send fallback message so user is not left without response
-            logger.error({ llmError, conversationId, merchantId }, 'LLM generation failed, sending fallback response');
-            const hasTurkishChars = /[çğışöüÇĞİŞÖÜ]/i.test(message.text);
-            const fallbackText = hasTurkishChars
-              ? 'Şu an size yardımcı olamıyorum. Lütfen kısa süre sonra tekrar deneyin.'
-              : 'I am unable to assist you at the moment. Please try again shortly.';
-            await sendWhatsAppMessage({ to: normalizedPhone, text: fallbackText }, credentials);
-            await serviceClient
-              .from('conversations')
-              .update({
-                escalation_status: 'pending',
-                escalation_requested_at: new Date().toISOString(),
-                conversation_status: 'human',
-              })
-              .eq('id', conversationId);
+        if (insertError) {
+          const code = (insertError as any)?.code;
+          if (code === '42P01' || code === '42703') {
+            fatalSchemaError = `whatsapp_inbound_events schema missing (${code})`;
+            logger.error({ insertError }, 'WhatsApp inbound schema is missing');
+            break;
+          }
+          if ((insertError as any).code === '23505') {
+            duplicates += 1;
             continue;
           }
+          queueErrors += 1;
+          logger.error({ insertError, merchantId, messageId: message.messageId }, 'Failed to persist whatsapp inbound event');
+          continue;
+        }
 
-          // Update conversation state
-          await updateConversationState(conversationId, aiResponse.intent);
-
-          // Add assistant response to conversation
-          await addMessageToConversation(
-            conversationId,
-            'assistant',
-            aiResponse.response
-          );
-
-          // Send response via WhatsApp
-          const sendResult = await sendWhatsAppMessage(
-            {
-              to: normalizedPhone,
-              text: aiResponse.response,
-              preview_url: false,
-            },
-            credentials
-          );
-
-          if (!sendResult.success) {
-            logger.error({ error: sendResult.error, phone: normalizedPhone }, 'Failed to send WhatsApp response');
-          } else {
-            if (aiResponse.guardrailBlocked) {
-              logger.info({ reason: aiResponse.guardrailReason, phone: normalizedPhone }, 'Guardrail blocked response');
-            } else {
-              logger.info({ phone: normalizedPhone, conversationId }, 'AI response sent successfully');
-            }
-          }
-
-          // Send upsell message if triggered
-          if (aiResponse.upsellTriggered && aiResponse.upsellMessage) {
-            // Wait a bit before sending upsell (2 seconds)
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-
-            const upsellResult = await sendWhatsAppMessage(
-              {
-                to: normalizedPhone,
-                text: aiResponse.upsellMessage,
-                preview_url: true, // Enable preview for product links
-              },
-              credentials
-            );
-
-            if (upsellResult.success) {
-              logger.info({ phone: normalizedPhone }, 'Upsell message sent');
-
-              // Mark upsell as sent in scheduled_tasks
-              await serviceClient
-                .from('scheduled_tasks')
-                .insert({
-                  user_id: user.userId,
-                  order_id: orderId ?? null,
-                  task_type: 'upsell',
-                  execute_at: new Date().toISOString(),
-                  status: 'completed',
-                });
-            }
-          }
-
-          // Handle human escalation: write escalation state to DB for dashboard tracking
-          if (aiResponse.requiresHuman) {
-            logger.info({ conversationId, merchantId }, 'Human escalation required, writing to DB');
-            await serviceClient
-              .from('conversations')
-              .update({
-                escalation_status: 'pending',
-                escalation_requested_at: new Date().toISOString(),
-                conversation_status: 'human',
-              })
-              .eq('id', conversationId);
-          }
+        const inboundEventId = inserted?.id as string;
+        try {
+          await addWhatsAppInboundJob({
+            inboundEventId,
+            merchantId,
+          });
+          await serviceClient
+            .from('whatsapp_inbound_events')
+            .update({
+              status: 'queued',
+              queued_at: new Date().toISOString(),
+            })
+            .eq('id', inboundEventId);
+          queued += 1;
+        } catch (queueError) {
+          queueErrors += 1;
+          await serviceClient
+            .from('whatsapp_inbound_events')
+            .update({
+              status: 'failed',
+              failed_at: new Date().toISOString(),
+              last_error: queueError instanceof Error ? queueError.message : 'Failed to enqueue inbound message',
+            })
+            .eq('id', inboundEventId);
+          logger.error({ queueError, inboundEventId, merchantId }, 'Failed to enqueue whatsapp inbound event');
         }
       } catch (error) {
-        logger.error({ error, phone: message.from }, 'Error processing WhatsApp message');
-        // Continue processing other messages
+        queueErrors += 1;
+        logger.error({ error, from: message.from, messageId: message.messageId }, 'Error while ingesting WhatsApp inbound message');
       }
     }
 
-    return c.json({ message: 'Webhook processed' }, 200);
+    if (fatalSchemaError) {
+      return c.json({
+        error: 'WhatsApp inbound schema is not ready',
+        message: fatalSchemaError,
+      }, 500);
+    }
+
+    return c.json({
+      message: 'Webhook accepted',
+      queued,
+      duplicates,
+      skipped,
+      queueErrors,
+    }, 200);
   } catch (error) {
     logger.error({ error }, 'WhatsApp webhook error');
     return c.json(
@@ -283,6 +172,48 @@ whatsapp.post('/webhooks/whatsapp', verifyWhatsAppWebhookSignature, async (c) =>
       },
       500
     );
+  }
+}
+
+/**
+ * WhatsApp webhook verification (GET)
+ * Meta requires this for webhook setup
+ */
+whatsapp.get('/webhooks/whatsapp', webhookVerificationHandler);
+whatsappWebhookRoutes.get('/whatsapp', webhookVerificationHandler);
+
+/**
+ * WhatsApp webhook receiver (POST)
+ * Receives incoming messages from WhatsApp
+ */
+whatsapp.post('/webhooks/whatsapp', verifyWhatsAppWebhookSignature, webhookInboundHandler);
+whatsappWebhookRoutes.post('/whatsapp', verifyWhatsAppWebhookSignature, webhookInboundHandler);
+
+/**
+ * Internal queue worker processing endpoint
+ * POST /api/whatsapp/inbound-events/:id/process
+ */
+whatsapp.post('/inbound-events/:id/process', authMiddleware, async (c) => {
+  const authMethod = c.get('authMethod') as string | undefined;
+  if (authMethod !== 'internal') {
+    return c.json({ error: 'Forbidden: internal auth required' }, 403);
+  }
+
+  const inboundEventId = c.req.param('id');
+  const merchantId = c.get('merchantId') as string;
+  if (!inboundEventId) {
+    return c.json({ error: 'inbound event id is required' }, 400);
+  }
+
+  try {
+    const result = await processWhatsAppInboundEvent(inboundEventId, merchantId);
+    return c.json({ ok: true, result }, 200);
+  } catch (error) {
+    logger.error({ error, inboundEventId, merchantId }, 'Failed to process inbound event');
+    return c.json({
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }, 500);
   }
 });
 

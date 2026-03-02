@@ -87,9 +87,25 @@ describe('Auth Middleware', () => {
     expect(mockNext).toHaveBeenCalled();
   });
 
-  it('supports internal-secret auth on eval route', async () => {
+  it('supports internal-secret auth on internal product route', async () => {
     process.env.INTERNAL_SERVICE_SECRET = 'secret-123';
-    mockContext.req.path = '/api/test/rag/answer';
+    mockContext.req.path = '/api/products/enrich';
+    mockContext.req.header.mockImplementation((name: string) => {
+      if (name === 'X-Internal-Secret') return 'secret-123';
+      if (name === 'X-Internal-Merchant-Id') return 'merchant-eval';
+      return undefined;
+    });
+
+    await authMiddleware(mockContext, mockNext);
+
+    expect(mockContext.set).toHaveBeenCalledWith('merchantId', 'merchant-eval');
+    expect(mockContext.set).toHaveBeenCalledWith('authMethod', 'internal');
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  it('supports internal-secret auth on internal whatsapp route', async () => {
+    process.env.INTERNAL_SERVICE_SECRET = 'secret-123';
+    mockContext.req.path = '/api/whatsapp/inbound-events/event-1/process';
     mockContext.req.header.mockImplementation((name: string) => {
       if (name === 'X-Internal-Secret') return 'secret-123';
       if (name === 'X-Internal-Merchant-Id') return 'merchant-eval';

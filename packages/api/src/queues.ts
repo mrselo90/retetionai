@@ -5,12 +5,19 @@
 
 import { Queue } from 'bullmq';
 import { getRedisClient } from '@recete/shared';
-import { QUEUE_NAMES, ScheduledMessageJobData, ScrapeJobData, AnalyticsJobData } from '@recete/shared';
+import {
+  QUEUE_NAMES,
+  ScheduledMessageJobData,
+  ScrapeJobData,
+  AnalyticsJobData,
+  WhatsAppInboundJobData,
+} from '@recete/shared';
 
 // Lazily create queue instances to avoid creating Redis connections at import time
 let scheduledMessagesQueue: Queue<ScheduledMessageJobData> | null = null;
 let scrapeJobsQueue: Queue<ScrapeJobData> | null = null;
 let analyticsQueue: Queue<AnalyticsJobData> | null = null;
+let whatsappInboundQueue: Queue<WhatsAppInboundJobData> | null = null;
 
 function getScheduledMessagesQueue() {
   if (!scheduledMessagesQueue) {
@@ -37,6 +44,15 @@ function getAnalyticsQueue() {
     });
   }
   return analyticsQueue;
+}
+
+function getWhatsAppInboundQueue() {
+  if (!whatsappInboundQueue) {
+    whatsappInboundQueue = new Queue<WhatsAppInboundJobData>(QUEUE_NAMES.WHATSAPP_INBOUND, {
+      connection: getRedisClient(),
+    });
+  }
+  return whatsappInboundQueue;
 }
 
 /**
@@ -96,18 +112,41 @@ export async function addAnalyticsEvent(data: AnalyticsJobData) {
 }
 
 /**
+ * Add WhatsApp inbound event processing job
+ */
+export async function addWhatsAppInboundJob(data: WhatsAppInboundJobData) {
+  return await getWhatsAppInboundQueue().add(
+    `whatsapp-inbound-${data.inboundEventId}`,
+    data,
+    {
+      jobId: data.inboundEventId,
+      attempts: 1,
+      removeOnComplete: {
+        age: 24 * 3600,
+        count: 2000,
+      },
+      removeOnFail: {
+        age: 7 * 24 * 3600,
+      },
+    }
+  );
+}
+
+/**
  * Get health stats for all queues
  */
 export async function getQueueStats() {
-  const [scheduledMsgCounts, scrapeJobsCounts, analyticsCounts] = await Promise.all([
+  const [scheduledMsgCounts, scrapeJobsCounts, analyticsCounts, whatsappInboundCounts] = await Promise.all([
     getScheduledMessagesQueue().getJobCounts(),
     getScrapeJobsQueue().getJobCounts(),
-    getAnalyticsQueue().getJobCounts()
+    getAnalyticsQueue().getJobCounts(),
+    getWhatsAppInboundQueue().getJobCounts(),
   ]);
 
   return {
     scheduledMessages: scheduledMsgCounts,
     scrapeJobs: scrapeJobsCounts,
-    analytics: analyticsCounts
+    analytics: analyticsCounts,
+    whatsappInbound: whatsappInboundCounts,
   };
 }

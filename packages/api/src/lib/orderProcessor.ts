@@ -9,6 +9,7 @@ import type { NormalizedEvent } from './events.js';
 import { generateIdempotencyKey, normalizePhone } from './events.js';
 import { scheduleOrderMessages } from './messageScheduler.js';
 import { scheduleMessage } from '../queues.js';
+import { normalizeAndHashPhone } from './phoneLookup.js';
 
 /**
  * Process normalized event and upsert order/user
@@ -58,27 +59,48 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
   let userId: string;
 
   if (event.customer?.phone) {
-    const normalizedPhone = normalizePhone(event.customer.phone);
+    const { normalizedPhone, phoneLookupHash } = normalizeAndHashPhone(event.customer.phone);
     // Encrypt phone
     const encryptedPhone = encryptPhone(normalizedPhone);
+    let existingUser: { id: string; phoneLookupHash?: string | null } | null = null;
 
-    // Phone is encrypted with random IV; compare by decrypting merchant users.
-    const { data: merchantUsers } = await serviceClient
+    const { data: hashedUser, error: hashedLookupError } = await serviceClient
       .from('users')
-      .select('id, phone')
+      .select('id, phone_lookup_hash')
       .eq('merchant_id', event.merchant_id)
-      .limit(5000);
+      .eq('phone_lookup_hash', phoneLookupHash)
+      .single();
 
-    let existingUser: { id: string } | null = null;
-    for (const row of (merchantUsers || []) as Array<{ id: string; phone: string }>) {
-      try {
-        const candidate = normalizePhone(decryptPhone(row.phone));
-        if (candidate === normalizedPhone) {
-          existingUser = { id: row.id };
-          break;
+    if (!hashedLookupError && hashedUser) {
+      existingUser = hashedUser as { id: string; phone_lookup_hash?: string | null };
+    }
+
+    // Backward compatibility for old rows without hash or before migration rollout.
+    if (!existingUser) {
+      const { data: merchantUsers } = await serviceClient
+        .from('users')
+        .select('id, phone, phone_lookup_hash')
+        .eq('merchant_id', event.merchant_id)
+        .limit(5000);
+
+      for (const row of (merchantUsers || []) as Array<{ id: string; phone: string; phone_lookup_hash?: string | null }>) {
+        try {
+          const candidate = normalizePhone(decryptPhone(row.phone));
+          if (candidate === normalizedPhone) {
+            existingUser = { id: row.id, phoneLookupHash: row.phone_lookup_hash ?? null };
+            // Best-effort hash backfill.
+            if (!row.phone_lookup_hash) {
+              void serviceClient
+                .from('users')
+                .update({ phone_lookup_hash: phoneLookupHash })
+                .eq('id', row.id)
+                .eq('merchant_id', event.merchant_id);
+            }
+            break;
+          }
+        } catch {
+          continue;
         }
-      } catch {
-        continue;
       }
     }
 
@@ -86,9 +108,10 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
       userId = existingUser.id;
 
       // Update user name and consent when provided (sync from Shopify)
-      const updatePayload: { name?: string; consent_status?: string } = {};
+      const updatePayload: { name?: string; consent_status?: string; phone_lookup_hash?: string } = {};
       if (event.customer.name) updatePayload.name = event.customer.name;
       if (event.consent_status) updatePayload.consent_status = event.consent_status;
+      if (!existingUser.phoneLookupHash) updatePayload.phone_lookup_hash = phoneLookupHash;
       if (Object.keys(updatePayload).length > 0) {
         await serviceClient
           .from('users')
@@ -102,6 +125,7 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
         .insert({
           merchant_id: event.merchant_id,
           phone: encryptedPhone,
+          phone_lookup_hash: phoneLookupHash,
           name: event.customer.name || null,
           consent_status: event.consent_status || 'pending',
         })

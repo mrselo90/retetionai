@@ -139,10 +139,9 @@ const INTERNAL_PRODUCT_PATHS = [
   /^\/api\/products\/[^/]+\/chunks$/,
 ];
 
-/** Internal eval/test routes (server-side eval runner) */
-const INTERNAL_EVAL_PATHS = [
-  '/api/test/rag',
-  '/api/test/rag/answer',
+/** Internal WhatsApp processing routes (worker -> API) */
+const INTERNAL_WHATSAPP_PATHS = [
+  /^\/api\/whatsapp\/inbound-events\/[^/]+\/process$/,
 ];
 
 function isInternalProductPath(path: string): boolean {
@@ -151,8 +150,10 @@ function isInternalProductPath(path: string): boolean {
   );
 }
 
-function isInternalEvalPath(path: string): boolean {
-  return INTERNAL_EVAL_PATHS.includes(path);
+function isInternalWhatsAppPath(path: string): boolean {
+  return INTERNAL_WHATSAPP_PATHS.some((pattern) =>
+    typeof pattern === 'string' ? path === pattern : pattern.test(path)
+  );
 }
 
 function authenticateInternalSecret(c: Context): {
@@ -164,8 +165,8 @@ function authenticateInternalSecret(c: Context): {
 } | null {
   const path = c.req.path;
   const isProduct = isInternalProductPath(path);
-  const isEval = isInternalEvalPath(path);
-  if (!isProduct && !isEval) return null;
+  const isWhatsAppInternal = isInternalWhatsAppPath(path);
+  if (!isProduct && !isWhatsAppInternal) return null;
 
   const expectedSecret = process.env.INTERNAL_SERVICE_SECRET;
   const providedSecret = c.req.header('X-Internal-Secret');
@@ -193,9 +194,7 @@ function authenticateInternalSecret(c: Context): {
     return {
       ok: false,
       status: 403,
-      error: isEval
-        ? 'Forbidden: Missing X-Internal-Merchant-Id for internal eval route'
-        : 'Forbidden: Missing X-Internal-Merchant-Id for internal product route',
+      error: 'Forbidden: Missing X-Internal-Merchant-Id for internal product route',
     };
   }
 
@@ -218,7 +217,7 @@ function setAuthenticatedUser(
 /**
  * Auth middleware
  * Supports JWT (Supabase Auth), Shopify Session Token, and internal-secret authentication.
- * Allows unauthenticated access for internal product routes (enrich, generate-embeddings) so the worker can call them.
+ * Allows internal-secret auth for worker-only routes (product processing, whatsapp inbound processing).
  */
 export async function authMiddleware(c: Context, next: Next) {
   const token = extractToken(c);

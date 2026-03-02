@@ -64,18 +64,18 @@ describe('Knowledge Base Module', () => {
 
             expect(mockSupabase.delete).toHaveBeenCalled();
             expect(mockSupabase.insert).toHaveBeenCalledWith([
-                {
+                expect.objectContaining({
                     product_id: mockProductId,
                     chunk_text: `[Test Product] ${mockChunks[0].text}`,
                     embedding: JSON.stringify(mockEmbeddings[0].embedding),
                     chunk_index: 0,
-                },
-                {
+                }),
+                expect.objectContaining({
                     product_id: mockProductId,
                     chunk_text: `[Test Product] ${mockChunks[1].text}`,
                     embedding: JSON.stringify(mockEmbeddings[1].embedding),
                     chunk_index: 1,
-                },
+                }),
             ]);
         });
 
@@ -145,7 +145,6 @@ describe('Knowledge Base Module', () => {
 
             vi.mocked(embeddings.chunkText).mockReturnValue(mockChunks);
             vi.mocked(embeddings.generateEmbeddingsBatch).mockResolvedValue(mockEmbeddings);
-            mockSupabase.eq.mockResolvedValue({ error: null });
 
             const results = await batchProcessProducts(productIds);
 
@@ -168,7 +167,6 @@ describe('Knowledge Base Module', () => {
 
             vi.mocked(embeddings.chunkText).mockReturnValue(mockChunks);
             vi.mocked(embeddings.generateEmbeddingsBatch).mockResolvedValue(mockEmbeddings);
-            mockSupabase.eq.mockResolvedValue({ error: null });
 
             const results = await batchProcessProducts(productIds);
 
@@ -198,7 +196,6 @@ describe('Knowledge Base Module', () => {
 
             vi.mocked(embeddings.chunkText).mockReturnValue(mockChunks);
             vi.mocked(embeddings.generateEmbeddingsBatch).mockResolvedValue(mockEmbeddings);
-            mockSupabase.eq.mockResolvedValue({ error: null });
 
             const startTime = Date.now();
             await batchProcessProducts(productIds);

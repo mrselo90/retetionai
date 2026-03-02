@@ -10,6 +10,7 @@ import {
   ScheduledMessageJobData,
   ScrapeJobData,
   AnalyticsJobData,
+  WhatsAppInboundJobData,
   getUsageInstructionsForProductIds,
   type ProductInstructionRow,
 } from '@recete/shared';
@@ -115,6 +116,20 @@ async function appendAssistantMessageToConversation(
   conversationId: string,
   content: string
 ): Promise<void> {
+  const timestampIso = new Date().toISOString();
+  const { error: appendError } = await serviceClient.rpc('append_conversation_message_atomic', {
+    conversation_uuid: conversationId,
+    message_role: 'assistant',
+    message_content: content,
+    message_timestamp: timestampIso,
+  });
+
+  if (!appendError) return;
+  if ((appendError as any)?.code !== '42883') {
+    throw new Error(`Failed to append conversation history: ${appendError.message}`);
+  }
+
+  // Fallback if migration is not applied yet.
   const { data: conversation, error: fetchError } = await serviceClient
     .from('conversations')
     .select('history')
@@ -132,14 +147,14 @@ async function appendAssistantMessageToConversation(
   history.push({
     role: 'assistant',
     content,
-    timestamp: new Date().toISOString(),
+    timestamp: timestampIso,
   });
 
   const { error: updateError } = await serviceClient
     .from('conversations')
     .update({
       history,
-      updated_at: new Date().toISOString(),
+      updated_at: timestampIso,
     })
     .eq('id', conversationId);
 
@@ -152,6 +167,7 @@ import {
   scheduledMessagesQueue,
   scrapeJobsQueue,
   analyticsQueue,
+  whatsappInboundQueue,
 } from './queues.js';
 
 const connection = getRedisClient();
@@ -490,10 +506,59 @@ export const analyticsWorker = new Worker<AnalyticsJobData>(
 );
 
 /**
+ * WhatsApp inbound worker
+ * Dequeues inbound events and asks API to process them with full AI/RAG stack.
+ */
+export const whatsappInboundWorker = new Worker<WhatsAppInboundJobData>(
+  QUEUE_NAMES.WHATSAPP_INBOUND,
+  async (job) => {
+    const { inboundEventId, merchantId } = job.data;
+    const internalSecret = process.env.INTERNAL_SERVICE_SECRET?.trim();
+    const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:3001';
+
+    if (!internalSecret) {
+      throw new Error('INTERNAL_SERVICE_SECRET is required for whatsapp inbound worker');
+    }
+
+    const response = await fetch(`${apiUrl}/api/whatsapp/inbound-events/${inboundEventId}/process`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Secret': internalSecret,
+        'X-Internal-Merchant-Id': merchantId,
+      },
+      body: '{}',
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      throw new Error(`Inbound process API failed (${response.status}): ${errText || 'unknown error'}`);
+    }
+
+    const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    logger.info(
+      { inboundEventId, merchantId, result: data?.result || null },
+      '[WhatsApp Inbound] Processed inbound event'
+    );
+
+    return {
+      success: true,
+      inboundEventId,
+      merchantId,
+      result: data?.result || null,
+    };
+  },
+  {
+    ...defaultWorkerOptions,
+    concurrency: 8,
+  }
+);
+
+/**
  * Get all workers (for graceful shutdown, health check, etc.)
  */
 export function getAllWorkers() {
-  return [scheduledMessagesWorker, scrapeJobsWorker, analyticsWorker];
+  return [scheduledMessagesWorker, scrapeJobsWorker, analyticsWorker, whatsappInboundWorker];
 }
 
 /**
@@ -504,6 +569,7 @@ export async function closeAllWorkers() {
     scheduledMessagesWorker.close(),
     scrapeJobsWorker.close(),
     analyticsWorker.close(),
+    whatsappInboundWorker.close(),
   ]);
 }
 
@@ -530,4 +596,12 @@ analyticsWorker.on('completed', (job) => {
 
 analyticsWorker.on('failed', (job, err) => {
   logger.error(err instanceof Error ? err : new Error(String(err)), `[Analytics] Job ${job?.id} failed`);
+});
+
+whatsappInboundWorker.on('completed', (job) => {
+  logger.info({ jobId: job.id }, '[WhatsApp Inbound] Job completed');
+});
+
+whatsappInboundWorker.on('failed', (job, err) => {
+  logger.error(err instanceof Error ? err : new Error(String(err)), `[WhatsApp Inbound] Job ${job?.id} failed`);
 });
