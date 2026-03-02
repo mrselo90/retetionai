@@ -221,37 +221,92 @@
             "signOut": "Sign Out"
         },
         "home": {
+            "title": "Dashboard",
             "greeting": "Good morning, {name}! 👋",
-            "summary": "Interacting with <bold>{activeUsers}</bold> customers today · Response rate: <bold>{responseRate}%</bold>",
-            "actionRequired": "Action Required",
+            "summary": "You have <bold>{activeUsers}</bold> active customers today · Reply rate: <bold>{responseRate}%</bold>",
+            "setup": {
+                "title": "Getting Started",
+                "subtitle": "Complete these steps to make your retention flow live.",
+                "progress": "{completed}/{total} completed",
+                "bannerTitle": "Setup Required",
+                "bannerMessage": "Next step: {step}. Complete onboarding to start WhatsApp conversations.",
+                "done": "Done",
+                "pending": "Pending",
+                "steps": {
+                    "connectShopify": {
+                        "title": "Connect Shopify",
+                        "description": "Connect your store so orders and customer data can sync automatically.",
+                        "action": "Connect Now"
+                    },
+                    "addProduct": {
+                        "title": "Add your first product",
+                        "description": "Add product instructions so the AI can answer customer questions correctly.",
+                        "action": "Add Product"
+                    },
+                    "sendFirstWhatsApp": {
+                        "title": "Send your first WhatsApp flow",
+                        "description": "Set sender and welcome message to start customer conversations.",
+                        "action": "Open WhatsApp Settings"
+                    }
+                }
+            },
+            "alerts": {
+                "title": "System Notice",
+                "types": {
+                    "noIntegration": "Integration Missing",
+                    "integrationError": "Integration Error",
+                    "noProducts": "Products Missing"
+                }
+            },
             "kpi": {
-                "totalOrders": "Total Orders",
-                "lifetime": "Lifetime transactions",
-                "activeUsers": "Active Users",
-                "last30Days": "In last 30 days",
-                "messagesSent": "Messages Sent",
-                "autoManual": "Auto & Manual",
-                "responseRate": "Response Rate",
-                "feedback": "Customer feedback"
+                "ordersReceived": "Orders Received",
+                "ordersReceivedHint": "Total synced orders",
+                "ordersReceivedDetail": "Orders pulled from Shopify into Recete.",
+                "activeCustomers": "Active Customers",
+                "activeCustomersHint": "Last 30 days",
+                "activeCustomersDetail": "Customers who interacted recently.",
+                "whatsappMessages": "WhatsApp Messages Sent",
+                "whatsappMessagesHint": "Automated + manual",
+                "whatsappMessagesDetail": "Total outbound messages from your bot/team.",
+                "replyRate": "Customer Reply Rate",
+                "replyRateHint": "Conversation engagement",
+                "replyRateDetail": "Share of customers who replied to messages."
             },
             "recentOrders": {
                 "title": "Recent Orders",
                 "viewAll": "View All",
-                "empty": "No orders yet"
+                "emptyTitle": "No orders synced yet",
+                "emptyDescription": "Connect Shopify to start receiving and tracking orders here.",
+                "emptyAction": "Open Integrations"
             },
             "recentConversations": {
                 "title": "Recent Conversations",
                 "viewAll": "View All",
-                "empty": "No conversations yet"
+                "emptyTitle": "No conversations yet",
+                "emptyDescription": "Finish setup and send your first WhatsApp flow to start conversations."
             },
             "quickActions": {
                 "title": "Quick Actions",
                 "addProduct": "Add Product",
-                "addProductDesc": "Enter new product to catalog",
-                "integration": "Integrations",
-                "integrationDesc": "Shopify or CSV",
+                "addProductDesc": "Add product guidance for AI replies",
+                "integration": "Connect Shopify",
+                "integrationDesc": "Sync orders and customers automatically",
                 "settings": "Settings",
-                "settingsDesc": "Bot and account settings"
+                "settingsDesc": "WhatsApp sender and bot behavior"
+            },
+            "toasts": {
+                "sessionExpired": {
+                    "title": "Session expired",
+                    "message": "Please login again."
+                },
+                "statsLoadFailed": {
+                    "title": "Stats unavailable",
+                    "message": "Dashboard loaded with default values."
+                },
+                "dashboardLoadFailed": {
+                    "title": "Dashboard failed to load",
+                    "message": "Please refresh the page."
+                }
             },
             "loading": "Loading dashboard...",
             "loadError": "Error loading dashboard.",

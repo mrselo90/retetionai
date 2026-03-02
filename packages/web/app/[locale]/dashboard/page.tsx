@@ -21,7 +21,15 @@ import {
   SkeletonPage,
   Text,
 } from '@shopify/polaris';
-import { ArrowRight, BarChart3, MessageSquare, Package, ShoppingBag } from 'lucide-react';
+import {
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+  Circle,
+  MessageSquare,
+  Package,
+  ShoppingBag,
+} from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
 interface Merchant {
@@ -78,6 +86,7 @@ function MetricCard({
   title,
   value,
   hint,
+  detail,
   icon,
   iconBackground,
   iconClassName,
@@ -85,6 +94,7 @@ function MetricCard({
   title: string;
   value: string | number;
   hint: string;
+  detail: string;
   icon: React.ReactNode;
   iconBackground?: React.ComponentProps<typeof Box>['background'];
   iconClassName?: string;
@@ -110,8 +120,11 @@ function MetricCard({
           <Text as="p" variant="headingLg" fontWeight="semibold">
             {String(value)}
           </Text>
-          <Text as="p" variant="bodyXs" tone="subdued">
+          <Text as="p" variant="bodySm" tone="subdued">
             {hint}
+          </Text>
+          <Text as="p" variant="bodyXs" tone="subdued">
+            {detail}
           </Text>
         </BlockStack>
       </BlockStack>
@@ -119,13 +132,27 @@ function MetricCard({
   );
 }
 
-function ListEmptyPolaris({ message }: { message: string }) {
+function ListEmptyPolaris({
+  title,
+  description,
+  actionLabel,
+  actionUrl,
+}: {
+  title: string;
+  description: string;
+  actionLabel?: string;
+  actionUrl?: string;
+}) {
   return (
     <Box padding="400">
       <BlockStack gap="200" inlineAlign="center">
-        <Text as="p" variant="bodySm" tone="subdued" alignment="center">
-          {message}
+        <Text as="p" variant="bodySm" fontWeight="medium" alignment="center">
+          {title}
         </Text>
+        <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+          {description}
+        </Text>
+        {actionLabel && actionUrl ? <PolarisButton url={actionUrl}>{actionLabel}</PolarisButton> : null}
       </BlockStack>
     </Box>
   );
@@ -188,11 +215,11 @@ export default function DashboardPage() {
             ? (statsErr as { status?: number }).status
             : undefined;
         if (statsStatus === 401) {
-          toast.error('Session expired', 'Please login again');
+          toast.error(t('toasts.sessionExpired.title'), t('toasts.sessionExpired.message'));
           window.location.href = '/login';
           return;
         }
-        toast.error('Failed to load stats', 'Showing dashboard with default values.');
+        toast.error(t('toasts.statsLoadFailed.title'), t('toasts.statsLoadFailed.message'));
       }
     } catch (err: unknown) {
       console.error('Failed to load dashboard:', err);
@@ -205,15 +232,15 @@ export default function DashboardPage() {
           ? (err as { message?: string }).message
           : undefined;
       if (errorStatus === 401) {
-        toast.error('Session expired', 'Please login again');
+        toast.error(t('toasts.sessionExpired.title'), t('toasts.sessionExpired.message'));
         window.location.href = '/login';
         return;
       }
-      toast.error('Failed to load dashboard', errorMessage || 'Please refresh the page.');
+      toast.error(t('toasts.dashboardLoadFailed.title'), errorMessage || t('toasts.dashboardLoadFailed.message'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadDashboard();
@@ -230,7 +257,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <SkeletonPage title="Dashboard" primaryAction>
+      <SkeletonPage title={t('title')} primaryAction>
         <Layout>
           <Layout.Section>
             <PolarisCard>
@@ -270,7 +297,7 @@ export default function DashboardPage() {
 
   if (!merchant) {
     return (
-      <Page title="Dashboard">
+      <Page title={t('title')}>
         <Layout>
           <Layout.Section>
             <PolarisCard>
@@ -292,9 +319,60 @@ export default function DashboardPage() {
   }
 
   const displayStats = stats ?? DEFAULT_STATS;
-  const hasAlerts = displayStats.alerts.length > 0;
-  const criticalAlerts = displayStats.alerts.filter((a) => a.severity === 'error' || a.severity === 'warning');
-  const infoAlerts = displayStats.alerts.filter((a) => a.severity === 'info');
+  const hasIntegrationIssue = displayStats.alerts.some(
+    (a) => a.type === 'no_integration' || a.type === 'integration_error'
+  );
+  const hasProducts = (displayStats.kpis.totalProducts ?? 0) > 0;
+  const hasConversationActivity =
+    (displayStats.kpis.messagesSent ?? 0) > 0 || displayStats.recentActivity.conversations.length > 0;
+  const setupSteps = [
+    {
+      id: 'connectShopify',
+      title: t('setup.steps.connectShopify.title'),
+      description: t('setup.steps.connectShopify.description'),
+      actionLabel: t('setup.steps.connectShopify.action'),
+      actionUrl: '/dashboard/integrations',
+      completed: !hasIntegrationIssue,
+    },
+    {
+      id: 'addProduct',
+      title: t('setup.steps.addProduct.title'),
+      description: t('setup.steps.addProduct.description'),
+      actionLabel: t('setup.steps.addProduct.action'),
+      actionUrl: '/dashboard/products',
+      completed: hasProducts,
+    },
+    {
+      id: 'sendFirstWhatsApp',
+      title: t('setup.steps.sendFirstWhatsApp.title'),
+      description: t('setup.steps.sendFirstWhatsApp.description'),
+      actionLabel: t('setup.steps.sendFirstWhatsApp.action'),
+      actionUrl: '/dashboard/settings',
+      completed: hasConversationActivity,
+    },
+  ];
+  const completedSteps = setupSteps.filter((step) => step.completed).length;
+  const nextStep = setupSteps.find((step) => !step.completed);
+  const topAlert = displayStats.alerts.find((a) => a.severity === 'error' || a.severity === 'warning') ??
+    displayStats.alerts[0];
+  const ordersEmptyActionUrl = '/dashboard/integrations';
+  const ordersEmptyActionLabel = hasIntegrationIssue
+    ? t('setup.steps.connectShopify.action')
+    : t('recentOrders.emptyAction');
+  const conversationsEmptyActionUrl = hasProducts ? '/dashboard/settings' : '/dashboard/products';
+  const conversationsEmptyActionLabel = hasProducts
+    ? t('setup.steps.sendFirstWhatsApp.action')
+    : t('setup.steps.addProduct.action');
+
+  const alertTypeLabel = (type: string) => {
+    if (type === 'no_integration') return t('alerts.types.noIntegration');
+    if (type === 'integration_error') return t('alerts.types.integrationError');
+    if (type === 'no_products') return t('alerts.types.noProducts');
+    return type
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   return (
     <Page
@@ -306,91 +384,130 @@ export default function DashboardPage() {
       })}
     >
       <Layout>
-        {criticalAlerts.length > 0 && (
+        {(topAlert || nextStep) && (
           <Layout.Section>
-            <Banner title={t('actionRequired')} tone="critical">
+            <Banner
+              title={nextStep ? t('setup.bannerTitle') : t('alerts.title')}
+              tone={topAlert?.severity === 'error' ? 'critical' : topAlert?.severity === 'warning' ? 'warning' : 'info'}
+              action={nextStep ? { content: nextStep.actionLabel, url: nextStep.actionUrl } : undefined}
+            >
               <BlockStack gap="200">
-                {criticalAlerts.map((alert, index) => {
-                  let typeLabel = alert.type;
-                  if (alert.type === 'no_integration') {
-                    typeLabel = 'Integration Missing';
-                  } else if (alert.type === 'integration_error') {
-                    typeLabel = 'Integration Error';
-                  } else {
-                    typeLabel = alert.type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                  }
-
-                  return (
-                    <Text as="p" variant="bodySm" key={`${alert.type}-${index}`}>
-                      <Text as="span" variant="bodySm" fontWeight="semibold">
-                        {typeLabel}:
-                      </Text>{' '}
-                      {alert.message}
-                    </Text>
-                  );
-                })}
+                {nextStep ? (
+                  <Text as="p" variant="bodySm">
+                    {t('setup.bannerMessage', { step: nextStep.title })}
+                  </Text>
+                ) : null}
+                {topAlert ? (
+                  <Text as="p" variant="bodySm">
+                    <Text as="span" variant="bodySm" fontWeight="semibold">
+                      {alertTypeLabel(topAlert.type)}:
+                    </Text>{' '}
+                    {topAlert.message}
+                  </Text>
+                ) : null}
               </BlockStack>
             </Banner>
           </Layout.Section>
         )}
 
         <Layout.Section>
+          <PolarisCard>
+            <BlockStack gap="300">
+              <InlineStack align="space-between" blockAlign="start" gap="300">
+                <BlockStack gap="100">
+                  <Text as="h2" variant="headingSm">
+                    {t('setup.title')}
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    {t('setup.subtitle')}
+                  </Text>
+                </BlockStack>
+                <PolarisBadge tone={nextStep ? 'attention' : 'success'}>
+                  {t('setup.progress', { completed: completedSteps, total: setupSteps.length })}
+                </PolarisBadge>
+              </InlineStack>
+
+              <BlockStack gap="200">
+                {setupSteps.map((step, index) => {
+                  const isCurrent = !step.completed && nextStep?.id === step.id;
+                  return (
+                    <Box
+                      key={step.id}
+                      borderWidth="025"
+                      borderColor={step.completed ? 'border-success' : isCurrent ? 'border-info' : 'border'}
+                      borderRadius="300"
+                      padding="300"
+                      background={step.completed ? 'bg-fill-success-secondary' : 'bg-surface'}
+                    >
+                      <InlineStack align="space-between" blockAlign="start" gap="300">
+                        <InlineStack blockAlign="start" gap="300">
+                          {step.completed ? (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-700 mt-0.5" />
+                          ) : (
+                            <Circle className="w-5 h-5 text-zinc-500 mt-0.5" />
+                          )}
+                          <BlockStack gap="050">
+                            <Text as="p" variant="bodyMd" fontWeight="semibold">
+                              {index + 1}. {step.title}
+                            </Text>
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              {step.description}
+                            </Text>
+                          </BlockStack>
+                        </InlineStack>
+                        {step.completed ? (
+                          <PolarisBadge tone="success">{t('setup.done')}</PolarisBadge>
+                        ) : isCurrent ? (
+                          <PolarisButton url={step.actionUrl} variant="primary" size="slim">
+                            {step.actionLabel}
+                          </PolarisButton>
+                        ) : (
+                          <PolarisBadge tone="info">{t('setup.pending')}</PolarisBadge>
+                        )}
+                      </InlineStack>
+                    </Box>
+                  );
+                })}
+              </BlockStack>
+            </BlockStack>
+          </PolarisCard>
+        </Layout.Section>
+
+        <Layout.Section>
           <InlineGrid columns={{ xs: 1, sm: 2, xl: 4 }} gap="400">
             <MetricCard
-              title={t('kpi.totalOrders')}
+              title={t('kpi.ordersReceived')}
               value={displayStats.kpis.totalOrders ?? 0}
-              hint={t('kpi.lifetime')}
+              hint={t('kpi.ordersReceivedHint')}
+              detail={t('kpi.ordersReceivedDetail')}
               icon={<ShoppingBag className="h-4 w-4 text-zinc-700" />}
             />
             <MetricCard
-              title={t('kpi.activeUsers')}
+              title={t('kpi.activeCustomers')}
               value={displayStats.kpis.activeUsers ?? 0}
-              hint={t('kpi.last30Days')}
+              hint={t('kpi.activeCustomersHint')}
+              detail={t('kpi.activeCustomersDetail')}
               icon={<ArrowRight className="h-4 w-4 text-emerald-700" />}
               iconBackground="bg-fill-success-secondary"
             />
             <MetricCard
-              title={t('kpi.messagesSent')}
+              title={t('kpi.whatsappMessages')}
               value={displayStats.kpis.messagesSent ?? 0}
-              hint={t('kpi.autoManual')}
+              hint={t('kpi.whatsappMessagesHint')}
+              detail={t('kpi.whatsappMessagesDetail')}
               icon={<MessageSquare className="h-4 w-4 text-blue-700" />}
               iconBackground="bg-fill-info-secondary"
             />
             <MetricCard
-              title={t('kpi.responseRate')}
+              title={t('kpi.replyRate')}
               value={`${displayStats.kpis.responseRate ?? 0}%`}
-              hint={t('kpi.feedback')}
+              hint={t('kpi.replyRateHint')}
+              detail={t('kpi.replyRateDetail')}
               icon={<BarChart3 className="h-4 w-4 text-amber-700" />}
               iconBackground="bg-fill-caution-secondary"
             />
           </InlineGrid>
         </Layout.Section>
-
-        {hasAlerts && infoAlerts.length > 0 && (
-          <Layout.Section>
-            <BlockStack gap="300">
-              {infoAlerts.map((alert, index) => {
-                let title = alert.type;
-                let action;
-
-                if (alert.type === 'no_products') {
-                  title = 'Products Needed';
-                  action = { content: t('quickActions.addProduct'), url: `/${locale}/dashboard/products` };
-                } else {
-                  title = alert.type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                }
-
-                return (
-                  <Banner key={`${alert.type}-${index}`} title={title} tone="info" action={action}>
-                    <Text as="p" variant="bodySm">
-                      {alert.message}
-                    </Text>
-                  </Banner>
-                );
-              })}
-            </BlockStack>
-          </Layout.Section>
-        )}
 
         <Layout.Section>
           <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
@@ -400,7 +517,7 @@ export default function DashboardPage() {
                   <Text as="h2" variant="headingSm">
                     {t('recentOrders.title')}
                   </Text>
-                  <PolarisButton url={`/${locale}/dashboard/products`} variant="plain" size="slim">
+                  <PolarisButton url="/dashboard/products" variant="plain" size="slim">
                     {t('recentOrders.viewAll')}
                   </PolarisButton>
                 </InlineStack>
@@ -432,7 +549,12 @@ export default function DashboardPage() {
                       </Box>
                     ))
                   ) : (
-                    <ListEmptyPolaris message={t('recentOrders.empty')} />
+                    <ListEmptyPolaris
+                      title={t('recentOrders.emptyTitle')}
+                      description={t('recentOrders.emptyDescription')}
+                      actionLabel={ordersEmptyActionLabel}
+                      actionUrl={ordersEmptyActionUrl}
+                    />
                   )}
                 </BlockStack>
               </BlockStack>
@@ -444,7 +566,7 @@ export default function DashboardPage() {
                   <Text as="h2" variant="headingSm">
                     {t('recentConversations.title')}
                   </Text>
-                  <PolarisButton url={`/${locale}/dashboard/conversations`} variant="plain" size="slim">
+                  <PolarisButton url="/dashboard/conversations" variant="plain" size="slim">
                     {t('recentConversations.viewAll')}
                   </PolarisButton>
                 </InlineStack>
@@ -481,7 +603,12 @@ export default function DashboardPage() {
                       </Box>
                     ))
                   ) : (
-                    <ListEmptyPolaris message={t('recentConversations.empty')} />
+                    <ListEmptyPolaris
+                      title={t('recentConversations.emptyTitle')}
+                      description={t('recentConversations.emptyDescription')}
+                      actionLabel={conversationsEmptyActionLabel}
+                      actionUrl={conversationsEmptyActionUrl}
+                    />
                   )}
                 </BlockStack>
               </BlockStack>
