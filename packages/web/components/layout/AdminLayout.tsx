@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useRouter, usePathname } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
 import {
@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { authenticatedRequest } from '@/lib/api';
+import { getSessionExpiryMs, isSessionExpired } from '@/lib/sessionExpiry';
 
 interface AdminLayoutProps {
     children: React.ReactNode;
@@ -27,18 +28,58 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [userEmail, setUserEmail] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const expiryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
+        let cancelled = false;
+
+        const clearExpiryTimeout = () => {
+            if (expiryTimeoutRef.current) {
+                clearTimeout(expiryTimeoutRef.current);
+                expiryTimeoutRef.current = null;
+            }
+        };
+
+        const closeAuthForExpiredToken = async () => {
+            clearExpiryTimeout();
+            try {
+                await supabase.auth.signOut({ scope: 'local' });
+            } catch (err) {
+                console.error('Admin session expiry sign out failed:', err);
+            }
+            if (!cancelled) router.push('/login');
+        };
+
+        const scheduleExpiryClose = (expiresAt?: number | null) => {
+            clearExpiryTimeout();
+            if (!expiresAt) return;
+            const msUntilExpiry = getSessionExpiryMs({ expires_at: expiresAt });
+            if (msUntilExpiry === null) return;
+            if (msUntilExpiry <= 0) {
+                void closeAuthForExpiredToken();
+                return;
+            }
+            expiryTimeoutRef.current = setTimeout(() => {
+                void closeAuthForExpiredToken();
+            }, msUntilExpiry + 250);
+        };
+
         const initAdminAuth = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (session?.user) {
+                    if (isSessionExpired(session)) {
+                        await closeAuthForExpiredToken();
+                        return;
+                    }
                     // Verify Super Admin status by hitting An admin endpoint
                     try {
                         await authenticatedRequest('/api/admin/stats', session.access_token);
+                        if (cancelled) return;
                         setUserEmail(session.user.email || 'Super Admin');
+                        scheduleExpiryClose(session.expires_at);
                         setLoading(false);
-                    } catch (apiErr: any) {
+                    } catch (apiErr: unknown) {
                         console.error('Super Admin check failed:', apiErr);
                         router.push('/dashboard');
                     }
@@ -51,7 +92,32 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             }
         };
 
-        initAdminAuth();
+        void initAdminAuth();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (cancelled) return;
+
+            if (event === 'SIGNED_OUT') {
+                clearExpiryTimeout();
+                router.push('/login');
+                return;
+            }
+
+            if (!session?.user) return;
+            if (isSessionExpired(session)) {
+                void closeAuthForExpiredToken();
+                return;
+            }
+
+            setUserEmail(session.user.email || 'Super Admin');
+            scheduleExpiryClose(session.expires_at);
+        });
+
+        return () => {
+            cancelled = true;
+            clearExpiryTimeout();
+            subscription.unsubscribe();
+        };
     }, [router]);
 
     const handleSignOut = async () => {
