@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: 'Privacy Policy - Sudoku Worlds',
-    description: 'Privacy Policy for Sudoku Worlds app.',
+    title: 'Privacy Policy - Sudoku World',
+    description: 'Privacy Policy for Sudoku World app.',
 };
 
 export default function SudokuWorldsPrivacyPolicy() {
@@ -46,12 +46,12 @@ export default function SudokuWorldsPrivacyPolicy() {
             </head>
             <body>
                 <main className="wrap">
-                    <h1>Privacy Policy - Sudoku Worlds</h1>
+                    <h1>Privacy Policy - Sudoku World</h1>
                     <p className="muted"><strong>Last updated:</strong> March 6, 2026</p>
 
                     <section className="card">
                         <p>
-                            This Privacy Policy explains how <strong>Sudoku Worlds</strong> (package:{' '}
+                            This Privacy Policy explains how <strong>Sudoku World</strong> (package:{' '}
                             <code>com.sudoku.app</code>) collects, uses, and shares information when you use the app.
                         </p>
                     </section>
