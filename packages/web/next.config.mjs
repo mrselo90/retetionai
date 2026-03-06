@@ -49,12 +49,7 @@ const nextConfig = {
             destination: `${apiUrl.replace(/\/$/, '')}/:path*`,
         };
 
-        const sudokuRewrite = {
-            source: "/privacy-sudokuworld",
-            destination: "/privacy-sudokuworld.html",
-        };
-
-        return [oauthRewrite, monitoringRewrite, apiBackendRewrite, sudokuRewrite];
+        return [oauthRewrite, monitoringRewrite, apiBackendRewrite];
     },
 
     // Cache headers for static assets
