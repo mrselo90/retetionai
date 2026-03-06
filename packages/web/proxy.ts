@@ -4,7 +4,17 @@ import { routing } from './i18n/routing';
 
 const intlMiddleware = createMiddleware(routing);
 
+// Paths that should bypass i18n locale handling
+const BYPASS_PATHS = ['/privacy-sudokuworld'];
+
 export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Let these pages be served directly without locale prefix
+  if (BYPASS_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
+    return;
+  }
+
   return intlMiddleware(request);
 }
 
