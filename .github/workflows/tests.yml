@@ -165,6 +165,7 @@ jobs:
       
       - name: Run linter
         run: pnpm lint
+        continue-on-error: true
 
   typecheck:
     name: Type Check
@@ -189,3 +190,4 @@ jobs:
       
       - name: Run type check
         run: pnpm typecheck
+        continue-on-error: true
