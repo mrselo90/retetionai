@@ -50,15 +50,6 @@ export interface WhatsAppWebhookMessage {
  */
 export async function sendWhatsAppMessage(
   message: WhatsAppMessage,
-  credentials: WhatsAppCredentials
-): Promise<WhatsAppSendResponse>;
-export async function sendWhatsAppMessage(
-  message: WhatsAppMessage,
-  accessToken: string,
-  phoneNumberId: string
-): Promise<WhatsAppSendResponse>;
-export async function sendWhatsAppMessage(
-  message: WhatsAppMessage,
   credentialsOrAccessToken: WhatsAppCredentials | string,
   phoneNumberId?: string
 ): Promise<WhatsAppSendResponse> {
@@ -393,21 +384,21 @@ function getEnvWhatsAppCredentials(): WhatsAppCredentials | null {
   const twilioCreds =
     twilioAccountSid && twilioAuthToken && twilioFromNumber
       ? ({
-          provider: 'twilio',
-          accountSid: twilioAccountSid,
-          authToken: twilioAuthToken,
-          fromNumber: twilioFromNumber,
-        } satisfies TwilioWhatsAppCredentials)
+        provider: 'twilio',
+        accountSid: twilioAccountSid,
+        authToken: twilioAuthToken,
+        fromNumber: twilioFromNumber,
+      } satisfies TwilioWhatsAppCredentials)
       : null;
 
   const metaCreds =
     metaAccessToken && metaPhoneNumberId
       ? ({
-          provider: 'meta',
-          accessToken: metaAccessToken,
-          phoneNumberId: metaPhoneNumberId,
-          verifyToken: metaVerifyToken,
-        } satisfies MetaWhatsAppCredentials)
+        provider: 'meta',
+        accessToken: metaAccessToken,
+        phoneNumberId: metaPhoneNumberId,
+        verifyToken: metaVerifyToken,
+      } satisfies MetaWhatsAppCredentials)
       : null;
 
   if (providerPreference === 'twilio') return twilioCreds;
