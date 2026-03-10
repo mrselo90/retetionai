@@ -7,11 +7,8 @@ export const metadata: Metadata = {
 
 export default function SudokuWorldsPrivacyPolicy() {
     return (
-        <html lang="en">
-            <head>
-                <meta charSet="utf-8" />
-                <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <style>{`
+        <>
+            <style>{`
           :root { color-scheme: light dark; }
           body {
             margin: 0;
@@ -43,31 +40,29 @@ export default function SudokuWorldsPrivacyPolicy() {
           a { color: #1d4ed8; }
           ul { padding-left: 20px; }
         `}</style>
-            </head>
-            <body>
-                <main className="wrap">
-                    <h1>Privacy Policy - Sudoku World</h1>
-                    <p className="muted"><strong>Last updated:</strong> March 6, 2026</p>
+            <main className="wrap">
+                <h1>Privacy Policy - Sudoku World</h1>
+                <p className="muted"><strong>Last updated:</strong> March 6, 2026</p>
 
-                    <section className="card">
-                        <p>
-                            This Privacy Policy explains how <strong>Sudoku World</strong> (package:{' '}
-                            <code>com.sudoku.app</code>) collects, uses, and shares information when you use the app.
-                        </p>
-                    </section>
+                <section className="card">
+                    <p>
+                        This Privacy Policy explains how <strong>Sudoku World</strong> (package:{' '}
+                        <code>com.sudoku.app</code>) collects, uses, and shares information when you use the app.
+                    </p>
+                </section>
 
-                    <section className="card">
-                        <h2>1. Information We Collect</h2>
-                        <ul>
-                            <li><strong>Gameplay Data:</strong> difficulty, game progress, score, streaks, statistics, settings.</li>
-                            <li><strong>Device and Technical Data:</strong> device model, OS version, app version, language, approximate diagnostics.</li>
-                            <li><strong>Crash and Performance Data:</strong> crash logs and diagnostics via Firebase Crashlytics.</li>
-                            <li><strong>Analytics Data:</strong> app usage events via Firebase Analytics.</li>
-                            <li><strong>Advertising Data:</strong> ad interactions and ad identifiers via Google AdMob.</li>
-                            <li><strong>Purchase Data:</strong> purchase status (e.g. remove ads) via Google Play Billing.</li>
-                            <li><strong>Play Games Data:</strong> leaderboard/achievement/cloud save data via Google Play Games Services.</li>
-                        </ul>
-                    </section>
+                <section className="card">
+                    <h2>1. Information We Collect</h2>
+                    <ul>
+                        <li><strong>Gameplay Data:</strong> difficulty, game progress, score, streaks, statistics, settings.</li>
+                        <li><strong>Device and Technical Data:</strong> device model, OS version, app version, language, approximate diagnostics.</li>
+                        <li><strong>Crash and Performance Data:</strong> crash logs and diagnostics via Firebase Crashlytics.</li>
+                        <li><strong>Analytics Data:</strong> app usage events via Firebase Analytics.</li>
+                        <li><strong>Advertising Data:</strong> ad interactions and ad identifiers via Google AdMob.</li>
+                        <li><strong>Purchase Data:</strong> purchase status (e.g. remove ads) via Google Play Billing.</li>
+                        <li><strong>Play Games Data:</strong> leaderboard/achievement/cloud save data via Google Play Games Services.</li>
+                    </ul>
+                </section>
 
                     <section className="card">
                         <h2>2. How We Use Information</h2>
@@ -129,14 +124,13 @@ export default function SudokuWorldsPrivacyPolicy() {
                         </p>
                     </section>
 
-                    <section className="card">
-                        <h2>9. Contact</h2>
-                        <p>
-                            For privacy questions, contact: <a href="mailto:privacy@recete.co.uk">privacy@recete.co.uk</a>
-                        </p>
-                    </section>
-                </main>
-            </body>
-        </html>
+                <section className="card">
+                    <h2>9. Contact</h2>
+                    <p>
+                        For privacy questions, contact: <a href="mailto:privacy@recete.co.uk">privacy@recete.co.uk</a>
+                    </p>
+                </section>
+            </main>
+        </>
     );
 }
