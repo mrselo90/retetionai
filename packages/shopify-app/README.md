@@ -47,3 +47,11 @@ Next phase:
 - connect shell routes to `packages/api`
 - transfer webhook ownership from the custom Hono routes
 - move billing approval to the shell
+
+## Production routing
+
+Recommended production split:
+
+- `https://shop.recete.co.uk` -> official Shopify shell (`packages/shopify-app`)
+- `https://recete.co.uk` -> existing dashboard / marketing surface (`packages/web`)
+- `https://api.recete.co.uk` -> API (`packages/api`)

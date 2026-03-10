@@ -2,7 +2,7 @@
 
 client_id = "e2d8a2f96bfbaaa54a8f5ff7e4d07433"
 name = "Recete"
-application_url = "https://recete.co.uk/"
+application_url = "https://shop.recete.co.uk/"
 embedded = true
 
 [build]
@@ -40,6 +40,5 @@ use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [
-  "https://recete.co.uk/auth/callback",
-  "https://recete.co.uk/api/integrations/shopify/oauth/callback"
+  "https://shop.recete.co.uk/auth/callback"
 ]
