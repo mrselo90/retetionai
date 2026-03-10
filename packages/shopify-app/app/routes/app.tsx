@@ -6,21 +6,30 @@ import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
+  const legacyDashboardUrl =
+    process.env.LEGACY_DASHBOARD_URL?.trim() || "http://localhost:3000";
+  const dashboardHref = new URL("/en/dashboard", legacyDashboardUrl);
+  dashboardHref.searchParams.set("shop", session.shop);
 
   // eslint-disable-next-line no-undef
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  return {
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    dashboardHref: dashboardHref.toString(),
+  };
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData<typeof loader>();
+  const { apiKey, dashboardHref } = useLoaderData<typeof loader>();
 
   return (
     <AppProvider embedded apiKey={apiKey}>
       <div style={{ padding: "12px 16px", borderBottom: "1px solid #e1e3e5" }}>
         <div style={{ display: "flex", gap: "16px" }}>
           <Link to="/app">Home</Link>
-          <Link to="/app/dashboard">Dashboard</Link>
+          <a href={dashboardHref} target="_top" rel="noreferrer">
+            Dashboard
+          </a>
           <Link to="/app/billing">Billing</Link>
         </div>
       </div>
