@@ -7,7 +7,7 @@ embedded = true
 
 [access_scopes]
 # Scopes required for the app's functionality
-scopes = "read_products,read_orders,read_fulfillments,read_customers"
+scopes = "read_products,read_orders,read_fulfillments,read_customers,write_webhooks"
 
 [auth]
 redirect_urls = [
@@ -15,7 +15,7 @@ redirect_urls = [
 ]
 
 [webhooks]
-api_version = "2025-01"
+api_version = "2026-01"
 
   [[webhooks.subscriptions]]
   topics = [
@@ -26,6 +26,14 @@ api_version = "2025-01"
     "app/uninstalled"
   ]
   uri = "/webhooks/commerce/shopify"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = [
+    "customers/data_request",
+    "customers/redact",
+    "shop/redact"
+  ]
+  uri = "/api/webhooks/shopify/gdpr"
 
 [pos]
 embedded = false

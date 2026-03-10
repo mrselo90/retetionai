@@ -336,7 +336,7 @@
 #### Integrations:
 - [ ] GET `/api/integrations`
 - [ ] POST `/api/integrations`
-- [ ] GET `/api/integrations/shopify/oauth/start`
+- [ ] POST `/api/integrations/shopify/auth`
 - [ ] GET `/api/integrations/shopify/oauth/callback`
 
 #### Webhooks:

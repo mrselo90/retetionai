@@ -70,3 +70,8 @@ export function decryptPhone(encryptedPhone: string): string {
 
   return decrypted;
 }
+
+export function __resetEncryptionKeyCacheForTests() {
+  cachedEncryptionKeyHex = null;
+  warnedInvalidEncryptionKey = false;
+}

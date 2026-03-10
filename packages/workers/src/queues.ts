@@ -13,6 +13,13 @@ import {
   WhatsAppInboundJobData,
 } from '@recete/shared';
 
+type CommerceEventJobData = {
+  externalEventId: string;
+  merchantId: string;
+};
+
+const COMMERCE_EVENTS_QUEUE = 'commerce-events';
+
 const connection = getRedisClient();
 
 const defaultQueueOptions: QueueOptions = {
@@ -90,6 +97,29 @@ export const analyticsQueue = new Queue<AnalyticsJobData>(
 );
 
 /**
+ * Commerce Events Queue
+ * For async processing of Shopify commerce webhooks after ingestion
+ */
+export const commerceEventsQueue = new Queue<CommerceEventJobData>(
+  COMMERCE_EVENTS_QUEUE,
+  {
+    ...defaultQueueOptions,
+    defaultJobOptions: {
+      ...defaultQueueOptions.defaultJobOptions,
+      attempts: 5,
+      backoff: {
+        type: 'exponential',
+        delay: 3000,
+      },
+      removeOnComplete: {
+        age: 1 * 24 * 3600,
+        count: 5000,
+      },
+    },
+  }
+);
+
+/**
  * WhatsApp Inbound Queue
  * For async processing of inbound WhatsApp messages
  */
@@ -116,7 +146,7 @@ export const whatsappInboundQueue = new Queue<WhatsAppInboundJobData>(
  * Get all queues (for health check, graceful shutdown, etc.)
  */
 export function getAllQueues() {
-  return [scheduledMessagesQueue, scrapeJobsQueue, analyticsQueue, whatsappInboundQueue];
+  return [scheduledMessagesQueue, scrapeJobsQueue, analyticsQueue, commerceEventsQueue, whatsappInboundQueue];
 }
 
 /**
@@ -127,6 +157,7 @@ export async function closeAllQueues() {
     scheduledMessagesQueue.close(),
     scrapeJobsQueue.close(),
     analyticsQueue.close(),
+    commerceEventsQueue.close(),
     whatsappInboundQueue.close(),
   ]);
 }

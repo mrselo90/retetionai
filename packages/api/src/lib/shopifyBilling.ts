@@ -13,7 +13,7 @@ const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
  * GraphQL Client for Shopify Admin API
  */
 async function shopifyGraphQL(shop: string, accessToken: string, query: string, variables: any = {}): Promise<any> {
-  const url = `https://${shop}/admin/api/2024-01/graphql.json`;
+  const url = `https://${shop}/admin/api/2026-01/graphql.json`;
   const response = await fetch(url, {
     method: 'POST',
     headers: {

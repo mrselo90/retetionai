@@ -4,10 +4,11 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { encryptPhone, decryptPhone } from './encryption';
+import { encryptPhone, decryptPhone, __resetEncryptionKeyCacheForTests } from './encryption';
 
 describe('encryptPhone', () => {
   beforeEach(() => {
+    __resetEncryptionKeyCacheForTests();
     // Ensure encryption key is set
     if (!process.env.ENCRYPTION_KEY) {
       process.env.ENCRYPTION_KEY = 'test-encryption-key-32-chars-long!!';
@@ -50,6 +51,7 @@ describe('encryptPhone', () => {
 
 describe('decryptPhone', () => {
   beforeEach(() => {
+    __resetEncryptionKeyCacheForTests();
     if (!process.env.ENCRYPTION_KEY) {
       process.env.ENCRYPTION_KEY = 'test-encryption-key-32-chars-long!!';
     }
@@ -100,6 +102,7 @@ describe('decryptPhone', () => {
 
 describe('encryptPhone and decryptPhone integration', () => {
   beforeEach(() => {
+    __resetEncryptionKeyCacheForTests();
     if (!process.env.ENCRYPTION_KEY) {
       process.env.ENCRYPTION_KEY = 'test-encryption-key-32-chars-long!!';
     }
@@ -127,6 +130,7 @@ describe('encryptPhone and decryptPhone integration', () => {
     // Change encryption key
     const originalKey = process.env.ENCRYPTION_KEY;
     process.env.ENCRYPTION_KEY = 'wrong-encryption-key-32-chars-long!!';
+    __resetEncryptionKeyCacheForTests();
     
     expect(() => {
       decryptPhone(encrypted);
@@ -134,5 +138,6 @@ describe('encryptPhone and decryptPhone integration', () => {
     
     // Restore original key
     process.env.ENCRYPTION_KEY = originalKey;
+    __resetEncryptionKeyCacheForTests();
   });
 });

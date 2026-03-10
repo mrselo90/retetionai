@@ -13,10 +13,18 @@ import {
   WhatsAppInboundJobData,
 } from '@recete/shared';
 
+type CommerceEventJobData = {
+  externalEventId: string;
+  merchantId: string;
+};
+
+const COMMERCE_EVENTS_QUEUE = 'commerce-events';
+
 // Lazily create queue instances to avoid creating Redis connections at import time
 let scheduledMessagesQueue: Queue<ScheduledMessageJobData> | null = null;
 let scrapeJobsQueue: Queue<ScrapeJobData> | null = null;
 let analyticsQueue: Queue<AnalyticsJobData> | null = null;
+let commerceEventsQueue: Queue<CommerceEventJobData> | null = null;
 let whatsappInboundQueue: Queue<WhatsAppInboundJobData> | null = null;
 
 function getScheduledMessagesQueue() {
@@ -44,6 +52,15 @@ function getAnalyticsQueue() {
     });
   }
   return analyticsQueue;
+}
+
+function getCommerceEventsQueue() {
+  if (!commerceEventsQueue) {
+    commerceEventsQueue = new Queue<CommerceEventJobData>(COMMERCE_EVENTS_QUEUE, {
+      connection: getRedisClient(),
+    });
+  }
+  return commerceEventsQueue;
 }
 
 function getWhatsAppInboundQueue() {
@@ -112,6 +129,31 @@ export async function addAnalyticsEvent(data: AnalyticsJobData) {
 }
 
 /**
+ * Add a commerce event processing job
+ */
+export async function addCommerceEventJob(data: CommerceEventJobData) {
+  return await getCommerceEventsQueue().add(
+    `commerce-event-${data.externalEventId}`,
+    data,
+    {
+      jobId: data.externalEventId,
+      attempts: 5,
+      backoff: {
+        type: 'exponential',
+        delay: 3000,
+      },
+      removeOnComplete: {
+        age: 24 * 3600,
+        count: 5000,
+      },
+      removeOnFail: {
+        age: 7 * 24 * 3600,
+      },
+    }
+  );
+}
+
+/**
  * Add WhatsApp inbound event processing job
  */
 export async function addWhatsAppInboundJob(data: WhatsAppInboundJobData) {
@@ -136,10 +178,11 @@ export async function addWhatsAppInboundJob(data: WhatsAppInboundJobData) {
  * Get health stats for all queues
  */
 export async function getQueueStats() {
-  const [scheduledMsgCounts, scrapeJobsCounts, analyticsCounts, whatsappInboundCounts] = await Promise.all([
+  const [scheduledMsgCounts, scrapeJobsCounts, analyticsCounts, commerceEventCounts, whatsappInboundCounts] = await Promise.all([
     getScheduledMessagesQueue().getJobCounts(),
     getScrapeJobsQueue().getJobCounts(),
     getAnalyticsQueue().getJobCounts(),
+    getCommerceEventsQueue().getJobCounts(),
     getWhatsAppInboundQueue().getJobCounts(),
   ]);
 
@@ -147,6 +190,7 @@ export async function getQueueStats() {
     scheduledMessages: scheduledMsgCounts,
     scrapeJobs: scrapeJobsCounts,
     analytics: analyticsCounts,
+    commerceEvents: commerceEventCounts,
     whatsappInbound: whatsappInboundCounts,
   };
 }

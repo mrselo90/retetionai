@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { getShopifySessionToken, isShopifyEmbedded } from './shopifyEmbedded';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -39,11 +40,12 @@ supabaseClient.auth.getSession = async () => {
 
   // 2. If no session, try Shopify App Bridge
   // Only runs in browser
-  if (typeof window !== 'undefined') {
-    const w = window as any;
-    if (w.shopify?.id?.getSessionToken) {
+  if (typeof window !== 'undefined' && isShopifyEmbedded()) {
       try {
-        const token = await w.shopify.id.getSessionToken();
+        const token = await getShopifySessionToken();
+        if (!token) {
+          return { data, error };
+        }
         // Construct a fake session object compatible with Session type
         const fakeSession = {
           access_token: token,
@@ -64,10 +66,8 @@ supabaseClient.auth.getSession = async () => {
         // @ts-ignore - Partial compliance is enough for our usage
         return { data: { session: fakeSession }, error: null } as any;
       } catch (e) {
-        // Not in Shopify or error
         console.debug('Shopify token retrieval failed:', e);
       }
-    }
   }
 
   return { data, error };

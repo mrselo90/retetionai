@@ -54,11 +54,11 @@ function ConversationIconSurface({
   background = 'bg-surface-secondary',
 }: {
   icon: React.ReactNode;
-  background?: React.ComponentProps<typeof Box>['background'];
+  background?: string;
 }) {
   return (
     <Box
-      background={background}
+      background={background as any}
       borderRadius="200"
       minWidth="40px"
       minHeight="40px"

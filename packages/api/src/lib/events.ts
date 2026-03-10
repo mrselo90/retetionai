@@ -15,6 +15,8 @@ export interface NormalizedEvent {
   customer?: {
     phone?: string;
     name?: string;
+    email?: string;
+    shopify_customer_id?: string;
   };
   order?: {
     status: string;
@@ -106,6 +108,14 @@ export function normalizeShopifyEvent(
 
     // Extract customer name
     let customerName: string | undefined;
+    const customerEmail =
+      typeof order.customer?.email === 'string' && order.customer.email.trim().length > 0
+        ? order.customer.email.trim().toLowerCase()
+        : undefined;
+    const shopifyCustomerId =
+      order.customer?.id !== undefined && order.customer?.id !== null
+        ? String(order.customer.id)
+        : undefined;
     if (order.shipping_address) {
       const firstName = order.shipping_address.first_name || '';
       const lastName = order.shipping_address.last_name || '';
@@ -131,9 +141,10 @@ export function normalizeShopifyEvent(
     let consent_status: 'opt_in' | 'opt_out' | 'pending' = 'pending';
     const customer = order.customer;
     if (customer) {
+      const buyerAcceptsMarketing = customer.buyer_accepts_marketing === true;
       const emailState = (customer.email_marketing_consent?.state || '').toLowerCase();
       const smsState = (customer.sms_marketing_consent?.state || '').toLowerCase();
-      if (emailState === 'subscribed' || smsState === 'subscribed') {
+      if (buyerAcceptsMarketing || emailState === 'subscribed' || smsState === 'subscribed') {
         consent_status = 'opt_in';
       } else if (emailState === 'not_subscribed' || smsState === 'not_subscribed') {
         consent_status = 'opt_out';
@@ -156,7 +167,14 @@ export function normalizeShopifyEvent(
       event_type: eventType,
       occurred_at: order.updated_at || order.created_at || new Date().toISOString(),
       external_order_id: order.name || order.id?.toString() || `shopify-${order.id}`,
-      customer: phone || customerName ? { phone, name: customerName } : undefined,
+      customer: phone || customerName || customerEmail || shopifyCustomerId
+        ? {
+            phone,
+            name: customerName,
+            email: customerEmail,
+            shopify_customer_id: shopifyCustomerId,
+          }
+        : undefined,
       order: {
         status: order.financial_status || order.fulfillment_status || 'unknown',
         created_at: order.created_at,

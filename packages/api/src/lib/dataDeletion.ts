@@ -53,6 +53,14 @@ export async function permanentlyDeleteMerchantData(merchantId: string): Promise
   // 1. Analytics events
   await supabase.from('analytics_events').delete().eq('merchant_id', merchantId);
 
+  // 1b. WhatsApp inbox/outbox audit data
+  await supabase.from('whatsapp_outbound_events').delete().eq('merchant_id', merchantId);
+  await supabase.from('whatsapp_inbound_events').delete().eq('merchant_id', merchantId);
+
+  // 1c. Product instructions and sync metadata
+  await supabase.from('product_instructions').delete().eq('merchant_id', merchantId);
+  await supabase.from('sync_jobs').delete().eq('merchant_id', merchantId);
+
   // 2. Conversations
   await supabase.from('conversations').delete().eq('merchant_id', merchantId);
 

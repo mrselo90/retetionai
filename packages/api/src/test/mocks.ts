@@ -81,6 +81,12 @@ export const createMockSupabaseClient = () => {
       signUp: vi.fn(),
       getUser: vi.fn(),
       getSession: vi.fn(),
+      admin: {
+        listUsers: vi.fn().mockResolvedValue({ data: { users: [] }, error: null }),
+        createUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+        deleteUser: vi.fn().mockResolvedValue({ data: null, error: null }),
+        generateLink: vi.fn().mockResolvedValue({ data: null, error: null }),
+      },
     },
     rpc: vi.fn(),
     __reset: () => {

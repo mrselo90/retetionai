@@ -96,7 +96,7 @@ function MetricCard({
   hint: string;
   detail: string;
   icon: React.ReactNode;
-  iconBackground?: React.ComponentProps<typeof Box>['background'];
+  iconBackground?: string;
   iconClassName?: string;
 }) {
   return (
@@ -107,7 +107,7 @@ function MetricCard({
             {title}
           </Text>
           <Box
-            background={iconBackground || 'bg-surface-secondary'}
+            background={(iconBackground || 'bg-surface-secondary') as any}
             borderRadius="200"
             minWidth="36px"
             minHeight="36px"
@@ -163,11 +163,11 @@ function DashboardIconTile({
   background,
 }: {
   icon: React.ReactNode;
-  background?: React.ComponentProps<typeof Box>['background'];
+  background?: string;
 }) {
   return (
     <Box
-      background={background || 'bg-surface-secondary'}
+      background={(background || 'bg-surface-secondary') as any}
       borderRadius="200"
       minWidth="36px"
       minHeight="36px"

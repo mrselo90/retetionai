@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { verifyShopifyGdprWebhook } from '../middleware/shopifyGdprHmac.js';
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { permanentlyDeleteMerchantData } from '../lib/dataDeletion.js';
+import { normalizeAndHashPhone } from '../lib/phoneLookup.js';
+import { exportUserData } from '../lib/dataExport.js';
 
 // Tamamen İzole Route
 const shopifyGdpr = new Hono<{ Variables: { parsedGdprBody: any } }>();
@@ -19,8 +21,83 @@ shopifyGdpr.post('/customers/data_request', async (c) => {
     // Arka Plan İşlemi (Macrotask - Yanıtın ağa basılmasını kesinlikle engellemez)
     setTimeout(async () => {
         try {
-            // Burada sadece olay günlüğüne (logger) yazmak genelde yeterlidir.
-            logger.info({ payload }, '[GDPR] Müşteri veri talebi alındı.');
+            const supabase = getSupabaseServiceClient();
+            const shopDomain = payload.shop_domain;
+            const customerId = payload.customer?.id?.toString() || null;
+            const customerEmail = typeof payload.customer?.email === 'string'
+                ? payload.customer.email.trim().toLowerCase()
+                : null;
+            const customerPhone = typeof payload.customer?.phone === 'string'
+                ? payload.customer.phone.trim()
+                : null;
+
+            let phoneLookupHash: string | null = null;
+            if (customerPhone) {
+                try {
+                    phoneLookupHash = normalizeAndHashPhone(customerPhone).phoneLookupHash;
+                } catch (phoneError) {
+                    logger.warn({ phoneError, shopDomain, customerPhone }, '[GDPR] Customer data request phone normalization failed.');
+                }
+            }
+
+            if (!shopDomain || (!customerId && !customerEmail && !phoneLookupHash)) {
+                logger.warn({ payload }, '[GDPR] Customer data request missing shop or customer identifiers.');
+                return;
+            }
+
+            const { data: integration } = await supabase
+                .from('integrations')
+                .select('merchant_id')
+                .eq('provider', 'shopify')
+                .contains('auth_data', { shop: shopDomain })
+                .maybeSingle();
+
+            if (!integration?.merchant_id) {
+                logger.warn({ shopDomain }, '[GDPR] Customer data request shop not found locally.');
+                return;
+            }
+
+            const userFilters: Array<{ field: 'shopify_customer_id' | 'email' | 'phone_lookup_hash'; value: string }> = [];
+            if (customerId) {
+                userFilters.push({ field: 'shopify_customer_id', value: customerId });
+            }
+            if (customerEmail) {
+                userFilters.push({ field: 'email', value: customerEmail });
+            }
+            if (phoneLookupHash) {
+                userFilters.push({ field: 'phone_lookup_hash', value: phoneLookupHash });
+            }
+
+            let matchedUserId: string | null = null;
+            for (const filter of userFilters) {
+                const { data: user } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('merchant_id', integration.merchant_id)
+                    .eq(filter.field, filter.value)
+                    .maybeSingle();
+
+                if (user?.id) {
+                    matchedUserId = user.id;
+                    break;
+                }
+            }
+
+            if (!matchedUserId) {
+                logger.warn({ shopDomain, customerId, customerEmail }, '[GDPR] Customer data request did not match any local users.');
+                return;
+            }
+
+            const exportPayload = await exportUserData(matchedUserId);
+            logger.info(
+                {
+                    shopDomain,
+                    merchantId: integration.merchant_id,
+                    userId: matchedUserId,
+                    exportPayload,
+                },
+                '[GDPR] Customer data request export prepared.'
+            );
         } catch (error) {
             // Korumalı Hata Yönetimi: Hata olursa bile sessizce logla, uygulamayı çökertme.
             logger.error({ error, payload }, '[GDPR] Müşteri veri talebi işlenirken hata oluştu.');
@@ -42,11 +119,17 @@ shopifyGdpr.post('/customers/redact', async (c) => {
         try {
             const supabase = getSupabaseServiceClient();
             const shopDomain = payload.shop_domain;
-            const customerId = payload.customer?.id?.toString();
+            const customerId = payload.customer?.id?.toString() || null;
+            const customerEmail = typeof payload.customer?.email === 'string'
+                ? payload.customer.email.trim().toLowerCase()
+                : null;
+            const customerPhone = typeof payload.customer?.phone === 'string'
+                ? payload.customer.phone.trim()
+                : null;
 
-            logger.info({ shopDomain, customerId }, '[GDPR] Müşteri spesifik silme isteği işleniyor.');
+            logger.info({ shopDomain, customerId, customerEmail }, '[GDPR] Müşteri spesifik silme isteği işleniyor.');
 
-            if (customerId && shopDomain) {
+            if (shopDomain && (customerId || customerEmail || customerPhone)) {
                 // Find the merchant via the Shopify integration
                 const { data: integration } = await supabase
                     .from('integrations')
@@ -56,39 +139,98 @@ shopifyGdpr.post('/customers/redact', async (c) => {
                     .maybeSingle();
 
                 if (integration?.merchant_id) {
-                    // Anonymize PII in the 'users' table (real table, encrypted phone stored here)
-                    const { error: usersError } = await supabase
-                        .from('users')
-                        .update({
-                            name: 'Redacted',
-                            phone: null,
-                        })
-                        .eq('merchant_id', integration.merchant_id)
-                        .eq('shopify_customer_id', customerId);
-
-                    if (usersError) {
-                        logger.warn({ usersError, shopDomain, customerId }, '[GDPR] users tablosu güncellenirken hata (shopify_customer_id kolonu olmayabilir).');
+                    const userFilters: Array<{ field: 'shopify_customer_id' | 'email' | 'phone_lookup_hash'; value: string }> = [];
+                    if (customerId) {
+                        userFilters.push({ field: 'shopify_customer_id', value: customerId });
                     }
-
-                    // If no direct shopify_customer_id column on users, try via orders
-                    const { data: orderUsers } = await supabase
-                        .from('orders')
-                        .select('user_id')
-                        .eq('merchant_id', integration.merchant_id)
-                        .eq('external_order_id', customerId)
-                        .limit(100);
-
-                    if (orderUsers && orderUsers.length > 0) {
-                        const userIds = orderUsers.map((o: any) => o.user_id).filter(Boolean);
-                        if (userIds.length > 0) {
-                            await supabase
-                                .from('users')
-                                .update({ name: 'Redacted', phone: null })
-                                .in('id', userIds);
+                    if (customerEmail) {
+                        userFilters.push({ field: 'email', value: customerEmail });
+                    }
+                    let normalizedPhone: string | null = null;
+                    if (customerPhone) {
+                        try {
+                            const phoneLookup = normalizeAndHashPhone(customerPhone);
+                            normalizedPhone = phoneLookup.normalizedPhone;
+                            userFilters.push({ field: 'phone_lookup_hash', value: phoneLookup.phoneLookupHash });
+                        } catch (phoneError) {
+                            logger.warn({ phoneError, shopDomain, customerPhone }, '[GDPR] Telefon normalize edilemedi; phone lookup atlanıyor.');
                         }
                     }
 
-                    logger.info({ shopDomain, customerId, merchantId: integration.merchant_id }, '[GDPR] Müşteri verisi anonimleştirildi.');
+                    let userIds: string[] = [];
+                    for (const filter of userFilters) {
+                        const { data: matchedUsers, error: userLookupError } = await supabase
+                            .from('users')
+                            .select('id')
+                            .eq('merchant_id', integration.merchant_id)
+                            .eq(filter.field, filter.value)
+                            .limit(50);
+
+                        if (userLookupError) {
+                            logger.warn({ userLookupError, filter, shopDomain }, '[GDPR] users lookup failed during customer redact.');
+                            continue;
+                        }
+
+                        const matchedIds = (matchedUsers || []).map((user: any) => user.id).filter(Boolean);
+                        userIds = [...new Set([...userIds, ...matchedIds])];
+                    }
+
+                    if (userIds.length === 0) {
+                        logger.warn({ shopDomain, customerId, customerEmail }, '[GDPR] Customer redact request did not match any local users.');
+                        return;
+                    }
+
+                    if (normalizedPhone) {
+                        await supabase
+                            .from('whatsapp_inbound_events')
+                            .delete()
+                            .eq('merchant_id', integration.merchant_id)
+                            .eq('from_phone', normalizedPhone);
+                    }
+
+                    await supabase
+                        .from('whatsapp_outbound_events')
+                        .delete()
+                        .eq('merchant_id', integration.merchant_id)
+                        .in('user_id', userIds);
+
+                    await supabase
+                        .from('conversations')
+                        .delete()
+                        .eq('merchant_id', integration.merchant_id)
+                        .in('user_id', userIds);
+
+                    if (customerId) {
+                        await supabase
+                            .from('external_events')
+                            .delete()
+                            .eq('merchant_id', integration.merchant_id)
+                            .contains('payload', { customer: { shopify_customer_id: customerId } });
+                    }
+
+                    if (customerEmail) {
+                        await supabase
+                            .from('external_events')
+                            .delete()
+                            .eq('merchant_id', integration.merchant_id)
+                            .contains('payload', { customer: { email: customerEmail } });
+                    }
+
+                    if (normalizedPhone) {
+                        await supabase
+                            .from('external_events')
+                            .delete()
+                            .eq('merchant_id', integration.merchant_id)
+                            .contains('payload', { customer: { phone: normalizedPhone } });
+                    }
+
+                    await supabase
+                        .from('users')
+                        .delete()
+                        .eq('merchant_id', integration.merchant_id)
+                        .in('id', userIds);
+
+                    logger.info({ shopDomain, customerId, customerEmail, merchantId: integration.merchant_id, userIds }, '[GDPR] Müşteri verisi silindi.');
                 } else {
                     logger.warn({ shopDomain, customerId }, '[GDPR] Merchant bulunamadı, müşteri verisi silinemedi.');
                 }

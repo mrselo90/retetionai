@@ -375,8 +375,9 @@ function filterLine(line: string): string | null {
   ];
   const isShortSignal = shortSignalPatterns.some((p) => p.test(compact));
 
-  // Drop very short lines (less than 20 chars) — likely nav items or punctuation
-  if (trimmed.length < 20 && !isShortSignal) return null;
+  // Drop very short lines (less than 12 chars) — likely nav items or punctuation.
+  // Keep concise headings like product names when they survive noise filtering.
+  if (trimmed.length < 12 && !isShortSignal) return null;
 
   // Drop lines that are entirely punctuation / numbers / symbols
   if (/^[\d\s.,%$€£₺\-+*/\\|!?@#&()[\]{}'"<>=]+$/.test(trimmed)) return null;

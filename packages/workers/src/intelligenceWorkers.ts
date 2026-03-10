@@ -9,6 +9,25 @@ import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from './lib/what
 
 const connection = getRedisClient();
 
+function buildSendFailureError(sendResult: {
+  error?: string;
+  provider?: string;
+  httpStatus?: number;
+  errorCode?: string;
+  failureCategory?: string;
+  retryAfterMs?: number;
+}): Error {
+  const details = [
+    sendResult.provider ? `provider=${sendResult.provider}` : null,
+    sendResult.httpStatus ? `status=${sendResult.httpStatus}` : null,
+    sendResult.errorCode ? `code=${sendResult.errorCode}` : null,
+    sendResult.failureCategory ? `category=${sendResult.failureCategory}` : null,
+    sendResult.retryAfterMs ? `retryAfterMs=${sendResult.retryAfterMs}` : null,
+  ].filter(Boolean).join(' ');
+
+  return new Error([sendResult.error || 'Failed to send message', details].filter(Boolean).join(' | '));
+}
+
 // ────────────────────────────────────────────────────────
 // 1. RFM Analysis Worker (daily cron)
 // ────────────────────────────────────────────────────────
@@ -293,6 +312,14 @@ export const abandonedCartWorker = new Worker(
       credentials
     );
 
+    if (!result.success) {
+      if (result.retryable) {
+        throw buildSendFailureError(result);
+      }
+      logger.warn({ cartId, merchantId, provider: result.provider, status: result.httpStatus, code: result.errorCode }, '[AbandonedCart] Permanent WhatsApp send failure');
+      return { success: false, reason: result.error || 'Permanent WhatsApp send failure' };
+    }
+
     // Update cart status
     await supabase
       .from('abandoned_carts')
@@ -353,6 +380,20 @@ export const feedbackWorker = new Worker(
       { to: phone, text: message },
       credentials
     );
+
+    if (!result.success) {
+      if (result.retryable) {
+        throw buildSendFailureError(result);
+      }
+      logger.warn({ feedbackId, merchantId, provider: result.provider, status: result.httpStatus, code: result.errorCode }, '[Feedback] Permanent WhatsApp send failure');
+      await supabase
+        .from('feedback_requests')
+        .update({
+          status: 'failed',
+        })
+        .eq('id', feedbackId);
+      return { success: false, reason: result.error || 'Permanent WhatsApp send failure' };
+    }
 
     await supabase
       .from('feedback_requests')

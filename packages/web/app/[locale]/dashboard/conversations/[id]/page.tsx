@@ -65,10 +65,10 @@ function DetailIconSurface({
   background = 'bg-surface-secondary',
 }: {
   icon: React.ReactNode;
-  background?: React.ComponentProps<typeof Box>['background'];
+  background?: string;
 }) {
   return (
-    <Box background={background} borderRadius="200" padding="300" minWidth="44px" minHeight="44px">
+    <Box background={background as any} borderRadius="200" padding="300" minWidth="44px" minHeight="44px">
       {icon}
     </Box>
   );

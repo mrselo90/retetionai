@@ -7,6 +7,14 @@ vi.mock('../openaiClient.js', () => ({
     getOpenAIClient: vi.fn(),
 }));
 
+vi.mock('../runtimeModelSettings.js', () => ({
+    getDefaultLlmModel: vi.fn().mockResolvedValue('gpt-4o-mini'),
+}));
+
+vi.mock('../aiUsageEvents.js', () => ({
+    trackAiUsageEvent: vi.fn(),
+}));
+
 vi.mock('@recete/shared', () => ({
     logger: {
         error: vi.fn(),
@@ -42,13 +50,34 @@ describe('enrichProductData', () => {
 
     it('should successfully enrich product data using OpenAI', async () => {
         const mockRawText = 'This is raw product text with noise like Add to Cart and Reviews.';
-        const mockEnrichedText = '- Key feature 1\n- Key feature 2';
+        const mockStructuredJson = JSON.stringify({
+            schema_version: 1,
+            detected_language: 'en',
+            product_identity: {
+                title: 'Test Product',
+                brand: 'Recete',
+                product_type: 'Serum',
+                variant: null,
+                volume_value: 30,
+                volume_unit: 'ml',
+            },
+            target_skin_types: ['dry'],
+            ingredients: ['Water'],
+            active_ingredients: ['Niacinamide'],
+            benefits: ['Hydration'],
+            usage_steps: ['Apply to clean skin'],
+            frequency: 'daily',
+            warnings: ['Avoid eyes'],
+            claims: ['Supports skin barrier'],
+            unknowns: [],
+            evidence_quotes: ['Hydrating serum'],
+        });
 
         mockCreateCompletion.mockResolvedValue({
             choices: [
                 {
                     message: {
-                        content: mockEnrichedText,
+                        content: mockStructuredJson,
                     },
                 },
             ],
@@ -56,7 +85,9 @@ describe('enrichProductData', () => {
 
         const result = await enrichProductData(mockRawText, 'Test Product');
 
-        expect(result).toBe(mockEnrichedText);
+        expect(result).toContain('[PRODUCT_FACTS]');
+        expect(result).toContain('Title: Test Product');
+        expect(result).toContain('Brand: Recete');
         expect(mockCreateCompletion).toHaveBeenCalledWith(
             expect.objectContaining({
                 model: 'gpt-4o-mini',
@@ -77,7 +108,11 @@ describe('enrichProductData', () => {
         const mockRawText = 'A'.repeat(20000); // 20k characters
 
         mockCreateCompletion.mockResolvedValue({
-            choices: [{ message: { content: 'Enriched output' } }],
+            choices: [{
+                message: {
+                    content: '{"schema_version":1,"detected_language":"en","product_identity":{"title":"Long Product"},"target_skin_types":[],"ingredients":[],"active_ingredients":[],"benefits":[],"usage_steps":[],"frequency":null,"warnings":[],"claims":[],"unknowns":[],"evidence_quotes":[]}'
+                }
+            }],
         });
 
         await enrichProductData(mockRawText, 'Long Product');

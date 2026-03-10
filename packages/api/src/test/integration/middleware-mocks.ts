@@ -99,8 +99,20 @@ vi.mock('../../middleware/rateLimit', () => {
     // Skip rate limiting in tests
     await next();
   });
+  const webhookRateLimitMiddleware = vi.fn(async (c: Context, next: () => Promise<void>) => {
+    await next();
+  });
 
   return {
     rateLimitMiddleware,
+    webhookRateLimitMiddleware,
+  };
+});
+
+vi.mock('../../middleware/billingMiddleware', () => {
+  return {
+    requireActiveSubscription: vi.fn(async (_c: Context, next: () => Promise<void>) => {
+      await next();
+    }),
   };
 });

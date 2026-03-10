@@ -15,6 +15,13 @@ export interface WhatsAppSendResponse {
   success: boolean;
   messageId?: string;
   error?: string;
+  provider?: WhatsAppProvider;
+  retryable?: boolean;
+  rateLimited?: boolean;
+  retryAfterMs?: number;
+  errorCode?: string;
+  httpStatus?: number;
+  failureCategory?: 'rate_limit' | 'temporary' | 'permanent';
 }
 
 export type WhatsAppProvider = 'meta' | 'twilio';
@@ -36,6 +43,108 @@ export interface TwilioWhatsAppCredentials {
 }
 
 export type WhatsAppCredentials = MetaWhatsAppCredentials | TwilioWhatsAppCredentials;
+
+function parseRetryAfterMs(headerValue: string | null): number | undefined {
+  if (!headerValue) return undefined;
+  const seconds = Number.parseInt(headerValue, 10);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return seconds * 1000;
+  }
+
+  const dateValue = Date.parse(headerValue);
+  if (Number.isFinite(dateValue)) {
+    const delayMs = dateValue - Date.now();
+    return delayMs > 0 ? delayMs : undefined;
+  }
+
+  return undefined;
+}
+
+function classifyMetaError(status: number, data: any, retryAfterMs?: number): WhatsAppSendResponse {
+  const metaError = data?.error || {};
+  const message = metaError?.message || `HTTP ${status}`;
+  const code = metaError?.code !== undefined ? String(metaError.code) : undefined;
+  const subcode = metaError?.error_subcode !== undefined ? String(metaError.error_subcode) : undefined;
+
+  if (status === 429) {
+    return {
+      success: false,
+      provider: 'meta',
+      error: message,
+      retryable: true,
+      rateLimited: true,
+      retryAfterMs,
+      errorCode: subcode ? `${code ?? '429'}:${subcode}` : code ?? '429',
+      httpStatus: status,
+      failureCategory: 'rate_limit',
+    };
+  }
+
+  if (status >= 500) {
+    return {
+      success: false,
+      provider: 'meta',
+      error: message,
+      retryable: true,
+      retryAfterMs,
+      errorCode: subcode ? `${code ?? String(status)}:${subcode}` : code,
+      httpStatus: status,
+      failureCategory: 'temporary',
+    };
+  }
+
+  return {
+    success: false,
+    provider: 'meta',
+    error: message,
+    retryable: false,
+    errorCode: subcode ? `${code ?? String(status)}:${subcode}` : code,
+    httpStatus: status,
+    failureCategory: 'permanent',
+  };
+}
+
+function classifyTwilioError(status: number, data: any, retryAfterMs?: number): WhatsAppSendResponse {
+  const message = data?.message || data?.error_message || `HTTP ${status}`;
+  const code = data?.code !== undefined ? String(data.code) : undefined;
+
+  if (status === 429) {
+    return {
+      success: false,
+      provider: 'twilio',
+      error: message,
+      retryable: true,
+      rateLimited: true,
+      retryAfterMs,
+      errorCode: code ?? '429',
+      httpStatus: status,
+      failureCategory: 'rate_limit',
+    };
+  }
+
+  if (status >= 500) {
+    return {
+      success: false,
+      provider: 'twilio',
+      error: message,
+      retryable: true,
+      retryAfterMs,
+      errorCode: code,
+      httpStatus: status,
+      failureCategory: 'temporary',
+    };
+  }
+
+  return {
+    success: false,
+    provider: 'twilio',
+    error: message,
+    retryable: false,
+    errorCode: code,
+    httpStatus: status,
+    failureCategory: 'permanent',
+  };
+}
 
 export interface WhatsAppWebhookMessage {
   from: string; // Phone number
@@ -86,14 +195,20 @@ async function sendMetaWhatsAppMessage(
     if (!message.to.startsWith('+')) {
       return {
         success: false,
+        provider: 'meta',
         error: 'Phone number must be in E.164 format (e.g., +905551234567)',
+        retryable: false,
+        failureCategory: 'permanent',
       };
     }
 
     if (!credentials.accessToken || !credentials.phoneNumberId) {
       return {
         success: false,
+        provider: 'meta',
         error: 'Meta WhatsApp credentials are incomplete',
+        retryable: false,
+        failureCategory: 'permanent',
       };
     }
 
@@ -122,21 +237,22 @@ async function sendMetaWhatsAppMessage(
     const data = (await response.json()) as any;
 
     if (!response.ok) {
-      return {
-        success: false,
-        error: data?.error?.message || `HTTP ${response.status}`,
-      };
+      return classifyMetaError(response.status, data, parseRetryAfterMs(response.headers.get('Retry-After')));
     }
 
     return {
       success: true,
+      provider: 'meta',
       messageId: data?.messages?.[0]?.id,
     };
   } catch (error) {
     console.error('WhatsApp send error:', error);
     return {
       success: false,
+      provider: 'meta',
       error: error instanceof Error ? error.message : 'Unknown error',
+      retryable: true,
+      failureCategory: 'temporary',
     };
   }
 }
@@ -159,14 +275,20 @@ async function sendTwilioWhatsAppMessage(
     if (!message.to.startsWith('+')) {
       return {
         success: false,
+        provider: 'twilio',
         error: 'Phone number must be in E.164 format (e.g., +905551234567)',
+        retryable: false,
+        failureCategory: 'permanent',
       };
     }
 
     if (!credentials.accountSid || !credentials.authToken || !credentials.fromNumber) {
       return {
         success: false,
+        provider: 'twilio',
         error: 'Twilio WhatsApp credentials are incomplete',
+        retryable: false,
+        failureCategory: 'permanent',
       };
     }
 
@@ -199,21 +321,22 @@ async function sendTwilioWhatsAppMessage(
     }
 
     if (!response.ok) {
-      return {
-        success: false,
-        error: data?.message || data?.error_message || `HTTP ${response.status}`,
-      };
+      return classifyTwilioError(response.status, data, parseRetryAfterMs(response.headers.get('Retry-After')));
     }
 
     return {
       success: true,
+      provider: 'twilio',
       messageId: data?.sid,
     };
   } catch (error) {
     console.error('Twilio WhatsApp send error:', error);
     return {
       success: false,
+      provider: 'twilio',
       error: error instanceof Error ? error.message : 'Unknown error',
+      retryable: true,
+      failureCategory: 'temporary',
     };
   }
 }

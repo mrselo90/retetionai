@@ -6,13 +6,13 @@
 import { Hono } from 'hono';
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { verifyShopifyHmac } from '../lib/shopify.js';
+import { addCommerceEventJob } from '../queues.js';
 import {
   normalizeShopifyEvent,
   generateIdempotencyKey,
   type NormalizedEvent,
 } from '../lib/events.js';
 import { handleShopifyBillingWebhook } from '../lib/shopifyBilling.js';
-import { processNormalizedEvent } from '../lib/orderProcessor.js';
 import * as crypto from 'crypto';
 import { webhookRateLimitMiddleware } from '../middleware/rateLimit.js';
 
@@ -95,6 +95,25 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
           logger.error({ merchError, shop, merchantId }, '[Uninstall] Merchant abonelik durumu güncellenemedi.');
         }
 
+        const { data: users } = await serviceClient
+          .from('users')
+          .select('id')
+          .eq('merchant_id', merchantId)
+          .limit(5000);
+
+        const userIds = (users || []).map((user: { id: string }) => user.id).filter(Boolean);
+        if (userIds.length > 0) {
+          const { error: tasksError } = await serviceClient
+            .from('scheduled_tasks')
+            .update({ status: 'cancelled' })
+            .in('user_id', userIds)
+            .eq('status', 'pending');
+
+          if (tasksError) {
+            logger.warn({ tasksError, shop, merchantId }, '[Uninstall] Scheduled tasks could not be cancelled.');
+          }
+        }
+
         logger.info({ shop, merchantId }, '[Uninstall] Mağaza başarıyla deaktive edildi.');
         return c.json({ message: 'App uninstall processed' }, 200);
       } catch (err) {
@@ -130,6 +149,24 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
       }
     }
 
+    const consentGuardTopics = new Set(['orders/create', 'orders/fulfilled', 'orders/updated']);
+    if (consentGuardTopics.has(topic)) {
+      const customer = body?.customer;
+      const hasMarketingConsent =
+        customer?.buyer_accepts_marketing === true ||
+        customer?.sms_marketing_consent?.state === 'subscribed';
+
+      // Strict App Store compliance rule:
+      // if the customer has not opted in, do not persist, queue, or process anything.
+      if (!hasMarketingConsent) {
+        return c.json({
+          ok: true,
+          ignored: true,
+          reason: 'Customer has not opted in to marketing or SMS marketing',
+        }, 200);
+      }
+    }
+
     // Normalize event (for standard commerce webhooks)
     const normalizedEvent = normalizeShopifyEvent(
       integration.merchant_id,
@@ -152,7 +189,7 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
     );
 
     // Store in external_events (with idempotency)
-    const { error: insertError } = await serviceClient
+    const { data: insertedEvent, error: insertError } = await serviceClient
       .from('external_events')
       .insert({
         merchant_id: normalizedEvent.merchant_id,
@@ -175,16 +212,18 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
       return c.json({ error: 'Failed to store event' }, 500);
     }
 
-    // Process event immediately (upsert order/user)
     try {
-      await processNormalizedEvent(normalizedEvent);
-    } catch (processError) {
-      // Log error but don't fail webhook (event is stored, can be retried)
-      logger.error({ processError, shop }, 'Error processing event');
+      await addCommerceEventJob({
+        externalEventId: insertedEvent.id,
+        merchantId: normalizedEvent.merchant_id,
+      });
+    } catch (queueError) {
+      logger.error({ queueError, shop, externalEventId: insertedEvent.id }, 'Failed to enqueue commerce event');
+      return c.json({ error: 'Failed to queue event' }, 500);
     }
 
     return c.json({
-      message: 'Event received, stored, and processed',
+      message: 'Event received, stored, and queued',
       eventType: normalizedEvent.event_type,
       idempotencyKey,
     });

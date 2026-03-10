@@ -14,6 +14,7 @@ import { mockSupabaseClient } from '../mocks';
 import { createTestIntegration, createTestShopifyEvent } from '../fixtures';
 import { testRequest } from './setup';
 import * as crypto from 'crypto';
+import { addCommerceEventJob } from '../../queues';
 
 // Mock dependencies
 vi.mock('@recete/shared', async () => {
@@ -28,6 +29,10 @@ vi.mock('@recete/shared', async () => {
   };
 });
 
+vi.mock('../../queues', () => ({
+  addCommerceEventJob: vi.fn(),
+}));
+
 describe('POST /webhooks/commerce/shopify', () => {
   let app: Hono;
 
@@ -36,6 +41,7 @@ describe('POST /webhooks/commerce/shopify', () => {
     app.route('/webhooks', webhookRoutes);
     vi.clearAllMocks();
     (getSupabaseServiceClient as any).mockReturnValue(mockSupabaseClient);
+    (addCommerceEventJob as any).mockResolvedValue({ id: 'job-123' });
   });
 
   it('should verify HMAC and process Shopify webhook', async () => {
@@ -48,21 +54,22 @@ describe('POST /webhooks/commerce/shopify', () => {
       .update(rawBody, 'utf8')
       .digest('base64');
 
-    // Mock: find integration
-    // The code does: serviceClient.from('integrations').select(...).eq(...).eq(...)
-    // Chain: from -> select -> eq -> eq -> (returns promise)
+    // Mock: find integration by provider/status/shop
     const integrationBuilder = mockSupabaseClient.from('integrations');
     const selectBuilder = {
       eq: vi.fn().mockReturnThis(),
+      contains: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn(),
     };
     integrationBuilder.select = vi.fn().mockReturnValue(selectBuilder);
-    // First eq for provider, second eq for status
     selectBuilder.eq = vi.fn()
-      .mockReturnValueOnce(selectBuilder) // First eq('provider', 'shopify')
-      .mockResolvedValueOnce({ // Second eq('status', 'active')
-        data: [integration],
-        error: null,
-      });
+      .mockReturnValueOnce(selectBuilder)
+      .mockReturnValueOnce(selectBuilder);
+    selectBuilder.contains = vi.fn().mockReturnValue(selectBuilder);
+    selectBuilder.maybeSingle = vi.fn().mockResolvedValue({
+      data: integration,
+      error: null,
+    });
 
     // Mock: insert external event
     const eventBuilder = mockSupabaseClient.from('external_events');
@@ -90,6 +97,7 @@ describe('POST /webhooks/commerce/shopify', () => {
 
     // Should process webhook successfully
     expect(response.status).toBe(200);
+    expect(addCommerceEventJob).toHaveBeenCalled();
   });
 
   it('should reject webhook with invalid HMAC', async () => {
@@ -121,5 +129,56 @@ describe('POST /webhooks/commerce/shopify', () => {
 
     expect(response.status).toBe(400);
     expect(response.data).toHaveProperty('error');
+  });
+
+  it('should ignore opt-out customers and return 200 without storing event', async () => {
+    const integration = createTestIntegration('test-merchant-id');
+    const shopifyEvent = createTestShopifyEvent({
+      customer: {
+        id: 999,
+        email: 'customer@example.com',
+        phone: '+905551112233',
+        buyer_accepts_marketing: false,
+        sms_marketing_consent: {
+          state: 'not_subscribed',
+        },
+      },
+    });
+    const rawBody = JSON.stringify(shopifyEvent);
+    const secret = process.env.SHOPIFY_API_SECRET || 'test-secret';
+    const hmac = crypto
+      .createHmac('sha256', secret)
+      .update(rawBody, 'utf8')
+      .digest('base64');
+
+    const integrationBuilder = mockSupabaseClient.from('integrations');
+    const selectBuilder = {
+      eq: vi.fn().mockReturnThis(),
+      contains: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn(),
+    };
+    integrationBuilder.select = vi.fn().mockReturnValue(selectBuilder);
+    selectBuilder.eq = vi.fn()
+      .mockReturnValueOnce(selectBuilder)
+      .mockReturnValueOnce(selectBuilder);
+    selectBuilder.contains = vi.fn().mockReturnValue(selectBuilder);
+    selectBuilder.maybeSingle = vi.fn().mockResolvedValue({
+      data: integration,
+      error: null,
+    });
+
+    const response = await testRequest(app, 'POST', '/webhooks/commerce/shopify', {
+      body: shopifyEvent,
+      headers: {
+        'x-shopify-shop-domain': 'test-shop.myshopify.com',
+        'x-shopify-topic': 'orders/create',
+        'x-shopify-hmac-sha256': hmac,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.data).toMatchObject({ ignored: true });
+    expect(mockSupabaseClient.from('external_events').insert).not.toHaveBeenCalled();
+    expect(addCommerceEventJob).not.toHaveBeenCalled();
   });
 });

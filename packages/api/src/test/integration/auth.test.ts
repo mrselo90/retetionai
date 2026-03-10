@@ -42,12 +42,9 @@ describe('POST /api/auth/signup', () => {
   it('should create new merchant account', async () => {
     const merchant = createTestMerchant();
 
-    // Mock: user doesn't exist (signInWithPassword fails)
+    // Mock: user doesn't exist yet
     const authClient = {
       auth: {
-        signInWithPassword: vi.fn().mockRejectedValue({
-          message: 'Invalid credentials',
-        }),
         signUp: vi.fn().mockResolvedValue({
           data: {
             user: { id: merchant.id, email: 'test@example.com' },
@@ -58,6 +55,18 @@ describe('POST /api/auth/signup', () => {
       },
     };
     (getAuthClient as any).mockReturnValue(authClient);
+    mockSupabaseClient.auth.admin.listUsers.mockResolvedValue({
+      data: { users: [] },
+      error: null,
+    });
+    mockSupabaseClient.from('merchants').maybeSingle.mockResolvedValueOnce({
+      data: null,
+      error: null,
+    });
+    mockSupabaseClient.from('merchants').maybeSingle.mockResolvedValueOnce({
+      data: null,
+      error: null,
+    });
 
     // Mock: merchant creation
     const insertBuilder = mockSupabaseClient.from('merchants');
@@ -78,33 +87,22 @@ describe('POST /api/auth/signup', () => {
       },
     });
 
-    // May return 201 or 400 depending on email confirmation setup
-    expect([201, 400]).toContain(response.status);
-    if (response.status === 201) {
-      expect(response.data).toHaveProperty('merchant');
-    }
+    expect(response.status).toBe(201);
+    expect(response.data).toHaveProperty('merchant');
   });
 
   it('should reject duplicate email', async () => {
     const merchant = createTestMerchant();
 
-    // Mock: user already exists
-    const authClient = {
-      auth: {
-        signInWithPassword: vi.fn().mockResolvedValue({
-          data: {
-            user: { id: merchant.id },
-            session: { access_token: 'token' },
-          },
-          error: null,
-        }),
-      },
-    };
-    (getAuthClient as any).mockReturnValue(authClient);
+    (getAuthClient as any).mockReturnValue({ auth: { signUp: vi.fn() } });
+    mockSupabaseClient.auth.admin.listUsers.mockResolvedValue({
+      data: { users: [{ id: merchant.id, email: 'test@example.com' }] },
+      error: null,
+    });
 
     // Mock: merchant exists
     const queryBuilder = mockSupabaseClient.from('merchants');
-    queryBuilder.single.mockResolvedValue({
+    queryBuilder.maybeSingle.mockResolvedValue({
       data: merchant,
       error: null,
     });

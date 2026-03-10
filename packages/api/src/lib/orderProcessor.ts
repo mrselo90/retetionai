@@ -108,9 +108,17 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
       userId = existingUser.id;
 
       // Update user name and consent when provided (sync from Shopify)
-      const updatePayload: { name?: string; consent_status?: string; phone_lookup_hash?: string } = {};
+      const updatePayload: {
+        name?: string;
+        consent_status?: string;
+        phone_lookup_hash?: string;
+        email?: string | null;
+        shopify_customer_id?: string | null;
+      } = {};
       if (event.customer.name) updatePayload.name = event.customer.name;
       if (event.consent_status) updatePayload.consent_status = event.consent_status;
+      if (event.customer.email) updatePayload.email = event.customer.email;
+      if (event.customer.shopify_customer_id) updatePayload.shopify_customer_id = event.customer.shopify_customer_id;
       if (!existingUser.phoneLookupHash) updatePayload.phone_lookup_hash = phoneLookupHash;
       if (Object.keys(updatePayload).length > 0) {
         await serviceClient
@@ -127,6 +135,8 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
           phone: encryptedPhone,
           phone_lookup_hash: phoneLookupHash,
           name: event.customer.name || null,
+          email: event.customer.email || null,
+          shopify_customer_id: event.customer.shopify_customer_id || null,
           consent_status: event.consent_status || 'pending',
         })
         .select('id')

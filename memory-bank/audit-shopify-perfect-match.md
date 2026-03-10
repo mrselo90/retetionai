@@ -44,7 +44,7 @@
 
 | Area | Status | Details |
 |------|--------|--------|
-| Shopify OAuth | ✅ | `routes/shopify.ts`: oauth/start, oauth/callback, webhooks/subscribe, verify-session |
+| Shopify OAuth | ✅ | `routes/shopify.ts`: /auth, /oauth/callback, webhooks/subscribe, verify-session |
 | Shopify webhooks | ✅ | `routes/webhooks.ts`: POST /webhooks/commerce/shopify, HMAC, normalizeShopifyEvent, processNormalizedEvent |
 | Event normalization | ✅ | `lib/events.ts`: orders/fulfilled → order_delivered; **no** consent from Shopify; **orders/updated** → order_updated only (not mapped to delivered when fulfilled) |
 | Order processor | ✅ | `lib/orderProcessor.ts`: upsert user (consent_status from event, default 'pending'), upsert order; on delivered calls **scheduleOrderMessages** — **no** consent check before scheduling |

@@ -145,7 +145,7 @@ OPENAI_API_KEY=<key>
 # Shopify OAuth
 SHOPIFY_API_KEY=<key>
 SHOPIFY_API_SECRET=<key>
-SHOPIFY_SCOPES=read_products,read_orders,read_customers,write_webhooks
+SHOPIFY_SCOPES=read_products,read_orders,read_fulfillments,read_customers,write_webhooks
 
 # App Configuration (API on server: PORT=3002)
 NODE_ENV=development

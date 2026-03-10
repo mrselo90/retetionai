@@ -112,7 +112,7 @@
 **Remaining**: Unit/integration tests (consent, ProductInstruction, webhook→job), offline token doc, user/install docs for recipe mapping.
 
 **Shopify App Store submission (Feb 2026):**
-- Readiness report updated: App Bridge (^3.7.11, ^4.2.8) and GraphQL Admin API (fetchShopifyProducts 2024-01) confirmed in report §6.
+- Readiness report updated: App Bridge (^3.7.11, ^4.2.8) and GraphQL Admin API (fetchShopifyProducts 2026-01) confirmed in report §6.
 - `docs/shopify-app-store/SHOPIFY_SUBMISSION_ACTIONS.md` added — tracks 5 must-dos (icon, screenshots, video, dev store test, test credentials) and recommended items; links to report and Pre-Submit Checklist.
 
 ## Recent Achievements
@@ -257,7 +257,7 @@ All foundation tasks completed. Ready to begin Faz 1: Merchant Onboarding & Ente
   - Unique constraint enforcement ✅
 
 - **BE-1.3** - Shopify OAuth Connector (Completed: 2026-01-19)
-  - GET /api/integrations/shopify/oauth/start ✅
+  - POST /api/integrations/shopify/auth ✅
   - GET /api/integrations/shopify/oauth/callback ✅
   - POST /api/integrations/shopify/webhooks/subscribe ✅
   - OAuth 2.0 flow implementation ✅

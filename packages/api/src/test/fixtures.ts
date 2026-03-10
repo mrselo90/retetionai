@@ -152,6 +152,15 @@ export const createTestShopifyEvent = (overrides?: Partial<any>) => ({
       price: '99.99',
     },
   ],
+  customer: {
+    id: 999,
+    email: 'customer@example.com',
+    phone: '+905551112233',
+    buyer_accepts_marketing: true,
+    sms_marketing_consent: {
+      state: 'subscribed',
+    },
+  },
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   ...overrides,

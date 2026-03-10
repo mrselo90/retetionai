@@ -18,6 +18,21 @@ import * as crypto from 'crypto';
 
 const shopify = new Hono();
 
+function verifyInternalSecret(c: any) {
+  const expectedSecret = process.env.INTERNAL_SERVICE_SECRET?.trim() || '';
+  const providedSecret = c.req.header('X-Internal-Secret')?.trim() || '';
+
+  if (!expectedSecret) {
+    return { ok: false as const, status: 500 as const, error: 'Internal auth is not configured' };
+  }
+
+  if (!providedSecret || providedSecret !== expectedSecret) {
+    return { ok: false as const, status: 403 as const, error: 'Forbidden: Invalid internal secret' };
+  }
+
+  return { ok: true as const };
+}
+
 // Keep this aligned with `shopify.app.toml` managed-install scopes.
 const SHOPIFY_OAUTH_SCOPES = [
   'read_products',
@@ -26,6 +41,105 @@ const SHOPIFY_OAUTH_SCOPES = [
   'read_customers',
   'write_webhooks',
 ];
+
+/**
+ * Official Shopify shell install sync.
+ * POST /api/integrations/shopify/install-sync
+ */
+shopify.post('/install-sync', async (c) => {
+  const internal = verifyInternalSecret(c);
+  if (!internal.ok) {
+    return c.json({ error: internal.error }, internal.status);
+  }
+
+  try {
+    const body = (await c.req.json()) as {
+      shop?: string;
+      accessToken?: string;
+      scope?: string | null;
+    };
+
+    const shopRaw = body.shop?.trim();
+    const accessToken = body.accessToken?.trim();
+    const scope = body.scope?.trim() || null;
+
+    if (!shopRaw || !accessToken) {
+      return c.json({ error: 'shop and accessToken are required' }, 400);
+    }
+
+    const shop = shopRaw.includes('.myshopify.com') ? shopRaw : `${shopRaw}.myshopify.com`;
+    const serviceClient = getSupabaseServiceClient();
+
+    const { data: existingIntegration } = await serviceClient
+      .from('integrations')
+      .select('id, merchant_id')
+      .eq('provider', 'shopify')
+      .contains('auth_data', { shop })
+      .maybeSingle();
+
+    if (existingIntegration) {
+      const { error: updateError } = await serviceClient
+        .from('integrations')
+        .update({
+          status: 'active',
+          auth_type: 'oauth',
+          auth_data: {
+            shop,
+            access_token: accessToken,
+            scope,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingIntegration.id);
+
+      if (updateError) {
+        logger.error({ updateError, shop }, 'Failed to update Shopify integration via install sync');
+        return c.json({ error: 'Failed to update integration' }, 500);
+      }
+
+      return c.json({ ok: true, created: false, merchantId: existingIntegration.merchant_id });
+    }
+
+    const merchantId = crypto.randomUUID();
+    const merchantName = shop.replace('.myshopify.com', '');
+
+    const { error: merchantError } = await serviceClient
+      .from('merchants')
+      .insert({
+        id: merchantId,
+        name: merchantName,
+      });
+
+    if (merchantError) {
+      logger.error({ merchantError, shop }, 'Failed to create merchant via install sync');
+      return c.json({ error: 'Failed to create merchant' }, 500);
+    }
+
+    const { error: integrationError } = await serviceClient
+      .from('integrations')
+      .insert({
+        merchant_id: merchantId,
+        provider: 'shopify',
+        status: 'active',
+        auth_type: 'oauth',
+        auth_data: {
+          shop,
+          access_token: accessToken,
+          scope,
+        },
+      });
+
+    if (integrationError) {
+      logger.error({ integrationError, shop, merchantId }, 'Failed to create Shopify integration via install sync');
+      return c.json({ error: 'Failed to create integration' }, 500);
+    }
+
+    return c.json({ ok: true, created: true, merchantId });
+  } catch (err) {
+    logger.error({ err }, 'Shopify install sync error');
+    return c.json({ error: 'Failed to sync Shopify install' }, 500);
+  }
+});
 
 /**
  * Start Shopify OAuth (standalone connect from Integrations page)

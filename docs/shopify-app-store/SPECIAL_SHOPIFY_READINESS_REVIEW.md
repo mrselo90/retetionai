@@ -36,13 +36,13 @@
 
 | Area | Requirement | Status | Evidence |
 |------|-------------|--------|----------|
-| OAuth | Start, callback, HMAC | Done | `packages/api/src/routes/shopify.ts`: oauth/start, callback, HMAC verified. |
+| OAuth | Start, callback, HMAC | Done | `packages/api/src/routes/shopify.ts`: `/auth`, `/oauth/callback`, HMAC verified. |
 | App Bridge | Load + session verify | Done | `ShopifyProvider` loads app-bridge.js (beforeInteractive); verify-session to API. |
 | App Bridge version | Current | Done | `@shopify/app-bridge` ^3.7.11, `@shopify/app-bridge-react` ^4.2.8 in `packages/web/package.json`. |
 | Webhooks | HMAC, subscribed topics | Done | `packages/api/src/routes/webhooks.ts`; HMAC; normalizeShopifyEvent → processNormalizedEvent. |
 | Billing | Recurring, plan changes, add-ons | Done | `packages/api/src/lib/shopifyBilling.ts`, `routes/billing.ts`. |
 | Security | TLS, scopes, headers, rate limit | Done | HTTPS (deploy); scopes documented; security headers middleware; rate limiting. |
-| GraphQL Admin API | Products/orders via GraphQL | Done | `packages/api/src/lib/shopify.ts`: fetchShopifyProducts uses `admin/api/2024-01/graphql.json`. |
+| GraphQL Admin API | Products/orders via GraphQL | Done | `packages/api/src/lib/shopify.ts`: fetchShopifyProducts uses `admin/api/2026-01/graphql.json`. |
 
 **Conclusion:** Technical readiness is sufficient for submission once listing/media and testing are complete.
 

@@ -91,21 +91,23 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     fi
     
     echo ""
-    echo "Testing OAuth start endpoint..."
-    
-    RESPONSE=$(curl -s -X GET "$API_URL/api/integrations/shopify/oauth/start?shop=$SHOP" \
-        -H "Authorization: Bearer $JWT_TOKEN")
+    echo "Testing Shopify auth endpoint..."
+
+    RESPONSE=$(curl -s -X POST "$API_URL/api/integrations/shopify/auth" \
+        -H "Authorization: Bearer $JWT_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{\"shop\":\"$SHOP\"}")
     
     if echo "$RESPONSE" | jq -e '.authUrl' > /dev/null 2>&1; then
         AUTH_URL=$(echo "$RESPONSE" | jq -r '.authUrl')
-        echo -e "${GREEN}✓ OAuth start endpoint working${NC}"
+        echo -e "${GREEN}✓ Shopify auth endpoint working${NC}"
         echo ""
         echo "Authorization URL generated:"
         echo -e "${BLUE}$AUTH_URL${NC}"
         echo ""
         echo "Open this URL in your browser to authorize the app"
     else
-        echo -e "${RED}✗ OAuth start endpoint failed${NC}"
+        echo -e "${RED}✗ Shopify auth endpoint failed${NC}"
         echo "Response: $RESPONSE"
         exit 1
     fi

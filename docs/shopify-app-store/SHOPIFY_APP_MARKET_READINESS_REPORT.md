@@ -53,7 +53,7 @@ eu01xx67bb44793d88e5ff11596b5abaFFFFNRAL# Shopify App Market Readiness Report
 | **2.2.1 Use Shopify APIs** | ✅ | Admin API (GraphQL): products, orders, fulfillments, customers; OAuth; webhooks. |
 | **2.2.2 Embedded experience** | ✅ | App Bridge; embedded in Shopify Admin. |
 | **2.2.3 Latest App Bridge** | ✅ Confirmed | `@shopify/app-bridge` ^3.7.11, `@shopify/app-bridge-react` ^4.2.8 in `packages/web/package.json`; `ShopifyProvider` and verify-session in use. |
-| **2.2.4 GraphQL Admin API** | ✅ Confirmed | Products via GraphQL only: `fetchShopifyProducts` in `packages/api/src/lib/shopify.ts` uses `admin/api/2024-01/graphql.json`; no REST for products/orders. |
+| **2.2.4 GraphQL Admin API** | ✅ Confirmed | Products via GraphQL only: `fetchShopifyProducts` in `packages/api/src/lib/shopify.ts` uses `admin/api/2026-01/graphql.json`; no REST for products/orders. |
 | **2.3.1 Install from Shopify surface** | ✅ | Install from App Store; OAuth flow; no manual myshopify.com entry during install. |
 | **2.3.2–2.3.4 OAuth before UI / redirect / reinstall** | ✅ | OAuth first; redirect to app UI; reinstall triggers OAuth again. |
 
@@ -185,7 +185,7 @@ Use this as a final gate before “Submit for review”.
 ## 6. Verification (Feb 2026)
 
 - **App Bridge**: `packages/web/package.json` — `@shopify/app-bridge` ^3.7.11, `@shopify/app-bridge-react` ^4.2.8. Embedded app uses `ShopifyProvider` and session verification via `POST /api/integrations/shopify/verify-session`.
-- **GraphQL Admin API**: `packages/api/src/lib/shopify.ts` — `fetchShopifyProducts` uses `https://{shop}/admin/api/2024-01/graphql.json` for products; no REST for products or new features. OAuth and webhooks use required Shopify endpoints.
+- **GraphQL Admin API**: `packages/api/src/lib/shopify.ts` — `fetchShopifyProducts` uses `https://{shop}/admin/api/2026-01/graphql.json` for products; no REST for products or new features. OAuth and webhooks use required Shopify endpoints.
 
 ---
 

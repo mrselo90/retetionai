@@ -18,6 +18,13 @@ import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from './lib/what
 import { scrapeProductPage } from './lib/scraper.js';
 import { processProductForRAG } from './lib/knowledgeBase.js';
 
+type CommerceEventJobData = {
+  externalEventId: string;
+  merchantId: string;
+};
+
+const COMMERCE_EVENTS_QUEUE = 'commerce-events';
+
 // Lightweight inline i18n for worker templates (mirrors api/src/lib/i18n.ts)
 type WorkerLang = 'tr' | 'en' | 'hu';
 const WORKER_TEMPLATES: Record<WorkerLang, Record<string, string>> = {
@@ -172,6 +179,25 @@ import {
 
 const connection = getRedisClient();
 
+function buildSendFailureError(sendResult: {
+  error?: string;
+  provider?: string;
+  httpStatus?: number;
+  errorCode?: string;
+  failureCategory?: string;
+  retryAfterMs?: number;
+}): Error {
+  const details = [
+    sendResult.provider ? `provider=${sendResult.provider}` : null,
+    sendResult.httpStatus ? `status=${sendResult.httpStatus}` : null,
+    sendResult.errorCode ? `code=${sendResult.errorCode}` : null,
+    sendResult.failureCategory ? `category=${sendResult.failureCategory}` : null,
+    sendResult.retryAfterMs ? `retryAfterMs=${sendResult.retryAfterMs}` : null,
+  ].filter(Boolean).join(' ');
+
+  return new Error([sendResult.error || 'Failed to send message', details].filter(Boolean).join(' | '));
+}
+
 const defaultWorkerOptions: WorkerOptions = {
   connection,
   concurrency: 5, // Process 5 jobs concurrently
@@ -194,6 +220,29 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
 
     try {
       const serviceClient = getSupabaseServiceClient();
+
+      const { data: merchant } = await serviceClient
+        .from('merchants')
+        .select('subscription_status')
+        .eq('id', merchantId)
+        .maybeSingle();
+
+      const { data: integration } = await serviceClient
+        .from('integrations')
+        .select('status')
+        .eq('merchant_id', merchantId)
+        .eq('provider', 'shopify')
+        .maybeSingle();
+
+      if (!integration || integration.status !== 'active') {
+        logger.warn({ merchantId, jobId: job.id }, '[Scheduled Message] Skipping inactive Shopify integration');
+        return { skipped: true, reason: 'inactive_integration' };
+      }
+
+      if (merchant?.subscription_status && !['active', 'trial'].includes(merchant.subscription_status)) {
+        logger.warn({ merchantId, jobId: job.id, status: merchant.subscription_status }, '[Scheduled Message] Skipping inactive subscription');
+        return { skipped: true, reason: 'inactive_subscription' };
+      }
 
       // Get WhatsApp credentials (merchant's own or corporate per setting)
       const credentials = await getEffectiveWhatsAppCredentials(merchantId);
@@ -297,7 +346,33 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
       );
 
       if (!sendResult.success) {
-        throw new Error(sendResult.error || 'Failed to send message');
+        if (sendResult.retryable) {
+          throw buildSendFailureError(sendResult);
+        }
+
+        logger.warn({
+          jobId: job.id,
+          merchantId,
+          userId,
+          orderId,
+          provider: sendResult.provider,
+          httpStatus: sendResult.httpStatus,
+          errorCode: sendResult.errorCode,
+          category: sendResult.failureCategory,
+        }, '[Scheduled Message] Permanent provider failure; not retrying');
+
+        await serviceClient
+          .from('scheduled_tasks')
+          .update({ status: 'failed' })
+          .eq('user_id', userId)
+          .eq('task_type', type)
+          .eq('status', 'pending');
+
+        return {
+          success: false,
+          permanentFailure: true,
+          reason: sendResult.error || 'Failed to send message',
+        };
       }
 
       // Best-effort: mirror outbound automated messages into conversations so they appear in the dashboard
@@ -374,6 +449,48 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
   {
     ...defaultWorkerOptions,
     concurrency: 3, // Lower concurrency for message sending
+  }
+);
+
+/**
+ * Commerce events worker
+ * Processes stored external_events asynchronously after Shopify webhook ingestion.
+ */
+export const commerceEventsWorker = new Worker<CommerceEventJobData>(
+  COMMERCE_EVENTS_QUEUE,
+  async (job) => {
+    const { externalEventId, merchantId } = job.data;
+    const internalSecret = process.env.INTERNAL_SERVICE_SECRET?.trim();
+    const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:3001';
+
+    if (!internalSecret) {
+      throw new Error('INTERNAL_SERVICE_SECRET is required for commerce event worker');
+    }
+
+    const response = await fetch(`${apiUrl}/api/events/${externalEventId}/process`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Secret': internalSecret,
+        'X-Internal-Merchant-Id': merchantId,
+      },
+      body: '{}',
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      throw new Error(`Commerce process API failed (${response.status}): ${errText || 'unknown error'}`);
+    }
+
+    return {
+      success: true,
+      externalEventId,
+      merchantId,
+    };
+  },
+  {
+    ...defaultWorkerOptions,
+    concurrency: 8,
   }
 );
 
@@ -558,7 +675,7 @@ export const whatsappInboundWorker = new Worker<WhatsAppInboundJobData>(
  * Get all workers (for graceful shutdown, health check, etc.)
  */
 export function getAllWorkers() {
-  return [scheduledMessagesWorker, scrapeJobsWorker, analyticsWorker, whatsappInboundWorker];
+  return [scheduledMessagesWorker, scrapeJobsWorker, analyticsWorker, commerceEventsWorker, whatsappInboundWorker];
 }
 
 /**
@@ -569,6 +686,7 @@ export async function closeAllWorkers() {
     scheduledMessagesWorker.close(),
     scrapeJobsWorker.close(),
     analyticsWorker.close(),
+    commerceEventsWorker.close(),
     whatsappInboundWorker.close(),
   ]);
 }
@@ -596,6 +714,14 @@ analyticsWorker.on('completed', (job) => {
 
 analyticsWorker.on('failed', (job, err) => {
   logger.error(err instanceof Error ? err : new Error(String(err)), `[Analytics] Job ${job?.id} failed`);
+});
+
+commerceEventsWorker.on('completed', (job) => {
+  logger.info({ jobId: job.id }, '[Commerce Event] Job completed');
+});
+
+commerceEventsWorker.on('failed', (job, err) => {
+  logger.error(err instanceof Error ? err : new Error(String(err)), `[Commerce Event] Job ${job?.id} failed`);
 });
 
 whatsappInboundWorker.on('completed', (job) => {

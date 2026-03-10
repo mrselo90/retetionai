@@ -59,9 +59,11 @@ The API supports two authentication methods:
 - `DELETE /api/integrations/:id` - Delete integration
 
 ### Shopify (`/api/integrations/shopify`)
-- `GET /api/integrations/shopify/auth` - Start OAuth flow
-- `GET /api/integrations/shopify/callback` - OAuth callback
-- `POST /api/integrations/shopify/webhooks` - Create webhooks
+- `POST /api/integrations/shopify/auth` - Start OAuth flow
+- `GET /api/integrations/shopify/oauth/callback` - OAuth callback
+- `GET /api/integrations/shopify/products` - Fetch Shopify products
+- `POST /api/integrations/shopify/verify-session` - Verify embedded Shopify session token
+- `POST /api/integrations/shopify/webhooks/subscribe` - Re-register webhooks if needed
 
 ### Conversations (`/api/conversations`)
 - `GET /api/conversations` - List conversations

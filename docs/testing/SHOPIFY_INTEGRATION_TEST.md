@@ -45,7 +45,7 @@ Update your `.env` file with your Shopify credentials:
 # Shopify OAuth (Required for marketplace)
 SHOPIFY_API_KEY=your_actual_api_key_here
 SHOPIFY_API_SECRET=your_actual_api_secret_here
-SHOPIFY_SCOPES=read_products,read_orders,read_customers,write_webhooks
+SHOPIFY_SCOPES=read_products,read_orders,read_fulfillments,read_customers,write_webhooks
 
 # Frontend URL (for OAuth callback)
 FRONTEND_URL=http://localhost:3000
@@ -66,9 +66,11 @@ pnpm --filter api dev
 ### Method 1: Using cURL (Backend Test)
 
 ```bash
-# 1. Start OAuth flow (replace YOUR_MERCHANT_ID with actual ID from database)
-curl -X GET "http://localhost:3001/api/integrations/shopify/oauth/start?shop=blackeagletest.myshopify.com" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+# 1. Start OAuth flow
+curl -X POST "http://localhost:3001/api/integrations/shopify/auth" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"shop":"blackeagletest.myshopify.com"}'
 
 # Response will include authUrl - open this in your browser
 ```
@@ -130,14 +132,7 @@ curl -X POST "http://localhost:3001/api/integrations/shopify/webhooks/subscribe"
   -H "Content-Type: application/json"
 
 # Expected response:
-# {
-#   "message": "Webhook subscription completed",
-#   "results": [
-#     { "topic": "orders/create", "status": "created", "webhookId": "..." },
-#     { "topic": "orders/fulfilled", "status": "created", "webhookId": "..." },
-#     { "topic": "orders/updated", "status": "created", "webhookId": "..." }
-#   ]
-# }
+# { "message": "Webhooks are managed by Shopify App config" }
 ```
 
 ## Step 6: Test Webhook Delivery

@@ -144,7 +144,7 @@ export async function shopifyApiRequest<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {
-  const url = `https://${shop}/admin/api/2024-01${endpoint}`;
+  const url = `https://${shop}/admin/api/2026-01${endpoint}`;
 
   const response = await fetch(url, {
     ...options,
@@ -254,7 +254,7 @@ export async function fetchShopifyProducts(
 ): Promise<{ products: ShopifyProduct[]; hasNextPage: boolean; endCursor?: string }> {
   // Ensure shop domain is clean
   const cleanShop = shop.replace(/^https?:\/\//, '').replace(/\/$/, '');
-  const url = `https://${cleanShop}/admin/api/2024-01/graphql.json`;
+  const url = `https://${cleanShop}/admin/api/2026-01/graphql.json`;
 
   const query = `
     query getProducts($first: Int!, $after: String) {
@@ -388,7 +388,7 @@ export async function fetchShopifyLiveProductQuotes(
   productIds: string[]
 ): Promise<ShopifyLiveProductQuote[]> {
   const cleanShop = shop.replace(/^https?:\/\//, '').replace(/\/$/, '');
-  const url = `https://${cleanShop}/admin/api/2024-01/graphql.json`;
+  const url = `https://${cleanShop}/admin/api/2026-01/graphql.json`;
   const gids = [...new Set(productIds.map((id) => String(id).trim()).filter(Boolean))].map(
     (id) => (id.startsWith('gid://') ? id : `gid://shopify/Product/${id}`)
   );

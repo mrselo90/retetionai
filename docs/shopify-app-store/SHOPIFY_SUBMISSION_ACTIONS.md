@@ -22,7 +22,7 @@ Track actions required before submitting Recete for App Store review. Full conte
 | # | Action | Status | Notes |
 |---|--------|--------|-------|
 | 6 | Confirm App Bridge version | ✅ | Confirmed in readiness report: @shopify/app-bridge ^3.7.11, app-bridge-react ^4.2.8. |
-| 7 | Confirm GraphQL-only for new features | ✅ | Confirmed: products via GraphQL Admin API (2024-01); see report §6. |
+| 7 | Confirm GraphQL-only for new features | ✅ | Confirmed: products via GraphQL Admin API (2026-01); see report §6. |
 | 8 | Offline access token note | ⬜ | Optional: document OAuth offline access for background jobs in submission notes. |
 | 9 | User/install docs | ⬜ | Short doc or in-app steps for recipe mapping and WhatsApp connection. |
 

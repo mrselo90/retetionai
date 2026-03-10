@@ -56,6 +56,7 @@ This guide walks you through creating a Shopify Partner account and setting up y
 Select the following scopes:
 - ✅ `read_products` - Read product data
 - ✅ `read_orders` - Read order data
+- ✅ `read_fulfillments` - Read fulfillment and delivery state
 - ✅ `read_customers` - Read customer data
 - ✅ `write_webhooks` - Create webhooks
 
@@ -70,7 +71,7 @@ Select the following scopes:
    ```bash
    SHOPIFY_API_KEY=your_shopify_api_key
    SHOPIFY_API_SECRET=your_shopify_api_secret
-   SHOPIFY_SCOPES=read_products,read_orders,read_customers,write_webhooks
+   SHOPIFY_SCOPES=read_products,read_orders,read_fulfillments,read_customers,write_webhooks
    ```
 
 ## Step 6: Configure Billing
@@ -101,7 +102,7 @@ Select the following scopes:
 Configure webhooks to receive order events:
 
 1. In app settings, go to **Webhooks**
-2. Add webhook subscriptions:
+2. Add webhook subscriptions manually only if you are not using managed app config:
    - **orders/create**: `https://your-domain.com/webhooks/commerce/shopify`
    - **orders/updated**: `https://your-domain.com/webhooks/commerce/shopify`
    - **orders/fulfilled**: `https://your-domain.com/webhooks/commerce/shopify`
@@ -109,10 +110,7 @@ Configure webhooks to receive order events:
 
 ## Step 8: Test in Development Store
 
-1. Install your app in the development store:
-   ```
-   https://your-domain.com/api/integrations/shopify/oauth/start?shop=recete-dev.myshopify.com
-   ```
+1. Install your app in the development store from Shopify, or use the app UI connect flow that calls `POST /api/integrations/shopify/auth`.
 
 2. Authorize the app
 3. Verify installation in development store admin
@@ -120,7 +118,7 @@ Configure webhooks to receive order events:
 ## Step 9: Prepare for App Store Submission
 
 ### Required Assets
-- [ ] App icon (512x512px)
+- [ ] App icon (1200x1200px)
 - [ ] Screenshots (minimum 5, 1280x720px)
 - [ ] Demo video (2-3 minutes)
 
@@ -161,7 +159,7 @@ Configure webhooks to receive order events:
 # Shopify OAuth (Required for marketplace)
 SHOPIFY_API_KEY=your_shopify_api_key_here
 SHOPIFY_API_SECRET=your_shopify_api_secret_here
-SHOPIFY_SCOPES=read_products,read_orders,read_customers,write_webhooks
+SHOPIFY_SCOPES=read_products,read_orders,read_fulfillments,read_customers,write_webhooks
 
 # App URLs
 API_URL=https://your-domain.com
