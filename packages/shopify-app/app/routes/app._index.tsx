@@ -1,50 +1,73 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
-import { syncShopInstall } from "../platform.server";
+import { fetchMerchantOverview } from "../platform.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  const sync = await syncShopInstall(session);
-
-  return {
-    shop: session.shop,
-    scope: session.scope ?? "",
-    merchantId: sync?.merchantId ?? null,
-    created: sync?.created ?? false,
-  };
+  return fetchMerchantOverview(session.shop);
 };
 
 export default function Index() {
   const data = useLoaderData<typeof loader>();
 
   return (
-    <s-page heading="Recete Shopify Shell">
-      <s-section heading="Migration status">
-        <s-paragraph>
-          This shell now owns official Shopify authentication, embedded app
-          boot, and webhook ingress. Core business logic still runs in the
-          Recete platform API.
-        </s-paragraph>
-      </s-section>
+    <>
+      <section className="shellHero">
+        <p className="shellHeroEyebrow">Retention command center</p>
+        <h2 className="shellHeroTitle">
+          Turn fulfilled orders into compliant WhatsApp retention.
+        </h2>
+        <p className="shellHeroText">
+          This merchant shell now owns Shopify auth, billing, and webhook ingress.
+          The next goal is simple: connect catalog, verify billing, and keep
+          message flows compliant.
+        </p>
+        <div className="shellHeroActions">
+          <Link to="/app/dashboard" className="shellButton shellButtonPrimary">
+            Open dashboard
+          </Link>
+          <Link to="/app/integrations" className="shellButton shellButtonSecondary">
+            Review integrations
+          </Link>
+        </div>
+      </section>
 
-      <s-section heading="Current shop">
-        <s-stack direction="block" gap="base">
-          <s-text>Shop: {data.shop}</s-text>
-          <s-text>Merchant ID: {data.merchantId ?? "not synced"}</s-text>
-          <s-text>Install sync: {data.created ? "created" : "updated"}</s-text>
-          <s-text>Scopes: {data.scope || "none"}</s-text>
-        </s-stack>
-      </s-section>
+      <section className="shellSection">
+        <div className="shellSectionHeader">
+          <div>
+            <h3 className="shellSectionTitle">Merchant overview</h3>
+            <p className="shellSectionText">
+              Shopify merchant, billing, and product readiness in one place.
+            </p>
+          </div>
+        </div>
 
-      <s-section heading="Next steps">
-        <s-paragraph>
-          The next migration phase is moving billing UX and dashboard routes
-          into this shell, then deleting the legacy custom Shopify auth flow.
-        </s-paragraph>
-      </s-section>
-    </s-page>
+        <div className="shellMetrics">
+          <article className="shellMetricCard">
+            <p className="shellMetricLabel">Orders</p>
+            <p className="shellMetricValue">{data.metrics.totalOrders}</p>
+            <p className="shellMetricHint">Imported orders in platform</p>
+          </article>
+          <article className="shellMetricCard">
+            <p className="shellMetricLabel">Active users</p>
+            <p className="shellMetricValue">{data.metrics.activeUsers}</p>
+            <p className="shellMetricHint">Consent-active customers</p>
+          </article>
+          <article className="shellMetricCard">
+            <p className="shellMetricLabel">Products</p>
+            <p className="shellMetricValue">{data.metrics.totalProducts}</p>
+            <p className="shellMetricHint">Catalog rows available</p>
+          </article>
+          <article className="shellMetricCard">
+            <p className="shellMetricLabel">Response rate</p>
+            <p className="shellMetricValue">{data.metrics.responseRate}%</p>
+            <p className="shellMetricHint">Conversation reply coverage</p>
+          </article>
+        </div>
+      </section>
+    </>
   );
 }
 

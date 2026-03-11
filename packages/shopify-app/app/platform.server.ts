@@ -15,6 +15,56 @@ function parseJsonSafe(text: string) {
   }
 }
 
+export interface ShopifyMerchantOverview {
+  merchant: {
+    id: string;
+    name: string;
+    created_at?: string | null;
+    subscription_plan?: string | null;
+    subscription_status?: string | null;
+    trial_ends_at?: string | null;
+  };
+  shop: string;
+  integration: {
+    id: string;
+    provider: string;
+    status: string;
+    updated_at?: string | null;
+  };
+  subscription?: {
+    plan?: string | null;
+    status?: string | null;
+    billingProvider?: string | null;
+    trialEndsAt?: string | null;
+  } | null;
+  metrics: {
+    totalOrders: number;
+    activeUsers: number;
+    totalProducts: number;
+    responseRate: number;
+  };
+  integrations: Array<{
+    id: string;
+    provider: string;
+    status: string;
+    updated_at?: string | null;
+  }>;
+  products: Array<{
+    id: string;
+    name: string;
+    external_id?: string | null;
+    updated_at?: string | null;
+    created_at?: string | null;
+  }>;
+  recentOrders: Array<{
+    id: string;
+    external_order_id?: string | null;
+    status: string;
+    created_at: string;
+    delivery_date?: string | null;
+  }>;
+}
+
 export async function syncShopInstall(session: {
   shop: string;
   accessToken?: string;
@@ -87,4 +137,27 @@ export async function forwardWebhookToPlatform(request: Request, path: string) {
   }
 
   return response;
+}
+
+export async function fetchMerchantOverview(shop: string) {
+  const baseUrl = getRequiredEnv("PLATFORM_API_URL").replace(/\/$/, "");
+  const response = await fetch(
+    `${baseUrl}/api/integrations/shopify/merchant-overview?shop=${encodeURIComponent(shop)}`,
+    {
+      headers: {
+        "X-Internal-Secret": getRequiredEnv("PLATFORM_INTERNAL_SECRET"),
+      },
+    },
+  );
+
+  const bodyText = await response.text();
+  const parsed = parseJsonSafe(bodyText);
+
+  if (!response.ok) {
+    throw new Error(
+      `Platform merchant overview failed with ${response.status}: ${JSON.stringify(parsed)}`,
+    );
+  }
+
+  return parsed as ShopifyMerchantOverview;
 }

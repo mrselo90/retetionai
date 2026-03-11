@@ -1,98 +1,144 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import {
-  authenticate,
-  PRO_MONTHLY_PLAN,
-  PRO_YEARLY_PLAN,
-  STARTER_MONTHLY_PLAN,
-  STARTER_YEARLY_PLAN,
-} from "../shopify.server";
-import { syncShopInstall } from "../platform.server";
+import { authenticate } from "../shopify.server";
+import { fetchMerchantOverview } from "../platform.server";
+
+function statusClass(status?: string | null) {
+  const value = (status || "").toLowerCase();
+  if (["active", "connected", "approved"].includes(value)) {
+    return "shellStatus shellStatusActive";
+  }
+  if (["trialing", "pending"].includes(value)) {
+    return "shellStatus shellStatusPending";
+  }
+  return "shellStatus shellStatusInactive";
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session, billing } = await authenticate.admin(request);
-  const sync = await syncShopInstall(session);
-  const billingState = await billing.check({
-    plans: [
-      STARTER_MONTHLY_PLAN,
-      STARTER_YEARLY_PLAN,
-      PRO_MONTHLY_PLAN,
-      PRO_YEARLY_PLAN,
-    ],
-    isTest: process.env.NODE_ENV !== "production",
-  });
-
-  const legacyDashboardUrl =
-    process.env.LEGACY_DASHBOARD_URL?.trim() || "http://localhost:3000";
-  const classicPortalHref = new URL("/en/dashboard", legacyDashboardUrl);
-  classicPortalHref.searchParams.set("shop", session.shop);
-
-  return {
-    shop: session.shop,
-    scope: session.scope ?? "",
-    merchantId: sync?.merchantId ?? null,
-    installStatus: sync?.created ? "created" : "updated",
-    hasActivePayment: billingState.hasActivePayment,
-    subscriptions: billingState.appSubscriptions.map((subscription) => ({
-      id: subscription.id,
-      name: subscription.name,
-      status: subscription.status,
-    })),
-    classicPortalHref: classicPortalHref.toString(),
-  };
+  const { session } = await authenticate.admin(request);
+  return fetchMerchantOverview(session.shop);
 };
 
 export default function DashboardPage() {
   const data = useLoaderData<typeof loader>();
 
   return (
-    <s-page heading="Merchant dashboard">
-      <s-section heading="Shopify app status">
-        <s-stack direction="block" gap="base">
-          <s-text>Shop: {data.shop}</s-text>
-          <s-text>Merchant ID: {data.merchantId ?? "not synced"}</s-text>
-          <s-text>Install sync: {data.installStatus}</s-text>
-          <s-text>Scopes: {data.scope || "none"}</s-text>
-        </s-stack>
-      </s-section>
+    <>
+      <section className="shellSection">
+        <div className="shellSectionHeader">
+          <div>
+            <h2 className="shellSectionTitle">Dashboard</h2>
+            <p className="shellSectionText">
+              Core merchant signals for launch readiness and daily operations.
+            </p>
+          </div>
+          <span className={statusClass(data.subscription?.status)}>
+            {data.subscription?.status || "inactive"}
+          </span>
+        </div>
 
-      <s-section heading="Billing">
-        <s-stack direction="block" gap="base">
-          <s-text>
-            Active payment: {data.hasActivePayment ? "yes" : "no"}
-          </s-text>
-          {data.subscriptions.length > 0 ? (
-            data.subscriptions.map((subscription) => (
-              <s-text key={subscription.id}>
-                {subscription.name} ({subscription.status})
-              </s-text>
-            ))
-          ) : (
-            <s-text>No active Shopify app subscription found.</s-text>
-          )}
-          <s-stack direction="inline" gap="base">
-            <s-link href="/app/billing">Open billing</s-link>
-          </s-stack>
-        </s-stack>
-      </s-section>
+        <div className="shellMetrics">
+          <article className="shellMetricCard">
+            <p className="shellMetricLabel">Orders</p>
+            <p className="shellMetricValue">{data.metrics.totalOrders}</p>
+            <p className="shellMetricHint">Orders synced to Recete</p>
+          </article>
+          <article className="shellMetricCard">
+            <p className="shellMetricLabel">Consent-active users</p>
+            <p className="shellMetricValue">{data.metrics.activeUsers}</p>
+            <p className="shellMetricHint">Eligible buyer base</p>
+          </article>
+          <article className="shellMetricCard">
+            <p className="shellMetricLabel">Catalog rows</p>
+            <p className="shellMetricValue">{data.metrics.totalProducts}</p>
+            <p className="shellMetricHint">Products ready for mapping</p>
+          </article>
+          <article className="shellMetricCard">
+            <p className="shellMetricLabel">Response rate</p>
+            <p className="shellMetricValue">{data.metrics.responseRate}%</p>
+            <p className="shellMetricHint">Conversation engagement</p>
+          </article>
+        </div>
+      </section>
 
-      <s-section heading="Access model">
-        <s-stack direction="block" gap="base">
-          <s-text>
-            Shopify merchants should use this shell. They should not be routed
-            through the legacy Recete login flow.
-          </s-text>
-          <s-text>
-            The classic portal remains available for non-Shopify customers and
-            super admin workflows.
-          </s-text>
-          <s-link href={data.classicPortalHref} target="_top">
-            Open classic portal
-          </s-link>
-        </s-stack>
-      </s-section>
-    </s-page>
+      <section className="shellSection">
+        <div className="shellSectionHeader">
+          <div>
+            <h3 className="shellSectionTitle">What needs attention</h3>
+            <p className="shellSectionText">
+              Fast path to getting the app from installed to usable.
+            </p>
+          </div>
+        </div>
+
+        <div className="shellCards">
+          <article className="shellCard">
+            <h4 className="shellCardTitle">Billing approval</h4>
+            <p className="shellSectionText">
+              {data.subscription?.status === "active"
+                ? "Billing is active. Merchant can use paid features."
+                : "Billing is not active yet. Approve a plan before using the core retention flow."}
+            </p>
+            <div style={{ marginTop: "14px" }}>
+              <Link to="/app/billing" className="shellButton shellButtonPrimary">
+                Open billing
+              </Link>
+            </div>
+          </article>
+
+          <article className="shellCard">
+            <h4 className="shellCardTitle">Catalog readiness</h4>
+            <p className="shellSectionText">
+              {data.metrics.totalProducts > 0
+                ? `${data.metrics.totalProducts} products are available for recipe mapping.`
+                : "No products are visible yet. Product mapping should be the next merchant action."}
+            </p>
+            <div style={{ marginTop: "14px" }}>
+              <Link to="/app/products" className="shellButton shellButtonPrimary">
+                Review products
+              </Link>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section className="shellSection">
+        <div className="shellSectionHeader">
+          <div>
+            <h3 className="shellSectionTitle">Recent orders</h3>
+            <p className="shellSectionText">
+              Latest synced orders visible to the retention engine.
+            </p>
+          </div>
+        </div>
+
+        {data.recentOrders.length > 0 ? (
+          <div className="shellList">
+            {data.recentOrders.map((order) => (
+              <div className="shellListItem" key={order.id}>
+                <div className="shellListMain">
+                  <p className="shellListTitle">
+                    {order.external_order_id || order.id}
+                  </p>
+                  <p className="shellListMeta">
+                    Created {new Date(order.created_at).toLocaleString()}
+                  </p>
+                </div>
+                <span className={statusClass(order.status)}>{order.status}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="shellCard">
+            <p className="shellSectionText">
+              No orders synced yet. Once `orders/fulfilled` events arrive, they
+              will appear here.
+            </p>
+          </div>
+        )}
+      </section>
+    </>
   );
 }
 

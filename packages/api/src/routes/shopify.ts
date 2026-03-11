@@ -13,6 +13,7 @@ import {
   exchangeCodeForToken,
 } from '../lib/shopify.js';
 import { verifyShopifySessionToken } from '../lib/shopifySession.js';
+import { getMerchantSubscription } from '../lib/billing.js';
 import { logger } from '@recete/shared';
 import * as crypto from 'crypto';
 
@@ -138,6 +139,142 @@ shopify.post('/install-sync', async (c) => {
   } catch (err) {
     logger.error({ err }, 'Shopify install sync error');
     return c.json({ error: 'Failed to sync Shopify install' }, 500);
+  }
+});
+
+/**
+ * Internal merchant overview for Shopify shell.
+ * GET /api/integrations/shopify/merchant-overview?shop=<shop-domain>
+ */
+shopify.get('/merchant-overview', async (c) => {
+  const internal = verifyInternalSecret(c);
+  if (!internal.ok) {
+    return c.json({ error: internal.error }, internal.status);
+  }
+
+  try {
+    const shopRaw = c.req.query('shop')?.trim();
+    if (!shopRaw) {
+      return c.json({ error: 'shop is required' }, 400);
+    }
+
+    const shop = shopRaw.includes('.myshopify.com') ? shopRaw : `${shopRaw}.myshopify.com`;
+    const serviceClient = getSupabaseServiceClient();
+
+    const { data: integration, error: integrationError } = await serviceClient
+      .from('integrations')
+      .select('id, merchant_id, status, provider, auth_data, updated_at')
+      .eq('provider', 'shopify')
+      .contains('auth_data', { shop })
+      .maybeSingle();
+
+    if (integrationError) {
+      logger.error({ integrationError, shop }, 'Failed to load Shopify integration for merchant overview');
+      return c.json({ error: 'Failed to load integration' }, 500);
+    }
+
+    if (!integration) {
+      return c.json({ error: 'Integration not found' }, 404);
+    }
+
+    const merchantId = integration.merchant_id as string;
+
+    const [
+      merchantResult,
+      ordersCountResult,
+      activeUsersCountResult,
+      productsCountResult,
+      productRowsResult,
+      integrationsResult,
+      recentOrdersResult,
+    ] = await Promise.all([
+      serviceClient
+        .from('merchants')
+        .select('id, name, created_at, subscription_plan, subscription_status, trial_ends_at')
+        .eq('id', merchantId)
+        .maybeSingle(),
+      serviceClient
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('merchant_id', merchantId),
+      serviceClient
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('merchant_id', merchantId)
+        .eq('consent_status', 'active'),
+      serviceClient
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('merchant_id', merchantId),
+      serviceClient
+        .from('products')
+        .select('id, name, external_id, updated_at, created_at')
+        .eq('merchant_id', merchantId)
+        .order('updated_at', { ascending: false })
+        .limit(6),
+      serviceClient
+        .from('integrations')
+        .select('id, provider, status, updated_at')
+        .eq('merchant_id', merchantId)
+        .order('provider', { ascending: true }),
+      serviceClient
+        .from('orders')
+        .select('id, external_order_id, status, created_at, delivery_date')
+        .eq('merchant_id', merchantId)
+        .order('created_at', { ascending: false })
+        .limit(5),
+    ]);
+
+    if (merchantResult.error || !merchantResult.data) {
+      return c.json({ error: 'Merchant not found' }, 404);
+    }
+
+    const { data: conversations } = await serviceClient
+      .from('conversations')
+      .select('id, history, users!inner(merchant_id)')
+      .eq('users.merchant_id', merchantId);
+
+    const conversationCount = (conversations || []).length;
+    const responseRate = conversationCount > 0
+      ? Math.round(
+          (((conversations || []).filter((conv: any) =>
+            Array.isArray(conv.history) ? conv.history.length >= 2 : false,
+          ).length) /
+            conversationCount) *
+            100,
+        )
+      : 0;
+
+    let subscription = null;
+    try {
+      subscription = await getMerchantSubscription(merchantId);
+    } catch (error) {
+      logger.warn({ error, merchantId }, 'Failed to resolve merchant subscription for Shopify overview');
+    }
+
+    return c.json({
+      merchant: merchantResult.data,
+      shop,
+      integration: {
+        id: integration.id,
+        provider: integration.provider,
+        status: integration.status,
+        updated_at: integration.updated_at,
+      },
+      subscription,
+      metrics: {
+        totalOrders: ordersCountResult.count || 0,
+        activeUsers: activeUsersCountResult.count || 0,
+        totalProducts: productsCountResult.count || 0,
+        responseRate,
+      },
+      integrations: integrationsResult.data || [],
+      products: productRowsResult.data || [],
+      recentOrders: recentOrdersResult.data || [],
+    });
+  } catch (err) {
+    logger.error({ err }, 'Shopify merchant overview error');
+    return c.json({ error: 'Failed to load merchant overview' }, 500);
   }
 });
 

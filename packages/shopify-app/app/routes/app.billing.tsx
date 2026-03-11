@@ -86,46 +86,80 @@ export default function BillingPage() {
   const data = useLoaderData<typeof loader>();
 
   return (
-    <s-page heading="Billing">
-      <s-section heading="Current status">
-        <s-stack direction="block" gap="base">
-          <s-text>
-            Active payment: {data.hasActivePayment ? "yes" : "no"}
-          </s-text>
-          {data.subscriptions.length > 0 ? (
-            data.subscriptions.map((subscription) => (
-              <s-text key={subscription.id}>
-                {subscription.name} ({subscription.status})
-              </s-text>
-            ))
-          ) : (
-            <s-text>No active Shopify app subscription found.</s-text>
-          )}
-        </s-stack>
-      </s-section>
+    <>
+      <section className="shellSection">
+        <div className="shellSectionHeader">
+          <div>
+            <h2 className="shellSectionTitle">Billing</h2>
+            <p className="shellSectionText">
+              Shopify App Store billing approval controls paid feature access.
+            </p>
+          </div>
+        </div>
 
-      <s-section heading="Choose a plan">
-        <s-stack direction="block" gap="base">
+        <div className="shellCards">
+          <article className="shellCard">
+            <h3 className="shellCardTitle">Current status</h3>
+            <p className="shellSectionText">
+              Active payment: {data.hasActivePayment ? "yes" : "no"}
+            </p>
+            {data.subscriptions.length > 0 ? (
+              <div className="shellList" style={{ marginTop: "14px" }}>
+                {data.subscriptions.map((subscription) => (
+                  <div className="shellListItem" key={subscription.id}>
+                    <div className="shellListMain">
+                      <p className="shellListTitle">{subscription.name}</p>
+                      <p className="shellListMeta">
+                        Shopify subscription {subscription.id}
+                      </p>
+                    </div>
+                    <span className="shellStatus shellStatusActive">
+                      {subscription.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </article>
+        </div>
+      </section>
+
+      <section className="shellSection">
+        <div className="shellSectionHeader">
+          <div>
+            <h3 className="shellSectionTitle">Choose a plan</h3>
+            <p className="shellSectionText">
+              Approving a plan should be the merchant’s first step before using
+              the retention workflow in production.
+            </p>
+          </div>
+        </div>
+
+        <div className="shellCards">
           {data.plans.map((plan) => (
             <Form method="post" key={plan.key}>
               <input type="hidden" name="plan" value={plan.key} />
-              <s-box
-                padding="base"
-                borderWidth="base"
-                borderRadius="base"
-                background="subdued"
-              >
-                <s-stack direction="inline" gap="base" align-items="center">
-                  <s-text>{plan.label}</s-text>
-                  <s-text>{plan.amount}</s-text>
-                  <s-button type="submit">Approve</s-button>
-                </s-stack>
-              </s-box>
+              <article className="shellCard">
+                <h4 className="shellCardTitle">{plan.label}</h4>
+                <p className="shellMetricValue" style={{ marginTop: "8px" }}>
+                  {plan.amount}
+                </p>
+                <p className="shellSectionText">
+                  Shopify-managed recurring billing approval.
+                </p>
+                <button
+                  type="submit"
+                  className="shellButton shellButtonPrimary"
+                  style={{ marginTop: "16px", border: "none", cursor: "pointer" }}
+                >
+                  Approve plan
+                </button>
+              </article>
             </Form>
           ))}
-        </s-stack>
-      </s-section>
-    </s-page>
+        </div>
+      </section>
+    </>
   );
 }
 
