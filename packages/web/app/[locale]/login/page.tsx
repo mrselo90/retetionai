@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from '@/i18n/routing'; // Updated import
 import Link from 'next/link'; // Wait, should be from '@/i18n/routing' but let's check validation
 import { Link as I18nLink } from '@/i18n/routing';
+import { useSearchParams } from 'next/navigation';
 
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -17,11 +18,33 @@ import { Logo } from '@/components/ui/logo';
 export default function LoginPage() {
   const t = useTranslations('Login');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | React.ReactNode | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    const shop = searchParams.get('shop');
+    const host = searchParams.get('host');
+    const embedded = searchParams.get('embedded');
+    const idToken = searchParams.get('id_token');
+    const looksLikeShopifyEntry =
+      !!shop || !!host || embedded === '1' || Boolean(idToken);
+
+    if (!looksLikeShopifyEntry || typeof window === 'undefined') return;
+
+    const shellBase =
+      process.env.NEXT_PUBLIC_SHOPIFY_SHELL_URL || 'https://shop.recete.co.uk';
+    const target = new URL('/auth/login', shellBase);
+
+    searchParams.forEach((value, key) => {
+      target.searchParams.set(key, value);
+    });
+
+    window.location.replace(target.toString());
+  }, [searchParams]);
 
   const handleGoogleSignIn = async () => {
     setError(null);
