@@ -79,7 +79,7 @@ export default function ConversationsPage() {
                 title={conversation.userName || "Guest user"}
                 description={`${conversation.phone || "No phone"} · ${conversation.messageCount} messages`}
                 status={conversation.conversationStatus || conversation.sentiment || "ai"}
-                action={{ content: "Open analytics", url: "/app/analytics", icon: ChatIcon }}
+                action={{ content: "Open thread", url: `/app/conversations/${conversation.id}`, icon: ChatIcon }}
               />
             ))}
           </InlineGrid>

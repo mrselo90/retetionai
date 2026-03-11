@@ -200,6 +200,39 @@ export interface MerchantConversation {
   sentiment?: "positive" | "neutral" | "negative";
 }
 
+export interface MerchantConversationDetail {
+  conversation: {
+    id: string;
+    userId: string;
+    orderId?: string | null;
+    userName: string;
+    phone: string;
+    history: Array<{
+      role: "user" | "assistant" | "merchant";
+      content: string;
+      timestamp: string;
+    }>;
+    status: string;
+    conversationStatus: "ai" | "human" | "resolved";
+    assignedTo?: string | null;
+    escalatedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    order?: {
+      id: string;
+      externalOrderId: string;
+      status: string;
+      deliveryDate?: string | null;
+    } | null;
+    returnPreventionAttempt?: {
+      id: string;
+      outcome: "pending" | "prevented" | "returned" | "escalated";
+      triggerMessage: string;
+      createdAt: string;
+    } | null;
+  };
+}
+
 export interface MerchantCustomer {
   id: string;
   name: string;
@@ -486,6 +519,38 @@ export async function fetchMerchantConversations(shop: string) {
   return (await internalMerchantRequest(shop, "/api/conversations")) as {
     conversations: MerchantConversation[];
   };
+}
+
+export async function fetchMerchantConversationDetail(
+  shop: string,
+  conversationId: string,
+) {
+  return (await internalMerchantRequest(
+    shop,
+    `/api/conversations/${conversationId}`,
+  )) as MerchantConversationDetail;
+}
+
+export async function sendMerchantConversationReply(
+  shop: string,
+  conversationId: string,
+  text: string,
+) {
+  return internalMerchantRequest(shop, `/api/conversations/${conversationId}/reply`, {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
+}
+
+export async function updateMerchantConversationStatus(
+  shop: string,
+  conversationId: string,
+  status: "ai" | "human" | "resolved",
+) {
+  return internalMerchantRequest(shop, `/api/conversations/${conversationId}/status`, {
+    method: "PUT",
+    body: JSON.stringify({ status }),
+  });
 }
 
 export async function fetchMerchantCustomers(
