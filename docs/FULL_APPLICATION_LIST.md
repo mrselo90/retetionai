@@ -298,7 +298,8 @@ Single reference inventory of the entire application. Generated from source read
 - update-nginx-port.sh
 - validate-env.sh
 
-**Root-level:** deploy.sh, ecosystem.config.cjs (PM2), playwright.config.ts, vitest.config.ts, eslint.config.js, shopify.app.toml.
+**Root-level:** deploy.sh, ecosystem.config.cjs (PM2), playwright.config.ts, vitest.config.ts, eslint.config.js.
+**Shopify config:** packages/shopify-app/shopify.app.toml
 
 ### Docs (`docs/`)
 

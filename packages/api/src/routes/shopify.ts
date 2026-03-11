@@ -34,7 +34,7 @@ function verifyInternalSecret(c: any) {
   return { ok: true as const };
 }
 
-// Keep this aligned with `shopify.app.toml` managed-install scopes.
+// Keep this aligned with `packages/shopify-app/shopify.app.toml` managed-install scopes.
 const SHOPIFY_OAUTH_SCOPES = [
   'read_products',
   'read_orders',
@@ -410,7 +410,7 @@ shopify.get('/oauth/callback', async (c) => {
 /**
  * Subscribe to Shopify webhooks
  * POST /api/integrations/shopify/webhooks/subscribe
- * Note: With Shopify Managed Installation (shopify.app.toml), this is largely redundant
+ * Note: With Shopify Managed Installation (packages/shopify-app/shopify.app.toml), this is largely redundant
  * but good for re-registering if needed.
  */
 shopify.post('/webhooks/subscribe', authMiddleware, async (c) => {

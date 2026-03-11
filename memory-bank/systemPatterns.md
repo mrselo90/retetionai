@@ -72,7 +72,7 @@
 ## Integration Patterns
 
 ### Platform Connector (Native)
-- Shopify: Token Exchange (embedded app) + OAuth 2.0 (fallback), webhook subscriptions (managed via shopify.app.toml)
+- Shopify: Token Exchange (embedded app) + OAuth 2.0 (fallback), webhook subscriptions (managed via packages/shopify-app/shopify.app.toml)
 - WooCommerce: API Key/Secret, webhook setup
 - Ticimax: API token, polling or webhook
 
