@@ -1,5 +1,6 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Form, useActionData, useLoaderData, useNavigate, useNavigation } from "react-router";
+import { useEffect, useState } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ArrowLeftIcon, ChatIcon, PersonIcon } from "@shopify/polaris-icons";
 import {
@@ -86,6 +87,13 @@ export default function ConversationDetailPage() {
   const navigation = useNavigation();
   const conversation = data.conversation;
   const busy = navigation.state !== "idle";
+  const [replyText, setReplyText] = useState("");
+
+  useEffect(() => {
+    if (actionData?.ok && actionData.message?.includes("Reply sent")) {
+      setReplyText("");
+    }
+  }, [actionData]);
 
   if (navigation.state === "loading") {
     return (
@@ -249,10 +257,12 @@ export default function ConversationDetailPage() {
                   label="Reply text"
                   name="text"
                   multiline={5}
+                  value={replyText}
+                  onChange={setReplyText}
                   autoComplete="off"
                 />
                 <InlineStack>
-                  <Button submit variant="primary" loading={busy}>
+                  <Button submit variant="primary" loading={busy} disabled={!replyText.trim()}>
                     Send reply
                   </Button>
                 </InlineStack>
