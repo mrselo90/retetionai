@@ -261,7 +261,7 @@ function InlineActionForm({
     <Form method="post">
       <input type="hidden" name="intent" value={intent} />
       <input type="hidden" name="productId" value={productId} />
-      <Button submit fullWidth icon={icon as never} variant={destructive ? "secondary" : "primary"} tone={destructive ? "critical" : undefined}>
+      <Button submit fullWidth icon={icon as never} tone={destructive ? "critical" : undefined}>
         {label}
       </Button>
     </Form>

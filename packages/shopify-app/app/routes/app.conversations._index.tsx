@@ -5,7 +5,7 @@ import { ChatIcon, PersonIcon, SettingsIcon } from "@shopify/polaris-icons";
 import { InlineGrid } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { fetchMerchantConversations } from "../platform.server";
-import { ActionCard, EmptyCard, MetricCard, SectionCard, ShellPage, StatusBadge } from "../components/shell-ui";
+import { ActionCard, EmptyCard, MetricCard, SectionCard, ShellPage } from "../components/shell-ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
