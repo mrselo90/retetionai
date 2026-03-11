@@ -1,4 +1,26 @@
-require('dotenv').config({ path: './.env' });
+const fs = require('fs');
+const path = require('path');
+
+function loadRootEnv() {
+  const envPath = path.join(__dirname, '.env');
+  const values = {};
+
+  if (!fs.existsSync(envPath)) return values;
+
+  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const separatorIndex = trimmed.indexOf('=');
+    if (separatorIndex <= 0) continue;
+    const key = trimmed.slice(0, separatorIndex).trim();
+    const value = trimmed.slice(separatorIndex + 1).trim();
+    values[key] = value;
+  }
+
+  return values;
+}
+
+const rootEnv = loadRootEnv();
 
 /**
  * PM2 ecosystem config for production.
@@ -47,7 +69,11 @@ module.exports = {
         SHOPIFY_APP_URL: 'https://shop.recete.co.uk',
         PLATFORM_API_URL: 'http://127.0.0.1:3002',
         PLATFORM_INTERNAL_SECRET:
-          process.env.PLATFORM_INTERNAL_SECRET || process.env.INTERNAL_SERVICE_SECRET || '',
+          process.env.PLATFORM_INTERNAL_SECRET ||
+          process.env.INTERNAL_SERVICE_SECRET ||
+          rootEnv.PLATFORM_INTERNAL_SECRET ||
+          rootEnv.INTERNAL_SERVICE_SECRET ||
+          '',
         LEGACY_DASHBOARD_URL: 'https://recete.co.uk',
       },
       instances: 1,
