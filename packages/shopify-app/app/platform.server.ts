@@ -15,6 +15,17 @@ function parseJsonSafe(text: string) {
   }
 }
 
+async function parseRequiredJson(response: Response, context: string) {
+  const bodyText = await response.text();
+  const parsed = parseJsonSafe(bodyText);
+
+  if (!response.ok) {
+    throw new Error(`${context} failed with ${response.status}: ${JSON.stringify(parsed)}`);
+  }
+
+  return parsed;
+}
+
 export interface ShopifyMerchantOverview {
   merchant: {
     id: string;
@@ -83,6 +94,21 @@ export interface ShopifyMerchantOverview {
   }>;
 }
 
+export interface MerchantProduct {
+  id: string;
+  name: string;
+  url: string;
+  external_id?: string | null;
+  raw_text?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  chunkCount?: number;
+}
+
+async function fetchMerchantOverviewOrThrow(shop: string) {
+  return fetchMerchantOverview(shop);
+}
+
 export async function syncShopInstall(session: {
   shop: string;
   accessToken?: string;
@@ -108,16 +134,7 @@ export async function syncShopInstall(session: {
     },
   );
 
-  const bodyText = await response.text();
-  const parsed = parseJsonSafe(bodyText);
-
-  if (!response.ok) {
-    throw new Error(
-      `Platform install sync failed with ${response.status}: ${JSON.stringify(parsed)}`,
-    );
-  }
-
-  return parsed;
+  return parseRequiredJson(response, "Platform install sync");
 }
 
 export async function forwardWebhookToPlatform(request: Request, path: string) {
@@ -168,14 +185,82 @@ export async function fetchMerchantOverview(shop: string) {
     },
   );
 
-  const bodyText = await response.text();
-  const parsed = parseJsonSafe(bodyText);
+  return (await parseRequiredJson(response, "Platform merchant overview")) as ShopifyMerchantOverview;
+}
 
-  if (!response.ok) {
-    throw new Error(
-      `Platform merchant overview failed with ${response.status}: ${JSON.stringify(parsed)}`,
-    );
+async function internalMerchantRequest(
+  shop: string,
+  path: string,
+  init?: RequestInit,
+) {
+  const overview = await fetchMerchantOverviewOrThrow(shop);
+  const baseUrl = getRequiredEnv("PLATFORM_API_URL").replace(/\/$/, "");
+  const headers = new Headers(init?.headers || {});
+  headers.set("X-Internal-Secret", getRequiredEnv("PLATFORM_INTERNAL_SECRET"));
+  headers.set("X-Internal-Merchant-Id", overview.merchant.id);
+  if (init?.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
 
-  return parsed as ShopifyMerchantOverview;
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers,
+  });
+
+  return parseRequiredJson(response, `Platform request ${path}`);
+}
+
+export async function fetchMerchantProducts(shop: string) {
+  const productsPayload = (await internalMerchantRequest(shop, "/api/products")) as {
+    products: MerchantProduct[];
+  };
+
+  const products = productsPayload.products || [];
+  if (products.length === 0) return { products: [] as MerchantProduct[] };
+
+  const chunkPayload = (await internalMerchantRequest(shop, "/api/products/chunks/batch", {
+    method: "POST",
+    body: JSON.stringify({ productIds: products.map((product) => product.id) }),
+  })) as {
+    chunkCounts: Array<{ productId: string; chunkCount: number }>;
+  };
+
+  const chunkMap = new Map(
+    (chunkPayload.chunkCounts || []).map((entry) => [entry.productId, entry.chunkCount]),
+  );
+
+  return {
+    products: products.map((product) => ({
+      ...product,
+      chunkCount: chunkMap.get(product.id) ?? 0,
+    })),
+  };
+}
+
+export async function createMerchantProduct(
+  shop: string,
+  input: { name: string; url: string },
+) {
+  return internalMerchantRequest(shop, "/api/products", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function scrapeMerchantProduct(shop: string, productId: string) {
+  return internalMerchantRequest(shop, `/api/products/${productId}/scrape`, {
+    method: "POST",
+  });
+}
+
+export async function generateMerchantProductEmbeddings(shop: string, productId: string) {
+  return internalMerchantRequest(shop, `/api/products/${productId}/generate-embeddings`, {
+    method: "POST",
+  });
+}
+
+export async function deleteMerchantProduct(shop: string, productId: string) {
+  return internalMerchantRequest(shop, `/api/products/${productId}`, {
+    method: "DELETE",
+  });
 }

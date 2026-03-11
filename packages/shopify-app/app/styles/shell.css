@@ -221,6 +221,11 @@
   border: 1px solid transparent;
 }
 
+.shellButtonAsButton {
+  cursor: pointer;
+  font: inherit;
+}
+
 .shellButtonPrimary {
   background: white;
   color: #143e39;
@@ -232,6 +237,18 @@
   border-color: rgba(255, 255, 255, 0.18);
 }
 
+.shellSection .shellButtonSecondary {
+  background: rgba(18, 91, 80, 0.06);
+  color: var(--shell-accent);
+  border-color: rgba(18, 91, 80, 0.12);
+}
+
+.shellButtonDanger {
+  background: rgba(148, 29, 29, 0.1);
+  color: #8f2222;
+  border-color: rgba(148, 29, 29, 0.18);
+}
+
 .shellSection {
   margin-top: 22px;
   padding: 24px;
@@ -239,6 +256,23 @@
   border: 1px solid var(--shell-border);
   background: var(--shell-surface);
   box-shadow: 0 18px 42px rgba(35, 28, 15, 0.05);
+}
+
+.shellAlert {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-weight: 600;
+}
+
+.shellAlertSuccess {
+  background: rgba(18, 91, 80, 0.08);
+  color: var(--shell-accent);
+}
+
+.shellAlertError {
+  background: rgba(148, 29, 29, 0.08);
+  color: #8f2222;
 }
 
 .shellSectionHeader {
@@ -350,6 +384,69 @@
   font-size: 13px;
 }
 
+.shellProductCreateForm {
+  display: grid;
+  grid-template-columns: 1.2fr 1.8fr auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.shellField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shellField span {
+  font-size: 12px;
+  color: var(--shell-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.shellInput {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(33, 29, 23, 0.12);
+  background: rgba(255, 253, 247, 0.96);
+  color: var(--shell-text);
+  font: inherit;
+}
+
+.shellInput:focus {
+  outline: 2px solid rgba(18, 91, 80, 0.18);
+  border-color: rgba(18, 91, 80, 0.24);
+}
+
+.shellProductList {
+  gap: 14px;
+}
+
+.shellProductItem {
+  align-items: flex-start;
+}
+
+.shellProductHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shellProductBadges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shellActionRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .shellSettingsGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -431,6 +528,16 @@
   .shellSettingsGrid,
   .shellMetricsWide {
     grid-template-columns: 1fr;
+  }
+
+  .shellProductCreateForm {
+    grid-template-columns: 1fr;
+  }
+
+  .shellProductHeader,
+  .shellActionRow {
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
   .shellSidebar {

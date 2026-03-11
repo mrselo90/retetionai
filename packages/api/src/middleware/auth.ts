@@ -133,7 +133,12 @@ function isNonEmptyString(value: unknown): value is string {
 
 /** Internal product routes (worker -> API) */
 const INTERNAL_PRODUCT_PATHS = [
+  '/api/products',
+  /^\/api\/products\/[^/]+$/,
   '/api/products/enrich',
+  /^\/api\/products\/[^/]+\/scrape$/,
+  '/api/products/scrape-batch',
+  '/api/products/generate-embeddings-batch',
   /^\/api\/products\/[^/]+\/generate-embeddings$/,
   '/api/products/chunks/batch',
   /^\/api\/products\/[^/]+\/chunks$/,
