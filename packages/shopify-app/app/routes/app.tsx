@@ -10,6 +10,7 @@ import {
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import {
+  AppProvider as PolarisAppProvider,
   Badge,
   BlockStack,
   Box,
@@ -20,6 +21,7 @@ import {
   ProgressBar,
   Text,
 } from "@shopify/polaris";
+import enPolarisTranslations from "@shopify/polaris/locales/en.json";
 import {
   CartIcon,
   CatalogIcon,
@@ -87,122 +89,124 @@ export default function App() {
 
   return (
     <AppProvider embedded apiKey={apiKey}>
-      <Box background="bg-surface-secondary" minHeight="100vh" padding="400">
-        <div style={{ maxWidth: "1440px", margin: "0 auto" }}>
-          <BlockStack gap="400">
-            {navigation.state !== "idle" ? <ProgressBar progress={75} size="small" /> : null}
+      <PolarisAppProvider i18n={enPolarisTranslations}>
+        <Box background="bg-surface-secondary" minHeight="100vh" padding="400">
+          <div style={{ maxWidth: "1440px", margin: "0 auto" }}>
+            <BlockStack gap="400">
+              {navigation.state !== "idle" ? <ProgressBar progress={75} size="small" /> : null}
 
-            <Card padding="500">
-              <BlockStack gap="400">
-                <InlineGrid columns={{ xs: 1, lg: "2fr 1fr" }} gap="500">
-                  <BlockStack gap="200">
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Shopify merchant console
-                    </Text>
-                    <Text as="h1" variant="headingLg">
-                      {merchantName}
-                    </Text>
-                    <Box maxWidth="560px">
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Embedded command center for compliant WhatsApp retention,
-                        billing, product readiness, and buyer operations.
-                      </Text>
-                    </Box>
-                  </BlockStack>
-
-                  <BlockStack gap="300">
-                    <InlineStack gap="200" wrap>
-                      <Badge tone="info">{shop}</Badge>
-                      <Badge tone={subscriptionStatus === "active" ? "success" : "attention"}>
-                        {`Subscription: ${subscriptionStatus}`}
-                      </Badge>
-                    </InlineStack>
-                    <InlineStack gap="200" wrap>
-                      <Button
-                        url={classicPortalHref}
-                        target="_top"
-                        icon={ProfileIcon}
-                        variant="secondary"
-                      >
-                        Classic portal
-                      </Button>
-                      <Button
-                        url="/app/billing"
-                        icon={CartIcon}
-                        variant="primary"
-                      >
-                        Review billing
-                      </Button>
-                    </InlineStack>
-                  </BlockStack>
-                </InlineGrid>
-              </BlockStack>
-            </Card>
-
-            <InlineGrid columns={{ xs: 1, lg: "280px 1fr" }} gap="400">
               <Card padding="500">
-                <BlockStack gap="500">
-                  <BlockStack gap="200">
-                    <Text as="h2" variant="headingLg">
-                      Merchant navigation
-                    </Text>
-                    <Box maxWidth="20rem">
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Shopify merchants should operate from this embedded shell.
-                        Non-Shopify and admin flows stay outside.
+                <BlockStack gap="400">
+                  <InlineGrid columns={{ xs: 1, lg: "2fr 1fr" }} gap="500">
+                    <BlockStack gap="200">
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Shopify merchant console
                       </Text>
-                    </Box>
-                  </BlockStack>
-
-                  <BlockStack gap="300">
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Core
-                    </Text>
-                    <BlockStack gap="200">
-                      {primaryNavigation.map((item) => (
-                        <Button
-                          key={item.to}
-                          fullWidth
-                          textAlign="left"
-                          icon={item.icon}
-                          variant={navButtonVariant(item.to)}
-                          onClick={() => navigate(item.to)}
-                        >
-                          {item.label}
-                        </Button>
-                      ))}
+                      <Text as="h1" variant="headingLg">
+                        {merchantName}
+                      </Text>
+                      <Box maxWidth="560px">
+                        <Text as="p" variant="bodyMd" tone="subdued">
+                          Embedded command center for compliant WhatsApp retention,
+                          billing, product readiness, and buyer operations.
+                        </Text>
+                      </Box>
                     </BlockStack>
-                  </BlockStack>
 
-                  <BlockStack gap="300">
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Control
-                    </Text>
-                    <BlockStack gap="200">
-                      {secondaryNavigation.map((item) => (
+                    <BlockStack gap="300">
+                      <InlineStack gap="200" wrap>
+                        <Badge tone="info">{shop}</Badge>
+                        <Badge tone={subscriptionStatus === "active" ? "success" : "attention"}>
+                          {`Subscription: ${subscriptionStatus}`}
+                        </Badge>
+                      </InlineStack>
+                      <InlineStack gap="200" wrap>
                         <Button
-                          key={item.to}
-                          fullWidth
-                          textAlign="left"
-                          icon={item.icon}
-                          variant={navButtonVariant(item.to)}
-                          onClick={() => navigate(item.to)}
+                          url={classicPortalHref}
+                          target="_top"
+                          icon={ProfileIcon}
+                          variant="secondary"
                         >
-                          {item.label}
+                          Classic portal
                         </Button>
-                      ))}
+                        <Button
+                          url="/app/billing"
+                          icon={CartIcon}
+                          variant="primary"
+                        >
+                          Review billing
+                        </Button>
+                      </InlineStack>
                     </BlockStack>
-                  </BlockStack>
+                  </InlineGrid>
                 </BlockStack>
               </Card>
 
-              <Box>
-                <Outlet />
-              </Box>
-            </InlineGrid>
-          </BlockStack>
-        </div>
-      </Box>
+              <InlineGrid columns={{ xs: 1, lg: "280px 1fr" }} gap="400">
+                <Card padding="500">
+                  <BlockStack gap="500">
+                    <BlockStack gap="200">
+                      <Text as="h2" variant="headingLg">
+                        Merchant navigation
+                      </Text>
+                      <Box maxWidth="20rem">
+                        <Text as="p" variant="bodyMd" tone="subdued">
+                          Shopify merchants should operate from this embedded shell.
+                          Non-Shopify and admin flows stay outside.
+                        </Text>
+                      </Box>
+                    </BlockStack>
+
+                    <BlockStack gap="200">
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Core
+                      </Text>
+                      <BlockStack gap="200">
+                        {primaryNavigation.map((item) => (
+                          <Button
+                            key={item.to}
+                            fullWidth
+                            textAlign="left"
+                            icon={item.icon}
+                            variant={navButtonVariant(item.to)}
+                            onClick={() => navigate(item.to)}
+                          >
+                            {item.label}
+                          </Button>
+                        ))}
+                      </BlockStack>
+                    </BlockStack>
+
+                    <BlockStack gap="200">
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Control
+                      </Text>
+                      <BlockStack gap="200">
+                        {secondaryNavigation.map((item) => (
+                          <Button
+                            key={item.to}
+                            fullWidth
+                            textAlign="left"
+                            icon={item.icon}
+                            variant={navButtonVariant(item.to)}
+                            onClick={() => navigate(item.to)}
+                          >
+                            {item.label}
+                          </Button>
+                        ))}
+                      </BlockStack>
+                    </BlockStack>
+                  </BlockStack>
+                </Card>
+
+                <Box>
+                  <Outlet />
+                </Box>
+              </InlineGrid>
+            </BlockStack>
+          </div>
+        </Box>
+      </PolarisAppProvider>
     </AppProvider>
   );
 }
