@@ -1,3 +1,5 @@
+require('dotenv').config({ path: './.env' });
+
 /**
  * PM2 ecosystem config for production.
  * Run from repo root: pm2 start ecosystem.config.cjs
@@ -43,7 +45,9 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3003,
         SHOPIFY_APP_URL: 'https://shop.recete.co.uk',
-        PLATFORM_API_URL: 'https://api.recete.co.uk',
+        PLATFORM_API_URL: 'http://127.0.0.1:3002',
+        PLATFORM_INTERNAL_SECRET:
+          process.env.PLATFORM_INTERNAL_SECRET || process.env.INTERNAL_SERVICE_SECRET || '',
         LEGACY_DASHBOARD_URL: 'https://recete.co.uk',
       },
       instances: 1,
