@@ -100,6 +100,22 @@ export default function DashboardPage() {
               </Link>
             </div>
           </article>
+
+          <article className="shellCard">
+            <h4 className="shellCardTitle">Merchant controls</h4>
+            <p className="shellSectionText">
+              Keep core settings visible inside Shopify instead of falling back
+              to the legacy portal.
+            </p>
+            <div style={{ marginTop: "14px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <Link to="/app/settings" className="shellButton shellButtonPrimary">
+                Settings
+              </Link>
+              <Link to="/app/analytics" className="shellButton shellButtonSecondary">
+                Analytics
+              </Link>
+            </div>
+          </article>
         </div>
       </section>
 

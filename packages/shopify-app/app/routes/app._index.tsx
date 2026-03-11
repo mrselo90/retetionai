@@ -28,8 +28,8 @@ export default function Index() {
           <Link to="/app/dashboard" className="shellButton shellButtonPrimary">
             Open dashboard
           </Link>
-          <Link to="/app/integrations" className="shellButton shellButtonSecondary">
-            Review integrations
+          <Link to="/app/products" className="shellButton shellButtonSecondary">
+            Review catalog
           </Link>
         </div>
       </section>
@@ -64,6 +64,45 @@ export default function Index() {
             <p className="shellMetricLabel">Response rate</p>
             <p className="shellMetricValue">{data.metrics.responseRate}%</p>
             <p className="shellMetricHint">Conversation reply coverage</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="shellSection">
+        <div className="shellSectionHeader">
+          <div>
+            <h3 className="shellSectionTitle">Next actions</h3>
+            <p className="shellSectionText">
+              Use the shell as the merchant-facing control room. Legacy access
+              should now be the exception.
+            </p>
+          </div>
+        </div>
+
+        <div className="shellCards">
+          <article className="shellCard">
+            <h4 className="shellCardTitle">Check analytics</h4>
+            <p className="shellSectionText">
+              Review sentiment, return rate, and prevented returns to confirm
+              the retention engine is healthy.
+            </p>
+            <div style={{ marginTop: "14px" }}>
+              <Link to="/app/analytics" className="shellButton shellButtonPrimary">
+                Open analytics
+              </Link>
+            </div>
+          </article>
+          <article className="shellCard">
+            <h4 className="shellCardTitle">Review merchant settings</h4>
+            <p className="shellSectionText">
+              Verify bot tone, sender mode, and notification phone without
+              leaving the embedded app.
+            </p>
+            <div style={{ marginTop: "14px" }}>
+              <Link to="/app/settings" className="shellButton shellButtonPrimary">
+                Open settings
+              </Link>
+            </div>
           </article>
         </div>
       </section>

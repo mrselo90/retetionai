@@ -63,6 +63,15 @@ export default function App() {
               <p className="shellNavLabel">Merchant Panel</p>
               <nav className="shellNav">
                 <NavLink
+                  to="/app"
+                  end
+                  className={({ isActive }) =>
+                    `shellNavLink ${isActive ? "shellNavLinkActive" : ""}`
+                  }
+                >
+                  Overview
+                </NavLink>
+                <NavLink
                   to="/app/dashboard"
                   className={({ isActive }) =>
                     `shellNavLink ${isActive ? "shellNavLinkActive" : ""}`
@@ -87,6 +96,14 @@ export default function App() {
                   Integrations
                 </NavLink>
                 <NavLink
+                  to="/app/analytics"
+                  className={({ isActive }) =>
+                    `shellNavLink ${isActive ? "shellNavLinkActive" : ""}`
+                  }
+                >
+                  Analytics
+                </NavLink>
+                <NavLink
                   to="/app/billing"
                   className={({ isActive }) =>
                     `shellNavLink ${isActive ? "shellNavLinkActive" : ""}`
@@ -94,19 +111,25 @@ export default function App() {
                 >
                   Billing
                 </NavLink>
-                <Link className="shellNavLink" to="/app">
-                  Overview
-                </Link>
+                <NavLink
+                  to="/app/settings"
+                  className={({ isActive }) =>
+                    `shellNavLink ${isActive ? "shellNavLinkActive" : ""}`
+                  }
+                >
+                  Settings
+                </NavLink>
               </nav>
 
               <div className="shellSidebarNote">
-                Non-Shopify accounts and super admin workflows stay in the
-                classic portal. Shopify merchants should operate from this shell.
-                <div style={{ marginTop: "10px" }}>
-                  <a href={classicPortalHref} target="_top" rel="noreferrer">
-                    Open classic portal
-                  </a>
-                </div>
+                Shopify merchants should operate from this shell. Non-Shopify
+                accounts and super admin workflows stay outside the embedded app.
+              </div>
+
+              <div className="shellSidebarFooter">
+                <a href={classicPortalHref} target="_top" rel="noreferrer">
+                  Open classic portal
+                </a>
               </div>
             </aside>
 

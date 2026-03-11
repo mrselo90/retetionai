@@ -43,6 +43,24 @@ export interface ShopifyMerchantOverview {
     totalProducts: number;
     responseRate: number;
   };
+  analytics: {
+    avgSentiment: number;
+    returnRate: number;
+    preventedReturns: number;
+    totalConversations: number;
+    resolvedConversations: number;
+  };
+  settings: {
+    notificationPhone?: string | null;
+    personaSettings?: {
+      bot_name?: string;
+      tone?: "friendly" | "professional" | "casual" | "formal";
+      emoji?: boolean;
+      response_length?: "short" | "medium" | "long";
+      whatsapp_sender_mode?: "merchant_own" | "corporate";
+      whatsapp_welcome_template?: string;
+    };
+  };
   integrations: Array<{
     id: string;
     provider: string;

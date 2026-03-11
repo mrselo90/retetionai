@@ -190,7 +190,7 @@ shopify.get('/merchant-overview', async (c) => {
     ] = await Promise.all([
       serviceClient
         .from('merchants')
-        .select('id, name, created_at, subscription_plan, subscription_status, trial_ends_at')
+        .select('id, name, created_at, subscription_plan, subscription_status, trial_ends_at, notification_phone, persona_settings')
         .eq('id', merchantId)
         .maybeSingle(),
       serviceClient
@@ -235,14 +235,43 @@ shopify.get('/merchant-overview', async (c) => {
       .eq('users.merchant_id', merchantId);
 
     const conversationCount = (conversations || []).length;
+    const resolvedConversationCount = (conversations || []).filter((conv: any) =>
+      Array.isArray(conv.history) ? conv.history.length >= 2 : false,
+    ).length;
     const responseRate = conversationCount > 0
       ? Math.round(
-          (((conversations || []).filter((conv: any) =>
-            Array.isArray(conv.history) ? conv.history.length >= 2 : false,
-          ).length) /
+          (resolvedConversationCount /
             conversationCount) *
             100,
         )
+      : 0;
+
+    const [{ data: analyticsEvents }, { count: returnedOrders }, { count: preventedReturns }] =
+      await Promise.all([
+        serviceClient
+          .from('analytics_events')
+          .select('sentiment_score')
+          .eq('merchant_id', merchantId)
+          .not('sentiment_score', 'is', null),
+        serviceClient
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('merchant_id', merchantId)
+          .eq('status', 'returned'),
+        serviceClient
+          .from('return_prevention_attempts')
+          .select('id', { count: 'exact', head: true })
+          .eq('merchant_id', merchantId)
+          .eq('outcome', 'prevented'),
+      ]);
+
+    const avgSentiment = analyticsEvents && analyticsEvents.length > 0
+      ? analyticsEvents.reduce((sum: number, event: any) => sum + (Number(event.sentiment_score) || 0), 0) / analyticsEvents.length
+      : 0;
+
+    const totalOrders = ordersCountResult.count || 0;
+    const returnRate = totalOrders > 0
+      ? Math.round(((returnedOrders || 0) / totalOrders) * 100)
       : 0;
 
     let subscription = null;
@@ -263,10 +292,21 @@ shopify.get('/merchant-overview', async (c) => {
       },
       subscription,
       metrics: {
-        totalOrders: ordersCountResult.count || 0,
+        totalOrders,
         activeUsers: activeUsersCountResult.count || 0,
         totalProducts: productsCountResult.count || 0,
         responseRate,
+      },
+      analytics: {
+        avgSentiment: Math.round(avgSentiment * 100) / 100,
+        returnRate,
+        preventedReturns: preventedReturns || 0,
+        totalConversations: conversationCount,
+        resolvedConversations: resolvedConversationCount,
+      },
+      settings: {
+        notificationPhone: (merchantResult.data as any).notification_phone || null,
+        personaSettings: (merchantResult.data as any).persona_settings || {},
       },
       integrations: integrationsResult.data || [],
       products: productRowsResult.data || [],
