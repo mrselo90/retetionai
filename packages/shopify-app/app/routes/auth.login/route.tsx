@@ -17,6 +17,9 @@ import { login } from "../../shopify.server";
 import { loginErrorMessage } from "./error.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  if (request.method.toUpperCase() === "HEAD") {
+    return { errors: {} };
+  }
   const errors = loginErrorMessage(await login(request));
 
   return { errors };
