@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
+import { Form, useActionData, useLoaderData, useNavigate, useNavigation, useSubmit } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ArrowLeftIcon, CheckIcon, MagicIcon } from "@shopify/polaris-icons";
@@ -175,6 +175,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function ProductMappingPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const navigate = useNavigate();
   const submit = useSubmit();
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
@@ -247,11 +248,11 @@ export default function ProductMappingPage() {
 
   return (
     <Page
-      backAction={{ content: "Products", url: "/app/products" }}
+      backAction={{ content: "Products", onAction: () => navigate("/app/products") }}
       fullWidth
       title="Shopify mapping"
       subtitle="Connect Shopify catalog items to Recete recipes so the delivery flow can send accurate post-purchase guidance."
-      primaryAction={{ content: "Back to products", url: "/app/products", icon: ArrowLeftIcon }}
+      primaryAction={{ content: "Back to products", onAction: () => navigate("/app/products"), icon: ArrowLeftIcon }}
     >
       {dirty && selectedRow ? (
         <ContextualSaveBar
@@ -428,7 +429,7 @@ export default function ProductMappingPage() {
                     <Button submit icon={CheckIcon} variant="primary" loading={busy}>
                       Save mapping
                     </Button>
-                    <Button url="/app/products" icon={MagicIcon}>
+                    <Button onClick={() => navigate("/app/products")} icon={MagicIcon}>
                       Return to product workspace
                     </Button>
                   </InlineStack>

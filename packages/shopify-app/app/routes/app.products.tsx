@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
+import { Form, useActionData, useLoaderData, useNavigate, useNavigation, useSubmit } from "react-router";
 import { useMemo, useRef, useState } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { CircleUpIcon, DeleteIcon, MagicIcon, RefreshIcon, ConnectIcon } from "@shopify/polaris-icons";
@@ -87,6 +87,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function ProductsPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const navigate = useNavigate();
   const navigation = useNavigation();
   const submit = useSubmit();
   const formRef = useRef<HTMLFormElement>(null);
@@ -136,7 +137,7 @@ export default function ProductsPage() {
       subtitle="Catalog workspace for scraping, enrichment, and merchant-ready AI product coverage."
       primaryAction={{ content: "Add product", icon: CircleUpIcon, onAction: handleSave, disabled: !dirty }}
       secondaryActions={[
-        { content: "Shopify mapping", url: "/app/products/mapping", icon: ConnectIcon as never },
+        { content: "Shopify mapping", onAction: () => navigate("/app/products/mapping"), icon: ConnectIcon as never },
       ]}
     >
       {dirty ? (
@@ -196,7 +197,7 @@ export default function ProductsPage() {
           <SectionCard
             title="Catalog operations"
             subtitle="Merchants should see product status, enrichment depth, and the next maintenance action in one screen."
-            badge={<Button url="/app/products/mapping" icon={ConnectIcon} variant="primary">Open Shopify mapping</Button>}
+            badge={<Button onClick={() => navigate("/app/products/mapping")} icon={ConnectIcon} variant="primary">Open Shopify mapping</Button>}
           >
             {data.products.length > 0 ? (
               <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">

@@ -1,5 +1,5 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { CartIcon, CatalogIcon, SettingsIcon } from "@shopify/polaris-icons";
 import { Button, Card, InlineGrid } from "@shopify/polaris";
@@ -30,6 +30,7 @@ export default function Index() {
 }
 
 function OverviewContent({ data }: { data: Awaited<ReturnType<typeof loader>> }) {
+  const navigate = useNavigate();
   return (
     <>
       <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
@@ -61,17 +62,17 @@ function OverviewContent({ data }: { data: Awaited<ReturnType<typeof loader>> })
       >
         <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
           <Card padding="500">
-            <Button fullWidth url="/app/products" icon={CatalogIcon} variant="primary">
+            <Button fullWidth onClick={() => navigate("/app/products")} icon={CatalogIcon} variant="primary">
               Review catalog
             </Button>
           </Card>
           <Card padding="500">
-            <Button fullWidth url="/app/billing" icon={CartIcon} variant="primary">
+            <Button fullWidth onClick={() => navigate("/app/billing")} icon={CartIcon} variant="primary">
               Check billing
             </Button>
           </Card>
           <Card padding="500">
-            <Button fullWidth url="/app/settings" icon={SettingsIcon} variant="primary">
+            <Button fullWidth onClick={() => navigate("/app/settings")} icon={SettingsIcon} variant="primary">
               Tune settings
             </Button>
           </Card>

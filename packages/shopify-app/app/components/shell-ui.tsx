@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useNavigate } from "react-router";
 import {
   Badge,
   BlockStack,
@@ -55,6 +56,7 @@ export function ShellPage({
   };
   children: ReactNode;
 }) {
+  const navigate = useNavigate();
   return (
     <Page
       fullWidth
@@ -64,7 +66,7 @@ export function ShellPage({
         primaryAction
           ? {
               content: primaryAction.content,
-              url: primaryAction.url,
+              onAction: primaryAction.url ? () => navigate(primaryAction.url!) : undefined,
               icon: primaryAction.icon as never,
             }
           : undefined
@@ -180,11 +182,19 @@ export function EmptyCard({
   description: string;
   action?: { content: string; url: string };
 }) {
+  const navigate = useNavigate();
   return (
     <Card padding="500">
       <EmptyState
         heading={heading}
-        action={action}
+        action={
+          action
+            ? {
+                content: action.content,
+                onAction: () => navigate(action.url),
+              }
+            : undefined
+        }
         image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
       >
         <Text as="p" variant="bodyMd" tone="subdued">
@@ -206,6 +216,7 @@ export function ActionCard({
   status?: string | null;
   action?: { content: string; url: string; icon?: IconSource };
 }) {
+  const navigate = useNavigate();
   return (
     <Card padding="500">
       <BlockStack gap="300">
@@ -222,7 +233,7 @@ export function ActionCard({
         </Box>
         {action ? (
           <InlineStack>
-            <Button url={action.url} icon={action.icon as never} variant="primary">
+            <Button onClick={() => navigate(action.url)} icon={action.icon as never} variant="primary">
               {action.content}
             </Button>
           </InlineStack>

@@ -130,7 +130,7 @@ export default function App() {
                           Classic portal
                         </Button>
                         <Button
-                          url="/app/billing"
+                          onClick={() => navigate("/app/billing")}
                           icon={CartIcon}
                           variant="primary"
                         >
