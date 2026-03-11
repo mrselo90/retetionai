@@ -94,6 +94,30 @@ export interface ShopifyMerchantOverview {
   }>;
 }
 
+export interface MerchantSettingsRecord {
+  merchant: {
+    id: string;
+    name: string;
+    notification_phone?: string | null;
+    persona_settings?: {
+      bot_name?: string;
+      tone?: "friendly" | "professional" | "casual" | "formal";
+      emoji?: boolean;
+      response_length?: "short" | "medium" | "long";
+      temperature?: number;
+      whatsapp_sender_mode?: "merchant_own" | "corporate";
+      whatsapp_welcome_template?: string;
+    };
+  };
+}
+
+export interface MultiLangRagSettings {
+  shop_id: string;
+  default_source_lang: string;
+  enabled_langs: string[];
+  multi_lang_rag_enabled: boolean;
+}
+
 export interface MerchantProduct {
   id: string;
   name: string;
@@ -235,6 +259,40 @@ export async function fetchMerchantProducts(shop: string) {
       chunkCount: chunkMap.get(product.id) ?? 0,
     })),
   };
+}
+
+export async function fetchMerchantSettings(shop: string) {
+  return (await internalMerchantRequest(shop, "/api/merchants/me")) as MerchantSettingsRecord;
+}
+
+export async function updateMerchantSettings(
+  shop: string,
+  payload: {
+    notification_phone?: string | null;
+    persona_settings?: MerchantSettingsRecord["merchant"]["persona_settings"];
+  },
+) {
+  return internalMerchantRequest(shop, "/api/merchants/me", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchMerchantMultiLangSettings(shop: string) {
+  return (await internalMerchantRequest(
+    shop,
+    "/api/merchants/me/multi-lang-rag-settings",
+  )) as { settings: MultiLangRagSettings };
+}
+
+export async function updateMerchantMultiLangSettings(
+  shop: string,
+  payload: Partial<MultiLangRagSettings>,
+) {
+  return internalMerchantRequest(shop, "/api/merchants/me/multi-lang-rag-settings", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function createMerchantProduct(

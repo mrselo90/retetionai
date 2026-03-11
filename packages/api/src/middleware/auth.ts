@@ -132,7 +132,7 @@ function isNonEmptyString(value: unknown): value is string {
 
 
 /** Internal product routes (worker -> API) */
-const INTERNAL_PRODUCT_PATHS = [
+const INTERNAL_PRODUCT_PATHS: Array<string | RegExp> = [
   '/api/products',
   /^\/api\/products\/[^/]+$/,
   '/api/products/enrich',
@@ -145,8 +145,14 @@ const INTERNAL_PRODUCT_PATHS = [
 ];
 
 /** Internal WhatsApp processing routes (worker -> API) */
-const INTERNAL_WHATSAPP_PATHS = [
+const INTERNAL_WHATSAPP_PATHS: Array<string | RegExp> = [
   /^\/api\/whatsapp\/inbound-events\/[^/]+\/process$/,
+];
+
+/** Internal merchant settings routes (shopify shell -> API) */
+const INTERNAL_MERCHANT_PATHS: Array<string | RegExp> = [
+  '/api/merchants/me',
+  '/api/merchants/me/multi-lang-rag-settings',
 ];
 
 function isInternalProductPath(path: string): boolean {
@@ -161,6 +167,12 @@ function isInternalWhatsAppPath(path: string): boolean {
   );
 }
 
+function isInternalMerchantPath(path: string): boolean {
+  return INTERNAL_MERCHANT_PATHS.some((pattern) =>
+    typeof pattern === 'string' ? path === pattern : pattern.test(path)
+  );
+}
+
 function authenticateInternalSecret(c: Context): {
   ok: boolean;
   merchantId?: string;
@@ -171,7 +183,8 @@ function authenticateInternalSecret(c: Context): {
   const path = c.req.path;
   const isProduct = isInternalProductPath(path);
   const isWhatsAppInternal = isInternalWhatsAppPath(path);
-  if (!isProduct && !isWhatsAppInternal) return null;
+  const isMerchantInternal = isInternalMerchantPath(path);
+  if (!isProduct && !isWhatsAppInternal && !isMerchantInternal) return null;
 
   const expectedSecret = process.env.INTERNAL_SERVICE_SECRET;
   const providedSecret = c.req.header('X-Internal-Secret');
