@@ -129,6 +129,64 @@ export interface MerchantProduct {
   chunkCount?: number;
 }
 
+export interface ShopifyCatalogProduct {
+  id: string;
+  title: string;
+  handle: string;
+  status: string;
+  descriptionHtml?: string;
+  productType?: string;
+  vendor?: string;
+  tags?: string[];
+  featuredImageUrl?: string;
+  variants?: Array<{
+    id: string;
+    title: string;
+    price: string;
+    sku?: string | null;
+  }>;
+}
+
+export interface MerchantProductInstruction {
+  product_id: string;
+  product_name?: string;
+  external_id?: string;
+  usage_instructions: string;
+  recipe_summary?: string | null;
+  video_url?: string | null;
+  prevention_tips?: string | null;
+}
+
+export interface MerchantAddon {
+  key: string;
+  name: string;
+  description: string;
+  priceMonthly: number;
+  status: string;
+  planAllowed: boolean;
+  activatedAt?: string | null;
+}
+
+export interface MerchantGuardrail {
+  id: string;
+  name: string;
+  description?: string;
+  apply_to: "user_message" | "ai_response" | "both";
+  match_type: "keywords" | "phrase";
+  value: string[] | string;
+  action: "block" | "escalate";
+  suggested_response?: string;
+}
+
+export interface SystemGuardrail {
+  id: string;
+  name: string;
+  description: string;
+  apply_to: "user_message" | "ai_response" | "both";
+  action: "block" | "escalate";
+  editable: false;
+}
+
 export interface MerchantConversation {
   id: string;
   userId?: string;
@@ -322,7 +380,7 @@ export async function updateMerchantMultiLangSettings(
 
 export async function createMerchantProduct(
   shop: string,
-  input: { name: string; url: string },
+  input: { name: string; url: string; external_id?: string; raw_text?: string },
 ) {
   return internalMerchantRequest(shop, "/api/products", {
     method: "POST",
@@ -345,6 +403,82 @@ export async function generateMerchantProductEmbeddings(shop: string, productId:
 export async function deleteMerchantProduct(shop: string, productId: string) {
   return internalMerchantRequest(shop, `/api/products/${productId}`, {
     method: "DELETE",
+  });
+}
+
+export async function fetchShopifyCatalog(
+  shop: string,
+  input?: { first?: number; after?: string },
+) {
+  const query = new URLSearchParams();
+  query.set("first", String(input?.first || 24));
+  if (input?.after) query.set("after", input.after);
+
+  return (await internalMerchantRequest(
+    shop,
+    `/api/integrations/shopify/products?${query.toString()}`,
+  )) as {
+    products: ShopifyCatalogProduct[];
+    shopDomain: string;
+    hasNextPage: boolean;
+    endCursor?: string | null;
+  };
+}
+
+export async function fetchMerchantProductInstructions(shop: string) {
+  return (await internalMerchantRequest(shop, "/api/products/instructions/list")) as {
+    instructions: MerchantProductInstruction[];
+  };
+}
+
+export async function updateMerchantProductInstruction(
+  shop: string,
+  productId: string,
+  payload: {
+    usage_instructions: string;
+    recipe_summary?: string;
+    video_url?: string;
+    prevention_tips?: string;
+  },
+) {
+  return internalMerchantRequest(shop, `/api/products/${productId}/instruction`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchMerchantGuardrails(shop: string) {
+  return (await internalMerchantRequest(shop, "/api/merchants/me/guardrails")) as {
+    system_guardrails: SystemGuardrail[];
+    custom_guardrails: MerchantGuardrail[];
+  };
+}
+
+export async function updateMerchantGuardrails(
+  shop: string,
+  customGuardrails: MerchantGuardrail[],
+) {
+  return internalMerchantRequest(shop, "/api/merchants/me/guardrails", {
+    method: "PUT",
+    body: JSON.stringify({ custom_guardrails: customGuardrails }),
+  });
+}
+
+export async function fetchMerchantAddons(shop: string) {
+  return (await internalMerchantRequest(shop, "/api/billing/addons")) as {
+    addons: MerchantAddon[];
+  };
+}
+
+export async function subscribeMerchantAddon(shop: string, addonKey: string) {
+  return internalMerchantRequest(shop, `/api/billing/addons/${addonKey}/subscribe`, {
+    method: "POST",
+  });
+}
+
+export async function cancelMerchantAddon(shop: string, addonKey: string) {
+  return internalMerchantRequest(shop, `/api/billing/addons/${addonKey}/cancel`, {
+    method: "POST",
   });
 }
 

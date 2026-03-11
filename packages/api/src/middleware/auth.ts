@@ -153,8 +153,16 @@ const INTERNAL_WHATSAPP_PATHS: Array<string | RegExp> = [
 const INTERNAL_MERCHANT_PATHS: Array<string | RegExp> = [
   '/api/merchants/me',
   '/api/merchants/me/multi-lang-rag-settings',
+  '/api/merchants/me/guardrails',
+  '/api/merchants/me/bot-info',
   '/api/conversations',
   '/api/customers',
+  '/api/products/instructions/list',
+  /^\/api\/products\/[^/]+\/instruction$/,
+  '/api/integrations/shopify/products',
+  '/api/billing/addons',
+  /^\/api\/billing\/addons\/[^/]+\/subscribe$/,
+  /^\/api\/billing\/addons\/[^/]+\/cancel$/,
 ];
 
 function isInternalProductPath(path: string): boolean {
