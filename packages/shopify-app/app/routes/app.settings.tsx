@@ -1,6 +1,23 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
+import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
+import { useMemo, useRef, useState } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import { EditIcon, GlobeIcon, SettingsIcon } from "@shopify/polaris-icons";
+import {
+  Card,
+  Checkbox,
+  ContextualSaveBar,
+  InlineGrid,
+  Layout,
+  Page,
+  ProgressBar,
+  Select,
+  SkeletonBodyText,
+  SkeletonDisplayText,
+  SkeletonPage,
+  Text,
+  TextField,
+} from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import {
   fetchMerchantMultiLangSettings,
@@ -9,6 +26,7 @@ import {
   updateMerchantMultiLangSettings,
   updateMerchantSettings,
 } from "../platform.server";
+import { MetricCard, SectionCard, StatusBadge } from "../components/shell-ui";
 
 type ActionResult = {
   ok: boolean;
@@ -41,11 +59,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const formData = await request.formData();
-  const intent = String(formData.get("intent") || "");
 
   try {
-    if (intent === "save-persona") {
-      await updateMerchantSettings(session.shop, {
+    const defaultSourceLang = String(formData.get("default_source_lang") || "en").trim() || "en";
+    const rawLangs = String(formData.get("enabled_langs") || defaultSourceLang)
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const enabledLangs = Array.from(new Set([defaultSourceLang, ...rawLangs]));
+
+    await Promise.all([
+      updateMerchantSettings(session.shop, {
         notification_phone: String(formData.get("notification_phone") || "").trim() || null,
         persona_settings: {
           bot_name: String(formData.get("bot_name") || "").trim() || undefined,
@@ -68,35 +92,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           whatsapp_welcome_template:
             String(formData.get("whatsapp_welcome_template") || "").trim() || undefined,
         },
-      });
-
-      return {
-        ok: true,
-        message: "Merchant settings saved successfully.",
-      } satisfies ActionResult;
-    }
-
-    if (intent === "save-multilang") {
-      const defaultSourceLang = String(formData.get("default_source_lang") || "en").trim() || "en";
-      const rawLangs = String(formData.get("enabled_langs") || defaultSourceLang)
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean);
-      const enabledLangs = Array.from(new Set([defaultSourceLang, ...rawLangs]));
-
-      await updateMerchantMultiLangSettings(session.shop, {
+      }),
+      updateMerchantMultiLangSettings(session.shop, {
         default_source_lang: defaultSourceLang,
         enabled_langs: enabledLangs,
         multi_lang_rag_enabled: formData.get("multi_lang_rag_enabled") === "on",
-      });
+      }),
+    ]);
 
-      return {
-        ok: true,
-        message: "Multilingual RAG settings saved successfully.",
-      } satisfies ActionResult;
-    }
-
-    return { ok: false, error: "Unknown action." } satisfies ActionResult;
+    return { ok: true, message: "Settings saved successfully." } satisfies ActionResult;
   } catch (error) {
     return {
       ok: false,
@@ -109,225 +113,173 @@ export default function SettingsPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const busy = navigation.state === "submitting";
+  const submit = useSubmit();
+  const formRef = useRef<HTMLFormElement>(null);
   const persona = data.merchant.persona_settings || {};
 
+  const [formState, setFormState] = useState<{
+    bot_name: string;
+    tone: "friendly" | "professional" | "casual" | "formal";
+    response_length: "short" | "medium" | "long";
+    whatsapp_sender_mode: "merchant_own" | "corporate";
+    notification_phone: string;
+    whatsapp_welcome_template: string;
+    default_source_lang: string;
+    enabled_langs: string;
+    emoji: boolean;
+    multi_lang_rag_enabled: boolean;
+  }>({
+    bot_name: persona.bot_name || "",
+    tone: persona.tone || "friendly",
+    response_length: persona.response_length || "medium",
+    whatsapp_sender_mode: persona.whatsapp_sender_mode || "merchant_own",
+    notification_phone: data.merchant.notification_phone || "",
+    whatsapp_welcome_template: persona.whatsapp_welcome_template || "",
+    default_source_lang: data.multiLang.default_source_lang || "en",
+    enabled_langs: (data.multiLang.enabled_langs || []).join(", "),
+    emoji: persona.emoji !== false,
+    multi_lang_rag_enabled: Boolean(data.multiLang.multi_lang_rag_enabled),
+  });
+
+  const initialState = useMemo(
+    () => JSON.stringify(formState),
+    [],
+  );
+  const currentState = JSON.stringify(formState);
+  const dirty = initialState !== currentState;
+  const busy = navigation.state !== "idle";
+
+  const save = () => {
+    if (formRef.current) submit(formRef.current);
+  };
+
+  const discard = () => {
+    setFormState({
+      bot_name: persona.bot_name || "",
+      tone: persona.tone || "friendly",
+      response_length: persona.response_length || "medium",
+      whatsapp_sender_mode: persona.whatsapp_sender_mode || "merchant_own",
+      notification_phone: data.merchant.notification_phone || "",
+      whatsapp_welcome_template: persona.whatsapp_welcome_template || "",
+      default_source_lang: data.multiLang.default_source_lang || "en",
+      enabled_langs: (data.multiLang.enabled_langs || []).join(", "),
+      emoji: persona.emoji !== false,
+      multi_lang_rag_enabled: Boolean(data.multiLang.multi_lang_rag_enabled),
+    });
+  };
+
+  if (navigation.state === "loading") {
+    return (
+      <SkeletonPage title="Settings" primaryAction>
+        <Layout>
+          <Layout.Section>
+            <Card padding="500">
+              <SkeletonDisplayText size="small" />
+              <SkeletonBodyText lines={4} />
+            </Card>
+          </Layout.Section>
+        </Layout>
+      </SkeletonPage>
+    );
+  }
+
   return (
-    <>
-      <section className="shellSection">
-        <div className="shellSectionHeader">
-          <div>
-            <h2 className="shellSectionTitle">Settings</h2>
-            <p className="shellSectionText">
-              Core merchant configuration for bot behavior and WhatsApp routing.
-            </p>
-          </div>
-          <span className="shellStatus shellStatusConnected">
-            {data.overview.subscription?.status || "inactive"}
-          </span>
-        </div>
+    <Page
+      fullWidth
+      title="Settings"
+      subtitle="Merchant bot behavior, WhatsApp routing, and multilingual retrieval controls."
+      primaryAction={{ content: "Save", onAction: save, icon: EditIcon, disabled: !dirty }}
+    >
+      {dirty ? (
+        <ContextualSaveBar
+          message="Unsaved settings"
+          saveAction={{ onAction: save, loading: busy, disabled: !dirty }}
+          discardAction={{ onAction: discard, disabled: busy }}
+        />
+      ) : null}
 
-        {actionData?.message ? (
-          <div className="shellAlert shellAlertSuccess">{actionData.message}</div>
-        ) : null}
-        {actionData?.error ? (
-          <div className="shellAlert shellAlertError">{actionData.error}</div>
-        ) : null}
+      <Layout>
+        <Layout.Section>
+          {busy ? <ProgressBar progress={80} size="small" /> : null}
+        </Layout.Section>
 
-        <Form method="post" className="shellFormStack">
-          <input type="hidden" name="intent" value="save-persona" />
+        <Layout.Section>
+          <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
+            <MetricCard label="Bot name" value={formState.bot_name || "Recete"} hint="Customer-facing assistant identity." />
+            <MetricCard label="Tone" value={formState.tone} hint="Default voice style for outbound and reply messaging." />
+            <MetricCard label="Sender mode" value={formState.whatsapp_sender_mode} hint="WhatsApp routing mode configured for this merchant." />
+            <MetricCard label="Languages" value={formState.enabled_langs.split(",").filter(Boolean).length} hint="Configured multilingual retrieval locales." />
+          </InlineGrid>
+        </Layout.Section>
 
-          <div className="shellSettingsGrid">
-            <article className="shellCard">
-              <h3 className="shellCardTitle">Bot profile</h3>
-              <div className="shellFormGrid">
-                <label className="shellField">
-                  <span>Bot name</span>
-                  <input
-                    className="shellInput"
-                    type="text"
-                    name="bot_name"
-                    defaultValue={persona.bot_name || ""}
-                    disabled={busy}
-                  />
-                </label>
+        <Layout.Section>
+          {actionData?.message ? <StatusBadge status="active">{actionData.message}</StatusBadge> : null}
+          {actionData?.error ? <Text as="p" variant="bodyMd" tone="critical">{actionData.error}</Text> : null}
+        </Layout.Section>
 
-                <label className="shellField">
-                  <span>Tone</span>
-                  <select
-                    className="shellInput"
-                    name="tone"
-                    defaultValue={persona.tone || "friendly"}
-                    disabled={busy}
-                  >
-                    <option value="friendly">Friendly</option>
-                    <option value="professional">Professional</option>
-                    <option value="casual">Casual</option>
-                    <option value="formal">Formal</option>
-                  </select>
-                </label>
+        <Layout.Section>
+          <SectionCard
+            title="Merchant controls"
+            subtitle="These are the core behavior settings merchants expect to manage without leaving Shopify."
+            badge={<StatusBadge status={data.overview.subscription?.status}>{data.overview.subscription?.status || "inactive"}</StatusBadge>}
+          >
+            <Form method="post" ref={formRef}>
+              <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+                <TextField label="Bot name" name="bot_name" value={formState.bot_name} onChange={(value) => setFormState((current) => ({ ...current, bot_name: value }))} autoComplete="off" />
+                <Select label="Tone" name="tone" value={formState.tone} options={[{ label: "Friendly", value: "friendly" }, { label: "Professional", value: "professional" }, { label: "Casual", value: "casual" }, { label: "Formal", value: "formal" }]} onChange={(value) => setFormState((current) => ({ ...current, tone: value as typeof current.tone }))} />
+                <Select label="Response length" name="response_length" value={formState.response_length} options={[{ label: "Short", value: "short" }, { label: "Medium", value: "medium" }, { label: "Long", value: "long" }]} onChange={(value) => setFormState((current) => ({ ...current, response_length: value as typeof current.response_length }))} />
+                <Select label="Sender mode" name="whatsapp_sender_mode" value={formState.whatsapp_sender_mode} options={[{ label: "Merchant own number", value: "merchant_own" }, { label: "Corporate number", value: "corporate" }]} onChange={(value) => setFormState((current) => ({ ...current, whatsapp_sender_mode: value as typeof current.whatsapp_sender_mode }))} />
+                <TextField label="Notification phone" name="notification_phone" value={formState.notification_phone} onChange={(value) => setFormState((current) => ({ ...current, notification_phone: value }))} autoComplete="off" />
+                <TextField label="Enabled languages" name="enabled_langs" value={formState.enabled_langs} onChange={(value) => setFormState((current) => ({ ...current, enabled_langs: value }))} autoComplete="off" helpText="Comma separated values such as en, tr, de" />
+                <Select label="Default source language" name="default_source_lang" value={formState.default_source_lang} options={[{ label: "English", value: "en" }, { label: "Turkish", value: "tr" }, { label: "Hungarian", value: "hu" }, { label: "German", value: "de" }, { label: "Greek", value: "el" }]} onChange={(value) => setFormState((current) => ({ ...current, default_source_lang: value }))} />
+                <TextField label="Welcome template" name="whatsapp_welcome_template" value={formState.whatsapp_welcome_template} onChange={(value) => setFormState((current) => ({ ...current, whatsapp_welcome_template: value }))} autoComplete="off" multiline={6} />
+              </InlineGrid>
+              <Layout>
+                <Layout.Section>
+                  <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+                    <Checkbox
+                      label="Allow emoji in responses"
+                      name="emoji"
+                      checked={formState.emoji}
+                      onChange={(checked) => setFormState((current) => ({ ...current, emoji: checked }))}
+                    />
+                    <Checkbox
+                      label="Enable multilingual RAG"
+                      name="multi_lang_rag_enabled"
+                      checked={formState.multi_lang_rag_enabled}
+                      onChange={(checked) =>
+                        setFormState((current) => ({ ...current, multi_lang_rag_enabled: checked }))
+                      }
+                    />
+                  </InlineGrid>
+                </Layout.Section>
+              </Layout>
+            </Form>
+          </SectionCard>
+        </Layout.Section>
 
-                <label className="shellField">
-                  <span>Response length</span>
-                  <select
-                    className="shellInput"
-                    name="response_length"
-                    defaultValue={persona.response_length || "medium"}
-                    disabled={busy}
-                  >
-                    <option value="short">Short</option>
-                    <option value="medium">Medium</option>
-                    <option value="long">Long</option>
-                  </select>
-                </label>
-
-                <label className="shellField">
-                  <span>Sender mode</span>
-                  <select
-                    className="shellInput"
-                    name="whatsapp_sender_mode"
-                    defaultValue={persona.whatsapp_sender_mode || "merchant_own"}
-                    disabled={busy}
-                  >
-                    <option value="merchant_own">Merchant own number</option>
-                    <option value="corporate">Corporate number</option>
-                  </select>
-                </label>
-              </div>
-
-              <label className="shellToggle">
-                <input
-                  type="checkbox"
-                  name="emoji"
-                  defaultChecked={persona.emoji !== false}
-                  disabled={busy}
-                />
-                <span>Allow emoji in responses</span>
-              </label>
-            </article>
-
-            <article className="shellCard">
-              <h3 className="shellCardTitle">Notifications and template</h3>
-              <div className="shellFormGrid">
-                <label className="shellField shellFieldFull">
-                  <span>Notification phone</span>
-                  <input
-                    className="shellInput"
-                    type="tel"
-                    name="notification_phone"
-                    defaultValue={data.merchant.notification_phone || ""}
-                    placeholder="+90 5xx xxx xx xx"
-                    disabled={busy}
-                  />
-                </label>
-
-                <label className="shellField shellFieldFull">
-                  <span>Welcome template</span>
-                  <textarea
-                    className="shellInput shellTextarea"
-                    name="whatsapp_welcome_template"
-                    rows={7}
-                    defaultValue={persona.whatsapp_welcome_template || ""}
-                    disabled={busy}
-                  />
-                </label>
-              </div>
-            </article>
-          </div>
-
-          <div className="shellFormActions">
-            <button className="shellButton shellButtonPrimary shellButtonAsButton" type="submit" disabled={busy}>
-              {busy ? "Saving..." : "Save merchant settings"}
-            </button>
-          </div>
-        </Form>
-      </section>
-
-      <section className="shellSection">
-        <div className="shellSectionHeader">
-          <div>
-            <h3 className="shellSectionTitle">Multilingual RAG</h3>
-            <p className="shellSectionText">
-              Configure the source language and enabled languages for multilingual retrieval.
-            </p>
-          </div>
-        </div>
-
-        <Form method="post" className="shellFormStack">
-          <input type="hidden" name="intent" value="save-multilang" />
-
-          <div className="shellSettingsGrid">
-            <article className="shellCard">
-              <div className="shellFormGrid">
-                <label className="shellField">
-                  <span>Default source language</span>
-                  <select
-                    className="shellInput"
-                    name="default_source_lang"
-                    defaultValue={data.multiLang.default_source_lang || "en"}
-                    disabled={busy}
-                  >
-                    <option value="en">English</option>
-                    <option value="tr">Turkish</option>
-                    <option value="hu">Hungarian</option>
-                    <option value="de">German</option>
-                    <option value="el">Greek</option>
-                  </select>
-                </label>
-
-                <label className="shellField shellFieldFull">
-                  <span>Enabled languages</span>
-                  <input
-                    className="shellInput"
-                    type="text"
-                    name="enabled_langs"
-                    defaultValue={(data.multiLang.enabled_langs || []).join(", ")}
-                    placeholder="en, tr, de"
-                    disabled={busy}
-                  />
-                </label>
-              </div>
-
-              <label className="shellToggle">
-                <input
-                  type="checkbox"
-                  name="multi_lang_rag_enabled"
-                  defaultChecked={Boolean(data.multiLang.multi_lang_rag_enabled)}
-                  disabled={busy}
-                />
-                <span>Enable multilingual RAG</span>
-              </label>
-            </article>
-
-            <article className="shellCard">
-              <h4 className="shellCardTitle">Current state</h4>
-              <div className="shellDefinitionList">
-                <div className="shellDefinitionRow">
-                  <span>Default language</span>
-                  <strong>{data.multiLang.default_source_lang || "en"}</strong>
-                </div>
-                <div className="shellDefinitionRow">
-                  <span>Enabled languages</span>
-                  <strong>{(data.multiLang.enabled_langs || []).join(", ") || "en"}</strong>
-                </div>
-                <div className="shellDefinitionRow">
-                  <span>Status</span>
-                  <strong>
-                    {data.multiLang.multi_lang_rag_enabled ? "Enabled" : "Disabled"}
-                  </strong>
-                </div>
-              </div>
-            </article>
-          </div>
-
-          <div className="shellFormActions">
-            <button className="shellButton shellButtonPrimary shellButtonAsButton" type="submit" disabled={busy}>
-              {busy ? "Saving..." : "Save multilingual settings"}
-            </button>
-          </div>
-        </Form>
-      </section>
-    </>
+        <Layout.Section>
+          <SectionCard
+            title="Operational note"
+            subtitle="Keep language sprawl and bot behavior intentional. More options are not always better for merchant outcomes."
+            badge={<StatusBadge status={formState.multi_lang_rag_enabled ? "active" : "pending"}>{formState.multi_lang_rag_enabled ? "Multilingual on" : "Multilingual off"}</StatusBadge>}
+          >
+            <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+              <Card padding="500">
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Default source language should match the merchant’s strongest product knowledge base.
+                </Text>
+              </Card>
+              <Card padding="500">
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  The embedded shell should expose the main controls clearly even before advanced guardrails are added.
+                </Text>
+              </Card>
+            </InlineGrid>
+          </SectionCard>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }
 

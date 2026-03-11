@@ -1,4 +1,5 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
           href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css"
         />
         <Meta />
+        <link rel="stylesheet" href={polarisStyles} />
         <Links />
       </head>
       <body>

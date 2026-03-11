@@ -1,6 +1,23 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
+import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
+import { useMemo, useRef, useState } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import { CircleUpIcon, DeleteIcon, MagicIcon, RefreshIcon } from "@shopify/polaris-icons";
+import {
+  Button,
+  Card,
+  ContextualSaveBar,
+  EmptyState,
+  InlineGrid,
+  Layout,
+  Page,
+  ProgressBar,
+  SkeletonBodyText,
+  SkeletonDisplayText,
+  SkeletonPage,
+  Text,
+  TextField,
+} from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import {
   createMerchantProduct,
@@ -9,6 +26,7 @@ import {
   generateMerchantProductEmbeddings,
   scrapeMerchantProduct,
 } from "../platform.server";
+import { MetricCard, SectionCard, StatusBadge } from "../components/shell-ui";
 
 type ActionResult = {
   ok: boolean;
@@ -32,55 +50,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const name = String(formData.get("name") || "").trim();
         const url = String(formData.get("url") || "").trim();
         if (!name || !url) {
-          return {
-            ok: false,
-            error: "Name and URL are required.",
-          } satisfies ActionResult;
+          return { ok: false, error: "Name and URL are required." } satisfies ActionResult;
         }
-
         await createMerchantProduct(session.shop, { name, url });
-        return {
-          ok: true,
-          message: "Product created successfully.",
-        } satisfies ActionResult;
+        return { ok: true, message: "Product created successfully." } satisfies ActionResult;
       }
-
       case "scrape": {
         const productId = String(formData.get("productId") || "").trim();
-        if (!productId) {
-          return { ok: false, error: "Missing product id." } satisfies ActionResult;
-        }
+        if (!productId) return { ok: false, error: "Missing product id." } satisfies ActionResult;
         await scrapeMerchantProduct(session.shop, productId);
-        return {
-          ok: true,
-          message: "Scrape completed and content was refreshed.",
-        } satisfies ActionResult;
+        return { ok: true, message: "Scrape completed and content was refreshed." } satisfies ActionResult;
       }
-
       case "embeddings": {
         const productId = String(formData.get("productId") || "").trim();
-        if (!productId) {
-          return { ok: false, error: "Missing product id." } satisfies ActionResult;
-        }
+        if (!productId) return { ok: false, error: "Missing product id." } satisfies ActionResult;
         await generateMerchantProductEmbeddings(session.shop, productId);
-        return {
-          ok: true,
-          message: "Embeddings generated successfully.",
-        } satisfies ActionResult;
+        return { ok: true, message: "Embeddings generated successfully." } satisfies ActionResult;
       }
-
       case "delete": {
         const productId = String(formData.get("productId") || "").trim();
-        if (!productId) {
-          return { ok: false, error: "Missing product id." } satisfies ActionResult;
-        }
+        if (!productId) return { ok: false, error: "Missing product id." } satisfies ActionResult;
         await deleteMerchantProduct(session.shop, productId);
-        return {
-          ok: true,
-          message: "Product deleted successfully.",
-        } satisfies ActionResult;
+        return { ok: true, message: "Product deleted successfully." } satisfies ActionResult;
       }
-
       default:
         return { ok: false, error: "Unknown action." } satisfies ActionResult;
     }
@@ -96,151 +88,178 @@ export default function ProductsPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const busy = navigation.state === "submitting";
+  const submit = useSubmit();
+  const formRef = useRef<HTMLFormElement>(null);
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const busy = navigation.state !== "idle";
+  const dirty = name.trim().length > 0 || url.trim().length > 0;
+
+  const stats = useMemo(() => {
+    const scraped = data.products.filter((product) => Boolean(product.raw_text)).length;
+    const embedded = data.products.filter((product) => (product.chunkCount || 0) > 0).length;
+    return {
+      scraped,
+      embedded,
+      coverage: data.products.length > 0 ? Math.round((embedded / data.products.length) * 100) : 0,
+    };
+  }, [data.products]);
+
+  const handleSave = () => {
+    if (formRef.current) submit(formRef.current);
+  };
+
+  const handleDiscard = () => {
+    setName("");
+    setUrl("");
+  };
+
+  if (navigation.state === "loading") {
+    return (
+      <SkeletonPage title="Products" primaryAction>
+        <Layout>
+          <Layout.Section>
+            <Card padding="500">
+              <SkeletonDisplayText size="small" />
+              <SkeletonBodyText lines={3} />
+            </Card>
+          </Layout.Section>
+        </Layout>
+      </SkeletonPage>
+    );
+  }
 
   return (
-    <>
-      <section className="shellSection">
-        <div className="shellSectionHeader">
-          <div>
-            <h2 className="shellSectionTitle">Products</h2>
-            <p className="shellSectionText">
-              Add products, scrape product pages, and generate embeddings from inside
-              the Shopify shell.
-            </p>
-          </div>
-          <span className="shellStatus shellStatusConnected">
-            {data.products.length} products
-          </span>
-        </div>
+    <Page
+      fullWidth
+      title="Products"
+      subtitle="Catalog workspace for scraping, enrichment, and merchant-ready AI product coverage."
+      primaryAction={{ content: "Add product", icon: CircleUpIcon, onAction: handleSave, disabled: !dirty }}
+    >
+      {dirty ? (
+        <ContextualSaveBar
+          message="Unsaved product draft"
+          saveAction={{ onAction: handleSave, loading: busy, disabled: !dirty }}
+          discardAction={{ onAction: handleDiscard, disabled: busy }}
+        />
+      ) : null}
 
-        {actionData?.message ? (
-          <div className="shellAlert shellAlertSuccess">{actionData.message}</div>
-        ) : null}
-        {actionData?.error ? (
-          <div className="shellAlert shellAlertError">{actionData.error}</div>
-        ) : null}
+      <Layout>
+        <Layout.Section>
+          {busy ? <ProgressBar progress={75} size="small" /> : null}
+        </Layout.Section>
 
-        <Form method="post" className="shellProductCreateForm">
-          <input type="hidden" name="intent" value="create" />
-          <label className="shellField">
-            <span>Name</span>
-            <input
-              className="shellInput"
-              type="text"
-              name="name"
-              placeholder="Hydrating cleanser"
-              disabled={busy}
-            />
-          </label>
-          <label className="shellField">
-            <span>Product URL</span>
-            <input
-              className="shellInput"
-              type="url"
-              name="url"
-              placeholder="https://example.com/products/hydrating-cleanser"
-              disabled={busy}
-            />
-          </label>
-          <button className="shellButton shellButtonPrimary shellButtonAsButton" type="submit" disabled={busy}>
-            {busy ? "Working..." : "Add product"}
-          </button>
-        </Form>
-      </section>
+        <Layout.Section>
+          <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
+            <MetricCard label="Catalog rows" value={data.products.length} hint="Products visible inside Recete." />
+            <MetricCard label="Scraped" value={stats.scraped} hint="Products with refreshed page content." />
+            <MetricCard label="Embedded" value={stats.embedded} hint="Products prepared for RAG and downstream AI logic." />
+            <MetricCard label="Coverage" value={`${stats.coverage}%`} hint="Share of catalog ready for AI flows." />
+          </InlineGrid>
+        </Layout.Section>
 
-      <section className="shellSection">
-        <div className="shellSectionHeader">
-          <div>
-            <h3 className="shellSectionTitle">Catalog workspace</h3>
-            <p className="shellSectionText">
-              Current merchant catalog inside Recete. Scrape refreshes product content and
-              embeddings prepare it for recipe and RAG flows.
-            </p>
-          </div>
-        </div>
+        <Layout.Section>
+          <SectionCard
+            title="Add catalog entry"
+            subtitle="Use this form when a merchant needs to seed or repair a product record inside the embedded app."
+            badge={actionData?.message ? <StatusBadge status="active">{actionData.message}</StatusBadge> : undefined}
+          >
+            {actionData?.error ? <Text as="p" variant="bodyMd" tone="critical">{actionData.error}</Text> : null}
+            <Form method="post" ref={formRef}>
+              <input type="hidden" name="intent" value="create" />
+              <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+                <TextField
+                  label="Product name"
+                  name="name"
+                  value={name}
+                  onChange={setName}
+                  autoComplete="off"
+                  placeholder="Hydrating cleanser"
+                />
+                <TextField
+                  label="Product URL"
+                  name="url"
+                  value={url}
+                  onChange={setUrl}
+                  autoComplete="off"
+                  placeholder="https://example.com/products/hydrating-cleanser"
+                />
+              </InlineGrid>
+            </Form>
+          </SectionCard>
+        </Layout.Section>
 
-        {data.products.length > 0 ? (
-          <div className="shellList shellProductList">
-            {data.products.map((product) => (
-              <div className="shellListItem shellProductItem" key={product.id}>
-                <div className="shellListMain">
-                  <div className="shellProductHeader">
-                    <p className="shellListTitle">{product.name}</p>
-                    <div className="shellProductBadges">
-                      <span className="shellStatus shellStatusConnected">
-                        {product.chunkCount || 0} chunks
-                      </span>
-                      {product.raw_text ? (
-                        <span className="shellStatus shellStatusActive">scraped</span>
-                      ) : (
-                        <span className="shellStatus shellStatusInactive">not scraped</span>
-                      )}
-                    </div>
-                  </div>
-                  <p className="shellListMeta">
-                    {product.url}{" "}
-                    {product.external_id ? `· External ID: ${product.external_id}` : ""}
-                  </p>
-                  <p className="shellListMeta">
-                    Updated{" "}
-                    {product.updated_at
-                      ? new Date(product.updated_at).toLocaleString()
-                      : "unknown"}
-                  </p>
-                </div>
+        <Layout.Section>
+          <SectionCard
+            title="Catalog operations"
+            subtitle="Merchants should see product status, enrichment depth, and the next maintenance action in one screen."
+          >
+            {data.products.length > 0 ? (
+              <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+                {data.products.map((product) => (
+                  <Card key={product.id} padding="500">
+                    <Layout>
+                      <Layout.Section>
+                        <Text as="h3" variant="headingLg">{product.name}</Text>
+                        <Text as="p" variant="bodyMd" tone="subdued">{product.url}</Text>
+                      </Layout.Section>
+                      <Layout.Section>
+                        <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                          <StatusBadge status={product.raw_text ? "active" : "pending"}>
+                            {product.raw_text ? "Scraped" : "Needs scrape"}
+                          </StatusBadge>
+                          <StatusBadge status={(product.chunkCount || 0) > 0 ? "active" : "pending"}>
+                            {`${product.chunkCount || 0} chunks`}
+                          </StatusBadge>
+                        </InlineGrid>
+                      </Layout.Section>
+                      <Layout.Section>
+                        <InlineGrid columns={{ xs: 1, sm: 3 }} gap="200">
+                          <InlineActionForm productId={product.id} intent="scrape" label="Scrape" icon={RefreshIcon} />
+                          <InlineActionForm productId={product.id} intent="embeddings" label="Generate embeddings" icon={MagicIcon} />
+                          <InlineActionForm productId={product.id} intent="delete" label="Delete" icon={DeleteIcon} destructive />
+                        </InlineGrid>
+                      </Layout.Section>
+                    </Layout>
+                  </Card>
+                ))}
+              </InlineGrid>
+            ) : (
+              <EmptyState
+                heading="No products visible yet"
+                image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+              >
+                Add the first product above, then scrape it so the AI pipeline has usable product context.
+              </EmptyState>
+            )}
+          </SectionCard>
+        </Layout.Section>
+      </Layout>
+    </Page>
+  );
+}
 
-                <div className="shellActionRow">
-                  <Form method="post">
-                    <input type="hidden" name="intent" value="scrape" />
-                    <input type="hidden" name="productId" value={product.id} />
-                    <button
-                      className="shellButton shellButtonSecondary shellButtonAsButton"
-                      type="submit"
-                      disabled={busy}
-                    >
-                      Scrape
-                    </button>
-                  </Form>
-
-                  <Form method="post">
-                    <input type="hidden" name="intent" value="embeddings" />
-                    <input type="hidden" name="productId" value={product.id} />
-                    <button
-                      className="shellButton shellButtonSecondary shellButtonAsButton"
-                      type="submit"
-                      disabled={busy}
-                    >
-                      Generate embeddings
-                    </button>
-                  </Form>
-
-                  <Form method="post">
-                    <input type="hidden" name="intent" value="delete" />
-                    <input type="hidden" name="productId" value={product.id} />
-                    <button
-                      className="shellButton shellButtonDanger shellButtonAsButton"
-                      type="submit"
-                      disabled={busy}
-                    >
-                      Delete
-                    </button>
-                  </Form>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="shellCard">
-            <h3 className="shellCardTitle">No products visible yet</h3>
-            <p className="shellSectionText">
-              Add the first product above. The next step is scraping the product page
-              so the AI pipeline can use it.
-            </p>
-          </div>
-        )}
-      </section>
-    </>
+function InlineActionForm({
+  productId,
+  intent,
+  label,
+  icon,
+  destructive = false,
+}: {
+  productId: string;
+  intent: string;
+  label: string;
+  icon: unknown;
+  destructive?: boolean;
+}) {
+  return (
+    <Form method="post">
+      <input type="hidden" name="intent" value={intent} />
+      <input type="hidden" name="productId" value={productId} />
+      <Button submit fullWidth icon={icon as never} variant={destructive ? "secondary" : "primary"} tone={destructive ? "critical" : undefined}>
+        {label}
+      </Button>
+    </Form>
   );
 }
 

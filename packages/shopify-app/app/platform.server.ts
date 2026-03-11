@@ -129,6 +129,31 @@ export interface MerchantProduct {
   chunkCount?: number;
 }
 
+export interface MerchantConversation {
+  id: string;
+  userId?: string;
+  orderId?: string | null;
+  userName?: string;
+  phone?: string;
+  messageCount: number;
+  lastMessageAt?: string | null;
+  status?: string;
+  conversationStatus?: "ai" | "human" | "resolved";
+  sentiment?: "positive" | "neutral" | "negative";
+}
+
+export interface MerchantCustomer {
+  id: string;
+  name: string;
+  phone: string;
+  consent?: string;
+  segment?: string;
+  churnProbability?: number;
+  orderCount: number;
+  conversationCount: number;
+  createdAt?: string | null;
+}
+
 async function fetchMerchantOverviewOrThrow(shop: string) {
   return fetchMerchantOverview(shop);
 }
@@ -321,4 +346,31 @@ export async function deleteMerchantProduct(shop: string, productId: string) {
   return internalMerchantRequest(shop, `/api/products/${productId}`, {
     method: "DELETE",
   });
+}
+
+export async function fetchMerchantConversations(shop: string) {
+  return (await internalMerchantRequest(shop, "/api/conversations")) as {
+    conversations: MerchantConversation[];
+  };
+}
+
+export async function fetchMerchantCustomers(
+  shop: string,
+  input?: { page?: number; limit?: number; segment?: string; search?: string },
+) {
+  const query = new URLSearchParams();
+  query.set("page", String(input?.page || 1));
+  query.set("limit", String(input?.limit || 20));
+  if (input?.segment && input.segment !== "all") query.set("segment", input.segment);
+  if (input?.search) query.set("search", input.search);
+
+  return (await internalMerchantRequest(
+    shop,
+    `/api/customers?${query.toString()}`,
+  )) as {
+    customers: MerchantCustomer[];
+    total: number;
+    page: number;
+    limit: number;
+  };
 }
