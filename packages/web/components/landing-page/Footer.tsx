@@ -7,8 +7,8 @@ import { Twitter, Github, Linkedin } from 'lucide-react';
 
 const productLinks = ['features', 'howItWorks', 'pricing', 'bookDemo'] as const;
 const companyLinks = ['aboutUs', 'blog', 'careers', 'contact'] as const;
-const legalLinks = ['privacyPolicy', 'termsOfService', 'cookiePolicy'] as const;
-const legalHrefs = ['/privacy-policy', '/terms-of-service', '/cookie-policy'];
+const legalLinks = ['privacyPolicy', 'termsOfService', 'cookiePolicy', 'dataProcessingAddendum', 'security'] as const;
+const legalHrefs = ['/privacy-policy', '/terms-of-service', '/cookie-policy', '/data-processing-addendum', '/security'];
 
 export function Footer() {
     const t = useTranslations('Landing.footer');

@@ -36,7 +36,7 @@ import {
 } from "@shopify/polaris-icons";
 
 import { authenticate } from "../shopify.server";
-import { fetchMerchantOverview } from "../platform.server";
+import { fetchMerchantSettings } from "../platform.server";
 
 const primaryNavigation = [
   { to: "/app", label: "Overview", hint: "Launch status", icon: HomeIcon },
@@ -55,17 +55,14 @@ const secondaryNavigation = [
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  const overview = await fetchMerchantOverview(session.shop);
+  const merchantSettings = await fetchMerchantSettings(request);
 
   // eslint-disable-next-line no-undef
   return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
     shop: session.shop,
-    merchantName: overview.merchant.name || session.shop.replace(".myshopify.com", ""),
-    subscriptionStatus:
-      overview.subscription?.status ||
-      overview.merchant.subscription_status ||
-      "inactive",
+    merchantName: merchantSettings.merchant.name || session.shop.replace(".myshopify.com", ""),
+    subscriptionStatus: merchantSettings.merchant.subscription_status || "inactive",
   };
 };
 

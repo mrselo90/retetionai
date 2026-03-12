@@ -40,7 +40,7 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       setError(t('errors.passwordLength'));
       return;
     }
@@ -118,7 +118,7 @@ export default function ResetPasswordPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 placeholder="••••••••"
                 className="h-11"
               />
@@ -134,7 +134,7 @@ export default function ResetPasswordPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 placeholder="••••••••"
                 className="h-11"
               />

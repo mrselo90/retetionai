@@ -8,10 +8,10 @@ import { fetchMerchantConversations } from "../platform.server";
 import { ActionCard, EmptyCard, MetricCard, SectionCard, ShellPage } from "../components/shell-ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  await authenticate.admin(request);
 
   try {
-    return await fetchMerchantConversations(session.shop);
+    return await fetchMerchantConversations(request);
   } catch (error) {
     return {
       conversations: [],

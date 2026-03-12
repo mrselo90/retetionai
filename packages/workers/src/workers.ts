@@ -553,6 +553,7 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
       const internalHeaders = {
         'Content-Type': 'application/json',
         ...(internalSecret ? { 'X-Internal-Secret': internalSecret } : {}),
+        'X-Internal-Merchant-Id': merchantId,
       };
 
       // Step 1: Scrape product
@@ -562,7 +563,7 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
         throw new Error(scrapeResult.error || 'Scraping failed');
       }
 
-      // Step 2: Enrich product content with LLM via API (internal route, no auth)
+      // Step 2: Enrich product content with LLM via API (internal route)
       const rawContent = scrapeResult.product!.rawContent;
       let enrichedText = rawContent;
       const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:3001';

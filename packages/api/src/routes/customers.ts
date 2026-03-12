@@ -7,8 +7,11 @@ import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
 import { getSupabaseServiceClient } from '@recete/shared';
 import { decryptPhone } from '../lib/encryption.js';
+import { logPersonalDataAccess } from '../lib/personalDataAudit.js';
+import { getCachedApiResponse, setCachedApiResponse } from '../lib/cache.js';
 
 const customers = new Hono();
+const CUSTOMERS_CACHE_TTL_SECONDS = 15;
 customers.use('/*', authMiddleware);
 
 /**
@@ -18,11 +21,38 @@ customers.use('/*', authMiddleware);
 customers.get('/', async (c) => {
   try {
     const merchantId = c.get('merchantId') as string;
+    const authMethod = c.get('authMethod') as 'jwt' | 'shopify' | 'internal' | undefined;
     const page = parseInt(c.req.query('page') || '1');
     const limit = Math.min(parseInt(c.req.query('limit') || '20'), 100);
     const segment = c.req.query('segment');
     const search = c.req.query('search');
     const offset = (page - 1) * limit;
+    const cacheKey = `customers:${merchantId}`;
+    const cacheParams = {
+      page,
+      limit,
+      segment: segment || 'all',
+      search: search || '',
+    };
+    const cached = await getCachedApiResponse(cacheKey, cacheParams) as {
+      customers: any[];
+      total: number;
+      page: number;
+      limit: number;
+    } | null;
+
+    if (cached) {
+      logPersonalDataAccess({
+        merchantId,
+        authMethod,
+        route: '/api/customers',
+        action: 'read',
+        resource: 'customer',
+        recordCount: cached.customers.length,
+      });
+
+      return c.json(cached);
+    }
 
     const serviceClient = getSupabaseServiceClient();
 
@@ -81,12 +111,24 @@ customers.get('/', async (c) => {
       };
     });
 
-    return c.json({
+    const payload = {
       customers: formattedCustomers,
       total: count || 0,
       page,
       limit,
+    };
+
+    logPersonalDataAccess({
+      merchantId,
+      authMethod,
+      route: '/api/customers',
+      action: 'read',
+      resource: 'customer',
+      recordCount: formattedCustomers.length,
     });
+
+    await setCachedApiResponse(cacheKey, payload, CUSTOMERS_CACHE_TTL_SECONDS, cacheParams);
+    return c.json(payload);
   } catch (error) {
     return c.json({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown' }, 500);
   }
@@ -99,7 +141,25 @@ customers.get('/', async (c) => {
 customers.get('/:id', async (c) => {
   try {
     const merchantId = c.get('merchantId') as string;
+    const authMethod = c.get('authMethod') as 'jwt' | 'shopify' | 'internal' | undefined;
     const userId = c.req.param('id');
+    const cacheKey = `customer:${merchantId}:${userId}`;
+    const cached = await getCachedApiResponse(cacheKey) as { customer: any } | null;
+
+    if (cached) {
+      logPersonalDataAccess({
+        merchantId,
+        authMethod,
+        route: '/api/customers/:id',
+        action: 'read',
+        resource: 'customer',
+        targetUserId: userId,
+        recordCount: 1,
+      });
+
+      return c.json(cached);
+    }
+
     const serviceClient = getSupabaseServiceClient();
 
     const { data: user, error } = await serviceClient
@@ -166,7 +226,7 @@ customers.get('/:id', async (c) => {
     const lastOrder = orders?.[0];
     const lastConversation = conversations?.[0];
 
-    return c.json({
+    const payload = {
       customer: {
         id: user.id,
         name: user.name || 'İsimsiz',
@@ -202,7 +262,20 @@ customers.get('/:id', async (c) => {
         })),
         feedback: feedback || [],
       },
+    };
+
+    logPersonalDataAccess({
+      merchantId,
+      authMethod,
+      route: '/api/customers/:id',
+      action: 'read',
+      resource: 'customer',
+      targetUserId: userId,
+      recordCount: 1,
     });
+
+    await setCachedApiResponse(cacheKey, payload, CUSTOMERS_CACHE_TTL_SECONDS);
+    return c.json(payload);
   } catch (error) {
     return c.json({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown' }, 500);
   }

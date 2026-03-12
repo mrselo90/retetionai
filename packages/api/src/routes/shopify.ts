@@ -14,6 +14,7 @@ import {
 } from '../lib/shopify.js';
 import { verifyShopifySessionToken } from '../lib/shopifySession.js';
 import { getMerchantSubscription } from '../lib/billing.js';
+import { getCachedApiResponse, setCachedApiResponse } from '../lib/cache.js';
 import { logger } from '@recete/shared';
 import * as crypto from 'crypto';
 
@@ -142,43 +143,15 @@ shopify.post('/install-sync', async (c) => {
   }
 });
 
-/**
- * Internal merchant overview for Shopify shell.
- * GET /api/integrations/shopify/merchant-overview?shop=<shop-domain>
- */
-shopify.get('/merchant-overview', async (c) => {
-  const internal = verifyInternalSecret(c);
-  if (!internal.ok) {
-    return c.json({ error: internal.error }, internal.status);
-  }
-
+async function buildMerchantOverviewResponse(c: any, merchantId: string, integration: any, shop: string) {
   try {
-    const shopRaw = c.req.query('shop')?.trim();
-    if (!shopRaw) {
-      return c.json({ error: 'shop is required' }, 400);
+    const cacheKey = `shopify-merchant-overview:${merchantId}:${shop}`;
+    const cached = await getCachedApiResponse(cacheKey);
+    if (cached) {
+      return c.json(cached);
     }
 
-    const shop = shopRaw.includes('.myshopify.com') ? shopRaw : `${shopRaw}.myshopify.com`;
     const serviceClient = getSupabaseServiceClient();
-
-    const { data: integration, error: integrationError } = await serviceClient
-      .from('integrations')
-      .select('id, merchant_id, status, provider, auth_data, updated_at')
-      .eq('provider', 'shopify')
-      .contains('auth_data', { shop })
-      .maybeSingle();
-
-    if (integrationError) {
-      logger.error({ integrationError, shop }, 'Failed to load Shopify integration for merchant overview');
-      return c.json({ error: 'Failed to load integration' }, 500);
-    }
-
-    if (!integration) {
-      return c.json({ error: 'Integration not found' }, 404);
-    }
-
-    const merchantId = integration.merchant_id as string;
-
     const [
       merchantResult,
       ordersCountResult,
@@ -281,7 +254,7 @@ shopify.get('/merchant-overview', async (c) => {
       logger.warn({ error, merchantId }, 'Failed to resolve merchant subscription for Shopify overview');
     }
 
-    return c.json({
+    const payload = {
       merchant: merchantResult.data,
       shop,
       integration: {
@@ -311,9 +284,83 @@ shopify.get('/merchant-overview', async (c) => {
       integrations: integrationsResult.data || [],
       products: productRowsResult.data || [],
       recentOrders: recentOrdersResult.data || [],
-    });
+    };
+
+    await setCachedApiResponse(cacheKey, payload, 15);
+    return c.json(payload);
   } catch (err) {
-    logger.error({ err }, 'Shopify merchant overview error');
+    logger.error({ err, merchantId, shop }, 'Shopify merchant overview error');
+    return c.json({ error: 'Failed to load merchant overview' }, 500);
+  }
+}
+
+/**
+ * Merchant overview for Shopify shell.
+ * GET /api/integrations/shopify/merchant-overview
+ */
+shopify.get('/merchant-overview', authMiddleware, async (c) => {
+  try {
+    const serviceClient = getSupabaseServiceClient();
+    const authMethod = c.get('authMethod') as 'jwt' | 'shopify' | 'internal' | undefined;
+    const merchantId = c.get('merchantId') as string | undefined;
+
+    if (!merchantId) {
+      return c.json({ error: 'Unauthorized: Missing merchant context' }, 401);
+    }
+
+    if (authMethod === 'internal') {
+      const shopRaw = c.req.query('shop')?.trim();
+      if (!shopRaw) {
+        return c.json({ error: 'shop is required' }, 400);
+      }
+
+      const shop = shopRaw.includes('.myshopify.com') ? shopRaw : `${shopRaw}.myshopify.com`;
+      const { data: integration, error: integrationError } = await serviceClient
+        .from('integrations')
+        .select('id, merchant_id, status, provider, auth_data, updated_at')
+        .eq('merchant_id', merchantId)
+        .eq('provider', 'shopify')
+        .contains('auth_data', { shop })
+        .maybeSingle();
+
+      if (integrationError) {
+        logger.error({ integrationError, merchantId, shop }, 'Failed to load Shopify integration for merchant overview');
+        return c.json({ error: 'Failed to load integration' }, 500);
+      }
+
+      if (!integration) {
+        return c.json({ error: 'Integration not found' }, 404);
+      }
+
+      return buildMerchantOverviewResponse(c, merchantId, integration, shop);
+    }
+
+    const { data: integration, error: integrationError } = await serviceClient
+      .from('integrations')
+      .select('id, merchant_id, status, provider, auth_data, updated_at')
+      .eq('merchant_id', merchantId)
+      .eq('provider', 'shopify')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (integrationError) {
+      logger.error({ integrationError, merchantId }, 'Failed to load Shopify integration for merchant overview');
+      return c.json({ error: 'Failed to load integration' }, 500);
+    }
+
+    if (!integration) {
+      return c.json({ error: 'Integration not found' }, 404);
+    }
+
+    const shop = typeof integration.auth_data?.shop === 'string' ? integration.auth_data.shop : null;
+    if (!shop) {
+      return c.json({ error: 'Integration shop is missing' }, 500);
+    }
+
+    return buildMerchantOverviewResponse(c, merchantId, integration, shop);
+  } catch (err) {
+    logger.error({ err }, 'Shopify merchant overview auth error');
     return c.json({ error: 'Failed to load merchant overview' }, 500);
   }
 });

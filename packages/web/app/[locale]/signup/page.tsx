@@ -67,7 +67,7 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       setError(t('errors.passwordLength'));
       return;
     }
@@ -217,7 +217,7 @@ export default function SignupPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={8}
                   placeholder="••••••••"
                   className="w-full"
                 />
@@ -232,7 +232,7 @@ export default function SignupPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={8}
                   placeholder="••••••••"
                   className="w-full"
                 />

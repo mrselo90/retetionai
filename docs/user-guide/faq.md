@@ -200,7 +200,7 @@ Yes! We use:
 - Encryption at rest and in transit
 - Multi-tenant data isolation
 - GDPR compliance
-- Regular security audits
+- Access controls and incident-response procedures
 
 ### Can customers opt out?
 

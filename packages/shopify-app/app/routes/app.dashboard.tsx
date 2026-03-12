@@ -4,7 +4,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AlertTriangleIcon, CartIcon, CatalogIcon, SettingsIcon } from "@shopify/polaris-icons";
 import { EmptyState, InlineGrid } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
-import { fetchMerchantOverview } from "../platform.server";
+import { fetchMerchantOverviewFromRequest } from "../platform.server";
 import {
   ActionCard,
   DetailRows,
@@ -15,8 +15,8 @@ import {
 } from "../components/shell-ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  return fetchMerchantOverview(session.shop);
+  await authenticate.admin(request);
+  return fetchMerchantOverviewFromRequest(request);
 };
 
 export default function DashboardPage() {

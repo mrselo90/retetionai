@@ -99,6 +99,9 @@ export interface MerchantSettingsRecord {
     id: string;
     name: string;
     notification_phone?: string | null;
+    subscription_status?: string | null;
+    subscription_plan?: string | null;
+    trial_ends_at?: string | null;
     persona_settings?: {
       bot_name?: string;
       tone?: "friendly" | "professional" | "casual" | "formal";
@@ -245,8 +248,18 @@ export interface MerchantCustomer {
   createdAt?: string | null;
 }
 
-async function fetchMerchantOverviewOrThrow(shop: string) {
-  return fetchMerchantOverview(shop);
+function buildPlatformAuthHeaders(request: Request, initHeaders?: HeadersInit) {
+  const authorization = request.headers.get("Authorization")?.trim();
+  const idToken = new URL(request.url).searchParams.get("id_token")?.trim();
+  const bearerToken = authorization || (idToken ? `Bearer ${idToken}` : "");
+
+  if (!bearerToken) {
+    throw new Error("Missing Shopify session token on embedded request.");
+  }
+
+  const headers = new Headers(initHeaders || {});
+  headers.set("Authorization", bearerToken);
+  return headers;
 }
 
 export async function syncShopInstall(session: {
@@ -314,30 +327,13 @@ export async function forwardWebhookToPlatform(request: Request, path: string) {
   return response;
 }
 
-export async function fetchMerchantOverview(shop: string) {
-  const baseUrl = getRequiredEnv("PLATFORM_API_URL").replace(/\/$/, "");
-  const response = await fetch(
-    `${baseUrl}/api/integrations/shopify/merchant-overview?shop=${encodeURIComponent(shop)}`,
-    {
-      headers: {
-        "X-Internal-Secret": getRequiredEnv("PLATFORM_INTERNAL_SECRET"),
-      },
-    },
-  );
-
-  return (await parseRequiredJson(response, "Platform merchant overview")) as ShopifyMerchantOverview;
-}
-
 async function internalMerchantRequest(
-  shop: string,
+  request: Request,
   path: string,
   init?: RequestInit,
 ) {
-  const overview = await fetchMerchantOverviewOrThrow(shop);
   const baseUrl = getRequiredEnv("PLATFORM_API_URL").replace(/\/$/, "");
-  const headers = new Headers(init?.headers || {});
-  headers.set("X-Internal-Secret", getRequiredEnv("PLATFORM_INTERNAL_SECRET"));
-  headers.set("X-Internal-Merchant-Id", overview.merchant.id);
+  const headers = buildPlatformAuthHeaders(request, init?.headers);
   if (init?.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
@@ -350,15 +346,24 @@ async function internalMerchantRequest(
   return parseRequiredJson(response, `Platform request ${path}`);
 }
 
-export async function fetchMerchantProducts(shop: string) {
-  const productsPayload = (await internalMerchantRequest(shop, "/api/products")) as {
+export async function fetchMerchantOverviewFromRequest(request: Request) {
+  const baseUrl = getRequiredEnv("PLATFORM_API_URL").replace(/\/$/, "");
+  const response = await fetch(`${baseUrl}/api/integrations/shopify/merchant-overview`, {
+    headers: buildPlatformAuthHeaders(request),
+  });
+
+  return (await parseRequiredJson(response, "Platform merchant overview")) as ShopifyMerchantOverview;
+}
+
+export async function fetchMerchantProducts(request: Request) {
+  const productsPayload = (await internalMerchantRequest(request, "/api/products")) as {
     products: MerchantProduct[];
   };
 
   const products = productsPayload.products || [];
   if (products.length === 0) return { products: [] as MerchantProduct[] };
 
-  const chunkPayload = (await internalMerchantRequest(shop, "/api/products/chunks/batch", {
+  const chunkPayload = (await internalMerchantRequest(request, "/api/products/chunks/batch", {
     method: "POST",
     body: JSON.stringify({ productIds: products.map((product) => product.id) }),
   })) as {
@@ -377,70 +382,70 @@ export async function fetchMerchantProducts(shop: string) {
   };
 }
 
-export async function fetchMerchantSettings(shop: string) {
-  return (await internalMerchantRequest(shop, "/api/merchants/me")) as MerchantSettingsRecord;
+export async function fetchMerchantSettings(request: Request) {
+  return (await internalMerchantRequest(request, "/api/merchants/me")) as MerchantSettingsRecord;
 }
 
 export async function updateMerchantSettings(
-  shop: string,
+  request: Request,
   payload: {
     notification_phone?: string | null;
     persona_settings?: MerchantSettingsRecord["merchant"]["persona_settings"];
   },
 ) {
-  return internalMerchantRequest(shop, "/api/merchants/me", {
+  return internalMerchantRequest(request, "/api/merchants/me", {
     method: "PUT",
     body: JSON.stringify(payload),
   });
 }
 
-export async function fetchMerchantMultiLangSettings(shop: string) {
+export async function fetchMerchantMultiLangSettings(request: Request) {
   return (await internalMerchantRequest(
-    shop,
+    request,
     "/api/merchants/me/multi-lang-rag-settings",
   )) as { settings: MultiLangRagSettings };
 }
 
 export async function updateMerchantMultiLangSettings(
-  shop: string,
+  request: Request,
   payload: Partial<MultiLangRagSettings>,
 ) {
-  return internalMerchantRequest(shop, "/api/merchants/me/multi-lang-rag-settings", {
+  return internalMerchantRequest(request, "/api/merchants/me/multi-lang-rag-settings", {
     method: "PUT",
     body: JSON.stringify(payload),
   });
 }
 
 export async function createMerchantProduct(
-  shop: string,
+  request: Request,
   input: { name: string; url: string; external_id?: string; raw_text?: string },
 ) {
-  return internalMerchantRequest(shop, "/api/products", {
+  return internalMerchantRequest(request, "/api/products", {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
-export async function scrapeMerchantProduct(shop: string, productId: string) {
-  return internalMerchantRequest(shop, `/api/products/${productId}/scrape`, {
+export async function scrapeMerchantProduct(request: Request, productId: string) {
+  return internalMerchantRequest(request, `/api/products/${productId}/scrape`, {
     method: "POST",
   });
 }
 
-export async function generateMerchantProductEmbeddings(shop: string, productId: string) {
-  return internalMerchantRequest(shop, `/api/products/${productId}/generate-embeddings`, {
+export async function generateMerchantProductEmbeddings(request: Request, productId: string) {
+  return internalMerchantRequest(request, `/api/products/${productId}/generate-embeddings`, {
     method: "POST",
   });
 }
 
-export async function deleteMerchantProduct(shop: string, productId: string) {
-  return internalMerchantRequest(shop, `/api/products/${productId}`, {
+export async function deleteMerchantProduct(request: Request, productId: string) {
+  return internalMerchantRequest(request, `/api/products/${productId}`, {
     method: "DELETE",
   });
 }
 
 export async function fetchShopifyCatalog(
-  shop: string,
+  request: Request,
   input?: { first?: number; after?: string },
 ) {
   const query = new URLSearchParams();
@@ -448,7 +453,7 @@ export async function fetchShopifyCatalog(
   if (input?.after) query.set("after", input.after);
 
   return (await internalMerchantRequest(
-    shop,
+    request,
     `/api/integrations/shopify/products?${query.toString()}`,
   )) as {
     products: ShopifyCatalogProduct[];
@@ -458,14 +463,14 @@ export async function fetchShopifyCatalog(
   };
 }
 
-export async function fetchMerchantProductInstructions(shop: string) {
-  return (await internalMerchantRequest(shop, "/api/products/instructions/list")) as {
+export async function fetchMerchantProductInstructions(request: Request) {
+  return (await internalMerchantRequest(request, "/api/products/instructions/list")) as {
     instructions: MerchantProductInstruction[];
   };
 }
 
 export async function updateMerchantProductInstruction(
-  shop: string,
+  request: Request,
   productId: string,
   payload: {
     usage_instructions: string;
@@ -474,87 +479,87 @@ export async function updateMerchantProductInstruction(
     prevention_tips?: string;
   },
 ) {
-  return internalMerchantRequest(shop, `/api/products/${productId}/instruction`, {
+  return internalMerchantRequest(request, `/api/products/${productId}/instruction`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
 }
 
-export async function fetchMerchantGuardrails(shop: string) {
-  return (await internalMerchantRequest(shop, "/api/merchants/me/guardrails")) as {
+export async function fetchMerchantGuardrails(request: Request) {
+  return (await internalMerchantRequest(request, "/api/merchants/me/guardrails")) as {
     system_guardrails: SystemGuardrail[];
     custom_guardrails: MerchantGuardrail[];
   };
 }
 
 export async function updateMerchantGuardrails(
-  shop: string,
+  request: Request,
   customGuardrails: MerchantGuardrail[],
 ) {
-  return internalMerchantRequest(shop, "/api/merchants/me/guardrails", {
+  return internalMerchantRequest(request, "/api/merchants/me/guardrails", {
     method: "PUT",
     body: JSON.stringify({ custom_guardrails: customGuardrails }),
   });
 }
 
-export async function fetchMerchantAddons(shop: string) {
-  return (await internalMerchantRequest(shop, "/api/billing/addons")) as {
+export async function fetchMerchantAddons(request: Request) {
+  return (await internalMerchantRequest(request, "/api/billing/addons")) as {
     addons: MerchantAddon[];
   };
 }
 
-export async function subscribeMerchantAddon(shop: string, addonKey: string) {
-  return internalMerchantRequest(shop, `/api/billing/addons/${addonKey}/subscribe`, {
+export async function subscribeMerchantAddon(request: Request, addonKey: string) {
+  return internalMerchantRequest(request, `/api/billing/addons/${addonKey}/subscribe`, {
     method: "POST",
   });
 }
 
-export async function cancelMerchantAddon(shop: string, addonKey: string) {
-  return internalMerchantRequest(shop, `/api/billing/addons/${addonKey}/cancel`, {
+export async function cancelMerchantAddon(request: Request, addonKey: string) {
+  return internalMerchantRequest(request, `/api/billing/addons/${addonKey}/cancel`, {
     method: "POST",
   });
 }
 
-export async function fetchMerchantConversations(shop: string) {
-  return (await internalMerchantRequest(shop, "/api/conversations")) as {
+export async function fetchMerchantConversations(request: Request) {
+  return (await internalMerchantRequest(request, "/api/conversations")) as {
     conversations: MerchantConversation[];
   };
 }
 
 export async function fetchMerchantConversationDetail(
-  shop: string,
+  request: Request,
   conversationId: string,
 ) {
   return (await internalMerchantRequest(
-    shop,
+    request,
     `/api/conversations/${conversationId}`,
   )) as MerchantConversationDetail;
 }
 
 export async function sendMerchantConversationReply(
-  shop: string,
+  request: Request,
   conversationId: string,
   text: string,
 ) {
-  return internalMerchantRequest(shop, `/api/conversations/${conversationId}/reply`, {
+  return internalMerchantRequest(request, `/api/conversations/${conversationId}/reply`, {
     method: "POST",
     body: JSON.stringify({ text }),
   });
 }
 
 export async function updateMerchantConversationStatus(
-  shop: string,
+  request: Request,
   conversationId: string,
   status: "ai" | "human" | "resolved",
 ) {
-  return internalMerchantRequest(shop, `/api/conversations/${conversationId}/status`, {
+  return internalMerchantRequest(request, `/api/conversations/${conversationId}/status`, {
     method: "PUT",
     body: JSON.stringify({ status }),
   });
 }
 
 export async function fetchMerchantCustomers(
-  shop: string,
+  request: Request,
   input?: { page?: number; limit?: number; segment?: string; search?: string },
 ) {
   const query = new URLSearchParams();
@@ -564,7 +569,7 @@ export async function fetchMerchantCustomers(
   if (input?.search) query.set("search", input.search);
 
   return (await internalMerchantRequest(
-    shop,
+    request,
     `/api/customers?${query.toString()}`,
   )) as {
     customers: MerchantCustomer[];

@@ -36,17 +36,17 @@ type ActionResult = {
 };
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  await authenticate.admin(request);
   const conversationId = params.conversationId;
   if (!conversationId) {
     throw new Response("Conversation not found", { status: 404 });
   }
 
-  return fetchMerchantConversationDetail(session.shop, conversationId);
+  return fetchMerchantConversationDetail(request, conversationId);
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  await authenticate.admin(request);
   const conversationId = params.conversationId;
   if (!conversationId) {
     return { ok: false, error: "Conversation not found." } satisfies ActionResult;
@@ -61,13 +61,13 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
       if (!text) {
         return { ok: false, error: "Reply message is required." } satisfies ActionResult;
       }
-      await sendMerchantConversationReply(session.shop, conversationId, text);
+      await sendMerchantConversationReply(request, conversationId, text);
       return { ok: true, message: "Reply sent successfully." } satisfies ActionResult;
     }
 
     if (intent === "status") {
       const status = String(formData.get("status") || "").trim() as "ai" | "human" | "resolved";
-      await updateMerchantConversationStatus(session.shop, conversationId, status);
+      await updateMerchantConversationStatus(request, conversationId, status);
       return { ok: true, message: `Conversation moved to ${status}.` } satisfies ActionResult;
     }
 

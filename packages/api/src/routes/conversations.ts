@@ -10,8 +10,11 @@ import { getSupabaseServiceClient } from '@recete/shared';
 import { decryptPhone } from '../lib/encryption.js';
 import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from '../lib/whatsapp.js';
 import { addMessageToConversation } from '../lib/conversation.js';
+import { logPersonalDataAccess } from '../lib/personalDataAudit.js';
+import { getCachedApiResponse, invalidateApiCache, setCachedApiResponse } from '../lib/cache.js';
 
 const conversations = new Hono();
+const CONVERSATIONS_CACHE_TTL_SECONDS = 15;
 
 // All routes require authentication
 conversations.use('/*', authMiddleware);
@@ -25,6 +28,23 @@ conversations.use('/*', requireActiveSubscription as any);
 conversations.get('/', async (c) => {
   try {
     const merchantId = c.get('merchantId') as string;
+    const authMethod = c.get('authMethod') as 'jwt' | 'shopify' | 'internal' | undefined;
+    const cacheKey = `conversations:${merchantId}`;
+    const cached = await getCachedApiResponse(cacheKey) as { conversations: any[] } | null;
+
+    if (cached) {
+      logPersonalDataAccess({
+        merchantId,
+        authMethod,
+        route: '/api/conversations',
+        action: 'read',
+        resource: 'conversation',
+        recordCount: cached.conversations.length,
+      });
+
+      return c.json(cached);
+    }
+
     const serviceClient = getSupabaseServiceClient();
 
     // Get merchant's users
@@ -109,7 +129,19 @@ conversations.get('/', async (c) => {
       };
     });
 
-    return c.json({ conversations: formattedConversations });
+    const payload = { conversations: formattedConversations };
+
+    logPersonalDataAccess({
+      merchantId,
+      authMethod,
+      route: '/api/conversations',
+      action: 'read',
+      resource: 'conversation',
+      recordCount: formattedConversations.length,
+    });
+
+    await setCachedApiResponse(cacheKey, payload, CONVERSATIONS_CACHE_TTL_SECONDS);
+    return c.json(payload);
   } catch (error) {
     return c.json({
       error: 'Internal server error',
@@ -126,7 +158,26 @@ conversations.get('/', async (c) => {
 conversations.get('/:id', async (c) => {
   try {
     const merchantId = c.get('merchantId') as string;
+    const authMethod = c.get('authMethod') as 'jwt' | 'shopify' | 'internal' | undefined;
     const conversationId = c.req.param('id');
+    const cacheKey = `conversation:${merchantId}:${conversationId}`;
+    const cached = await getCachedApiResponse(cacheKey) as { conversation: any } | null;
+
+    if (cached) {
+      logPersonalDataAccess({
+        merchantId,
+        authMethod,
+        route: '/api/conversations/:id',
+        action: 'read',
+        resource: 'conversation',
+        targetUserId: cached.conversation.userId,
+        targetConversationId: conversationId,
+        recordCount: 1,
+      });
+
+      return c.json(cached);
+    }
+
     const serviceClient = getSupabaseServiceClient();
 
     // Get conversation with user info
@@ -221,7 +272,7 @@ conversations.get('/:id', async (c) => {
       };
     }
 
-    return c.json({
+    const payload = {
       conversation: {
         id: conversation.id,
         userId: conversation.user_id,
@@ -238,7 +289,21 @@ conversations.get('/:id', async (c) => {
         order: orderInfo,
         returnPreventionAttempt,
       },
+    };
+
+    logPersonalDataAccess({
+      merchantId,
+      authMethod,
+      route: '/api/conversations/:id',
+      action: 'read',
+      resource: 'conversation',
+      targetUserId: user.id,
+      targetConversationId: conversationId,
+      recordCount: 1,
     });
+
+    await setCachedApiResponse(cacheKey, payload, CONVERSATIONS_CACHE_TTL_SECONDS);
+    return c.json(payload);
   } catch (error) {
     return c.json({
       error: 'Internal server error',
@@ -318,6 +383,9 @@ conversations.post('/:id/reply', async (c) => {
       return c.json({ error: 'Failed to send message', details: result.error }, 500);
     }
 
+    await invalidateApiCache(`conversations:${merchantId}`);
+    await invalidateApiCache(`conversation:${merchantId}:${conversationId}`);
+    await invalidateApiCache(`customer:${merchantId}:${conversation.user_id}`);
     return c.json({ success: true, messageId: result.messageId });
   } catch (error) {
     return c.json({
@@ -391,6 +459,9 @@ conversations.put('/:id/status', async (c) => {
       return c.json({ error: 'Failed to update status' }, 500);
     }
 
+    await invalidateApiCache(`conversations:${merchantId}`);
+    await invalidateApiCache(`conversation:${merchantId}:${conversationId}`);
+    await invalidateApiCache(`customer:${merchantId}:${conversation.user_id}`);
     return c.json({ success: true, status });
   } catch (error) {
     return c.json({

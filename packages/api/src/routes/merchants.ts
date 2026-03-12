@@ -26,7 +26,7 @@ merchants.get('/me', async (c) => {
     const serviceClient = getSupabaseServiceClient();
     const { data: merchant, error } = await serviceClient
       .from('merchants')
-      .select('id, name, persona_settings, notification_phone, created_at, updated_at')
+      .select('id, name, persona_settings, notification_phone, subscription_status, subscription_plan, trial_ends_at, created_at, updated_at')
       .eq('id', merchantId)
       .single();
 
@@ -84,7 +84,7 @@ merchants.put('/me', async (c) => {
       .from('merchants')
       .update(updates)
       .eq('id', merchantId)
-      .select('id, name, persona_settings, notification_phone, created_at, updated_at')
+      .select('id, name, persona_settings, notification_phone, subscription_status, subscription_plan, trial_ends_at, created_at, updated_at')
       .single();
 
     if (error) {

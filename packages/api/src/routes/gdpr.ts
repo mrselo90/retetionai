@@ -15,6 +15,7 @@ import {
   permanentlyDeleteUserData,
 } from '../lib/dataDeletion.js';
 import { validateBody, validateParams } from '../middleware/validation.js';
+import { logPersonalDataAccess } from '../lib/personalDataAudit.js';
 import { z } from 'zod';
 
 const gdpr = new Hono();
@@ -33,8 +34,18 @@ const gdprJobIdSchema = z.object({
 gdpr.get('/export', async (c) => {
   try {
     const merchantId = c.get('merchantId') as string;
+    const authMethod = c.get('authMethod') as 'jwt' | 'shopify' | 'internal' | undefined;
 
     const data = await exportMerchantData(merchantId);
+
+    logPersonalDataAccess({
+      merchantId,
+      authMethod,
+      route: '/api/gdpr/export',
+      action: 'export',
+      resource: 'gdpr_export',
+      recordCount: 1,
+    });
 
     // Return as JSON (can also be formatted as CSV if needed)
     return c.json({
@@ -225,6 +236,7 @@ const userIdSchema = z.object({
 gdpr.get('/users/:userId/export', validateParams(userIdSchema), async (c) => {
   try {
     const merchantId = c.get('merchantId') as string;
+    const authMethod = c.get('authMethod') as 'jwt' | 'shopify' | 'internal' | undefined;
     const { userId } = c.get('validatedParams') as { userId: string };
 
     // Verify user belongs to merchant
@@ -241,6 +253,16 @@ gdpr.get('/users/:userId/export', validateParams(userIdSchema), async (c) => {
     }
 
     const data = await exportUserData(userId);
+
+    logPersonalDataAccess({
+      merchantId,
+      authMethod,
+      route: '/api/gdpr/users/:userId/export',
+      action: 'export',
+      resource: 'gdpr_export',
+      targetUserId: userId,
+      recordCount: 1,
+    });
 
     return c.json({
       message: 'User data export successful',
@@ -320,6 +342,7 @@ gdpr.delete(
   async (c) => {
     try {
       const merchantId = c.get('merchantId') as string;
+      const authMethod = c.get('authMethod') as 'jwt' | 'shopify' | 'internal' | undefined;
       const { userId } = c.get('validatedParams') as { userId: string };
       const { permanent } = c.get('validatedBody') as { confirm: true; permanent: boolean };
 
@@ -379,6 +402,7 @@ gdpr.put(
   async (c) => {
     try {
       const merchantId = c.get('merchantId') as string;
+      const authMethod = c.get('authMethod') as 'jwt' | 'shopify' | 'internal' | undefined;
       const { userId } = c.get('validatedParams') as { userId: string };
       const { consent_status, consent_type } = c.get('validatedBody') as {
         consent_status: 'granted' | 'revoked' | 'pending';
@@ -412,7 +436,16 @@ gdpr.put(
       }
 
       // FUTURE: Log consent change in audit log table for compliance tracking
-      // MVP: Consent changes are tracked via consent_updated_at timestamp
+      // Consent changes are tracked via consent_updated_at and structured audit logs.
+      logPersonalDataAccess({
+        merchantId,
+        authMethod,
+        route: '/api/gdpr/users/:userId/consent',
+        action: 'update',
+        resource: 'gdpr_consent',
+        targetUserId: userId,
+        recordCount: 1,
+      });
 
       return c.json({
         message: 'Consent updated successfully',

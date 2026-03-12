@@ -1330,6 +1330,20 @@ export default function SettingsPage() {
                       >
                         <ExternalLink className="w-3 h-3" /> {t('gdpr.links.cookie')}
                       </a>
+                      <a
+                        href="/data-processing-addendum"
+                        target="_blank"
+                        className="text-primary hover:underline flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3 h-3" /> Data Processing Addendum
+                      </a>
+                      <a
+                        href="/security"
+                        target="_blank"
+                        className="text-primary hover:underline flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3 h-3" /> Security Overview
+                      </a>
                     </div>
                   </Box>
                 </BlockStack>

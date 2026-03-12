@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Form, useActionData, useLoaderData, useNavigate, useNavigation, useSubmit } from "react-router";
+import { Form, useActionData, useFetcher, useLoaderData, useNavigate, useNavigation, useSubmit } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ArrowLeftIcon, CheckIcon, MagicIcon } from "@shopify/polaris-icons";
@@ -24,8 +24,6 @@ import {
 import { authenticate } from "../shopify.server";
 import {
   createMerchantProduct,
-  fetchMerchantProductInstructions,
-  fetchMerchantProducts,
   fetchShopifyCatalog,
   type MerchantProductInstruction,
   type ShopifyCatalogProduct,
@@ -47,60 +45,54 @@ type MappingRow = {
   mapped: boolean;
 };
 
+type MappingDraft = {
+  usage_instructions: string;
+  recipe_summary: string;
+  prevention_tips: string;
+  video_url: string;
+};
+
+type LocalProductRecord = {
+  id: string;
+  external_id?: string | null;
+};
+
+type MappingDataPayload = {
+  instructions: MerchantProductInstruction[];
+  localProducts: LocalProductRecord[];
+  localProductCount: number;
+};
+
 function stripHtmlForRag(html?: string) {
   if (!html) return undefined;
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() || undefined;
 }
 
+function emptyDraft(): MappingDraft {
+  return {
+    usage_instructions: "",
+    recipe_summary: "",
+    prevention_tips: "",
+    video_url: "",
+  };
+}
+
+function draftFromInstruction(instruction?: MerchantProductInstruction): MappingDraft {
+  return {
+    usage_instructions: instruction?.usage_instructions || "",
+    recipe_summary: instruction?.recipe_summary || "",
+    prevention_tips: instruction?.prevention_tips || "",
+    video_url: instruction?.video_url || "",
+  };
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  const [catalog, localProducts, instructionPayload] = await Promise.all([
-    fetchShopifyCatalog(session.shop, { first: 24 }),
-    fetchMerchantProducts(session.shop),
-    fetchMerchantProductInstructions(session.shop),
-  ]);
-
-  const localByExternalId = new Map(
-    localProducts.products
-      .filter((product) => product.external_id)
-      .map((product) => [product.external_id as string, product]),
-  );
-  const localById = new Map(localProducts.products.map((product) => [product.id, product]));
-  const instructionsByExternalId = new Map<string, MerchantProductInstruction>();
-  const instructionsByProductId = new Map<string, MerchantProductInstruction>();
-
-  for (const instruction of instructionPayload.instructions || []) {
-    if (instruction.external_id) instructionsByExternalId.set(instruction.external_id, instruction);
-    instructionsByProductId.set(instruction.product_id, instruction);
-  }
-
-  const rows: MappingRow[] = catalog.products.map((product) => {
-    const localProduct = localByExternalId.get(product.id);
-    const instruction =
-      instructionsByExternalId.get(product.id) ||
-      (localProduct ? instructionsByProductId.get(localProduct.id) : undefined);
-
-    return {
-      shopify: product,
-      localProductId: localProduct?.id,
-      instruction,
-      mapped: Boolean(localProduct && instruction?.usage_instructions),
-    };
-  });
-
-  const mappedCount = rows.filter((row) => row.localProductId).length;
-  const instructionCount = rows.filter((row) => Boolean(row.instruction?.usage_instructions)).length;
+  await authenticate.admin(request);
+  const catalog = await fetchShopifyCatalog(request, { first: 24 });
 
   return {
     shopDomain: catalog.shopDomain,
-    rows,
-    mappedCount,
-    instructionCount,
-    localProductCount: localProducts.products.length,
-    localProductNames: Array.from(localById.values()).map((product) => ({
-      id: product.id,
-      name: product.name,
-    })),
+    catalogProducts: catalog.products,
   };
 };
 
@@ -134,7 +126,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     let productId = existingProductId;
     if (!productId) {
-      const createResponse = (await createMerchantProduct(session.shop, {
+      const createResponse = (await createMerchantProduct(request, {
         name: title,
         url: `https://${session.shop}/products/${handle}`,
         external_id: externalId,
@@ -151,7 +143,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       } satisfies ActionResult;
     }
 
-    await updateMerchantProductInstruction(session.shop, productId, {
+    await updateMerchantProductInstruction(request, productId, {
       usage_instructions: usageInstructions,
       recipe_summary: recipeSummary || undefined,
       prevention_tips: preventionTips || undefined,
@@ -175,58 +167,126 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function ProductMappingPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const mappingDataFetcher = useFetcher<MappingDataPayload>();
   const navigate = useNavigate();
   const submit = useSubmit();
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
+  const mappingDataLoading = mappingDataFetcher.state !== "idle" && !mappingDataFetcher.data;
+
+  useEffect(() => {
+    if (mappingDataFetcher.state === "idle" && !mappingDataFetcher.data) {
+      mappingDataFetcher.load("/app/products/mapping-data");
+    }
+  }, [mappingDataFetcher]);
+
+  useEffect(() => {
+    if (actionData?.ok) {
+      mappingDataFetcher.load("/app/products/mapping-data");
+    }
+  }, [actionData?.ok, mappingDataFetcher]);
+
+  const baseRows = useMemo<MappingRow[]>(
+    () =>
+      data.catalogProducts.map((product) => ({
+        shopify: product,
+        mapped: false,
+      })),
+    [data.catalogProducts],
+  );
+
+  const rows = useMemo<MappingRow[]>(() => {
+    if (!mappingDataFetcher.data) return baseRows;
+
+    const localByExternalId = new Map(
+      mappingDataFetcher.data.localProducts
+        .filter((product) => product.external_id)
+        .map((product) => [product.external_id as string, product]),
+    );
+    const instructionsByExternalId = new Map<string, MerchantProductInstruction>();
+    const instructionsByProductId = new Map<string, MerchantProductInstruction>();
+
+    for (const instruction of mappingDataFetcher.data.instructions || []) {
+      if (instruction.external_id) instructionsByExternalId.set(instruction.external_id, instruction);
+      instructionsByProductId.set(instruction.product_id, instruction);
+    }
+
+    return data.catalogProducts.map((product) => {
+      const localProduct = localByExternalId.get(product.id);
+      const instruction =
+        instructionsByExternalId.get(product.id) ||
+        (localProduct ? instructionsByProductId.get(localProduct.id) : undefined);
+
+      return {
+        shopify: product,
+        localProductId: localProduct?.id,
+        instruction,
+        mapped: Boolean(localProduct && instruction?.usage_instructions),
+      };
+    });
+  }, [baseRows, data.catalogProducts, mappingDataFetcher.data]);
+
+  const mappedCount = useMemo(() => rows.filter((row) => row.localProductId).length, [rows]);
+  const instructionCount = useMemo(
+    () => rows.filter((row) => Boolean(row.instruction?.usage_instructions)).length,
+    [rows],
+  );
+  const localProductCount = mappingDataFetcher.data?.localProductCount ?? 0;
 
   const [selectedProductId, setSelectedProductId] = useState<string>(
-    actionData?.selectedProductId || data.rows[0]?.shopify.id || "",
+    actionData?.selectedProductId || data.catalogProducts[0]?.id || "",
   );
-  const [drafts, setDrafts] = useState<Record<string, {
-    usage_instructions: string;
-    recipe_summary: string;
-    prevention_tips: string;
-    video_url: string;
-  }>>(() =>
-    Object.fromEntries(
-      data.rows.map((row) => [
-        row.shopify.id,
-        {
-          usage_instructions: row.instruction?.usage_instructions || "",
-          recipe_summary: row.instruction?.recipe_summary || "",
-          prevention_tips: row.instruction?.prevention_tips || "",
-          video_url: row.instruction?.video_url || "",
-        },
-      ]),
-    ),
+  const [drafts, setDrafts] = useState<Record<string, MappingDraft>>(() =>
+    Object.fromEntries(data.catalogProducts.map((product) => [product.id, emptyDraft()])),
   );
 
   useEffect(() => {
     if (actionData?.selectedProductId) setSelectedProductId(actionData.selectedProductId);
   }, [actionData?.selectedProductId]);
 
+  useEffect(() => {
+    if (!selectedProductId && rows[0]?.shopify.id) {
+      setSelectedProductId(rows[0].shopify.id);
+    }
+  }, [rows, selectedProductId]);
+
+  useEffect(() => {
+    if (!mappingDataFetcher.data) return;
+
+    setDrafts((current) => {
+      const next = { ...current };
+
+      for (const row of rows) {
+        const rowId = row.shopify.id;
+        const existing = current[rowId] || emptyDraft();
+        const serverDraft = draftFromInstruction(row.instruction);
+
+        next[rowId] = {
+          usage_instructions: existing.usage_instructions || serverDraft.usage_instructions,
+          recipe_summary: existing.recipe_summary || serverDraft.recipe_summary,
+          prevention_tips: existing.prevention_tips || serverDraft.prevention_tips,
+          video_url: existing.video_url || serverDraft.video_url,
+        };
+      }
+
+      return next;
+    });
+  }, [mappingDataFetcher.data, rows]);
+
   const selectedRow = useMemo(
-    () => data.rows.find((row) => row.shopify.id === selectedProductId) || data.rows[0],
-    [data.rows, selectedProductId],
+    () => rows.find((row) => row.shopify.id === selectedProductId) || rows[0],
+    [rows, selectedProductId],
   );
 
   const currentDraft = selectedRow ? drafts[selectedRow.shopify.id] : undefined;
-  const initialDraft = selectedRow
-    ? {
-        usage_instructions: selectedRow.instruction?.usage_instructions || "",
-        recipe_summary: selectedRow.instruction?.recipe_summary || "",
-        prevention_tips: selectedRow.instruction?.prevention_tips || "",
-        video_url: selectedRow.instruction?.video_url || "",
-      }
-    : null;
+  const initialDraft = selectedRow ? draftFromInstruction(selectedRow.instruction) : null;
   const dirty = Boolean(
     selectedRow &&
       currentDraft &&
       JSON.stringify(currentDraft) !== JSON.stringify(initialDraft),
   );
 
-  const selectOptions = data.rows.map((row) => ({
+  const selectOptions = rows.map((row) => ({
     label: row.shopify.title,
     value: row.shopify.id,
   }));
@@ -280,15 +340,15 @@ export default function ProductMappingPage() {
 
       <Layout>
         <Layout.Section>
-          {busy ? <ProgressBar progress={70} size="small" /> : null}
+          {busy || mappingDataLoading ? <ProgressBar progress={70} size="small" /> : null}
         </Layout.Section>
 
         <Layout.Section>
           <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
-            <MetricCard label="Catalog rows" value={data.rows.length} hint="Shopify products currently loaded into this mapping workspace." />
-            <MetricCard label="Linked" value={data.mappedCount} hint="Products already linked to a local Recete record." />
-            <MetricCard label="Instructions ready" value={data.instructionCount} hint="Catalog items with usable usage guidance saved." />
-            <MetricCard label="Local catalog" value={data.localProductCount} hint="Recete-side product records available for AI and scraping." />
+            <MetricCard label="Catalog rows" value={rows.length} hint="Shopify products currently loaded into this mapping workspace." />
+            <MetricCard label="Linked" value={mappedCount} hint="Products already linked to a local Recete record." />
+            <MetricCard label="Instructions ready" value={instructionCount} hint="Catalog items with usable usage guidance saved." />
+            <MetricCard label="Local catalog" value={localProductCount} hint="Recete-side product records available for AI and scraping." />
           </InlineGrid>
         </Layout.Section>
 
@@ -298,12 +358,12 @@ export default function ProductMappingPage() {
             subtitle="Merchants should be able to see what is connected, what is missing, and fix the recipe content without leaving Shopify."
             badge={<StatusBadge status={selectedRow?.mapped ? "active" : "pending"}>{selectedRow?.mapped ? "Mapped" : "Needs setup"}</StatusBadge>}
           >
-            {data.rows.length > 0 ? (
+            {rows.length > 0 ? (
               <BlockArea
                 options={selectOptions}
                 selectedProductId={selectedProductId}
                 onChange={setSelectedProductId}
-                rows={data.rows}
+                rows={rows}
               />
             ) : (
               <EmptyState
@@ -313,6 +373,13 @@ export default function ProductMappingPage() {
                 Connect Shopify correctly and ensure products exist in the store before mapping recipes.
               </EmptyState>
             )}
+            {mappingDataLoading ? (
+              <Box paddingBlockStart="400">
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Loading Recete mappings and saved guidance...
+                </Text>
+              </Box>
+            ) : null}
           </SectionCard>
         </Layout.Section>
 

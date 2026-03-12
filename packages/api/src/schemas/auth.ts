@@ -7,12 +7,21 @@ const emailSchema = z.string().email('Invalid email format').min(3).max(255);
 
 /**
  * Password validation
- * - Minimum 6 characters
+ * - Minimum 8 characters
+ * - Must include upper, lower, and number
  * - Maximum 100 characters
  */
-const passwordSchema = z
+const strongPasswordSchema = z
   .string()
-  .min(6, 'Password must be at least 6 characters')
+  .min(8, 'Password must be at least 8 characters')
+  .max(100, 'Password must be less than 100 characters')
+  .regex(/[a-z]/, 'Password must include a lowercase letter')
+  .regex(/[A-Z]/, 'Password must include an uppercase letter')
+  .regex(/[0-9]/, 'Password must include a number');
+
+const loginPasswordSchema = z
+  .string()
+  .min(1, 'Password is required')
   .max(100, 'Password must be less than 100 characters');
 
 /**
@@ -29,7 +38,7 @@ const businessNameSchema = z
  */
 export const signupSchema = z.object({
   email: emailSchema,
-  password: passwordSchema,
+  password: strongPasswordSchema,
   name: businessNameSchema,
 });
 
@@ -40,7 +49,7 @@ export type SignupInput = z.infer<typeof signupSchema>;
  */
 export const loginSchema = z.object({
   email: emailSchema,
-  password: passwordSchema,
+  password: loginPasswordSchema,
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

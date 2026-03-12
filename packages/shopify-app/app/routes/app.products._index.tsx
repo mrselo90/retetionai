@@ -35,12 +35,12 @@ type ActionResult = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  return fetchMerchantProducts(session.shop);
+  await authenticate.admin(request);
+  return fetchMerchantProducts(request);
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  await authenticate.admin(request);
   const formData = await request.formData();
   const intent = String(formData.get("intent") || "");
 
@@ -52,25 +52,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         if (!name || !url) {
           return { ok: false, error: "Name and URL are required." } satisfies ActionResult;
         }
-        await createMerchantProduct(session.shop, { name, url });
+        await createMerchantProduct(request, { name, url });
         return { ok: true, message: "Product created successfully." } satisfies ActionResult;
       }
       case "scrape": {
         const productId = String(formData.get("productId") || "").trim();
         if (!productId) return { ok: false, error: "Missing product id." } satisfies ActionResult;
-        await scrapeMerchantProduct(session.shop, productId);
+        await scrapeMerchantProduct(request, productId);
         return { ok: true, message: "Scrape completed and content was refreshed." } satisfies ActionResult;
       }
       case "embeddings": {
         const productId = String(formData.get("productId") || "").trim();
         if (!productId) return { ok: false, error: "Missing product id." } satisfies ActionResult;
-        await generateMerchantProductEmbeddings(session.shop, productId);
+        await generateMerchantProductEmbeddings(request, productId);
         return { ok: true, message: "Embeddings generated successfully." } satisfies ActionResult;
       }
       case "delete": {
         const productId = String(formData.get("productId") || "").trim();
         if (!productId) return { ok: false, error: "Missing product id." } satisfies ActionResult;
-        await deleteMerchantProduct(session.shop, productId);
+        await deleteMerchantProduct(request, productId);
         return { ok: true, message: "Product deleted successfully." } satisfies ActionResult;
       }
       default:

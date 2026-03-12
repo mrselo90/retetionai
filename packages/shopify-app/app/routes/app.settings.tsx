@@ -29,7 +29,7 @@ import {
   fetchMerchantAddons,
   fetchMerchantGuardrails,
   fetchMerchantMultiLangSettings,
-  fetchMerchantOverview,
+  fetchMerchantOverviewFromRequest,
   fetchMerchantSettings,
   subscribeMerchantAddon,
   updateMerchantGuardrails,
@@ -71,11 +71,11 @@ function parseGuardrailDrafts(
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  await authenticate.admin(request);
   const [overview, merchantSettings, multiLang, guardrails, addons] = await Promise.all([
-    fetchMerchantOverview(session.shop),
-    fetchMerchantSettings(session.shop),
-    fetchMerchantMultiLangSettings(session.shop).catch(() => ({
+    fetchMerchantOverviewFromRequest(request),
+    fetchMerchantSettings(request),
+    fetchMerchantMultiLangSettings(request).catch(() => ({
       settings: {
         shop_id: "",
         default_source_lang: "en",
@@ -83,11 +83,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         multi_lang_rag_enabled: false,
       },
     })),
-    fetchMerchantGuardrails(session.shop).catch(() => ({
+    fetchMerchantGuardrails(request).catch(() => ({
       system_guardrails: [],
       custom_guardrails: [],
     })),
-    fetchMerchantAddons(session.shop).catch(() => ({ addons: [] as MerchantAddon[] })),
+    fetchMerchantAddons(request).catch(() => ({ addons: [] as MerchantAddon[] })),
   ]);
 
   return {
@@ -100,7 +100,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  await authenticate.admin(request);
   const formData = await request.formData();
   const intent = String(formData.get("intent") || "").trim();
 
@@ -114,7 +114,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const enabledLangs = Array.from(new Set([defaultSourceLang, ...rawLangs]));
 
       await Promise.all([
-        updateMerchantSettings(session.shop, {
+        updateMerchantSettings(request, {
           notification_phone: String(formData.get("notification_phone") || "").trim() || null,
           persona_settings: {
             bot_name: String(formData.get("bot_name") || "").trim() || undefined,
@@ -138,7 +138,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               String(formData.get("whatsapp_welcome_template") || "").trim() || undefined,
           },
         }),
-        updateMerchantMultiLangSettings(session.shop, {
+        updateMerchantMultiLangSettings(request, {
           default_source_lang: defaultSourceLang,
           enabled_langs: enabledLangs,
           multi_lang_rag_enabled: formData.get("multi_lang_rag_enabled") === "on",
@@ -177,7 +177,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         suggested_response: String(formData.get("guardrail_suggested_response") || "").trim() || undefined,
       };
 
-      await updateMerchantGuardrails(session.shop, [...existing, newGuardrail]);
+      await updateMerchantGuardrails(request, [...existing, newGuardrail]);
       return { ok: true, intent, message: "Custom guardrail added." } satisfies ActionResult;
     }
 
@@ -189,11 +189,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
 
       if (addonStatus === "active") {
-        await cancelMerchantAddon(session.shop, addonKey);
+        await cancelMerchantAddon(request, addonKey);
         return { ok: true, intent, message: "Add-on cancelled." } satisfies ActionResult;
       }
 
-      const response = (await subscribeMerchantAddon(session.shop, addonKey)) as {
+      const response = (await subscribeMerchantAddon(request, addonKey)) as {
         confirmationUrl?: string;
       };
       return {

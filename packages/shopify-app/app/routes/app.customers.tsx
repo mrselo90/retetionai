@@ -8,10 +8,10 @@ import { fetchMerchantCustomers } from "../platform.server";
 import { ActionCard, EmptyCard, MetricCard, SectionCard, ShellPage } from "../components/shell-ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  await authenticate.admin(request);
 
   try {
-    return await fetchMerchantCustomers(session.shop, { page: 1, limit: 20 });
+    return await fetchMerchantCustomers(request, { page: 1, limit: 20 });
   } catch (error) {
     return {
       customers: [],

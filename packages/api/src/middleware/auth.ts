@@ -151,6 +151,7 @@ const INTERNAL_WHATSAPP_PATHS: Array<string | RegExp> = [
 
 /** Internal merchant settings routes (shopify shell -> API) */
 const INTERNAL_MERCHANT_PATHS: Array<string | RegExp> = [
+  '/api/integrations/shopify/merchant-overview',
   '/api/merchants/me',
   '/api/merchants/me/multi-lang-rag-settings',
   '/api/merchants/me/guardrails',
