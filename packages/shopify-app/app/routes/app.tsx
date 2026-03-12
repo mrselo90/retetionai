@@ -31,7 +31,6 @@ import {
   CreditCardIcon,
   HomeIcon,
   PersonIcon,
-  ProfileIcon,
   SettingsIcon,
   ViewIcon,
 } from "@shopify/polaris-icons";
@@ -57,15 +56,10 @@ const secondaryNavigation = [
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const overview = await fetchMerchantOverview(session.shop);
-  const legacyDashboardUrl =
-    process.env.LEGACY_DASHBOARD_URL?.trim() || "http://localhost:3000";
-  const classicPortalHref = new URL("/en/dashboard", legacyDashboardUrl);
-  classicPortalHref.searchParams.set("shop", session.shop);
 
   // eslint-disable-next-line no-undef
   return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
-    classicPortalHref: classicPortalHref.toString(),
     shop: session.shop,
     merchantName: overview.merchant.name || session.shop.replace(".myshopify.com", ""),
     subscriptionStatus:
@@ -76,7 +70,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function App() {
-  const { apiKey, classicPortalHref, merchantName, shop, subscriptionStatus } =
+  const { apiKey, merchantName, shop, subscriptionStatus } =
     useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -121,14 +115,6 @@ export default function App() {
                         </Badge>
                       </InlineStack>
                       <InlineStack gap="200" wrap>
-                        <Button
-                          url={classicPortalHref}
-                          target="_top"
-                          icon={ProfileIcon}
-                          variant="secondary"
-                        >
-                          Classic portal
-                        </Button>
                         <Button
                           onClick={() => navigate("/app/billing")}
                           icon={CartIcon}

@@ -8,11 +8,38 @@ import type { SubscriptionPlan } from './billing.js';
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
+const BILLING_GRAPHQL_MAX_RETRIES = 3;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseRetryAfterMs(retryAfter: string | null): number | null {
+  if (!retryAfter) return null;
+
+  const seconds = Number(retryAfter);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return seconds * 1000;
+  }
+
+  const retryDate = Date.parse(retryAfter);
+  if (Number.isNaN(retryDate)) {
+    return null;
+  }
+
+  return Math.max(retryDate - Date.now(), 0);
+}
 
 /**
  * GraphQL Client for Shopify Admin API
  */
-async function shopifyGraphQL(shop: string, accessToken: string, query: string, variables: any = {}): Promise<any> {
+async function shopifyGraphQL(
+  shop: string,
+  accessToken: string,
+  query: string,
+  variables: any = {},
+  attempt = 0,
+): Promise<any> {
   const url = `https://${shop}/admin/api/2026-01/graphql.json`;
   const response = await fetch(url, {
     method: 'POST',
@@ -24,8 +51,18 @@ async function shopifyGraphQL(shop: string, accessToken: string, query: string, 
   });
 
   if (!response.ok) {
+    if (response.status === 429 && attempt < BILLING_GRAPHQL_MAX_RETRIES) {
+      const retryAfterMs = parseRetryAfterMs(response.headers.get('Retry-After')) ?? 5000;
+      logger.warn(
+        { shop, attempt: attempt + 1, retryAfterMs },
+        'Shopify billing GraphQL throttled, retrying request',
+      );
+      await sleep(retryAfterMs);
+      return shopifyGraphQL(shop, accessToken, query, variables, attempt + 1);
+    }
+
     const errorText = await response.text();
-    logger.error({ shop, errorText }, 'Shopify GraphQL Error');
+    logger.error({ shop, status: response.status, errorText }, 'Shopify GraphQL Error');
     throw new Error('Shopify GraphQL request failed.');
   }
 

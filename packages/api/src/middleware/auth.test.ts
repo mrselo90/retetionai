@@ -39,6 +39,7 @@ describe('Auth Middleware', () => {
   });
 
   it('returns 401 if no auth header', async () => {
+    mockContext.req.path = '/api/secure-resource';
     mockContext.req.header.mockReturnValue(undefined);
 
     await authMiddleware(mockContext, mockNext);
@@ -120,6 +121,7 @@ describe('Auth Middleware', () => {
   });
 
   it('optionalAuth proceeds without auth', async () => {
+    mockContext.req.path = '/api/public-resource';
     mockContext.req.header.mockReturnValue(undefined);
 
     await optionalAuthMiddleware(mockContext, mockNext);
