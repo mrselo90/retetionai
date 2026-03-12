@@ -18,6 +18,17 @@ import { webhookRateLimitMiddleware } from '../middleware/rateLimit.js';
 
 const webhooks = new Hono();
 
+function isValidBase64Hmac(expectedBase64: string, receivedBase64: string): boolean {
+  const expected = Buffer.from(expectedBase64, 'utf8');
+  const received = Buffer.from(receivedBase64, 'utf8');
+
+  if (expected.length !== received.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(expected, received);
+}
+
 /**
  * Shopify webhook endpoint
  * POST /webhooks/commerce/shopify
@@ -44,7 +55,7 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
       .update(rawBody, 'utf8')
       .digest('base64');
 
-    if (calculatedHmac !== hmac) {
+    if (!isValidBase64Hmac(calculatedHmac, hmac)) {
       return c.json({ error: 'Invalid HMAC signature' }, 401);
     }
 

@@ -1,6 +1,17 @@
 import { Context, Next } from 'hono';
 import * as crypto from 'crypto';
 
+function isValidBase64Hmac(expectedBase64: string, receivedBase64: string): boolean {
+    const expected = Buffer.from(expectedBase64, 'utf8');
+    const received = Buffer.from(receivedBase64, 'utf8');
+
+    if (expected.length !== received.length) {
+        return false;
+    }
+
+    return crypto.timingSafeEqual(expected, received);
+}
+
 export const verifyShopifyGdprWebhook = async (c: Context<{ Variables: { parsedGdprBody: any } }>, next: Next) => {
     const hmacHeader = c.req.header('x-shopify-hmac-sha256');
 
@@ -17,7 +28,7 @@ export const verifyShopifyGdprWebhook = async (c: Context<{ Variables: { parsedG
             .update(rawBody, 'utf8')
             .digest('base64');
 
-        if (generatedHash !== hmacHeader) {
+        if (!isValidBase64Hmac(generatedHash, hmacHeader)) {
             console.warn('⚠️ Geçersiz Shopify GDPR Webhook isteği engellendi.');
             return c.json({ error: 'Unauthorized - Invalid HMAC' }, 401);
         }
