@@ -11,6 +11,7 @@ export const QUEUE_NAMES = {
   SCRAPE_JOBS: 'scrape-jobs',
   ANALYTICS: 'analytics',
   COMMERCE_EVENTS: 'commerce-events',
+  GDPR_JOBS: 'gdpr-jobs',
   WHATSAPP_INBOUND: 'whatsapp-inbound',
   RFM_ANALYSIS: 'rfm-analysis',
   CHURN_PREDICTION: 'churn-prediction',
@@ -72,6 +73,11 @@ export interface AnalyticsJobData {
  */
 export interface CommerceEventJobData {
   externalEventId: string;
+  merchantId: string;
+}
+
+export interface GdprJobData {
+  gdprJobId: string;
   merchantId: string;
 }
 

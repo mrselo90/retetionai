@@ -10,6 +10,7 @@ import {
   ScheduledMessageJobData,
   ScrapeJobData,
   AnalyticsJobData,
+  GdprJobData,
   WhatsAppInboundJobData,
   getUsageInstructionsForProductIds,
   type ProductInstructionRow,
@@ -495,6 +496,48 @@ export const commerceEventsWorker = new Worker<CommerceEventJobData>(
 );
 
 /**
+ * GDPR jobs worker
+ * Processes durable Shopify privacy jobs after the webhook returns 200 OK.
+ */
+export const gdprJobsWorker = new Worker<GdprJobData>(
+  QUEUE_NAMES.GDPR_JOBS,
+  async (job) => {
+    const { gdprJobId, merchantId } = job.data;
+    const internalSecret = process.env.INTERNAL_SERVICE_SECRET?.trim();
+    const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:3001';
+
+    if (!internalSecret) {
+      throw new Error('INTERNAL_SERVICE_SECRET is required for GDPR jobs worker');
+    }
+
+    const response = await fetch(`${apiUrl}/api/gdpr/jobs/${gdprJobId}/process`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Secret': internalSecret,
+        'X-Internal-Merchant-Id': merchantId,
+      },
+      body: '{}',
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      throw new Error(`GDPR job process API failed (${response.status}): ${errText || 'unknown error'}`);
+    }
+
+    return {
+      success: true,
+      gdprJobId,
+      merchantId,
+    };
+  },
+  {
+    ...defaultWorkerOptions,
+    concurrency: 2,
+  }
+);
+
+/**
  * Scrape Jobs Worker
  * Processes product URL scraping and embedding generation
  */
@@ -675,7 +718,7 @@ export const whatsappInboundWorker = new Worker<WhatsAppInboundJobData>(
  * Get all workers (for graceful shutdown, health check, etc.)
  */
 export function getAllWorkers() {
-  return [scheduledMessagesWorker, scrapeJobsWorker, analyticsWorker, commerceEventsWorker, whatsappInboundWorker];
+  return [scheduledMessagesWorker, scrapeJobsWorker, analyticsWorker, commerceEventsWorker, gdprJobsWorker, whatsappInboundWorker];
 }
 
 /**
@@ -687,6 +730,7 @@ export async function closeAllWorkers() {
     scrapeJobsWorker.close(),
     analyticsWorker.close(),
     commerceEventsWorker.close(),
+    gdprJobsWorker.close(),
     whatsappInboundWorker.close(),
   ]);
 }
@@ -722,6 +766,14 @@ commerceEventsWorker.on('completed', (job) => {
 
 commerceEventsWorker.on('failed', (job, err) => {
   logger.error(err instanceof Error ? err : new Error(String(err)), `[Commerce Event] Job ${job?.id} failed`);
+});
+
+gdprJobsWorker.on('completed', (job) => {
+  logger.info({ jobId: job.id }, '[GDPR Job] Job completed');
+});
+
+gdprJobsWorker.on('failed', (job, err) => {
+  logger.error(err instanceof Error ? err : new Error(String(err)), `[GDPR Job] Job ${job?.id} failed`);
 });
 
 whatsappInboundWorker.on('completed', (job) => {

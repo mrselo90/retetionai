@@ -7,6 +7,7 @@ import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
 import { getSupabaseServiceClient } from '@recete/shared';
 import { exportMerchantData, exportUserData } from '../lib/dataExport.js';
+import { processShopifyGdprJob, type ShopifyGdprJobType } from '../lib/shopifyGdprJobs.js';
 import {
   softDeleteMerchantData,
   permanentlyDeleteMerchantData,
@@ -20,6 +21,10 @@ const gdpr = new Hono();
 
 // All routes require authentication
 gdpr.use('/*', authMiddleware);
+
+const gdprJobIdSchema = z.object({
+  id: z.string().uuid('Invalid GDPR job ID format'),
+});
 
 /**
  * Export merchant data
@@ -115,6 +120,96 @@ gdpr.get('/exports/:id', validateParams(gdprExportIdSchema), async (c) => {
         message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
+    );
+  }
+});
+
+/**
+ * Process a persisted Shopify GDPR job.
+ * POST /api/gdpr/jobs/:id/process
+ */
+gdpr.post('/jobs/:id/process', validateParams(gdprJobIdSchema), async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const { id } = c.get('validatedParams') as { id: string };
+    const supabase = getSupabaseServiceClient();
+
+    const { data: job, error: fetchError } = await supabase
+      .from('gdpr_jobs')
+      .select('id, merchant_id, job_type, payload, status, attempts')
+      .eq('id', id)
+      .eq('merchant_id', merchantId)
+      .single();
+
+    if (fetchError || !job) {
+      return c.json({ error: 'GDPR job not found' }, 404);
+    }
+
+    if (job.status === 'completed') {
+      return c.json({ ok: true, skipped: true, reason: 'already_completed' });
+    }
+
+    const attemptCount = typeof job.attempts === 'number' ? job.attempts + 1 : 1;
+    const processingTimestamp = new Date().toISOString();
+
+    const { error: markProcessingError } = await supabase
+      .from('gdpr_jobs')
+      .update({
+        status: 'processing',
+        attempts: attemptCount,
+        last_error: null,
+        updated_at: processingTimestamp,
+      })
+      .eq('id', id)
+      .eq('merchant_id', merchantId);
+
+    if (markProcessingError) {
+      return c.json({ error: 'Failed to update GDPR job state' }, 500);
+    }
+
+    try {
+      await processShopifyGdprJob(
+        job.id,
+        job.job_type as ShopifyGdprJobType,
+        (job.payload || {}) as Record<string, unknown>,
+        merchantId,
+      );
+
+      const completedAt = new Date().toISOString();
+      await supabase
+        .from('gdpr_jobs')
+        .update({
+          status: 'completed',
+          processed_at: completedAt,
+          updated_at: completedAt,
+          last_error: null,
+        })
+        .eq('id', id)
+        .eq('merchant_id', merchantId);
+
+      return c.json({ ok: true, status: 'completed' });
+    } catch (error) {
+      const lastError = error instanceof Error ? error.message : 'Unknown error';
+
+      await supabase
+        .from('gdpr_jobs')
+        .update({
+          status: 'failed',
+          last_error: lastError,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('merchant_id', merchantId);
+
+      return c.json({ error: 'Failed to process GDPR job', message: lastError }, 500);
+    }
+  } catch (error) {
+    return c.json(
+      {
+        error: 'Failed to process GDPR job',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500,
     );
   }
 });

@@ -155,6 +155,7 @@ const INTERNAL_MERCHANT_PATHS: Array<string | RegExp> = [
   '/api/merchants/me/multi-lang-rag-settings',
   '/api/merchants/me/guardrails',
   '/api/merchants/me/bot-info',
+  /^\/api\/gdpr\/jobs\/[^/]+\/process$/,
   '/api/conversations',
   /^\/api\/conversations\/[^/]+$/,
   /^\/api\/conversations\/[^/]+\/reply$/,

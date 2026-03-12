@@ -10,6 +10,7 @@ import {
   ScheduledMessageJobData,
   ScrapeJobData,
   AnalyticsJobData,
+  GdprJobData,
   WhatsAppInboundJobData,
 } from '@recete/shared';
 
@@ -25,6 +26,7 @@ let scheduledMessagesQueue: Queue<ScheduledMessageJobData> | null = null;
 let scrapeJobsQueue: Queue<ScrapeJobData> | null = null;
 let analyticsQueue: Queue<AnalyticsJobData> | null = null;
 let commerceEventsQueue: Queue<CommerceEventJobData> | null = null;
+let gdprJobsQueue: Queue<GdprJobData> | null = null;
 let whatsappInboundQueue: Queue<WhatsAppInboundJobData> | null = null;
 
 function getScheduledMessagesQueue() {
@@ -61,6 +63,15 @@ function getCommerceEventsQueue() {
     });
   }
   return commerceEventsQueue;
+}
+
+function getGdprJobsQueue() {
+  if (!gdprJobsQueue) {
+    gdprJobsQueue = new Queue<GdprJobData>(QUEUE_NAMES.GDPR_JOBS, {
+      connection: getRedisClient(),
+    });
+  }
+  return gdprJobsQueue;
 }
 
 function getWhatsAppInboundQueue() {
@@ -153,6 +164,28 @@ export async function addCommerceEventJob(data: CommerceEventJobData) {
   );
 }
 
+export async function addGdprJob(data: GdprJobData) {
+  return await getGdprJobsQueue().add(
+    `gdpr-job-${data.gdprJobId}`,
+    data,
+    {
+      jobId: data.gdprJobId,
+      attempts: 5,
+      backoff: {
+        type: 'exponential',
+        delay: 3000,
+      },
+      removeOnComplete: {
+        age: 7 * 24 * 3600,
+        count: 2000,
+      },
+      removeOnFail: {
+        age: 30 * 24 * 3600,
+      },
+    }
+  );
+}
+
 /**
  * Add WhatsApp inbound event processing job
  */
@@ -178,11 +211,12 @@ export async function addWhatsAppInboundJob(data: WhatsAppInboundJobData) {
  * Get health stats for all queues
  */
 export async function getQueueStats() {
-  const [scheduledMsgCounts, scrapeJobsCounts, analyticsCounts, commerceEventCounts, whatsappInboundCounts] = await Promise.all([
+  const [scheduledMsgCounts, scrapeJobsCounts, analyticsCounts, commerceEventCounts, gdprJobsCounts, whatsappInboundCounts] = await Promise.all([
     getScheduledMessagesQueue().getJobCounts(),
     getScrapeJobsQueue().getJobCounts(),
     getAnalyticsQueue().getJobCounts(),
     getCommerceEventsQueue().getJobCounts(),
+    getGdprJobsQueue().getJobCounts(),
     getWhatsAppInboundQueue().getJobCounts(),
   ]);
 
@@ -191,6 +225,7 @@ export async function getQueueStats() {
     scrapeJobs: scrapeJobsCounts,
     analytics: analyticsCounts,
     commerceEvents: commerceEventCounts,
+    gdprJobs: gdprJobsCounts,
     whatsappInbound: whatsappInboundCounts,
   };
 }

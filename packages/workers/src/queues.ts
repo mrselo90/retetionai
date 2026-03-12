@@ -10,6 +10,7 @@ import {
   ScheduledMessageJobData,
   ScrapeJobData,
   AnalyticsJobData,
+  GdprJobData,
   WhatsAppInboundJobData,
 } from '@recete/shared';
 
@@ -119,6 +120,28 @@ export const commerceEventsQueue = new Queue<CommerceEventJobData>(
   }
 );
 
+export const gdprJobsQueue = new Queue<GdprJobData>(
+  QUEUE_NAMES.GDPR_JOBS,
+  {
+    ...defaultQueueOptions,
+    defaultJobOptions: {
+      ...defaultQueueOptions.defaultJobOptions,
+      attempts: 5,
+      backoff: {
+        type: 'exponential',
+        delay: 3000,
+      },
+      removeOnComplete: {
+        age: 7 * 24 * 3600,
+        count: 2000,
+      },
+      removeOnFail: {
+        age: 30 * 24 * 3600,
+      },
+    },
+  }
+);
+
 /**
  * WhatsApp Inbound Queue
  * For async processing of inbound WhatsApp messages
@@ -146,7 +169,7 @@ export const whatsappInboundQueue = new Queue<WhatsAppInboundJobData>(
  * Get all queues (for health check, graceful shutdown, etc.)
  */
 export function getAllQueues() {
-  return [scheduledMessagesQueue, scrapeJobsQueue, analyticsQueue, commerceEventsQueue, whatsappInboundQueue];
+  return [scheduledMessagesQueue, scrapeJobsQueue, analyticsQueue, commerceEventsQueue, gdprJobsQueue, whatsappInboundQueue];
 }
 
 /**
@@ -158,6 +181,7 @@ export async function closeAllQueues() {
     scrapeJobsQueue.close(),
     analyticsQueue.close(),
     commerceEventsQueue.close(),
+    gdprJobsQueue.close(),
     whatsappInboundQueue.close(),
   ]);
 }
