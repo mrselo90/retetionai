@@ -38,6 +38,7 @@ dump.rdb
 # Temporary files
 tmp/
 temp/
+supabase/.temp/
 
 # Scripts with secrets
 scripts/test-shopify-oauth.sh
