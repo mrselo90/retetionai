@@ -89,14 +89,36 @@ shopifyGdpr.post('/customers/data_request', async (c) => {
             }
 
             const exportPayload = await exportUserData(matchedUserId);
+            const { error: persistError, data: persistedExport } = await supabase
+                .from('gdpr_exports')
+                .insert({
+                    merchant_id: integration.merchant_id,
+                    user_id: matchedUserId,
+                    source: 'shopify_customers_data_request',
+                    shop_domain: shopDomain,
+                    status: 'ready',
+                    payload: exportPayload,
+                    requested_at: new Date().toISOString(),
+                })
+                .select('id')
+                .single();
+
+            if (persistError) {
+                logger.error(
+                    { persistError, shopDomain, merchantId: integration.merchant_id, userId: matchedUserId },
+                    '[GDPR] Customer data request export could not be persisted.'
+                );
+                return;
+            }
+
             logger.info(
                 {
                     shopDomain,
                     merchantId: integration.merchant_id,
                     userId: matchedUserId,
-                    exportPayload,
+                    gdprExportId: persistedExport?.id,
                 },
-                '[GDPR] Customer data request export prepared.'
+                '[GDPR] Customer data request export prepared and persisted.'
             );
         } catch (error) {
             // Korumalı Hata Yönetimi: Hata olursa bile sessizce logla, uygulamayı çökertme.

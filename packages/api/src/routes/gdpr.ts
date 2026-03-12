@@ -51,6 +51,75 @@ gdpr.get('/export', async (c) => {
 });
 
 /**
+ * List GDPR export artifacts prepared for the merchant
+ * GET /api/gdpr/exports
+ */
+gdpr.get('/exports', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const supabase = getSupabaseServiceClient();
+
+    const { data: exports, error } = await supabase
+      .from('gdpr_exports')
+      .select('id, user_id, source, shop_domain, status, requested_at, created_at')
+      .eq('merchant_id', merchantId)
+      .order('requested_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      return c.json({ error: 'Failed to fetch GDPR exports' }, 500);
+    }
+
+    return c.json({ exports: exports || [] });
+  } catch (error) {
+    return c.json(
+      {
+        error: 'Failed to fetch GDPR exports',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
+  }
+});
+
+/**
+ * Get a single GDPR export payload
+ * GET /api/gdpr/exports/:id
+ */
+const gdprExportIdSchema = z.object({
+  id: z.string().uuid('Invalid GDPR export ID format'),
+});
+
+gdpr.get('/exports/:id', validateParams(gdprExportIdSchema), async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const { id } = c.get('validatedParams') as { id: string };
+    const supabase = getSupabaseServiceClient();
+
+    const { data: gdprExport, error } = await supabase
+      .from('gdpr_exports')
+      .select('id, user_id, source, shop_domain, status, requested_at, created_at, payload')
+      .eq('id', id)
+      .eq('merchant_id', merchantId)
+      .single();
+
+    if (error || !gdprExport) {
+      return c.json({ error: 'GDPR export not found' }, 404);
+    }
+
+    return c.json({ export: gdprExport });
+  } catch (error) {
+    return c.json(
+      {
+        error: 'Failed to fetch GDPR export',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
+  }
+});
+
+/**
  * Export user data (for end users)
  * GET /api/gdpr/users/:userId/export
  */
