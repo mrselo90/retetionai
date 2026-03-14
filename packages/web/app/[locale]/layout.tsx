@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { ShopifyProvider } from '../../components/ShopifyProvider'; // Adjusted path
 import BackendHealthBanner from '../../components/BackendHealthBanner'; // Adjusted path
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
@@ -40,9 +39,7 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider messages={messages}>
       <BackendHealthBanner />
-      <ShopifyProvider>
-        {children}
-      </ShopifyProvider>
+      {children}
     </NextIntlClientProvider>
   );
 }

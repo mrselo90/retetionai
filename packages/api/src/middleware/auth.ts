@@ -118,8 +118,9 @@ async function authenticateShopifyToken(token: string): Promise<string | null> {
     // If we have a merchantId, return it
     if (verification.merchantId) return verification.merchantId;
 
-    // If valid but no merchant (new install), we can't authenticate them for *general* API usage yet.
-    // They must hit the /verify-session endpoint to create the account first.
+    // If valid but no merchant exists yet, the token is still not enough for
+    // general API access until provisioning/install sync has created the
+    // merchant integration record.
     return null;
   } catch (e) {
     return null;

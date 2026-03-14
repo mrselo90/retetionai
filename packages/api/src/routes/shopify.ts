@@ -521,9 +521,9 @@ shopify.get('/products', authMiddleware, async (c) => {
 });
 
 /**
- * Verify Shopify session token (Install/Login)
+ * Verify Shopify session token (no browser session conversion)
  * POST /api/integrations/shopify/verify-session
- * Handles Token Exchange and Auto-Provisioning
+ * Verifies embedded tokens and can provision the merchant integration if needed.
  */
 shopify.post('/verify-session', async (c) => {
   try {
@@ -628,47 +628,9 @@ shopify.post('/verify-session', async (c) => {
       }
     }
 
-    // 3. Generate Supabase Magic Link for seamless sign-in (BFS 3.1.3)
-    const serviceClient = getSupabaseServiceClient();
-
-    // Derive a stable email from the shop domain
-    // Format: <shop-handle>@shopify.recete.co.uk (deterministic, never shown to user)
-    const shopHandle = shop.replace('.myshopify.com', '').replace(/[^a-z0-9-]/gi, '-');
-    const syntheticEmail = `${shopHandle}@shopify.recete.co.uk`;
-
-    // Ensure the user exists in Supabase Auth (idempotent)
-    const { data: existingUsers } = await serviceClient.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find((u) => u.email === syntheticEmail);
-
-    if (!existingUser) {
-      await serviceClient.auth.admin.createUser({
-        id: merchantId as string,
-        email: syntheticEmail,
-        email_confirm: true,
-        user_metadata: { shop, merchantId, source: 'shopify_install' },
-      } as any);
-    }
-
-    // Generate a one-time magic link (expires in 1 hour)
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const { data: linkData, error: linkError } = await serviceClient.auth.admin.generateLink({
-      type: 'magiclink',
-      email: syntheticEmail,
-      options: {
-        redirectTo: `${frontendUrl}/en/dashboard`,
-      },
-    });
-
-    if (linkError || !linkData?.properties?.action_link) {
-      logger.error({ error: linkError, shop }, 'Failed to generate magic link');
-      // Fall back to returning just merchantId — frontend will show manual login
-      return c.json({ valid: true, merchantId });
-    }
-
     return c.json({
       valid: true,
       merchantId,
-      auth_url: linkData.properties.action_link,
     });
   } catch (error) {
     logger.error({ error }, 'Error verifying session token');

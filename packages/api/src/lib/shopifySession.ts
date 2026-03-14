@@ -57,10 +57,8 @@ function normalizeShopDomain(shop: string): string | null {
 
 function claimAudienceMatches(aud: unknown): boolean {
   if (!SHOPIFY_API_KEY) {
-    // If API key is unexpectedly missing, do not hard-fail auth here;
-    // configuration error will surface elsewhere and logs will capture it.
-    logger.warn('SHOPIFY_API_KEY not configured while verifying Shopify session token');
-    return true;
+    logger.error('SHOPIFY_API_KEY not configured while verifying Shopify session token');
+    return false;
   }
   if (typeof aud === 'string') return aud === SHOPIFY_API_KEY;
   if (Array.isArray(aud)) return aud.includes(SHOPIFY_API_KEY);

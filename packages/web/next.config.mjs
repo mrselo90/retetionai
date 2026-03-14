@@ -38,11 +38,6 @@ const nextConfig = {
             destination: `${apiUrl.replace(/\/$/, '')}/api/integrations/shopify/oauth/callback`,
         };
 
-        const verifySessionRewrite = {
-            source: "/api/integrations/shopify/verify-session",
-            destination: `${apiUrl.replace(/\/$/, '')}/api/integrations/shopify/verify-session`,
-        };
-
         const monitoringRewrite = {
             source: "/monitoring/:path*",
             destination: `${apiUrl.replace(/\/$/, '')}/monitoring/:path*`,
@@ -54,7 +49,7 @@ const nextConfig = {
             destination: `${apiUrl.replace(/\/$/, '')}/:path*`,
         };
 
-        return [oauthRewrite, verifySessionRewrite, monitoringRewrite, apiBackendRewrite];
+        return [oauthRewrite, monitoringRewrite, apiBackendRewrite];
     },
 
     // Cache headers for static assets
