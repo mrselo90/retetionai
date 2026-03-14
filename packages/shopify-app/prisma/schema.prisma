@@ -11,7 +11,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "auth"]
+  schemas  = ["shopify"]
 }
 
 model Session {
@@ -33,7 +33,7 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 
-  @@schema("public")
+  @@schema("shopify")
 }
 
 enum PlanType {
@@ -41,21 +41,21 @@ enum PlanType {
   GROWTH
   PRO
 
-  @@schema("public")
+  @@schema("shopify")
 }
 
 enum BillingInterval {
   MONTHLY
   ANNUAL
 
-  @@schema("public")
+  @@schema("shopify")
 }
 
 enum WebhookProcessingStatus {
   PENDING
   COMPLETED
 
-  @@schema("public")
+  @@schema("shopify")
 }
 
 model Shop {
@@ -75,7 +75,7 @@ model Shop {
   webhookReceipts   WebhookReceipt[]
   usageEventReceipts UsageEventReceipt[]
 
-  @@schema("public")
+  @@schema("shopify")
 }
 
 model UsageTracker {
@@ -90,7 +90,7 @@ model UsageTracker {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  @@schema("public")
+  @@schema("shopify")
 }
 
 model Product {
@@ -103,7 +103,7 @@ model Product {
   updatedAt         DateTime @updatedAt
 
   @@unique([shopId, externalProductId])
-  @@schema("public")
+  @@schema("shopify")
 }
 
 model WebhookReceipt {
@@ -120,7 +120,7 @@ model WebhookReceipt {
   createdAt          DateTime                 @default(now())
   updatedAt          DateTime                 @updatedAt
 
-  @@schema("public")
+  @@schema("shopify")
 }
 
 model UsageEventReceipt {
@@ -139,5 +139,5 @@ model UsageEventReceipt {
   updatedAt          DateTime  @updatedAt
 
   @@unique([shopId, eventType, externalEventId])
-  @@schema("public")
+  @@schema("shopify")
 }
