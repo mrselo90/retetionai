@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { Check, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight, X } from 'lucide-react';
 
 export function PricingPreview() {
   const t = useTranslations('Landing.pricing');
@@ -19,9 +19,40 @@ export function PricingPreview() {
       bullets: t('growth.bullets').split('·').map((b) => b.trim()).filter(Boolean),
     },
     {
-      key: 'scale',
+      key: 'pro',
       featured: false,
-      bullets: t('scale.bullets').split('·').map((b) => b.trim()).filter(Boolean),
+      bullets: t('pro.bullets').split('·').map((b) => b.trim()).filter(Boolean),
+    },
+  ] as const;
+
+  const comparisonRows = [
+    {
+      label: t('monthlyIncludedChats'),
+      values: ['150', '1,000', '3,000'],
+    },
+    {
+      label: t('overage'),
+      values: ['$0.18 / chat', '$0.12 / chat', '$0.08 / chat'],
+    },
+    {
+      label: t('recipes'),
+      values: ['20 recipes', '500 recipes', 'Unlimited'],
+    },
+    {
+      label: t('vision'),
+      values: [t('starter.vision'), t('growth.vision'), t('pro.vision')],
+    },
+    {
+      label: t('whatsapp'),
+      values: ['Shared Recete number', 'Shared Recete number', 'Custom branded number'],
+    },
+    {
+      label: t('analytics'),
+      values: ['Basic', 'Basic', 'Advanced'],
+    },
+    {
+      label: t('upsell'),
+      values: [t('starter.upsell'), t('growth.upsell'), t('pro.upsell')],
     },
   ] as const;
 
@@ -40,6 +71,9 @@ export function PricingPreview() {
           <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight" style={{ color: '#0a3d2e' }}>
             {t('title')}
           </h2>
+          <p className="mt-3 text-sm sm:text-base text-zinc-600 max-w-3xl mx-auto">
+            {t('subtitle')}
+          </p>
         </div>
 
         {/* Plans grid */}
@@ -79,6 +113,9 @@ export function PricingPreview() {
                   <span className="text-sm text-zinc-500 mb-1">{t('perMonth')}</span>
                 </div>
                 <p className="mt-1 text-xs text-zinc-500">{t(`${plan.key}.note`)}</p>
+                <p className="mt-2 text-sm font-semibold text-zinc-700">
+                  {t(`${plan.key}.annualPrice`)} <span className="text-zinc-500 font-medium">{t('perYear')}</span>
+                </p>
               </div>
 
               <ul className="mt-5 space-y-2.5 flex-1">
@@ -109,6 +146,57 @@ export function PricingPreview() {
               </Link>
             </div>
           ))}
+        </div>
+
+        <div className="mt-8 rounded-[28px] border border-black/5 bg-white shadow-[0_18px_45px_rgba(10,61,46,.08)] overflow-hidden">
+          <div className="px-5 sm:px-7 py-5 border-b border-zinc-100">
+            <h3 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: '#0a3d2e' }}>
+              {t('annualTitle')}
+            </h3>
+            <p className="mt-1 text-sm text-zinc-600">{t('annualSubtitle')}</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left">
+              <thead>
+                <tr className="border-b border-zinc-100">
+                  <th className="px-5 sm:px-7 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">Feature</th>
+                  {plans.map((plan) => (
+                    <th key={plan.key} className="px-5 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-bold" style={{ color: '#0a3d2e' }}>{t(`${plan.key}.name`)}</span>
+                        <span className="text-xs text-zinc-500">{t(`${plan.key}.annualPrice`)}</span>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonRows.map((row) => (
+                  <tr key={row.label} className="border-b border-zinc-100 last:border-b-0">
+                    <td className="px-5 sm:px-7 py-4 text-sm font-medium text-zinc-700">{row.label}</td>
+                    {row.values.map((value, index) => (
+                      <td key={`${row.label}-${index}`} className="px-5 py-4 text-sm text-zinc-600">
+                        {value === 'Not available' ? (
+                          <span className="inline-flex items-center gap-2 text-zinc-500">
+                            <X className="w-4 h-4 text-rose-500" aria-hidden />
+                            {value}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-2">
+                            {row.label === t('vision') ? (
+                              <Check className="w-4 h-4 text-emerald-600" aria-hidden />
+                            ) : null}
+                            {value}
+                          </span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* ROI note */}

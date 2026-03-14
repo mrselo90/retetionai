@@ -102,33 +102,52 @@
         },
         "pricing": {
             "eyebrow": "Pricing",
-            "title": "Start lean. Upgrade when volume grows.",
-            "subtitle": "Built for Shopify merchants: start free, prove ROI quickly, then scale with more automation and message volume.",
+            "title": "Clear pricing for Shopify and standalone merchants.",
+            "subtitle": "The standalone Recete platform now mirrors the final Starter, Growth, and Pro strategy with monthly and annual billing.",
             "mostPopular": "Most popular",
             "perMonth": "/month",
-            "cta": "Start free",
-            "secondaryCta": "Estimate your ROI",
-            "roiNote": "Most merchants recover subscription cost by preventing just a few returns each month.",
+            "perYear": "/year",
+            "annualTitle": "Annual plans",
+            "annualSubtitle": "Save 2 months when billed annually.",
+            "monthlyIncludedChats": "Included chats / month",
+            "overage": "Overage",
+            "recipes": "Recipe capacity",
+            "vision": "AI vision",
+            "whatsapp": "WhatsApp",
+            "analytics": "Analytics",
+            "upsell": "Upsell strategy",
+            "cta": "Start with this plan",
+            "secondaryCta": "Talk to sales",
+            "roiNote": "Most merchants recover plan cost by preventing just a few returns or support escalations each month.",
             "starter": {
                 "name": "Starter",
-                "desc": "For early-stage stores validating post-purchase automation.",
-                "price": "$49",
-                "note": "Best for low-volume stores",
-                "bullets": "Shopify integration · Basic WhatsApp automation · Product guidance flows · Core analytics"
+                "desc": "For lean teams validating post-purchase support and retention.",
+                "price": "$29",
+                "annualPrice": "$290",
+                "note": "Best for low-volume stores and first rollout",
+                "bullets": "150 included chats / month · 20 recipes · $0.18 per overage chat · Shared Recete WhatsApp number · Basic analytics",
+                "vision": "Not available",
+                "upsell": "Basic support flows"
             },
             "growth": {
                 "name": "Growth",
-                "desc": "For growing stores that need AI support and ROI visibility.",
-                "price": "$149",
-                "note": "Best for scaling DTC teams",
-                "bullets": "Everything in Starter · AI conversations · Advanced analytics & ROI · Human handoff controls"
+                "desc": "For growing merchants that need AI vision and stronger retention workflows.",
+                "price": "$69",
+                "annualPrice": "$690",
+                "note": "Most popular for scaling support and retention operations",
+                "bullets": "1,000 included chats / month · 500 recipes · $0.12 per overage chat · Customer photo analysis · Shared Recete WhatsApp number",
+                "vision": "Customers can send photos",
+                "upsell": "Upsell product links"
             },
-            "scale": {
-                "name": "Scale",
-                "desc": "For high-volume brands requiring deeper customization and controls.",
-                "price": "$399",
-                "note": "Custom onboarding included",
-                "bullets": "Everything in Growth · Higher message volume · Multi-team workflows · Priority support"
+            "pro": {
+                "name": "Pro",
+                "desc": "For higher-volume brands that want custom WhatsApp and deeper analytics.",
+                "price": "$199",
+                "annualPrice": "$1990",
+                "note": "Best for mature teams running branded buyer operations",
+                "bullets": "3,000 included chats / month · Unlimited recipes · $0.08 per overage chat · Smart Re-order · Advanced analytics",
+                "vision": "Customers can send photos",
+                "upsell": "Upsell + Smart Re-order"
             }
         },
         "faq": {
