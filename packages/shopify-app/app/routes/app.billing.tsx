@@ -14,6 +14,8 @@ import {
   ProgressBar,
 } from "@shopify/polaris";
 import {
+  GROWTH_MONTHLY_PLAN,
+  GROWTH_YEARLY_PLAN,
   authenticate,
   PRO_MONTHLY_PLAN,
   PRO_YEARLY_PLAN,
@@ -21,12 +23,15 @@ import {
   STARTER_YEARLY_PLAN,
 } from "../shopify.server";
 import { EmptyCard, SectionCard, ShellPage, StatusBadge } from "../components/shell-ui";
+import { syncRequestedPlanSelection } from "../services/billingUsage.server";
 
 const BILLING_PLANS = [
-  { key: STARTER_MONTHLY_PLAN, label: "Starter Monthly", amount: "$29", note: "Monthly starter plan for embedded merchants." },
-  { key: STARTER_YEARLY_PLAN, label: "Starter Yearly", amount: "$290", note: "Annual starter plan with lower yearly cost." },
-  { key: PRO_MONTHLY_PLAN, label: "Pro Monthly", amount: "$99", note: "Higher-capacity plan for active stores." },
-  { key: PRO_YEARLY_PLAN, label: "Pro Yearly", amount: "$990", note: "Annual pro plan for committed merchants." },
+  { key: STARTER_MONTHLY_PLAN, label: "Starter Monthly", amount: "$29", note: "150 included chats, 20 recipes, shared WhatsApp number." },
+  { key: STARTER_YEARLY_PLAN, label: "Starter Yearly", amount: "$290", note: "Annual starter billing with the same monthly usage limits." },
+  { key: GROWTH_MONTHLY_PLAN, label: "Growth Monthly", amount: "$69", note: "1,000 included chats, AI vision, and upsell links." },
+  { key: GROWTH_YEARLY_PLAN, label: "Growth Yearly", amount: "$690", note: "Annual growth billing with the same monthly usage limits." },
+  { key: PRO_MONTHLY_PLAN, label: "Pro Monthly", amount: "$199", note: "3,000 included chats, advanced analytics, smart re-order." },
+  { key: PRO_YEARLY_PLAN, label: "Pro Yearly", amount: "$1990", note: "Annual pro billing with custom-branded WhatsApp support." },
 ] as const;
 
 type BillingPlanKey = (typeof BILLING_PLANS)[number]["key"];
@@ -41,6 +46,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     plans: [
       STARTER_MONTHLY_PLAN,
       STARTER_YEARLY_PLAN,
+      GROWTH_MONTHLY_PLAN,
+      GROWTH_YEARLY_PLAN,
       PRO_MONTHLY_PLAN,
       PRO_YEARLY_PLAN,
     ],
@@ -60,7 +67,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { billing } = await authenticate.admin(request);
+  const { billing, session } = await authenticate.admin(request);
   const formData = await request.formData();
   const plan = String(formData.get("plan") || "");
 
@@ -68,6 +75,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return new Response("Invalid plan", { status: 400 });
   }
 
+  await syncRequestedPlanSelection(session.shop, plan);
   return billing.request({
     plan,
     isTest: process.env.NODE_ENV !== "production",
@@ -114,9 +122,9 @@ export default function BillingPage() {
 
       <SectionCard
         title="Choose a plan"
-        subtitle="Use Shopify approval flow instead of custom billing UX so merchants stay in a standard review-safe path."
+      subtitle="Use Shopify approval flow instead of custom billing UX so merchants stay in a standard review-safe path."
       >
-        <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+        <InlineGrid columns={{ xs: 1, md: 2, lg: 3 }} gap="400">
           {data.plans.map((plan) => (
             <Card key={plan.key} padding="500">
               <Form method="post">
@@ -126,6 +134,8 @@ export default function BillingPage() {
                     {plan.label}
                   </StatusBadge>
                   <Badge tone="info">{plan.amount}</Badge>
+                  <Badge tone="attention">Usage capped at $500</Badge>
+                  <p style={{ margin: 0, color: "var(--p-color-text-secondary)" }}>{plan.note}</p>
                   <Button submit variant="primary" icon={CreditCardIcon} fullWidth>
                     Approve plan
                   </Button>

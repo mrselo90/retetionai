@@ -30,6 +30,11 @@ import {
   updateMerchantProductInstruction,
 } from "../platform.server";
 import { MetricCard, SectionCard, StatusBadge } from "../components/shell-ui";
+import {
+  canCreateRecipe,
+  getPlanSnapshotByDomain,
+  registerRecipeProduct,
+} from "../services/planService.server";
 
 type ActionResult = {
   ok: boolean;
@@ -87,12 +92,14 @@ function draftFromInstruction(instruction?: MerchantProductInstruction): Mapping
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
   const catalog = await fetchShopifyCatalog(request, { first: 24 });
+  const plan = await getPlanSnapshotByDomain(session.shop);
 
   return {
     shopDomain: catalog.shopDomain,
     catalogProducts: catalog.products,
+    plan,
   };
 };
 
@@ -126,6 +133,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     let productId = existingProductId;
     if (!productId) {
+      const plan = await getPlanSnapshotByDomain(session.shop);
+      const recipeCapacity = await canCreateRecipe(plan.shopId);
+
+      if (!recipeCapacity.allowed) {
+        return {
+          ok: false,
+          error: `Recipe limit reached for the ${plan.planType} plan. Upgrade before creating more product recipes.`,
+          selectedProductId,
+        } satisfies ActionResult;
+      }
+
       const createResponse = (await createMerchantProduct(request, {
         name: title,
         url: `https://${session.shop}/products/${handle}`,
@@ -142,6 +160,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         selectedProductId,
       } satisfies ActionResult;
     }
+
+    const plan = await getPlanSnapshotByDomain(session.shop);
+    await registerRecipeProduct(plan.shopId, externalId, title);
 
     await updateMerchantProductInstruction(request, productId, {
       usage_instructions: usageInstructions,
@@ -350,6 +371,20 @@ export default function ProductMappingPage() {
             <MetricCard label="Instructions ready" value={instructionCount} hint="Catalog items with usable usage guidance saved." />
             <MetricCard label="Local catalog" value={localProductCount} hint="Recete-side product records available for AI and scraping." />
           </InlineGrid>
+          <Box paddingBlockStart="400">
+            <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+              <MetricCard
+                label="Recipe capacity"
+                value={data.plan.recipeLimit === null ? "Unlimited" : `${data.plan.recipeCount}/${data.plan.recipeLimit}`}
+                hint={`Current plan: ${data.plan.planType} ${data.plan.billingInterval.toLowerCase()}.`}
+              />
+              <MetricCard
+                label="Included chats"
+                value={data.plan.includedChats}
+                hint={`Overage fee: $${data.plan.overageRate.toFixed(2)} per chat.`}
+              />
+            </InlineGrid>
+          </Box>
         </Layout.Section>
 
         <Layout.Section>

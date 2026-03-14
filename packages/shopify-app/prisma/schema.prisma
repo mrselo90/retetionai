@@ -32,3 +32,76 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+enum PlanType {
+  STARTER
+  GROWTH
+  PRO
+}
+
+enum BillingInterval {
+  MONTHLY
+  ANNUAL
+}
+
+enum WebhookProcessingStatus {
+  PENDING
+  COMPLETED
+}
+
+model Shop {
+  id                String                  @id @default(cuid())
+  shopDomain        String                  @unique
+  planType          PlanType                @default(STARTER)
+  billingInterval   BillingInterval         @default(MONTHLY)
+  subscriptionId    String?
+  subscriptionName  String?
+  subscriptionLineItemId String?
+  isTrial           Boolean                 @default(true)
+  currentPeriodEnd  DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  usageTracker      UsageTracker?
+  products          Product[]
+  webhookReceipts   WebhookReceipt[]
+}
+
+model UsageTracker {
+  id                  String    @id @default(cuid())
+  shopId              String    @unique
+  shop                Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  chatsSentThisMonth  Int       @default(0)
+  recipesCreatedCount Int       @default(0)
+  photosAnalyzedCount Int       @default(0)
+  periodStart         DateTime
+  periodEnd           DateTime
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model Product {
+  id                String   @id @default(cuid())
+  shopId            String
+  shop              Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  externalProductId String
+  title             String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([shopId, externalProductId])
+}
+
+model WebhookReceipt {
+  id                 String                   @id @default(cuid())
+  webhookId          String                   @unique
+  shopId             String
+  shop               Shop                     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  topic              String
+  externalReference  String?
+  status             WebhookProcessingStatus  @default(PENDING)
+  chatIncrementApplied Boolean                @default(false)
+  usageChargeApplied Boolean                  @default(false)
+  processedAt        DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+}

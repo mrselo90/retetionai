@@ -8,11 +8,17 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 import { syncShopInstall } from "./platform.server";
-
-export const STARTER_MONTHLY_PLAN = "starter-monthly";
-export const STARTER_YEARLY_PLAN = "starter-yearly";
-export const PRO_MONTHLY_PLAN = "pro-monthly";
-export const PRO_YEARLY_PLAN = "pro-yearly";
+import {
+  DEFAULT_CAPPED_AMOUNT,
+  GROWTH_MONTHLY_PLAN,
+  GROWTH_YEARLY_PLAN,
+  PRO_MONTHLY_PLAN,
+  PRO_YEARLY_PLAN,
+  STARTER_MONTHLY_PLAN,
+  STARTER_YEARLY_PLAN,
+  getUsageTerms,
+} from "./services/planDefinitions";
+import { syncShopAfterAuth } from "./services/billingUsage.server";
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -31,6 +37,12 @@ const shopify = shopifyApp({
           currencyCode: "USD",
           interval: BillingInterval.Every30Days,
         },
+        {
+          amount: DEFAULT_CAPPED_AMOUNT,
+          currencyCode: "USD",
+          interval: BillingInterval.Usage,
+          terms: getUsageTerms(STARTER_MONTHLY_PLAN),
+        },
       ],
     },
     [STARTER_YEARLY_PLAN]: {
@@ -40,29 +52,78 @@ const shopify = shopifyApp({
           currencyCode: "USD",
           interval: BillingInterval.Annual,
         },
+        {
+          amount: DEFAULT_CAPPED_AMOUNT,
+          currencyCode: "USD",
+          interval: BillingInterval.Usage,
+          terms: getUsageTerms(STARTER_YEARLY_PLAN),
+        },
+      ],
+    },
+    [GROWTH_MONTHLY_PLAN]: {
+      lineItems: [
+        {
+          amount: 69,
+          currencyCode: "USD",
+          interval: BillingInterval.Every30Days,
+        },
+        {
+          amount: DEFAULT_CAPPED_AMOUNT,
+          currencyCode: "USD",
+          interval: BillingInterval.Usage,
+          terms: getUsageTerms(GROWTH_MONTHLY_PLAN),
+        },
+      ],
+    },
+    [GROWTH_YEARLY_PLAN]: {
+      lineItems: [
+        {
+          amount: 690,
+          currencyCode: "USD",
+          interval: BillingInterval.Annual,
+        },
+        {
+          amount: DEFAULT_CAPPED_AMOUNT,
+          currencyCode: "USD",
+          interval: BillingInterval.Usage,
+          terms: getUsageTerms(GROWTH_YEARLY_PLAN),
+        },
       ],
     },
     [PRO_MONTHLY_PLAN]: {
       lineItems: [
         {
-          amount: 99,
+          amount: 199,
           currencyCode: "USD",
           interval: BillingInterval.Every30Days,
+        },
+        {
+          amount: DEFAULT_CAPPED_AMOUNT,
+          currencyCode: "USD",
+          interval: BillingInterval.Usage,
+          terms: getUsageTerms(PRO_MONTHLY_PLAN),
         },
       ],
     },
     [PRO_YEARLY_PLAN]: {
       lineItems: [
         {
-          amount: 990,
+          amount: 1990,
           currencyCode: "USD",
           interval: BillingInterval.Annual,
+        },
+        {
+          amount: DEFAULT_CAPPED_AMOUNT,
+          currencyCode: "USD",
+          interval: BillingInterval.Usage,
+          terms: getUsageTerms(PRO_YEARLY_PLAN),
         },
       ],
     },
   },
   hooks: {
     afterAuth: async ({ session }) => {
+      await syncShopAfterAuth(session.shop);
       await syncShopInstall(session);
     },
   },
@@ -75,6 +136,14 @@ const shopify = shopifyApp({
 });
 
 export default shopify;
+export {
+  STARTER_MONTHLY_PLAN,
+  STARTER_YEARLY_PLAN,
+  GROWTH_MONTHLY_PLAN,
+  GROWTH_YEARLY_PLAN,
+  PRO_MONTHLY_PLAN,
+  PRO_YEARLY_PLAN,
+};
 export const apiVersion = ApiVersion.January26;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const authenticate = shopify.authenticate;

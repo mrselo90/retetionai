@@ -24,6 +24,7 @@ import {
   TextField,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
+import { PlanGate } from "../components/PlanGate";
 import {
   cancelMerchantAddon,
   fetchMerchantAddons,
@@ -39,6 +40,11 @@ import {
   type MerchantGuardrail,
 } from "../platform.server";
 import { MetricCard, SectionCard, StatusBadge } from "../components/shell-ui";
+import { getPlanSnapshotByDomain } from "../services/planService.server";
+import {
+  GROWTH_MONTHLY_PLAN,
+  PRO_MONTHLY_PLAN,
+} from "../services/planDefinitions";
 
 type ActionResult = {
   ok: boolean;
@@ -71,8 +77,8 @@ function parseGuardrailDrafts(
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-  const [overview, merchantSettings, multiLang, guardrails, addons] = await Promise.all([
+  const { session } = await authenticate.admin(request);
+  const [overview, merchantSettings, multiLang, guardrails, addons, plan] = await Promise.all([
     fetchMerchantOverviewFromRequest(request),
     fetchMerchantSettings(request),
     fetchMerchantMultiLangSettings(request).catch(() => ({
@@ -88,6 +94,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       custom_guardrails: [],
     })),
     fetchMerchantAddons(request).catch(() => ({ addons: [] as MerchantAddon[] })),
+    getPlanSnapshotByDomain(session.shop),
   ]);
 
   return {
@@ -96,6 +103,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     multiLang: multiLang.settings,
     guardrails,
     addons: addons.addons || [],
+    plan,
   };
 };
 
@@ -262,6 +270,8 @@ export default function SettingsPage() {
   );
   const dirty = initialState !== JSON.stringify(formState);
   const activeAddonCount = data.addons.filter((addon) => addon.status === "active").length;
+  const onStarter = data.plan.planType === "STARTER";
+  const onGrowthOrLower = data.plan.planType !== "PRO";
 
   const saveCoreSettings = () => {
     if (formRef.current) submit(formRef.current);
@@ -336,6 +346,73 @@ export default function SettingsPage() {
             <MetricCard label="Add-ons active" value={activeAddonCount} hint="Feature modules turned on for this merchant." />
             <MetricCard label="Custom guardrails" value={data.guardrails.custom_guardrails.length} hint="Merchant-defined safety or escalation rules." />
           </InlineGrid>
+        </Layout.Section>
+
+        <Layout.Section>
+          <SectionCard
+            title="Tier-controlled capabilities"
+            subtitle="These controls reflect the final Recete pricing strategy and should make upgrade boundaries explicit inside Shopify."
+            badge={<StatusBadge status={data.plan.planType.toLowerCase()}>{data.plan.planType}</StatusBadge>}
+          >
+            <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+              <PlanGate
+                blocked={onStarter}
+                requiredPlan="GROWTH"
+                upgradePlan={GROWTH_MONTHLY_PLAN}
+                title="AI Vision"
+                message="Starter merchants cannot enable buyer photo analysis. Upgrade to Growth to accept customer photos and use AI vision workflows."
+              >
+                <BlockStack gap="200">
+                  <Text as="h3" variant="headingMd">AI Vision</Text>
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    Buyers can send product photos for analysis and richer support flows.
+                  </Text>
+                </BlockStack>
+              </PlanGate>
+              <PlanGate
+                blocked={onGrowthOrLower}
+                requiredPlan="PRO"
+                upgradePlan={PRO_MONTHLY_PLAN}
+                title="Smart Re-order"
+                message="Smart Re-order is a Pro-only upsell capability. Upgrade to Pro to unlock advanced reorder suggestions and custom-branded WhatsApp routing."
+              >
+                <BlockStack gap="200">
+                  <Text as="h3" variant="headingMd">Smart Re-order</Text>
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    Turn upsell links into a more opinionated post-purchase reorder program.
+                  </Text>
+                </BlockStack>
+              </PlanGate>
+              <PlanGate
+                blocked={onGrowthOrLower}
+                requiredPlan="PRO"
+                upgradePlan={PRO_MONTHLY_PLAN}
+                title="Advanced analytics"
+                message="Advanced analytics is reserved for Pro. Upgrade if the merchant needs deeper retention reporting from the embedded shell."
+              >
+                <BlockStack gap="200">
+                  <Text as="h3" variant="headingMd">Advanced analytics</Text>
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    Pro stores can expose a higher signal analytics layer beyond the basic operational dashboard.
+                  </Text>
+                </BlockStack>
+              </PlanGate>
+              <PlanGate
+                blocked={onGrowthOrLower}
+                requiredPlan="PRO"
+                upgradePlan={PRO_MONTHLY_PLAN}
+                title="Custom branded WhatsApp"
+                message="Starter and Growth shops use the shared Recete number. Upgrade to Pro to switch the merchant onto a custom branded WhatsApp number."
+              >
+                <BlockStack gap="200">
+                  <Text as="h3" variant="headingMd">Custom branded WhatsApp</Text>
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    The shared Recete number remains the default until the shop moves onto Pro.
+                  </Text>
+                </BlockStack>
+              </PlanGate>
+            </InlineGrid>
+          </SectionCard>
         </Layout.Section>
 
         <Layout.Section>

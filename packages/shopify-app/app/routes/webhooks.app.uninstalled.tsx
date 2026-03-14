@@ -2,12 +2,14 @@ import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { forwardWebhookToPlatform } from "../platform.server";
+import { syncShopUninstalled } from "../services/billingUsage.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const forwardRequest = request.clone();
   const { shop, session, topic } = await authenticate.webhook(request);
 
   console.log(`Received ${topic} webhook for ${shop}`);
+  await syncShopUninstalled(shop);
   await forwardWebhookToPlatform(forwardRequest, "/webhooks/commerce/shopify");
 
   // Webhook requests can trigger multiple times and after an app has already been uninstalled.
