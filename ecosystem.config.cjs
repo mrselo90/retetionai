@@ -67,6 +67,7 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3003,
         SHOPIFY_APP_URL: 'https://shop.recete.co.uk',
+        DATABASE_URL: process.env.DATABASE_URL || rootEnv.DATABASE_URL || '',
         PLATFORM_API_URL: 'http://127.0.0.1:3002',
         PLATFORM_INTERNAL_SECRET:
           process.env.PLATFORM_INTERNAL_SECRET ||
