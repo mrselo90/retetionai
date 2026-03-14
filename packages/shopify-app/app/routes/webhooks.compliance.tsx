@@ -17,7 +17,17 @@ function getComplianceForwardPath(topic: string) {
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const forwardRequest = request.clone();
-  const { topic, shop } = await authenticate.webhook(request);
+  let topic: string;
+  let shop: string;
+
+  try {
+    const webhookContext = await authenticate.webhook(request);
+    topic = webhookContext.topic;
+    shop = webhookContext.shop;
+  } catch (error) {
+    console.warn("Rejected compliance webhook due to invalid Shopify signature.", error);
+    return new Response("Unauthorized", { status: 401 });
+  }
 
   console.log(`Received ${topic} webhook for ${shop}`);
   await forwardWebhookToPlatform(forwardRequest, getComplianceForwardPath(topic));

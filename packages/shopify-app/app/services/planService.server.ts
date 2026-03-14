@@ -1,4 +1,4 @@
-import type { BillingInterval, PlanType, Prisma } from "@prisma/client";
+import { Prisma, type BillingInterval, type PlanType } from "@prisma/client";
 import prisma from "../db.server";
 import {
   comparePlans,
@@ -56,13 +56,36 @@ async function ensureUsageTracker(shopId: string, recipeCount = 0) {
 }
 
 export async function ensureShop(shopDomain: string) {
-  const shop = await prisma.shop.upsert({
+  let shop = await prisma.shop.findUnique({
     where: { shopDomain },
-    update: {},
-    create: {
-      shopDomain,
-    },
   });
+
+  if (!shop) {
+    try {
+      shop = await prisma.shop.create({
+        data: {
+          shopDomain,
+        },
+      });
+    } catch (error) {
+      // Concurrent embedded requests can race on first install/auth.
+      // If another request created the row first, re-read it and continue.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        shop = await prisma.shop.findUnique({
+          where: { shopDomain },
+        });
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  if (!shop) {
+    throw new Error(`Unable to ensure shop record for ${shopDomain}`);
+  }
 
   await ensureUsageTracker(shop.id);
   return shop;
