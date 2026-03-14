@@ -21,6 +21,12 @@ function loadRootEnv() {
 }
 
 const rootEnv = loadRootEnv();
+const internalServiceSecret =
+  process.env.INTERNAL_SERVICE_SECRET ||
+  process.env.PLATFORM_INTERNAL_SECRET ||
+  rootEnv.INTERNAL_SERVICE_SECRET ||
+  rootEnv.PLATFORM_INTERNAL_SECRET ||
+  '';
 
 /**
  * PM2 ecosystem config for production.
@@ -37,7 +43,11 @@ module.exports = {
       cwd: './packages/api',
       script: 'dist/index.js',
       interpreter: 'node',
-      env: { PORT: 3002, NODE_ENV: 'production' },
+      env: {
+        PORT: 3002,
+        NODE_ENV: 'production',
+        INTERNAL_SERVICE_SECRET: internalServiceSecret,
+      },
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
@@ -69,12 +79,7 @@ module.exports = {
         SHOPIFY_APP_URL: 'https://shop.recete.co.uk',
         DATABASE_URL: process.env.DATABASE_URL || rootEnv.DATABASE_URL || '',
         PLATFORM_API_URL: 'http://127.0.0.1:3002',
-        PLATFORM_INTERNAL_SECRET:
-          process.env.PLATFORM_INTERNAL_SECRET ||
-          process.env.INTERNAL_SERVICE_SECRET ||
-          rootEnv.PLATFORM_INTERNAL_SECRET ||
-          rootEnv.INTERNAL_SERVICE_SECRET ||
-          '',
+        PLATFORM_INTERNAL_SECRET: internalServiceSecret,
         LEGACY_DASHBOARD_URL: 'https://recete.co.uk',
       },
       instances: 1,
