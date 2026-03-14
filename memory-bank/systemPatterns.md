@@ -109,7 +109,7 @@ Internet → Nginx (port 80)
               └─→ Supabase (PostgreSQL, cloud)
 ```
 
-- **Server**: DigitalOcean Droplet (209.97.134.215)
+- **Server**: DigitalOcean Droplet (167.172.60.234)
 - **Process Manager**: PM2 (auto-restart, auto-start on reboot)
 - **Reverse Proxy**: Nginx
 - **Database**: Supabase (managed PostgreSQL)

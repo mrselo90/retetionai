@@ -1,6 +1,6 @@
 # Deployment Instructions (DigitalOcean)
 
-**Target**: DigitalOcean Droplet (209.97.134.215)
+**Target**: DigitalOcean Droplet (167.172.60.234)
 **Services**: API, Frontend (Web), Workers
 **Method**: Manual SSH Deployment
 
@@ -8,7 +8,7 @@
 
 1.  **SSH into your server**:
     ```bash
-    ssh root@209.97.134.215
+    ssh root@167.172.60.234
     ```
 
 2.  **Navigate to project**:

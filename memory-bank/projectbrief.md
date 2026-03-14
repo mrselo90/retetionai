@@ -31,8 +31,8 @@
 ## Project Status
 
 - **Phase**: ✅ Deployed & Live
-- **Deployment**: DigitalOcean Droplet (209.97.134.215)
-- **URL**: http://209.97.134.215
+- **Deployment**: DigitalOcean Droplet (167.172.60.234)
+- **URL**: http://167.172.60.234
 - **Process Manager**: PM2 (auto-start on reboot)
 - **Reverse Proxy**: Nginx
 

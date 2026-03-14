@@ -142,7 +142,7 @@
   - Prevents mixed-language answers (e.g., Turkish template labels + Hungarian usage/frequency content) and falls back to normal LLM response generation
   - API/workers restarted after deploying commit `f20fa71`
 - **Web Deploy Sync (latest Polaris changes)**:
-  - Latest web build deployed to server (`root@209.97.134.215`) and PM2 `web` process restarted successfully
+  - Latest web build deployed to server (`root@167.172.60.234`) and PM2 `web` process restarted successfully
   - `api`, `web`, and `workers` all confirmed `online` after restart
 - **Web Deploy Sync (admin Polaris pages)**:
   - Admin Polaris migration bundle (commit `fcfdb17`) is deployed on server

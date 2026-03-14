@@ -2,8 +2,8 @@
 
 ## 🟢 Application is LIVE
 
-**URL**: http://209.97.134.215  
-**Server**: DigitalOcean Droplet (209.97.134.215)
+**URL**: http://167.172.60.234  
+**Server**: DigitalOcean Droplet (167.172.60.234)
 
 ## Services
 
@@ -20,7 +20,7 @@
 
 ```bash
 # Connect to server
-ssh root@209.97.134.215
+ssh root@167.172.60.234
 
 # Check services
 pm2 list

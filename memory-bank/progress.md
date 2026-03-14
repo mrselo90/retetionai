@@ -56,7 +56,7 @@
 - **Deployment Fixes (Feb 16)**:
   - Fixed invalid JSON structure in `packages/web/messages/tr.json` and `en.json` (Analytics object nested inside Settings).
   - Fixed TypeScript error in Settings page (`days_until_expiration` potentially undefined).
-  - Successfully deployed to DigitalOcean (209.97.134.215) with `pm2 restart all --update-env`.
+  - Successfully deployed to DigitalOcean (167.172.60.234) with `pm2 restart all --update-env`.
 - **Localization (Feb 17)**:
   - Application is English (default) and Turkish. All dashboard UI uses `next-intl` with `en.json` and `tr.json`.
   - Localized pages: Shopify Map, Conversations (list + detail), Analytics (incl. ROI), Integrations, Sidebar, Customers (list + detail), Settings/Bot Info, Product detail, Test page, Shopify OAuth callback.
@@ -89,13 +89,13 @@
 
 - **Git & Deploy (Feb 20, 2026)**:
   - **Git**: All application state pushed to `origin/main` (commit b8670c9). `.gitignore` updated to exclude `apply_migration_local.mjs` (local one-off migration script; contains DB credentials — keep local only).
-  - **Server**: Deployed on DigitalOcean (209.97.134.215): git pull, pnpm build, pm2 restart all — api, web, workers online. DB migration step (010_performance_indexes) skipped on server (Supabase IPv6 unreachable from droplet); run migrations from local or Supabase Console if needed.
+  - **Server**: Deployed on DigitalOcean (167.172.60.234): git pull, pnpm build, pm2 restart all — api, web, workers online. DB migration step (010_performance_indexes) skipped on server (Supabase IPv6 unreachable from droplet); run migrations from local or Supabase Console if needed.
 
 ## App Icon & Deploy (Feb 17, 2026)
 
 - **App icon 1200×1200**: Source `logo_icons/1200x1200_icon.png`; copy in `packages/web/public/icon.png`. Layout metadata uses `/icon.png` for favicon and Apple touch icon. Shopify MEDIA_ASSETS_CHECKLIST references asset and marks icon-created done.
 - **Git**: All changes committed and pushed to `origin/main` (commit d968371; later cd873a2 for Recete rebrand).
-- **Server**: Deployed to 209.97.134.215 — git pull, pnpm install, pnpm build, pm2 restart all. API, web, workers online.
+- **Server**: Deployed to 167.172.60.234 — git pull, pnpm install, pnpm build, pm2 restart all. API, web, workers online.
 
 ## Recete Rebrand (Feb 17, 2026)
 

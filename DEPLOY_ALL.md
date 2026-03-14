@@ -21,7 +21,7 @@ git push origin main
 **SSH in:**
 
 ```bash
-ssh root@209.97.134.215
+ssh root@167.172.60.234
 ```
 
 **Go to project and run deploy script:**

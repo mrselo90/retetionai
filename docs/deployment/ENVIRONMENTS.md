@@ -203,7 +203,7 @@ docker run -d -p 6379:6379 redis:7-alpine
 5. `pm2 restart all`
 
 #### Production
-1. SSH into Production Droplet (209.97.134.215)
+1. SSH into Production Droplet (167.172.60.234)
 2. `git pull origin main`
 3. `pnpm install`
 4. `pnpm build`

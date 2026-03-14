@@ -41,7 +41,7 @@
 
 ### Server Details
 - **Provider**: DigitalOcean Droplet
-- **IP Address**: 209.97.134.215
+- **IP Address**: 167.172.60.234
 - **OS**: Ubuntu
 - **Node.js**: v20.20.0
 - **Process Manager**: PM2 (auto-start on reboot)
@@ -73,7 +73,7 @@ pm2 save                    # Save current config
 
 ### Deploying Updates
 ```bash
-ssh root@209.97.134.215
+ssh root@167.172.60.234
 cd /root/retetionai
 git pull
 pnpm install
@@ -150,16 +150,16 @@ SHOPIFY_SCOPES=read_products,read_orders,read_fulfillments,read_customers,write_
 # App Configuration (API on server: PORT=3002)
 NODE_ENV=development
 PORT=3002
-API_URL=http://209.97.134.215
-FRONTEND_URL=http://209.97.134.215
-ALLOWED_ORIGINS=http://209.97.134.215,http://localhost:3000
+API_URL=http://167.172.60.234
+FRONTEND_URL=http://167.172.60.234
+ALLOWED_ORIGINS=http://167.172.60.234,http://localhost:3000
 ```
 
 ### Frontend (.env.local on server at /root/retetionai/packages/web/.env.local)
 ```env
 PORT=3001
 INTERNAL_API_URL=http://127.0.0.1:3002
-NEXT_PUBLIC_API_URL=http://209.97.134.215
+NEXT_PUBLIC_API_URL=http://167.172.60.234
 NEXT_PUBLIC_SUPABASE_URL=https://clcqmasqkfdcmznwdrbx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<key>
 ```
