@@ -134,7 +134,7 @@ SUPABASE_ANON_KEY=<key>
 SUPABASE_SERVICE_ROLE_KEY=<key>
 
 # Database
-DATABASE_URL=postgresql://postgres:<pass>@db.clcqmasqkfdcmznwdrbx.supabase.co:5432/postgres
+DATABASE_URL=postgresql://postgres.<project-ref>:[url-encoded-password]@aws-1-<region>.pooler.supabase.com:5432/postgres
 
 # Redis
 REDIS_URL=redis://localhost:6379

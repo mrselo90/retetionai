@@ -1,8 +1,9 @@
 # Migration'ları Çalıştırma - Hızlı Kılavuz
 
 ## Database Bilgileri
-- **Connection String**: `postgresql://postgres:ZouJWMAZueSr1oZI@db.clcqmasqkfdcmznwdrbx.supabase.co:5432/postgres`
+- **Connection String**: `postgresql://postgres.<project-ref>:[url-encoded-password]@aws-1-<region>.pooler.supabase.com:5432/postgres`
 - **Project URL**: `https://clcqmasqkfdcmznwdrbx.supabase.co`
+- **Not**: Şifre içinde `?`, `@`, `#`, `%` gibi karakterler varsa URL-encode edilmelidir. Örnek: `selomelo26?` -> `selomelo26%3F`
 
 ## Adım 1: API Keys'i Alın
 
@@ -31,8 +32,8 @@ Eğer psql yüklüyse:
 
 ```bash
 cd /Users/sboyuk/Desktop/retention-agent-ai
-psql "postgresql://postgres:ZouJWMAZueSr1oZI@db.clcqmasqkfdcmznwdrbx.supabase.co:5432/postgres" -f supabase/migrations/001_initial_schema.sql
-psql "postgresql://postgres:ZouJWMAZueSr1oZI@db.clcqmasqkfdcmznwdrbx.supabase.co:5432/postgres" -f supabase/migrations/002_rls_policies.sql
+psql "postgresql://postgres.<project-ref>:[url-encoded-password]@aws-1-<region>.pooler.supabase.com:5432/postgres" -f supabase/migrations/001_initial_schema.sql
+psql "postgresql://postgres.<project-ref>:[url-encoded-password]@aws-1-<region>.pooler.supabase.com:5432/postgres" -f supabase/migrations/002_rls_policies.sql
 ```
 
 ## Adım 3: Doğrulama

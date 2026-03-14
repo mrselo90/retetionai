@@ -112,7 +112,7 @@ cat > .env-output/github-secrets.txt << EOF
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
-DATABASE_URL=postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres
+DATABASE_URL=postgresql://postgres.[project-ref]:[url-encoded-password]@aws-1-[region].pooler.supabase.com:5432/postgres
 
 # API
 NEXT_PUBLIC_API_URL=$API_URL
