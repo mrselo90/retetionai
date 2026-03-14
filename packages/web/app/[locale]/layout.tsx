@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ShopifyProvider } from '../../components/ShopifyProvider'; // Standalone Polaris wrapper only
 import BackendHealthBanner from '../../components/BackendHealthBanner'; // Adjusted path
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
@@ -39,7 +40,9 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider messages={messages}>
       <BackendHealthBanner />
-      {children}
+      <ShopifyProvider>
+        {children}
+      </ShopifyProvider>
     </NextIntlClientProvider>
   );
 }
