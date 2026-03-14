@@ -36,6 +36,9 @@ jobs:
             
             echo "📥 Installing dependencies..."
             pnpm install
+
+            echo "🗄️ Syncing Shopify shell Prisma client..."
+            pnpm --filter @recete/shopify-app prisma generate
             
             echo "🔨 Building the application..."
             pnpm build

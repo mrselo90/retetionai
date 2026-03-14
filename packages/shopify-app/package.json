@@ -2,6 +2,7 @@
   "name": "@recete/shopify-app",
   "private": true,
   "scripts": {
+    "prebuild": "prisma generate",
     "build": "react-router build",
     "dev": "pnpm exec shopify app dev",
     "config:link": "shopify app config link",
