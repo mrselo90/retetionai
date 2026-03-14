@@ -11,6 +11,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["public", "auth"]
 }
 
 model Session {
@@ -31,22 +32,30 @@ model Session {
   emailVerified Boolean?  @default(false)
   refreshToken        String?
   refreshTokenExpires DateTime?
+
+  @@schema("public")
 }
 
 enum PlanType {
   STARTER
   GROWTH
   PRO
+
+  @@schema("public")
 }
 
 enum BillingInterval {
   MONTHLY
   ANNUAL
+
+  @@schema("public")
 }
 
 enum WebhookProcessingStatus {
   PENDING
   COMPLETED
+
+  @@schema("public")
 }
 
 model Shop {
@@ -65,6 +74,8 @@ model Shop {
   products          Product[]
   webhookReceipts   WebhookReceipt[]
   usageEventReceipts UsageEventReceipt[]
+
+  @@schema("public")
 }
 
 model UsageTracker {
@@ -78,6 +89,8 @@ model UsageTracker {
   periodEnd           DateTime
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+
+  @@schema("public")
 }
 
 model Product {
@@ -90,6 +103,7 @@ model Product {
   updatedAt         DateTime @updatedAt
 
   @@unique([shopId, externalProductId])
+  @@schema("public")
 }
 
 model WebhookReceipt {
@@ -105,6 +119,8 @@ model WebhookReceipt {
   processedAt        DateTime?
   createdAt          DateTime                 @default(now())
   updatedAt          DateTime                 @updatedAt
+
+  @@schema("public")
 }
 
 model UsageEventReceipt {
@@ -123,4 +139,5 @@ model UsageEventReceipt {
   updatedAt          DateTime  @updatedAt
 
   @@unique([shopId, eventType, externalEventId])
+  @@schema("public")
 }
