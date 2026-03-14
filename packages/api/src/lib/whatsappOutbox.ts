@@ -1,4 +1,5 @@
 import { getSupabaseServiceClient, logger } from '@recete/shared';
+import { recordMerchantBillableChat } from './merchantPlanFeatures.js';
 import { sendWhatsAppMessage, type WhatsAppCredentials } from './whatsapp.js';
 
 export type WhatsAppOutboxMessageKind =
@@ -34,6 +35,10 @@ type OutboxRow = {
   attempts: number;
   provider_message_id?: string | null;
 };
+
+function isBillableAiMessageKind(messageKind: WhatsAppOutboxMessageKind) {
+  return messageKind === 'ai_primary' || messageKind === 'ai_fallback';
+}
 
 function isSchemaMissingError(error: unknown): boolean {
   const code = (error as any)?.code;
@@ -205,6 +210,25 @@ export async function sendTrackedWhatsAppMessage(
     },
     'whatsapp_outbox_sent'
   );
+
+  if (isBillableAiMessageKind(input.messageKind)) {
+    const usageEventId = outboxId;
+    void recordMerchantBillableChat({
+      merchantId: input.merchantId,
+      externalEventId: usageEventId,
+      description: `Billable AI chat (${input.messageKind})`,
+    }).catch((error) => {
+      logger.error(
+        {
+          error,
+          merchantId: input.merchantId,
+          outboxId,
+          messageKind: input.messageKind,
+        },
+        'Failed to report billable AI chat to Shopify shell',
+      );
+    });
+  }
 
   return {
     success: true,

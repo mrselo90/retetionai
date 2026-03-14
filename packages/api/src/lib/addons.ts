@@ -22,7 +22,7 @@ export const ADDON_DEFINITIONS: Record<string, AddonDefinition> = {
     name: 'Return Prevention',
     description: 'AI-powered return prevention with usage guides and video tutorials',
     priceMonthly: 19.0,
-    requiredPlan: ['starter', 'pro', 'enterprise'],
+    requiredPlan: ['starter', 'growth', 'pro', 'enterprise'],
   },
 };
 

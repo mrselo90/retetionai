@@ -5,6 +5,7 @@
 
 import { getSupabaseServiceClient } from '@recete/shared';
 import { getOpenAIClient } from './openaiClient.js';
+import { getMerchantUpsellStrategy } from './merchantPlanFeatures.js';
 import { getDefaultLlmModel } from './runtimeModelSettings.js';
 
 export interface SatisfactionResult {
@@ -253,6 +254,11 @@ export async function generateUpsell(
   userId: string,
   orderId: string
 ): Promise<{ message: string; recommendations: ProductRecommendation[] }> {
+  const strategy = await getMerchantUpsellStrategy(merchantId);
+  if (strategy === 'BASIC') {
+    return { message: '', recommendations: [] };
+  }
+
   // Eligibility check (no satisfaction here; caller decides)
   const eligible = await isUpsellEligible(userId, orderId, merchantId);
   if (!eligible) {
@@ -270,11 +276,16 @@ export async function generateUpsell(
     .eq('id', merchantId)
     .single();
 
-  const message = await generateUpsellMessage(
-    recommendations,
-    merchant?.name || 'Biz',
-    merchant?.persona_settings
-  );
+  const message =
+    strategy === 'LINKS'
+      ? recommendations
+          .map((rec, index) => `${index + 1}. ${rec.productName}: ${rec.productUrl}`)
+          .join('\n')
+      : await generateUpsellMessage(
+          recommendations,
+          merchant?.name || 'Biz',
+          merchant?.persona_settings
+        );
 
   return { message, recommendations };
 }
@@ -292,6 +303,14 @@ export async function processSatisfactionCheck(
   upsellTriggered: boolean;
   upsellMessage?: string;
 }> {
+  const strategy = await getMerchantUpsellStrategy(merchantId);
+  if (strategy === 'BASIC') {
+    return {
+      satisfied: false,
+      upsellTriggered: false,
+    };
+  }
+
   // Detect satisfaction
   const satisfaction = await detectSatisfaction(userMessage);
 
@@ -333,11 +352,16 @@ export async function processSatisfactionCheck(
     .eq('id', merchantId)
     .single();
 
-  const upsellMessage = await generateUpsellMessage(
-    recommendations,
-    merchant?.name || 'Biz',
-    merchant?.persona_settings
-  );
+  const upsellMessage =
+    strategy === 'LINKS'
+      ? recommendations
+          .map((rec, index) => `${index + 1}. ${rec.productName}: ${rec.productUrl}`)
+          .join('\n')
+      : await generateUpsellMessage(
+          recommendations,
+          merchant?.name || 'Biz',
+          merchant?.persona_settings
+        );
 
   // Schedule upsell message (or send immediately)
   // For MVP, we'll return the message to be sent

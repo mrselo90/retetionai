@@ -95,10 +95,10 @@ billing.get('/plans', async (c) => {
 /**
  * Start subscription (Shopify)
  * POST /api/billing/subscribe
- * Body: { planId: 'starter' | 'pro', billingCycle: 'monthly' | 'yearly' }
+ * Body: { planId: 'starter' | 'growth' | 'pro', billingCycle: 'monthly' | 'yearly' }
  */
 const subscribeSchema = z.object({
-  planId: z.enum(['starter', 'pro', 'enterprise']),
+  planId: z.enum(['starter', 'growth', 'pro', 'enterprise']),
   billingCycle: z.enum(['monthly', 'yearly']).optional().default('monthly'),
 });
 

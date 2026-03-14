@@ -7,6 +7,7 @@ import {
   updateConversationState,
 } from './conversation.js';
 import { generateAIResponse } from './aiAgent.js';
+import { canMerchantUseAiVision } from './merchantPlanFeatures.js';
 import { getEffectiveWhatsAppCredentials } from './whatsapp.js';
 import { sendTrackedWhatsAppMessage } from './whatsappOutbox.js';
 
@@ -99,6 +100,21 @@ export async function processWhatsAppInboundEvent(
 
   try {
     const messageText = (inbound.message_text || '').trim();
+    if (inbound.message_type === 'image') {
+      const aiVisionEnabled = await canMerchantUseAiVision(inbound.merchant_id);
+      await setInboundStatus(inbound.id, 'ignored', {
+        last_error: aiVisionEnabled
+          ? 'Image received but vision analysis is not implemented in the processor yet'
+          : 'Image received on a plan without AI vision access',
+        processed_at: new Date().toISOString(),
+      });
+      return {
+        result: aiVisionEnabled
+          ? 'ignored_image_analysis_not_implemented'
+          : 'ignored_image_plan_blocked',
+      };
+    }
+
     if (inbound.message_type !== 'text' || !messageText) {
       await setInboundStatus(inbound.id, 'ignored', {
         last_error: null,

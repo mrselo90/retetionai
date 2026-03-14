@@ -108,18 +108,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
   const formData = await request.formData();
   const intent = String(formData.get("intent") || "").trim();
 
   try {
     if (intent === "save-core") {
+      const plan = await getPlanSnapshotByDomain(session.shop);
       const defaultSourceLang = String(formData.get("default_source_lang") || "en").trim() || "en";
       const rawLangs = String(formData.get("enabled_langs") || defaultSourceLang)
         .split(",")
         .map((value) => value.trim())
         .filter(Boolean);
       const enabledLangs = Array.from(new Set([defaultSourceLang, ...rawLangs]));
+      const requestedSenderMode =
+        (String(formData.get("whatsapp_sender_mode") || "").trim() as
+          | "merchant_own"
+          | "corporate") || "merchant_own";
+      const resolvedSenderMode = plan.planType === "PRO" ? requestedSenderMode : "corporate";
 
       await Promise.all([
         updateMerchantSettings(request, {
@@ -138,10 +144,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 | "short"
                 | "medium"
                 | "long") || "medium",
-            whatsapp_sender_mode:
-              (String(formData.get("whatsapp_sender_mode") || "").trim() as
-                | "merchant_own"
-                | "corporate") || "merchant_own",
+            whatsapp_sender_mode: resolvedSenderMode,
             whatsapp_welcome_template:
               String(formData.get("whatsapp_welcome_template") || "").trim() || undefined,
           },
@@ -153,7 +156,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }),
       ]);
 
-      return { ok: true, intent, message: "Core settings saved." } satisfies ActionResult;
+      return {
+        ok: true,
+        intent,
+        message:
+          plan.planType === "PRO"
+            ? "Core settings saved."
+            : "Core settings saved. Shared Recete WhatsApp routing was kept because custom branded WhatsApp requires Pro.",
+      } satisfies ActionResult;
     }
 
     if (intent === "save-guardrails") {

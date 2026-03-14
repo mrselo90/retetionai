@@ -4,6 +4,7 @@
  */
 
 import { getSupabaseServiceClient } from '@recete/shared';
+import { getMerchantWhatsAppSenderMode } from './merchantPlanFeatures.js';
 
 export interface WhatsAppMessage {
   to: string; // E.164 phone number
@@ -608,8 +609,10 @@ export async function getEffectiveWhatsAppCredentials(
     .eq('id', merchantId)
     .single();
 
-  const mode = (merchant?.persona_settings as any)?.whatsapp_sender_mode;
-  const useCorporate = mode === 'corporate';
+  const requestedMode = (merchant?.persona_settings as any)?.whatsapp_sender_mode;
+  const allowedMode = await getMerchantWhatsAppSenderMode(merchantId);
+  const effectiveMode = allowedMode === 'corporate' ? 'corporate' : requestedMode || 'merchant_own';
+  const useCorporate = effectiveMode === 'corporate';
   const effectiveMerchantId = useCorporate && process.env.DEFAULT_MERCHANT_ID
     ? process.env.DEFAULT_MERCHANT_ID
     : merchantId;

@@ -6,7 +6,7 @@
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { getCachedPlanLimits, setCachedPlanLimits, invalidatePlanLimitsCache } from './cache.js';
 
-export type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'enterprise';
+export type SubscriptionPlan = 'free' | 'starter' | 'growth' | 'pro' | 'enterprise';
 export type SubscriptionStatus = 'trial' | 'active' | 'cancelled' | 'expired' | 'past_due';
 export type BillingProvider = 'shopify' | 'stripe' | 'manual';
 

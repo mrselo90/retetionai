@@ -12,13 +12,13 @@
 |---|---|---|
 | Embedded app architecture | `Verify` | Shopify shell exists and embedded auth is in place, but reviewer flow must stay inside the shell. |
 | OAuth and session tokens | `Pass` | Official Shopify shell, App Bridge flow, session-token forwarding, and install sync are implemented. |
-| Billing compliance | `Verify` | Shopify-managed billing exists, but listing/reviewer notes must match actual base plans, add-ons, and usage charges. |
+| Billing compliance | `Pass` for implementation, `Verify` for submission copy | Shopify-managed billing exists, live tier pricing is implemented, and usage billing now meters from real AI chat events. Listing/reviewer notes must still match actual base plans, add-ons, and usage charges. |
 | GDPR compliance webhooks | `Pass` | Compliance topics, forwarding, HMAC validation, job persistence, and processors exist. |
 | Protected customer data readiness | `Verify` | App uses `read_customers` and exposes customer personal data; Partner Dashboard approval must be confirmed. |
 | Public-facing app surface | `Pass` | Shopify shell root now presents a Shopify-specific entry page and separates standalone Recete customers onto `recete.co.uk`. |
 | Listing/media/reviewer package | `Missing` | Needs final reviewer instructions, media assets, and test-store package confirmation. |
 
-**Current recommendation**: Do **not** submit until protected customer data approval is confirmed, billing disclosure is aligned, and the reviewer path is documented end-to-end.
+**Current recommendation**: Do **not** submit until protected customer data approval is confirmed, billing disclosure is aligned, and the reviewer path is documented end-to-end inside the Shopify shell.
 
 ---
 
@@ -104,16 +104,22 @@ This is a submission-readiness document, not a generic Shopify checklist.
 
 ---
 
-### 3. Billing disclosure must match actual behavior
+### 3. Billing implementation is now aligned, but disclosure must match actual behavior
 
-**Status**: `Verify`  
+**Status**: `Pass` for implementation, `Verify` for submission copy  
 **Severity**: Medium
 
 **Evidence**
 
-- Embedded billing UI:
+- Shopify shell billing source of truth:
+  - `packages/shopify-app/app/shopify.server.ts`
+  - `packages/shopify-app/app/services/billingUsage.server.ts`
+- Shell billing UI:
   - `packages/shopify-app/app/routes/app.billing.tsx`
-- Backend billing logic:
+- Runtime chat metering path:
+  - `packages/api/src/lib/whatsappOutbox.ts`
+  - `packages/shopify-app/app/routes/internal.billing.usage.tsx`
+- Platform billing compatibility layer:
   - `packages/api/src/lib/shopifyBilling.ts`
   - `packages/api/src/routes/billing.ts`
 
@@ -121,8 +127,20 @@ This is a submission-readiness document, not a generic Shopify checklist.
 
 - fixed base subscription plans
 - monthly and yearly options
+- Starter: `$29 / month` or `$290 / year`
+- Growth: `$69 / month` or `$690 / year`
+- Pro: `$199 / month` or `$1990 / year`
+- included monthly AI chat allowances
+- usage overages billed after included chat limits
 - add-on billing
-- usage-based line items / capped usage in Shopify billing mutation
+- usage-based line items / capped usage in Shopify billing
+
+**Observed usage-billing behavior**
+
+- usage billing is now tied to real outbound AI chat events
+- usage is no longer metered from `orders/fulfilled`
+- Shopify usage records are created through the shell using offline session access
+- capped usage is configured to protect platform cost exposure
 
 **Why this matters**
 
@@ -134,7 +152,10 @@ This is a submission-readiness document, not a generic Shopify checklist.
 - Align App Store pricing text with the real implementation.
 - Explicitly disclose:
   - Starter monthly/yearly pricing
+  - Growth monthly/yearly pricing
   - Pro monthly/yearly pricing
+  - included monthly AI chat limits
+  - overage pricing for chats beyond the included monthly limit
   - add-on charges, if enabled during review
   - usage-based charges or capped usage terms, if applicable
 
@@ -167,6 +188,7 @@ This is a submission-readiness document, not a generic Shopify checklist.
 **Required action**
 
 - Prepare reviewer steps that keep the reviewer entirely in the embedded shell on `shop.recete.co.uk`.
+- Explicitly state that `recete.co.uk` is the standalone non-Shopify product surface and is not the primary Shopify review path.
 - Confirm billing, settings, integrations, and core flows are reachable from the shell.
 - Avoid any unnecessary jump to the standalone dashboard during review.
 
@@ -282,7 +304,7 @@ This is a submission-readiness document, not a generic Shopify checklist.
 |---|---|---|---|
 | Replace Shopify root placeholder page | `Done` | Product / Frontend | Shopify shell root now uses Shopify-specific copy and points standalone customers to `recete.co.uk`. |
 | Confirm protected customer data approval | `Open` | Shopify Partner admin | Must be checked in Partner Dashboard, not just code. |
-| Align billing disclosure with actual charges | `Open` | Product / Billing | Base plans, add-ons, and usage terms must match listing and review notes. |
+| Align billing disclosure with actual charges | `Open` | Product / Billing | Starter, Growth, Pro, included chats, overage terms, add-ons, and capped usage language must match listing and review notes. |
 | Lock reviewer path to embedded shell | `Open` | Product / QA | Review steps should not depend on legacy standalone surfaces. |
 | Verify GDPR workers in review environment | `Open` | DevOps / Backend | Async compliance handling must actually run. |
 
@@ -306,6 +328,8 @@ Use this when preparing the Partner Dashboard submission.
 - [ ] App name is final and consistent everywhere
 - [ ] Tagline and description match real functionality
 - [ ] Pricing section matches actual charges
+- [ ] Pricing section includes Starter, Growth, and Pro
+- [ ] Pricing section describes included chats and overage billing clearly
 - [ ] Privacy Policy URL is live
 - [ ] Terms of Service URL is live
 - [ ] Support email is correct
@@ -334,6 +358,8 @@ Use this when preparing the Partner Dashboard submission.
 - [ ] Provide exact install and login steps
 - [ ] Provide exact test-store details
 - [ ] Explain what features to test first
+- [ ] State that Shopify review should remain on `shop.recete.co.uk`
+- [ ] State that `recete.co.uk` is the standalone non-Shopify surface
 - [ ] Explain any expected sample/demo data
 - [ ] Explain any feature intentionally disabled during review
 
@@ -345,7 +371,9 @@ Use this as a starting point in the submission form.
 
 > Recete is an embedded Shopify app for post-purchase customer support and retention workflows.  
 > Reviewers should install the app in the provided development store and remain inside the embedded Shopify app at `shop.recete.co.uk`.  
+> The standalone Recete product at `recete.co.uk` is for non-Shopify customers and is not the primary Shopify review surface.  
 > The app uses Shopify-managed billing approval within the embedded app.  
+> Billing includes Starter, Growth, and Pro tiers with monthly and annual options, plus capped usage-based billing for outbound AI chats beyond the included monthly allowance.  
 > The app requests customer and order-related data only to support merchant-requested post-purchase communication, support context, analytics, and GDPR-compliant data operations.  
 > GDPR compliance webhooks are implemented for customer data requests, customer redaction, and shop redaction.  
 > Any test-store credentials, sample data, or limited review-mode instructions should be listed below this note.
@@ -355,8 +383,8 @@ Use this as a starting point in the submission form.
 ## Concrete Next Steps
 
 1. Confirm protected customer data approval in Shopify Partner Dashboard.
-2. Review App Store pricing copy against `packages/shopify-app/app/routes/app.billing.tsx` and `packages/api/src/lib/shopifyBilling.ts`.
-3. Write final reviewer instructions around the embedded shell only.
+2. Review App Store pricing copy against `packages/shopify-app/app/shopify.server.ts`, `packages/shopify-app/app/routes/app.billing.tsx`, and `packages/shopify-app/app/services/billingUsage.server.ts`.
+3. Write final reviewer instructions around the embedded shell only, with explicit separation from `recete.co.uk`.
 4. Run an end-to-end review-environment test covering install, billing, and GDPR compliance processing.
 
 ---
@@ -384,8 +412,12 @@ Use this as a starting point in the submission form.
 
 ### Shopify API and billing
 
+- `packages/shopify-app/app/shopify.server.ts`
+- `packages/shopify-app/app/services/billingUsage.server.ts`
+- `packages/shopify-app/app/routes/internal.billing.usage.tsx`
 - `packages/api/src/lib/shopify.ts`
 - `packages/api/src/lib/shopifyBilling.ts`
+- `packages/api/src/lib/whatsappOutbox.ts`
 - `packages/api/src/routes/billing.ts`
 - `packages/api/src/routes/shopify.ts`
 

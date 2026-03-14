@@ -23,6 +23,7 @@ import {
   invalidateApiCache,
 } from '../lib/cache.js';
 import { enforceStorageLimit } from '../lib/planLimits.js';
+import { checkMerchantRecipeCapacity } from '../lib/merchantPlanFeatures.js';
 import { MultiLangRagShadowWriteService } from '../lib/multiLangRag/shadowWriteService.js';
 import { getProductsCacheTtlSeconds } from '../lib/runtimeModelSettings.js';
 
@@ -227,6 +228,26 @@ products.post('/', validateBody(createProductSchema), async (c) => {
   const validatedBody = c.get('validatedBody') as CreateProductInput;
   const { name, url, external_id, raw_text } = validatedBody;
   const serviceClient = getSupabaseServiceClient();
+
+  const { count: currentProductCount, error: countError } = await serviceClient
+    .from('products')
+    .select('*', { count: 'exact', head: true })
+    .eq('merchant_id', merchantId);
+
+  if (countError) {
+    return c.json({ error: 'Failed to validate product capacity' }, 500);
+  }
+
+  const capacity = await checkMerchantRecipeCapacity(merchantId, currentProductCount || 0);
+  if (!capacity.allowed) {
+    return c.json(
+      {
+        error: 'Product limit exceeded',
+        message: `Your current plan allows ${capacity.limit} recipes/products. Upgrade before creating more.`,
+      },
+      403,
+    );
+  }
 
   const { data: product, error } = await serviceClient
     .from('products')

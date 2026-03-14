@@ -64,6 +64,7 @@ model Shop {
   usageTracker      UsageTracker?
   products          Product[]
   webhookReceipts   WebhookReceipt[]
+  usageEventReceipts UsageEventReceipt[]
 }
 
 model UsageTracker {
@@ -104,4 +105,22 @@ model WebhookReceipt {
   processedAt        DateTime?
   createdAt          DateTime                 @default(now())
   updatedAt          DateTime                 @updatedAt
+}
+
+model UsageEventReceipt {
+  id                 String    @id @default(cuid())
+  shopId             String
+  shop               Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  eventType          String
+  externalEventId    String
+  description        String?
+  quantity           Int       @default(1)
+  usageApplied       Boolean   @default(false)
+  chargedUnits       Int       @default(0)
+  usageRecordId      String?
+  processedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([shopId, eventType, externalEventId])
 }

@@ -1,5 +1,5 @@
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
-import type { BillingInterval, PlanType, WebhookProcessingStatus } from "@prisma/client";
+import type { BillingInterval, PlanType } from "@prisma/client";
 import prisma from "../db.server";
 import {
   getPlanDefinition,
@@ -13,6 +13,10 @@ import {
   getPlanSnapshotByDomain,
   syncShopBillingState,
 } from "./planService.server";
+
+const SHOPIFY_ADMIN_API_VERSION = "2026-01";
+const INTERNAL_EVENT_TYPE_CHAT = "BILLABLE_CHAT";
+const INTERNAL_EVENT_TYPE_PHOTO = "PHOTO_ANALYSIS";
 
 type ActiveSubscriptionPricingDetails =
   | {
@@ -179,14 +183,23 @@ export async function syncShopUninstalled(shopDomain: string) {
 }
 
 async function createUsageRecord(params: {
-  admin: AdminApiContext;
+  shopDomain: string;
+  accessToken: string;
   subscriptionLineItemId: string;
   amount: number;
   description: string;
   idempotencyKey: string;
 }) {
-  const response = await params.admin.graphql(
-    `#graphql
+  const response = await fetch(
+    `https://${params.shopDomain}/admin/api/${SHOPIFY_ADMIN_API_VERSION}/graphql.json`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": params.accessToken,
+      },
+      body: JSON.stringify({
+        query: `#graphql
       mutation CreateUsageRecord(
         $subscriptionLineItemId: ID!
         $price: MoneyInput!
@@ -208,18 +221,25 @@ async function createUsageRecord(params: {
           }
         }
       }`,
-    {
-      variables: {
-        subscriptionLineItemId: params.subscriptionLineItemId,
-        price: {
-          amount: params.amount,
-          currencyCode: "USD",
+        variables: {
+          subscriptionLineItemId: params.subscriptionLineItemId,
+          price: {
+            amount: params.amount,
+            currencyCode: "USD",
+          },
+          description: params.description,
+          idempotencyKey: params.idempotencyKey,
         },
-        description: params.description,
-        idempotencyKey: params.idempotencyKey,
-      },
+      }),
     },
   );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `Usage record request failed for ${params.shopDomain} with ${response.status}: ${body}`,
+    );
+  }
 
   const payload = (await response.json()) as {
     data?: {
@@ -240,86 +260,163 @@ async function createUsageRecord(params: {
   return payload.data?.appUsageRecordCreate?.appUsageRecord?.id ?? null;
 }
 
-export async function processOrderFulfillmentUsage(params: {
-  shopDomain: string;
-  webhookId: string;
-  topic: string;
-  externalOrderId: string;
-  admin: AdminApiContext;
-}) {
-  const shop = await ensureShop(params.shopDomain);
-  const snapshot = await getPlanSnapshotByDomain(params.shopDomain);
-
-  const receipt = await prisma.webhookReceipt.upsert({
-    where: { webhookId: params.webhookId },
-    update: {},
-    create: {
-      webhookId: params.webhookId,
-      shopId: shop.id,
-      topic: params.topic,
-      externalReference: params.externalOrderId,
-      status: "PENDING" satisfies WebhookProcessingStatus,
+async function getOfflineAccessToken(shopDomain: string) {
+  const offlineSession = await prisma.session.findFirst({
+    where: {
+      shop: shopDomain,
+      isOnline: false,
+    },
+    orderBy: {
+      expires: "desc",
     },
   });
 
-  if (receipt.status === "COMPLETED") {
-    return;
+  if (!offlineSession?.accessToken) {
+    throw new Error(`Offline session missing for ${shopDomain}`);
   }
 
-  if (!receipt.chatIncrementApplied) {
-    await prisma.usageTracker.update({
-      where: { shopId: shop.id },
-      data: {
-        chatsSentThisMonth: {
-          increment: 1,
+  return offlineSession.accessToken;
+}
+
+async function applyUsageEvent(params: {
+  shopDomain: string;
+  eventType: typeof INTERNAL_EVENT_TYPE_CHAT | typeof INTERNAL_EVENT_TYPE_PHOTO;
+  externalEventId: string;
+  description?: string;
+  quantity?: number;
+}) {
+  const quantity = Math.max(1, Math.floor(params.quantity ?? 1));
+  const shop = await ensureShop(params.shopDomain);
+  const snapshotBefore = await getPlanSnapshotByDomain(params.shopDomain);
+  const definition = getPlanDefinition(snapshotBefore.planType, snapshotBefore.billingInterval);
+  const accessToken =
+    params.eventType === INTERNAL_EVENT_TYPE_CHAT ? await getOfflineAccessToken(params.shopDomain) : null;
+
+  const receipt = await prisma.usageEventReceipt.upsert({
+    where: {
+      shopId_eventType_externalEventId: {
+        shopId: shop.id,
+        eventType: params.eventType,
+        externalEventId: params.externalEventId,
+      },
+    },
+    update: {},
+    create: {
+      shopId: shop.id,
+      eventType: params.eventType,
+      externalEventId: params.externalEventId,
+      description: params.description ?? null,
+      quantity,
+    },
+  });
+
+  if (receipt.processedAt) {
+    return {
+      chargedUnits: receipt.chargedUnits,
+      usageRecordId: receipt.usageRecordId,
+      alreadyProcessed: true,
+    };
+  }
+
+  if (!receipt.usageApplied) {
+    if (params.eventType === INTERNAL_EVENT_TYPE_CHAT) {
+      await prisma.usageTracker.update({
+        where: { shopId: shop.id },
+        data: {
+          chatsSentThisMonth: {
+            increment: quantity,
+          },
         },
-      },
-    });
-
-    await prisma.webhookReceipt.update({
-      where: { id: receipt.id },
-      data: {
-        chatIncrementApplied: true,
-      },
-    });
-  }
-
-  const refreshedSnapshot = await getPlanSnapshotByDomain(params.shopDomain);
-  const definition = getPlanDefinition(
-    refreshedSnapshot.planType,
-    refreshedSnapshot.billingInterval,
-  );
-
-  if (
-    refreshedSnapshot.chatsSentThisMonth > definition.includedChats &&
-    !receipt.usageChargeApplied
-  ) {
-    if (!refreshedSnapshot.subscriptionLineItemId) {
-      throw new Error(`Usage billing line item missing for shop ${params.shopDomain}`);
+      });
+    } else {
+      await prisma.usageTracker.update({
+        where: { shopId: shop.id },
+        data: {
+          photosAnalyzedCount: {
+            increment: quantity,
+          },
+        },
+      });
     }
 
-    await createUsageRecord({
-      admin: params.admin,
-      subscriptionLineItemId: refreshedSnapshot.subscriptionLineItemId,
-      amount: definition.overageRate,
-      description: `Overage chat for order ${params.externalOrderId}`,
-      idempotencyKey: `${params.webhookId}:${params.externalOrderId}`,
-    });
-
-    await prisma.webhookReceipt.update({
+    await prisma.usageEventReceipt.update({
       where: { id: receipt.id },
       data: {
-        usageChargeApplied: true,
+        usageApplied: true,
       },
     });
   }
 
-  await prisma.webhookReceipt.update({
+  let chargedUnits = 0;
+  let usageRecordId: string | null = null;
+
+  if (params.eventType === INTERNAL_EVENT_TYPE_CHAT) {
+    const snapshotAfter = await getPlanSnapshotByDomain(params.shopDomain);
+    const billableBefore = Math.max(0, snapshotBefore.chatsSentThisMonth - definition.includedChats);
+    const billableAfter = Math.max(0, snapshotAfter.chatsSentThisMonth - definition.includedChats);
+    chargedUnits = Math.max(0, billableAfter - billableBefore);
+
+    if (chargedUnits > 0) {
+      if (!snapshotAfter.subscriptionLineItemId) {
+        throw new Error(`Usage billing line item missing for shop ${params.shopDomain}`);
+      }
+
+      usageRecordId = await createUsageRecord({
+        shopDomain: params.shopDomain,
+        accessToken: accessToken!,
+        subscriptionLineItemId: snapshotAfter.subscriptionLineItemId,
+        amount: Number((definition.overageRate * chargedUnits).toFixed(2)),
+        description:
+          params.description ??
+          `Chat overage (${chargedUnits}) after ${definition.includedChats} included chats`,
+        idempotencyKey: `${params.eventType}:${params.externalEventId}`,
+      });
+    }
+  }
+
+  await prisma.usageEventReceipt.update({
     where: { id: receipt.id },
     data: {
-      status: "COMPLETED",
+      chargedUnits,
+      usageRecordId,
       processedAt: new Date(),
     },
+  });
+
+  return {
+    chargedUnits,
+    usageRecordId,
+    alreadyProcessed: false,
+  };
+}
+
+export async function recordBillableChatUsage(params: {
+  shopDomain: string;
+  externalEventId: string;
+  description?: string;
+  quantity?: number;
+}) {
+  return applyUsageEvent({
+    shopDomain: params.shopDomain,
+    eventType: INTERNAL_EVENT_TYPE_CHAT,
+    externalEventId: params.externalEventId,
+    description: params.description,
+    quantity: params.quantity,
+  });
+}
+
+export async function recordPhotoAnalysisUsage(params: {
+  shopDomain: string;
+  externalEventId: string;
+  description?: string;
+  quantity?: number;
+}) {
+  return applyUsageEvent({
+    shopDomain: params.shopDomain,
+    eventType: INTERNAL_EVENT_TYPE_PHOTO,
+    externalEventId: params.externalEventId,
+    description: params.description,
+    quantity: params.quantity,
   });
 }
 
