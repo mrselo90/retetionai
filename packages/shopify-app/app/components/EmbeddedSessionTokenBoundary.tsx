@@ -4,15 +4,25 @@ import { useEffect } from "react";
 import { useLocation } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 
-async function verifyEmbeddedSessionToken(
+async function verifyWithAutomaticFetch(pathname: string, search: string) {
+  return fetch(`/app/session-token${search}`, {
+    method: "POST",
+    headers: {
+      "X-Requested-With": "XMLHttpRequest",
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+    body: JSON.stringify({ pathname }),
+  });
+}
+
+async function verifyWithManualBearerToken(
   pathname: string,
   search: string,
-  ready: Promise<void>,
   idToken: () => Promise<string>,
 ) {
-  await ready;
   const token = await idToken();
-  const response = await fetch(`/app/session-token${search}`, {
+  return fetch(`/app/session-token${search}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -22,10 +32,29 @@ async function verifyEmbeddedSessionToken(
     cache: "no-store",
     body: JSON.stringify({ pathname }),
   });
+}
 
-  if (!response.ok) {
-    throw new Error(`Embedded session token verification failed with ${response.status}`);
+async function verifyEmbeddedSessionToken(
+  pathname: string,
+  search: string,
+  ready: Promise<void>,
+  idToken: () => Promise<string>,
+) {
+  await ready;
+
+  const automaticResponse = await verifyWithAutomaticFetch(pathname, search);
+  if (automaticResponse.ok) {
+    return;
   }
+
+  const manualResponse = await verifyWithManualBearerToken(pathname, search, idToken);
+  if (manualResponse.ok) {
+    return;
+  }
+
+  throw new Error(
+    `Embedded session token verification failed with ${manualResponse.status}`,
+  );
 }
 
 export function EmbeddedSessionTokenBoundary() {
