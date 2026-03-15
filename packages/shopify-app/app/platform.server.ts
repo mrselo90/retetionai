@@ -250,6 +250,8 @@ export interface MerchantCustomer {
 
 function buildPlatformAuthHeaders(request: Request, initHeaders?: HeadersInit) {
   const authorization = request.headers.get("Authorization")?.trim();
+  // Preserve the document-request fallback for SSR route loaders, but prefer
+  // explicit Authorization bearer tokens for embedded XHR/fetch traffic.
   const idToken = new URL(request.url).searchParams.get("id_token")?.trim();
   const bearerToken = authorization || (idToken ? `Bearer ${idToken}` : "");
 

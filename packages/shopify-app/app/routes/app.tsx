@@ -35,6 +35,7 @@ import {
   ViewIcon,
 } from "@shopify/polaris-icons";
 
+import { EmbeddedSessionTokenBoundary } from "../components/EmbeddedSessionTokenBoundary";
 import { authenticate } from "../shopify.server";
 import { fetchMerchantSettings } from "../platform.server";
 
@@ -81,6 +82,7 @@ export default function App() {
   return (
     <AppProvider embedded apiKey={apiKey}>
       <PolarisAppProvider i18n={enPolarisTranslations}>
+        <EmbeddedSessionTokenBoundary />
         <Box background="bg-surface-secondary" minHeight="100vh" padding="400">
           <div style={{ maxWidth: "1440px", margin: "0 auto" }}>
             <BlockStack gap="400">
