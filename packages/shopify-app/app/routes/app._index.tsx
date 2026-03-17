@@ -1,23 +1,35 @@
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useNavigate } from "react-router";
+import type { HeadersFunction } from "react-router";
+import { useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { CartIcon, CatalogIcon, SettingsIcon } from "@shopify/polaris-icons";
-import { Button, Card, InlineGrid } from "@shopify/polaris";
-import { authenticate } from "../shopify.server";
-import { fetchMerchantOverviewFromRequest } from "../platform.server";
+import { Button, Card, InlineGrid, Text } from "@shopify/polaris";
 import {
   MetricCard,
   SectionCard,
   ShellPage,
 } from "../components/shell-ui";
-
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-  return fetchMerchantOverviewFromRequest(request);
-};
+import type { ShopifyMerchantOverview } from "../platform.server";
+import { useAppBootstrapData } from "./app";
 
 export default function Index() {
-  const data = useLoaderData<typeof loader>();
+  const data = useAppBootstrapData()?.overview;
+
+  if (!data) {
+    return (
+      <ShellPage
+        title="Overview"
+        subtitle="Merchant launch status and the fastest route to a usable retention workflow."
+        primaryAction={{ content: "Open dashboard", url: "/app/dashboard", icon: CartIcon }}
+      >
+        <Card padding="500">
+          <Text as="p" variant="bodyMd" tone="subdued">
+            Waiting for Shopify session-token bootstrap.
+          </Text>
+        </Card>
+      </ShellPage>
+    );
+  }
+
   return (
     <ShellPage
       title="Overview"
@@ -29,7 +41,7 @@ export default function Index() {
   );
 }
 
-function OverviewContent({ data }: { data: Awaited<ReturnType<typeof loader>> }) {
+function OverviewContent({ data }: { data: ShopifyMerchantOverview }) {
   const navigate = useNavigate();
   return (
     <>
