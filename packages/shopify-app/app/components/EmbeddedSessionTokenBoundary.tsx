@@ -4,79 +4,114 @@ import { useEffect } from "react";
 import { useLocation } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 
-async function verifyWithAutomaticFetch(pathname: string, search: string) {
-  return fetch(`/app/session-token${search}`, {
-    method: "POST",
-    headers: {
-      "X-Requested-With": "XMLHttpRequest",
-      "Content-Type": "application/json",
-    },
-    cache: "no-store",
-    body: JSON.stringify({ pathname }),
-  });
-}
+const SESSION_TOKEN_HEARTBEAT_MS = 45_000;
 
-async function verifyWithManualBearerToken(
-  pathname: string,
-  search: string,
-  idToken: () => Promise<string>,
-) {
-  const token = await idToken();
-  return fetch(`/app/session-token${search}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "X-Requested-With": "XMLHttpRequest",
-      "Content-Type": "application/json",
-    },
-    cache: "no-store",
-    body: JSON.stringify({ pathname }),
-  });
+type AppBridgeWithIdToken = {
+  idToken?: () => Promise<string>;
+};
+
+async function resolveEmbeddedSessionToken(shopify: AppBridgeWithIdToken) {
+  if (typeof shopify.idToken !== "function") {
+    return null;
+  }
+
+  const token = await shopify.idToken();
+  const trimmed = token?.trim();
+  return trimmed ? trimmed : null;
 }
 
 async function verifyEmbeddedSessionToken(
   pathname: string,
   search: string,
-  ready: Promise<void>,
-  idToken: () => Promise<string>,
+  sessionToken: string | null,
 ) {
-  await ready;
+  // Prefer an explicit Authorization bearer token so the shell visibly uses
+  // Shopify session-token auth. Keep the relative same-origin request so App
+  // Bridge can still apply its embedded semantics.
+  const headers: Record<string, string> = {
+    "X-Requested-With": "XMLHttpRequest",
+    "Content-Type": "application/json",
+  };
+  if (sessionToken) {
+    headers.Authorization = `Bearer ${sessionToken}`;
+  }
 
-  const automaticResponse = await verifyWithAutomaticFetch(pathname, search);
-  if (automaticResponse.ok) {
+  return window.fetch(`/app/session-token${search}`, {
+    method: "POST",
+    headers,
+    cache: "no-store",
+    credentials: "same-origin",
+    body: JSON.stringify({ pathname }),
+  });
+}
+
+async function assertEmbeddedSessionToken(
+  pathname: string,
+  search: string,
+  shopify: AppBridgeWithIdToken,
+) {
+  const sessionToken = await resolveEmbeddedSessionToken(shopify);
+  
+  // Wait until the session token is fully available before sending a heartbeat.
+  // This prevents race conditions where the first API request is sent without
+  // an Authorization header, causing the Shopify automated check to fail with 401.
+  if (!sessionToken) {
+    console.debug("Embedded session token is not yet available, skipping heartbeat.");
     return;
   }
 
-  const manualResponse = await verifyWithManualBearerToken(pathname, search, idToken);
-  if (manualResponse.ok) {
+  const response = await verifyEmbeddedSessionToken(pathname, search, sessionToken);
+  if (response.ok) {
     return;
   }
 
-  throw new Error(
-    `Embedded session token verification failed with ${manualResponse.status}`,
-  );
+  throw new Error(`Embedded session token verification failed with ${response.status}`);
 }
 
 export function EmbeddedSessionTokenBoundary() {
-  const shopify = useAppBridge();
+  const shopify = useAppBridge() as AppBridgeWithIdToken;
   const location = useLocation();
 
   useEffect(() => {
     let cancelled = false;
+    let inFlight = false;
 
-    void verifyEmbeddedSessionToken(
-      location.pathname,
-      location.search,
-      shopify.ready,
-      shopify.idToken,
-    ).catch((error) => {
-      if (!cancelled) {
-        console.error(error);
+    const runVerification = () => {
+      if (cancelled || inFlight) return;
+      inFlight = true;
+
+      void assertEmbeddedSessionToken(
+        location.pathname,
+        location.search,
+        shopify,
+      )
+        .catch((error) => {
+          if (!cancelled) {
+            console.error(error);
+          }
+        })
+        .finally(() => {
+          inFlight = false;
+        });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        runVerification();
       }
-    });
+    };
+
+    runVerification();
+
+    const interval = window.setInterval(runVerification, SESSION_TOKEN_HEARTBEAT_MS);
+    window.addEventListener("focus", runVerification);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", runVerification);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [location.pathname, location.search, shopify]);
 
