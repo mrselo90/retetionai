@@ -86,23 +86,17 @@ function getWhatsAppInboundQueue() {
 /**
  * Schedule a message to be sent at a specific time
  */
-export async function scheduleMessage(data: ScheduledMessageJobData) {
-  const delay = new Date(data.scheduledFor).getTime() - Date.now();
+export async function scheduleMessage(data: ScheduledMessageJobData, stableJobId?: string) {
+  const delay = Math.max(new Date(data.scheduledFor).getTime() - Date.now(), 0);
+  const jobName = `message-${data.type}-${data.userId}`;
+  const opts: { delay: number; jobId?: string } = { delay };
 
-  if (delay < 0) {
-    // If scheduledFor is in the past, execute immediately
-    return await getScheduledMessagesQueue().add(
-      `message-${data.type}-${data.userId}`,
-      data,
-      { delay: 0 }
-    );
+  // Stable jobId prevents duplicate BullMQ jobs on webhook replays
+  if (stableJobId) {
+    opts.jobId = stableJobId;
   }
 
-  return await getScheduledMessagesQueue().add(
-    `message-${data.type}-${data.userId}`,
-    data,
-    { delay }
-  );
+  return await getScheduledMessagesQueue().add(jobName, data, opts);
 }
 
 /**

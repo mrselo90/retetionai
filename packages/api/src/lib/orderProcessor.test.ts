@@ -27,6 +27,10 @@ vi.mock('./encryption.js', () => ({
   encryptPhone: (phone: string) => `encrypted_${phone}`,
 }));
 
+vi.mock('./deliveryTemplateService.js', () => ({
+  sendDeliveryTemplate: vi.fn(),
+}));
+
 describe('processNormalizedEvent - Consent Gate', () => {
   const mockSupabase = {
     from: vi.fn().mockReturnThis(),
@@ -72,10 +76,13 @@ describe('processNormalizedEvent - Consent Gate', () => {
     await processNormalizedEvent({ ...baseEvent, consent_status: 'opt_in' } as any);
 
     expect(scheduleOrderMessages).toHaveBeenCalled();
-    expect(scheduleMessage).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'welcome',
-      to: baseEvent.customer.phone,
-    }));
+    expect(scheduleMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'welcome',
+        to: baseEvent.customer.phone,
+      }),
+      expect.stringContaining('welcome-')
+    );
   });
 
   it('should NOT schedule messages if user consent is opt_out', async () => {

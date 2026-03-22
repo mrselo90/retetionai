@@ -33,9 +33,12 @@ describe('Message Scheduler Module', () => {
             from: vi.fn().mockReturnThis(),
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
+            in: vi.fn().mockReturnThis(),
             insert: vi.fn().mockReturnThis(),
             update: vi.fn().mockReturnThis(),
             single: vi.fn(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+            limit: vi.fn().mockReturnThis(),
             order: vi.fn().mockReturnThis(),
         };
 
@@ -80,15 +83,18 @@ describe('Message Scheduler Module', () => {
                 execute_at: mockOptions.scheduledFor.toISOString(),
                 status: 'pending',
             });
-            expect(scheduleMessage).toHaveBeenCalledWith({
-                type: mockOptions.messageType,
-                userId: mockOptions.userId,
-                orderId: mockOptions.orderId,
-                merchantId: mockOptions.merchantId,
-                to: '1234567890',
-                message: mockOptions.messageTemplate,
-                scheduledFor: mockOptions.scheduledFor.toISOString(),
-            });
+            expect(scheduleMessage).toHaveBeenCalledWith(
+                {
+                    type: mockOptions.messageType,
+                    userId: mockOptions.userId,
+                    orderId: mockOptions.orderId,
+                    merchantId: mockOptions.merchantId,
+                    to: '1234567890',
+                    message: mockOptions.messageTemplate,
+                    scheduledFor: mockOptions.scheduledFor.toISOString(),
+                },
+                `${mockOptions.messageType}-${mockOptions.orderId}`
+            );
         });
 
         it('should throw error if user not found', async () => {

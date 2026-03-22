@@ -218,42 +218,10 @@ export async function sendDeliveryTemplate(
   const lang = resolveTemplateLanguage(locale);
   const contentSid = getContentSid(lang);
   const templateName = getTemplateName(lang);
-
-  const sendResult = await sendTwilioWhatsAppTemplate({
-    to: customerPhone,
-    contentSid,
-    contentVariables: { '1': customerFirstName || (lang === 'hu' ? 'Kedves Vásárló' : 'Valued Customer') },
-    credentials: credentials as TwilioWhatsAppCredentials,
-  });
-
   const windowEnd = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-  if (!sendResult.success) {
-    logger.error({ orderId, merchantId, error: sendResult.error }, '[delivery-template] Template send failed');
-
-    // Record the failed attempt (best-effort, ignore insert errors)
-    try {
-      await serviceClient.from('delivery_template_events').insert({
-        merchant_id: merchantId,
-        user_id: userId,
-        order_id: orderId,
-        to_phone: customerPhone,
-        template_name: templateName,
-        template_language: lang,
-        provider_message_id: null,
-        conversation_window_open_until: null,
-        reply_status: 'error',
-        support_status: 'closed',
-      });
-    } catch {
-      // ignore
-    }
-
-    return { sent: false, reason: 'send_failed' };
-  }
-
-  // Record successful send
-  const { error: insertError } = await serviceClient
+  // Record BEFORE sending so we always have a dedup record, even if the process crashes after send
+  const { data: inserted, error: insertError } = await serviceClient
     .from('delivery_template_events')
     .insert({
       merchant_id: merchantId,
@@ -262,20 +230,50 @@ export async function sendDeliveryTemplate(
       to_phone: customerPhone,
       template_name: templateName,
       template_language: lang,
-      provider_message_id: sendResult.messageId || null,
+      provider_message_id: null,
       conversation_window_open_until: windowEnd,
       reply_status: 'pending',
-      support_status: 'awaiting_reply',
-    });
+      support_status: 'template_sent',
+    })
+    .select('id')
+    .single();
 
   if (insertError) {
-    // 23505 = unique violation (race condition with dedup check)
     if ((insertError as any).code === '23505') {
       logger.info({ orderId, merchantId }, '[delivery-template] Duplicate insert caught');
       return { sent: false, reason: 'already_sent' };
     }
     logger.error({ insertError, orderId, merchantId }, '[delivery-template] Failed to record template event');
+    return { sent: false, reason: 'db_insert_failed' };
   }
+
+  const eventId = inserted.id;
+
+  const sendResult = await sendTwilioWhatsAppTemplate({
+    to: customerPhone,
+    contentSid,
+    contentVariables: { '1': customerFirstName || (lang === 'hu' ? 'Kedves Vásárló' : 'Valued Customer') },
+    credentials: credentials as TwilioWhatsAppCredentials,
+  });
+
+  if (!sendResult.success) {
+    logger.error({ orderId, merchantId, error: sendResult.error }, '[delivery-template] Template send failed');
+    await serviceClient
+      .from('delivery_template_events')
+      .update({ reply_status: 'error', support_status: 'closed', updated_at: new Date().toISOString() })
+      .eq('id', eventId);
+    return { sent: false, reason: 'send_failed' };
+  }
+
+  // Update with provider message ID and mark as awaiting reply
+  await serviceClient
+    .from('delivery_template_events')
+    .update({
+      provider_message_id: sendResult.messageId || null,
+      support_status: 'awaiting_reply',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', eventId);
 
   if (items.length === 0) {
     logger.warn({ orderId, merchantId }, '[delivery-template] Template sent but order has no line items');
@@ -448,18 +446,20 @@ async function getOrderProductNames(orderId: string, merchantId: string): Promis
 
   if (!order?.external_order_id) return [];
 
-  // Find external_events with the matching external_order_id in payload
+  // Query external_events filtered by external_order_id inside JSONB payload
   const { data: events } = await serviceClient
     .from('external_events')
     .select('payload')
     .eq('merchant_id', merchantId)
-    .limit(10);
+    .contains('payload', { external_order_id: order.external_order_id } as any)
+    .order('received_at', { ascending: false })
+    .limit(5);
 
   if (!events || events.length === 0) return [];
 
   for (const evt of events) {
     const payload = evt.payload as any;
-    if (payload?.external_order_id === order.external_order_id && Array.isArray(payload?.items)) {
+    if (Array.isArray(payload?.items)) {
       const names = payload.items
         .map((item: any) => (typeof item.name === 'string' ? item.name.trim() : ''))
         .filter(Boolean);

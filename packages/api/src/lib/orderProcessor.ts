@@ -253,7 +253,7 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
             scheduledFor: new Date().toISOString(),
             productIds: productIds.length > 0 ? productIds : undefined,
             productNames: productNames.length > 0 ? productNames : undefined,
-          });
+          }, `welcome-${orderId}`);
           logger.info({ orderId }, 'Queued T+0 welcome message for order');
         } catch (error) {
           logger.error({ error, orderId }, 'Failed to queue T+0 welcome message');

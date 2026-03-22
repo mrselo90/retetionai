@@ -362,12 +362,14 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           category: sendResult.failureCategory,
         }, '[Scheduled Message] Permanent provider failure; not retrying');
 
-        await serviceClient
+        const failQuery = serviceClient
           .from('scheduled_tasks')
           .update({ status: 'failed' })
           .eq('user_id', userId)
           .eq('task_type', type)
           .eq('status', 'pending');
+        if (orderId) failQuery.eq('order_id', orderId);
+        await failQuery;
 
         return {
           success: false,
@@ -402,16 +404,16 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
         // ignore - usage tracking is non-critical for message delivery
       }
 
-      // Update scheduled task status
-      const { error: updateError } = await serviceClient
+      // Update scheduled task status — scoped to order_id to avoid affecting other orders
+      const completeQuery = serviceClient
         .from('scheduled_tasks')
-        .update({
-          status: 'completed',
-        })
+        .update({ status: 'completed' })
         .eq('user_id', userId)
         .eq('task_type', type)
         .eq('status', 'pending')
         .lte('execute_at', new Date().toISOString());
+      if (orderId) completeQuery.eq('order_id', orderId);
+      const { error: updateError } = await completeQuery;
 
       if (updateError) {
         console.error('Failed to update scheduled task:', updateError);
