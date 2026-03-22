@@ -231,19 +231,23 @@ export async function sendDeliveryTemplate(
   if (!sendResult.success) {
     logger.error({ orderId, merchantId, error: sendResult.error }, '[delivery-template] Template send failed');
 
-    // Record the failed attempt
-    await serviceClient.from('delivery_template_events').insert({
-      merchant_id: merchantId,
-      user_id: userId,
-      order_id: orderId,
-      to_phone: customerPhone,
-      template_name: templateName,
-      template_language: lang,
-      provider_message_id: null,
-      conversation_window_open_until: null,
-      reply_status: 'error',
-      support_status: 'closed',
-    }).catch(() => {});
+    // Record the failed attempt (best-effort, ignore insert errors)
+    try {
+      await serviceClient.from('delivery_template_events').insert({
+        merchant_id: merchantId,
+        user_id: userId,
+        order_id: orderId,
+        to_phone: customerPhone,
+        template_name: templateName,
+        template_language: lang,
+        provider_message_id: null,
+        conversation_window_open_until: null,
+        reply_status: 'error',
+        support_status: 'closed',
+      });
+    } catch {
+      // ignore
+    }
 
     return { sent: false, reason: 'send_failed' };
   }
