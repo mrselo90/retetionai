@@ -7,7 +7,9 @@ export type WhatsAppOutboxMessageKind =
   | 'ai_primary'
   | 'ai_fallback'
   | 'ai_upsell'
-  | 'manual';
+  | 'manual'
+  | 'delivery_template'
+  | 'delivery_template_followup';
 
 export interface SendTrackedWhatsAppMessageInput {
   merchantId: string;

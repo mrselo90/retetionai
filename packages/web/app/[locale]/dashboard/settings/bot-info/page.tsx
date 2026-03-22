@@ -41,8 +41,8 @@ export default function BotInfoPage() {
       setOriginalBotInfo(info);
       setIsDirty(false);
       setSaveError(null);
-    } catch (err: any) {
-      setSaveError(err.message || 'Failed to load bot info');
+    } catch (err: unknown) {
+      setSaveError((err instanceof Error ? err.message : '') || 'Failed to load bot info');
     } finally {
       setLoading(false);
     }
@@ -76,9 +76,9 @@ export default function BotInfoPage() {
       setOriginalBotInfo(payload);
       setIsDirty(false);
       setSaveError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // G4: Persistent inline error instead of auto-dismissing toast (BFS 4.2.4)
-      setSaveError(err.message || t('toasts.saveError.title'));
+      setSaveError((err instanceof Error ? err.message : '') || t('toasts.saveError.title'));
     } finally {
       setSaving(false);
     }

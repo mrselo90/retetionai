@@ -335,18 +335,36 @@ openssl verify -CAfile /etc/letsencrypt/live/api.recete.co.uk/chain.pem \
 5. **Regular Updates**: Keep certificates renewed
 6. **Monitor Expiration**: Set up alerts
 
+## Automated Setup
+
+All steps below are automated in a single script:
+
+```bash
+ssh root@167.172.60.234
+cd /root/retetionai
+bash nginx/setup-https.sh
+```
+
+The script handles: certbot installation, certificate issuance for all 3 domains, Nginx HTTPS config, DH params, and auto-renewal cron.
+
+Production Nginx config: `nginx/recete-https.conf`
+
 ## Checklist
 
-- [ ] Domain DNS configured
+- [ ] Domain DNS configured (recete.co.uk, api.recete.co.uk, shop.recete.co.uk → 167.172.60.234)
 - [ ] Ports 80 and 443 open
-- [ ] Certificate generated
-- [ ] Auto-renewal configured
-- [ ] HTTPS enforced (HTTP redirect)
-- [ ] HSTS headers set
+- [ ] `bash nginx/setup-https.sh` executed successfully
+- [ ] Certificate generated (auto by script)
+- [ ] Auto-renewal configured (auto by script)
+- [ ] HTTPS enforced (HTTP redirect) (auto by script)
+- [ ] HSTS headers set (in Nginx config + Next.js)
 - [ ] SSL Labs test passed (A or A+)
 - [ ] Mixed content issues resolved
 - [ ] Monitoring for expiration
+- [ ] Server `.env` updated: `ALLOWED_ORIGINS`, `API_URL`, `FRONTEND_URL` use https://
+- [ ] PM2 restarted with `pm2 restart ecosystem.config.cjs`
 - [ ] **Shopify App Store:** App URL and OAuth/webhook URLs use HTTPS (required for submission)
+- [ ] **Shopify Partner Dashboard:** Application URL updated to https://shop.recete.co.uk
 
 ## Resources
 

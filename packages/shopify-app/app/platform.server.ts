@@ -67,6 +67,7 @@ export interface ShopifyMerchantOverview {
       bot_name?: string;
       tone?: "friendly" | "professional" | "casual" | "formal";
       emoji?: boolean;
+      ai_vision_enabled?: boolean;
       response_length?: "short" | "medium" | "long";
       whatsapp_sender_mode?: "merchant_own" | "corporate";
       whatsapp_welcome_template?: string;
@@ -106,6 +107,7 @@ export interface MerchantSettingsRecord {
       bot_name?: string;
       tone?: "friendly" | "professional" | "casual" | "formal";
       emoji?: boolean;
+      ai_vision_enabled?: boolean;
       response_length?: "short" | "medium" | "long";
       temperature?: number;
       whatsapp_sender_mode?: "merchant_own" | "corporate";
@@ -250,17 +252,16 @@ export interface MerchantCustomer {
 
 function buildPlatformAuthHeaders(request: Request, initHeaders?: HeadersInit) {
   const authorization = request.headers.get("Authorization")?.trim();
-  // Preserve the document-request fallback for SSR route loaders, but prefer
-  // explicit Authorization bearer tokens for embedded XHR/fetch traffic.
-  const idToken = new URL(request.url).searchParams.get("id_token")?.trim();
-  const bearerToken = authorization || (idToken ? `Bearer ${idToken}` : "");
-
-  if (!bearerToken) {
+  if (!authorization) {
     throw new Error("Missing Shopify session token on embedded request.");
   }
 
   const headers = new Headers(initHeaders || {});
-  headers.set("Authorization", bearerToken);
+  headers.set("Authorization", authorization);
+  console.info("[platform-auth]", {
+    path: new URL(request.url).pathname,
+    hasAuthorization: true,
+  });
   return headers;
 }
 

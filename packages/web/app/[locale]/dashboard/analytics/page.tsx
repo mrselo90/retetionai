@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, TrendingUp, TrendingDown, Users, Package, Calendar, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
 interface AnalyticsData {
   period: {
@@ -54,7 +54,6 @@ interface PreventionData {
 export default function AnalyticsPage() {
   const t = useTranslations('Analytics');
   const rp = useTranslations('ReturnPrevention');
-  const locale = useLocale();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [roi, setRoi] = useState<ROIData | null>(null);
   const [prevention, setPrevention] = useState<PreventionData | null>(null);
@@ -167,12 +166,13 @@ export default function AnalyticsPage() {
             <Box borderWidth="025" borderColor="border" borderRadius="300" padding="200">
               <InlineStack gap="200" blockAlign="center" wrap>
                 <InlineStack gap="100" blockAlign="center">
-                  <Calendar className="w-4 h-4 text-zinc-500" />
+                  <Calendar className="w-4 h-4 text-zinc-500" aria-hidden />
                   <input
                     type="date"
                     value={dateRange.startDate}
                     onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
                     className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 py-2 font-medium"
+                    aria-label="Start date"
                   />
                 </InlineStack>
                 <Text as="span" tone="subdued">–</Text>
@@ -181,6 +181,7 @@ export default function AnalyticsPage() {
                   value={dateRange.endDate}
                   onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
                   className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 py-2 font-medium"
+                  aria-label="End date"
                 />
               </InlineStack>
             </Box>
@@ -327,7 +328,7 @@ export default function AnalyticsPage() {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E4E4E7" />
                       <XAxis
                         dataKey="date"
-                        tickFormatter={(date) => new Date(date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })}
+                        tickFormatter={(date) => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         tick={{ fontSize: 12, fill: '#71717A' }}
                         axisLine={false}
                         tickLine={false}
@@ -342,7 +343,7 @@ export default function AnalyticsPage() {
                         cursor={{ fill: '#F4F4F5' }}
                         contentStyle={{ borderRadius: '8px', border: '1px solid #E4E4E7', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
                         labelStyle={{ color: '#18181B', fontWeight: 600, marginBottom: '4px' }}
-                        labelFormatter={(date) => new Date(date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        labelFormatter={(date) => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                       />
                       <Bar
                         dataKey="count"
@@ -369,7 +370,7 @@ export default function AnalyticsPage() {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E4E4E7" />
                       <XAxis
                         dataKey="date"
-                        tickFormatter={(date) => new Date(date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })}
+                        tickFormatter={(date) => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         tick={{ fontSize: 12, fill: '#71717A' }}
                         axisLine={false}
                         tickLine={false}
@@ -384,7 +385,7 @@ export default function AnalyticsPage() {
                         cursor={{ fill: '#F4F4F5' }}
                         contentStyle={{ borderRadius: '8px', border: '1px solid #E4E4E7', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
                         labelStyle={{ color: '#18181B', fontWeight: 600, marginBottom: '4px' }}
-                        labelFormatter={(date) => new Date(date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        labelFormatter={(date) => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                       />
                       <Legend
                         verticalAlign="top"

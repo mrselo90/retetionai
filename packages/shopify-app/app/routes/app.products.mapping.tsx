@@ -13,7 +13,7 @@ import {
   InlineStack,
   Layout,
   Page,
-  ProgressBar,
+  Spinner,
   Select,
   SkeletonBodyText,
   SkeletonDisplayText,
@@ -21,7 +21,7 @@ import {
   Text,
   TextField,
 } from "@shopify/polaris";
-import { authenticate } from "../shopify.server";
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import {
   createMerchantProduct,
   fetchShopifyCatalog,
@@ -92,7 +92,7 @@ function draftFromInstruction(instruction?: MerchantProductInstruction): Mapping
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session } = await authenticateEmbeddedAdmin(request);
   const catalog = await fetchShopifyCatalog(request, { first: 24 });
   const plan = await getPlanSnapshotByDomain(session.shop);
 
@@ -104,7 +104,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session } = await authenticateEmbeddedAdmin(request);
   const formData = await request.formData();
 
   const selectedProductId = String(formData.get("selected_product_id") || "");
@@ -361,7 +361,7 @@ export default function ProductMappingPage() {
 
       <Layout>
         <Layout.Section>
-          {busy || mappingDataLoading ? <ProgressBar progress={70} size="small" /> : null}
+          {busy || mappingDataLoading ? <Spinner accessibilityLabel="Loading" size="small" /> : null}
         </Layout.Section>
 
         <Layout.Section>

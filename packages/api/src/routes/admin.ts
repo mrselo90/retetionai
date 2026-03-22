@@ -340,10 +340,30 @@ admin.get('/ai-settings', async (c) => {
 admin.put('/ai-settings', async (c) => {
     try {
         const body = await c.req.json();
+        const parseModelList = (value: unknown) =>
+            Array.isArray(value)
+                ? value.map((x: unknown) => String(x).trim()).filter(Boolean)
+                : typeof value === 'string'
+                    ? value.split(',').map((x) => x.trim()).filter(Boolean)
+                    : undefined;
         const defaultLlmModel = typeof body.default_llm_model === 'string' ? body.default_llm_model.trim() : '';
-        const allowedLlmModels = Array.isArray(body.allowed_llm_models)
-            ? body.allowed_llm_models.map((x: unknown) => String(x)).filter(Boolean)
-            : undefined;
+        const allowedLlmModels = parseModelList(body.allowed_llm_models);
+        const defaultEmbeddingModel = typeof body.default_embedding_model === 'string' ? body.default_embedding_model.trim() : '';
+        const allowedEmbeddingModels = parseModelList(body.allowed_embedding_models);
+        const defaultVisionModel = typeof body.default_vision_model === 'string' ? body.default_vision_model.trim() : '';
+        const allowedVisionModels = parseModelList(body.allowed_vision_models);
+        const corporateWhatsAppProvider =
+            typeof body.corporate_whatsapp_provider === 'string'
+                ? body.corporate_whatsapp_provider.trim().toLowerCase()
+                : 'twilio';
+        const corporateWhatsAppFromNumber =
+            typeof body.corporate_whatsapp_from_number === 'string'
+                ? body.corporate_whatsapp_from_number.trim()
+                : '';
+        const corporateWhatsAppPhoneNumberDisplay =
+            typeof body.corporate_whatsapp_phone_number_display === 'string'
+                ? body.corporate_whatsapp_phone_number_display.trim()
+                : '';
         const conversationMemoryMode = body.conversation_memory_mode === 'full' ? 'full' : 'last_n';
         const conversationMemoryCount =
             typeof body.conversation_memory_count === 'number' ? body.conversation_memory_count : 10;
@@ -357,9 +377,22 @@ admin.put('/ai-settings', async (c) => {
         if (!defaultLlmModel) {
             return c.json({ error: 'default_llm_model is required' }, 400);
         }
+        if (!defaultEmbeddingModel) {
+            return c.json({ error: 'default_embedding_model is required' }, 400);
+        }
+        if (!defaultVisionModel) {
+            return c.json({ error: 'default_vision_model is required' }, 400);
+        }
         const settings = await updatePlatformAiSettings({
             default_llm_model: defaultLlmModel,
             allowed_llm_models: allowedLlmModels,
+            default_embedding_model: defaultEmbeddingModel,
+            allowed_embedding_models: allowedEmbeddingModels,
+            default_vision_model: defaultVisionModel,
+            allowed_vision_models: allowedVisionModels,
+            corporate_whatsapp_provider: corporateWhatsAppProvider === 'meta' ? 'meta' : 'twilio',
+            corporate_whatsapp_from_number: corporateWhatsAppFromNumber || null,
+            corporate_whatsapp_phone_number_display: corporateWhatsAppPhoneNumberDisplay || null,
             conversation_memory_mode: conversationMemoryMode,
             conversation_memory_count: conversationMemoryCount,
             products_cache_ttl_seconds: productsCacheTtlSeconds,
@@ -369,7 +402,6 @@ admin.put('/ai-settings', async (c) => {
         console.error('Failed to update AI settings:', error);
         return c.json({
             error: 'Failed to update AI settings',
-            message: error instanceof Error ? error.message : 'Unknown error',
         }, 500);
     }
 });

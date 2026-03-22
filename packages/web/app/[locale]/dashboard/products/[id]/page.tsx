@@ -149,9 +149,9 @@ export default function ProductDetailPage() {
 
       await loadProduct();
       toast.success(t('toasts.saved.title'), t('toasts.saved.message'));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to save product:', err);
-      toast.error(t('toasts.saveError.title'), err.message || t('toasts.saveError.message'));
+      toast.error(t('toasts.saveError.title'), (err instanceof Error ? err.message : '') || t('toasts.saveError.message'));
     } finally {
       setSaving(false);
     }
@@ -168,7 +168,7 @@ export default function ProductDetailPage() {
 
       const scrapeResponse = await authenticatedRequest<{
         message: string;
-        scraped: any;
+        scraped: { rawContent?: string } | null;
       }>(
         `/api/products/${productId}/scrape`,
         session.access_token,
@@ -191,19 +191,19 @@ export default function ProductDetailPage() {
             method: 'POST',
           }
         );
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Embedding generation failed:', err);
         toast.warning(
           t('toasts.embeddingWarning.title'),
-          err.message || t('toasts.embeddingWarning.message')
+          (err instanceof Error ? err.message : '') || t('toasts.embeddingWarning.message')
         );
       }
 
       await loadProduct();
       toast.success(t('toasts.rescanSuccess.title'), t('toasts.rescanSuccess.message'));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to rescrape product:', err);
-      toast.error(t('toasts.rescanError.title'), err.message || t('toasts.rescanError.message'));
+      toast.error(t('toasts.rescanError.title'), (err instanceof Error ? err.message : '') || t('toasts.rescanError.message'));
     } finally {
       setRescraping(false);
     }
@@ -256,7 +256,7 @@ export default function ProductDetailPage() {
   const hasGoodInstructions = usageInstructions.trim().length >= 50;
   const hasAnyInstructions = usageInstructions.trim().length > 0;
   const instructionCharStatus = usageInstructions.trim().length > 0
-    ? `${usageInstructions.length} karakter — ${hasGoodInstructions ? '✅ Yeterli' : '⚠️ 50+ karakter girin'}`
+    ? `${usageInstructions.length} characters — ${hasGoodInstructions ? 'Good' : 'Enter 50+ characters'}`
     : t('botInstructions.usageHint');
 
   return (
@@ -417,7 +417,7 @@ export default function ProductDetailPage() {
                         placeholder={t('scrapedPlaceholder')}
                       />
                       <Text as="p" tone="subdued">
-                        {t('scrapedChars', { chars: editedRawText.length.toLocaleString('tr-TR') })} •{' '}
+                        {t('scrapedChars', { chars: editedRawText.length.toLocaleString('en-GB') })} •{' '}
                         {t('scrapedLines', { lines: editedRawText.split('\n').length })}
                       </Text>
                     </BlockStack>
@@ -481,18 +481,18 @@ export default function ProductDetailPage() {
                   <InlineGrid columns={{ xs: '1fr', sm: '1fr 1fr' }} gap="400">
                     <BlockStack gap="100">
                       <Text as="span" tone="subdued">
-                        Oluşturulma:
+                        Created
                       </Text>
                       <Text as="p" variant="bodyMd" fontWeight="medium">
-                        {new Date(product.created_at).toLocaleString('tr-TR')}
+                        {new Date(product.created_at).toLocaleString('en-GB')}
                       </Text>
                     </BlockStack>
                     <BlockStack gap="100">
                       <Text as="span" tone="subdued">
-                        Son Güncelleme:
+                        Last Updated
                       </Text>
                       <Text as="p" variant="bodyMd" fontWeight="medium">
-                        {new Date(product.updated_at).toLocaleString('tr-TR')}
+                        {new Date(product.updated_at).toLocaleString('en-GB')}
                       </Text>
                     </BlockStack>
                   </InlineGrid>

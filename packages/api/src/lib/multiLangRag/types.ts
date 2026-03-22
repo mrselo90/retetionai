@@ -11,14 +11,3 @@ export interface ShopSettingsRecord {
   enabled_langs: string[];
   multi_lang_rag_enabled: boolean;
 }
-
-export interface RetrievedProductEmbedding {
-  productId: string;
-  lang: string;
-  similarity: number;
-  distance: number;
-  productName?: string;
-  title?: string;
-  descriptionText?: string;
-}
-

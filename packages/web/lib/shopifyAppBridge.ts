@@ -29,7 +29,7 @@ export async function verifyShopifySessionToken(
 
     const data = await response.json();
     return { valid: true, merchantId: data.merchantId };
-  } catch (error) {
+  } catch {
     return { valid: false, error: 'Token verification error' };
   }
 }

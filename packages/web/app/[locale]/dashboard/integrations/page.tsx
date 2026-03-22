@@ -7,7 +7,7 @@ import { toast } from '@/lib/toast';
 import { Badge as PolarisBadge, Banner, BlockStack, Box, Button as PolarisButton, Card as PolarisCard, InlineStack, Layout, Page, Select, SkeletonPage, Text, TextField, EmptyState } from '@shopify/polaris';
 import { Loader2, X, Trash2, Pencil, Plug, Upload, Code, MessageSquare, ShoppingBag, MessageCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
 interface Integration {
   id: string;
@@ -28,7 +28,6 @@ const ENABLE_MANUAL_INTEGRATION = false;
 
 export default function IntegrationsPage() {
   const t = useTranslations('Integrations');
-  const locale = useLocale();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [showShopifyModal, setShowShopifyModal] = useState(false);
@@ -441,7 +440,7 @@ export default function IntegrationsPage() {
                         href={`https://wa.me/${platformWhatsApp.replace(/^\+/, '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-[hsl(var(--recete-cream-muted))] border border-zinc-200 rounded-lg text-sm font-medium"
                       >
                         {platformWhatsApp}
                       </a>
@@ -457,7 +456,7 @@ export default function IntegrationsPage() {
               <PolarisCard padding="0">
                 <div className="divide-y divide-zinc-100">
                   {/* Shopify */}
-                  <div className="p-4 hover:bg-zinc-50/50 transition-colors flex items-center justify-between">
+                  <div className="p-4 hover:bg-[hsl(var(--recete-cream-muted))]/50 transition-colors flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-[#95BF47]/10 flex items-center justify-center flex-shrink-0">
                         <ShoppingBag className="w-5 h-5 text-[#95BF47]" />
@@ -488,7 +487,7 @@ export default function IntegrationsPage() {
                   </div>
 
                   {/* WhatsApp Business */}
-                  <div className="p-4 hover:bg-zinc-50/50 transition-colors flex items-center justify-between">
+                  <div className="p-4 hover:bg-[hsl(var(--recete-cream-muted))]/50 transition-colors flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
                         <MessageCircle className="w-5 h-5 text-[#25D366]" />
@@ -515,7 +514,7 @@ export default function IntegrationsPage() {
                   </div>
 
                   {/* CSV Import */}
-                  <div className="p-4 hover:bg-zinc-50/50 transition-colors flex items-center justify-between">
+                  <div className="p-4 hover:bg-[hsl(var(--recete-cream-muted))]/50 transition-colors flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-zinc-100 flex items-center justify-center flex-shrink-0">
                         <Upload className="w-5 h-5 text-zinc-600" />
@@ -540,7 +539,7 @@ export default function IntegrationsPage() {
 
                   {ENABLE_MANUAL_INTEGRATION && (
                     /* Manual / API */
-                    <div className="p-4 hover:bg-zinc-50/50 transition-colors flex items-center justify-between">
+                    <div className="p-4 hover:bg-[hsl(var(--recete-cream-muted))]/50 transition-colors flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-blue-50 flex items-center justify-center flex-shrink-0">
                           <Code className="w-5 h-5 text-blue-600" />
@@ -577,7 +576,7 @@ export default function IntegrationsPage() {
                 <PolarisCard padding="0">
                   <div className="divide-y divide-zinc-100">
                     {integrations.map((integration, idx) => (
-                      <div key={integration.id} className="p-4 hover:bg-zinc-50/50 transition-all group" style={{ animationDelay: `${idx * 50}ms` }}>
+                      <div key={integration.id} className="p-4 hover:bg-[hsl(var(--recete-cream-muted))]/50 transition-all group" style={{ animationDelay: `${idx * 50}ms` }}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
                             {integration.provider === 'shopify' && (
@@ -615,7 +614,7 @@ export default function IntegrationsPage() {
                                 )}
                               </h3>
                               <p className="text-xs text-[#616161] mt-0.5">
-                                {t('createdLabel')} {new Date(integration.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
+                                {t('createdLabel')} {new Date(integration.created_at).toLocaleDateString('en-GB')}
                               </p>
                             </div>
                           </div>
@@ -715,10 +714,13 @@ export default function IntegrationsPage() {
                 <Box paddingBlockStart="200">
                   <BlockStack gap="400">
                     <BlockStack gap="200">
-                      <Text as="p" variant="bodyMd" fontWeight="medium">
-                        {t('modals.csv.fileLabel')}
-                      </Text>
+                      <label htmlFor="csv-file-input">
+                        <Text as="p" variant="bodyMd" fontWeight="medium">
+                          {t('modals.csv.fileLabel')}
+                        </Text>
+                      </label>
                       <input
+                        id="csv-file-input"
                         type="file"
                         accept=".csv"
                         onChange={handleCsvUpload}

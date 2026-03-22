@@ -49,7 +49,7 @@ test.describe('Authentication Flow', () => {
     await page.waitForURL(`${baseURL}/login`);
   });
 
-  test('should signup new merchant', async ({ page, baseURL }) => {
+  test('should signup new merchant', async ({ page }) => {
     await page.goto('/signup');
     
     // Fill signup form

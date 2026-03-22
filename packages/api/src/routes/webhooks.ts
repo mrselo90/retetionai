@@ -242,7 +242,6 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
     logger.error({ error }, 'Webhook processing error');
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });

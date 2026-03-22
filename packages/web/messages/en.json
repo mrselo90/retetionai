@@ -3,9 +3,9 @@
         "brandName": "Recete",
         "brandTagline": "Retention Agent",
         "title": "Recete — Retention Agent",
-        "heroLine": "Reduce returns. Boost repeat purchases. All on autopilot.",
-        "subtitle": "Post-purchase AI that guides your Shopify customers via WhatsApp — from delivery to loyalty.",
-        "description": "Reduce return rates and increase LTV with product guides, usage instructions, and proactive messages.",
+        "heroLine": "AI-powered WhatsApp customer support for e-commerce businesses",
+        "subtitle": "We help Shopify merchants automate post-purchase support, reduce returns, and drive repeat purchases.",
+        "description": "The AI assistant that uses your product knowledge base to answer questions, send product guides, and resolve issues before they become returns.",
         "forShopify": "For Shopify merchants",
         "login": "Login",
         "signup": "Get Started Free",
@@ -195,7 +195,7 @@
             "cookiePolicy": "Cookie Policy",
             "dataProcessingAddendum": "Data Processing Addendum",
             "security": "Security",
-            "copyright": "All rights reserved. Built for Shopify."
+            "copyright": "© 2026 Recete Ltd. All rights reserved. Built for Shopify."
         }
     },
     "Signup": {
@@ -235,6 +235,7 @@
         "sidebar": {
             "dashboard": "Dashboard",
             "products": "Products",
+            "customers": "Customers",
             "conversations": "Conversations",
             "analytics": "Analytics",
             "integrations": "Integrations",
@@ -1396,7 +1397,8 @@
         "successMessage": "Shopify integration completed successfully!",
         "redirecting": "Redirecting to Integrations...",
         "invalidCallback": "Invalid callback. Please try again from the Integrations page.",
-        "backToIntegrations": "Back to Integrations"
+        "backToIntegrations": "Back to Integrations",
+        "error": "Error"
     },
     "ReturnPrevention": {
         "moduleTitle": "Return Prevention Module",

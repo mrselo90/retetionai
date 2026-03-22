@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { CompanyIdentityBlock } from '@/components/site/CompanyIdentityBlock';
 
 export default function DataProcessingAddendumPage() {
   return (
-    <div className="min-h-screen bg-zinc-50 py-12 px-4">
+    <div className="min-h-screen bg-[hsl(var(--recete-cream))] py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-zinc-900 mb-8">Data Processing Addendum</h1>
@@ -67,7 +68,15 @@ export default function DataProcessingAddendumPage() {
                   legal@recete.co.uk
                 </a>.
               </p>
+              <p className="text-zinc-700 mb-4">
+                Processor legal entity: RECETE LTD, registered in England and Wales. Registered office:
+                71-75 Shelton Street, Covent Garden, London, WC2H 9JQ. Company number 17082027.
+              </p>
             </section>
+          </div>
+
+          <div className="mt-8">
+            <CompanyIdentityBlock compact />
           </div>
 
           <div className="mt-8 pt-8 border-t border-zinc-200">

@@ -34,7 +34,7 @@ import {
   ExternalLink,
   ShieldCheck,
 } from 'lucide-react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { ShopifySaveBar } from '@/components/ui/ShopifySaveBar';
 import { InlineError } from '@/components/ui/InlineError';
 import { PlanGatedFeature } from '@/components/ui/PlanGatedFeature';
@@ -99,7 +99,6 @@ interface Addon {
 export default function SettingsPage() {
   const t = useTranslations('Settings');
   const rp = useTranslations('ReturnPrevention');
-  const locale = useLocale();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -1134,12 +1133,10 @@ export default function SettingsPage() {
                                 </Text>
                                 <BlockStack gap="100">
                                   <Text as="p" variant="bodyMd" fontWeight="medium">
-                                    {locale === 'tr' ? (g.name_tr ?? g.name) : g.name}
+                                    {g.name}
                                   </Text>
                                   <Text as="p" variant="bodySm" tone="subdued">
-                                    {locale === 'tr'
-                                      ? (g.description_tr ?? g.description)
-                                      : g.description}
+                                    {g.description}
                                   </Text>
                                   <Text as="p" variant="bodySm" tone="subdued">
                                     {t('guardrails.application', {

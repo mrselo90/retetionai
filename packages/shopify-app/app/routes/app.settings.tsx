@@ -15,7 +15,7 @@ import {
   InlineStack,
   Layout,
   Page,
-  ProgressBar,
+  Spinner,
   Select,
   SkeletonBodyText,
   SkeletonDisplayText,
@@ -23,7 +23,7 @@ import {
   Text,
   TextField,
 } from "@shopify/polaris";
-import { authenticate } from "../shopify.server";
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { PlanGate } from "../components/PlanGate";
 import {
   cancelMerchantAddon,
@@ -77,7 +77,7 @@ function parseGuardrailDrafts(
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session } = await authenticateEmbeddedAdmin(request);
   const [overview, merchantSettings, multiLang, guardrails, addons, plan] = await Promise.all([
     fetchMerchantOverviewFromRequest(request),
     fetchMerchantSettings(request),
@@ -108,7 +108,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session } = await authenticateEmbeddedAdmin(request);
   const formData = await request.formData();
   const intent = String(formData.get("intent") || "").trim();
 
@@ -145,6 +145,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 | "medium"
                 | "long") || "medium",
             whatsapp_sender_mode: resolvedSenderMode,
+            ai_vision_enabled:
+              plan.planType === "STARTER"
+                ? false
+                : formData.get("ai_vision_enabled") === "on",
             whatsapp_welcome_template:
               String(formData.get("whatsapp_welcome_template") || "").trim() || undefined,
           },
@@ -160,9 +164,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         ok: true,
         intent,
         message:
-          plan.planType === "PRO"
-            ? "Core settings saved."
-            : "Core settings saved. Shared Recete WhatsApp routing was kept because custom branded WhatsApp requires Pro.",
+          plan.planType === "STARTER"
+            ? "Core settings saved. AI Vision stayed off because it requires Growth, and shared Recete WhatsApp routing was kept because custom branded WhatsApp requires Pro."
+            : plan.planType === "PRO"
+              ? "Core settings saved."
+              : "Core settings saved. Shared Recete WhatsApp routing was kept because custom branded WhatsApp requires Pro.",
       } satisfies ActionResult;
     }
 
@@ -251,6 +257,7 @@ export default function SettingsPage() {
     default_source_lang: data.multiLang.default_source_lang || "en",
     enabled_langs: (data.multiLang.enabled_langs || []).join(", "),
     emoji: persona.emoji !== false,
+    ai_vision_enabled: Boolean(persona.ai_vision_enabled),
     multi_lang_rag_enabled: Boolean(data.multiLang.multi_lang_rag_enabled),
   });
   const [guardrailDraft, setGuardrailDraft] = useState<GuardrailDraft>({
@@ -274,14 +281,16 @@ export default function SettingsPage() {
         default_source_lang: data.multiLang.default_source_lang || "en",
         enabled_langs: (data.multiLang.enabled_langs || []).join(", "),
         emoji: persona.emoji !== false,
+        ai_vision_enabled: Boolean(persona.ai_vision_enabled),
         multi_lang_rag_enabled: Boolean(data.multiLang.multi_lang_rag_enabled),
       }),
-    [data.merchant.notification_phone, data.multiLang.default_source_lang, data.multiLang.enabled_langs, data.multiLang.multi_lang_rag_enabled, persona.bot_name, persona.emoji, persona.response_length, persona.tone, persona.whatsapp_sender_mode, persona.whatsapp_welcome_template],
+    [data.merchant.notification_phone, data.multiLang.default_source_lang, data.multiLang.enabled_langs, data.multiLang.multi_lang_rag_enabled, persona.ai_vision_enabled, persona.bot_name, persona.emoji, persona.response_length, persona.tone, persona.whatsapp_sender_mode, persona.whatsapp_welcome_template],
   );
   const dirty = initialState !== JSON.stringify(formState);
   const activeAddonCount = data.addons.filter((addon) => addon.status === "active").length;
   const onStarter = data.plan.planType === "STARTER";
   const onGrowthOrLower = data.plan.planType !== "PRO";
+  const aiVisionEnabled = !onStarter && formState.ai_vision_enabled;
 
   const saveCoreSettings = () => {
     if (formRef.current) submit(formRef.current);
@@ -323,7 +332,7 @@ export default function SettingsPage() {
 
       <Layout>
         <Layout.Section>
-          {busy ? <ProgressBar progress={78} size="small" /> : null}
+          {busy ? <Spinner accessibilityLabel="Saving" size="small" /> : null}
         </Layout.Section>
 
         {actionData?.error ? (
@@ -353,6 +362,7 @@ export default function SettingsPage() {
           <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
             <MetricCard label="Bot name" value={formState.bot_name || "Recete"} hint="Customer-facing assistant identity." />
             <MetricCard label="Tone" value={formState.tone} hint="Default voice style for outbound and reply messaging." />
+            <MetricCard label="AI Vision" value={aiVisionEnabled ? "Enabled" : onStarter ? "Locked" : "Disabled"} hint="Customer photo analysis requires Growth or higher." />
             <MetricCard label="Add-ons active" value={activeAddonCount} hint="Feature modules turned on for this merchant." />
             <MetricCard label="Custom guardrails" value={data.guardrails.custom_guardrails.length} hint="Merchant-defined safety or escalation rules." />
           </InlineGrid>
@@ -450,6 +460,32 @@ export default function SettingsPage() {
                   </Box>
                 </InlineGrid>
                 <TextField label="Welcome template" name="whatsapp_welcome_template" value={formState.whatsapp_welcome_template} onChange={(value) => setFormState((current) => ({ ...current, whatsapp_welcome_template: value }))} autoComplete="off" multiline={6} />
+                <PlanGate
+                  blocked={onStarter}
+                  requiredPlan="GROWTH"
+                  upgradePlan={GROWTH_MONTHLY_PLAN}
+                  title="AI Vision"
+                  message="Starter merchants cannot enable buyer photo analysis. Upgrade to Growth to allow customer photo submissions in the embedded workflow."
+                >
+                  <Card padding="500">
+                    <BlockStack gap="300">
+                      <Checkbox
+                        label="Enable AI Vision for customer photos"
+                        name="ai_vision_enabled"
+                        checked={formState.ai_vision_enabled}
+                        onChange={(checked) =>
+                          setFormState((current) => ({ ...current, ai_vision_enabled: checked }))
+                        }
+                        helpText="When enabled, Growth and Pro merchants can accept photo-based support flows once backend image processing is available."
+                      />
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        {aiVisionEnabled
+                          ? "AI Vision is enabled for this shop."
+                          : "AI Vision is off for this shop. Turn it on when you want to allow customer photo analysis."}
+                      </Text>
+                    </BlockStack>
+                  </Card>
+                </PlanGate>
               </BlockStack>
             </Form>
           </SectionCard>

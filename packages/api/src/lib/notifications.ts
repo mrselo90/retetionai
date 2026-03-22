@@ -4,7 +4,7 @@
  */
 
 import { getSupabaseServiceClient } from '@recete/shared';
-import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from './whatsapp.js';
+import { sendWhatsAppMessage, getCorporateWhatsAppCredentials } from './whatsapp.js';
 import { decryptPhone } from './encryption.js';
 
 /**
@@ -53,10 +53,10 @@ export async function notifyMerchantOfEscalation(params: {
             notificationPhone = rawNotificationPhone; // Assume it's plain text
         }
 
-        // Get WhatsApp credentials
-        const credentials = await getEffectiveWhatsAppCredentials(merchantId);
+        // Recete-originated merchant notifications should always come from the platform corporate sender.
+        const credentials = await getCorporateWhatsAppCredentials();
         if (!credentials) {
-            console.warn(`[Escalation] No WhatsApp credentials for merchant ${merchantId}`);
+            console.warn(`[Escalation] No platform corporate WhatsApp credentials configured for merchant ${merchantId}`);
             return;
         }
 

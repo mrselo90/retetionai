@@ -38,7 +38,6 @@ merchants.get('/me', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });
@@ -95,7 +94,6 @@ merchants.put('/me', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });
@@ -113,7 +111,6 @@ merchants.get('/me/multi-lang-rag-settings', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Failed to load multi-language RAG settings',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -159,7 +156,6 @@ merchants.put('/me/multi-lang-rag-settings', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Failed to update multi-language RAG settings',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -199,7 +195,6 @@ merchants.get('/me/guardrails', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -292,7 +287,6 @@ merchants.put('/me/guardrails', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -309,7 +303,6 @@ merchants.get('/me/bot-info', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -342,7 +335,6 @@ merchants.put('/me/bot-info', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -486,7 +478,6 @@ merchants.get('/me/stats', async (c) => {
     logger.error({ error }, 'Dashboard stats error');
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });

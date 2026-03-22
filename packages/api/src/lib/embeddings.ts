@@ -3,10 +3,13 @@
  * Uses OpenAI API to generate embeddings for text chunks
  */
 
+import { logger } from '@recete/shared';
 import { getOpenAIClient } from './openaiClient.js';
+import { getDefaultEmbeddingModel } from './runtimeModelSettings.js';
 
-// Model configuration
-const EMBEDDING_MODEL = 'text-embedding-3-small'; // 1536 dimensions, cost-effective
+// Model configuration — resolved from platform_ai_settings at runtime.
+// Both this file and multiLangRag/embeddingService.ts use the same source
+// of truth so ingestion and retrieval embeddings are always compatible.
 const MAX_TOKENS_PER_CHUNK = 8000; // OpenAI limit is 8191 tokens
 
 export interface TextChunk {
@@ -26,18 +29,23 @@ export interface EmbeddingResult {
 export async function generateEmbedding(text: string): Promise<EmbeddingResult> {
   try {
     const openai = getOpenAIClient();
+    const model = await getDefaultEmbeddingModel();
     const response = await openai.embeddings.create({
-      model: EMBEDDING_MODEL,
+      model,
       input: text,
       encoding_format: 'float',
     });
+
+    if (!response.data || response.data.length === 0 || !response.data[0]?.embedding) {
+      throw new Error('OpenAI returned empty embedding data');
+    }
 
     return {
       embedding: response.data[0].embedding,
       tokenCount: response.usage.total_tokens,
     };
   } catch (error) {
-    console.error('Error generating embedding:', error);
+    logger.error({ err: error }, 'Error generating embedding');
     throw new Error(
       `Failed to generate embedding: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
@@ -52,11 +60,12 @@ export async function generateEmbeddingsBatch(
 ): Promise<EmbeddingResult[]> {
   try {
     const openai = getOpenAIClient();
+    const model = await getDefaultEmbeddingModel();
     // OpenAI supports batch embedding (up to 2048 inputs)
     const texts = chunks.map((c) => c.text);
 
     const response = await openai.embeddings.create({
-      model: EMBEDDING_MODEL,
+      model,
       input: texts,
       encoding_format: 'float',
     });
@@ -66,7 +75,7 @@ export async function generateEmbeddingsBatch(
       tokenCount: response.usage.total_tokens / texts.length, // Approximate per chunk
     }));
   } catch (error) {
-    console.error('Error generating embeddings batch:', error);
+    logger.error({ err: error }, 'Error generating embeddings batch');
     throw new Error(
       `Failed to generate embeddings: ${error instanceof Error ? error.message : 'Unknown error'}`
     );

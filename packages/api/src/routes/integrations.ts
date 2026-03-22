@@ -124,7 +124,6 @@ integrations.get('/', authMiddleware, async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });
@@ -159,7 +158,6 @@ integrations.get('/:id', authMiddleware, async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });
@@ -248,7 +246,6 @@ integrations.post('/', authMiddleware, async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });
@@ -326,7 +323,6 @@ integrations.put('/:id', authMiddleware, async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });
@@ -369,7 +365,6 @@ integrations.delete('/:id', authMiddleware, async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });

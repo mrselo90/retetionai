@@ -13,6 +13,10 @@ vi.mock('./rag', () => ({
   formatRAGResultsForLLM: vi.fn(),
 }));
 
+vi.mock('./groundedAnswer', () => ({
+  generateGroundedProductAnswer: vi.fn(),
+}));
+
 vi.mock('./guardrails', () => ({
   checkUserMessageGuardrails: vi.fn(() => ({ safe: true, requiresHuman: false })),
   checkAIResponseGuardrails: vi.fn(() => ({ safe: true, requiresHuman: false })),
@@ -144,43 +148,23 @@ describe('generateAIResponse', () => {
   });
 
   it('should generate AI response with RAG context', async () => {
-    const { queryKnowledgeBase, formatRAGResultsForLLM } = await import('./rag');
-
-    // Mock RAG query
-    (queryKnowledgeBase as any).mockResolvedValueOnce({
-      results: [
-        {
-          chunkText: 'This product is size M',
-          productName: 'Test Product',
-          similarity: 0.95,
-        },
-      ],
-      totalResults: 1,
+    const { generateGroundedProductAnswer } = await import('./groundedAnswer');
+    (generateGroundedProductAnswer as any).mockResolvedValueOnce({
+      answer: 'This product is available in size M.',
+      langDetected: 'en',
+      citedProducts: ['p1'],
+      latencyMs: 10,
+      ragContext: 'Context: This product is size M',
+      usedDeterministicFacts: false,
+      orderScopeSource: undefined,
+      retrievalLanguage: 'en',
+      retrievalUsedFallback: false,
+      retrievalFallbackLanguage: null,
     });
 
-    (formatRAGResultsForLLM as any).mockReturnValueOnce('Context: This product is size M');
-
-    // Mock OpenAI calls:
-    // 1) intent classification
+    // Mock OpenAI call: intent classification
     mockCreate.mockResolvedValueOnce({
       choices: [{ message: { role: 'assistant', content: 'question' } }],
-    });
-    // 2) final response generation
-    mockCreate.mockResolvedValueOnce({
-      choices: [
-        {
-          message: {
-            role: 'assistant',
-            content: 'This product is available in size M.',
-          },
-          finish_reason: 'stop',
-        },
-      ],
-      usage: {
-        prompt_tokens: 200,
-        completion_tokens: 50,
-        total_tokens: 250,
-      },
     });
 
     const response = await generateAIResponse(
@@ -194,6 +178,7 @@ describe('generateAIResponse', () => {
     expect(response.intent).toBeDefined();
     expect(response.response).toBeDefined();
     expect(response.response).toContain('size M');
+    expect(generateGroundedProductAnswer).toHaveBeenCalled();
   });
 
   it('should handle guardrail violations', async () => {

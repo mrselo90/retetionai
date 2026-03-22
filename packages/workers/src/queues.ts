@@ -3,8 +3,8 @@
  * Creates and configures queues for different job types
  */
 
-import { Queue, QueueOptions } from 'bullmq';
-import { getRedisClient } from '@recete/shared';
+import { Queue, QueueOptions, QueueEvents } from 'bullmq';
+import { getRedisClient, logger } from '@recete/shared';
 import {
   QUEUE_NAMES,
   ScheduledMessageJobData,
@@ -20,8 +20,11 @@ type CommerceEventJobData = {
 };
 
 const COMMERCE_EVENTS_QUEUE = 'commerce-events';
+const DLQ_QUEUE_NAME = 'dead-letter';
 
 const connection = getRedisClient();
+
+export const deadLetterQueue = new Queue(DLQ_QUEUE_NAME, { connection });
 
 const defaultQueueOptions: QueueOptions = {
   connection,
@@ -166,10 +169,42 @@ export const whatsappInboundQueue = new Queue<WhatsAppInboundJobData>(
 );
 
 /**
+ * Attach DLQ listeners to all queues.
+ * When a job exhausts all retries it is copied to the dead-letter queue.
+ */
+export function setupDeadLetterForwarding() {
+  const queues = [
+    { name: QUEUE_NAMES.SCHEDULED_MESSAGES, queue: scheduledMessagesQueue },
+    { name: QUEUE_NAMES.SCRAPE_JOBS, queue: scrapeJobsQueue },
+    { name: QUEUE_NAMES.ANALYTICS, queue: analyticsQueue },
+    { name: COMMERCE_EVENTS_QUEUE, queue: commerceEventsQueue },
+    { name: QUEUE_NAMES.GDPR_JOBS, queue: gdprJobsQueue },
+    { name: QUEUE_NAMES.WHATSAPP_INBOUND, queue: whatsappInboundQueue },
+  ];
+
+  for (const { name } of queues) {
+    const events = new QueueEvents(name, { connection });
+    events.on('failed', async ({ jobId, failedReason }) => {
+      try {
+        await deadLetterQueue.add('failed-job', {
+          originalQueue: name,
+          originalJobId: jobId,
+          failedReason,
+          failedAt: new Date().toISOString(),
+        });
+        logger.warn({ queue: name, jobId, failedReason }, 'Job moved to dead-letter queue');
+      } catch (dlqError) {
+        logger.error({ queue: name, jobId, error: dlqError }, 'Failed to forward job to DLQ');
+      }
+    });
+  }
+}
+
+/**
  * Get all queues (for health check, graceful shutdown, etc.)
  */
 export function getAllQueues() {
-  return [scheduledMessagesQueue, scrapeJobsQueue, analyticsQueue, commerceEventsQueue, gdprJobsQueue, whatsappInboundQueue];
+  return [scheduledMessagesQueue, scrapeJobsQueue, analyticsQueue, commerceEventsQueue, gdprJobsQueue, whatsappInboundQueue, deadLetterQueue];
 }
 
 /**
@@ -183,5 +218,6 @@ export async function closeAllQueues() {
     commerceEventsQueue.close(),
     gdprJobsQueue.close(),
     whatsappInboundQueue.close(),
+    deadLetterQueue.close(),
   ]);
 }

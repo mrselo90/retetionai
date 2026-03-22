@@ -3,38 +3,25 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
+import {
+  type AppBridgeWithIdToken,
+  getFreshToken,
+  installAuthedFetch,
+  uninstallAuthedFetch,
+} from "../lib/sessionToken.client";
 
 const SESSION_TOKEN_HEARTBEAT_MS = 45_000;
-
-type AppBridgeWithIdToken = {
-  idToken?: () => Promise<string>;
-};
-
-async function resolveEmbeddedSessionToken(shopify: AppBridgeWithIdToken) {
-  if (typeof shopify.idToken !== "function") {
-    return null;
-  }
-
-  const token = await shopify.idToken();
-  const trimmed = token?.trim();
-  return trimmed ? trimmed : null;
-}
 
 async function verifyEmbeddedSessionToken(
   pathname: string,
   search: string,
-  sessionToken: string | null,
+  sessionToken: string,
 ) {
-  // Prefer an explicit Authorization bearer token so the shell visibly uses
-  // Shopify session-token auth. Keep the relative same-origin request so App
-  // Bridge can still apply its embedded semantics.
   const headers: Record<string, string> = {
     "X-Requested-With": "XMLHttpRequest",
     "Content-Type": "application/json",
+    Authorization: `Bearer ${sessionToken}`,
   };
-  if (sessionToken) {
-    headers.Authorization = `Bearer ${sessionToken}`;
-  }
 
   return window.fetch(`/app/session-token${search}`, {
     method: "POST",
@@ -50,16 +37,7 @@ async function assertEmbeddedSessionToken(
   search: string,
   shopify: AppBridgeWithIdToken,
 ) {
-  const sessionToken = await resolveEmbeddedSessionToken(shopify);
-  
-  // Wait until the session token is fully available before sending a heartbeat.
-  // This prevents race conditions where the first API request is sent without
-  // an Authorization header, causing the Shopify automated check to fail with 401.
-  if (!sessionToken) {
-    console.debug("Embedded session token is not yet available, skipping heartbeat.");
-    return;
-  }
-
+  const sessionToken = await getFreshToken(shopify);
   const response = await verifyEmbeddedSessionToken(pathname, search, sessionToken);
   if (response.ok) {
     return;
@@ -71,6 +49,14 @@ async function assertEmbeddedSessionToken(
 export function EmbeddedSessionTokenBoundary() {
   const shopify = useAppBridge() as AppBridgeWithIdToken;
   const location = useLocation();
+
+  useEffect(() => {
+    installAuthedFetch(shopify);
+
+    return () => {
+      uninstallAuthedFetch();
+    };
+  }, [shopify]);
 
   useEffect(() => {
     let cancelled = false;

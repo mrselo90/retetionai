@@ -94,7 +94,7 @@ export default function SignupPage() {
       }
 
       // Sign in to get session
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      const { error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -105,12 +105,13 @@ export default function SignupPage() {
       }
 
       router.push('/dashboard');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Signup error:', err);
       // Extract error message from API response
-      const errorMessage = err?.message || err?.error || t('errors.default');
-      const errorDetails = err?.details || '';
-      const errorHint = err?.hint || '';
+      const errObj = err as { message?: string; error?: string; details?: string; hint?: string };
+      const errorMessage = errObj?.message || errObj?.error || t('errors.default');
+      const errorDetails = errObj?.details || '';
+      const errorHint = errObj?.hint || '';
 
       // Show detailed error message
       let displayError = errorMessage;
@@ -172,7 +173,7 @@ export default function SignupPage() {
                         } else {
                           setSuccessMessage(t('errors.resendSuccess') || 'Confirmation email resent!');
                         }
-                      } catch (err) {
+                      } catch {
                         setError('Failed to resend email');
                       }
                     }}

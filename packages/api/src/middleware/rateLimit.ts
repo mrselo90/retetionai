@@ -1,5 +1,23 @@
 import { Context, Next } from 'hono';
-import { getRedisClient } from '@recete/shared';
+import { getRedisClient, logger } from '@recete/shared';
+
+const inMemoryCounters = new Map<string, { count: number; resetAt: number }>();
+const IN_MEMORY_WINDOW_MS = 60_000;
+const IN_MEMORY_MAX = 30;
+
+function checkInMemoryRateLimit(key: string): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const entry = inMemoryCounters.get(key);
+  if (!entry || now > entry.resetAt) {
+    inMemoryCounters.set(key, { count: 1, resetAt: now + IN_MEMORY_WINDOW_MS });
+    return { allowed: true, remaining: IN_MEMORY_MAX - 1 };
+  }
+  entry.count++;
+  if (entry.count > IN_MEMORY_MAX) {
+    return { allowed: false, remaining: 0 };
+  }
+  return { allowed: true, remaining: IN_MEMORY_MAX - entry.count };
+}
 
 /**
  * Rate limit configuration
@@ -21,7 +39,6 @@ const RATE_LIMITS = {
     keyPrefix: 'ratelimit:ip:',
   },
   // Per IP: 200 requests per minute (Shopify webhook endpoint)
-  // Higher limit to accommodate legitimate Shopify burst traffic (many stores)
   webhookIp: {
     windowMs: 60 * 1000, // 1 minute
     maxRequests: 200,
@@ -38,6 +55,12 @@ const RATE_LIMITS = {
     windowMs: 60 * 60 * 1000, // 1 hour
     maxRequests: 5000,
     keyPrefix: 'ratelimit:merchant:',
+  },
+  // Per IP: 10 requests per minute (login/signup)
+  auth: {
+    windowMs: 60 * 1000,
+    maxRequests: 10,
+    keyPrefix: 'ratelimit:auth:ip:',
   },
 } as const;
 
@@ -105,13 +128,13 @@ async function checkRateLimit(
       reset,
     };
   } catch (error) {
-    // If Redis fails, allow the request (fail open)
-    console.error('Rate limit check failed:', error);
+    logger.error({ err: error }, 'Rate limit Redis check failed, using in-memory fallback');
+    const fallback = checkInMemoryRateLimit(`${config.keyPrefix}${key}`);
     return {
-      allowed: true,
-      limit: config.maxRequests,
-      remaining: config.maxRequests,
-      reset: Math.ceil((now + config.windowMs) / 1000),
+      allowed: fallback.allowed,
+      limit: IN_MEMORY_MAX,
+      remaining: fallback.remaining,
+      reset: Math.ceil((now + IN_MEMORY_WINDOW_MS) / 1000),
     };
   }
 }
@@ -184,7 +207,12 @@ export async function optionalRateLimitMiddleware(c: Context, next: Next) {
 
   // Log if approaching limit (80% threshold)
   if (result.remaining < config.maxRequests * 0.2) {
-    console.warn(
+    logger.warn(
+      {
+        type,
+        identifier,
+        remaining: result.remaining,
+      },
       `Rate limit warning: ${type}:${identifier} has ${result.remaining} requests remaining`
     );
   }
@@ -215,6 +243,36 @@ export async function webhookRateLimitMiddleware(c: Context, next: Next) {
       {
         error: 'Rate limit exceeded',
         message: `Too many webhook requests from this IP. Limit: ${result.limit}/min.`,
+        retryAfter: result.reset - Math.floor(Date.now() / 1000),
+      },
+      429
+    );
+  }
+
+  await next();
+}
+
+/**
+ * Auth-specific rate limit middleware
+ * 10 req/min per IP for login/signup to prevent credential stuffing
+ */
+export async function authRateLimitMiddleware(c: Context, next: Next) {
+  const ip =
+    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
+    c.req.header('x-real-ip') ||
+    'unknown';
+
+  const config = RATE_LIMITS.auth;
+  const result = await checkRateLimit(ip, config);
+
+  c.header('X-RateLimit-Limit', result.limit.toString());
+  c.header('X-RateLimit-Remaining', result.remaining.toString());
+  c.header('X-RateLimit-Reset', result.reset.toString());
+
+  if (!result.allowed) {
+    return c.json(
+      {
+        error: 'Too many authentication attempts. Please try again later.',
         retryAfter: result.reset - Math.floor(Date.now() / 1000),
       },
       429

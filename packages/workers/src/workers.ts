@@ -675,7 +675,12 @@ export const whatsappInboundWorker = new Worker<WhatsAppInboundJobData>(
   async (job) => {
     const { inboundEventId, merchantId } = job.data;
     const internalSecret = process.env.INTERNAL_SERVICE_SECRET?.trim();
-    const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:3001';
+    const apiUrl =
+      process.env.INTERNAL_API_URL?.trim() ||
+      process.env.API_INTERNAL_URL?.trim() ||
+      process.env.VITE_API_URL?.trim() ||
+      process.env.API_URL?.trim() ||
+      'http://127.0.0.1:3002';
 
     if (!internalSecret) {
       throw new Error('INTERNAL_SERVICE_SECRET is required for whatsapp inbound worker');

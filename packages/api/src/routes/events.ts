@@ -83,7 +83,6 @@ events.post('/process', requireInternalSecretOrSuperAdmin, async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -123,7 +122,6 @@ events.post('/:id/process', requireInternalSecretOrSuperAdmin, async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });

@@ -1,0 +1,1440 @@
+{
+    "Landing": {
+        "brandName": "Recete",
+        "brandTagline": "Retention Agent",
+        "title": "Recete — Retention Agent",
+        "heroLine": "E-ticaret işletmeleri için yapay zekâ destekli WhatsApp müşteri desteği",
+        "subtitle": "Shopify satıcılarının satış sonrası desteği otomatikleştirmesine, iadeleri azaltmasına ve tekrar satın alımları artırmasına yardımcı oluyoruz.",
+        "description": "Ürün bilgi tabanınızı kullanarak soruları yanıtlayan, ürün rehberleri gönderen ve sorunların iade olmadan çözülmesini sağlayan yapay zekâ asistanı.",
+        "forShopify": "Shopify satıcıları için",
+        "login": "Giriş yapın",
+        "signup": "Ücretsiz başlayın",
+        "signupSmall": "Kredi kartı gerekmez",
+        "privacy": "Gizlilik",
+        "terms": "Hizmet şartları",
+        "dashboardAlt": "Etkileşim metriklerini gösteren Recete kontrol paneli",
+        "stats": {
+            "merchants": "500+",
+            "merchantsLabel": "Satıcı",
+            "returns": "32%",
+            "returnsLabel": "Daha az iade",
+            "messages": "50K+",
+            "messagesLabel": "Gönderilen mesaj",
+            "satisfaction": "94%",
+            "satisfactionLabel": "Memnuniyet"
+        },
+        "features": {
+            "title": "Müşterileri elinizde tutmak için ihtiyacınız olan her şey",
+            "subtitle": "LTV’yi artırmak ve destek yükünü azaltmak için tasarlanmış güçlü özellikler.",
+            "automated": "Otomatik WhatsApp etkileşimi",
+            "automatedDesc": "Kişiselleştirilmiş satış sonrası mesajları otomatik gönderin. Ürün rehberleri, kullanım ipuçları ve kontroller — tam zamanında WhatsApp üzerinden.",
+            "automatedBullets": "T+0 hoş geldin · T+3 ipuçları · T+14 geri bildirim",
+            "aiPowered": "Yapay zekâ destekli konuşmalar",
+            "aiPoweredDesc": "GPT-4 destekli asistan, ürün bilgi tabanınızı kullanarak müşteri sorularını yanıtlar. Şikayetleri yönetir, kullanımı yönlendirir ve iadeleri önler.",
+            "aiPoweredBullets": "RAG pipeline · Niyet algılama · İnsana devretme",
+            "analytics": "Analitik ve ROI panosu",
+            "analyticsDesc": "Kurtarılan iadeleri, tekrar satın alımları, müşteri duyarlılığını ve etkileşim oranlarını izleyin. Tutma çabalarınızın ne kadar gelir ürettiğini net biçimde görün.",
+            "analyticsBullets": "ROI takibi · Duyarlılık analizi · RFM segmentleri",
+            "realTime": "Gerçek zamanlı senkronizasyon",
+            "realTimeDesc": "Shopify ile gerçek zamanlı senkronize olur. Siparişler anında mesaj tetiklemek için webhook kullanır.",
+            "realTimeBullets": "Webhook’lar · Anında tetikleyiciler · Veri senkronizasyonu",
+            "realtimeSync": "Gerçek zamanlı sipariş senkronizasyonu",
+            "realtimeSyncDesc": "Webhook’lar aracılığıyla Shopify ile gerçek zamanlı senkronize olur. Her sipariş, doğru anda doğru mesajı anında tetikler.",
+            "realtimeSyncBullets": "Webhook’lar · Anında tetikleyiciler · Veri senkronizasyonu",
+            "integration": "Kolay entegrasyon",
+            "integrationDesc": "Mağazanızı saniyeler içinde bağlayın. Kodlama gerekmez. Mevcut teknoloji yığınınızla çalışır.",
+            "integrationBullets": "Tek tıkla kurulum · Kodsuz · API erişimi",
+            "easyIntegration": "Tek tıkla Shopify kurulumu",
+            "easyIntegrationDesc": "Uygulamamızı Shopify App Store’dan yükleyin ve mağazanızı 2 dakikadan kısa sürede bağlayın. Sıfır kodlama gerekir.",
+            "easyIntegrationBullets": "Tek tıkla kurulum · Kodsuz · API erişimi",
+            "secure": "Kurumsal güvenlik",
+            "secureDesc": "Verileriniz bizde güvende. Banka düzeyinde şifreleme kullanıyor ve GDPR uyumuna uyuyoruz.",
+            "secureBullets": "GDPR uyumlu · Şifreli · Güvenli",
+            "security": "Kurumsal düzeyde güvenlik",
+            "securityDesc": "Verilerinizi ve müşterilerinizi korumak için şifreleme, satıcı düzeyinde erişim kontrolleri ve GDPR odaklı iş akışları kullanıyoruz.",
+            "securityBullets": "GDPR iş akışları · Şifreli veri · Erişim kontrolleri"
+        },
+        "howItWorks": {
+            "title": "Nasıl çalışır",
+            "subtitle": "3 basit adımda başlayın",
+            "step1Title": "Mağazanızı bağlayın",
+            "step1Desc": "Tek tıkla Shopify entegrasyonu. Ürünlerinizi ve siparişlerinizi otomatik senkronize ederiz.",
+            "step2Title": "Yapay zekâ müşterilerle etkileşime girer",
+            "step2Desc": "Her satın alma sonrası yapay zekâmız, ürün rehberleriyle kişiselleştirilmiş WhatsApp mesajları gönderir.",
+            "step3Title": "Sonuçlarınızı izleyin",
+            "step3Desc": "İade oranlarını, müşteri memnuniyetini ve ROI’yi analitik panonuzda takip edin."
+        },
+        "cta": {
+            "title": "İadeleri azaltmaya ve LTV’yi artırmaya hazır mısınız?",
+            "subtitle": "Satış sonrası deneyimini dönüştüren satıcılara katılın.",
+            "button": "Ücretsiz denemeyi başlatın",
+            "primaryCta": "Ücretsiz başlayın",
+            "secondaryButton": "Demo talep edin",
+            "secondaryCta": "Demo talep edin",
+            "meta": "14 günlük ücretsiz deneme · Kredi kartı gerekmez",
+            "footnote": "14 günlük ücretsiz deneme · Kredi kartı gerekmez · İstediğiniz zaman iptal"
+        },
+        "socialProof": {
+            "eyebrow": "Büyüme ekiplerinin güvendiği çözüm",
+            "title": "Satıcılar ödeme sonrası marjı korumak için Recete kullanıyor",
+            "subtitle": "Daha az iade, daha hızlı yanıt ve daha büyük bir destek ekibi işe almadan daha yüksek tekrar satın alım oranı isteyen Shopify mağazaları için geliştirildi.",
+            "proof1": "Shopify yerel onboarding",
+            "proof2": "Önce WhatsApp etkileşimi",
+            "proof3": "Güvenli satıcı kontrolleri",
+            "testimonial1": {
+                "quote": "Müşteriler hayal kırıklığına uğramadan önce kullanım rehberi göndererek önlenebilir iadeleri azalttık. Kurulum bir öğleden sonradan az sürdü.",
+                "name": "Ece Demir",
+                "role": "Kurucu, cilt bakım markası",
+                "metric": "%28 daha az iade"
+            },
+            "testimonial2": {
+                "quote": "Destek ekibimiz artık gerçek eskalasyonlara odaklanıyor. Recete tekrarlayan satış sonrası soruları otomatik yanıtlıyor.",
+                "name": "Mark Jensen",
+                "role": "Operasyon lideri, DTC ev ürünleri",
+                "metric": "2,1 kat daha hızlı yanıt"
+            },
+            "testimonial3": {
+                "quote": "Analitik görünüm harcamayı haklı çıkarmayı kolaylaştırdı. Kurtarılan iadeleri ve tekrar eden konuşmaların gelire dönüştüğünü görebildik.",
+                "name": "Selin Kaya",
+                "role": "E-ticaret müdürü, wellness mağazası",
+                "metric": "%14 daha fazla tekrar satış"
+            }
+        },
+        "pricing": {
+            "eyebrow": "Fiyatlandırma",
+            "title": "Shopify ve bağımsız satıcılar için net fiyatlandırma.",
+            "subtitle": "Bağımsız Recete platformu artık nihai Starter, Growth ve Pro stratejisini aylık ve yıllık faturalandırmayla yansıtıyor.",
+            "mostPopular": "En popüler",
+            "perMonth": "/ay",
+            "perYear": "/yıl",
+            "annualTitle": "Yıllık planlar",
+            "annualSubtitle": "Yıllık faturalandırmada 2 ay kazanın.",
+            "monthlyIncludedChats": "Dahil sohbet / ay",
+            "overage": "Aşım",
+            "recipes": "Reçete kapasitesi",
+            "vision": "Yapay zekâ görüntü",
+            "whatsapp": "WhatsApp",
+            "analytics": "Analitik",
+            "upsell": "Çapraz satış stratejisi",
+            "cta": "Bu planla başlayın",
+            "secondaryCta": "Satışla görüşün",
+            "roiNote": "Çoğu satıcı, ayda birkaç iade veya destek eskalasyonunu önleyerek plan maliyetini çıkarır.",
+            "starter": {
+                "name": "Starter",
+                "desc": "Satış sonrası destek ve tutmayı doğrulayan yalın ekipler için.",
+                "price": "$29",
+                "annualPrice": "$290",
+                "note": "Düşük hacimli mağazalar ve ilk yayın için ideal",
+                "bullets": "Ayda 150 dahil sohbet · 20 reçete · Aşım sohbet başına $0,18 · Paylaşımlı Recete WhatsApp numarası · Temel analitik",
+                "vision": "Kullanılamıyor",
+                "upsell": "Temel destek akışları"
+            },
+            "growth": {
+                "name": "Growth",
+                "desc": "Yapay zekâ görüntü ve daha güçlü tutma iş akışlarına ihtiyaç duyan büyüyen satıcılar için.",
+                "price": "$69",
+                "annualPrice": "$690",
+                "note": "Destek ve tutma operasyonlarını ölçeklendirmek için en popüler",
+                "bullets": "Ayda 1.000 dahil sohbet · 500 reçete · Aşım sohbet başına $0,12 · Müşteri fotoğraf analizi · Paylaşımlı Recete WhatsApp numarası",
+                "vision": "Müşteriler fotoğraf gönderebilir",
+                "upsell": "Çapraz satış ürün bağlantıları"
+            },
+            "pro": {
+                "name": "Pro",
+                "desc": "Özel WhatsApp ve daha derin analitik isteyen yüksek hacimli markalar için.",
+                "price": "$199",
+                "annualPrice": "$1990",
+                "note": "Markalı alıcı operasyonları yürüten olgun ekipler için ideal",
+                "bullets": "Ayda 3.000 dahil sohbet · Sınırsız reçete · Aşım sohbet başına $0,08 · Akıllı yeniden sipariş · Gelişmiş analitik",
+                "vision": "Müşteriler fotoğraf gönderebilir",
+                "upsell": "Çapraz satış + Akıllı yeniden sipariş"
+            }
+        },
+        "faq": {
+            "eyebrow": "SSS",
+            "title": "Shopify satıcılarından sık sorulanlar",
+            "subtitle": "Recete’yi yüklemeden önce değerlendirmek için bilmeniz gereken her şey.",
+            "q1": {
+                "question": "Kurulum ne kadar sürer?",
+                "answer": "Çoğu satıcı Shopify’ı bağlar ve ilk akışlarını 15 dakikadan kısa sürede yapılandırır. Varsayılan şablonlarla başlayıp sonra iyileştirebilirsiniz."
+            },
+            "q2": {
+                "question": "Kullanmak için bir destek ekibine ihtiyacım var mı?",
+                "answer": "Hayır. Recete manuel destek yükünü azaltmak için tasarlandı. Eskalasyonlar veya hassas konuşmalar için yine de insana devretmeyi açabilirsiniz."
+            },
+            "q3": {
+                "question": "Recete iadeleri nasıl azaltır?",
+                "answer": "Proaktif satış sonrası mesajlar, kullanım rehberi ve zamanında takipler göndererek yaygın soruları iade talebine dönüşmeden yanıtlar."
+            },
+            "q4": {
+                "question": "Müşteri verileri güvende mi?",
+                "answer": "Evet. Müşteri bilgilerini ve operasyonel erişimi korumak için şifreli veri işleme ve satıcı düzeyinde kontroller kullanıyoruz."
+            }
+        },
+        "footer": {
+            "description": "Recete, proaktif yapay zekâ destekli WhatsApp konuşmalarıyla markaların iadeleri azaltmasına ve LTV’yi artırmasına yardımcı olur.",
+            "tagline": "Shopify satıcılarının iadeleri azaltmasına ve müşteri sadakatini artırmasına yardımcı olan satış sonrası yapay zekâ.",
+            "product": "Ürün",
+            "features": "Özellikler",
+            "howItWorks": "Nasıl çalışır",
+            "pricing": "Fiyatlandırma",
+            "demo": "Demo talep edin",
+            "bookDemo": "Demo talep edin",
+            "company": "Şirket",
+            "about": "Hakkımızda",
+            "aboutUs": "Hakkımızda",
+            "blog": "Blog",
+            "careers": "Kariyer",
+            "contact": "İletişim",
+            "legal": "Yasal",
+            "privacy": "Gizlilik politikası",
+            "privacyPolicy": "Gizlilik politikası",
+            "terms": "Hizmet şartları",
+            "termsOfService": "Hizmet şartları",
+            "cookies": "Çerez politikası",
+            "cookiePolicy": "Çerez politikası",
+            "dataProcessingAddendum": "Veri işleme eki",
+            "security": "Güvenlik",
+            "copyright": "© 2026 Recete Ltd. Tüm hakları saklıdır. Shopify için geliştirildi."
+        }
+    },
+    "Signup": {
+        "title": "Hesap oluştur",
+        "description": "İşletmeniz için yeni bir hesap oluşturun",
+        "businessName": "İşletme adı",
+        "email": "E-posta",
+        "password": "Şifre",
+        "confirmPassword": "Şifreyi onaylayın",
+        "passwordMinLength": "En az 8 karakter; büyük harf, küçük harf ve rakam içermelidir",
+        "submit": "Kayıt olun",
+        "submitting": "Hesap oluşturuluyor...",
+        "or": "veya",
+        "googleSignup": "Google ile kayıt olun",
+        "googleRedirecting": "Yönlendiriliyor...",
+        "alreadyHaveAccount": "Zaten hesabınız var mı?",
+        "login": "Giriş yapın",
+        "backToHome": "← Ana sayfaya dönün",
+        "successTitle": "Hesap oluşturuldu!",
+        "successMessage": "Hesabınız oluşturuldu! Lütfen e-postanızı ({email}) kontrol edin ve hesabınızı etkinleştirmek için onay bağlantısına tıklayın.",
+        "apiKeyModal": {
+            "title": "🎉 Hesap oluşturuldu!",
+            "important": "Önemli:",
+            "warning": "API anahtarınızı güvenli bir yerde saklayın. Yalnızca bir kez gösterilir ve tekrar görüntülenemez.",
+            "label": "API Key",
+            "savedCheckbox": "API anahtarını kaydettim",
+            "goToDashboard": "Kontrol paneline gidin"
+        },
+        "errors": {
+            "passwordMismatch": "Şifreler eşleşmiyor",
+            "passwordLength": "Şifre en az 8 karakter olmalıdır",
+            "googleDisabled": "Google ile kayıt şu anda devre dışı. Lütfen e-posta ile kayıt olun.",
+            "default": "Kayıt başarısız oldu."
+        }
+    },
+    "Dashboard": {
+        "sidebar": {
+            "dashboard": "Kontrol paneli",
+            "products": "Ürünler",
+            "conversations": "Konuşmalar",
+            "analytics": "Analitik",
+            "integrations": "Entegrasyonlar",
+            "settings": "Ayarlar",
+            "signOut": "Çıkış yapın"
+        },
+        "home": {
+            "title": "Kontrol paneli",
+            "greeting": "Günaydın, {name}! 👋",
+            "summary": "Bugün <bold>{activeUsers}</bold> aktif müşteriniz var · Yanıt oranı: <bold>{responseRate}%</bold>",
+            "setup": {
+                "title": "Başlarken",
+                "subtitle": "Tutma akışınızı yayına almak için bu adımları tamamlayın.",
+                "progress": "{completed}/{total} tamamlandı",
+                "bannerTitle": "Kurulum gerekli",
+                "bannerMessage": "Sonraki adım: {step}. WhatsApp konuşmalarını başlatmak için onboarding’i tamamlayın.",
+                "done": "Tamamlandı",
+                "pending": "Beklemede",
+                "steps": {
+                    "connectShopify": {
+                        "title": "Shopify’ı bağlayın",
+                        "description": "Siparişlerin ve müşteri verilerinin otomatik senkronize olması için mağazanızı bağlayın.",
+                        "action": "Şimdi bağlayın"
+                    },
+                    "addProduct": {
+                        "title": "İlk ürününüzü ekleyin",
+                        "description": "Yapay zekânın müşteri sorularını doğru yanıtlayabilmesi için ürün talimatları ekleyin.",
+                        "action": "Ürün ekleyin"
+                    },
+                    "sendFirstWhatsApp": {
+                        "title": "İlk WhatsApp akışınızı gönderin",
+                        "description": "Müşteri konuşmalarını başlatmak için gönderen ve karşılama mesajını ayarlayın.",
+                        "action": "WhatsApp ayarlarını açın"
+                    }
+                }
+            },
+            "alerts": {
+                "title": "Sistem bildirimi",
+                "types": {
+                    "noIntegration": "Entegrasyon eksik",
+                    "integrationError": "Entegrasyon hatası",
+                    "noProducts": "Ürün eksik"
+                }
+            },
+            "kpi": {
+                "ordersReceived": "Alınan siparişler",
+                "ordersReceivedHint": "Toplam senkronize sipariş",
+                "ordersReceivedDetail": "Shopify’dan Recete’ye çekilen siparişler.",
+                "activeCustomers": "Aktif müşteriler",
+                "activeCustomersHint": "Son 30 gün",
+                "activeCustomersDetail": "Yakın zamanda etkileşimde bulunan müşteriler.",
+                "whatsappMessages": "Gönderilen WhatsApp mesajları",
+                "whatsappMessagesHint": "Otomatik + manuel",
+                "whatsappMessagesDetail": "Bot/ekibinizden giden toplam mesajlar.",
+                "replyRate": "Müşteri yanıt oranı",
+                "replyRateHint": "Konuşma etkileşimi",
+                "replyRateDetail": "Mesajlara yanıt veren müşterilerin payı."
+            },
+            "recentOrders": {
+                "title": "Son siparişler",
+                "viewAll": "Tümünü gör",
+                "emptyTitle": "Henüz senkronize sipariş yok",
+                "emptyDescription": "Siparişleri burada almak ve izlemek için Shopify’ı bağlayın.",
+                "emptyAction": "Entegrasyonları açın"
+            },
+            "recentConversations": {
+                "title": "Son konuşmalar",
+                "viewAll": "Tümünü gör",
+                "emptyTitle": "Henüz konuşma yok",
+                "emptyDescription": "Kurulumu tamamlayıp ilk WhatsApp akışınızı göndererek konuşmaları başlatın."
+            },
+            "quickActions": {
+                "title": "Hızlı işlemler",
+                "addProduct": "Ürün ekleyin",
+                "addProductDesc": "Yapay zekâ yanıtları için ürün rehberliği ekleyin",
+                "integration": "Shopify’ı bağlayın",
+                "integrationDesc": "Siparişleri ve müşterileri otomatik senkronize edin",
+                "settings": "Ayarlar",
+                "settingsDesc": "WhatsApp göndereni ve bot davranışı"
+            },
+            "toasts": {
+                "sessionExpired": {
+                    "title": "Oturum süresi doldu",
+                    "message": "Lütfen tekrar giriş yapın."
+                },
+                "statsLoadFailed": {
+                    "title": "İstatistikler kullanılamıyor",
+                    "message": "Kontrol paneli varsayılan değerlerle yüklendi."
+                },
+                "dashboardLoadFailed": {
+                    "title": "Kontrol paneli yüklenemedi",
+                    "message": "Lütfen sayfayı yenileyin."
+                }
+            },
+            "loading": "Kontrol paneli yükleniyor...",
+            "loadError": "Kontrol paneli yüklenirken hata oluştu.",
+            "retry": "Tekrar deneyin"
+        }
+    },
+    "AuthCallback": {
+        "loggingIn": "Giriş yapılıyor...",
+        "error": "Giriş hatası"
+    },
+    "Login": {
+        "title": "Recete’ye giriş yapın",
+        "description": "Hesabınıza giriş yaparak devam edin",
+        "emailLabel": "E-posta",
+        "passwordLabel": "Şifre",
+        "forgotPassword": "Şifrenizi mi unuttunuz?",
+        "emailPlaceholder": "ornek@sirket.com",
+        "submitButton": "Giriş yapın",
+        "submitting": "Giriş yapılıyor...",
+        "or": "veya",
+        "googleLogin": "Google ile giriş yapın",
+        "googleRedirecting": "Yönlendiriliyor...",
+        "noAccount": "Hesabınız yok mu?",
+        "register": "Kayıt olun",
+        "errors": {
+            "default": "Giriş başarısız oldu.",
+            "googleDisabled": "Google ile giriş şu anda devre dışı. Lütfen e-posta ve şifre kullanın.",
+            "emailNotConfirmed": "E-posta adresinizi henüz doğrulamadınız. Lütfen gelen kutunuzu (ve spam klasörünüzü) doğrulama bağlantısı için kontrol edin.",
+            "resendVerification": "Doğrulama e-postasını yeniden gönderin",
+            "resendSuccess": "Doğrulama e-postası yeniden gönderildi. Gelen kutunuzu kontrol edin.",
+            "resendError": "E-posta gönderilemedi.",
+            "invalidCredentials": "Geçersiz giriş bilgileri."
+        }
+    },
+    "ForgotPassword": {
+        "title": "Şifrenizi sıfırlayın",
+        "description": "E-posta adresinizi girin; size şifre sıfırlama bağlantısı gönderelim.",
+        "emailLabel": "E-posta",
+        "submitButton": "Sıfırlama bağlantısı gönderin",
+        "submitting": "Gönderiliyor...",
+        "backToLogin": "Girişe dönün",
+        "successTitle": "E-postanızı kontrol edin",
+        "successMessage": "Şifre sıfırlama bağlantısını {email} adresine gönderdik",
+        "error": "Bir hata oluştu."
+    },
+    "ResetPassword": {
+        "title": "Yeni şifre belirleyin",
+        "description": "Yeni şifrenizi aşağıya girin.",
+        "passwordLabel": "Yeni şifre",
+        "confirmPasswordLabel": "Yeni şifreyi onaylayın",
+        "submitButton": "Şifreyi güncelleyin",
+        "submitting": "Güncelleniyor...",
+        "successTitle": "Şifre güncellendi",
+        "successMessage": "Şifreniz başarıyla sıfırlandı.",
+        "goToLogin": "Girişe gidin",
+        "errors": {
+            "passwordMismatch": "Şifreler eşleşmiyor",
+            "passwordLength": "Şifre en az 8 karakter olmalıdır",
+            "default": "Sıfırlama başarısız oldu."
+        }
+    },
+    "Products": {
+        "title": "Ürünler",
+        "description": "Ürünlerinizi yönetin ve yapay zekâ ile senkronize edin.",
+        "view": {
+            "grid": "Izgara",
+            "list": "Liste"
+        },
+        "list": {
+            "columns": {
+                "product": "Ürün",
+                "source": "Kaynak URL",
+                "status": "Yapay zekâ senkron durumu",
+                "actions": "İşlemler"
+            },
+            "pagination": {
+                "showing": "Toplam {total} üründen {from}–{to} arası gösteriliyor",
+                "page": "Sayfa {current} / {total}"
+            }
+        },
+        "filters": {
+            "searchLabel": "Ürün ara",
+            "searchPlaceholder": "Ürün adı, URL veya ID ile arayın",
+            "status": "Durum",
+            "sort": "Sırala",
+            "applied": "Uygulanan filtreler",
+            "searchChip": "Arama: {value}",
+            "statusChip": "Durum: {value}",
+            "sortChip": "Sıralama: {value}",
+            "reset": "Filtreleri sıfırla",
+            "resultsCount": "{total} üründen {shown} tanesi",
+            "noMatches": "Mevcut filtrelere uyan ürün yok.",
+            "statusOptions": {
+                "all": "Tüm ürünler",
+                "ragReady": "Yapay zekâya senkronize",
+                "ragNotReady": "Senkronize değil",
+                "ragUnknown": "Bilinmeyen senkron durumu",
+                "scraped": "Çekildi",
+                "notScraped": "Çekilmedi"
+            },
+            "sortOptions": {
+                "updatedDesc": "En yeni güncellenen",
+                "updatedAsc": "En eski güncellenen",
+                "nameAsc": "Ad (A-Z)",
+                "nameDesc": "Ad (Z-A)",
+                "chunksDesc": "Parça sayısı (yüksekten düşüğe)",
+                "chunksAsc": "Parça sayısı (düşükten yükseğe)"
+            }
+        },
+        "bulk": {
+            "selectVisible": "Görünenleri seçin",
+            "unselectVisible": "Görünenlerin seçimini kaldır",
+            "selectedCount": "{count} seçili ({visible} görünür)",
+            "clearSelection": "Seçimi temizleyin",
+            "rescrape": "Seçilenleri yeniden çekin",
+            "generateEmbeddings": "Embedding oluştur",
+            "scraping": "Yeniden çekiliyor...",
+            "generatingEmbeddings": "Oluşturuluyor...",
+            "selectProduct": "{name} ürününü seç",
+            "scrapeSuccessTitle": "Toplu çekme tamamlandı",
+            "embeddingsSuccessTitle": "Toplu embedding tamamlandı",
+            "scrapeErrorTitle": "Toplu çekme başarısız",
+            "embeddingsErrorTitle": "Toplu embedding başarısız",
+            "successMessage": "{success} başarılı, {failed} başarısız",
+            "allFailedMessage": "Tüm istekler başarısız ({failed})",
+            "requestFailedMessage": "Toplu istek tamamlanamadı."
+        },
+        "savedViews": {
+            "all": "Tümü",
+            "saveCurrent": "Mevcut görünümü kaydedin",
+            "promptName": "Bu görünüme ad verin",
+            "deleteAria": "Kayıtlı görünümü sil: {name}"
+        },
+        "shopifyMapButton": "Shopify ürün eşlemesi",
+        "addProductButton": "Yeni ürün ekleyin",
+        "empty": {
+            "title": "Henüz ürün yok",
+            "description": "İlk ürününüzü ekleyerek başlayın.",
+            "button": "Yeni ürün ekleyin",
+            "refresh": "Listeyi yenileyin"
+        },
+        "card": {
+            "scraped": "Çekildi",
+            "ragReady": "Yapay zekâya senkronize",
+            "ragNotReady": "Senkronize değil",
+            "ragStatusUnknown": "Bilinmeyen senkron durumu",
+            "chunks": "parça",
+            "chunksUnknown": "Parça sayısı kullanılamıyor",
+            "edit": "Düzenleyin",
+            "deleteConfirm": "Bu ürünü silmek istediğinizden emin misiniz?"
+        },
+        "addModal": {
+            "title": "Yeni ürün ekleyin",
+            "nameLabel": "Ürün adı",
+            "namePlaceholder": "Örn. Premium cilt bakım kremi",
+            "urlLabel": "Ürün URL",
+            "urlPlaceholder": "https://example.com/product",
+            "urlHelper": "Ürün sayfası otomatik olarak çekilir ve yapay zekâ ile senkronize edilir.",
+            "cancel": "İptal",
+            "submit": "Ekleyin ve çekin",
+            "scraping": {
+                "creating": "Ürün oluşturuluyor...",
+                "scraping": "Ürün sayfası çekiliyor...",
+                "embeddings": "Embedding oluşturuluyor...",
+                "completed": "Tamamlandı!",
+                "wait": "Bu işlem birkaç dakika sürebilir..."
+            }
+        },
+        "toasts": {
+            "missingInfo": {
+                "title": "Eksik bilgi",
+                "message": "Lütfen ürün adı ve URL girin"
+            },
+            "addSuccess": {
+                "title": "Başarılı!",
+                "message": "Ürün eklendi ve başarıyla çekildi"
+            },
+            "addError": {
+                "title": "Hata",
+                "message": "Ürün eklenemedi"
+            },
+            "deleteSuccess": {
+                "title": "Silindi",
+                "message": "Ürün başarıyla silindi"
+            },
+            "deleteError": {
+                "title": "Hata",
+                "message": "Ürün silinemedi"
+            },
+            "loadError": {
+                "title": "Hata",
+                "message": "Ürünler yüklenemedi"
+            },
+            "sessionExpired": {
+                "title": "Oturum süresi doldu",
+                "message": "Lütfen tekrar giriş yapın"
+            },
+            "embeddingWarning": {
+                "title": "Embedding uyarısı",
+                "message": "Ürün çekildi ancak embedding oluşturulamadı. Ürün bot yanıtlarında görünmeyebilir. Ürün düzenleme sayfasından yeniden çekmeyi deneyin."
+            }
+        }
+    },
+    "ProductMapping": {
+        "title": "Shopify ürün eşlemesi",
+        "description": "Shopify ürünlerinizi kullanım talimatları ve reçetelerle eşleyin.",
+        "backButton": "Ürünlere dönün",
+        "refreshButton": "Ürünleri yenileyin",
+        "saveButton": "Tüm değişiklikleri kaydedin",
+        "table": {
+            "product": "Ürün",
+            "status": "Durum",
+            "instructions": "Kullanım talimatları ve reçete",
+            "actions": "İşlemler",
+            "placeholder": "Kullanım talimatlarını ve kozmetik reçeteyi buraya girin..."
+        },
+        "status": {
+            "active": "Aktif",
+            "archived": "Arşivlendi",
+            "draft": "Taslak"
+        },
+        "empty": "Ürün bulunamadı. Lütfen Shopify entegrasyonunuzun etkin olduğundan emin olun.",
+        "loading": "Shopify ürünleri yükleniyor...",
+        "saving": "Kaydediliyor...",
+        "toasts": {
+            "loadError": {
+                "title": "Hata",
+                "message": "Shopify ürünleri yüklenemedi"
+            },
+            "saveSuccess": {
+                "title": "Başarılı",
+                "message": "Ürün talimatları kaydedildi"
+            },
+            "saveError": {
+                "title": "Hata",
+                "message": "Talimatlar kaydedilemedi"
+            }
+        }
+    },
+    "Conversations": {
+        "title": "Konuşmalar",
+        "description": "Müşterilerinizle tüm WhatsApp konuşmaları",
+        "empty": {
+            "title": "Henüz konuşma yok",
+            "description": "Müşteriler size yazdığında konuşmalar burada görünür",
+            "button": "Konuşmayı başlatın"
+        },
+        "filters": {
+            "all": "Tümü",
+            "human": "İnsan",
+            "humanCount": "İnsan ({count})",
+            "resolved": "Çözüldü",
+            "positive": "😊 Olumlu",
+            "neutral": "😐 Nötr",
+            "negative": "😞 Olumsuz"
+        },
+        "statusBadge": {
+            "human": "İnsan modu",
+            "resolved": "Çözüldü"
+        },
+        "list": {
+            "empty": {
+                "title": "Henüz konuşma yok",
+                "description": "Müşteriler size yazdığında konuşmalar burada görünür"
+            },
+            "guest": "Misafir",
+            "order": "Sipariş",
+            "messages": "mesaj",
+            "time": {
+                "now": "Az önce",
+                "minutesAgo": "{m} dakika önce",
+                "hoursAgo": "{h} saat önce",
+                "daysAgo": "{d} gün önce"
+            }
+        },
+        "table": {
+            "columns": {
+                "customer": "Müşteri",
+                "order": "Sipariş",
+                "status": "Durum",
+                "messages": "Mesajlar",
+                "lastActivity": "Son etkinlik"
+            }
+        },
+        "toasts": {
+            "loadError": {
+                "title": "Hata",
+                "message": "Konuşmalar yüklenemedi"
+            },
+            "sessionExpired": {
+                "title": "Oturum süresi doldu",
+                "message": "Lütfen tekrar giriş yapın"
+            }
+        },
+        "needsAttention": {
+            "title": "{count, plural, one {# konuşma ilginizi gerektiriyor} other {# konuşma ilginizi gerektiriyor}}"
+        },
+        "needsAttentionToast": {
+            "title": "🔴 Yeni eskalasyon",
+            "message": "{count, plural, one {# müşteri bir insan temsilcisi talep ediyor} other {# müşteri bir insan temsilcisi talep ediyor}}"
+        }
+    },
+    "Integrations": {
+        "title": "Entegrasyonlar",
+        "description": "E-ticaret platformlarınızı bağlayın ve sipariş takibini otomatikleştirin",
+        "platformSupport": {
+            "title": "Kurumsal destek (Recete)",
+            "subtitle": "WhatsApp üzerinden bize ulaşın"
+        },
+        "providers": {
+            "whatsapp": {
+                "title": "WhatsApp Business",
+                "description": "Müşterilere mesaj göndermek için kendi WhatsApp Business numaranızı bağlayın",
+                "connected": "Numaranız bağlı. Güncellemek için tıklayın.",
+                "action": {
+                    "connect": "Bağlayın",
+                    "update": "Güncelleyin"
+                }
+            },
+            "shopify": {
+                "title": "Shopify",
+                "description": "Shopify mağazanızı OAuth ile bağlayın",
+                "connected": "Mağazanız bağlı. Yeniden bağlamak için tıklayın.",
+                "action": {
+                    "connect": "Bağlayın",
+                    "connected": "Bağlı"
+                }
+            },
+            "csv": {
+                "title": "CSV içe aktar",
+                "description": "Sipariş verilerinizi CSV ile yükleyin",
+                "action": "İçe aktarın"
+            },
+            "manual": {
+                "title": "Manuel / API",
+                "description": "Kendi sisteminizi API webhook’ları ile entegre edin",
+                "connected": "API entegrasyonu kuruldu.",
+                "action": {
+                    "setup": "Kurulum",
+                    "connected": "Bağlı"
+                }
+            }
+        },
+        "createdLabel": "Oluşturulma:",
+        "active": {
+            "title": "Aktif entegrasyonlar",
+            "empty": {
+                "title": "Henüz entegrasyon yok",
+                "description": "Yukarıdaki seçeneklerle ilk entegrasyonunuzu oluşturun"
+            },
+            "status": {
+                "active": "Aktif",
+                "error": "Hata",
+                "pending": "Beklemede",
+                "disabled": "Devre dışı"
+            },
+            "connected": "Bağlı",
+            "deleteConfirm": "Bu entegrasyonu kaldırmak istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+            "storeLabel": "Mağaza"
+        },
+        "modals": {
+            "shopify": {
+                "title": "Shopify’ı bağlayın",
+                "shopLabel": "Shopify mağaza adresi",
+                "shopPlaceholder": "ornek.myshopify.com",
+                "helper": "Tam Shopify mağaza adresiniz (.myshopify.com ile)",
+                "cancel": "İptal",
+                "connect": "Bağlayın",
+                "connecting": "Bağlanıyor..."
+            },
+            "csv": {
+                "title": "CSV içe aktar",
+                "fileLabel": "CSV dosyası",
+                "fileSelected": "✓ {name} seçildi",
+                "format": "Format: CSV dosyanız şunları içermelidir: order_id, customer_phone, customer_name, status, delivery_date",
+                "cancel": "İptal",
+                "import": "İçe aktarın",
+                "importing": "İçe aktarılıyor..."
+            },
+            "manual": {
+                "title": "Manuel / API entegrasyonu",
+                "webhookLabel": "API Webhook URL:",
+                "webhookHelper": "Sipariş olayları için POST isteklerini bu URL’ye gönderin.",
+                "apiKeyLabel": "API Key (Ayarlar’dan alın):",
+                "cancel": "İptal",
+                "create": "Entegrasyon oluşturun"
+            },
+            "whatsapp": {
+                "title": "WhatsApp Business’ı bağlayın",
+                "updateTitle": "WhatsApp bağlantısını güncelle",
+                "description": "Meta for Developers’tan Telefon Numarası Kimliği, Erişim Jetonu ve Doğrulama Jetonunu girin.",
+                "displayLabel": "Görünen numara (isteğe bağlı)",
+                "displayPlaceholder": "+90 555 123 45 67",
+                "phoneIdLabel": "Telefon numarası kimliği *",
+                "phoneIdPlaceholder": "Meta API kurulumundan",
+                "tokenLabel": "Erişim jetonu *",
+                "tokenPlaceholder": "Meta’dan jeton",
+                "verifyLabel": "Doğrulama jetonu (webhook) *",
+                "verifyPlaceholder": "Webhook doğrulaması için",
+                "cancel": "İptal",
+                "save": "Bağlayın",
+                "saving": "Kaydediliyor...",
+                "update": "Güncelleyin"
+            }
+        },
+        "toasts": {
+            "loadError": {
+                "title": "Hata",
+                "message": "Entegrasyonlar yüklenemedi"
+            },
+            "missingShop": {
+                "title": "Eksik bilgi",
+                "message": "Lütfen Shopify mağaza adresini girin"
+            },
+            "shopifyError": {
+                "title": "Hata",
+                "message": "Shopify bağlantısı başarısız oldu"
+            },
+            "fileSelected": {
+                "title": "Dosya seçildi",
+                "message": "{name}"
+            },
+            "missingFile": {
+                "title": "Dosya eksik",
+                "message": "Lütfen bir CSV dosyası seçin"
+            },
+            "importSuccess": {
+                "title": "Başarılı!",
+                "message": "{count} olay içe aktarıldı"
+            },
+            "importError": {
+                "title": "Hata",
+                "message": "CSV içe aktarma başarısız oldu"
+            },
+            "manualSuccess": {
+                "title": "Oluşturuldu",
+                "message": "Manuel entegrasyon başarıyla oluşturuldu"
+            },
+            "manualError": {
+                "title": "Hata",
+                "message": "Manuel entegrasyon oluşturulamadı"
+            },
+            "missingWhatsapp": {
+                "title": "Eksik bilgi",
+                "message": "Telefon numarası kimliği, erişim jetonu ve doğrulama jetonu zorunludur"
+            },
+            "whatsappSuccess": {
+                "title": "Bağlandı",
+                "message": "WhatsApp Business bağlantısı oluşturuldu"
+            },
+            "whatsappUpdateSuccess": {
+                "title": "Güncellendi",
+                "message": "WhatsApp bağlantısı güncellendi"
+            },
+            "whatsappError": {
+                "title": "Hata",
+                "message": "WhatsApp bağlantısı kaydedilemedi"
+            },
+            "deleteSuccess": {
+                "title": "Silindi",
+                "message": "Entegrasyon başarıyla silindi"
+            },
+            "deleteError": {
+                "title": "Hata",
+                "message": "Entegrasyon silinemedi"
+            },
+            "sessionExpired": {
+                "title": "Oturum süresi doldu",
+                "message": "Lütfen tekrar giriş yapın"
+            }
+        }
+    },
+    "Settings": {
+        "title": "Ayarlar",
+        "description": "Bot davranışı ve API erişimini yönetin.",
+        "guardrailsLink": "Kurallar →",
+        "botPersona": {
+            "title": "Bot kişiliği",
+            "description": "Yapay zekâ botunuzun müşterilerle nasıl konuşacağını tanımlayın.",
+            "botInfoLink": "Bot bilgisi (yapay zekâ yönergeleri) →",
+            "nameLabel": "Bot adı",
+            "namePlaceholder": "Asistan",
+            "toneLabel": "Ton",
+            "tones": {
+                "friendly": "😊 Samimi",
+                "professional": "👔 Profesyonel",
+                "casual": "😎 Rahat",
+                "formal": "🎩 Resmî"
+            },
+            "emojiLabel": "Emoji kullanımı",
+            "emojiDesc": "Bot mesajlarda emoji kullansın mı?",
+            "responseLengthLabel": "Yanıt uzunluğu",
+            "lengths": {
+                "short": "Kısa",
+                "medium": "Orta",
+                "long": "Uzun"
+            },
+            "temperatureLabel": "Yaratıcılık (sıcaklık): {value}",
+            "tempLabels": {
+                "consistent": "Tutarlı (0,0)",
+                "balanced": "Dengeli (0,7)",
+                "creative": "Yaratıcı (1,0)"
+            },
+            "whatsappSenderLabel": "WhatsApp gönderen numara",
+            "whatsappSenderDesc": "Giden mesajlar için hangi numara kullanılsın?",
+            "whatsappSenders": {
+                "merchantOwn": {
+                    "label": "Kendi numaram (mağaza)",
+                    "desc": "Bağlı WhatsApp Business numaranızı kullanır."
+                },
+                "corporate": {
+                    "label": "Kurumsal numara (Recete)",
+                    "desc": "Platformun paylaşımlı numarasını kullanır."
+                }
+            },
+            "whatsappHelpTitle": "Kendi numaramı nereden alırım?",
+            "whatsappHelpText": "WhatsApp Business API numarasını Meta for Developers üzerinden alabilirsiniz. Telefon numarası kimliğiniz olduğunda Entegrasyonlar sayfasından bağlayın.",
+            "welcomeTemplateLabel": "İlk WhatsApp mesaj şablonu (T+0 hoş geldin)",
+            "welcomeTemplatePlaceholder": "Merhaba 😊\nÜrünleriniz teslim edilmiş olmalı. Kullanımı hakkında sorunuz var mı?\n\nSipariş no: {{order_number}}\nÜrünler:\n{{product_list}}\n\nİsterseniz satın aldığınız ürünler için kişiselleştirilmiş bir bakım rutini hazırlayabilirim.",
+            "welcomeTemplateDesc": "Boş bırakılırsa sistem varsayılan karşılama mesajı kullanılır. Doldurulursa T+0 mesajı için bu şablon kullanılır.",
+            "welcomeTemplatePlaceholdersTitle": "Kullanılabilir yer tutucular",
+            "welcomeTemplatePlaceholderOrder": "{{order_number}} : Sipariş numarası (harici sipariş kimliği)",
+            "welcomeTemplatePlaceholderProducts": "{{product_list}} : Siparişteki ürünler (satır başına bir)",
+            "saveButton": "Ayarları kaydedin",
+            "saving": "Kaydediliyor..."
+        },
+        "multilingual": {
+            "title": "Çok dilli akıllı yanıtlar",
+            "description": "Yapay zekâ yanıt sistemi için dil ayarlarını yapılandırın. Birincil dil belirleyin ve ek müşteri dillerini etkinleştirin.",
+            "primaryLanguageLabel": "Mağazanın birincil dili",
+            "supportedLanguagesLabel": "Desteklenen diller",
+            "enableLabel": "Bu mağaza için çok dilli yapay zekâyı etkinleştir",
+            "enableHelp": "Desteklediğiniz dillere göre yapay zekânın müşterinin tercih ettiği dilde otomatik yanıt vermesine izin verin.",
+            "currentStateLabel": "Mevcut durum:",
+            "stateConfigured": "Yapılandırıldı",
+            "stateNotConfigured": "Henüz yapılandırılmadı",
+            "stateHelp": "Etkinleştirildiğinde yapay zekâ çok dilli ürün verilerini senkronize eder ve yanıtları müşteri diline uyarlar.",
+            "saveButton": "Dil ayarlarını kaydedin"
+        },
+        "modules": {
+            "title": "Modüller",
+            "description": "Yapay zekâ yeteneklerinizi artırmak için isteğe bağlı ücretli modüller.",
+            "empty": "Kullanılabilir modül yok"
+        },
+        "guardrails": {
+            "title": "Kurallar",
+            "description": "Botun ne söylememesi veya nasıl tepki vermesi gerektiğine ilişkin kuralları tanımlayın.",
+            "addButton": "Yeni kural",
+            "systemTitle": "Sistem kuralları (salt okunur)",
+            "customTitle": "Özel kurallarınız",
+            "empty": "Henüz özel kural yok. Bir tane ekleyin!",
+            "locked": "Kilitli",
+            "application": "Uygulanır: {type} · {action}",
+            "types": {
+                "both": "Kullanıcı + yapay zekâ",
+                "user_message": "Yalnızca kullanıcı",
+                "ai_response": "Yalnızca yapay zekâ"
+            },
+            "actions": {
+                "block": "Engelle",
+                "escalate": "Eskale et"
+            },
+            "edit": "Düzenleyin",
+            "delete": "Silin",
+            "modal": {
+                "titleAdd": "Yeni kural",
+                "titleEdit": "Kuralı düzenle",
+                "nameLabel": "Kural adı *",
+                "descLabel": "Açıklama (isteğe bağlı)",
+                "applyToLabel": "Uygula",
+                "matchTypeLabel": "Eşleşme türü",
+                "matchTypes": {
+                    "keywords": "Anahtar kelimeler (virgülle ayrılmış)",
+                    "phrase": "Tam ifade"
+                },
+                "valueLabel": "Anahtar kelimeler / ifade *",
+                "namePlaceholder": "Örn. Rakip marka anması",
+                "descPlaceholder": "Kuralın kısa açıklaması",
+                "keywordsPlaceholder": "rakip, fiyat, indirim",
+                "phrasePlaceholder": "Bu ürün tedavi eder",
+                "actionLabel": "Eylem",
+                "responseLabel": "Önerilen yanıt (isteğe bağlı)",
+                "responsePlaceholder": "Bu kural tetiklendiğinde gösterilecek metin",
+                "cancel": "İptal",
+                "save": "Kaydedin",
+                "saving": "Kaydediliyor..."
+            }
+        },
+        "apiKeys": {
+            "title": "API anahtarları",
+            "description": "Entegrasyonlar için API anahtarlarını yönetin (en fazla 5)",
+            "createButton": "Yeni anahtar",
+            "creating": "Oluşturuluyor...",
+            "empty": "Henüz API anahtarı yok",
+            "expired": "Süresi doldu",
+            "expiresIn": "{days} gün içinde sona erer",
+            "created": "Oluşturulma: {date}",
+            "expires": "Sona erme: {date}",
+            "lastUsed": "Son kullanım: {date}",
+            "copy": "Kopyalayın",
+            "revoke": "İptal edin",
+            "modal": {
+                "title": "API anahtarı oluşturuldu!",
+                "important": "Önemli:",
+                "warning": "Bu anahtar yalnızca bir kez gösterilir. Güvenli şekilde saklayın!",
+                "label": "API Key",
+                "close": "Kapatın"
+            }
+        },
+        "gdpr": {
+            "title": "GDPR ve veri yönetimi",
+            "description": "Verilerinizi dışa aktarın veya silin.",
+            "exportTitle": "Verileri indir",
+            "exportDesc": "Tüm verilerinizi JSON formatında indirin.",
+            "exportButton": "İndirin",
+            "exporting": "İndiriliyor...",
+            "deleteTitle": "Hesabı sil",
+            "deleteDesc": "Tüm verilerinizi silin (silme hakkı). Bu işlem geri alınamaz!",
+            "deleteWarning": "Veriler kalıcı olarak 30 gün içinde silinecektir.",
+            "deleteButton": "Silin",
+            "links": {
+                "privacy": "Gizlilik politikası",
+                "terms": "Hizmet şartları",
+                "cookie": "Çerez politikası"
+            },
+            "modal": {
+                "title": "Hesap silmeyi onaylayın",
+                "warning": "Bu işlem geri alınamaz!",
+                "list": {
+                    "all": "Tüm veriler silinecek",
+                    "permanent": "30 gün içinde kalıcı olarak silinecek",
+                    "cancel": "30 gün içinde destek ile iptal edilebilir"
+                },
+                "softDelete": "30 gün içinde sil (önerilir)",
+                "hardDelete": "Hemen sil",
+                "cancel": "İptal",
+                "deleting": "Siliniyor..."
+            }
+        },
+        "toasts": {
+            "saveSuccess": {
+                "title": "Başarılı",
+                "message": "Ayarlar başarıyla kaydedildi"
+            },
+            "saveError": {
+                "title": "Kaydetme hatası",
+                "message": "Ayarlar kaydedilemedi. Lütfen tekrar deneyin."
+            },
+            "multiLangSuccess": {
+                "title": "Dil ayarları kaydedildi",
+                "message": "Çok dilli yapay zekâ ayarları başarıyla kaydedildi."
+            },
+            "multiLangError": {
+                "title": "Dil ayarları kaydedilemedi",
+                "message": "Çok dilli ayarlar kaydedilemedi. Lütfen tekrar deneyin."
+            },
+            "guardrailSuccess": {
+                "title": "Kurallar güncellendi",
+                "message": "Kural ayarları başarıyla kaydedildi."
+            },
+            "guardrailError": {
+                "title": "Kural hatası",
+                "message": "Kural ayarları güncellenemedi. Girdileri kontrol edip tekrar deneyin."
+            },
+            "exportSuccess": {
+                "title": "Veri dışa aktarma hazır",
+                "message": "Veri dışa aktarma indirmeniz başladı."
+            },
+            "deleteScheduled": {
+                "title": "Silme planlandı",
+                "message": "Hesabınızın silinmesi {date} tarihine planlandı."
+            },
+            "deletePermanent": {
+                "title": "Hesap silindi",
+                "message": "Hesabınız ve verileriniz kalıcı olarak silindi."
+            }
+        },
+        "notifications": {
+            "title": "Bildirimler",
+            "description": "Bir müşteri insan temsilcisi istediğinde uyarıları nerede alacağınızı ayarlayın.",
+            "phoneLabel": "WhatsApp bildirim numarası",
+            "phonePlaceholder": "+905XXXXXXXXX",
+            "phoneHint": "Bir müşteri bir insanla konuşmak istediğinde bu numaraya WhatsApp uyarısı gönderilir. WhatsApp bildirimlerini kapatmak için boş bırakın."
+        }
+    },
+    "Analytics": {
+        "title": "Analitik",
+        "description": "Sistem performansı ve metrikler",
+        "metrics": {
+            "avgSentiment": "Ort. duyarlılık",
+            "interactionRate": "Etkileşim oranı",
+            "returnRate": "İade oranı",
+            "totalUsers": "Toplam kullanıcı",
+            "totalOrders": "Toplam sipariş",
+            "activeUsers": "aktif kullanıcı",
+            "orders": "toplam sipariş"
+        },
+        "roi": {
+            "savedReturns": "Kurtarılan iadeler",
+            "savedReturnsDesc": "Şikayet → olumlu sonuç konuşmaları",
+            "repeatPurchases": "Tekrar satın alımlar",
+            "repeatPurchasesDesc": "Konuşması olan ve yeniden satın alan müşteriler",
+            "resolvedConversations": "Çözülen konuşmalar",
+            "resolvedDesc": "Çözüldü olarak işaretlenen konuşmalar",
+            "resolvedTotalDesc": "/ {total} toplam",
+            "messagesTotalLabel": "Toplam mesaj",
+            "interactionRate": "Etkileşim oranı",
+            "interactionRateDesc": "Konuşmadaki {withConv}/{total} müşteri"
+        },
+        "charts": {
+            "dau": {
+                "title": "Günlük aktif kullanıcı (DAU)",
+                "users": "kullanıcı"
+            },
+            "volume": {
+                "title": "Mesaj hacmi",
+                "sent": "Gönderilen",
+                "received": "Alınan"
+            }
+        },
+        "empty": {
+            "title": "Henüz analitik verisi yok",
+            "description": "Sistem kullanıldıkça metrikler burada görünecek",
+            "addProduct": "Ürün ekleyin",
+            "setupIntegration": "Entegrasyon kurun"
+        },
+        "sentiment": {
+            "positive": "Olumlu",
+            "neutral": "Nötr",
+            "negative": "Olumsuz"
+        }
+    },
+    "ShopifyMap": {
+        "title": "Shopify → Kullanım talimatları",
+        "description": "Her Shopify ürünü için kullanım talimatları ve reçete girin; yapay zekâ asistanı yanıtlarda bunu kullanır.",
+        "productCount": "{count} ürün listelendi",
+        "backToProducts": "Ürünlere dönün",
+        "empty": {
+            "title": "Ürün bulunamadı",
+            "description": "Shopify mağazanızdan henüz ürün çekilmedi veya entegrasyon kurulmadı. Önce Entegrasyonlar sayfasından Shopify’ı bağlayın.",
+            "connectButton": "Shopify’ı bağlayın"
+        },
+        "table": {
+            "hint": "Her satıra talimat girin ve yapay zekâ bağlamına şununla ekleyin:",
+            "hintSave": "Kaydedin",
+            "product": "Ürün (Shopify)",
+            "instructions": "Kullanım talimatları / Reçete",
+            "action": "İşlem",
+            "ariaLabel": "Shopify ürünleri ve kullanım talimatları"
+        },
+        "placeholder": "Örn. Temizleme sonrası ince bir tabaka uygulayın. Günde 1–2 kez kullanılabilir.",
+        "save": "Kaydedin",
+        "saving": "Kaydediliyor…",
+        "instructionLabel": "Kullanım talimatları: {title}",
+        "toasts": {
+            "shopifyNotConnected": {
+                "title": "Shopify bağlı değil",
+                "message": "Önce Entegrasyonlar sayfasından Shopify’ı bağlayın."
+            },
+            "loadError": {
+                "title": "Veri yüklenirken hata",
+                "message": "Yükleme sırasında bir hata oluştu."
+            },
+            "enterInstruction": "Lütfen kullanım talimatlarını girin",
+            "saveSuccess": {
+                "title": "Kullanım talimatları kaydedildi",
+                "message": "Değişiklikler başarıyla kaydedildi."
+            },
+            "saveError": {
+                "title": "Kaydetme hatası",
+                "message": "Kaydedilemedi."
+            },
+            "productCreateError": "Ürün oluşturulamadı"
+        }
+    },
+    "Customers": {
+        "title": "Müşteriler",
+        "subtitle": "Tüm müşterileriniz ve ayrıntılar ({total} müşteri)",
+        "searchPlaceholder": "Ada göre ara...",
+        "filterAll": "Tümü",
+        "segment": {
+            "champions": "Şampiyonlar",
+            "loyal": "Sadık",
+            "promising": "Umut verici",
+            "at_risk": "Risk altında",
+            "lost": "Kayıp",
+            "new": "Yeni"
+        },
+        "empty": {
+            "title": "Müşteri bulunamadı",
+            "description": "Henüz müşteri kaydı yok veya filtreye uyan sonuç yok."
+        },
+        "orders": "sipariş",
+        "conversations": "konuşma",
+        "previous": "Önceki",
+        "next": "Sonraki",
+        "toasts": {
+            "loadError": {
+                "title": "Hata",
+                "message": "Müşteriler yüklenemedi."
+            }
+        }
+    },
+    "CustomerDetail": {
+        "segment": {
+            "champions": "Şampiyon",
+            "loyal": "Sadık",
+            "promising": "Umut verici",
+            "at_risk": "Risk altında",
+            "lost": "Kayıp",
+            "new": "Yeni"
+        },
+        "backToCustomers": "Müşterilere dönün",
+        "notFound": "Müşteri bulunamadı",
+        "toasts": {
+            "loadError": {
+                "title": "Hata",
+                "message": "Müşteri yüklenemedi."
+            }
+        },
+        "churnRisk": "Kayıp riski",
+        "registered": "Kayıtlı",
+        "consent": "Onay",
+        "order": "Sipariş",
+        "conversation": "Konuşma",
+        "lastOrder": "Son sipariş",
+        "ordersCount": "Siparişler ({count})",
+        "noOrders": "Sipariş yok",
+        "conversationsCount": "Konuşmalar ({count})",
+        "noConversations": "Konuşma yok",
+        "statusHuman": "İnsan",
+        "statusResolved": "Çözüldü",
+        "statusAi": "Yapay zekâ",
+        "feedbackNps": "NPS",
+        "feedbackReview": "Değerlendirme isteği"
+    },
+    "ConversationDetail": {
+        "backToConversations": "Konuşmalara dönün",
+        "notFound": "Konuşma bulunamadı",
+        "order": "Sipariş",
+        "messageHistory": "Mesaj geçmişi",
+        "messageCount": "{count} mesaj · Otomatik güncelleniyor",
+        "noMessages": "Henüz mesaj yok",
+        "customer": "Müşteri",
+        "you": "Siz",
+        "aiBot": "Yapay zekâ botu",
+        "placeholderResolved": "Konuşma çözüldü",
+        "placeholderReply": "Müşteriye mesaj yazın...",
+        "send": "Gönderin",
+        "sending": "Gönderiliyor…",
+        "humanModeNote": "İnsan modu etkin. Mesaj göndermek insana geçiş yapar.",
+        "startAi": "Yapay zekâyı başlatın",
+        "stopAi": "Yapay zekâyı durdurun",
+        "resolved": "Çözüldü",
+        "reopen": "Yeniden açın",
+        "started": "Başlangıç",
+        "lastUpdate": "Son güncelleme",
+        "customerMessage": "Müşteri mesajı",
+        "botResponse": "Bot yanıtı",
+        "totalMessages": "Toplam mesaj",
+        "toasts": {
+            "loadError": {
+                "title": "Hata",
+                "message": "Konuşma yüklenirken hata oluştu."
+            },
+            "sent": {
+                "title": "Gönderildi",
+                "message": "Mesajınız WhatsApp üzerinden gönderildi."
+            },
+            "sendError": {
+                "title": "Hata",
+                "message": "Mesaj gönderilemedi."
+            },
+            "statusUpdated": "Durum güncellendi",
+            "statusError": {
+                "title": "Hata",
+                "message": "Durum güncellenemedi."
+            }
+        },
+        "statusHuman": "İnsan modu",
+        "statusResolved": "Çözüldü",
+        "statusAi": "Yapay zekâ modu",
+        "statusHumanLabel": "İnsan modu",
+        "statusResolvedLabel": "Çözüldü",
+        "statusAiLabel": "Yapay zekâ modu"
+    },
+    "BotInfo": {
+        "title": "Bot bilgisi (yapay zekâ yönergeleri)",
+        "description": "Müşteri sorularını yanıtlarken yapay zekâ asistanının kullandığı marka kuralları, sınırlar ve reçete bilgisi.",
+        "backToSettings": "← Ayarlara dönün",
+        "loading": "Yükleniyor…",
+        "saveAll": "Tümünü kaydedin",
+        "saving": "Kaydediliyor…",
+        "sections": {
+            "brand_guidelines": {
+                "label": "Marka ve yönergeler",
+                "placeholder": "Marka sesiniz, değerleriniz, müşterilere hitap şekliniz…"
+            },
+            "bot_boundaries": {
+                "label": "Bot sınırları",
+                "placeholder": "Botun yapması / yapmaması gerekenler, tıbbi tavsiye yok, insana devretme kuralları…"
+            },
+            "recipe_overview": {
+                "label": "Reçete ve kullanım özeti",
+                "placeholder": "Genel kozmetik reçete bilgisi, kullanım özeti…"
+            },
+            "custom_instructions": {
+                "label": "Ek talimatlar",
+                "placeholder": "Diğer özel kurallar veya talimatlar…"
+            }
+        },
+        "toasts": {
+            "loadError": {
+                "title": "Hata",
+                "message": "Bot bilgisi yüklenirken hata oluştu."
+            },
+            "saveError": {
+                "title": "Kaydetme hatası",
+                "message": "Kaydedilemedi."
+            }
+        }
+    },
+    "ProductDetail": {
+        "notFound": "Ürün bulunamadı",
+        "backToProducts": "Ürünlere dönün",
+        "editProduct": "Ürünü düzenle",
+        "editDescription": "Ürün ayrıntılarını düzenle",
+        "save": "Kaydedin",
+        "saving": "Kaydediliyor...",
+        "rescrape": "Yeniden çek",
+        "rescraping": "Çekiliyor...",
+        "productName": "Ürün adı",
+        "productUrl": "Ürün URL",
+        "openPage": "Sayfayı açın",
+        "scrapedContent": "Çekilen içerik",
+        "scrapedPlaceholder": "Çekilen içerik burada görünecek...",
+        "scrapedChars": "{chars} karakter",
+        "scrapedLines": "{lines} satır",
+        "notScrapedYet": "İçerik henüz çekilmedi",
+        "scrapeNow": "Şimdi çekin",
+        "toasts": {
+            "loadError": {
+                "title": "Hata",
+                "message": "Ürün ayrıntıları yüklenemedi"
+            },
+            "saved": {
+                "title": "Kaydedildi",
+                "message": "Ürün değişiklikleri başarıyla kaydedildi"
+            },
+            "saveError": {
+                "title": "Hata",
+                "message": "Ürün değişiklikleri kaydedilemedi"
+            },
+            "rescanSuccess": {
+                "title": "Çekildi",
+                "message": "Ürün başarıyla çekildi"
+            },
+            "rescanError": {
+                "title": "Hata",
+                "message": "Ürün çekilemedi"
+            },
+            "embeddingWarning": {
+                "title": "Embedding uyarısı",
+                "message": "Ürün çekildi ancak embedding oluşturulamadı. Yeniden çekmeyi deneyin."
+            }
+        },
+        "ragAlert": {
+            "emptyTitle": "⚠️ Bot talimatları eksik",
+            "emptyDesc": "Bu ürün için botun manuel talimatı yok. Müşteri sorularını doğru yanıtlayabilmesi için aşağıya kullanım talimatları ekleyin.",
+            "thinTitle": "ℹ️ Talimatlara daha fazla ayrıntı gerekli",
+            "thinDesc": "Kullanım talimatları botun soruları iyi yanıtlaması için çok kısa. Daha fazla ayrıntı ekleyin (50+ karakter)."
+        },
+        "botInstructions": {
+            "title": "Bot talimatları",
+            "description": "Bunlar yapay zekâ botunun WhatsApp’ta müşteri sorularını yanıtlamak için doğrudan okuduğu metindir. Ne kadar ayrıntılı olursa yanıtlar o kadar iyi olur.",
+            "readyBadge": "Hazır ✓",
+            "usageLabel": "Kullanım talimatları",
+            "usagePlaceholder": "Bu ürünü adım adım nasıl kullanacağınızı açıklayın. Doz, uygulama yöntemi, sıklık ve önemli uyarıları ekleyin...",
+            "usageHint": "En önemli alan. Bot bunu doğrudan \"Nasıl kullanırım?\" sorularında kullanır.",
+            "videoLabel": "Öğretici video URL (isteğe bağlı)",
+            "videoPlaceholder": "https://youtube.com/...",
+            "videoHint": "Bir müşteri ürünle zorlandığında bot bu bağlantıyı paylaşır.",
+            "preventionLabel": "İade önleme ipuçları (isteğe bağlı)",
+            "preventionPlaceholder": "Müşteri ürünü iade etmek istediğinde botun kullandığı ipuçları — yaygın sorunlar ve çözümleri...",
+            "preventionHint": "Müşteri ürünü iade etmek istediğinde bot tarafından kullanılır."
+        }
+    },
+    "Test": {
+        "customerName": "Test kullanıcısı",
+        "testProduct": "Test ürünü",
+        "chatMessage": "Bu ürünü nasıl kullanırım?",
+        "ragQuery": "Bu ürünü nasıl kullanırım?",
+        "toasts": {
+            "orderError": "Sipariş oluşturulamadı",
+            "orderSuccess": {
+                "title": "Sipariş oluşturuldu",
+                "message": "Artık teslimat olayını tetikleyebilirsiniz."
+            },
+            "deliveryError": "Teslimat olayı oluşturulamadı",
+            "deliverySuccess": {
+                "title": "Teslimat olayı gönderildi",
+                "message": "Artık müşteriyle sohbet edebilirsiniz."
+            },
+            "messageError": "Mesaj gönderilemedi",
+            "noResponse": "Yanıt alınamadı",
+            "messageSent": "Mesaj gönderildi",
+            "resetSuccess": {
+                "title": "Test sıfırlandı",
+                "message": "Yeni bir teste başlayabilirsiniz."
+            },
+            "tasksLoadError": "Görevler yüklenemedi",
+            "taskTriggered": {
+                "title": "Görev tetiklendi",
+                "message": "Worker kısa süre içinde işleyecek."
+            },
+            "ragError": "RAG testi başarısız",
+            "ragAiError": "RAG + yapay zekâ yanıtı alınamadı"
+        },
+        "healthLoadError": "Sistem sağlığı yüklenemedi",
+        "subtitle": "Sipariş oluşturun ve botla sohbet ederek sistemi test edin",
+        "createOrder": "Sipariş oluşturun",
+        "step1Title": "Adım 1: Sipariş oluştur",
+        "step1Desc": "Test siparişi oluşturun. Veritabanına kaydedilir ve müşteri profili oluşturulur.",
+        "customerPhone": "Müşteri telefonu",
+        "customerNameLabel": "Müşteri adı",
+        "orderId": "Sipariş ID",
+        "products": "Ürünler",
+        "addProduct": "Ürün ekleyin",
+        "productNamePlaceholder": "Ürün adı",
+        "productIdPlaceholder": "Ürün ID",
+        "productUrlPlaceholder": "Ürün URL",
+        "creating": "Oluşturuluyor…",
+        "step2Title": "Adım 2: Teslimat olayını tetikle",
+        "step2Desc": "Siparişin teslim edildiğini simüle edin. Bu, yapay zekâ aracısını tetikler ve müşteriye WhatsApp mesajı gönderir.",
+        "orderDetails": "Sipariş ayrıntıları",
+        "orderIdLabel": "Sipariş ID",
+        "customerLabel": "Müşteri",
+        "productCount": "Ürün sayısı",
+        "sendDelivery": "Teslimat olayını gönderin",
+        "sending": "Gönderiliyor…",
+        "step3Title": "Adım 3: Botla sohbet edin",
+        "step3Desc": "Müşteri gibi yazın. Yapay zekâ aracısı ürün ve sipariş geçmişiyle yanıt verir.",
+        "messagePlaceholder": "Mesajınızı yazın... (Göndermek için Enter)",
+        "sendMessage": "Mesajı gönderin",
+        "advancedTools": "Gelişmiş test araçları",
+        "ragPlaceholder": "Ürün hakkında soru...",
+        "ragEmptyHint": "Tüm ürünlerde aramak için boş bırakın",
+        "ragOnly": "Yalnızca RAG",
+        "ragAndAi": "RAG + yapay zekâ yanıtı",
+        "processing": "İşleniyor…",
+        "aiResponse": "Yapay zekâ yanıtı",
+        "noResults": "Sonuç bulunamadı",
+        "refresh": "Yenileyin",
+        "loading": "Yükleniyor…",
+        "loadFailed": "Yüklenemedi",
+        "noScheduledTasks": "Henüz planlanmış görev yok",
+        "resetTest": "Testi sıfırlayın"
+    },
+    "Sidebar": {
+        "mainMenu": "Ana menü"
+    },
+    "ShopifyCallback": {
+        "connecting": "Shopify’a bağlanılıyor...",
+        "pleaseWait": "Lütfen bekleyin, entegrasyon tamamlanıyor.",
+        "success": "Başarılı!",
+        "successMessage": "Shopify entegrasyonu başarıyla tamamlandı!",
+        "redirecting": "Entegrasyonlara yönlendiriliyor...",
+        "invalidCallback": "Geçersiz geri çağrı. Lütfen Entegrasyonlar sayfasından tekrar deneyin.",
+        "backToIntegrations": "Entegrasyonlara dönün"
+    },
+    "ReturnPrevention": {
+        "moduleTitle": "İade önleme modülü",
+        "moduleDescription": "Yapay zekâ destekli iade önleme. İade niyetini algılar; kullanım rehberleri ve video öğreticilerle müşterilerin üründen değer almasına yardımcı olur.",
+        "priceNote": "+${price}/ay",
+        "enableConfirmTitle": "İade önleme etkinleştirilsin mi?",
+        "enableConfirmMessage": "Bu, faturalandırmanıza ayda ${price} ekler. Yapay zekâ, müşteriler ürünleri iade etmeden önce proaktif yardım eder.",
+        "enableConfirmButton": "Etkinleştirin ve abone olun",
+        "disableConfirmTitle": "İade önleme devre dışı bırakılsın mı?",
+        "disableConfirmMessage": "Modül devre dışı bırakılır. İstediğiniz zaman yeniden etkinleştirebilirsiniz.",
+        "disableConfirmButton": "Modülü devre dışı bırakın",
+        "planGateMessage": "Starter plan ve üzerinde kullanılabilir.",
+        "statusActive": "Aktif",
+        "statusInactive": "Pasif",
+        "cancel": "İptal",
+        "videoUrl": "Öğretici video URL",
+        "videoUrlPlaceholder": "https://youtube.com/watch?v=...",
+        "videoUrlDescription": "Ürün kullanımı veya öğretici videoya bağlantı",
+        "preventionTips": "İade önleme ipuçları",
+        "preventionTipsPlaceholder": "Müşteri iade etmek istediğinde yardımcı olacak ipuçları (örn. Çoğu müşteri 2 hafta sonra sonuç görür...)",
+        "preventionTipsDescription": "İade niyeti belirten müşterilere gösterilen ipuçları",
+        "analyticsTitle": "İade önleme",
+        "preventedRevenue": "Önlenen gelir",
+        "returnsPrevented": "Önlenen iadeler",
+        "preventionRate": "Önleme oranı",
+        "topProducts": "En riskli ürünler",
+        "totalAttempts": "Toplam deneme",
+        "escalated": "Eskale edildi",
+        "returned": "İade edildi",
+        "pending": "Beklemede",
+        "prevented": "Önlendi",
+        "noData": "Henüz iade önleme verisi yok",
+        "badgeLabel": "İade önleme",
+        "outcomePrevented": "Önlendi",
+        "outcomeReturned": "İade edildi",
+        "outcomeEscalated": "Eskale edildi",
+        "outcomePending": "Beklemede",
+        "attempts": "deneme",
+        "product": "Ürün"
+    }
+}

@@ -14,7 +14,6 @@ import {
   Select as PolarisSelect,
   SkeletonPage,
   Text,
-  TextField as PolarisTextField,
   EmptyState,
   Button as PolarisButton,
   Pagination,
@@ -22,7 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Package, Plus, Trash2, ExternalLink, FileText, CheckCircle, Loader2, ArrowRight, LayoutGrid, List, Search } from 'lucide-react';
+import { Plus, Trash2, ExternalLink, FileText, CheckCircle, Loader2, LayoutGrid, List, Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useTranslations, useLocale } from 'next-intl';
 import { SESSION_RECHECK_MS } from '@/lib/constants';
@@ -82,6 +81,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     loadProducts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -243,9 +243,10 @@ export default function ProductsPage() {
           prev.map((p) => ({ ...p, chunkCount: undefined, chunkCountUnavailable: true }))
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load products:', err);
-      if (err.message?.includes('Unauthorized') || err.message?.includes('401')) {
+      const errMsg = err instanceof Error ? err.message : '';
+      if (errMsg.includes('Unauthorized') || errMsg.includes('401')) {
         toast.error(t('toasts.sessionExpired.title'), t('toasts.sessionExpired.message'));
         window.location.href = '/login';
       } else {
@@ -286,7 +287,7 @@ export default function ProductsPage() {
 
       await authenticatedRequest<{
         message: string;
-        scraped: any;
+        scraped: unknown;
       }>(
         `/api/products/${createResponse.product.id}/scrape`,
         session.access_token,
@@ -301,11 +302,11 @@ export default function ProductsPage() {
           session.access_token,
           { method: 'POST' }
         );
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Embedding generation failed:', err);
         toast.warning(
           t('toasts.embeddingWarning.title'),
-          err.message || t('toasts.embeddingWarning.message')
+          (err instanceof Error ? err.message : '') || t('toasts.embeddingWarning.message')
         );
       }
 
@@ -319,9 +320,9 @@ export default function ProductsPage() {
       setShowAddModal(false);
       setScraping(false);
       setScrapeProgress('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to add product:', err);
-      toast.error(t('toasts.addError.title'), err.message || t('toasts.addError.message'));
+      toast.error(t('toasts.addError.title'), (err instanceof Error ? err.message : '') || t('toasts.addError.message'));
       setScraping(false);
       setScrapeProgress('');
     }
@@ -495,7 +496,7 @@ export default function ProductsPage() {
       let failCount = 0;
 
       if (action === 'embeddings') {
-        const response = await authenticatedRequest<any>(
+        const response = await authenticatedRequest<{ summary?: { successful?: number; failed?: number } }>(
           '/api/products/generate-embeddings-batch',
           session.access_token,
           {
@@ -506,7 +507,7 @@ export default function ProductsPage() {
         successCount = response?.summary?.successful ?? 0;
         failCount = response?.summary?.failed ?? Math.max(0, selectedProductIds.length - successCount);
       } else {
-        const response = await authenticatedRequest<any>(
+        const response = await authenticatedRequest<{ count?: number }>(
           '/api/products/scrape-batch',
           session.access_token,
           {
@@ -535,11 +536,11 @@ export default function ProductsPage() {
       }
 
       await loadProducts();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(`Bulk ${action} request failed:`, err);
       toast.error(
         action === 'scrape' ? t('bulk.scrapeErrorTitle') : t('bulk.embeddingsErrorTitle'),
-        err?.message || t('bulk.requestFailedMessage')
+        (err instanceof Error ? err.message : '') || t('bulk.requestFailedMessage')
       );
     } finally {
       setBulkActionLoading(null);

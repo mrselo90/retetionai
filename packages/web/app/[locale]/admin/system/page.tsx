@@ -33,6 +33,13 @@ interface PlatformAiSettings {
     id: string;
     default_llm_model: string;
     allowed_llm_models: string[];
+    default_embedding_model?: string;
+    allowed_embedding_models?: string[];
+    default_vision_model?: string;
+    allowed_vision_models?: string[];
+    corporate_whatsapp_provider?: 'twilio' | 'meta';
+    corporate_whatsapp_from_number?: string | null;
+    corporate_whatsapp_phone_number_display?: string | null;
     conversation_memory_mode?: 'last_n' | 'full';
     conversation_memory_count?: number;
     products_cache_ttl_seconds?: number;
@@ -64,6 +71,9 @@ interface RagSuiteRunResult {
 }
 
 export default function SystemHealthPage() {
+    const defaultLlmModels = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'];
+    const defaultEmbeddingModels = ['text-embedding-3-small'];
+    const defaultVisionModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini'];
     const [health, setHealth] = useState<SystemHealth | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -72,6 +82,14 @@ export default function SystemHealthPage() {
     const [aiSettings, setAiSettings] = useState<PlatformAiSettings | null>(null);
     const [savingAiSettings, setSavingAiSettings] = useState(false);
     const [selectedLlmModel, setSelectedLlmModel] = useState('gpt-4o-mini');
+    const [allowedLlmModelsInput, setAllowedLlmModelsInput] = useState(defaultLlmModels.join(', '));
+    const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState('text-embedding-3-small');
+    const [allowedEmbeddingModelsInput, setAllowedEmbeddingModelsInput] = useState(defaultEmbeddingModels.join(', '));
+    const [selectedVisionModel, setSelectedVisionModel] = useState('gpt-4o');
+    const [allowedVisionModelsInput, setAllowedVisionModelsInput] = useState(defaultVisionModels.join(', '));
+    const [corporateWhatsAppProvider, setCorporateWhatsAppProvider] = useState<'twilio' | 'meta'>('twilio');
+    const [corporateWhatsAppFromNumber, setCorporateWhatsAppFromNumber] = useState('');
+    const [corporateWhatsAppPhoneDisplay, setCorporateWhatsAppPhoneDisplay] = useState('');
     const [conversationMemoryMode, setConversationMemoryMode] = useState<'last_n' | 'full'>('last_n');
     const [conversationMemoryCount, setConversationMemoryCount] = useState('10');
     const [productsCacheTtlSeconds, setProductsCacheTtlSeconds] = useState('300');
@@ -93,6 +111,14 @@ export default function SystemHealthPage() {
             const ai = await authenticatedRequest<{ settings: PlatformAiSettings }>('/api/admin/ai-settings', session.access_token);
             setAiSettings(ai.settings);
             setSelectedLlmModel(ai.settings.default_llm_model || 'gpt-4o-mini');
+            setAllowedLlmModelsInput((ai.settings.allowed_llm_models || defaultLlmModels).join(', '));
+            setSelectedEmbeddingModel(ai.settings.default_embedding_model || 'text-embedding-3-small');
+            setAllowedEmbeddingModelsInput((ai.settings.allowed_embedding_models || defaultEmbeddingModels).join(', '));
+            setSelectedVisionModel(ai.settings.default_vision_model || ai.settings.default_llm_model || 'gpt-4o');
+            setAllowedVisionModelsInput((ai.settings.allowed_vision_models || defaultVisionModels).join(', '));
+            setCorporateWhatsAppProvider(ai.settings.corporate_whatsapp_provider === 'meta' ? 'meta' : 'twilio');
+            setCorporateWhatsAppFromNumber(ai.settings.corporate_whatsapp_from_number || '');
+            setCorporateWhatsAppPhoneDisplay(ai.settings.corporate_whatsapp_phone_number_display || '');
             setConversationMemoryMode(ai.settings.conversation_memory_mode === 'full' ? 'full' : 'last_n');
             setConversationMemoryCount(String(ai.settings.conversation_memory_count ?? 10));
             setProductsCacheTtlSeconds(String(ai.settings.products_cache_ttl_seconds ?? 300));
@@ -106,11 +132,23 @@ export default function SystemHealthPage() {
         }
     };
 
+    const parseCommaList = (value: string, fallback: string[]) => {
+        const parsed = value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean)
+            .filter((item, index, arr) => arr.indexOf(item) === index);
+        return parsed.length > 0 ? parsed : fallback;
+    };
+
     const saveAiSettings = async () => {
         setSavingAiSettings(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
+            const allowedLlmModels = parseCommaList(allowedLlmModelsInput, defaultLlmModels);
+            const allowedEmbeddingModels = parseCommaList(allowedEmbeddingModelsInput, defaultEmbeddingModels);
+            const allowedVisionModels = parseCommaList(allowedVisionModelsInput, defaultVisionModels);
             const next = await authenticatedRequest<{ settings: PlatformAiSettings }>(
                 '/api/admin/ai-settings',
                 session.access_token,
@@ -118,7 +156,14 @@ export default function SystemHealthPage() {
                     method: 'PUT',
                     body: JSON.stringify({
                         default_llm_model: selectedLlmModel,
-                        allowed_llm_models: aiSettings?.allowed_llm_models || ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'],
+                        allowed_llm_models: allowedLlmModels,
+                        default_embedding_model: selectedEmbeddingModel,
+                        allowed_embedding_models: allowedEmbeddingModels,
+                        default_vision_model: selectedVisionModel,
+                        allowed_vision_models: allowedVisionModels,
+                        corporate_whatsapp_provider: corporateWhatsAppProvider,
+                        corporate_whatsapp_from_number: corporateWhatsAppFromNumber.trim() || null,
+                        corporate_whatsapp_phone_number_display: corporateWhatsAppPhoneDisplay.trim() || null,
                         conversation_memory_mode: conversationMemoryMode,
                         conversation_memory_count: Math.max(1, Math.min(200, parseInt(conversationMemoryCount || '10', 10) || 10)),
                         products_cache_ttl_seconds: Math.max(30, Math.min(3600, parseInt(productsCacheTtlSeconds || '300', 10) || 300)),
@@ -127,6 +172,14 @@ export default function SystemHealthPage() {
             );
             setAiSettings(next.settings);
             setSelectedLlmModel(next.settings.default_llm_model);
+            setAllowedLlmModelsInput((next.settings.allowed_llm_models || defaultLlmModels).join(', '));
+            setSelectedEmbeddingModel(next.settings.default_embedding_model || 'text-embedding-3-small');
+            setAllowedEmbeddingModelsInput((next.settings.allowed_embedding_models || defaultEmbeddingModels).join(', '));
+            setSelectedVisionModel(next.settings.default_vision_model || next.settings.default_llm_model || 'gpt-4o');
+            setAllowedVisionModelsInput((next.settings.allowed_vision_models || defaultVisionModels).join(', '));
+            setCorporateWhatsAppProvider(next.settings.corporate_whatsapp_provider === 'meta' ? 'meta' : 'twilio');
+            setCorporateWhatsAppFromNumber(next.settings.corporate_whatsapp_from_number || '');
+            setCorporateWhatsAppPhoneDisplay(next.settings.corporate_whatsapp_phone_number_display || '');
             setConversationMemoryMode(next.settings.conversation_memory_mode === 'full' ? 'full' : 'last_n');
             setConversationMemoryCount(String(next.settings.conversation_memory_count ?? 10));
             setProductsCacheTtlSeconds(String(next.settings.products_cache_ttl_seconds ?? 300));
@@ -193,7 +246,7 @@ export default function SystemHealthPage() {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
-                throw new Error('Oturum bulunamadı');
+                throw new Error('Session not found');
             }
 
             const startedAt = new Date().toISOString();
@@ -204,7 +257,7 @@ export default function SystemHealthPage() {
             );
             const products = productsResponse.products ?? [];
             if (products.length === 0) {
-                throw new Error('Bu merchant için ürün bulunamadı');
+                throw new Error('No products found for this merchant');
             }
 
             const chunkCountsResponse = await authenticatedRequest<{ chunkCounts?: Array<{ productId: string; chunkCount: number }> }>(
@@ -228,13 +281,13 @@ export default function SystemHealthPage() {
                 .slice(0, 10);
 
             if (candidateProducts.length === 0) {
-                throw new Error('Chunk/embedding hazır ürün bulunamadı (chunkCount > 0)');
+                throw new Error('No products found with chunks/embeddings (chunkCount > 0)');
             }
 
             const excludedIdSet = new Set(ragSuiteExcludedProductIds);
             const ragReadyProducts = candidateProducts.filter((p) => !excludedIdSet.has(p.id));
             if (ragReadyProducts.length === 0) {
-                throw new Error('Hariç tutmalar sonrası test için ürün kalmadı');
+                throw new Error('No products left after exclusions');
             }
 
             const selectedProductIds = ragReadyProducts.map((p) => p.id);
@@ -502,7 +555,7 @@ export default function SystemHealthPage() {
                             <BlockStack gap="100">
                                 <Text as="h2" variant="headingMd">Global AI Model</Text>
                                 <Text as="p" tone="subdued">
-                                    Super admin runtime default model for chatbot and RAG answer generation (env fallback remains if DB setting unavailable).
+                                    Super admin runtime defaults for chat answers, embeddings, WhatsApp AI vision, and the Recete corporate WhatsApp sender.
                                 </Text>
                             </BlockStack>
                             {aiSettings && <Badge tone="info">Runtime configurable</Badge>}
@@ -511,12 +564,79 @@ export default function SystemHealthPage() {
                             <BlockStack gap="300">
                                 <Select
                                     label="Default LLM model"
-                                    options={(aiSettings?.allowed_llm_models || ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1']).map((m) => ({
+                                    options={parseCommaList(allowedLlmModelsInput || '', defaultLlmModels).map((m) => ({
                                         label: m,
                                         value: m,
                                     }))}
                                     value={selectedLlmModel}
                                     onChange={setSelectedLlmModel}
+                                />
+                                <TextField
+                                    label="Allowed LLM models"
+                                    autoComplete="off"
+                                    value={allowedLlmModelsInput}
+                                    onChange={setAllowedLlmModelsInput}
+                                    helpText="Comma-separated list of chat models available in the super admin runtime config."
+                                />
+                                <Select
+                                    label="Default embedding model"
+                                    options={parseCommaList(allowedEmbeddingModelsInput || '', defaultEmbeddingModels).map((m) => ({
+                                        label: m,
+                                        value: m,
+                                    }))}
+                                    value={selectedEmbeddingModel}
+                                    onChange={setSelectedEmbeddingModel}
+                                    helpText="Used for multilingual chunk indexing and retrieval embeddings. Keep this aligned with the vector dimension schema."
+                                />
+                                <TextField
+                                    label="Allowed embedding models"
+                                    autoComplete="off"
+                                    value={allowedEmbeddingModelsInput}
+                                    onChange={setAllowedEmbeddingModelsInput}
+                                    helpText="Comma-separated list. Current production schema is configured for 1536-dimension embeddings, so only compatible models should be listed."
+                                />
+                                <Select
+                                    label="Default vision model"
+                                    options={parseCommaList(allowedVisionModelsInput || '', defaultVisionModels).map((m) => ({
+                                        label: m,
+                                        value: m,
+                                    }))}
+                                    value={selectedVisionModel}
+                                    onChange={setSelectedVisionModel}
+                                    helpText="Used for customer photo analysis in WhatsApp AI vision flows."
+                                />
+                                <TextField
+                                    label="Allowed vision models"
+                                    autoComplete="off"
+                                    value={allowedVisionModelsInput}
+                                    onChange={setAllowedVisionModelsInput}
+                                    helpText="Comma-separated list of models allowed for WhatsApp AI vision."
+                                />
+                                <Select
+                                    label="Corporate WhatsApp provider"
+                                    options={[
+                                        { label: 'Twilio WhatsApp', value: 'twilio' },
+                                        { label: 'Meta WhatsApp Cloud', value: 'meta' },
+                                    ]}
+                                    value={corporateWhatsAppProvider}
+                                    onChange={(value) => setCorporateWhatsAppProvider(value === 'meta' ? 'meta' : 'twilio')}
+                                    helpText="Used when merchant sender mode is corporate and for Recete-originated merchant notifications."
+                                />
+                                <TextField
+                                    label="Corporate WhatsApp sender"
+                                    autoComplete="off"
+                                    value={corporateWhatsAppFromNumber}
+                                    onChange={setCorporateWhatsAppFromNumber}
+                                    helpText={corporateWhatsAppProvider === 'twilio'
+                                        ? 'Twilio sender number in E.164 format, for example +447915922506. Runtime will send as whatsapp:+447915922506.'
+                                        : 'Meta sender phone number ID.'}
+                                />
+                                <TextField
+                                    label="Corporate WhatsApp display number"
+                                    autoComplete="off"
+                                    value={corporateWhatsAppPhoneDisplay}
+                                    onChange={setCorporateWhatsAppPhoneDisplay}
+                                    helpText="Optional human-readable display value used in platform contact surfaces."
                                 />
                                 <Select
                                     label="Conversation memory mode"
@@ -552,7 +672,7 @@ export default function SystemHealthPage() {
                                 />
                             </BlockStack>
                             <Button variant="primary" onClick={saveAiSettings} loading={savingAiSettings} disabled={savingAiSettings}>
-                                Save AI Model
+                                Save AI Settings
                             </Button>
                         </InlineGrid>
                     </BlockStack>
@@ -566,7 +686,7 @@ export default function SystemHealthPage() {
                             <BlockStack gap="100">
                                 <Text as="h2" variant="headingMd">RAG Test Suite (Super Admin)</Text>
                                 <Text as="p" tone="subdued">
-                                    Mevcut merchant için chunk&apos;ı olan ilk 10 ürünü seçer ve predefined RAG + RAG Answer smoke testlerini çalıştırır.
+                                    Selects the first 10 products with chunks for the current merchant and runs predefined RAG + Answer smoke tests.
                                 </Text>
                             </BlockStack>
                             <Badge tone="attention">Predefined</Badge>
@@ -580,10 +700,10 @@ export default function SystemHealthPage() {
                             <Select
                                 label="Query set"
                                 options={[
-                                    { label: 'Kısa (4 soru)', value: 'short' },
-                                    { label: 'Orta (8 soru)', value: 'medium' },
-                                    { label: 'Geniş (12 soru)', value: 'wide' },
-                                    { label: 'Macarca (12 soru)', value: 'hungarian' },
+                                    { label: 'Short (4 queries)', value: 'short' },
+                                    { label: 'Medium (8 queries)', value: 'medium' },
+                                    { label: 'Wide (12 queries)', value: 'wide' },
+                                    { label: 'Hungarian (12 queries)', value: 'hungarian' },
                                 ]}
                                 value={ragSuiteQueryPreset}
                                 onChange={(value) => setRagSuiteQueryPreset((value === 'medium' || value === 'wide' || value === 'hungarian') ? value : 'short')}
@@ -592,7 +712,7 @@ export default function SystemHealthPage() {
                                 label="Run mode"
                                 options={[
                                     { label: 'RAG + Answer', value: 'rag_and_answer' },
-                                    { label: 'Sadece RAG', value: 'rag_only' },
+                                    { label: 'RAG Only', value: 'rag_only' },
                                 ]}
                                 value={ragSuiteMode}
                                 onChange={(value) => setRagSuiteMode(value === 'rag_only' ? 'rag_only' : 'rag_and_answer')}
@@ -637,7 +757,7 @@ export default function SystemHealthPage() {
                                     <BlockStack gap="200">
                                         <Text as="h3" variant="headingSm">Selected products (first 10 with chunks)</Text>
                                         <Text as="p" variant="bodySm" tone="subdued">
-                                            Ürünleri sonraki çalıştırmadan hariç tutmak için karttaki butonu kullan.
+                                            Use the button on each card to exclude products from the next run.
                                         </Text>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                             {ragSuiteResult.selectedProducts.map((product) => (

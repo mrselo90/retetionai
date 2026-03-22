@@ -4,6 +4,7 @@
  */
 
 import { Redis } from 'ioredis';
+import { logger } from './logger.js';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
@@ -21,7 +22,7 @@ export function getRedisClient(): Redis {
       retryStrategy: (times: number) => {
         if (times > 10) {
           // After 10 retries, log error and continue trying
-          console.error(`Redis connection retry attempt ${times}`);
+          logger.error({ times }, 'Redis connection retry attempt');
         }
         const delay = Math.min(times * 100, 3000); // Exponential backoff up to 3 seconds
         return delay;
@@ -33,7 +34,7 @@ export function getRedisClient(): Redis {
           err.message.includes(errType)
         );
         if (shouldReconnect) {
-          console.log(`Redis reconnecting due to: ${err.message}`);
+          logger.info({ message: err.message }, 'Redis reconnecting');
           return true;
         }
         return false;
@@ -45,24 +46,24 @@ export function getRedisClient(): Redis {
     });
 
     redisClient.on('error', (err: Error) => {
-      console.error('Redis connection error:', err.message);
+      logger.error({ message: err.message }, 'Redis connection error');
       // Don't crash the app on Redis errors
     });
 
     redisClient.on('connect', () => {
-      console.log('✅ Redis connected');
+      logger.info('Redis connected');
     });
 
     redisClient.on('ready', () => {
-      console.log('✅ Redis ready');
+      logger.info('Redis ready');
     });
 
     redisClient.on('reconnecting', () => {
-      console.log('🔄 Redis reconnecting...');
+      logger.info('Redis reconnecting...');
     });
 
     redisClient.on('close', () => {
-      console.log('❌ Redis connection closed');
+      logger.info('Redis connection closed');
     });
   }
 
@@ -89,7 +90,7 @@ export async function checkRedisHealth(): Promise<boolean> {
     const result = await redis.ping();
     return result === 'PONG';
   } catch (error) {
-    console.error('Redis health check failed:', error);
+    logger.error({ err: error }, 'Redis health check failed');
     return false;
   }
 }

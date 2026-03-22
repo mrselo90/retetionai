@@ -3,12 +3,13 @@
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Link } from '@/i18n/routing';
-import { Twitter, Github, Linkedin } from 'lucide-react';
+import { CompanyIdentityBlock } from '@/components/site/CompanyIdentityBlock';
 
 const productLinks = ['features', 'howItWorks', 'pricing', 'bookDemo'] as const;
-const companyLinks = ['aboutUs', 'blog', 'careers', 'contact'] as const;
+const companyLinks = ['aboutUs', 'contact'] as const;
+const companyHrefs = ['/about', '/contact'];
 const legalLinks = ['privacyPolicy', 'termsOfService', 'cookiePolicy', 'dataProcessingAddendum', 'security'] as const;
-const legalHrefs = ['/privacy-policy', '/terms-of-service', '/cookie-policy', '/data-processing-addendum', '/security'];
+const legalHrefs = ['/privacy', '/terms', '/cookie-policy', '/data-processing-addendum', '/security'];
 
 export function Footer() {
     const t = useTranslations('Landing.footer');
@@ -24,18 +25,14 @@ export function Footer() {
                                 <Image src="/recete-logo.svg" alt="Recete" className="h-7 sm:h-8 w-auto" width={140} height={34} />
                             </div>
                             <p className="text-xs sm:text-sm leading-relaxed max-w-[240px] text-zinc-600">{t('tagline')}</p>
-                            <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-5">
-                                {[Twitter, Github, Linkedin].map((Icon, i) => (
-                                    <a
-                                        key={i}
-                                        href="#"
-                                        className="w-9 h-9 rounded-lg border border-zinc-200 bg-[#f6f4ea] flex items-center justify-center transition-colors hover:bg-white hover:border-zinc-300 focus:outline-none focus-visible:ring-2 min-w-[44px] min-h-[44px]"
-                                        aria-label={`Social link ${i + 1}`}
-                                        style={{ color: '#0A3D2E' }}
-                                    >
-                                        <Icon size={18} />
-                                    </a>
-                                ))}
+                            <div className="mt-4 sm:mt-5 space-y-1">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">RECETE LTD</p>
+                                <a href="mailto:hello@recete.co.uk" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                                    hello@recete.co.uk
+                                </a>
+                                <a href="tel:+447915922506" className="block text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                                    +44 7915 922506
+                                </a>
                             </div>
                         </div>
 
@@ -58,9 +55,9 @@ export function Footer() {
                         <div>
                             <h4 className="font-semibold text-xs sm:text-sm mb-3 sm:mb-4" style={{ color: '#0A3D2E' }}>{t('company')}</h4>
                             <ul className="space-y-2 sm:space-y-2.5">
-                                {companyLinks.map((key) => (
+                                {companyLinks.map((key, i) => (
                                     <li key={key}>
-                                        <Link href="/signup" className="block text-xs sm:text-sm leading-snug text-zinc-600 hover:text-zinc-900 transition-colors py-1">
+                                        <Link href={companyHrefs[i]} className="block text-xs sm:text-sm leading-snug text-zinc-600 hover:text-zinc-900 transition-colors py-1">
                                             {t(key)}
                                         </Link>
                                     </li>
@@ -80,6 +77,10 @@ export function Footer() {
                                 ))}
                             </ul>
                         </div>
+                    </div>
+
+                    <div className="mb-8 sm:mb-10">
+                        <CompanyIdentityBlock compact />
                     </div>
 
                     <div className="border-t border-zinc-100 pt-4 sm:pt-5 flex flex-col sm:flex-row flex-wrap justify-between items-center gap-3 sm:gap-4 text-center sm:text-left">

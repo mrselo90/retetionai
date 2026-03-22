@@ -1,10 +1,6 @@
 export interface MultiLangRagFlags {
-  enabled: boolean;
-  shadowWrite: boolean;
-  shadowRead: boolean;
-  minSimilarity: number;
+  chunkShadowWrite: boolean;
   embeddingModel: string;
-  llmModel: string;
 }
 
 let cachedFlags: MultiLangRagFlags | null = null;
@@ -27,19 +23,15 @@ export function getMultiLangRagFlags(): MultiLangRagFlags {
   if (cachedFlags) return cachedFlags;
   const requestedEmbeddingModel = (process.env.EMBEDDING_MODEL || '').trim();
   const embeddingModel = requestedEmbeddingModel || MULTI_LANG_RAG_SCHEMA_EMBEDDING_MODEL;
-  // Current SQL schema/RPC for product_embeddings is fixed to vector(1536).
+  // Multilingual chunk indexing is stored as vector(1536).
   // Prevent runtime dimension mismatches by pinning to the compatible model.
   const effectiveEmbeddingModel =
     embeddingModel === MULTI_LANG_RAG_SCHEMA_EMBEDDING_MODEL
       ? embeddingModel
       : MULTI_LANG_RAG_SCHEMA_EMBEDDING_MODEL;
   cachedFlags = {
-    enabled: parseBool(process.env.MULTI_LANG_RAG_ENABLED, false),
-    shadowWrite: parseBool(process.env.MULTI_LANG_RAG_SHADOW_WRITE, false),
-    shadowRead: parseBool(process.env.MULTI_LANG_RAG_SHADOW_READ, false),
-    minSimilarity: parseNum(process.env.MULTI_LANG_RAG_MIN_SIM, 0.75),
+    chunkShadowWrite: parseBool(process.env.MULTI_LANG_CHUNK_SHADOW_WRITE, true),
     embeddingModel: effectiveEmbeddingModel,
-    llmModel: process.env.LLM_MODEL || 'gpt-4o-mini',
   };
   return cachedFlags;
 }

@@ -157,7 +157,6 @@ auth.post('/signup', validateBody(signupSchema), async (c) => {
     });
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });
@@ -181,8 +180,7 @@ auth.post('/login', validateBody(loginSchema), async (c) => {
     if (error) {
       logger.error(error, 'Login error');
       return c.json({
-        error: error.message || 'Invalid login credentials',
-        details: error.message,
+        error: 'Invalid login credentials',
       }, 401);
     }
 
@@ -264,7 +262,6 @@ auth.post('/login', validateBody(loginSchema), async (c) => {
     });
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });
@@ -292,7 +289,6 @@ auth.get('/me', authMiddleware, async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });

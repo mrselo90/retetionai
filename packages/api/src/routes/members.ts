@@ -51,7 +51,7 @@ members.get('/', async (c) => {
 
     return c.json({ members: formattedMembers });
   } catch (error) {
-    return c.json({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown' }, 500);
+    return c.json({ error: 'Internal server error' }, 500);
   }
 });
 
@@ -120,7 +120,7 @@ members.post('/invite', async (c) => {
 
     return c.json({ success: true, member: { id: member?.id, email, role } }, 201);
   } catch (error) {
-    return c.json({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown' }, 500);
+    return c.json({ error: 'Internal server error' }, 500);
   }
 });
 
@@ -154,7 +154,7 @@ members.put('/:id', async (c) => {
 
     return c.json({ success: true });
   } catch (error) {
-    return c.json({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown' }, 500);
+    return c.json({ error: 'Internal server error' }, 500);
   }
 });
 
@@ -195,7 +195,7 @@ members.delete('/:id', async (c) => {
 
     return c.json({ success: true });
   } catch (error) {
-    return c.json({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown' }, 500);
+    return c.json({ error: 'Internal server error' }, 500);
   }
 });
 

@@ -29,6 +29,7 @@ export interface NormalizedEvent {
     url?: string;
   }>;
   consent_status?: string;
+  customer_locale?: string;
 }
 
 /**
@@ -160,6 +161,11 @@ export function normalizeShopifyEvent(
         : undefined,
     }));
 
+    const customerLocale =
+      typeof order.customer_locale === 'string' && order.customer_locale.trim().length > 0
+        ? order.customer_locale.trim().toLowerCase()
+        : undefined;
+
     return {
       merchant_id: merchantId,
       integration_id: integrationId,
@@ -182,6 +188,7 @@ export function normalizeShopifyEvent(
       },
       items: items.length > 0 ? items : undefined,
       consent_status,
+      customer_locale: customerLocale,
     };
   } catch (error) {
     console.error('Error normalizing Shopify event:', error);

@@ -11,14 +11,14 @@ import {
   InlineGrid,
   Layout,
   Page,
-  ProgressBar,
+  Spinner,
   SkeletonBodyText,
   SkeletonDisplayText,
   SkeletonPage,
   Text,
   TextField,
 } from "@shopify/polaris";
-import { authenticate } from "../shopify.server";
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import {
   createMerchantProduct,
   deleteMerchantProduct,
@@ -35,12 +35,12 @@ type ActionResult = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  await authenticateEmbeddedAdmin(request);
   return fetchMerchantProducts(request);
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  await authenticate.admin(request);
+  await authenticateEmbeddedAdmin(request);
   const formData = await request.formData();
   const intent = String(formData.get("intent") || "");
 
@@ -150,7 +150,7 @@ export default function ProductsPage() {
 
       <Layout>
         <Layout.Section>
-          {busy ? <ProgressBar progress={75} size="small" /> : null}
+          {busy ? <Spinner accessibilityLabel="Saving product" size="small" /> : null}
         </Layout.Section>
 
         <Layout.Section>

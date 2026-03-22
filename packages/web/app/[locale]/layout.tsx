@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { ShopifyProvider } from '../../components/ShopifyProvider'; // Standalone Polaris wrapper only
-import BackendHealthBanner from '../../components/BackendHealthBanner'; // Adjusted path
+import { ShopifyProvider } from '@/components/ShopifyProvider';
+import BackendHealthBanner from '@/components/BackendHealthBanner';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
 export const metadata: Metadata = {
-  title: "Recete — Retention Agent",
-  description: "AI-powered post-purchase customer retention platform for Shopify. Reduce returns, boost LTV via WhatsApp.",
+  title: "RECETE LTD — AI WhatsApp Support for Shopify Merchants",
+  description: "RECETE LTD provides AI-powered WhatsApp customer support and post-purchase retention software for Shopify merchants.",
   icons: {
     icon: "/icon.png?v=2",
     apple: "/apple-icon.png?v=2",

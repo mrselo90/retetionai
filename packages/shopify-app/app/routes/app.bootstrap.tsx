@@ -1,10 +1,10 @@
 import type { LoaderFunctionArgs } from "react-router";
 
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantOverviewFromRequest } from "../platform.server";
-import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session } = await authenticateEmbeddedAdmin(request);
   const overview = await fetchMerchantOverviewFromRequest(request);
 
   return Response.json({

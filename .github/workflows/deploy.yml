@@ -37,6 +37,13 @@ jobs:
             echo "📥 Installing dependencies..."
             pnpm install
 
+            echo "🗄️ Running Supabase migrations..."
+            if command -v psql &> /dev/null && [ -n "$DATABASE_URL" ]; then
+              bash supabase/run-migrations.sh
+            else
+              echo "⚠️  psql not available or DATABASE_URL not set, skipping Supabase migrations"
+            fi
+
             echo "🗄️ Syncing Shopify shell Prisma schema..."
             pnpm --filter @recete/shopify-app prisma db push
             
@@ -46,4 +53,27 @@ jobs:
             echo "🔄 Restarting PM2 services..."
             pm2 restart all --update-env
             
-            echo "✅ Deployment completed successfully!"
+            echo "⏳ Waiting for services to start..."
+            sleep 10
+            
+            echo "🏥 Running post-deploy health check..."
+            HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 http://localhost:3002/health || echo "000")
+            if [ "$HEALTH_STATUS" != "200" ]; then
+              echo "❌ Health check failed (HTTP $HEALTH_STATUS). Rolling back..."
+              git checkout HEAD~1
+              pnpm install
+              pnpm build
+              pm2 restart all --update-env
+              echo "🔙 Rolled back to previous version"
+              exit 1
+            fi
+            
+            echo "🔒 Verifying HTTPS endpoint..."
+            HTTPS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://recete.co.uk/health 2>/dev/null || echo "000")
+            if [ "$HTTPS_STATUS" != "200" ]; then
+              echo "⚠️  HTTPS health check returned HTTP $HTTPS_STATUS (may be OK if DNS/cert not yet configured)"
+            else
+              echo "✅ HTTPS endpoint healthy"
+            fi
+
+            echo "✅ Deployment completed successfully! Health check passed."

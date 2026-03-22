@@ -6,8 +6,9 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
-import { queryKnowledgeBase, formatRAGResultsForLLM, getOrderProductContext } from '../lib/rag.js';
+import { formatRAGResultsForLLM, getOrderProductContext } from '../lib/rag.js';
 import { getCachedRAGQuery, setCachedRAGQuery } from '../lib/cache.js';
+import { UnifiedRetrievalService } from '../lib/unifiedRetrieval.js';
 
 const rag = new Hono();
 
@@ -25,6 +26,7 @@ rag.post('/query', async (c) => {
 
   const {
     query,
+    user_lang,
     productIds,
     topK = 5,
     similarityThreshold = 0.7,
@@ -78,12 +80,15 @@ rag.post('/query', async (c) => {
       });
     }
 
-    const result = await queryKnowledgeBase({
+    const result = await new UnifiedRetrievalService().retrieve({
       merchantId,
-      query,
+      question: query,
+      userLang: typeof user_lang === 'string' && user_lang.trim() ? user_lang : 'en',
       productIds,
       topK,
       similarityThreshold,
+      cacheKey,
+      cacheTtlSeconds: 3600,
     });
 
     // Cache the result (1 hour)
@@ -110,7 +115,6 @@ rag.post('/query', async (c) => {
     return c.json(
       {
         error: 'Failed to query knowledge base',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
     );
@@ -141,7 +145,6 @@ rag.get('/order/:orderId/context', async (c) => {
     return c.json(
       {
         error: 'Failed to get order context',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
     );
@@ -156,7 +159,7 @@ rag.post('/test', async (c) => {
   const merchantId = c.get('merchantId');
   const body = await c.req.json();
 
-  const { query, topK = 3 } = body;
+  const { query, topK = 3, user_lang } = body;
 
   if (!query) {
     return c.json({ error: 'query is required' }, 400);
@@ -164,9 +167,10 @@ rag.post('/test', async (c) => {
 
   try {
     // Query with lower threshold for testing
-    const result = await queryKnowledgeBase({
+    const result = await new UnifiedRetrievalService().retrieve({
       merchantId,
-      query,
+      question: query,
+      userLang: typeof user_lang === 'string' && user_lang.trim() ? user_lang : 'en',
       topK,
       similarityThreshold: 0.5,
     });
@@ -185,7 +189,6 @@ rag.post('/test', async (c) => {
     return c.json(
       {
         error: 'Test failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
     );

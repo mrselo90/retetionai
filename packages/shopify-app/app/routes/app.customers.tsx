@@ -2,13 +2,13 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ChatIcon, PersonIcon } from "@shopify/polaris-icons";
-import { InlineGrid } from "@shopify/polaris";
-import { authenticate } from "../shopify.server";
+import { Banner, InlineGrid } from "@shopify/polaris";
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantCustomers } from "../platform.server";
 import { ActionCard, EmptyCard, MetricCard, SectionCard, ShellPage } from "../components/shell-ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  await authenticateEmbeddedAdmin(request);
 
   try {
     return await fetchMerchantCustomers(request, { page: 1, limit: 20 });
@@ -27,6 +27,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function CustomersPage() {
   const data = useLoaderData<typeof loader>();
   const customers = data.customers || [];
+  const unavailableReason = "unavailableReason" in data ? (data as Record<string, unknown>).unavailableReason as string | undefined : undefined;
   const highRiskCount = customers.filter((item) => (item.churnProbability || 0) >= 0.6).length;
   const engagedCount = customers.filter((item) => (item.conversationCount || 0) > 0).length;
 
@@ -36,6 +37,11 @@ export default function CustomersPage() {
       subtitle="Customer health, segment visibility, and churn risk inside Shopify Admin."
       primaryAction={{ content: "Open conversations", url: "/app/conversations", icon: ChatIcon }}
     >
+      {unavailableReason ? (
+        <Banner title="Customer data unavailable" tone="warning">
+          {unavailableReason}
+        </Banner>
+      ) : null}
       <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
         <MetricCard label="Visible customers" value={data.total || customers.length} hint="Buyer records visible in the current shell batch." />
         <MetricCard label="At risk" value={highRiskCount} hint="Customers with high churn probability." />

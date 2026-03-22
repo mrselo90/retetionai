@@ -7,7 +7,7 @@ import type OpenAI from 'openai';
 import { getOpenAIClient } from './openaiClient.js';
 import { getConversationMemorySettings, getDefaultLlmModel } from './runtimeModelSettings.js';
 import { trackAiUsageEvent } from './aiUsageEvents.js';
-import { queryKnowledgeBase, formatRAGResultsForLLM, getOrderProductContextResolved } from './rag.js';
+import { formatRAGResultsForLLM, getOrderProductContextResolved } from './rag.js';
 import { getSupabaseServiceClient, logger, getProductInstructionsByProductIds } from '@recete/shared';
 import type { ConversationMessage } from './conversation.js';
 import {
@@ -29,7 +29,9 @@ import {
 } from './i18n.js';
 import crypto from 'node:crypto';
 import { getActiveProductFactsContext, getActiveProductFactsSnapshots } from './productFactsQuery.js';
-import { planStructuredFactAnswer } from './productFactsPlanner.js';
+import { generateGroundedProductAnswer } from './groundedAnswer.js';
+import { buildGroundedEvidenceContext } from './groundingAssembler.js';
+import { UnifiedRetrievalService } from './unifiedRetrieval.js';
 
 export type Intent = 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent';
 
@@ -381,6 +383,107 @@ export async function generateAIResponse(
     };
   }
 
+  // Question answering is handled by the shared grounded-answer path.
+  if (intent === 'question') {
+    try {
+      const ragQuery = postDeliveryFollowUp.ragQueryOverride || message;
+      const ragConfig = getCosmeticRAGConfig(ragQuery);
+      const preferredSections = getPreferredSectionsForProfile(ragConfig.profile);
+      const orderScope = orderId
+        ? await getOrderProductContextResolved(orderId, merchantId)
+        : null;
+      const orderProductIds = orderScope?.productIds?.length ? orderScope.productIds : null;
+      const ragCacheKey = buildRagCacheKey({
+        merchantId,
+        query: ragQuery,
+        productIds: orderProductIds,
+        topK: ragConfig.topK,
+        similarityThreshold: ragConfig.similarityThreshold,
+        preferredSectionTypes: preferredSections || null,
+        preferredLanguage: userLang,
+      });
+
+      const grounded = await generateGroundedProductAnswer({
+        merchantId,
+        question: message,
+        userLang,
+        channel: 'whatsapp',
+        intent: 'question',
+        orderId,
+        conversationId,
+        conversationHistory,
+        merchantName,
+        persona,
+        botInfo,
+        retrievalQuery: ragQuery,
+        plannerQuery: postDeliveryFollowUp.plannerQueryOverride || message,
+        runtimeHint: postDeliveryFollowUp.promptHint,
+        productIds: orderProductIds || undefined,
+        instructionScope: 'order_only',
+        topK: ragConfig.topK,
+        similarityThreshold: ragConfig.similarityThreshold,
+        preferredSectionTypes: preferredSections,
+        cacheKey: ragCacheKey,
+        cacheTtlSeconds: 900,
+      });
+
+      const responseGuardrail = checkAIResponseGuardrails(grounded.answer, {
+        customGuardrails,
+        languageHint: userLang,
+      });
+
+      let finalAnswer = grounded.answer;
+      if (!responseGuardrail.safe) {
+        finalAnswer = responseGuardrail.suggestedResponse || getSafeResponse(responseGuardrail.reason ?? 'custom');
+
+        if (responseGuardrail.requiresHuman) {
+          await escalateToHuman(userId, conversationId, responseGuardrail.reason ?? 'custom', finalAnswer);
+        }
+      }
+
+      logger.info(
+        {
+          merchantId,
+          conversationId,
+          orderId,
+          intent,
+          userLang,
+          postDeliveryFollowUp: postDeliveryFollowUp.detected ? postDeliveryFollowUp.type : null,
+          responseLang: detectLanguage(finalAnswer),
+          guardrailBlocked: !responseGuardrail.safe,
+          ragUsed: Boolean(grounded.ragContext),
+          citedProducts: grounded.citedProducts,
+          usedDeterministicFacts: grounded.usedDeterministicFacts,
+          orderScopeSource: grounded.orderScopeSource || (orderId ? 'none' : 'not_applicable'),
+        },
+        'AI response generated via grounded answer service'
+      );
+
+      return {
+        intent,
+        response: finalAnswer,
+        ragContext: grounded.ragContext,
+        guardrailBlocked: !responseGuardrail.safe,
+        guardrailReason: responseGuardrail.safe ? undefined : responseGuardrail.reason,
+        guardrailCustomName: responseGuardrail.safe ? undefined : responseGuardrail.customReason,
+        requiresHuman: responseGuardrail.safe ? false : responseGuardrail.requiresHuman,
+      };
+    } catch (error) {
+      logger.error({ error, merchantId, conversationId, orderId }, 'Shared grounded answer service failed');
+      return {
+        intent,
+        response:
+          userLang === 'tr'
+            ? 'Sorunu güvenilir şekilde yanitlamak icin yeterli urun bilgisine simdi erisemiyorum. Hangi urunu kullandiginizi veya siparis numaranizi paylasir misiniz?'
+            : userLang === 'hu'
+              ? 'Most nem erek el eleg megbizhato termekinformaciot a valaszhoz. Megirna, melyik termeket hasznalja vagy mi a rendelesszama?'
+              : 'I cannot access enough reliable product information right now to answer safely. Could you share which product you are using or your order number?',
+        guardrailBlocked: false,
+        requiresHuman: false,
+      };
+    }
+  }
+
   // Return Prevention: if return_intent detected, check if module is active
   let returnPreventionActive = false;
   if (intent === 'return_intent') {
@@ -404,7 +507,7 @@ export async function generateAIResponse(
   }
 
   // If the previous state was return_intent but now user is positive, mark as prevented
-  if (intent === 'chat' || intent === 'question') {
+  if (intent === 'chat') {
     try {
       const hasAttempt = await hasPendingPreventionAttempt(conversationId);
       if (hasAttempt) {
@@ -424,9 +527,10 @@ export async function generateAIResponse(
     } catch { /* non-critical */ }
   }
 
-  // Step 3: Get RAG context if it's a question OR return_intent (knowledge_chunks + product_instructions)
+  // Step 3: Get RAG context for return prevention flows.
   let ragContext = '';
-  if (intent === 'question' || (intent === 'return_intent' && returnPreventionActive)) {
+  let factsEvidenceText = '';
+  if (intent === 'return_intent' && returnPreventionActive) {
     try {
       const ragQuery = postDeliveryFollowUp.ragQueryOverride || message;
       let orderProductIds: string[] | undefined;
@@ -457,15 +561,18 @@ export async function generateAIResponse(
               results: [],
               totalResults: 0,
               executionTime: 0,
+              effectiveLanguage: queryLang,
+              usedFallback: false,
+              fallbackLanguage: null,
             }
-          : await queryKnowledgeBase({
+          : await new UnifiedRetrievalService().retrieve({
               merchantId,
-              query: ragQuery,
+              question: ragQuery,
+              userLang: queryLang,
               productIds: orderProductIds?.length ? orderProductIds : undefined,
               topK: ragConfig.topK,
               similarityThreshold: ragConfig.similarityThreshold,
               preferredSectionTypes: preferredSections,
-              preferredLanguage: queryLang,
               cacheKey: ragCacheKey,
               cacheTtlSeconds: 900,
             });
@@ -481,6 +588,9 @@ export async function generateAIResponse(
           ragQueryOverridden: ragQuery !== message,
           orderScopeSource: orderScopeSource || (orderId ? 'none' : 'not_applicable'),
           ragProfile: ragConfig.profile,
+          retrievalLanguage: ragResult.effectiveLanguage,
+          retrievalUsedFallback: ragResult.usedFallback,
+          retrievalFallbackLanguage: ragResult.fallbackLanguage,
           orderProductIdsCount: orderProductIds?.length || 0,
           ragTotalResults: ragResult.totalResults,
           ragTop: ragResult.results.slice(0, 5).map((r) => ({
@@ -512,9 +622,11 @@ export async function generateAIResponse(
         const factsContext = await getActiveProductFactsContext(merchantId, factsProductIds);
         factsSnapshots = await getActiveProductFactsSnapshots(merchantId, factsProductIds);
         if (factsContext.text) {
-          ragContext = ragContext
-            ? `${factsContext.text}\n\n${ragContext}`
-            : factsContext.text;
+          factsEvidenceText = factsContext.text;
+          ragContext = buildGroundedEvidenceContext({
+            factsText: factsEvidenceText,
+            ragResults: ragResult.results,
+          });
         }
         logger.info(
           {
@@ -528,62 +640,14 @@ export async function generateAIResponse(
         );
       }
 
-      // Deterministic facts-first short-circuit for narrow factual cosmetics queries.
-      if (intent === 'question' && factsSnapshots.length > 0) {
-        const queryLang = userLang;
-        const plannerQuery = postDeliveryFollowUp.plannerQueryOverride || message;
-        const planned = planStructuredFactAnswer(plannerQuery, queryLang, factsSnapshots, {
-          responseLength: persona?.response_length,
-          includeEvidenceQuote: true,
-        });
-        if (planned) {
-          const guard = checkAIResponseGuardrails(planned.answer, {
-            customGuardrails,
-            languageHint: queryLang,
-          });
-          const finalAnswer = guard.safe
-            ? planned.answer
-            : (guard.suggestedResponse || getSafeResponse(guard.reason ?? 'custom'));
-
-          logger.info(
-            {
-              merchantId,
-              conversationId,
-              orderId,
-              planner: planned.queryType,
-              plannerQueryOverridden: plannerQuery !== message,
-              postDeliveryFollowUp: postDeliveryFollowUp.detected ? postDeliveryFollowUp.type : null,
-              usedProductId: planned.usedProductId,
-              usedFactKeys: planned.usedFactKeys,
-              evidenceQuotesUsed: planned.evidenceQuotesUsed?.length || 0,
-              guardrailBlocked: !guard.safe,
-            },
-            'AI response deterministic facts-first answer'
-          );
-
-          return {
-            intent,
-            response: finalAnswer,
-            ragContext: ragContext || undefined,
-            guardrailBlocked: !guard.safe,
-            guardrailReason: guard.safe ? undefined : guard.reason,
-            guardrailCustomName: guard.safe ? undefined : guard.customReason,
-            requiresHuman: guard.safe ? false : guard.requiresHuman,
-          };
-        }
-      }
-
       if (instructionProductIds.length > 0) {
         const instructions = await getProductInstructionsByProductIds(merchantId, instructionProductIds);
         if (instructions.length > 0) {
-          const recipeBlocks = instructions.map((r: any) => {
-            let block = `[${r.product_name ?? 'Product'}]\nUsage / Recipe: ${r.usage_instructions}`;
-            if (r.recipe_summary) block += `\nSummary: ${r.recipe_summary}`;
-            if (r.video_url) block += `\nTutorial Video: ${r.video_url}`;
-            if (r.prevention_tips) block += `\nReturn Prevention Tips: ${r.prevention_tips}`;
-            return block;
+          ragContext = buildGroundedEvidenceContext({
+            factsText: factsEvidenceText,
+            instructions,
+            ragResults: ragResult.results,
           });
-          ragContext += (ragContext ? '\n\n' : '') + '--- Product usage instructions (recipes) ---\n' + recipeBlocks.join('\n\n');
         }
       }
     } catch (error) {

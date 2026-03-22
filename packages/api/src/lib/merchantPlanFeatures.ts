@@ -111,23 +111,28 @@ export async function getMerchantShopifyShopDomain(merchantId: string): Promise<
 export async function getMerchantPlanFeatures(merchantId: string): Promise<MerchantPlanFeatures> {
   const serviceClient = getSupabaseServiceClient();
   const shopDomain = await getMerchantShopifyShopDomain(merchantId);
+  const { data: merchant } = await serviceClient
+    .from('merchants')
+    .select('subscription_plan, persona_settings')
+    .eq('id', merchantId)
+    .single();
+  const aiVisionEnabled = Boolean((merchant?.persona_settings as any)?.ai_vision_enabled);
 
   if (shopDomain) {
     try {
-      return mapShellPlan(await fetchShellPlanByShop(shopDomain));
+      const shellPlan = mapShellPlan(await fetchShellPlanByShop(shopDomain));
+      return {
+        ...shellPlan,
+        aiVision: shellPlan.aiVision && aiVisionEnabled,
+      };
     } catch (error) {
       logShellIntegrationWarning(error, { merchantId, shopDomain, step: 'fetch_plan' });
     }
   }
 
-  const { data: merchant } = await serviceClient
-    .from('merchants')
-    .select('subscription_plan')
-    .eq('id', merchantId)
-    .single();
-
   return {
     ...getFallbackPlanFeatures(merchant?.subscription_plan),
+    aiVision: getFallbackPlanFeatures(merchant?.subscription_plan).aiVision && aiVisionEnabled,
     shopDomain,
   };
 }
@@ -190,6 +195,36 @@ export async function recordMerchantBillableChat(input: {
       shopDomain,
       externalEventId: input.externalEventId,
       step: 'record_chat_usage',
+    });
+    return { ok: false as const, reason: 'shell_request_failed' as const };
+  }
+}
+
+export async function recordMerchantPhotoAnalysis(input: {
+  merchantId: string;
+  externalEventId: string;
+  description?: string;
+}) {
+  const shopDomain = await getMerchantShopifyShopDomain(input.merchantId);
+  if (!shopDomain) {
+    return { ok: false as const, reason: 'shopify_not_connected' as const };
+  }
+
+  try {
+    const payload = await reportShellUsageEvent({
+      shopDomain,
+      usageType: 'photo',
+      externalEventId: input.externalEventId,
+      description: input.description,
+    });
+
+    return { ok: true as const, payload };
+  } catch (error) {
+    logShellIntegrationWarning(error, {
+      merchantId: input.merchantId,
+      shopDomain,
+      externalEventId: input.externalEventId,
+      step: 'record_photo_usage',
     });
     return { ok: false as const, reason: 'shell_request_failed' as const };
   }

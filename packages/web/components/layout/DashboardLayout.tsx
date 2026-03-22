@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   BarChart3,
-  Puzzle
+  Puzzle,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -39,6 +40,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const navItems = [
     { name: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
     { name: t('products'), href: '/dashboard/products', icon: Package },
+    { name: t('customers'), href: '/dashboard/customers', icon: Users },
     { name: t('conversations'), href: '/dashboard/conversations', icon: MessageSquare },
     { name: t('analytics'), href: '/dashboard/analytics', icon: BarChart3 },
     { name: t('integrations'), href: '/dashboard/integrations', icon: Puzzle },
@@ -60,6 +62,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div
           className="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-40 lg:hidden animate-fade-in"
           onClick={() => setIsSidebarOpen(false)}
+          aria-hidden="true"
         />
       )}
 
@@ -69,6 +72,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           "shopify-app-sidebar fixed inset-y-0 left-0 z-50 w-64 border-r transition-transform duration-200 ease-out lg:translate-x-0 lg:static lg:block",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
+        role="navigation"
+        aria-label="Dashboard navigation"
       >
         <div className="h-full flex flex-col">
           {/* Logo */}
@@ -80,6 +85,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <button
               className="ml-auto lg:hidden text-muted-foreground hover:text-foreground p-2 rounded-md hover:bg-muted transition-colors"
               onClick={() => setIsSidebarOpen(false)}
+              aria-label="Close navigation menu"
             >
               <X className="w-5 h-5" />
             </button>
@@ -144,7 +150,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <Logo iconOnly className="w-7 h-7 rounded-md shrink-0" />
             <span className="-ml-1 text-lg font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', 'Times New Roman', serif" }}>recete</span>
           </Link>
-          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)}>
+          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} aria-label="Open navigation menu">
             <Menu className="w-6 h-6" />
           </Button>
         </header>

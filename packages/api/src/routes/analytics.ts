@@ -197,7 +197,6 @@ analytics.get('/dashboard', async (c) => {
     console.error('Analytics dashboard error:', error);
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -306,7 +305,6 @@ analytics.get('/roi', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -404,7 +402,6 @@ analytics.get('/return-prevention', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });

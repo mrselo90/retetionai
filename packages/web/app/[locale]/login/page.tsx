@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from '@/i18n/routing'; // Updated import
-import Link from 'next/link'; // Wait, should be from '@/i18n/routing' but let's check validation
 import { Link as I18nLink } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
 
@@ -10,7 +9,6 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Logo } from '@/components/ui/logo';
@@ -118,7 +116,7 @@ export default function LoginPage() {
                     } else {
                       setError(t('errors.resendSuccess'));
                     }
-                  } catch (err) {
+                  } catch {
                     setError(t('errors.resendError'));
                   }
                 }}
@@ -158,7 +156,7 @@ export default function LoginPage() {
                   } else {
                     setError(t('errors.resendSuccess'));
                   }
-                } catch (e) {
+                } catch {
                   setError(t('errors.resendError'));
                 }
               }}

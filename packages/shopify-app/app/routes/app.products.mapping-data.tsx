@@ -1,9 +1,9 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { authenticate } from "../shopify.server";
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantProductInstructions, fetchMerchantProducts } from "../platform.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  await authenticateEmbeddedAdmin(request);
 
   const [localProducts, instructionPayload] = await Promise.all([
     fetchMerchantProducts(request),

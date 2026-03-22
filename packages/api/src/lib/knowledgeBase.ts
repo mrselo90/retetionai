@@ -3,7 +3,7 @@
  * Handles product content chunking and embedding storage
  */
 
-import { getSupabaseServiceClient } from '@recete/shared';
+import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { chunkText, generateEmbeddingsBatch, type TextChunk } from './embeddings.js';
 import crypto from 'node:crypto';
 import { trackAiUsageEvent } from './aiUsageEvents.js';
@@ -149,7 +149,7 @@ export async function processProductForRAG(
     if (merchantId) {
       void trackAiUsageEvent({
         merchantId,
-        feature: 'product_embeddings_rag',
+        feature: 'multilingual_chunk_rag_ingest',
         model: 'text-embedding-3-small',
         requestKind: 'embedding',
         totalTokens,
@@ -164,7 +164,7 @@ export async function processProductForRAG(
       success: true,
     };
   } catch (error) {
-    console.error(`Error processing product ${productId}:`, error);
+    logger.error({ err: error, productId }, 'Error processing product');
     return {
       productId,
       chunksCreated: 0,

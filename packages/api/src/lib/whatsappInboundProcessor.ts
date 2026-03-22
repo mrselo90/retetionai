@@ -7,9 +7,14 @@ import {
   updateConversationState,
 } from './conversation.js';
 import { generateAIResponse } from './aiAgent.js';
-import { canMerchantUseAiVision } from './merchantPlanFeatures.js';
-import { getEffectiveWhatsAppCredentials } from './whatsapp.js';
+import {
+  canMerchantUseAiVision,
+  recordMerchantPhotoAnalysis,
+} from './merchantPlanFeatures.js';
+import { analyzeCustomerImage } from './aiVision.js';
+import { getEffectiveWhatsAppCredentials, type WhatsAppWebhookMessage } from './whatsapp.js';
 import { sendTrackedWhatsAppMessage } from './whatsappOutbox.js';
+import { findPendingTemplateEvent, handleDeliveryTemplateReply } from './deliveryTemplateService.js';
 
 type InboundStatus = 'received' | 'queued' | 'processing' | 'processed' | 'failed' | 'ignored';
 
@@ -21,6 +26,9 @@ type InboundEventRow = {
   phone_number_id?: string | null;
   message_type: string;
   message_text?: string | null;
+  payload?: {
+    message?: WhatsAppWebhookMessage;
+  } | null;
   status: InboundStatus;
   attempts: number;
 };
@@ -67,6 +75,17 @@ function buildAiFallbackMessage(input: string): string {
     : 'I am unable to assist you at the moment. Please try again shortly.';
 }
 
+function buildInboundConversationMessage(inbound: InboundEventRow, fallbackText: string) {
+  if (inbound.message_type !== 'image') {
+    return fallbackText;
+  }
+
+  const caption = inbound.payload?.message?.image?.caption || fallbackText;
+  return caption
+    ? `[Customer image] ${caption}`
+    : '[Customer image received with no caption]';
+}
+
 export async function processWhatsAppInboundEvent(
   inboundEventId: string,
   expectedMerchantId?: string
@@ -74,7 +93,7 @@ export async function processWhatsAppInboundEvent(
   const serviceClient = getSupabaseServiceClient();
   const { data: row, error } = await serviceClient
     .from('whatsapp_inbound_events')
-    .select('id, merchant_id, provider, from_phone, phone_number_id, message_type, message_text, status, attempts')
+    .select('id, merchant_id, provider, from_phone, phone_number_id, message_type, message_text, payload, status, attempts')
     .eq('id', inboundEventId)
     .single();
 
@@ -100,22 +119,12 @@ export async function processWhatsAppInboundEvent(
 
   try {
     const messageText = (inbound.message_text || '').trim();
-    if (inbound.message_type === 'image') {
-      const aiVisionEnabled = await canMerchantUseAiVision(inbound.merchant_id);
-      await setInboundStatus(inbound.id, 'ignored', {
-        last_error: aiVisionEnabled
-          ? 'Image received but vision analysis is not implemented in the processor yet'
-          : 'Image received on a plan without AI vision access',
-        processed_at: new Date().toISOString(),
-      });
-      return {
-        result: aiVisionEnabled
-          ? 'ignored_image_analysis_not_implemented'
-          : 'ignored_image_plan_blocked',
-      };
-    }
+    const merchantId = inbound.merchant_id;
+    const phone = inbound.from_phone;
+    const isImageMessage = inbound.message_type === 'image';
+    const userMessageForConversation = buildInboundConversationMessage(inbound, messageText);
 
-    if (inbound.message_type !== 'text' || !messageText) {
+    if (!isImageMessage && (inbound.message_type !== 'text' || !messageText)) {
       await setInboundStatus(inbound.id, 'ignored', {
         last_error: null,
         processed_at: new Date().toISOString(),
@@ -123,17 +132,26 @@ export async function processWhatsAppInboundEvent(
       return { result: 'ignored_non_text_or_empty' };
     }
 
-    const merchantId = inbound.merchant_id;
-    const phone = inbound.from_phone;
     const credentials = await getEffectiveWhatsAppCredentials(merchantId);
     if (!credentials) {
       await setInboundStatus(inbound.id, 'failed', { last_error: 'WhatsApp credentials not configured' });
       return { result: 'failed_missing_credentials' };
     }
 
+    if (isImageMessage) {
+      const aiVisionEnabled = await canMerchantUseAiVision(merchantId);
+      if (!aiVisionEnabled) {
+        await setInboundStatus(inbound.id, 'ignored', {
+          last_error: 'Image received on a plan or shop setting without AI vision access',
+          processed_at: new Date().toISOString(),
+        });
+        return { result: 'ignored_image_plan_blocked' };
+      }
+    }
+
     const user = await findUserByPhone(phone, merchantId);
     if (!user) {
-      const defaultText = buildUnknownUserMessage(messageText);
+      const defaultText = buildUnknownUserMessage(userMessageForConversation);
       const sendResult = await sendTrackedWhatsAppMessage({
         merchantId,
         inboundEventId: inbound.id,
@@ -170,7 +188,30 @@ export async function processWhatsAppInboundEvent(
     const orderId = latestOrder?.id as string | undefined;
     const conversationId = await getOrCreateConversation(user.userId, orderId, merchantId);
 
-    await addMessageToConversation(conversationId, 'user', messageText);
+    await addMessageToConversation(conversationId, 'user', userMessageForConversation);
+
+    // Intercept: check if this is a reply to a delivery template quick-reply
+    if (!isImageMessage && messageText) {
+      const pendingTemplate = await findPendingTemplateEvent(user.userId, merchantId);
+      if (pendingTemplate) {
+        const replyResult = await handleDeliveryTemplateReply({
+          templateEvent: pendingTemplate,
+          messageText,
+          conversationId,
+          credentials,
+          inboundEventId: inbound.id,
+        });
+
+        if (replyResult.handled) {
+          await setInboundStatus(inbound.id, 'processed', {
+            last_error: null,
+            processed_at: new Date().toISOString(),
+          });
+          return { result: `processed_delivery_template_${replyResult.action}` };
+        }
+        // Not a recognized quick reply — fall through to normal AI flow
+      }
+    }
 
     const { data: convData } = await serviceClient
       .from('conversations')
@@ -184,6 +225,104 @@ export async function processWhatsAppInboundEvent(
         processed_at: new Date().toISOString(),
       });
       return { result: 'processed_human_mode_no_ai' };
+    }
+
+    if (isImageMessage) {
+      let merchantName: string | null = null;
+      try {
+        const { data: merchantRecord } = await serviceClient
+          .from('merchants')
+          .select('name')
+          .eq('id', merchantId)
+          .maybeSingle();
+        merchantName = (merchantRecord as { name?: string } | null)?.name || null;
+      } catch {
+        merchantName = null;
+      }
+
+      let visionReply: string;
+      try {
+        visionReply = await analyzeCustomerImage({
+          merchantId,
+          merchantName,
+          message: inbound.payload?.message || {
+            from: phone,
+            messageId: inbound.id,
+            timestamp: new Date().toISOString(),
+            text: messageText || undefined,
+            type: 'image',
+          },
+          credentials,
+        });
+      } catch (visionError) {
+        logger.error(
+          { visionError, conversationId, merchantId, inboundEventId: inbound.id },
+          'AI vision generation failed'
+        );
+        const fallbackText = buildAiFallbackMessage(userMessageForConversation);
+        const fallbackSend = await sendTrackedWhatsAppMessage({
+          merchantId,
+          inboundEventId: inbound.id,
+          conversationId,
+          userId: user.userId,
+          to: phone,
+          text: fallbackText,
+          previewUrl: false,
+          messageKind: 'ai_fallback',
+          credentials,
+        });
+
+        if (fallbackSend.success) {
+          await addMessageToConversation(conversationId, 'assistant', fallbackText);
+          await setInboundStatus(inbound.id, 'processed', {
+            last_error: null,
+            processed_at: new Date().toISOString(),
+          });
+          return { result: 'processed_image_fallback_sent' };
+        }
+
+        await setInboundStatus(inbound.id, 'failed', {
+          last_error: fallbackSend.error || 'Vision analysis failed and fallback message send failed',
+        });
+        return { result: 'failed_image_ai_and_fallback' };
+      }
+
+      const primarySend = await sendTrackedWhatsAppMessage({
+        merchantId,
+        inboundEventId: inbound.id,
+        conversationId,
+        userId: user.userId,
+        to: phone,
+        text: visionReply,
+        previewUrl: false,
+        messageKind: 'ai_primary',
+        credentials,
+      });
+
+      if (!primarySend.success) {
+        await setInboundStatus(inbound.id, 'failed', {
+          last_error: primarySend.error || 'Failed to send AI vision response',
+        });
+        return { result: 'failed_image_ai_send' };
+      }
+
+      await addMessageToConversation(conversationId, 'assistant', visionReply);
+      void recordMerchantPhotoAnalysis({
+        merchantId,
+        externalEventId: inbound.id,
+        description: 'Customer photo analyzed with AI vision',
+      }).catch((usageError) => {
+        logger.error(
+          { usageError, merchantId, inboundEventId: inbound.id },
+          'Failed to report AI vision photo usage to Shopify shell'
+        );
+      });
+
+      await setInboundStatus(inbound.id, 'processed', {
+        last_error: null,
+        processed_at: new Date().toISOString(),
+      });
+      return { result: 'processed_image_ai_sent' };
     }
 
     const history = await getConversationHistory(conversationId);

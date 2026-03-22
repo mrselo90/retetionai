@@ -44,6 +44,12 @@ export interface TwilioWhatsAppCredentials {
 
 export type WhatsAppCredentials = MetaWhatsAppCredentials | TwilioWhatsAppCredentials;
 
+type PlatformCorporateWhatsAppSettings = {
+  provider: 'twilio' | 'meta';
+  fromNumber: string | null;
+  phoneNumberDisplay: string | null;
+};
+
 function parseRetryAfterMs(headerValue: string | null): number | undefined {
   if (!headerValue) return undefined;
   const seconds = Number.parseInt(headerValue, 10);
@@ -530,6 +536,82 @@ function getEnvWhatsAppCredentials(): WhatsAppCredentials | null {
   return twilioCreds || metaCreds;
 }
 
+function normalizeCorporateWhatsAppProvider(value: unknown): 'twilio' | 'meta' {
+  return String(value || '').trim().toLowerCase() === 'meta' ? 'meta' : 'twilio';
+}
+
+async function getPlatformCorporateWhatsAppSettings(): Promise<PlatformCorporateWhatsAppSettings> {
+  const fallback: PlatformCorporateWhatsAppSettings = {
+    provider: 'twilio',
+    fromNumber:
+      process.env.TWILIO_WHATSAPP_NUMBER?.trim() ||
+      process.env.TWILIO_WHATSAPP_FROM?.trim() ||
+      process.env.WHATSAPP_PHONE_NUMBER_ID?.trim() ||
+      null,
+    phoneNumberDisplay:
+      process.env.PLATFORM_WHATSAPP_NUMBER?.trim() ||
+      process.env.TWILIO_WHATSAPP_NUMBER?.trim() ||
+      process.env.TWILIO_WHATSAPP_FROM?.trim() ||
+      null,
+  };
+
+  try {
+    const svc = getSupabaseServiceClient();
+    const { data, error } = await svc
+      .from('platform_ai_settings')
+      .select('corporate_whatsapp_provider, corporate_whatsapp_from_number, corporate_whatsapp_phone_number_display')
+      .eq('id', 'default')
+      .maybeSingle();
+
+    if (error || !data) return fallback;
+    return {
+      provider: normalizeCorporateWhatsAppProvider((data as any).corporate_whatsapp_provider || fallback.provider),
+      fromNumber: typeof (data as any).corporate_whatsapp_from_number === 'string' && (data as any).corporate_whatsapp_from_number.trim()
+        ? (data as any).corporate_whatsapp_from_number.trim()
+        : fallback.fromNumber,
+      phoneNumberDisplay: typeof (data as any).corporate_whatsapp_phone_number_display === 'string' && (data as any).corporate_whatsapp_phone_number_display.trim()
+        ? (data as any).corporate_whatsapp_phone_number_display.trim()
+        : fallback.phoneNumberDisplay,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+async function getPlatformCorporateWhatsAppCredentials(): Promise<WhatsAppCredentials | null> {
+  const settings = await getPlatformCorporateWhatsAppSettings();
+  if (settings.provider === 'twilio') {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
+    const authToken =
+      process.env.TWILIO_WHATSAPP_AUTH_TOKEN?.trim() || process.env.TWILIO_AUTH_TOKEN?.trim();
+    const fromNumber =
+      settings.fromNumber?.trim() ||
+      process.env.TWILIO_WHATSAPP_NUMBER?.trim() ||
+      process.env.TWILIO_WHATSAPP_FROM?.trim();
+
+    if (!accountSid || !authToken || !fromNumber) return null;
+    return {
+      provider: 'twilio',
+      accountSid,
+      authToken,
+      fromNumber,
+      phoneNumberDisplay: settings.phoneNumberDisplay || fromNumber,
+    };
+  }
+
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
+  const phoneNumberId = settings.fromNumber?.trim() || process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
+  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN?.trim();
+  if (!accessToken || !phoneNumberId) return null;
+  return {
+    provider: 'meta',
+    accessToken,
+    phoneNumberId,
+    verifyToken,
+    phoneNumberDisplay: settings.phoneNumberDisplay || undefined,
+  };
+}
+
 /**
  * Get WhatsApp credentials: first from merchant's WhatsApp integration, else env (corporate).
  */
@@ -556,8 +638,9 @@ export async function getWhatsAppCredentials(merchantId: string): Promise<WhatsA
 export type WhatsAppSenderMode = 'merchant_own' | 'corporate';
 
 /**
- * Resolve which merchant's WhatsApp credentials to use for sending.
- * Reads persona_settings.whatsapp_sender_mode: 'merchant_own' = this merchant; 'corporate' = DEFAULT_MERCHANT_ID.
+ * Resolve which WhatsApp credentials to use for sending.
+ * merchant_own -> merchant integration/env defaults
+ * corporate -> platform corporate sender from super admin settings + env provider credentials
  */
 export async function getEffectiveWhatsAppCredentials(
   merchantId: string
@@ -570,10 +653,8 @@ export async function getEffectiveWhatsAppCredentials(
     .single();
 
   const mode = (merchant?.persona_settings as any)?.whatsapp_sender_mode;
-  const useCorporate = mode === 'corporate';
-  const effectiveMerchantId = useCorporate && process.env.DEFAULT_MERCHANT_ID
-    ? process.env.DEFAULT_MERCHANT_ID
-    : merchantId;
-
-  return getWhatsAppCredentials(effectiveMerchantId);
+  if (mode === 'corporate') {
+    return getPlatformCorporateWhatsAppCredentials();
+  }
+  return getWhatsAppCredentials(merchantId);
 }

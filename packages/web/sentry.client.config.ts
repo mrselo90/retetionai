@@ -17,7 +17,7 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0, // 100% of sessions with errors
   
   // Filter out sensitive data
-  beforeSend(event, hint) {
+  beforeSend(event) {
     // Remove sensitive data from URLs
     if (event.request?.url) {
       const url = new URL(event.request.url);

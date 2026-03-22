@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import {
   Outlet,
+  useFetcher,
   useLoaderData,
   useLocation,
-  useNavigate,
   useNavigation,
   useOutletContext,
   useRouteError,
@@ -21,7 +21,6 @@ import {
   Card,
   InlineGrid,
   InlineStack,
-  ProgressBar,
   SkeletonBodyText,
   SkeletonDisplayText,
   Spinner,
@@ -42,6 +41,7 @@ import {
 } from "@shopify/polaris-icons";
 
 import { EmbeddedSessionTokenBoundary } from "../components/EmbeddedSessionTokenBoundary";
+import type { AppBridgeWithIdToken } from "../lib/sessionToken.client";
 import type { ShopifyMerchantOverview } from "../platform.server";
 
 const primaryNavigation = [
@@ -66,10 +66,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   };
 };
 
-type AppBridgeWithIdToken = {
-  idToken?: () => Promise<string>;
-};
-
 export type AppBootstrapData = {
   merchantName: string;
   overview: ShopifyMerchantOverview;
@@ -77,39 +73,17 @@ export type AppBootstrapData = {
   subscriptionStatus: string;
 };
 
+export type AppBootstrapContext = {
+  bootstrapData: AppBootstrapData | null;
+  bootstrapError: string | null;
+  shellLoading: boolean;
+};
+
 export function useAppBootstrapData() {
-  return useOutletContext<AppBootstrapData | null>();
+  return useOutletContext<AppBootstrapContext>();
 }
 
-async function fetchBootstrapData(
-  shopify: AppBridgeWithIdToken,
-  search: string,
-): Promise<AppBootstrapData> {
-  if (typeof shopify.idToken !== "function") {
-    throw new Error("Shopify App Bridge session token API is unavailable.");
-  }
-
-  const sessionToken = (await shopify.idToken())?.trim();
-  if (!sessionToken) {
-    throw new Error("Missing Shopify session token for embedded bootstrap.");
-  }
-
-  const response = await window.fetch(`/app/bootstrap${search}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${sessionToken}`,
-      "X-Requested-With": "XMLHttpRequest",
-    },
-    credentials: "same-origin",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`Embedded bootstrap failed with ${response.status}`);
-  }
-
-  return (await response.json()) as AppBootstrapData;
-}
+const BOOTSTRAP_POLL_MS = 3_000;
 
 export default function App() {
   const { apiKey, initialShop } = useLoaderData<typeof loader>();
@@ -124,37 +98,52 @@ export default function App() {
 }
 
 function AppShell({ initialShop }: { initialShop: string }) {
-  const navigate = useNavigate();
   const location = useLocation();
   const navigation = useNavigation();
   const shopify = useAppBridge() as AppBridgeWithIdToken;
-  const [bootstrapData, setBootstrapData] = useState<AppBootstrapData | null>(null);
-  const [bootstrapError, setBootstrapError] = useState<string | null>(null);
+
+  const fetcher = useFetcher<AppBootstrapData>();
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+
+  useEffect(() => {
+    const load = () => {
+      if (fetcher.state === "idle") {
+        fetcher.load(`/app/bootstrap${location.search}`);
+      }
+    };
+
+    load();
+
+    const interval = window.setInterval(load, BOOTSTRAP_POLL_MS);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    window.addEventListener("focus", load);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", load);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [location.search]);
+
+  useEffect(() => {
+    if (fetcher.data && !hasLoadedOnce) {
+      setHasLoadedOnce(true);
+    }
+  }, [fetcher.data, hasLoadedOnce]);
+
+  const bootstrapData = fetcher.data ?? null;
+  const bootstrapError =
+    fetcher.state === "idle" && hasLoadedOnce && !fetcher.data
+      ? "Bootstrap returned empty data"
+      : null;
 
   const navButtonVariant = (to: string) =>
     location.pathname === to || location.pathname.startsWith(`${to}/`)
       ? "primary"
       : "tertiary";
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void fetchBootstrapData(shopify, location.search)
-      .then((data) => {
-        if (cancelled) return;
-        setBootstrapData(data);
-        setBootstrapError(null);
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        const message = error instanceof Error ? error.message : "Unable to load merchant data.";
-        setBootstrapError(message);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [location.search, shopify]);
 
   const merchantName = bootstrapData?.merchantName || "Loading merchant";
   const shop = bootstrapData?.shop || initialShop || "Embedded Shopify store";
@@ -167,7 +156,11 @@ function AppShell({ initialShop }: { initialShop: string }) {
       <Box background="bg-surface-secondary" minHeight="100vh" padding="400">
         <div style={{ maxWidth: "1440px", margin: "0 auto" }}>
           <BlockStack gap="400">
-            {navigation.state !== "idle" ? <ProgressBar progress={75} size="small" /> : null}
+            {navigation.state !== "idle" ? (
+              <InlineStack align="center">
+                <Spinner accessibilityLabel="Loading page" size="small" />
+              </InlineStack>
+            ) : null}
 
             <Card padding="500">
               <BlockStack gap="400">
@@ -206,7 +199,7 @@ function AppShell({ initialShop }: { initialShop: string }) {
                     ) : null}
                     <InlineStack gap="200" wrap>
                       <Button
-                        onClick={() => navigate("/app/billing")}
+                        url="/app/billing"
                         icon={CartIcon}
                         variant="primary"
                       >
@@ -245,7 +238,7 @@ function AppShell({ initialShop }: { initialShop: string }) {
                           textAlign="left"
                           icon={item.icon}
                           variant={navButtonVariant(item.to)}
-                          onClick={() => navigate(item.to)}
+                          url={item.to}
                         >
                           {item.label}
                         </Button>
@@ -265,7 +258,7 @@ function AppShell({ initialShop }: { initialShop: string }) {
                           textAlign="left"
                           icon={item.icon}
                           variant={navButtonVariant(item.to)}
-                          onClick={() => navigate(item.to)}
+                          url={item.to}
                         >
                           {item.label}
                         </Button>
@@ -284,7 +277,13 @@ function AppShell({ initialShop }: { initialShop: string }) {
                     </BlockStack>
                   </Card>
                 ) : (
-                  <Outlet context={bootstrapData} />
+                  <Outlet
+                    context={{
+                      bootstrapData,
+                      bootstrapError,
+                      shellLoading,
+                    }}
+                  />
                 )}
               </Box>
             </InlineGrid>

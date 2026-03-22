@@ -1,0 +1,161 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { generateGroundedProductAnswer } from './groundedAnswer';
+import { __setOpenAIClientForTests } from './openaiClient';
+
+vi.mock('@recete/shared', () => ({
+  getSupabaseServiceClient: vi.fn(() => ({
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn(() => ({
+            data: { name: 'TestShop', persona_settings: { bot_name: 'TestBot', tone: 'friendly' } },
+          })),
+        })),
+      })),
+    })),
+  })),
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
+vi.mock('./botInfo', () => ({
+  getMerchantBotInfo: vi.fn(() => ({})),
+}));
+
+vi.mock('./runtimeModelSettings', () => ({
+  getDefaultLlmModel: vi.fn(() => 'gpt-4o-mini'),
+  getConversationMemorySettings: vi.fn(() => ({ mode: 'sliding_window', count: 10 })),
+}));
+
+vi.mock('./aiUsageEvents', () => ({
+  trackAiUsageEvent: vi.fn(),
+}));
+
+vi.mock('./groundingAssembler', () => ({
+  assembleGroundingEvidence: vi.fn(),
+}));
+
+vi.mock('./i18n', () => ({
+  detectLanguage: vi.fn(() => 'en'),
+}));
+
+import { assembleGroundingEvidence } from './groundingAssembler';
+
+describe('generateGroundedProductAnswer', () => {
+  let mockCreate: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCreate = vi.fn();
+    __setOpenAIClientForTests({
+      chat: { completions: { create: mockCreate } },
+    } as any);
+  });
+
+  it('should return deterministic answer when facts planner produces one', async () => {
+    vi.mocked(assembleGroundingEvidence).mockResolvedValueOnce({
+      context: 'Product facts here',
+      citedProducts: ['prod-1'],
+      usedDeterministicFacts: true,
+      deterministicAnswer: 'Apply twice daily to clean skin.',
+      orderScopeSource: 'external_events',
+      retrievalLanguage: 'en',
+      retrievalUsedFallback: false,
+      retrievalFallbackLanguage: null,
+    });
+
+    const result = await generateGroundedProductAnswer({
+      merchantId: 'merchant-1',
+      question: 'How do I use this product?',
+      channel: 'api',
+    });
+
+    expect(result.usedDeterministicFacts).toBe(true);
+    expect(result.answer).toBe('Apply twice daily to clean skin.');
+    expect(result.citedProducts).toEqual(['prod-1']);
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('should call LLM when no deterministic answer is available', async () => {
+    vi.mocked(assembleGroundingEvidence).mockResolvedValueOnce({
+      context: 'RAG context about product',
+      citedProducts: ['prod-2'],
+      usedDeterministicFacts: false,
+      deterministicAnswer: undefined,
+      orderScopeSource: undefined,
+      retrievalLanguage: 'en',
+      retrievalUsedFallback: false,
+      retrievalFallbackLanguage: null,
+    });
+
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: 'This product contains vitamin C.' } }],
+      usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 },
+    });
+
+    const result = await generateGroundedProductAnswer({
+      merchantId: 'merchant-1',
+      question: 'What ingredients does this have?',
+      channel: 'whatsapp',
+    });
+
+    expect(result.usedDeterministicFacts).toBe(false);
+    expect(result.answer).toBe('This product contains vitamin C.');
+    expect(result.citedProducts).toEqual(['prod-2']);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('should return a safe fallback when LLM returns empty content', async () => {
+    vi.mocked(assembleGroundingEvidence).mockResolvedValueOnce({
+      context: undefined,
+      citedProducts: [],
+      usedDeterministicFacts: false,
+      orderScopeSource: undefined,
+      retrievalLanguage: 'en',
+      retrievalUsedFallback: false,
+      retrievalFallbackLanguage: null,
+    });
+
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: '' } }],
+      usage: { prompt_tokens: 50, completion_tokens: 0, total_tokens: 50 },
+    });
+
+    const result = await generateGroundedProductAnswer({
+      merchantId: 'merchant-1',
+      question: 'Something?',
+      channel: 'api',
+    });
+
+    expect(result.answer).toContain('could not find enough reliable product information');
+  });
+
+  it('should use provided persona and merchant name without DB lookup', async () => {
+    vi.mocked(assembleGroundingEvidence).mockResolvedValueOnce({
+      context: 'Some context',
+      citedProducts: [],
+      usedDeterministicFacts: false,
+      orderScopeSource: undefined,
+      retrievalLanguage: 'tr',
+      retrievalUsedFallback: false,
+      retrievalFallbackLanguage: null,
+    });
+
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: 'Cevap burada.' } }],
+      usage: { prompt_tokens: 80, completion_tokens: 10, total_tokens: 90 },
+    });
+
+    const result = await generateGroundedProductAnswer({
+      merchantId: 'merchant-1',
+      question: 'Nasıl kullanılır?',
+      userLang: 'tr',
+      channel: 'whatsapp',
+      merchantName: 'TestBrand',
+      persona: { bot_name: 'Yardımcı', tone: 'professional' },
+      botInfo: { brand_guidelines: 'Be helpful' },
+    });
+
+    expect(result.answer).toBe('Cevap burada.');
+    expect(result.langDetected).toBe('tr');
+  });
+});

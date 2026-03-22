@@ -2,14 +2,14 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ChartVerticalIcon, ChatIcon, SettingsIcon } from "@shopify/polaris-icons";
-import { Banner, InlineGrid } from "@shopify/polaris";
-import { authenticate } from "../shopify.server";
+import { Banner, BlockStack, Card, InlineGrid, Text } from "@shopify/polaris";
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantOverviewFromRequest } from "../platform.server";
 import { ActionCard, DetailRows, MetricCard, SectionCard, ShellPage, StatusBadge } from "../components/shell-ui";
 import { getAnalyticsLevel, getPlanSnapshotByDomain } from "../services/planService.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session } = await authenticateEmbeddedAdmin(request);
   const [overview, plan] = await Promise.all([
     fetchMerchantOverviewFromRequest(request),
     getPlanSnapshotByDomain(session.shop),
@@ -125,9 +125,12 @@ function CardSummaryRows({
   rows: Array<{ label: string; value: string | number }>;
 }) {
   return (
-    <SectionCard title={title}>
-      <DetailRows rows={rows.map((row) => ({ label: row.label, value: row.value }))} />
-    </SectionCard>
+    <Card padding="500">
+      <BlockStack gap="300">
+        <Text as="h3" variant="headingMd">{title}</Text>
+        <DetailRows rows={rows.map((row) => ({ label: row.label, value: row.value }))} />
+      </BlockStack>
+    </Card>
   );
 }
 

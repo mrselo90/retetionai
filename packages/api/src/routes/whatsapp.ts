@@ -168,7 +168,6 @@ async function webhookInboundHandler(c: any) {
     return c.json(
       {
         error: 'Webhook processing failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
     );
@@ -212,7 +211,7 @@ whatsapp.post('/inbound-events/:id/process', authMiddleware, async (c) => {
     logger.error({ error, inboundEventId, merchantId }, 'Failed to process inbound event');
     return c.json({
       ok: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: 'Internal server error',
     }, 500);
   }
 });

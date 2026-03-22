@@ -145,7 +145,6 @@ conversations.get('/', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -307,7 +306,6 @@ conversations.get('/:id', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -390,7 +388,6 @@ conversations.post('/:id/reply', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -466,7 +463,6 @@ conversations.put('/:id/status', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });

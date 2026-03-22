@@ -1,3 +1,4 @@
+import { logger } from '@recete/shared';
 import { getOpenAIClient } from '../openaiClient.js';
 import { getDefaultLlmModel } from '../runtimeModelSettings.js';
 import { normalizeWhitespace } from './utils.js';
@@ -61,7 +62,16 @@ export class TranslationService {
         },
       });
     }
-    const parsed = JSON.parse(stripFences(raw));
+    let parsed: any;
+    try {
+      parsed = JSON.parse(stripFences(raw));
+    } catch (parseError) {
+      logger.warn(
+        { sourceLang, targetLang, rawLength: raw.length },
+        'Translation returned non-JSON output, falling back to source snapshot',
+      );
+      return snapshot;
+    }
 
     return {
       title: typeof parsed.title === 'string' ? parsed.title : snapshot.title,

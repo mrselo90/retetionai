@@ -11,16 +11,16 @@ import { normalizePhone } from '../lib/events.js';
 import { processNormalizedEvent } from '../lib/orderProcessor.js';
 import { findUserByPhone, getOrCreateConversation, addMessageToConversation, getConversationHistory } from '../lib/conversation.js';
 import { generateAIResponse, detectPostDeliveryFollowUpSignal } from '../lib/aiAgent.js';
-import { queryKnowledgeBase, formatRAGResultsForLLM } from '../lib/rag.js';
+import { formatRAGResultsForLLM } from '../lib/rag.js';
 import { getMerchantBotInfo } from '../lib/botInfo.js';
 import { getOpenAIClient } from '../lib/openaiClient.js';
 import { getConversationMemorySettings, getDefaultLlmModel } from '../lib/runtimeModelSettings.js';
 import { detectLanguage } from '../lib/i18n.js';
 import { evaluateStyleCompliance } from '../lib/styleCompliance.js';
 import { getActiveProductFactsContext } from '../lib/productFactsQuery.js';
-import { getActiveProductFactsSnapshots } from '../lib/productFactsQuery.js';
-import { planStructuredFactAnswer } from '../lib/productFactsPlanner.js';
 import { getEffectiveWhatsAppCredentials, sendWhatsAppMessage } from '../lib/whatsapp.js';
+import { UnifiedRetrievalService } from '../lib/unifiedRetrieval.js';
+import { generateGroundedProductAnswer } from '../lib/groundedAnswer.js';
 import { getRedisClient } from '@recete/shared';
 import { Queue } from 'bullmq';
 
@@ -267,9 +267,10 @@ test.post('/rag', async (c) => {
       }, 400);
     }
 
-    const ragResult = await queryKnowledgeBase({
+    const ragResult = await new UnifiedRetrievalService().retrieve({
       merchantId,
-      query,
+      question: query,
+      userLang: typeof body?.user_lang === 'string' ? body.user_lang : 'tr',
       productIds,
       topK,
       similarityThreshold: 0.7,
@@ -338,9 +339,22 @@ test.post('/rag/answer', async (c) => {
 
     const followUpSignal = detectPostDeliveryFollowUpSignal(query, conversationHistory);
     const ragQuery = followUpSignal.ragQueryOverride || query;
-    const ragResult = await queryKnowledgeBase({
+    const grounded = await generateGroundedProductAnswer({
       merchantId,
-      query: ragQuery,
+      question: query,
+      userLang: typeof body?.user_lang === 'string' ? body.user_lang : detectLanguage(query),
+      channel: 'api',
+      intent: 'question',
+      retrievalQuery: ragQuery,
+      productIds,
+      topK,
+      similarityThreshold: 0.6,
+      conversationHistory,
+    });
+    const ragResult = await new UnifiedRetrievalService().retrieve({
+      merchantId,
+      question: ragQuery,
+      userLang: typeof body?.user_lang === 'string' ? body.user_lang : detectLanguage(query),
       productIds,
       topK,
       similarityThreshold: 0.6,
@@ -384,13 +398,6 @@ test.post('/rag/answer', async (c) => {
     }
     systemPrompt += '--- Ürün bilgisi (buna göre cevap ver) ---\n' + contextText;
 
-    const factsSnapshots = await getActiveProductFactsSnapshots(merchantId, factsProductIds);
-    const plannerQuery = followUpSignal.plannerQueryOverride || query;
-    const planned = planStructuredFactAnswer(plannerQuery, queryLang, factsSnapshots, {
-      responseLength: (merchant as any)?.persona_settings?.response_length,
-      includeEvidenceQuote: true,
-    });
-
     let answer = '';
     let completion: any = null;
     let streamUsage: any = null;
@@ -402,8 +409,8 @@ test.post('/rag/answer', async (c) => {
       max_tokens: 500,
       stream,
     } as const;
-    if (planned) {
-      answer = planned.answer;
+    if (!stream) {
+      answer = grounded.answer;
     } else {
       const openai = getOpenAIClient();
       memorySettings = await getConversationMemorySettings();
@@ -463,29 +470,28 @@ test.post('/rag/answer', async (c) => {
         topProducts: Array.from(new Set(ragResult.results.map((r) => r.productId))),
         factsSnapshotsFound: factsContext.factCount,
         factsProductIds: factsContext.productIds,
-        deterministicFactsAnswer: Boolean(planned),
-        deterministicFactsQueryType: planned?.queryType || null,
-        deterministicEvidenceUsed: planned?.evidenceQuotesUsed?.length || 0,
+        deterministicFactsAnswer: false,
+        deterministicFactsQueryType: null,
+        deterministicEvidenceUsed: 0,
         styleCompliance,
         tokens: completion?.usage || streamUsage || null,
         aiDebug: {
-          mode: planned ? 'deterministic_facts' : 'llm_chat_completion',
-          model: planned ? null : llmConfig.model,
+          mode: stream ? 'llm_chat_completion_stream' : 'shared_grounded_answer',
+          model: stream ? llmConfig.model : null,
           query,
           ragQuery,
-          plannerQuery,
           systemPrompt,
           contextText,
           contextChars: contextText.length,
           requestMessages: llmRequestMessages,
-          llmConfig: planned ? null : llmConfig,
-          conversationMemoryMode: planned ? null : memorySettings?.mode || null,
-          conversationMemoryCount: planned ? null : memorySettings?.count || null,
+          llmConfig: stream ? llmConfig : null,
+          conversationMemoryMode: stream ? memorySettings?.mode || null : null,
+          conversationMemoryCount: stream ? memorySettings?.count || null : null,
           streamRequested: stream,
-          streamUsed: Boolean(!planned && stream),
-          deterministicAnswerUsed: Boolean(planned),
-          deterministicUsedFactKeys: planned?.usedFactKeys || [],
-          deterministicEvidenceQuotes: planned?.evidenceQuotesUsed || [],
+          streamUsed: Boolean(stream),
+          deterministicAnswerUsed: false,
+          deterministicUsedFactKeys: [],
+          deterministicEvidenceQuotes: [],
         },
       },
       ...(ragResult.results.length === 0 && {

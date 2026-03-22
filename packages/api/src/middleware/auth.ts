@@ -4,7 +4,7 @@
  */
 
 import { Context, Next } from 'hono';
-import { getSupabaseServiceClient } from '@recete/shared';
+import { getSupabaseServiceClient, logger } from '@recete/shared';
 
 export interface AuthContext {
   merchantId: string;
@@ -37,7 +37,7 @@ async function authenticateJWT(token: string): Promise<string | null> {
 
     if (error || !user) {
       if (error) {
-        console.warn('JWT Verification failed:', error.message);
+        logger.warn({ message: error.message }, 'JWT Verification failed');
       }
       return null;
     }
@@ -49,7 +49,7 @@ async function authenticateJWT(token: string): Promise<string | null> {
       .maybeSingle();
 
     if (fetchError) {
-      console.error('Merchant lookup error:', fetchError.message);
+      logger.error({ message: fetchError.message }, 'Merchant lookup error');
       return null;
     }
 
@@ -60,7 +60,7 @@ async function authenticateJWT(token: string): Promise<string | null> {
         (user.user_metadata?.name as string) ||
         (user.email ?? 'Merchant');
 
-      console.info(`Creating merchant record for user ${user.id} (${name})`);
+      logger.info({ userId: user.id, name }, 'Creating merchant record for user');
 
       const { data: inserted, error: insertError } = await supabase
         .from('merchants')
@@ -72,7 +72,7 @@ async function authenticateJWT(token: string): Promise<string | null> {
         .single();
 
       if (insertError) {
-        console.error('Failed to create merchant record:', insertError.message);
+        logger.error({ message: insertError.message }, 'Failed to create merchant record');
         return null;
       }
 
@@ -81,7 +81,7 @@ async function authenticateJWT(token: string): Promise<string | null> {
 
     return merchant.id;
   } catch (err) {
-    console.error('JWT Authentication exception:', err);
+    logger.error({ err }, 'JWT Authentication exception');
     return null;
   }
 }
@@ -189,13 +189,13 @@ function isInternalMerchantPath(path: string): boolean {
   );
 }
 
-function authenticateInternalSecret(c: Context): {
+async function authenticateInternalSecret(c: Context): Promise<{
   ok: boolean;
   merchantId?: string;
   error?: string;
   internalCall?: boolean;
   status?: 403 | 500;
-} | null {
+} | null> {
   const path = c.req.path;
   const isProduct = isInternalProductPath(path);
   const isWhatsAppInternal = isInternalWhatsAppPath(path);
@@ -223,12 +223,35 @@ function authenticateInternalSecret(c: Context): {
     };
   }
 
-  // Fail-closed: internal routes must always carry an explicit merchant context.
   if (!merchantIdHeader) {
     return {
       ok: false,
       status: 403,
       error: 'Forbidden: Missing X-Internal-Merchant-Id for internal product route',
+    };
+  }
+
+  try {
+    const supabase = getSupabaseServiceClient();
+    const { data: merchant, error: lookupError } = await supabase
+      .from('merchants')
+      .select('id')
+      .eq('id', merchantIdHeader)
+      .maybeSingle();
+
+    if (lookupError || !merchant) {
+      return {
+        ok: false,
+        status: 403,
+        error: 'Forbidden: Invalid internal merchant ID',
+      };
+    }
+  } catch {
+    // DB lookup failed — fail closed
+    return {
+      ok: false,
+      status: 500,
+      error: 'Internal merchant validation failed',
     };
   }
 
@@ -255,28 +278,42 @@ function setAuthenticatedUser(
  */
 export async function authMiddleware(c: Context, next: Next) {
   const token = extractToken(c);
+  const merchantInternalPath = isInternalMerchantPath(c.req.path);
 
   // Prefer end-user auth (JWT / Shopify session token) over internal-secret auth.
   // This prevents stale/injected X-Internal-Secret headers from breaking browser requests.
   if (token) {
-    // Try JWT first (Supabase Auth)
-    let merchantId = await authenticateJWT(token);
-    let authMethod: 'jwt' | 'shopify' = 'jwt';
+    let merchantId: string | null = null;
+    let authMethod: 'jwt' | 'shopify' = 'shopify';
 
-    // If JWT fails, try Shopify Session Token
-    if (!merchantId) {
+    if (merchantInternalPath) {
       merchantId = await authenticateShopifyToken(token);
-      authMethod = 'shopify';
+    } else {
+      merchantId = await authenticateJWT(token);
+      authMethod = 'jwt';
+
+      if (!merchantId) {
+        merchantId = await authenticateShopifyToken(token);
+        authMethod = 'shopify';
+      }
     }
 
     if (isNonEmptyString(merchantId)) {
+      logger.info(
+        {
+          path: c.req.path,
+          authMethod,
+          hasAuthorization: true,
+        },
+        '[api-auth]'
+      );
       setAuthenticatedUser(c, { merchantId, authMethod });
       await next();
       return;
     }
   }
 
-  const internal = authenticateInternalSecret(c);
+  const internal = await authenticateInternalSecret(c);
   if (internal) {
     if (!internal.ok) {
       return c.json(
@@ -293,8 +330,24 @@ export async function authMiddleware(c: Context, next: Next) {
   }
 
   if (!token) {
+    logger.warn(
+      {
+        path: c.req.path,
+        authMethod: 'missing',
+        hasAuthorization: false,
+      },
+      '[api-auth]'
+    );
     return c.json({ error: 'Unauthorized: Missing authentication' }, 401);
   }
+  logger.warn(
+    {
+      path: c.req.path,
+      authMethod: merchantInternalPath ? 'shopify-required' : 'invalid',
+      hasAuthorization: true,
+    },
+    '[api-auth]'
+  );
   return c.json({ error: 'Unauthorized: Invalid token' }, 401);
 }
 
@@ -303,7 +356,7 @@ export async function authMiddleware(c: Context, next: Next) {
  * Useful for public endpoints that can optionally use auth
  */
 export async function optionalAuthMiddleware(c: Context, next: Next) {
-  const internal = authenticateInternalSecret(c);
+  const internal = await authenticateInternalSecret(c);
   if (internal && !internal.ok) {
     return c.json(
       { error: internal.error || 'Forbidden: Internal auth failed' },
@@ -320,18 +373,33 @@ export async function optionalAuthMiddleware(c: Context, next: Next) {
   }
 
   const token = extractToken(c);
+  const merchantInternalPath = isInternalMerchantPath(c.req.path);
 
   if (token) {
-    // Try JWT first, then Shopify session token
-    let merchantId = await authenticateJWT(token);
-    let authMethod: 'jwt' | 'shopify' = 'jwt';
+    let merchantId: string | null = null;
+    let authMethod: 'jwt' | 'shopify' = 'shopify';
 
-    if (!merchantId) {
+    if (merchantInternalPath) {
       merchantId = await authenticateShopifyToken(token);
-      authMethod = 'shopify';
+    } else {
+      merchantId = await authenticateJWT(token);
+      authMethod = 'jwt';
+
+      if (!merchantId) {
+        merchantId = await authenticateShopifyToken(token);
+        authMethod = 'shopify';
+      }
     }
 
     if (isNonEmptyString(merchantId)) {
+      logger.info(
+        {
+          path: c.req.path,
+          authMethod,
+          hasAuthorization: true,
+        },
+        '[api-auth]'
+      );
       setAuthenticatedUser(c, { merchantId, authMethod });
     }
   }

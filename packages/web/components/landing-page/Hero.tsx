@@ -73,24 +73,20 @@ export function Hero() {
 
             {/* CTA row */}
             <div className="mt-5 sm:mt-7 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-              <Link href="/signup" className="inline-block">
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm sm:text-base font-bold shadow-[0_10px_30px_rgba(248,245,230,.18)] transition-transform hover:-translate-y-0.5"
-                  style={{ background: '#f8f5e6', color: '#0a3d2e' }}
-                >
-                  {t('signup')}
-                  <ArrowRight className="w-4 h-4" aria-hidden />
-                </button>
+              <Link
+                href="/signup"
+                className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm sm:text-base font-bold shadow-[0_10px_30px_rgba(248,245,230,.18)] transition-transform hover:-translate-y-0.5"
+                style={{ background: '#f8f5e6', color: '#0a3d2e' }}
+              >
+                {t('signup')}
+                <ArrowRight className="w-4 h-4" aria-hidden />
               </Link>
-              <Link href="/login" className="inline-block">
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 px-5 py-3.5 text-sm sm:text-base font-semibold backdrop-blur transition-colors hover:bg-white/10"
-                  style={{ color: '#f8f5e6' }}
-                >
-                  {t('login')}
-                </button>
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 px-5 py-3.5 text-sm sm:text-base font-semibold backdrop-blur transition-colors hover:bg-white/10"
+                style={{ color: '#f8f5e6' }}
+              >
+                {t('login')}
               </Link>
             </div>
 

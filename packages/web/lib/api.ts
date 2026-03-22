@@ -87,11 +87,13 @@ export async function apiRequest<T>(
       };
     }
     const errorMessage = error.message || error.error || 'Request failed';
-    const apiError = new Error(errorMessage) as any;
-    apiError.status = response.status;
-    apiError.details = error.details;
-    apiError.code = error.code;
-    apiError.hint = error.hint;
+    const apiError: Error & { status?: number; details?: string; code?: string; hint?: string } =
+      Object.assign(new Error(errorMessage), {
+        status: response.status,
+        details: error.details,
+        code: error.code,
+        hint: error.hint,
+      });
 
     if (response.status >= 500) {
       captureException(apiError, {

@@ -29,13 +29,27 @@ import memberRoutes from './routes/members.js';
 import adminRoutes from './routes/admin.js';
 import shopifyGdprRoutes from './routes/shopifyGdpr.js';
 import answerRoutes from './routes/answer.js';
-import { rateLimitMiddleware } from './middleware/rateLimit.js';
+import { rateLimitMiddleware, authRateLimitMiddleware } from './middleware/rateLimit.js';
 import { securityHeadersMiddleware } from './middleware/securityHeaders.js';
 import { loggerMiddleware } from './middleware/logger.js';
 import { metricsMiddleware } from './middleware/metricsMiddleware.js';
 import { cacheMiddleware } from './middleware/cacheMiddleware.js';
 import { httpsMiddleware } from './middleware/https.js';
 import { register } from './lib/metrics.js';
+import { getPlatformCorporateWhatsAppSettings } from './lib/runtimeModelSettings.js';
+
+if (process.env.NODE_ENV === 'production') {
+  const requiredSecrets = [
+    ['SHOPIFY_API_SECRET', process.env.SHOPIFY_API_SECRET],
+    ['JWT_SECRET', process.env.JWT_SECRET],
+    ['ENCRYPTION_KEY', process.env.ENCRYPTION_KEY],
+  ] as const;
+  for (const [name, value] of requiredSecrets) {
+    if (!value?.trim()) {
+      throw new Error(`Missing required secret: ${name}. Refusing to start without it.`);
+    }
+  }
+}
 
 const app = new Hono();
 
@@ -125,7 +139,9 @@ app.use('/*', async (c, next) => {
   await rateLimitMiddleware(c, next);
 });
 
-// Auth routes
+// Auth routes (stricter rate limit for login/signup)
+app.use('/api/auth/login', authRateLimitMiddleware);
+app.use('/api/auth/signup', authRateLimitMiddleware);
 app.route('/api/auth', authRoutes);
 
 // Merchant routes
@@ -225,9 +241,19 @@ app.get('/api/docs/openapi.json', (c) => {
 });
 
 // Platform contact (public, for dashboard footer / support display)
-app.get('/api/config/platform-contact', (c) => {
-  const whatsappNumber = process.env.PLATFORM_WHATSAPP_NUMBER || '+905545736900';
-  return c.json({ whatsapp_number: whatsappNumber });
+app.get('/api/config/platform-contact', async (c) => {
+  try {
+    const corporate = await getPlatformCorporateWhatsAppSettings();
+    const whatsappNumber =
+      corporate.phoneNumberDisplay ||
+      corporate.fromNumber ||
+      process.env.PLATFORM_WHATSAPP_NUMBER ||
+      '+905545736900';
+    return c.json({ whatsapp_number: whatsappNumber });
+  } catch {
+    const whatsappNumber = process.env.PLATFORM_WHATSAPP_NUMBER || '+905545736900';
+    return c.json({ whatsapp_number: whatsappNumber });
+  }
 });
 
 // Health check endpoint
@@ -247,6 +273,26 @@ app.get('/health', async (c) => {
     services: {
       database: 'unknown',
       redis: 'unknown',
+    },
+    features: {
+      aiVision: {
+        openAiConfigured: Boolean(process.env.OPENAI_API_KEY?.trim()),
+        shopifyShellUsageConfigured: Boolean(
+          (process.env.SHOPIFY_SHELL_URL || process.env.SHOPIFY_APP_URL)?.trim() &&
+          process.env.INTERNAL_SERVICE_SECRET?.trim()
+        ),
+        whatsappProviderDefaultsConfigured: Boolean(
+          (
+            process.env.WHATSAPP_ACCESS_TOKEN?.trim() &&
+            process.env.WHATSAPP_PHONE_NUMBER_ID?.trim()
+          ) ||
+          (
+            process.env.TWILIO_ACCOUNT_SID?.trim() &&
+            (process.env.TWILIO_WHATSAPP_AUTH_TOKEN?.trim() || process.env.TWILIO_AUTH_TOKEN?.trim()) &&
+            (process.env.TWILIO_WHATSAPP_NUMBER?.trim() || process.env.TWILIO_WHATSAPP_FROM?.trim())
+          )
+        ),
+      },
     },
   };
 

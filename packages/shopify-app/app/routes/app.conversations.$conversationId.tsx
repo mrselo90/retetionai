@@ -14,14 +14,14 @@ import {
   InlineStack,
   Layout,
   Page,
-  ProgressBar,
+  Spinner,
   SkeletonBodyText,
   SkeletonDisplayText,
   SkeletonPage,
   Text,
   TextField,
 } from "@shopify/polaris";
-import { authenticate } from "../shopify.server";
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import {
   fetchMerchantConversationDetail,
   sendMerchantConversationReply,
@@ -36,7 +36,7 @@ type ActionResult = {
 };
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  await authenticateEmbeddedAdmin(request);
   const conversationId = params.conversationId;
   if (!conversationId) {
     throw new Response("Conversation not found", { status: 404 });
@@ -46,7 +46,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
-  await authenticate.admin(request);
+  await authenticateEmbeddedAdmin(request);
   const conversationId = params.conversationId;
   if (!conversationId) {
     return { ok: false, error: "Conversation not found." } satisfies ActionResult;
@@ -120,7 +120,7 @@ export default function ConversationDetailPage() {
     >
       <Layout>
         <Layout.Section>
-          {busy ? <ProgressBar progress={72} size="small" /> : null}
+          {busy ? <Spinner accessibilityLabel="Loading" size="small" /> : null}
         </Layout.Section>
 
         {actionData?.error ? (

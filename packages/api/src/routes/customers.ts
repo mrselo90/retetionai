@@ -130,7 +130,7 @@ customers.get('/', async (c) => {
     await setCachedApiResponse(cacheKey, payload, CUSTOMERS_CACHE_TTL_SECONDS, cacheParams);
     return c.json(payload);
   } catch (error) {
-    return c.json({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown' }, 500);
+    return c.json({ error: 'Internal server error' }, 500);
   }
 });
 
@@ -277,7 +277,7 @@ customers.get('/:id', async (c) => {
     await setCachedApiResponse(cacheKey, payload, CUSTOMERS_CACHE_TTL_SECONDS);
     return c.json(payload);
   } catch (error) {
-    return c.json({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown' }, 500);
+    return c.json({ error: 'Internal server error' }, 500);
   }
 });
 

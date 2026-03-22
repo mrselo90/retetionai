@@ -24,11 +24,21 @@ import {
 } from '../lib/cache.js';
 import { enforceStorageLimit } from '../lib/planLimits.js';
 import { checkMerchantRecipeCapacity } from '../lib/merchantPlanFeatures.js';
-import { MultiLangRagShadowWriteService } from '../lib/multiLangRag/shadowWriteService.js';
+import { MultiLangChunkShadowWriteService } from '../lib/multiLangRag/chunkShadowWriteService.js';
 import { getProductsCacheTtlSeconds } from '../lib/runtimeModelSettings.js';
 
 const products = new Hono();
-const multiLangShadowWrite = new MultiLangRagShadowWriteService();
+const multiLangChunkShadowWrite = new MultiLangChunkShadowWriteService();
+
+function shadowSyncProductKnowledge(merchantId: string, productId: string, reason: string) {
+  void (async () => {
+    try {
+      await multiLangChunkShadowWrite.syncProduct(String(merchantId), productId);
+    } catch (error) {
+      console.warn(`Multi-lang chunk shadow write failed after ${reason}:`, error);
+    }
+  })();
+}
 
 // All routes require authentication
 products.use('/*', authMiddleware);
@@ -176,9 +186,7 @@ products.put('/:id/instruction', validateParams(productIdSchema), validateBody(p
     return c.json({ error: 'Failed to save instruction' }, 500);
   }
 
-  void multiLangShadowWrite.syncProduct(String(merchantId), productId).catch((e) => {
-    console.warn('Multi-lang shadow write failed after instruction save:', e);
-  });
+  shadowSyncProductKnowledge(String(merchantId), productId, 'instruction save');
 
   return c.json({ instruction });
 });
@@ -268,9 +276,7 @@ products.post('/', validateBody(createProductSchema), async (c) => {
   // Cache new product
   await setCachedProduct(product.id, product, 600);
   await invalidateApiCache(`products:${merchantId}`);
-  void multiLangShadowWrite.syncProduct(String(merchantId), product.id).catch((e) => {
-    console.warn('Multi-lang shadow write failed after create product:', e);
-  });
+  shadowSyncProductKnowledge(String(merchantId), product.id, 'create product');
 
   return c.json({ product }, 201);
 });
@@ -335,9 +341,7 @@ products.put('/:id', validateParams(productIdSchema), validateBody(updateProduct
   // Update cache
   await setCachedProduct(productId, product, 600);
   await invalidateApiCache(`products:${merchantId}`);
-  void multiLangShadowWrite.syncProduct(String(merchantId), productId).catch((e) => {
-    console.warn('Multi-lang shadow write failed after update product:', e);
-  });
+  shadowSyncProductKnowledge(String(merchantId), productId, 'update product');
 
   return c.json({ product });
 });
@@ -485,9 +489,7 @@ products.post('/:id/scrape', async (c) => {
     );
     if (result.success) {
       embeddingResult = { chunksCreated: result.chunksCreated, totalTokens: result.totalTokens };
-      void multiLangShadowWrite.syncProduct(String(merchantId), productId).catch((e) => {
-        console.warn('Multi-lang RAG shadow write failed after scrape:', e);
-      });
+      shadowSyncProductKnowledge(String(merchantId), productId, 'scrape');
     }
   } catch (embedErr) {
     console.error('Auto embedding generation after scrape failed:', embedErr);
@@ -638,9 +640,7 @@ products.post('/:id/generate-embeddings', async (c) => {
     }, 500);
   }
 
-  void multiLangShadowWrite.syncProduct(String(merchantId), productId).catch((e) => {
-    console.warn('Multi-lang RAG shadow write failed after embeddings:', e);
-  });
+  shadowSyncProductKnowledge(String(merchantId), productId, 'embeddings');
 
   return c.json({
     message: 'Embeddings generated successfully',
@@ -747,9 +747,7 @@ products.post('/generate-embeddings-batch', async (c) => {
     try {
       const results = await batchProcessProducts(productIds);
       for (const r of results.filter((x) => x.success)) {
-        await multiLangShadowWrite.syncProduct(String(merchantId), r.productId).catch((e) => {
-          console.warn('Multi-lang RAG shadow write failed after batch embeddings:', e);
-        });
+        shadowSyncProductKnowledge(String(merchantId), r.productId, 'batch embeddings');
       }
     } catch (err) {
       console.error('Background batch embeddings failed:', err);

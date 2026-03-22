@@ -184,40 +184,6 @@
   --polaris-body-sm: 0.75rem;      /* 12px */
 }
 
-.dark {
-  /* Dark theme — Deep Forest Green background, Cream text (brand) */
-  --background: 164 72% 14%;
-  --foreground: 51 57% 94%;
-
-  --card: 164 65% 12%;
-  --card-foreground: 51 57% 94%;
-
-  --popover: 164 65% 11%;
-  --popover-foreground: 51 57% 94%;
-
-  --primary: 51 57% 94%;
-  --primary-foreground: 164 72% 14%;
-
-  --secondary: 164 40% 20%;
-  --secondary-foreground: 51 57% 94%;
-
-  --muted: 164 35% 22%;
-  --muted-foreground: 51 40% 75%;
-
-  --accent: 45 65% 52%;
-  --accent-foreground: 164 72% 14%;
-
-  --destructive: 0 62.8% 45%;
-  --destructive-foreground: 0 0% 98%;
-
-  --success: 164 55% 42%;
-  --success-foreground: 51 57% 98%;
-
-  --border: 164 35% 28%;
-  --input: 164 35% 28%;
-  --ring: 51 57% 94%;
-}
-
 @layer base {
   * {
     border-color: theme(--color-border);

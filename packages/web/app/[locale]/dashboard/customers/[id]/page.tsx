@@ -11,7 +11,7 @@ import {
   Users, ShoppingBag, MessageSquare, TrendingUp, Calendar,
   ArrowLeft, AlertTriangle, Star,
 } from 'lucide-react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
 const SEGMENT_TONES: Record<string, Parameters<typeof Badge>[0]['tone']> = {
   champions: 'success',
@@ -46,7 +46,6 @@ interface CustomerDetail {
 
 export default function CustomerDetailPage() {
   const t = useTranslations('CustomerDetail');
-  const locale = useLocale();
   const params = useParams();
   const router = useRouter();
   const customerId = params.id as string;
@@ -74,7 +73,7 @@ export default function CustomerDetailPage() {
   };
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
   if (loading) {
     return (
@@ -160,7 +159,7 @@ export default function CustomerDetailPage() {
             <BlockStack gap="100" inlineAlign="center">
             <ShoppingBag className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
             <Text as="p" variant="headingMd">{String(customer.metrics.orderCount)}</Text>
-            <Text as="p" variant="bodySm" tone="subdued">Sipariş</Text>
+            <Text as="p" variant="bodySm" tone="subdued">Orders</Text>
             </BlockStack>
           </Box>
         </PolarisCard>
@@ -169,7 +168,7 @@ export default function CustomerDetailPage() {
             <BlockStack gap="100" inlineAlign="center">
             <MessageSquare className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
             <Text as="p" variant="headingMd">{String(customer.metrics.totalConversations)}</Text>
-            <Text as="p" variant="bodySm" tone="subdued">Konuşma</Text>
+            <Text as="p" variant="bodySm" tone="subdued">Conversations</Text>
             </BlockStack>
           </Box>
         </PolarisCard>
@@ -178,7 +177,7 @@ export default function CustomerDetailPage() {
             <BlockStack gap="100" inlineAlign="center">
             <Star className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
             <Text as="p" variant="headingMd">{String(customer.metrics.avgSentiment || '—')}</Text>
-            <Text as="p" variant="bodySm" tone="subdued">Ort. Duygu</Text>
+            <Text as="p" variant="bodySm" tone="subdued">Avg. Sentiment</Text>
             </BlockStack>
           </Box>
         </PolarisCard>
@@ -242,7 +241,7 @@ export default function CustomerDetailPage() {
                   <Link key={conv.id} href={`/dashboard/conversations/${conv.id}`} className="block p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
                     <InlineStack align="space-between" blockAlign="center">
                       <BlockStack gap="100">
-                        <Text as="p" variant="bodyMd" fontWeight="medium">{`${conv.messageCount} mesaj`}</Text>
+                        <Text as="p" variant="bodyMd" fontWeight="medium">{`${conv.messageCount} messages`}</Text>
                         <Text as="p" variant="bodySm" tone="subdued">{formatDate(conv.updatedAt)}</Text>
                       </BlockStack>
                       <Badge tone={conv.status === 'human' ? 'critical' : conv.status === 'resolved' ? 'success' : 'enabled'}>
@@ -263,7 +262,7 @@ export default function CustomerDetailPage() {
         <PolarisCard>
           <Box padding="400">
             <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">Geri Bildirim</Text>
+              <Text as="h2" variant="headingMd">Feedback</Text>
             <div className="space-y-3">
               {customer.feedback.map((fb) => (
                 <Box key={fb.id} padding="300" borderRadius="300" background="bg-surface-secondary">

@@ -2,13 +2,13 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ChatIcon, PersonIcon, SettingsIcon } from "@shopify/polaris-icons";
-import { InlineGrid } from "@shopify/polaris";
-import { authenticate } from "../shopify.server";
+import { Banner, InlineGrid } from "@shopify/polaris";
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantConversations } from "../platform.server";
 import { ActionCard, EmptyCard, MetricCard, SectionCard, ShellPage } from "../components/shell-ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  await authenticateEmbeddedAdmin(request);
 
   try {
     return await fetchMerchantConversations(request);
@@ -42,9 +42,9 @@ export default function ConversationsPage() {
       </InlineGrid>
 
       {"unavailableReason" in data && data.unavailableReason ? (
-        <SectionCard title="Data issue">
-          {data.unavailableReason}
-        </SectionCard>
+        <Banner title="Conversation data unavailable" tone="warning">
+          {data.unavailableReason as string}
+        </Banner>
       ) : null}
 
       <SectionCard

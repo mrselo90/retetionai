@@ -106,6 +106,7 @@ function MetricCard({
           <Text as="p" variant="bodySm" tone="subdued">
             {title}
           </Text>
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <Box
             background={(iconBackground || 'bg-surface-secondary') as any}
             borderRadius="200"
@@ -166,6 +167,7 @@ function DashboardIconTile({
   background?: string;
 }) {
   return (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     <Box
       background={(background || 'bg-surface-secondary') as any}
       borderRadius="200"

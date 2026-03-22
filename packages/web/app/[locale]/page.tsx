@@ -33,12 +33,14 @@ export default function Home() {
 
           {/* Nav links */}
           <nav className="hidden md:flex items-center gap-1 mr-auto ml-6" aria-label="Primary">
-            {[
-              { href: '/#features', label: tFooter('features') },
-              { href: '/#how-it-works', label: tFooter('howItWorks') },
-              { href: '/#pricing', label: tFooter('pricing') },
-              { href: '/#faq', label: 'FAQ' },
-            ].map((item) => (
+              {[
+                { href: '/#features', label: tFooter('features') },
+                { href: '/#how-it-works', label: tFooter('howItWorks') },
+                { href: '/#pricing', label: tFooter('pricing') },
+                { href: '/#faq', label: 'FAQ' },
+                { href: '/about', label: tFooter('aboutUs') },
+                { href: '/contact', label: tFooter('contact') },
+              ].map((item) => (
               <Link key={item.href} href={item.href} className="inline-block">
                 <span className="block px-3 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 rounded-lg hover:bg-white/80 transition-colors">
                   {item.label}

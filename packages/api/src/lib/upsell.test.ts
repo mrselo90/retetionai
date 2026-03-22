@@ -10,6 +10,7 @@ import {
   checkEligibility,
   shouldSendUpsell,
 } from './upsell';
+import { getMerchantUpsellStrategy } from './merchantPlanFeatures.js';
 import { getSupabaseServiceClient } from '@recete/shared';
 import { mockSupabaseClient } from '../test/mocks';
 import { createTestOrder, createTestUser } from '../test/fixtures';
@@ -27,10 +28,15 @@ vi.mock('@recete/shared', async () => {
   };
 });
 
+vi.mock('./merchantPlanFeatures.js', () => ({
+  getMerchantUpsellStrategy: vi.fn(),
+}));
+
 describe('detectSatisfaction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (getSupabaseServiceClient as any).mockReturnValue(mockSupabaseClient);
+    vi.mocked(getMerchantUpsellStrategy).mockResolvedValue('SMART_REORDER');
   });
 
   it('should detect positive sentiment', async () => {
@@ -79,6 +85,7 @@ describe('checkEligibility', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (getSupabaseServiceClient as any).mockReturnValue(mockSupabaseClient);
+    vi.mocked(getMerchantUpsellStrategy).mockResolvedValue('SMART_REORDER');
   });
 
   it('should check T+14 timing requirement', async () => {
@@ -143,6 +150,7 @@ describe('generateUpsell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (getSupabaseServiceClient as any).mockReturnValue(mockSupabaseClient);
+    vi.mocked(getMerchantUpsellStrategy).mockResolvedValue('SMART_REORDER');
   });
 
   it('should generate upsell message', async () => {
@@ -209,6 +217,7 @@ describe('shouldSendUpsell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (getSupabaseServiceClient as any).mockReturnValue(mockSupabaseClient);
+    vi.mocked(getMerchantUpsellStrategy).mockResolvedValue('SMART_REORDER');
   });
 
   it('should return true when all conditions met', async () => {

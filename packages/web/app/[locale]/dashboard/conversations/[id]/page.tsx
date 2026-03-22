@@ -23,7 +23,7 @@ import {
   TextField,
 } from '@shopify/polaris';
 import { MessageSquare, Clock, User, ShoppingBag, Bot } from 'lucide-react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
 interface ConversationMessage {
   role: 'user' | 'assistant' | 'merchant';
@@ -77,7 +77,6 @@ function DetailIconSurface({
 export default function ConversationDetailPage() {
   const t = useTranslations('ConversationDetail');
   const rp = useTranslations('ReturnPrevention');
-  const locale = useLocale();
   const params = useParams();
   const router = useRouter();
   const conversationId = params.id as string;
@@ -128,7 +127,7 @@ export default function ConversationDetailPage() {
   };
 
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US', {
+    return new Date(dateString).toLocaleString('en-GB', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -138,7 +137,7 @@ export default function ConversationDetailPage() {
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString(locale === 'tr' ? 'tr-TR' : 'en-US', {
+    return new Date(dateString).toLocaleTimeString('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
     });

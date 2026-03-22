@@ -47,6 +47,9 @@ module.exports = {
         PORT: 3002,
         NODE_ENV: 'production',
         INTERNAL_SERVICE_SECRET: internalServiceSecret,
+        API_URL: 'https://api.recete.co.uk',
+        FRONTEND_URL: 'https://recete.co.uk',
+        ALLOWED_ORIGINS: 'https://recete.co.uk,https://shop.recete.co.uk,https://admin.shopify.com',
       },
       instances: 1,
       exec_mode: 'fork',
@@ -61,7 +64,8 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3001,
-        INTERNAL_API_URL: 'http://127.0.0.1:3002'
+        INTERNAL_API_URL: 'http://127.0.0.1:3002',
+        NEXT_PUBLIC_API_URL: 'https://recete.co.uk',
       },
       instances: 1,
       exec_mode: 'fork',
@@ -78,9 +82,11 @@ module.exports = {
         PORT: 3003,
         SHOPIFY_APP_URL: 'https://shop.recete.co.uk',
         DATABASE_URL: process.env.DATABASE_URL || rootEnv.DATABASE_URL || '',
-        PLATFORM_API_URL: 'http://127.0.0.1:3002',
+        PLATFORM_API_URL: 'http://127.0.0.1:3002',  // internal loopback, no TLS needed
         PLATFORM_INTERNAL_SECRET: internalServiceSecret,
         LEGACY_DASHBOARD_URL: 'https://recete.co.uk',
+        API_URL: 'https://api.recete.co.uk',
+        FRONTEND_URL: 'https://recete.co.uk',
       },
       instances: 1,
       exec_mode: 'fork',

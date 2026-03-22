@@ -10,6 +10,7 @@ import { generateIdempotencyKey, normalizePhone } from './events.js';
 import { scheduleOrderMessages } from './messageScheduler.js';
 import { scheduleMessage } from '../queues.js';
 import { normalizeAndHashPhone } from './phoneLookup.js';
+import { sendDeliveryTemplate } from './deliveryTemplateService.js';
 
 /**
  * Process normalized event and upsert order/user
@@ -256,6 +257,23 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
           logger.info({ orderId }, 'Queued T+0 welcome message for order');
         } catch (error) {
           logger.error({ error, orderId }, 'Failed to queue T+0 welcome message');
+        }
+      }
+
+      // Send delivery template (Twilio WhatsApp HSM)
+      if (event.customer?.phone) {
+        try {
+          await sendDeliveryTemplate({
+            merchantId: event.merchant_id,
+            userId,
+            orderId,
+            customerPhone: event.customer.phone,
+            customerFirstName: event.customer.name?.split(' ')[0] || '',
+            locale: event.customer_locale,
+            items: event.items ?? [],
+          });
+        } catch (error) {
+          logger.error({ error, orderId }, 'Failed to send delivery template');
         }
       }
     } else {

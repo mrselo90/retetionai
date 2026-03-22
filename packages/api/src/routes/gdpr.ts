@@ -59,7 +59,6 @@ gdpr.get('/export', async (c) => {
     return c.json(
       {
         error: 'Failed to export data',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
     );
@@ -91,7 +90,6 @@ gdpr.get('/exports', async (c) => {
     return c.json(
       {
         error: 'Failed to fetch GDPR exports',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
     );
@@ -128,7 +126,6 @@ gdpr.get('/exports/:id', validateParams(gdprExportIdSchema), async (c) => {
     return c.json(
       {
         error: 'Failed to fetch GDPR export',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
     );
@@ -212,13 +209,12 @@ gdpr.post('/jobs/:id/process', validateParams(gdprJobIdSchema), async (c) => {
         .eq('id', id)
         .eq('merchant_id', merchantId);
 
-      return c.json({ error: 'Failed to process GDPR job', message: lastError }, 500);
+      return c.json({ error: 'Failed to process GDPR job' }, 500);
     }
   } catch (error) {
     return c.json(
       {
         error: 'Failed to process GDPR job',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500,
     );
@@ -275,7 +271,6 @@ gdpr.get('/users/:userId/export', validateParams(userIdSchema), async (c) => {
     return c.json(
       {
         error: 'Failed to export user data',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
     );
@@ -319,7 +314,6 @@ gdpr.delete('/delete', validateBody(deleteRequestSchema) as any, async (c) => {
     return c.json(
       {
         error: 'Failed to delete data',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
     );
@@ -378,7 +372,6 @@ gdpr.delete(
       return c.json(
         {
           error: 'Failed to delete user data',
-          message: error instanceof Error ? error.message : 'Unknown error',
         },
         500
       );
@@ -457,7 +450,6 @@ gdpr.put(
       return c.json(
         {
           error: 'Failed to update consent',
-          message: error instanceof Error ? error.message : 'Unknown error',
         },
         500
       );

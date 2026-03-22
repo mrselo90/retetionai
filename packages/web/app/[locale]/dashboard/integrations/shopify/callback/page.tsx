@@ -81,7 +81,7 @@ function ShopifyCallbackContent() {
                 <p>{message}</p>
               </Banner>
               <div className="mt-4">
-                <Text as="h2" variant="headingLg">Hata</Text>
+                <Text as="h2" variant="headingLg">{t('error')}</Text>
               </div>
               <div className="mt-4">
                 <Button onClick={() => router.push('/dashboard/integrations')} variant="primary">
@@ -104,7 +104,7 @@ function ShopifyCallbackContent() {
 export default function ShopifyCallbackPage() {
   return (
     <Suspense fallback={
-      <Page title="Loading...">
+      <Page title="Connecting">
         <Layout>
           <Layout.Section>
         <Box paddingBlockStart="400">
@@ -113,9 +113,9 @@ export default function ShopifyCallbackPage() {
               <Card>
                 <div className="p-8 text-center">
                   <div className="flex justify-center mb-4">
-                    <Spinner accessibilityLabel="Loading" size="large" />
+                    <Spinner accessibilityLabel="Connecting to Shopify" size="large" />
                   </div>
-                  <Text as="h2" variant="headingLg">Loading...</Text>
+                  <Text as="h2" variant="headingLg">Connecting</Text>
                 </div>
               </Card>
             </div>

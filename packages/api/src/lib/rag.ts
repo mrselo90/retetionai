@@ -1,33 +1,9 @@
 /**
  * RAG (Retrieval Augmented Generation) utilities
- * Semantic search over product knowledge base
+ * Shared result formatting and order-scoped product context resolution.
  */
 
 import { getSupabaseServiceClient } from '@recete/shared';
-import { generateEmbedding } from './embeddings.js';
-import { getCache, setCache } from './cache.js';
-import crypto from 'node:crypto';
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function isValidUUID(s: string): boolean {
-  return typeof s === 'string' && UUID_REGEX.test(s.trim());
-}
-
-export interface RAGQueryOptions {
-  merchantId: string;
-  query: string;
-  productIds?: string[]; // Filter by specific products
-  topK?: number; // Number of results to return
-  similarityThreshold?: number; // Minimum similarity score (0-1)
-  preferredSectionTypes?: string[];
-  preferredLanguage?: 'tr' | 'en' | 'hu' | string;
-  candidateMultiplier?: number;
-  diversityRerank?: boolean;
-  cacheKey?: string;
-  cacheTtlSeconds?: number;
-  cacheEmbedding?: boolean;
-}
 
 export interface RAGResult {
   chunkId: string;
@@ -41,13 +17,6 @@ export interface RAGResult {
   languageCode?: string | null;
 }
 
-export interface RAGQueryResponse {
-  query: string;
-  results: RAGResult[];
-  totalResults: number;
-  executionTime: number;
-}
-
 interface OrderScopeResolution {
   productIds: string[];
   chunks: RAGResult[];
@@ -59,178 +28,6 @@ function normalizeProductNameForMatch(name: string): string {
     .trim()
     .toLocaleLowerCase('tr-TR')
     .replace(/\s+/g, ' ');
-}
-
-/**
- * Perform semantic search over knowledge base
- * Uses pgvector HNSW index via Supabase RPC for fast similarity search
- */
-export async function queryKnowledgeBase(
-  options: RAGQueryOptions
-): Promise<RAGQueryResponse> {
-  const startTime = Date.now();
-  const {
-    merchantId,
-    query,
-    productIds: rawProductIds,
-    topK = 5,
-    similarityThreshold = 0.7,
-    preferredSectionTypes,
-    preferredLanguage,
-    candidateMultiplier,
-    diversityRerank = true,
-    cacheKey,
-    cacheTtlSeconds = 900,
-    cacheEmbedding = true,
-  } = options;
-
-  // Only use product IDs that are valid UUIDs (avoids "invalid input syntax for type uuid" when query is pasted into Product IDs field)
-  const productIds =
-    rawProductIds && rawProductIds.length > 0
-      ? rawProductIds.filter(isValidUUID)
-      : undefined;
-
-  if (cacheKey) {
-    const cached = await getCache<{ results: RAGResult[]; totalResults: number }>('rag_query_v2', cacheKey);
-    if (cached) {
-      return {
-        query,
-        results: cached.results,
-        totalResults: cached.totalResults,
-        executionTime: Date.now() - startTime,
-      };
-    }
-  }
-
-  let queryEmbedding: number[] | null = null;
-  if (cacheEmbedding) {
-    const embedKey = crypto.createHash('sha256').update(query).digest('hex');
-    const cachedEmbedding = await getCache<number[]>('rag_embed_v1', embedKey);
-    if (cachedEmbedding) {
-      queryEmbedding = cachedEmbedding;
-    }
-  }
-
-  if (!queryEmbedding) {
-    const embeddingResult = await generateEmbedding(query);
-    queryEmbedding = embeddingResult.embedding;
-    if (cacheEmbedding) {
-      const embedKey = crypto.createHash('sha256').update(query).digest('hex');
-      void setCache('rag_embed_v1', embedKey, queryEmbedding, 3600);
-    }
-  }
-
-  const serviceClient = getSupabaseServiceClient();
-
-  const dbMatchCount = Math.min(
-    50,
-    Math.max(
-      topK,
-      topK * (candidateMultiplier ?? ((preferredSectionTypes?.length || preferredLanguage) ? 3 : 1))
-    )
-  );
-
-  // Use pgvector RPC for DB-side cosine similarity (leverages HNSW index)
-  const { data: rows, error } = await serviceClient.rpc('match_knowledge_chunks', {
-    query_embedding: JSON.stringify(queryEmbedding),
-    match_merchant_id: merchantId,
-    match_product_ids: productIds && productIds.length > 0 ? productIds : null,
-    match_threshold: similarityThreshold,
-    match_count: dbMatchCount,
-  });
-
-  if (error) {
-    throw new Error(`Failed to query knowledge base: ${error.message}`);
-  }
-
-  if (!rows || rows.length === 0) {
-    const response = {
-      query,
-      results: [],
-      totalResults: 0,
-      executionTime: Date.now() - startTime,
-    };
-    if (cacheKey) {
-      void setCache('rag_query_v2', cacheKey, { results: response.results, totalResults: response.totalResults }, cacheTtlSeconds);
-    }
-    return response;
-  }
-
-  let results: RAGResult[] = (rows as any[]).map((row) => ({
-    chunkId: row.id,
-    productId: row.product_id,
-    productName: row.product_name,
-    productUrl: row.product_url,
-    chunkText: row.chunk_text,
-    chunkIndex: row.chunk_index,
-    similarity: row.similarity,
-    sectionType: row.section_type ?? null,
-    languageCode: row.language_code ?? null,
-  }));
-
-  if (preferredSectionTypes?.length || preferredLanguage) {
-    const preferredSet = new Set((preferredSectionTypes || []).map((s) => s.toLowerCase()));
-    results = results
-      .map((r) => {
-        let score = r.similarity;
-        if (r.sectionType && preferredSet.has(r.sectionType.toLowerCase())) score += 0.08;
-        if (preferredLanguage && r.languageCode && r.languageCode.toLowerCase() === preferredLanguage.toLowerCase()) score += 0.03;
-        return { ...r, similarity: Math.min(0.999, score) };
-      })
-      .sort((a, b) => b.similarity - a.similarity);
-  } else {
-    results = results.sort((a, b) => b.similarity - a.similarity);
-  }
-
-  if (diversityRerank && results.length > 1) {
-    results = rerankWithDiversity(results, topK);
-  } else {
-    results = results.slice(0, topK);
-  }
-
-  const response = {
-    query,
-    results,
-    totalResults: results.length,
-    executionTime: Date.now() - startTime,
-  };
-
-  if (cacheKey) {
-    void setCache('rag_query_v2', cacheKey, { results: response.results, totalResults: response.totalResults }, cacheTtlSeconds);
-  }
-
-  return response;
-}
-
-function rerankWithDiversity(results: RAGResult[], topK: number): RAGResult[] {
-  const selected: RAGResult[] = [];
-  const remaining = [...results].sort((a, b) => b.similarity - a.similarity);
-
-  while (selected.length < topK && remaining.length > 0) {
-    let bestIdx = 0;
-    let bestScore = -Infinity;
-
-    for (let i = 0; i < remaining.length; i++) {
-      const candidate = remaining[i];
-      const sameProductCount = selected.filter((s) => s.productId === candidate.productId).length;
-      const sameSection = candidate.sectionType
-        ? selected.some((s) => s.sectionType && s.sectionType === candidate.sectionType)
-        : false;
-
-      const productPenalty = Math.min(0.12, sameProductCount * 0.06);
-      const sectionPenalty = sameSection ? 0.04 : 0;
-      const score = candidate.similarity - productPenalty - sectionPenalty;
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestIdx = i;
-      }
-    }
-
-    selected.push(remaining.splice(bestIdx, 1)[0]);
-  }
-
-  return selected;
 }
 
 /**
@@ -341,7 +138,7 @@ export async function getOrderProductContextResolved(
           .from('products')
           .select('id, name')
           .eq('merchant_id', order.merchant_id)
-          .limit(5000);
+          .limit(500);
 
         const requestedNames = new Set(eventItemNames.map(normalizeProductNameForMatch));
         resolvedProductIds = Array.from(

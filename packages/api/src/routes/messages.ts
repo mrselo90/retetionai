@@ -78,7 +78,6 @@ messages.post('/schedule', async (c) => {
     return c.json(
       {
         error: 'Failed to schedule message',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
     );
@@ -121,7 +120,6 @@ messages.post('/schedule-order', async (c) => {
     return c.json(
       {
         error: 'Failed to schedule order messages',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
     );
@@ -154,7 +152,6 @@ messages.post('/cancel-order', async (c) => {
     return c.json(
       {
         error: 'Failed to cancel messages',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
     );
@@ -182,7 +179,6 @@ messages.get('/user/:userId', async (c) => {
     return c.json(
       {
         error: 'Failed to get scheduled messages',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       500
     );

@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { CompanyIdentityBlock } from '@/components/site/CompanyIdentityBlock';
 
 export default function TermsOfServicePage() {
   return (
-    <div className="min-h-screen bg-zinc-50 py-12 px-4">
+    <div className="min-h-screen bg-[hsl(var(--recete-cream))] py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-zinc-900 mb-8">Terms of Service</h1>
@@ -14,7 +15,7 @@ export default function TermsOfServicePage() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">1. Agreement to Terms</h2>
               <p className="text-zinc-700 mb-4">
-                By accessing or using Recete Retention Agent ("Service"), you agree to be bound by these
+                By accessing or using Recete (&ldquo;Service&rdquo;), provided by Recete Ltd., you agree to be bound by these
                 Terms of Service. If you disagree with any part of these terms, you may not access the Service.
               </p>
             </section>
@@ -128,7 +129,17 @@ export default function TermsOfServicePage() {
                   legal@recete.co.uk
                 </a>
               </p>
+              <ul className="list-none text-zinc-700 mb-4">
+                <li>RECETE LTD</li>
+                <li>Registered office: 71-75 Shelton Street, Covent Garden, London, WC2H 9JQ</li>
+                <li>Company number: 17082027</li>
+                <li>Phone: +44 7915 922506</li>
+              </ul>
             </section>
+          </div>
+
+          <div className="mt-8">
+            <CompanyIdentityBlock compact />
           </div>
 
           <div className="mt-8 pt-8 border-t border-zinc-200">

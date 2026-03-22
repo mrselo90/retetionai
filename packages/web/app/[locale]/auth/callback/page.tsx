@@ -40,9 +40,9 @@ export default function AuthCallbackPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto mb-4"></div>
+    <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--recete-cream))]">
+      <div className="text-center" role="status" aria-live="polite">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto mb-4" aria-hidden="true"></div>
         <p className="text-zinc-600">{t('loggingIn')}</p>
       </div>
     </div>

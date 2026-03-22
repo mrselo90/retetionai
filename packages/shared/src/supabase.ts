@@ -16,29 +16,37 @@ if (!supabaseUrl || !supabaseAnonKey) {
   }
 }
 
+let anonClient: SupabaseClient | null = null;
+let serviceClient: SupabaseClient | null = null;
+
 /**
  * Public Supabase client (uses anon key, respects RLS)
  * Use for client-side operations where RLS policies apply
  */
 export function getSupabaseClient(): SupabaseClient {
-  return createClient(supabaseUrl as string, supabaseAnonKey as string);
+  if (!anonClient) {
+    anonClient = createClient(supabaseUrl as string, supabaseAnonKey as string);
+  }
+  return anonClient;
 }
 
 /**
  * Service role Supabase client (bypasses RLS)
  * Use only in server-side operations where you need to bypass RLS
- * ⚠️ Never expose this client to the frontend
  */
 export function getSupabaseServiceClient(): SupabaseClient {
   if (!supabaseServiceRoleKey) {
     throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for service role client');
   }
-  return createClient(supabaseUrl as string, supabaseServiceRoleKey as string, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
+  if (!serviceClient) {
+    serviceClient = createClient(supabaseUrl as string, supabaseServiceRoleKey as string, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+  }
+  return serviceClient;
 }
 
 /**

@@ -3,12 +3,12 @@ import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ConnectIcon, CreditCardIcon, SettingsIcon } from "@shopify/polaris-icons";
 import { Button, InlineGrid } from "@shopify/polaris";
-import { authenticate } from "../shopify.server";
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantOverviewFromRequest } from "../platform.server";
-import { ActionCard, MetricCard, SectionCard, ShellPage, StatusBadge } from "../components/shell-ui";
+import { ActionCard, EmptyCard, MetricCard, SectionCard, ShellPage, StatusBadge } from "../components/shell-ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  await authenticateEmbeddedAdmin(request);
   return fetchMerchantOverviewFromRequest(request);
 };
 
@@ -59,21 +59,29 @@ export default function IntegrationsPage() {
         title="Live connections"
         subtitle="Each provider should show recency and a plain-language state."
       >
-        <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-          {data.integrations.map((integration) => (
-            <ActionCard
-              key={integration.id}
-              title={integration.provider}
-              description={
-                integration.updated_at
-                  ? `Updated ${new Date(integration.updated_at).toLocaleString()}`
-                  : "No update timestamp available."
-              }
-              status={integration.status}
-              action={{ content: "Review dashboard", url: "/app/dashboard", icon: ConnectIcon }}
-            />
-          ))}
-        </InlineGrid>
+        {data.integrations.length > 0 ? (
+          <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+            {data.integrations.map((integration) => (
+              <ActionCard
+                key={integration.id}
+                title={integration.provider}
+                description={
+                  integration.updated_at
+                    ? `Updated ${new Date(integration.updated_at).toLocaleString()}`
+                    : "No update timestamp available."
+                }
+                status={integration.status}
+                action={{ content: "Review dashboard", url: "/app/dashboard", icon: ConnectIcon }}
+              />
+            ))}
+          </InlineGrid>
+        ) : (
+          <EmptyCard
+            heading="No integrations connected"
+            description="Connect your Shopify store or other services to start syncing data."
+            action={{ content: "Open settings", url: "/app/settings" }}
+          />
+        )}
       </SectionCard>
     </ShellPage>
   );

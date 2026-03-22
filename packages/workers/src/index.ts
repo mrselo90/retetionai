@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 import { Queue } from 'bullmq';
 import { getAllWorkers, closeAllWorkers } from './workers.js';
-import { closeAllQueues } from './queues.js';
+import { closeAllQueues, setupDeadLetterForwarding } from './queues.js';
 import { closeRedisConnection, logger, getRedisClient, QUEUE_NAMES } from '@recete/shared';
 import { getAllIntelligenceWorkers, closeAllIntelligenceWorkers } from './intelligenceWorkers.js';
 
@@ -15,6 +15,9 @@ logger.info('Recete Workers starting...');
 const workers = getAllWorkers();
 const intelligenceWorkers = getAllIntelligenceWorkers();
 logger.info({ workerCount: workers.length + intelligenceWorkers.length }, 'Workers started');
+
+setupDeadLetterForwarding();
+logger.info('Dead-letter queue forwarding enabled');
 
 // Schedule recurring intelligence jobs (cron-based)
 const connection = getRedisClient();

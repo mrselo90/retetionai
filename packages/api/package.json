@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc -b tsconfig.json --force",
     "typecheck": "tsc --noEmit",
     "start": "PORT=3001 node -r dotenv/config -r newrelic dist/index.js",
     "start:prod": "PORT=3002 node -r dotenv/config -r newrelic dist/index.js",

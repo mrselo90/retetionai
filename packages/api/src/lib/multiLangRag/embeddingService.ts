@@ -1,17 +1,18 @@
 import { getOpenAIClient } from '../openaiClient.js';
-import { getEmbeddingDimensionForModel, getMultiLangRagFlags } from './config.js';
+import { getDefaultEmbeddingModel } from '../runtimeModelSettings.js';
+import { getEmbeddingDimensionForModel } from './config.js';
 
 export class EmbeddingService {
-  getModel(): string {
-    return getMultiLangRagFlags().embeddingModel;
+  async getModel(): Promise<string> {
+    return getDefaultEmbeddingModel();
   }
 
-  getDimension(): number {
-    return getEmbeddingDimensionForModel(this.getModel());
+  async getDimension(): Promise<number> {
+    return getEmbeddingDimensionForModel(await this.getModel());
   }
 
   async embedText(text: string): Promise<number[]> {
-    const model = this.getModel();
+    const model = await this.getModel();
     const client = getOpenAIClient();
     const resp = await client.embeddings.create({
       model,
@@ -20,10 +21,10 @@ export class EmbeddingService {
     });
     const embedding = resp.data?.[0]?.embedding;
     if (!Array.isArray(embedding)) throw new Error('Embedding response missing vector');
-    if (embedding.length !== this.getDimension()) {
-      throw new Error(`Embedding dimension mismatch for ${model}: got ${embedding.length}, expected ${this.getDimension()}`);
+    const dimension = await this.getDimension();
+    if (embedding.length !== dimension) {
+      throw new Error(`Embedding dimension mismatch for ${model}: got ${embedding.length}, expected ${dimension}`);
     }
     return embedding;
   }
 }
-

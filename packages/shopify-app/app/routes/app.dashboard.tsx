@@ -2,12 +2,13 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AlertTriangleIcon, CartIcon, CatalogIcon, SettingsIcon } from "@shopify/polaris-icons";
-import { EmptyState, InlineGrid } from "@shopify/polaris";
-import { authenticate } from "../shopify.server";
+import { InlineGrid } from "@shopify/polaris";
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantOverviewFromRequest } from "../platform.server";
 import {
   ActionCard,
   DetailRows,
+  EmptyCard,
   MetricCard,
   SectionCard,
   ShellPage,
@@ -15,7 +16,7 @@ import {
 } from "../components/shell-ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  await authenticateEmbeddedAdmin(request);
   return fetchMerchantOverviewFromRequest(request);
 };
 
@@ -91,13 +92,11 @@ export default function DashboardPage() {
               }))}
             />
           ) : (
-            <EmptyState
+            <EmptyCard
               heading="No recent orders"
-              image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+              description="No fulfilled orders have reached the retention engine yet."
               action={{ content: "Review integrations", url: "/app/integrations" }}
-            >
-              No fulfilled orders have reached the retention engine yet.
-            </EmptyState>
+            />
           )}
         </InlineGrid>
       </SectionCard>

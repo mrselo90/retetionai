@@ -1,5 +1,4 @@
 import type { HeadersFunction } from "react-router";
-import { useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { CartIcon, CatalogIcon, SettingsIcon } from "@shopify/polaris-icons";
 import { Button, Card, InlineGrid, Text } from "@shopify/polaris";
@@ -12,7 +11,8 @@ import type { ShopifyMerchantOverview } from "../platform.server";
 import { useAppBootstrapData } from "./app";
 
 export default function Index() {
-  const data = useAppBootstrapData()?.overview;
+  const { bootstrapData, bootstrapError, shellLoading } = useAppBootstrapData();
+  const data = bootstrapData?.overview;
 
   if (!data) {
     return (
@@ -23,7 +23,11 @@ export default function Index() {
       >
         <Card padding="500">
           <Text as="p" variant="bodyMd" tone="subdued">
-            Waiting for Shopify session-token bootstrap.
+            {bootstrapError
+              ? `Shopify bootstrap error: ${bootstrapError}`
+              : shellLoading
+                ? "Waiting for Shopify session-token bootstrap."
+                : "Shopify bootstrap has not completed yet."}
           </Text>
         </Card>
       </ShellPage>
@@ -42,7 +46,6 @@ export default function Index() {
 }
 
 function OverviewContent({ data }: { data: ShopifyMerchantOverview }) {
-  const navigate = useNavigate();
   return (
     <>
       <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
@@ -74,17 +77,17 @@ function OverviewContent({ data }: { data: ShopifyMerchantOverview }) {
       >
         <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
           <Card padding="500">
-            <Button fullWidth onClick={() => navigate("/app/products")} icon={CatalogIcon} variant="primary">
+            <Button fullWidth url="/app/products" icon={CatalogIcon} variant="primary">
               Review catalog
             </Button>
           </Card>
           <Card padding="500">
-            <Button fullWidth onClick={() => navigate("/app/billing")} icon={CartIcon} variant="primary">
+            <Button fullWidth url="/app/billing" icon={CartIcon} variant="primary">
               Check billing
             </Button>
           </Card>
           <Card padding="500">
-            <Button fullWidth onClick={() => navigate("/app/settings")} icon={SettingsIcon} variant="primary">
+            <Button fullWidth url="/app/settings" icon={SettingsIcon} variant="primary">
               Tune settings
             </Button>
           </Card>

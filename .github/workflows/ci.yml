@@ -33,11 +33,9 @@ jobs:
       
       - name: Lint
         run: pnpm -r lint
-        continue-on-error: true
       
       - name: Type check
         run: pnpm -r typecheck
-        continue-on-error: true
 
   build:
     name: Build
@@ -94,5 +92,4 @@ jobs:
       
       - name: Run tests
         run: pnpm -r test
-        continue-on-error: true # Tests may not be fully implemented yet
 

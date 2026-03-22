@@ -7,6 +7,7 @@ import * as Sentry from '@sentry/nextjs';
 /**
  * Capture exception in frontend
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function captureException(error: Error, context?: Record<string, any>) {
   if (context) {
     Sentry.withScope((scope) => {
@@ -23,6 +24,7 @@ export function captureException(error: Error, context?: Record<string, any>) {
 /**
  * Capture message in frontend
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, any>) {
   if (context) {
     Sentry.withScope((scope) => {
@@ -50,6 +52,7 @@ export function setUserContext(userId: string, email?: string, merchantId?: stri
 /**
  * Add breadcrumb
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function addBreadcrumb(message: string, category?: string, level?: Sentry.SeverityLevel, data?: Record<string, any>) {
   Sentry.addBreadcrumb({
     message,
