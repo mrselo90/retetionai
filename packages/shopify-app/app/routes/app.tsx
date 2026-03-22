@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import {
+  Link as RemixLink,
   Outlet,
   useFetcher,
   useLoaderData,
@@ -27,6 +28,17 @@ import {
   Text,
 } from "@shopify/polaris";
 import enPolarisTranslations from "@shopify/polaris/locales/en.json";
+
+const AppLink = forwardRef<
+  HTMLAnchorElement,
+  React.AnchorHTMLAttributes<HTMLAnchorElement> & { url?: string }
+>(function AppLink({ url, href, children, ...rest }, ref) {
+  const to = url ?? href ?? "";
+  if (to.startsWith("http") || to.startsWith("//")) {
+    return <a ref={ref} href={to} {...rest}>{children}</a>;
+  }
+  return <RemixLink ref={ref} to={to} {...rest}>{children}</RemixLink>;
+});
 import {
   CartIcon,
   CatalogIcon,
@@ -90,7 +102,7 @@ export default function App() {
 
   return (
     <AppProvider embedded apiKey={apiKey}>
-      <PolarisAppProvider i18n={enPolarisTranslations}>
+      <PolarisAppProvider i18n={enPolarisTranslations} linkComponent={AppLink}>
         <AppShell initialShop={initialShop} />
       </PolarisAppProvider>
     </AppProvider>
