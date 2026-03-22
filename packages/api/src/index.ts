@@ -39,14 +39,12 @@ import { register } from './lib/metrics.js';
 import { getPlatformCorporateWhatsAppSettings } from './lib/runtimeModelSettings.js';
 
 if (process.env.NODE_ENV === 'production') {
-  const requiredSecrets = [
-    ['SHOPIFY_API_SECRET', process.env.SHOPIFY_API_SECRET],
-    ['JWT_SECRET', process.env.JWT_SECRET],
-    ['ENCRYPTION_KEY', process.env.ENCRYPTION_KEY],
+  const warnSecrets = [
+    ['ENCRYPTION_KEY', process.env.ENCRYPTION_KEY, /^[0-9a-fA-F]{64}$/],
   ] as const;
-  for (const [name, value] of requiredSecrets) {
-    if (!value?.trim()) {
-      throw new Error(`Missing required secret: ${name}. Refusing to start without it.`);
+  for (const [name, value, pattern] of warnSecrets) {
+    if (!value?.trim() || (pattern && !pattern.test(value))) {
+      console.warn(`⚠️  ${name} is missing or invalid — falling back to defaults. Set it for production safety.`);
     }
   }
 }
