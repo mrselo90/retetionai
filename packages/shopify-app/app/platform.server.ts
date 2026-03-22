@@ -250,8 +250,19 @@ export interface MerchantCustomer {
   createdAt?: string | null;
 }
 
+function extractBearerToken(request: Request): string | null {
+  const headerAuth = request.headers.get("Authorization")?.trim();
+  if (headerAuth) return headerAuth;
+
+  const url = new URL(request.url);
+  const idToken = url.searchParams.get("id_token")?.trim();
+  if (idToken) return `Bearer ${idToken}`;
+
+  return null;
+}
+
 function buildPlatformAuthHeaders(request: Request, initHeaders?: HeadersInit) {
-  const authorization = request.headers.get("Authorization")?.trim();
+  const authorization = extractBearerToken(request);
   if (!authorization) {
     throw new Error("Missing Shopify session token on embedded request.");
   }

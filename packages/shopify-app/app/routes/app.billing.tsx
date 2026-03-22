@@ -35,7 +35,13 @@ const ALL_PLAN_KEYS = [
   PRO_YEARLY_PLAN,
 ] as const;
 
-const PLAN_TIERS = [
+const PLAN_TIERS: ReadonlyArray<{
+  tier: string;
+  monthly: string;
+  yearly: string;
+  recommended?: boolean;
+  features: readonly string[];
+}> = [
   {
     tier: "Starter",
     monthly: "$29/mo",
