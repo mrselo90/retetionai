@@ -1,9 +1,11 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
+import { requireSessionTokenAuthorization } from "../lib/sessionToken.server";
 import { fetchMerchantProductInstructions, fetchMerchantProducts } from "../platform.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticateEmbeddedAdmin(request);
+  // Embedded data route: bearer token is required locally, platform API does
+  // the canonical verification.
+  requireSessionTokenAuthorization(request);
 
   const [localProducts, instructionPayload] = await Promise.all([
     fetchMerchantProducts(request),
