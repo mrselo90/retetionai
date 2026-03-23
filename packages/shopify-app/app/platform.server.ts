@@ -15,12 +15,25 @@ function parseJsonSafe(text: string) {
   }
 }
 
+function jsonErrorResponse(status: number, payload: unknown) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 async function parseRequiredJson(response: Response, context: string) {
   const bodyText = await response.text();
   const parsed = parseJsonSafe(bodyText);
 
   if (!response.ok) {
-    throw new Error(`${context} failed with ${response.status}: ${JSON.stringify(parsed)}`);
+    // Preserve upstream auth/not-found semantics for embedded data routes.
+    throw jsonErrorResponse(
+      response.status,
+      parsed || {
+        error: `${context} failed`,
+      },
+    );
   }
 
   return parsed;
@@ -264,7 +277,15 @@ function extractBearerToken(request: Request): string | null {
 function buildPlatformAuthHeaders(request: Request, initHeaders?: HeadersInit) {
   const authorization = extractBearerToken(request);
   if (!authorization) {
-    throw new Error("Missing Shopify session token on embedded request.");
+    throw jsonErrorResponse(401, {
+      error: "Missing Shopify session token in Authorization header",
+    });
+  }
+
+  if (!authorization.startsWith("Bearer ")) {
+    throw jsonErrorResponse(401, {
+      error: "Malformed Authorization header",
+    });
   }
 
   const headers = new Headers(initHeaders || {});
