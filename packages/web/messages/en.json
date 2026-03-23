@@ -280,6 +280,30 @@
                     "noProducts": "Products Missing"
                 }
             },
+            "knowledge": {
+                "title": "Knowledge Health",
+                "subtitle": "Show merchants how well Recete understands their product catalog and where answer quality may drop.",
+                "averageBadge": "Avg. score {score}",
+                "productsAtRisk": "Products at risk",
+                "productsAtRiskHint": "These products may produce weaker customer answers.",
+                "strongProducts": "Strong products",
+                "strongProductsHint": "Products with strong coverage and lower answer risk.",
+                "primaryGap": "Primary knowledge gap",
+                "primaryGapHint": "Appears on {count} product(s).",
+                "noPrimaryGap": "No major gap detected.",
+                "warningTitle": "Customer answer quality may drop on some products",
+                "warningBody": "{count} products are currently at risk. The main issue is: {gap}.",
+                "warningAction": "Review products",
+                "reasonLabels": {
+                    "missingScrapedContent": "Missing scraped product content",
+                    "missingEnrichedContent": "Missing enriched product summary",
+                    "missingUsageInstructions": "Missing usage instructions",
+                    "thinUsageInstructions": "Usage instructions are too thin",
+                    "missingReturnTips": "Missing return-prevention tips",
+                    "missingFacts": "Missing structured product facts",
+                    "missingEmbeddings": "Embeddings not generated"
+                }
+            },
             "kpi": {
                 "ordersReceived": "Orders Received",
                 "ordersReceivedHint": "Total synced orders",
@@ -479,6 +503,26 @@
             "chunksUnknown": "Chunk count unavailable",
             "edit": "Edit",
             "deleteConfirm": "Are you sure you want to delete this product?"
+        },
+        "knowledge": {
+            "scoreBadge": "Knowledge {score}",
+            "cardHint": "{coverage} coverage. Biggest gap: {gap}.",
+            "tableHint": "Biggest gap: {gap}",
+            "noGap": "No major gap detected",
+            "coverage": {
+                "strong": "Strong",
+                "moderate": "Moderate",
+                "weak": "Weak"
+            },
+            "reasons": {
+                "missingScrapedContent": "Missing scraped product content",
+                "missingEnrichedContent": "Missing enriched product summary",
+                "missingUsageInstructions": "Missing usage instructions",
+                "thinUsageInstructions": "Usage instructions are too thin",
+                "missingReturnTips": "Missing return-prevention tips",
+                "missingFacts": "Missing structured product facts",
+                "missingEmbeddings": "Embeddings not generated"
+            }
         },
         "addModal": {
             "title": "Add New Product",
@@ -1314,6 +1358,36 @@
             "preventionLabel": "Return Prevention Tips (optional)",
             "preventionPlaceholder": "Tips the bot uses when a customer wants to return the product — common issues and how to fix them...",
             "preventionHint": "Used by the bot when a customer says they want to return the product."
+        },
+        "knowledge": {
+            "title": "Knowledge Coverage",
+            "subtitle": "This score shows how much usable product knowledge the bot has for this item.",
+            "scoreBadge": "Knowledge {score}",
+            "coverageLabel": "Coverage",
+            "answerRiskLabel": "Answer risk",
+            "chunkCountLabel": "Knowledge chunks",
+            "bannerTitle": "Customer answer quality depends on product detail",
+            "bannerBody": "Current coverage is {coverage}. The biggest quality gap is: {gap}.",
+            "noGap": "No major gap detected",
+            "coverage": {
+                "strong": "Strong",
+                "moderate": "Moderate",
+                "weak": "Weak"
+            },
+            "risk": {
+                "low": "Low",
+                "medium": "Medium",
+                "high": "High"
+            },
+            "reasons": {
+                "missingScrapedContent": "Missing scraped product content",
+                "missingEnrichedContent": "Missing enriched product summary",
+                "missingUsageInstructions": "Missing usage instructions",
+                "thinUsageInstructions": "Usage instructions are too thin",
+                "missingReturnTips": "Missing return-prevention tips",
+                "missingFacts": "Missing structured product facts",
+                "missingEmbeddings": "Embeddings not generated"
+            }
         }
     },
     "Test": {

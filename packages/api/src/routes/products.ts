@@ -6,7 +6,7 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
-import { getSupabaseServiceClient } from '@recete/shared';
+import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { scrapeProductPage } from '../lib/scraper.js';
 import { addScrapeJob } from '../queues.js';
 import { processProductForRAG, batchProcessProducts, getProductChunkCount } from '../lib/knowledgeBase.js';
@@ -21,23 +21,57 @@ import {
   getCachedApiResponse,
   setCachedApiResponse,
   invalidateApiCache,
+  invalidateMerchantRagCaches,
 } from '../lib/cache.js';
 import { enforceStorageLimit } from '../lib/planLimits.js';
 import { checkMerchantRecipeCapacity } from '../lib/merchantPlanFeatures.js';
 import { MultiLangChunkShadowWriteService } from '../lib/multiLangRag/chunkShadowWriteService.js';
 import { getProductsCacheTtlSeconds } from '../lib/runtimeModelSettings.js';
+import { buildProductKnowledgeHealthMap } from '../lib/knowledgeHealth.js';
 
 const products = new Hono();
 const multiLangChunkShadowWrite = new MultiLangChunkShadowWriteService();
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error || 'unknown error');
+}
+
+function isSkippableShadowSyncError(error: unknown): boolean {
+  const message = getErrorMessage(error).toLowerCase();
+  return (
+    message.includes("reading 'shop_id'") ||
+    message.includes('shop_settings') ||
+    message.includes('product_i18n') ||
+    message.includes('knowledge_chunks_i18n') ||
+    message.includes('does not exist')
+  );
+}
 
 function shadowSyncProductKnowledge(merchantId: string, productId: string, reason: string) {
   void (async () => {
     try {
       await multiLangChunkShadowWrite.syncProduct(String(merchantId), productId);
     } catch (error) {
-      console.warn(`Multi-lang chunk shadow write failed after ${reason}:`, error);
+      const payload = { error: getErrorMessage(error), merchantId, productId, reason };
+      if (isSkippableShadowSyncError(error)) {
+        logger.info(payload, 'Multi-lang chunk shadow write skipped');
+        return;
+      }
+      logger.warn(payload, 'Multi-lang chunk shadow write failed');
     }
   })();
+}
+
+async function invalidateProductKnowledgeCaches(
+  merchantId: string,
+  productId?: string,
+  options?: { invalidateProductDetails?: boolean },
+) {
+  await Promise.all([
+    invalidateMerchantRagCaches(String(merchantId)),
+    options?.invalidateProductDetails && productId ? invalidateProductCache(productId) : Promise.resolve(true),
+    invalidateApiCache(`products:${merchantId}`),
+  ]);
 }
 
 // All routes require authentication
@@ -68,7 +102,13 @@ products.get('/', async (c) => {
     return c.json({ error: 'Failed to fetch products' }, 500);
   }
 
-  const payload = { products };
+  const knowledgeHealthMap = await buildProductKnowledgeHealthMap(serviceClient, String(merchantId), products || []);
+  const payload = {
+    products: (products || []).map((product) => ({
+      ...product,
+      knowledgeHealth: knowledgeHealthMap.get(product.id) || null,
+    })),
+  };
   const ttlSeconds = await getProductsCacheTtlSeconds();
   await setCachedApiResponse(cacheKey, payload, ttlSeconds);
   return c.json(payload);
@@ -186,6 +226,7 @@ products.put('/:id/instruction', validateParams(productIdSchema), validateBody(p
     return c.json({ error: 'Failed to save instruction' }, 500);
   }
 
+  await invalidateProductKnowledgeCaches(String(merchantId), productId);
   shadowSyncProductKnowledge(String(merchantId), productId, 'instruction save');
 
   return c.json({ instruction });
@@ -198,17 +239,22 @@ products.put('/:id/instruction', validateParams(productIdSchema), validateBody(p
 products.get('/:id', async (c) => {
   const merchantId = c.get('merchantId');
   const productId = c.req.param('id');
+  const serviceClient = getSupabaseServiceClient();
 
   // Try cache first
   const cached = await getCachedProduct(productId) as any;
   if (cached && cached.merchant_id) {
     // Verify it belongs to this merchant
     if (cached.merchant_id === merchantId) {
-      return c.json({ product: cached });
+      const knowledgeHealthMap = await buildProductKnowledgeHealthMap(serviceClient, String(merchantId), [cached]);
+      return c.json({
+        product: {
+          ...cached,
+          knowledgeHealth: knowledgeHealthMap.get(cached.id) || null,
+        },
+      });
     }
   }
-
-  const serviceClient = getSupabaseServiceClient();
 
   const { data: product, error } = await serviceClient
     .from('products')
@@ -224,7 +270,14 @@ products.get('/:id', async (c) => {
   // Cache product (10 minutes)
   await setCachedProduct(productId, product, 600);
 
-  return c.json({ product });
+  const knowledgeHealthMap = await buildProductKnowledgeHealthMap(serviceClient, String(merchantId), [product]);
+
+  return c.json({
+    product: {
+      ...product,
+      knowledgeHealth: knowledgeHealthMap.get(product.id) || null,
+    },
+  });
 });
 
 /**
@@ -275,7 +328,7 @@ products.post('/', validateBody(createProductSchema), async (c) => {
 
   // Cache new product
   await setCachedProduct(product.id, product, 600);
-  await invalidateApiCache(`products:${merchantId}`);
+  await invalidateProductKnowledgeCaches(String(merchantId), product.id);
   shadowSyncProductKnowledge(String(merchantId), product.id, 'create product');
 
   return c.json({ product }, 201);
@@ -340,7 +393,7 @@ products.put('/:id', validateParams(productIdSchema), validateBody(updateProduct
 
   // Update cache
   await setCachedProduct(productId, product, 600);
-  await invalidateApiCache(`products:${merchantId}`);
+  await invalidateProductKnowledgeCaches(String(merchantId), productId);
   shadowSyncProductKnowledge(String(merchantId), productId, 'update product');
 
   return c.json({ product });
@@ -378,8 +431,7 @@ products.delete('/:id', async (c) => {
   }
 
   // Remove product from cache
-  await invalidateProductCache(productId);
-  await invalidateApiCache(`products:${merchantId}`);
+  await invalidateProductKnowledgeCaches(String(merchantId), productId, { invalidateProductDetails: true });
 
   return c.json({ message: 'Product deleted' });
 });
@@ -478,6 +530,7 @@ products.post('/:id/scrape', async (c) => {
 
   // Update cache
   await setCachedProduct(productId, updatedProduct, 600);
+  await invalidateProductKnowledgeCaches(String(merchantId), productId);
 
   // Auto-generate embeddings after scrape (backend guarantee — frontend also calls this, but this ensures consistency)
   let embeddingResult: { chunksCreated: number; totalTokens: number } | null = null;
@@ -487,9 +540,14 @@ products.post('/:id/scrape', async (c) => {
       rawContent,
       enrichedText || undefined
     );
-    if (result.success) {
+    if (result?.success) {
       embeddingResult = { chunksCreated: result.chunksCreated, totalTokens: result.totalTokens };
+      await invalidateProductKnowledgeCaches(String(merchantId), productId);
       shadowSyncProductKnowledge(String(merchantId), productId, 'scrape');
+    } else if (result) {
+      logger.warn({ merchantId, productId, error: result.error || 'unknown' }, 'Auto embedding generation after scrape did not succeed');
+    } else {
+      logger.warn({ merchantId, productId }, 'Auto embedding generation after scrape returned no result');
     }
   } catch (embedErr) {
     console.error('Auto embedding generation after scrape failed:', embedErr);
@@ -640,6 +698,7 @@ products.post('/:id/generate-embeddings', async (c) => {
     }, 500);
   }
 
+  await invalidateProductKnowledgeCaches(String(merchantId), productId);
   shadowSyncProductKnowledge(String(merchantId), productId, 'embeddings');
 
   return c.json({
@@ -747,6 +806,7 @@ products.post('/generate-embeddings-batch', async (c) => {
     try {
       const results = await batchProcessProducts(productIds);
       for (const r of results.filter((x) => x.success)) {
+        await invalidateProductKnowledgeCaches(String(merchantId), r.productId);
         shadowSyncProductKnowledge(String(merchantId), r.productId, 'batch embeddings');
       }
     } catch (err) {

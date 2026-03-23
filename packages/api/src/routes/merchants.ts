@@ -9,6 +9,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { getMerchantBotInfo, setMerchantBotInfoKey } from '../lib/botInfo.js';
 import { SYSTEM_GUARDRAILS, type CustomGuardrail } from '../lib/guardrails.js';
 import { ShopSettingsService } from '../lib/multiLangRag/shopSettingsService.js';
+import { buildProductKnowledgeHealthMap, summarizeMerchantKnowledgeHealth } from '../lib/knowledgeHealth.js';
 
 const merchants = new Hono();
 
@@ -111,6 +112,7 @@ merchants.get('/me/multi-lang-rag-settings', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Failed to load multi-language RAG settings',
+      details: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -156,6 +158,7 @@ merchants.put('/me/multi-lang-rag-settings', async (c) => {
   } catch (error) {
     return c.json({
       error: 'Failed to update multi-language RAG settings',
+      details: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
@@ -381,6 +384,11 @@ merchants.get('/me/stats', async (c) => {
       .select('*', { count: 'exact', head: true })
       .eq('merchant_id', merchantId);
 
+    const { data: productRows } = await serviceClient
+      .from('products')
+      .select('id, name, raw_text, enriched_text')
+      .eq('merchant_id', merchantId);
+
     // Response Rate — fetch conversations via users.merchant_id join
     const { data: conversations } = await serviceClient
       .from('conversations')
@@ -460,6 +468,13 @@ merchants.get('/me/stats', async (c) => {
       });
     }
 
+    const productKnowledgeHealthMap = await buildProductKnowledgeHealthMap(
+      serviceClient,
+      merchantId,
+      productRows || [],
+    );
+    const knowledgeHealth = summarizeMerchantKnowledgeHealth(productRows || [], productKnowledgeHealthMap);
+
     return c.json({
       kpis: {
         totalOrders: ordersCount || 0,
@@ -468,6 +483,7 @@ merchants.get('/me/stats', async (c) => {
         totalProducts: productsCount || 0,
         responseRate,
       },
+      knowledgeHealth,
       recentActivity: {
         orders: recentOrders || [],
         conversations: recentConversations || [],

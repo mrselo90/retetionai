@@ -279,6 +279,30 @@
                     "noProducts": "Ürün eksik"
                 }
             },
+            "knowledge": {
+                "title": "Bilgi sağlığı",
+                "subtitle": "Recete’nin ürün kataloğunu ne kadar iyi anladığını ve yanıt kalitesinin nerede düşebileceğini gösterin.",
+                "averageBadge": "Ort. skor {score}",
+                "productsAtRisk": "Riskli ürünler",
+                "productsAtRiskHint": "Bu ürünlerde müşteri yanıtları daha zayıf olabilir.",
+                "strongProducts": "Güçlü ürünler",
+                "strongProductsHint": "Kapsaması güçlü ve yanıt riski daha düşük ürünler.",
+                "primaryGap": "Ana bilgi açığı",
+                "primaryGapHint": "{count} üründe görünüyor.",
+                "noPrimaryGap": "Önemli bir açık tespit edilmedi.",
+                "warningTitle": "Bazı ürünlerde müşteri yanıt kalitesi düşebilir",
+                "warningBody": "Şu anda {count} ürün riskte. Ana sorun: {gap}.",
+                "warningAction": "Ürünleri inceleyin",
+                "reasonLabels": {
+                    "missingScrapedContent": "Çekilmiş ürün içeriği eksik",
+                    "missingEnrichedContent": "Zenginleştirilmiş ürün özeti eksik",
+                    "missingUsageInstructions": "Kullanım talimatları eksik",
+                    "thinUsageInstructions": "Kullanım talimatları çok kısa",
+                    "missingReturnTips": "İade önleme ipuçları eksik",
+                    "missingFacts": "Yapılandırılmış ürün bilgileri eksik",
+                    "missingEmbeddings": "Embedding oluşturulmamış"
+                }
+            },
             "kpi": {
                 "ordersReceived": "Alınan siparişler",
                 "ordersReceivedHint": "Toplam senkronize sipariş",
@@ -478,6 +502,26 @@
             "chunksUnknown": "Parça sayısı kullanılamıyor",
             "edit": "Düzenleyin",
             "deleteConfirm": "Bu ürünü silmek istediğinizden emin misiniz?"
+        },
+        "knowledge": {
+            "scoreBadge": "Bilgi {score}",
+            "cardHint": "{coverage} kapsama. En büyük açık: {gap}.",
+            "tableHint": "En büyük açık: {gap}",
+            "noGap": "Önemli bir açık tespit edilmedi",
+            "coverage": {
+                "strong": "Güçlü",
+                "moderate": "Orta",
+                "weak": "Zayıf"
+            },
+            "reasons": {
+                "missingScrapedContent": "Çekilmiş ürün içeriği eksik",
+                "missingEnrichedContent": "Zenginleştirilmiş ürün özeti eksik",
+                "missingUsageInstructions": "Kullanım talimatları eksik",
+                "thinUsageInstructions": "Kullanım talimatları çok kısa",
+                "missingReturnTips": "İade önleme ipuçları eksik",
+                "missingFacts": "Yapılandırılmış ürün bilgileri eksik",
+                "missingEmbeddings": "Embedding oluşturulmamış"
+            }
         },
         "addModal": {
             "title": "Yeni ürün ekleyin",
@@ -1313,6 +1357,36 @@
             "preventionLabel": "İade önleme ipuçları (isteğe bağlı)",
             "preventionPlaceholder": "Müşteri ürünü iade etmek istediğinde botun kullandığı ipuçları — yaygın sorunlar ve çözümleri...",
             "preventionHint": "Müşteri ürünü iade etmek istediğinde bot tarafından kullanılır."
+        },
+        "knowledge": {
+            "title": "Bilgi kapsaması",
+            "subtitle": "Bu skor, botun bu ürün hakkında ne kadar kullanılabilir bilgiye sahip olduğunu gösterir.",
+            "scoreBadge": "Bilgi {score}",
+            "coverageLabel": "Kapsama",
+            "answerRiskLabel": "Yanıt riski",
+            "chunkCountLabel": "Bilgi parçası",
+            "bannerTitle": "Müşteri yanıt kalitesi ürün detayına bağlıdır",
+            "bannerBody": "Mevcut kapsama {coverage}. En büyük kalite açığı: {gap}.",
+            "noGap": "Önemli bir açık tespit edilmedi",
+            "coverage": {
+                "strong": "Güçlü",
+                "moderate": "Orta",
+                "weak": "Zayıf"
+            },
+            "risk": {
+                "low": "Düşük",
+                "medium": "Orta",
+                "high": "Yüksek"
+            },
+            "reasons": {
+                "missingScrapedContent": "Çekilmiş ürün içeriği eksik",
+                "missingEnrichedContent": "Zenginleştirilmiş ürün özeti eksik",
+                "missingUsageInstructions": "Kullanım talimatları eksik",
+                "thinUsageInstructions": "Kullanım talimatları çok kısa",
+                "missingReturnTips": "İade önleme ipuçları eksik",
+                "missingFacts": "Yapılandırılmış ürün bilgileri eksik",
+                "missingEmbeddings": "Embedding oluşturulmamış"
+            }
         }
     },
     "Test": {

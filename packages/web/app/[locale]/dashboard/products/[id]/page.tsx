@@ -39,6 +39,21 @@ interface Product {
   raw_text?: string;
   created_at: string;
   updated_at: string;
+  knowledgeHealth?: {
+    score: number;
+    coverage: 'strong' | 'moderate' | 'weak';
+    answerRisk: 'low' | 'medium' | 'high';
+    missingReasonCodes: string[];
+    metrics: {
+      chunkCount: number;
+      factFieldCount: number;
+      hasEnrichedText: boolean;
+      hasFacts: boolean;
+      hasPreventionTips: boolean;
+      hasRawText: boolean;
+      usageInstructionLength: number;
+    };
+  } | null;
 }
 
 export default function ProductDetailPage() {
@@ -59,6 +74,32 @@ export default function ProductDetailPage() {
   const [preventionTips, setPreventionTips] = useState('');
   const [usageInstructions, setUsageInstructions] = useState('');
   const [recipeSummary, setRecipeSummary] = useState('');
+
+  const knowledgeReasonLabel = (reasonCode: string | undefined) => {
+    const mapping: Record<string, string> = {
+      missing_scraped_content: t('knowledge.reasons.missingScrapedContent'),
+      missing_enriched_content: t('knowledge.reasons.missingEnrichedContent'),
+      missing_usage_instructions: t('knowledge.reasons.missingUsageInstructions'),
+      thin_usage_instructions: t('knowledge.reasons.thinUsageInstructions'),
+      missing_return_tips: t('knowledge.reasons.missingReturnTips'),
+      missing_facts: t('knowledge.reasons.missingFacts'),
+      missing_embeddings: t('knowledge.reasons.missingEmbeddings'),
+    };
+    if (!reasonCode) return t('knowledge.noGap');
+    return mapping[reasonCode] || reasonCode;
+  };
+
+  const coverageLabel = (coverage: 'strong' | 'moderate' | 'weak') => {
+    if (coverage === 'strong') return t('knowledge.coverage.strong');
+    if (coverage === 'moderate') return t('knowledge.coverage.moderate');
+    return t('knowledge.coverage.weak');
+  };
+
+  const riskLabel = (risk: 'low' | 'medium' | 'high') => {
+    if (risk === 'low') return t('knowledge.risk.low');
+    if (risk === 'medium') return t('knowledge.risk.medium');
+    return t('knowledge.risk.high');
+  };
 
   useEffect(() => {
     if (productId) {
@@ -258,12 +299,74 @@ export default function ProductDetailPage() {
   const instructionCharStatus = usageInstructions.trim().length > 0
     ? `${usageInstructions.length} characters — ${hasGoodInstructions ? 'Good' : 'Enter 50+ characters'}`
     : t('botInstructions.usageHint');
+  const knowledgeHealth = product.knowledgeHealth;
 
   return (
     <Page title={t('editProduct')} subtitle={t('editDescription')} fullWidth>
       <Layout>
         <Layout.Section>
           <BlockStack gap="500">
+
+            {knowledgeHealth && (
+              <Card>
+                <Box padding="400">
+                  <BlockStack gap="300">
+                    <InlineStack align="space-between" blockAlign="start" gap="300">
+                      <BlockStack gap="100">
+                        <Text as="h2" variant="headingMd">
+                          {t('knowledge.title')}
+                        </Text>
+                        <Text as="p" tone="subdued">
+                          {t('knowledge.subtitle')}
+                        </Text>
+                      </BlockStack>
+                      <Badge tone={knowledgeHealth.score >= 80 ? 'success' : knowledgeHealth.score >= 55 ? 'attention' : 'critical'}>
+                        {t('knowledge.scoreBadge', { score: knowledgeHealth.score })}
+                      </Badge>
+                    </InlineStack>
+
+                    <InlineGrid columns={{ xs: '1fr', md: '1fr 1fr 1fr' }} gap="300">
+                      <BlockStack gap="050">
+                        <Text as="span" tone="subdued">
+                          {t('knowledge.coverageLabel')}
+                        </Text>
+                        <Text as="p" variant="bodyMd" fontWeight="medium">
+                          {coverageLabel(knowledgeHealth.coverage)}
+                        </Text>
+                      </BlockStack>
+                      <BlockStack gap="050">
+                        <Text as="span" tone="subdued">
+                          {t('knowledge.answerRiskLabel')}
+                        </Text>
+                        <Text as="p" variant="bodyMd" fontWeight="medium">
+                          {riskLabel(knowledgeHealth.answerRisk)}
+                        </Text>
+                      </BlockStack>
+                      <BlockStack gap="050">
+                        <Text as="span" tone="subdued">
+                          {t('knowledge.chunkCountLabel')}
+                        </Text>
+                        <Text as="p" variant="bodyMd" fontWeight="medium">
+                          {knowledgeHealth.metrics.chunkCount}
+                        </Text>
+                      </BlockStack>
+                    </InlineGrid>
+
+                    <Banner
+                      tone={knowledgeHealth.answerRisk === 'high' ? 'warning' : 'info'}
+                      title={t('knowledge.bannerTitle')}
+                    >
+                      <p>
+                        {t('knowledge.bannerBody', {
+                          coverage: coverageLabel(knowledgeHealth.coverage),
+                          gap: knowledgeReasonLabel(knowledgeHealth.missingReasonCodes[0]),
+                        })}
+                      </p>
+                    </Banner>
+                  </BlockStack>
+                </Box>
+              </Card>
+            )}
 
             {!hasGoodInstructions && (
               <Banner tone="warning" title={!hasAnyInstructions ? t('ragAlert.emptyTitle') : t('ragAlert.thinTitle')}>

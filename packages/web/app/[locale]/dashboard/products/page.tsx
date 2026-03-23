@@ -34,6 +34,21 @@ interface Product {
   raw_text?: string;
   created_at: string;
   updated_at: string;
+  knowledgeHealth?: {
+    score: number;
+    coverage: 'strong' | 'moderate' | 'weak';
+    answerRisk: 'low' | 'medium' | 'high';
+    missingReasonCodes: string[];
+    metrics: {
+      chunkCount: number;
+      factFieldCount: number;
+      hasEnrichedText: boolean;
+      hasFacts: boolean;
+      hasPreventionTips: boolean;
+      hasRawText: boolean;
+      usageInstructionLength: number;
+    };
+  } | null;
 }
 
 interface ProductWithChunks extends Product {
@@ -74,6 +89,32 @@ export default function ProductsPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+
+  const knowledgeReasonLabel = (reasonCode: string | undefined) => {
+    const mapping: Record<string, string> = {
+      missing_scraped_content: t('knowledge.reasons.missingScrapedContent'),
+      missing_enriched_content: t('knowledge.reasons.missingEnrichedContent'),
+      missing_usage_instructions: t('knowledge.reasons.missingUsageInstructions'),
+      thin_usage_instructions: t('knowledge.reasons.thinUsageInstructions'),
+      missing_return_tips: t('knowledge.reasons.missingReturnTips'),
+      missing_facts: t('knowledge.reasons.missingFacts'),
+      missing_embeddings: t('knowledge.reasons.missingEmbeddings'),
+    };
+    if (!reasonCode) return t('knowledge.noGap');
+    return mapping[reasonCode] || reasonCode;
+  };
+
+  const knowledgeToneClass = (score: number | undefined) => {
+    if ((score || 0) >= 80) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if ((score || 0) >= 55) return 'bg-amber-50 text-amber-700 border-amber-200';
+    return 'bg-rose-50 text-rose-700 border-rose-200';
+  };
+
+  const knowledgeCoverageLabel = (coverage: 'strong' | 'moderate' | 'weak') => {
+    if (coverage === 'strong') return t('knowledge.coverage.strong');
+    if (coverage === 'moderate') return t('knowledge.coverage.moderate');
+    return t('knowledge.coverage.weak');
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -349,6 +390,15 @@ export default function ProductsPage() {
 
   const renderProductStatusBadges = (product: ProductWithChunks) => (
     <div className="flex items-center gap-2 flex-wrap">
+      {product.knowledgeHealth && (
+        <Badge
+          variant="outline"
+          size="sm"
+          className={`gap-1.5 border ${knowledgeToneClass(product.knowledgeHealth.score)}`}
+        >
+          {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
+        </Badge>
+      )}
       <Badge variant="outline-primary" size="sm" className="gap-1.5">
         <FileText className="w-3.5 h-3.5" />
         {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
@@ -389,6 +439,15 @@ export default function ProductsPage() {
     return (
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-2 flex-wrap">
+          {product.knowledgeHealth && (
+            <Badge
+              variant="outline"
+              size="sm"
+              className={`gap-1.5 border ${knowledgeToneClass(product.knowledgeHealth.score)}`}
+            >
+              {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
+            </Badge>
+          )}
           <Badge variant="outline-primary" size="sm" className="gap-1.5">
             <FileText className="w-3.5 h-3.5" />
             {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
@@ -946,6 +1005,14 @@ export default function ProductsPage() {
 
                             <div className="mb-auto">
                               {renderProductStatusBadges(product)}
+                              {product.knowledgeHealth && (
+                                <p className="mt-3 text-sm text-muted-foreground">
+                                  {t('knowledge.cardHint', {
+                                    coverage: knowledgeCoverageLabel(product.knowledgeHealth.coverage),
+                                    gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
+                                  })}
+                                </p>
+                              )}
                             </div>
 
                             <div className="mt-4">
@@ -1022,6 +1089,14 @@ export default function ProductsPage() {
                           </a>
 
                           {renderProductStatusBadges(product)}
+                          {product.knowledgeHealth && (
+                            <p className="text-sm text-muted-foreground">
+                              {t('knowledge.cardHint', {
+                                coverage: knowledgeCoverageLabel(product.knowledgeHealth.coverage),
+                                gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
+                              })}
+                            </p>
+                          )}
 
                           <PolarisButton url={`/${locale}/dashboard/products/${product.id}`} fullWidth>
                             {t('card.edit')}
@@ -1082,6 +1157,13 @@ export default function ProductsPage() {
                               <IndexTable.Cell>
                                 <div className="w-[280px]">
                                   {renderProductStatusCompact(product)}
+                                  {product.knowledgeHealth && (
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                      {t('knowledge.tableHint', {
+                                        gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
+                                      })}
+                                    </p>
+                                  )}
                                 </div>
                               </IndexTable.Cell>
                               <IndexTable.Cell>

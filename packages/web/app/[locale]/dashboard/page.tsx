@@ -46,6 +46,20 @@ interface DashboardStats {
     totalProducts: number;
     responseRate: number;
   };
+  knowledgeHealth: {
+    averageScore: number;
+    productsAtRisk: number;
+    strongProducts: number;
+    topMissingReasonCode: string | null;
+    topMissingReasonCount: number;
+    topAtRiskProducts: Array<{
+      id: string;
+      name: string;
+      score: number;
+      answerRisk: 'low' | 'medium' | 'high';
+    }>;
+    weakProducts: number;
+  };
   recentActivity: {
     orders: Array<{
       id: string;
@@ -71,6 +85,15 @@ interface DashboardStats {
 
 const DEFAULT_STATS: DashboardStats = {
   kpis: { totalOrders: 0, activeUsers: 0, messagesSent: 0, totalProducts: 0, responseRate: 0 },
+  knowledgeHealth: {
+    averageScore: 0,
+    productsAtRisk: 0,
+    strongProducts: 0,
+    topMissingReasonCode: null,
+    topMissingReasonCount: 0,
+    topAtRiskProducts: [],
+    weakProducts: 0,
+  },
   recentActivity: { orders: [], conversations: [] },
   alerts: [],
 };
@@ -178,6 +201,12 @@ function DashboardIconTile({
       {icon}
     </Box>
   );
+}
+
+function healthTone(score: number): 'success' | 'attention' | 'critical' {
+  if (score >= 80) return 'success';
+  if (score >= 55) return 'attention';
+  return 'critical';
 }
 
 export default function DashboardPage() {
@@ -376,6 +405,20 @@ export default function DashboardPage() {
       .join(' ');
   };
 
+  const knowledgeReasonLabel = (reasonCode: string | null) => {
+    if (!reasonCode) return t('knowledge.noPrimaryGap');
+    const mapping: Record<string, string> = {
+      missing_scraped_content: t('knowledge.reasonLabels.missingScrapedContent'),
+      missing_enriched_content: t('knowledge.reasonLabels.missingEnrichedContent'),
+      missing_usage_instructions: t('knowledge.reasonLabels.missingUsageInstructions'),
+      thin_usage_instructions: t('knowledge.reasonLabels.thinUsageInstructions'),
+      missing_return_tips: t('knowledge.reasonLabels.missingReturnTips'),
+      missing_facts: t('knowledge.reasonLabels.missingFacts'),
+      missing_embeddings: t('knowledge.reasonLabels.missingEmbeddings'),
+    };
+    return mapping[reasonCode] || reasonCode;
+  };
+
   return (
     <Page
       title={t('greeting', { name: merchant.name || 'Merchant' })}
@@ -471,6 +514,85 @@ export default function DashboardPage() {
                   );
                 })}
               </BlockStack>
+            </BlockStack>
+          </PolarisCard>
+        </Layout.Section>
+
+        <Layout.Section>
+          <PolarisCard>
+            <BlockStack gap="300">
+              <InlineStack align="space-between" blockAlign="start" gap="300">
+                <BlockStack gap="100">
+                  <Text as="h2" variant="headingSm">
+                    {t('knowledge.title')}
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    {t('knowledge.subtitle')}
+                  </Text>
+                </BlockStack>
+                <PolarisBadge tone={healthTone(displayStats.knowledgeHealth.averageScore)}>
+                  {t('knowledge.averageBadge', { score: displayStats.knowledgeHealth.averageScore })}
+                </PolarisBadge>
+              </InlineStack>
+
+              <InlineGrid columns={{ xs: 1, md: 3 }} gap="300">
+                <Box borderWidth="025" borderColor="border" borderRadius="300" padding="300">
+                  <BlockStack gap="100">
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {t('knowledge.productsAtRisk')}
+                    </Text>
+                    <Text as="p" variant="headingLg">
+                      {displayStats.knowledgeHealth.productsAtRisk}
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {t('knowledge.productsAtRiskHint')}
+                    </Text>
+                  </BlockStack>
+                </Box>
+                <Box borderWidth="025" borderColor="border" borderRadius="300" padding="300">
+                  <BlockStack gap="100">
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {t('knowledge.strongProducts')}
+                    </Text>
+                    <Text as="p" variant="headingLg">
+                      {displayStats.knowledgeHealth.strongProducts}
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {t('knowledge.strongProductsHint')}
+                    </Text>
+                  </BlockStack>
+                </Box>
+                <Box borderWidth="025" borderColor="border" borderRadius="300" padding="300">
+                  <BlockStack gap="100">
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {t('knowledge.primaryGap')}
+                    </Text>
+                    <Text as="p" variant="bodyMd" fontWeight="semibold">
+                      {knowledgeReasonLabel(displayStats.knowledgeHealth.topMissingReasonCode)}
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {displayStats.knowledgeHealth.topMissingReasonCount > 0
+                        ? t('knowledge.primaryGapHint', { count: displayStats.knowledgeHealth.topMissingReasonCount })
+                        : t('knowledge.noPrimaryGap')}
+                    </Text>
+                  </BlockStack>
+                </Box>
+              </InlineGrid>
+
+              {displayStats.knowledgeHealth.productsAtRisk > 0 ? (
+                <Banner
+                  tone="warning"
+                  title={t('knowledge.warningTitle')}
+                  action={{ content: t('knowledge.warningAction'), url: '/dashboard/products' }}
+                >
+                  <Text as="p" variant="bodySm">
+                    {t('knowledge.warningBody', {
+                      count: displayStats.knowledgeHealth.productsAtRisk,
+                      gap: knowledgeReasonLabel(displayStats.knowledgeHealth.topMissingReasonCode),
+                    })}
+                  </Text>
+                </Banner>
+              ) : null}
             </BlockStack>
           </PolarisCard>
         </Layout.Section>
