@@ -41,8 +41,6 @@ export interface ScrapeResult {
 
 /**
  * Scrape product page using fetch + HTML parsing
- * For MVP, we use native fetch + regex/string parsing
- * Can be upgraded to Cheerio/Puppeteer later
  */
 export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
   try {
@@ -67,7 +65,15 @@ export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
       };
     }
 
-    const html = await response.text();
+    // Handle character encoding (default to UTF-8, but check content-type)
+    const contentType = response.headers.get('content-type') || '';
+    const charsetMatch = contentType.match(/charset=([^;]+)/i);
+    const charset = (charsetMatch ? charsetMatch[1] : 'utf-8').trim().toLowerCase();
+
+    // Use ArrayBuffer and TextDecoder for robust multi-charset support (Turkish ISO-8859-9, etc.)
+    const buffer = await response.arrayBuffer();
+    const decoder = new TextDecoder(charset);
+    const html = decoder.decode(buffer);
 
     // Extract product information
     const product = extractProductInfo(html, url);
@@ -426,14 +432,7 @@ function extractRawContent(html: string): string {
     .replace(/<[^>]*>/g, ' '); // Replace all inline tags with spaces
 
   // ── Step 3: Decode HTML entities ─────────────────────────────
-  text = text
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#\d+;/g, ' ');
+  text = decodeHtmlEntities(text);
 
   // ── Step 4: Filter noise lines + deduplicate ─────────────────
   const seenLines = new Set<string>();
@@ -458,10 +457,64 @@ function extractRawContent(html: string): string {
 }
 
 /**
+ * Decode HTML entities (named, decimal, hex)
+ * Handles Turkish characters like &#287; (ğ) and &ouml; (ö) correctly
+ */
+function decodeHtmlEntities(text: string): string {
+  if (!text) return '';
+
+  const entities: Record<string, string> = {
+    '&nbsp;': ' ',
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&apos;': "'",
+    '&cent;': '¢',
+    '&pound;': '£',
+    '&yen;': '¥',
+    '&euro;': '€',
+    '&copy;': '©',
+    '&reg;': '®',
+    // Turkish / Common Latin-1 named entities
+    '&ouml;': 'ö',
+    '&Ouml;': 'Ö',
+    '&uuml;': 'ü',
+    '&Uuml;': 'Ü',
+    '&ccedil;': 'ç',
+    '&Ccedil;': 'Ç',
+    '&auml;': 'ä',
+    '&Auml;': 'Ä',
+    '&nbsp': ' ',
+  };
+
+  return text
+    .replace(/&[a-z0-9]+;/gi, (match) => entities[match] || match)
+    // Decimal entities: &#(n);
+    .replace(/&#(\d+);/g, (match, dec) => {
+      try {
+        return String.fromCharCode(parseInt(dec, 10));
+      } catch {
+        return match;
+      }
+    })
+    // Hexadecimal entities: &#x(n);
+    .replace(/&#x([0-9a-f]+);/gi, (match, hex) => {
+      try {
+        return String.fromCharCode(parseInt(hex, 16));
+      } catch {
+        return match;
+      }
+    });
+}
+
+/**
  * Clean text (trim, collapse whitespace)
  */
 function cleanText(text: string): string {
-  return text.replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  return decodeHtmlEntities(text.replace(/\s+/g, ' ').trim());
 }
 
 /**

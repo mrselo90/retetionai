@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recete Feature Media</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Aspect ratio scaling container */
+  #app-container {
+    width: 1600px;
+    height: 900px;
+    position: relative;
+    background: #070b1a;
+    overflow: hidden;
+    transform-origin: center center;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+  }
+
+  /* ====== BACKGROUND ====== */
+  .bg-gradient {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #070b1a 0%, #0d1b3e 30%, #0f2847 50%, #0a3d5c 70%, #064e6e 100%);
+    z-index: 0;
+  }
+  .particles { position: absolute; width: 100%; height: 100%; overflow: hidden; z-index: 0; }
+  .particle {
+    position: absolute; border-radius: 50%; opacity: 0;
+    animation: floatUp linear infinite;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(100px) scale(0); opacity: 0; }
+    10% { opacity: 0.5; }
+    90% { opacity: 0.2; }
+    100% { transform: translateY(-920px) scale(1); opacity: 0; }
+  }
+  .orb {
+    position: absolute; border-radius: 50%; filter: blur(100px); z-index: 0;
+  }
+  .orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, rgba(6,182,212,0.18), transparent); top: -150px; right: 100px; animation: orbFloat1 10s ease-in-out infinite; }
+  .orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(99,102,241,0.15), transparent); bottom: -100px; left: 50px; animation: orbFloat2 12s ease-in-out infinite; }
+  .orb-3 { width: 350px; height: 350px; background: radial-gradient(circle, rgba(16,185,129,0.12), transparent); top: 250px; left: 500px; animation: orbFloat3 14s ease-in-out infinite; }
+  @keyframes orbFloat1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,40px)} }
+  @keyframes orbFloat2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,-30px)} }
+  @keyframes orbFloat3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-20px,-40px)} }
+
+  /* ====== SCENES ====== */
+  .scene {
+    position: absolute;
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    pointer-events: none;
+  }
+  .scene.active { opacity: 1; pointer-events: auto; }
+
+  /* ====== SCENE 1: Merchant uploads product knowledge ====== */
+  .s1-container { display: flex; align-items: center; gap: 80px; padding: 0 100px; width: 100%; }
+  .s1-left { flex: 1; }
+  .s1-right { flex: 0 0 520px; }
+
+  .s1-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(6,182,212,0.12); border: 1px solid rgba(6,182,212,0.25);
+    border-radius: 20px; padding: 6px 16px; font-size: 13px; color: #22d3ee; font-weight: 600;
+    letter-spacing: 0.5px; margin-bottom: 24px; opacity: 0; transform: translateY(10px);
+  }
+  .s1-badge.show { animation: fadeUp 0.6s ease-out forwards; }
+
+  .s1-title {
+    font-size: 46px; font-weight: 800; color: white; line-height: 1.15; letter-spacing: -1.5px;
+    margin-bottom: 20px; opacity: 0; transform: translateY(20px);
+  }
+  .s1-title.show { animation: fadeUp 0.7s ease-out 0.15s forwards; }
+  .s1-title span { background: linear-gradient(135deg, #06b6d4, #22d3ee, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  .s1-desc {
+    font-size: 18px; color: rgba(255,255,255,0.55); line-height: 1.7; max-width: 480px;
+    opacity: 0; transform: translateY(20px);
+  }
+  .s1-desc.show { animation: fadeUp 0.7s ease-out 0.3s forwards; }
+
+  .upload-panel {
+    background: rgba(15,23,42,0.85); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px;
+    padding: 28px; backdrop-filter: blur(20px); box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    opacity: 0; transform: translateX(30px);
+  }
+  .upload-panel.show { animation: fadeSlideLeft 0.8s ease-out 0.2s forwards; }
+
+  .upload-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .upload-icon {
+    width: 40px; height: 40px; background: linear-gradient(135deg, #06b6d4, #3b82f6);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: white;
+  }
+  .upload-header-text { font-size: 16px; font-weight: 700; color: white; }
+  .upload-header-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+  .product-item {
+    display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; margin-bottom: 10px; opacity: 0; transform: translateY(15px);
+  }
+  .product-item.show { animation: fadeUp 0.5s ease-out forwards; }
+  
+  .product-thumb {
+    width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  .product-thumb.cream { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+  .product-thumb.serum { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+  .product-thumb.vitamin { background: linear-gradient(135deg, #34d399, #059669); }
+  .product-thumb.oil { background: linear-gradient(135deg, #fb923c, #ea580c); }
+
+  .product-info { flex: 1; }
+  .product-name { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9); }
+  .product-meta { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 3px; }
+
+  .product-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .product-tag { font-size: 10px; padding: 2px 8px; border-radius: 6px; font-weight: 500; }
+  .tag-usage { background: rgba(6,182,212,0.15); color: #22d3ee; }
+  .tag-ingredients { background: rgba(167,139,250,0.15); color: #a78bfa; }
+  .tag-sideeffects { background: rgba(251,146,60,0.15); color: #fb923c; }
+  .tag-guide { background: rgba(52,211,153,0.15); color: #34d399; }
+
+  .upload-progress { margin-top: 16px; display: flex; align-items: center; gap: 12px; opacity: 0; }
+  .upload-progress.show { animation: fadeUp 0.5s ease-out forwards; }
+  .progress-bar { flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #06b6d4, #10b981); border-radius: 3px; width: 0%; transition: width 1.5s ease-out; }
+  .progress-text { font-size: 12px; color: #22d3ee; font-weight: 600; min-width: 36px; }
+
+  /* ====== SCENE 2: AI enriches knowledge ====== */
+  .s2-container {
+    display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 60px 100px; width: 100%;
+  }
+  .s2-title {
+    font-size: 38px; font-weight: 800; color: white; text-align: center; letter-spacing: -1px; opacity: 0; transform: translateY(20px);
+  }
+  .s2-title.show { animation: fadeUp 0.7s ease-out forwards; }
+  .s2-title span { background: linear-gradient(135deg, #a78bfa, #7c3aed, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  .ai-flow { display: flex; align-items: center; gap: 30px; width: 100%; justify-content: center; }
+
+  .flow-card {
+    background: rgba(15,23,42,0.85); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 28px 24px;
+    width: 260px; text-align: center; backdrop-filter: blur(20px); box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    opacity: 0; transform: translateY(20px) scale(0.95);
+  }
+  .flow-card.show { animation: flowCardIn 0.6s ease-out forwards; }
+  @keyframes flowCardIn { to { opacity: 1; transform: translateY(0) scale(1); } }
+
+  .flow-icon {
+    width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin: 0 auto 16px;
+  }
+  .flow-icon.raw { background: linear-gradient(135deg, rgba(251,146,60,0.2), rgba(251,146,60,0.05)); border: 1px solid rgba(251,146,60,0.2); }
+  .flow-icon.ai { background: linear-gradient(135deg, rgba(167,139,250,0.2), rgba(167,139,250,0.05)); border: 1px solid rgba(167,139,250,0.2); animation: aiPulse 2s ease-in-out infinite; }
+  .flow-icon.clean { background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.05)); border: 1px solid rgba(16,185,129,0.2); }
+
+  @keyframes aiPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(167,139,250,0.3); } 50% { box-shadow: 0 0 20px 8px rgba(167,139,250,0.15); } }
+
+  .flow-card-title { font-size: 15px; font-weight: 700; color: white; margin-bottom: 8px; }
+  .flow-card-desc { font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.6; }
+
+  .flow-arrow { font-size: 28px; color: rgba(255,255,255,0.2); opacity: 0; }
+  .flow-arrow.show { animation: arrowPulse 0.5s ease-out forwards; }
+  @keyframes arrowPulse { to { opacity: 1; } }
+
+  .knowledge-items { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; max-width: 900px; }
+  .knowledge-chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; font-size: 13px; color: rgba(255,255,255,0.7);
+    font-weight: 500; opacity: 0; transform: scale(0.8);
+  }
+  .knowledge-chip.show { animation: chipIn 0.4s ease-out forwards; }
+  @keyframes chipIn { to { opacity: 1; transform: scale(1); } }
+  .knowledge-chip .chip-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .chip-dot.teal { background: #06b6d4; } .chip-dot.purple { background: #a78bfa; }
+  .chip-dot.green { background: #10b981; } .chip-dot.orange { background: #fb923c; }
+
+  /* ====== SCENE 3: WhatsApp proactive outreach ====== */
+  .s3-container { display: flex; align-items: center; gap: 70px; padding: 0 80px; width: 100%; }
+  .s3-left { flex: 1; max-width: 550px; }
+  .s3-right { flex: 0 0 440px; }
+
+  .s3-badge {
+    display: inline-flex; align-items: center; gap: 8px; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25);
+    border-radius: 20px; padding: 6px 16px; font-size: 13px; color: #34d399; font-weight: 600; margin-bottom: 20px;
+    opacity: 0; transform: translateY(10px);
+  }
+  .s3-badge.show { animation: fadeUp 0.6s ease-out forwards; }
+
+  .s3-title {
+    font-size: 42px; font-weight: 800; color: white; line-height: 1.15; letter-spacing: -1.5px; margin-bottom: 20px;
+    opacity: 0; transform: translateY(20px);
+  }
+  .s3-title.show { animation: fadeUp 0.7s ease-out 0.15s forwards; }
+  .s3-title span { background: linear-gradient(135deg, #10b981, #22d3ee); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  .s3-benefits { display: flex; flex-direction: column; gap: 14px; margin-top: 28px; opacity: 0; transform: translateY(20px); }
+  .s3-benefits.show { animation: fadeUp 0.7s ease-out 0.35s forwards; }
+  .benefit-row { display: flex; align-items: center; gap: 14px; }
+  .benefit-icon {
+    width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+  }
+  .benefit-icon.retention { background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.2); }
+  .benefit-icon.returns { background: rgba(251,146,60,0.15); border: 1px solid rgba(251,146,60,0.2); }
+  .benefit-icon.repeat { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.2); }
+  .benefit-text { font-size: 15px; color: rgba(255,255,255,0.75); font-weight: 500; }
+  .benefit-highlight { color: white; font-weight: 700; }
+
+  .phone {
+    background: #1a1a2e; border-radius: 28px; overflow: hidden; box-shadow: 0 25px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08);
+    width: 420px; height: 720px; display: flex; flex-direction: column; opacity: 0; transform: translateX(30px);
+  }
+  .phone.show { animation: fadeSlideLeft 0.8s ease-out forwards; }
+
+  .wa-header { background: linear-gradient(135deg, #075e54, #128c7e); padding: 14px 18px; display: flex; align-items: center; gap: 12px; }
+  .wa-avatar {
+    width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #06b6d4, #3b82f6);
+    display: flex; align-items: center; justify-content: center; font-size: 17px; color: white; font-weight: 700;
+  }
+  .wa-name { color: white; font-size: 15px; font-weight: 600; }
+  .wa-status { color: rgba(255,255,255,0.7); font-size: 11px; margin-top: 1px; }
+
+  .wa-chat { flex: 1; background: #0b141a; padding: 16px 14px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+  .msg {
+    max-width: 88%; padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.55; opacity: 0; transform: translateY(20px);
+  }
+  .msg.show { animation: msgAppear 0.5s ease-out forwards; }
+  @keyframes msgAppear { to { opacity: 1; transform: translateY(0); } }
+
+  .msg.customer { background: #1f2c34; color: rgba(255,255,255,0.9); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .msg.ai { background: #005c4b; color: rgba(255,255,255,0.95); align-self: flex-end; border-bottom-right-radius: 4px; }
+  .msg-time { font-size: 10px; color: rgba(255,255,255,0.35); text-align: right; margin-top: 4px; }
+
+  .typing {
+    display: flex; gap: 4px; padding: 14px 18px; background: #005c4b; border-radius: 12px; border-bottom-right-radius: 4px;
+    align-self: flex-end; max-width: 70px; opacity: 0; transform: translateY(20px);
+  }
+  .typing.show { animation: msgAppear 0.4s ease-out forwards; }
+  .typing.hide { animation: msgDisappear 0.3s ease-out forwards; }
+  @keyframes msgDisappear { to { opacity: 0; transform: translateY(-10px) scale(0.9); } }
+  .typing-dot {
+    width: 7px; height: 7px; background: rgba(255,255,255,0.5); border-radius: 50%; animation: typingBounce 1.4s ease-in-out infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; } .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingBounce { 0%,60%,100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-5px); opacity: 1; } }
+
+  .wa-bottom { background: #1f2c34; padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+  .wa-input { flex: 1; background: #2a3942; border: none; border-radius: 20px; padding: 10px 16px; color: rgba(255,255,255,0.5); font-size: 13px; font-family: 'Inter', sans-serif; }
+  .wa-send { width: 38px; height: 38px; background: #00a884; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+
+  /* ====== SCENE 4: Results / Impact ====== */
+  .s4-container { display: flex; flex-direction: column; align-items: center; gap: 50px; padding: 60px 100px; width: 100%; }
+  .s4-title { font-size: 42px; font-weight: 800; color: white; text-align: center; letter-spacing: -1.5px; opacity: 0; transform: translateY(20px); }
+  .s4-title.show { animation: fadeUp 0.7s ease-out forwards; }
+  .s4-title span { background: linear-gradient(135deg, #06b6d4, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  .impact-grid { display: flex; gap: 30px; width: 100%; max-width: 1100px; justify-content: center; }
+
+  .impact-card {
+    flex: 1; background: rgba(15,23,42,0.85); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 36px 30px; text-align: center; backdrop-filter: blur(20px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3); opacity: 0; transform: translateY(25px);
+  }
+  .impact-card.show { animation: flowCardIn 0.6s ease-out forwards; }
+
+  .impact-emoji { font-size: 44px; margin-bottom: 18px; }
+  .impact-value { font-size: 52px; font-weight: 900; letter-spacing: -2px; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+  .impact-value.teal { color: #22d3ee; } .impact-value.green { color: #10b981; } .impact-value.purple { color: #a78bfa; }
+  .impact-label { font-size: 14px; color: rgba(255,255,255,0.5); font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; }
+  .impact-desc { font-size: 13px; color: rgba(255,255,255,0.35); margin-top: 10px; line-height: 1.5; }
+
+  .brand-watermark {
+    position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; z-index: 2; opacity: 0;
+  }
+  .brand-watermark.show { animation: fadeUp 0.6s ease-out forwards; }
+  .bw-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #06b6d4, #3b82f6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; font-weight: 800; }
+  .bw-name { font-size: 20px; font-weight: 700; color: rgba(255,255,255,0.8); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeSlideLeft { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+</style>
+</head>
+<body>
+
+<div id="app-container">
+  <div class="bg-gradient"></div>
+  <div class="particles" id="particles"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <!-- SCENE 1: Upload Product Knowledge -->
+  <div class="scene active" id="scene1">
+    <div class="s1-container">
+      <div class="s1-left">
+        <div class="s1-badge" id="s1badge">📦 STEP 1</div>
+        <div class="s1-title" id="s1title">Upload Your<br><span>Product Knowledge</span></div>
+        <div class="s1-desc" id="s1desc">Upload product guides, ingredients, side effects, usage instructions, and shelf life data. Recete's AI organizes and enriches everything automatically.</div>
+      </div>
+      <div class="s1-right">
+        <div class="upload-panel" id="uploadPanel">
+          <div class="upload-header">
+            <div class="upload-icon">📋</div>
+            <div>
+              <div class="upload-header-text">Product Knowledge Base</div>
+              <div class="upload-header-sub">4 products uploading...</div>
+            </div>
+          </div>
+          <div id="productList">
+            <div class="product-item" id="prod1">
+              <div class="product-thumb cream">🧴</div>
+              <div class="product-info">
+                <div class="product-name">Hyaluronic Moisturizer</div>
+                <div class="product-meta">Usage guide • Ingredients • Side effects</div>
+                <div class="product-tags">
+                  <span class="product-tag tag-guide">Usage Guide</span>
+                  <span class="product-tag tag-ingredients">Ingredients</span>
+                  <span class="product-tag tag-sideeffects">Side Effects</span>
+                </div>
+              </div>
+            </div>
+            <div class="product-item" id="prod2">
+              <div class="product-thumb serum">💧</div>
+              <div class="product-info">
+                <div class="product-name">Vitamin C Serum</div>
+                <div class="product-meta">Application steps • Storage • Shelf life</div>
+                <div class="product-tags">
+                  <span class="product-tag tag-usage">Application</span>
+                  <span class="product-tag tag-guide">Storage</span>
+                </div>
+              </div>
+            </div>
+            <div class="product-item" id="prod3">
+              <div class="product-thumb vitamin">💊</div>
+              <div class="product-info">
+                <div class="product-name">Collagen Supplement</div>
+                <div class="product-meta">Dosage • Interactions • Expected results</div>
+                <div class="product-tags">
+                  <span class="product-tag tag-usage">Dosage</span>
+                  <span class="product-tag tag-sideeffects">Interactions</span>
+                </div>
+              </div>
+            </div>
+            <div class="product-item" id="prod4">
+              <div class="product-thumb oil">🌿</div>
+              <div class="product-info">
+                <div class="product-name">Retinol Night Oil</div>
+                <div class="product-meta">Usage frequency • Precautions • Shelf life</div>
+                <div class="product-tags">
+                  <span class="product-tag tag-guide">Precautions</span>
+                  <span class="product-tag tag-usage">Frequency</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="upload-progress" id="uploadProgress">
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="progress-text" id="progressText">0%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 2: AI Enriches Knowledge -->
+  <div class="scene" id="scene2">
+    <div class="s2-container">
+      <div class="s2-title" id="s2title">AI <span>Enriches, Cleans & Organizes</span> Your Data</div>
+      <div class="ai-flow">
+        <div class="flow-card" id="flow1">
+          <div class="flow-icon raw">📄</div>
+          <div class="flow-card-title">Raw Product Data</div>
+          <div class="flow-card-desc">Manuals, PDFs, usage notes, ingredient lists from merchants</div>
+        </div>
+        <div class="flow-arrow" id="arrow1">→</div>
+        <div class="flow-card" id="flow2">
+          <div class="flow-icon ai">🤖</div>
+          <div class="flow-card-title">AI Processing</div>
+          <div class="flow-card-desc">Expand, clean, structure & create embeddings with RAG</div>
+        </div>
+        <div class="flow-arrow" id="arrow2">→</div>
+        <div class="flow-card" id="flow3">
+          <div class="flow-icon clean">✨</div>
+          <div class="flow-card-title">Smart Knowledge</div>
+          <div class="flow-card-desc">Ready to answer any customer question accurately</div>
+        </div>
+      </div>
+      <div class="knowledge-items" id="knowledgeItems">
+        <div class="knowledge-chip" data-delay="0"><span class="chip-dot teal"></span>How to apply</div>
+        <div class="knowledge-chip" data-delay="100"><span class="chip-dot purple"></span>Ingredients list</div>
+        <div class="knowledge-chip" data-delay="200"><span class="chip-dot orange"></span>Side effects</div>
+        <div class="knowledge-chip" data-delay="300"><span class="chip-dot green"></span>Storage tips</div>
+        <div class="knowledge-chip" data-delay="400"><span class="chip-dot teal"></span>Dosage info</div>
+        <div class="knowledge-chip" data-delay="500"><span class="chip-dot purple"></span>Shelf life</div>
+        <div class="knowledge-chip" data-delay="600"><span class="chip-dot orange"></span>Precautions</div>
+        <div class="knowledge-chip" data-delay="700"><span class="chip-dot green"></span>Expected results</div>
+        <div class="knowledge-chip" data-delay="800"><span class="chip-dot teal"></span>Usage frequency</div>
+        <div class="knowledge-chip" data-delay="900"><span class="chip-dot purple"></span>Drug interactions</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 3: WhatsApp proactive outreach -->
+  <div class="scene" id="scene3">
+    <div class="s3-container">
+      <div class="s3-left">
+        <div class="s3-badge" id="s3badge">💬 PROACTIVE SUPPORT</div>
+        <div class="s3-title" id="s3title">AI Guides Your<br><span>Customers</span> on<br>WhatsApp</div>
+        <div class="s3-benefits" id="s3benefits">
+          <div class="benefit-row">
+            <div class="benefit-icon retention">🎯</div>
+            <div class="benefit-text"><span class="benefit-highlight">Retain customers</span> with proper product guidance</div>
+          </div>
+          <div class="benefit-row">
+            <div class="benefit-icon returns">📉</div>
+            <div class="benefit-text"><span class="benefit-highlight">Prevent returns</span> from misuse or confusion</div>
+          </div>
+          <div class="benefit-row">
+            <div class="benefit-icon repeat">🔄</div>
+            <div class="benefit-text"><span class="benefit-highlight">Drive repeat purchases</span> with great experience</div>
+          </div>
+        </div>
+      </div>
+      <div class="s3-right">
+        <div class="phone" id="phone">
+          <div class="wa-header">
+            <div class="wa-avatar">R</div>
+            <div>
+              <div class="wa-name">Recete Support</div>
+              <div class="wa-status">🟢 Online</div>
+            </div>
+          </div>
+          <div class="wa-chat" id="chat"></div>
+          <div class="wa-bottom">
+            <div class="wa-input">Type a message...</div>
+            <div class="wa-send">➤</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 4: Impact stats -->
+  <div class="scene" id="scene4">
+    <div class="s4-container">
+      <div class="s4-title" id="s4title">The <span>Impact</span> on Your Business</div>
+      <div class="impact-grid">
+        <div class="impact-card" id="imp1">
+          <div class="impact-emoji">🎯</div>
+          <div class="impact-value teal" id="impVal1">0%</div>
+          <div class="impact-label">Customer Retention</div>
+          <div class="impact-desc">Keep customers engaged with proactive product guidance</div>
+        </div>
+        <div class="impact-card" id="imp2">
+          <div class="impact-emoji">📉</div>
+          <div class="impact-value green" id="impVal2">0%</div>
+          <div class="impact-label">Fewer Returns</div>
+          <div class="impact-desc">Prevent returns caused by improper usage or misunderstanding</div>
+        </div>
+        <div class="impact-card" id="imp3">
+          <div class="impact-emoji">🔄</div>
+          <div class="impact-value purple" id="impVal3">0×</div>
+          <div class="impact-label">Repeat Purchases</div>
+          <div class="impact-desc">Satisfied customers come back for more</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="brand-watermark" id="watermark">
+    <div class="bw-icon">R</div>
+    <div class="bw-name">Recete</div>
+  </div>
+</div>
+
+<script>
+// Auto-scale to fit window perfectly
+function resizeApp() {
+  const container = document.getElementById('app-container');
+  const scale = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+  container.style.transform = `scale(${scale})`;
+}
+window.addEventListener('resize', resizeApp);
+resizeApp(); // initial calculation
+
+// Particles
+const particlesEl = document.getElementById('particles');
+for (let i = 0; i < 25; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  const size = Math.random() * 3 + 2;
+  p.style.width = size + 'px';
+  p.style.height = size + 'px';
+  p.style.left = Math.random() * 100 + '%';
+  p.style.top = (Math.random() * 100 + 100) + '%';
+  p.style.background = ['#06b6d4','#22d3ee','#10b981','#a78bfa','#3b82f6'][Math.floor(Math.random()*5)];
+  p.style.animationDuration = (Math.random()*15+10) + 's';
+  p.style.animationDelay = (Math.random()*10) + 's';
+  particlesEl.appendChild(p);
+}
+
+// Timeline
+let currentScene = 0;
+
+function switchScene(from, to) {
+  document.getElementById('scene' + from).classList.remove('active');
+  document.getElementById('scene' + to).classList.add('active');
+  currentScene = to;
+}
+
+// ===== SCENE 1 ANIMATIONS =====
+function runScene1() {
+  document.getElementById('watermark').classList.add('show');
+  
+  setTimeout(() => document.getElementById('s1badge').classList.add('show'), 300);
+  setTimeout(() => document.getElementById('s1title').classList.add('show'), 300);
+  setTimeout(() => document.getElementById('s1desc').classList.add('show'), 300);
+  setTimeout(() => document.getElementById('uploadPanel').classList.add('show'), 500);
+  
+  // Products appear one by one
+  setTimeout(() => document.getElementById('prod1').classList.add('show'), 1000);
+  setTimeout(() => document.getElementById('prod2').classList.add('show'), 1400);
+  setTimeout(() => document.getElementById('prod3').classList.add('show'), 1800);
+  setTimeout(() => document.getElementById('prod4').classList.add('show'), 2200);
+  
+  // Upload progress
+  setTimeout(() => {
+    document.getElementById('uploadProgress').classList.add('show');
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 2;
+      if (progress > 100) { progress = 100; clearInterval(interval); }
+      document.getElementById('progressFill').style.width = progress + '%';
+      document.getElementById('progressText').textContent = progress + '%';
+    }, 40);
+  }, 2800);
+}
+
+// ===== SCENE 2 ANIMATIONS =====
+function runScene2() {
+  setTimeout(() => document.getElementById('s2title').classList.add('show'), 200);
+  setTimeout(() => { document.getElementById('flow1').classList.add('show'); }, 600);
+  setTimeout(() => { document.getElementById('arrow1').classList.add('show'); }, 1000);
+  setTimeout(() => { document.getElementById('flow2').classList.add('show'); }, 1200);
+  setTimeout(() => { document.getElementById('arrow2').classList.add('show'); }, 1600);
+  setTimeout(() => { document.getElementById('flow3').classList.add('show'); }, 1800);
+  
+  // Knowledge chips
+  const chips = document.querySelectorAll('.knowledge-chip');
+  chips.forEach((chip, i) => {
+    setTimeout(() => chip.classList.add('show'), 2400 + i * 120);
+  });
+}
+
+// ===== SCENE 3 ANIMATIONS =====
+function runScene3() {
+  setTimeout(() => document.getElementById('s3badge').classList.add('show'), 200);
+  setTimeout(() => document.getElementById('s3title').classList.add('show'), 200);
+  setTimeout(() => document.getElementById('s3benefits').classList.add('show'), 200);
+  setTimeout(() => document.getElementById('phone').classList.add('show'), 400);
+  
+  const chat = document.getElementById('chat');
+  
+  // Clear chat if it was run previously
+  chat.innerHTML = '';
+  
+  const messages = [
+    { type: 'ai', text: "Hi Emma! 👋 Your order just arrived. Would you like help getting the most out of your new products?", delay: 1200 },
+    { type: 'customer', text: "Yes please! I got the Vitamin C Serum but I'm not sure how to use it properly 🤔", delay: 2200 },
+    { type: 'typing', delay: 1200 },
+    { type: 'ai', text: "Great choice! 💧 Apply 3-4 drops on clean, damp skin every morning before moisturizer. Avoid using with retinol — space them 12 hours apart. Store in a cool, dark place for 6-month shelf life!", delay: 0 },
+    { type: 'customer', text: "Oh I was about to use it with my retinol at night! 😅 Thanks for the heads up!", delay: 2200 },
+    { type: 'typing', delay: 900 },
+    { type: 'ai', text: "Happy I caught that! ✨ Use Vitamin C in the AM and Retinol in the PM for best results. You'll see visible improvement in 2-3 weeks! Need tips for any other products?", delay: 0 },
+    { type: 'customer', text: "This is so helpful! Love this service ❤️", delay: 2000 },
+  ];
+
+  let msgIndex = 0;
+  function showMsg() {
+    if (msgIndex >= messages.length || currentScene !== 3) return;
+    const m = messages[msgIndex];
+    msgIndex++;
+
+    if (m.type === 'typing') {
+      const typingEl = document.createElement('div');
+      typingEl.className = 'typing';
+      typingEl.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+      chat.appendChild(typingEl);
+      requestAnimationFrame(() => typingEl.classList.add('show'));
+      chat.scrollTop = chat.scrollHeight;
+      setTimeout(() => {
+        if(currentScene !== 3) return;
+        typingEl.classList.remove('show');
+        typingEl.classList.add('hide');
+        setTimeout(() => { typingEl.remove(); showMsg(); }, 300);
+      }, m.delay);
+      return;
+    }
+
+    const el = document.createElement('div');
+    el.className = `msg ${m.type}`;
+    el.innerHTML = `${m.text}<div class="msg-time">${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>`;
+    chat.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    chat.scrollTop = chat.scrollHeight;
+
+    if (msgIndex < messages.length) {
+      setTimeout(showMsg, messages[msgIndex].delay);
+    }
+  }
+
+  setTimeout(showMsg, 800);
+}
+
+// ===== SCENE 4 ANIMATIONS ======
+function runScene4() {
+  setTimeout(() => document.getElementById('s4title').classList.add('show'), 200);
+  setTimeout(() => document.getElementById('imp1').classList.add('show'), 600);
+  setTimeout(() => document.getElementById('imp2').classList.add('show'), 900);
+  setTimeout(() => document.getElementById('imp3').classList.add('show'), 1200);
+
+  function animateCounter(id, target, suffix, duration) {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      let current = 0;
+      const steps = 40;
+      const increment = target / steps;
+      const interval = setInterval(() => {
+        current += increment;
+        if (current >= target) { current = target; clearInterval(interval); }
+        if (suffix === '×') {
+          el.textContent = current.toFixed(1) + suffix;
+        } else {
+          el.textContent = Math.round(current) + suffix;
+        }
+      }, duration / steps);
+    }, 1400);
+  }
+  animateCounter('impVal1', 95, '%', 1500);
+  animateCounter('impVal2', 40, '%', 1500);
+  animateCounter('impVal3', 2.8, '×', 1500);
+}
+
+// ===== MASTER TIMELINE ======
+window.onload = function() {
+  console.log("Timeline starting...");
+  
+  // Ensure we start at scene 1 properly
+  document.querySelectorAll('.scene').forEach(el => el.classList.remove('active'));
+  document.getElementById('scene1').classList.add('active');
+  currentScene = 1;
+  runScene1();
+
+  setTimeout(() => { console.log("Switching to Scene 2"); switchScene(1, 2); runScene2(); }, 6000);
+  setTimeout(() => { console.log("Switching to Scene 3"); switchScene(2, 3); runScene3(); }, 13000);
+  setTimeout(() => { console.log("Switching to Scene 4"); switchScene(3, 4); runScene4(); }, 26000);
+};
+</script>
+</body>
+</html>

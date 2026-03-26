@@ -31,7 +31,7 @@ export async function adminAuthMiddleware(c: Context, next: Next) {
         }
 
         // User is super admin, proceed
-        await next();
+        return await next();
     } catch (err) {
         console.error('Admin Auth Middleware exception:', err);
         return c.json({ error: 'Internal Server Error' }, 500);

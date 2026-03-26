@@ -7,17 +7,27 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // the canonical verification.
   requireSessionTokenAuthorization(request);
 
-  const [localProducts, instructionPayload] = await Promise.all([
-    fetchMerchantProducts(request),
-    fetchMerchantProductInstructions(request),
-  ]);
+  try {
+    const [localProducts, instructionPayload] = await Promise.all([
+      fetchMerchantProducts(request),
+      fetchMerchantProductInstructions(request),
+    ]);
 
-  return {
-    localProducts: localProducts.products.map((product) => ({
-      id: product.id,
-      external_id: product.external_id,
-    })),
-    instructions: instructionPayload.instructions || [],
-    localProductCount: localProducts.products.length,
-  };
+    return {
+      localProducts: localProducts.products.map((product) => ({
+        id: product.id,
+        external_id: product.external_id,
+      })),
+      instructions: instructionPayload.instructions || [],
+      localProductCount: localProducts.products.length,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      localProducts: [],
+      instructions: [],
+      localProductCount: 0,
+      error: error instanceof Error ? error.message : "Unable to refresh mapping data.",
+    };
+  }
 };

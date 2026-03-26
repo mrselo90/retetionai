@@ -36,7 +36,7 @@ export const verifyShopifyGdprWebhook = async (c: Context<{ Variables: { parsedG
         const jsonBody = JSON.parse(rawBody);
         c.set('parsedGdprBody', jsonBody);
 
-        await next();
+        return await next();
     } catch (error) {
         console.error('⚠️ GDPR Webhook Parse Hatası:', error);
         return c.json({ error: 'Bad Request' }, 400);

@@ -41,7 +41,7 @@ export function validateBody<T extends ZodSchema>(schema: T) {
       // Store validated body in context
       c.set('validatedBody', validated);
       
-      await next();
+      return await next();
     } catch (error) {
       if (error instanceof ZodError) {
         return c.json(formatZodError(error), 400);
@@ -76,7 +76,7 @@ export function validateQuery<T extends ZodSchema>(schema: T) {
       // Store validated query in context
       c.set('validatedQuery', validated);
       
-      await next();
+      return await next();
     } catch (error) {
       if (error instanceof ZodError) {
         return c.json(formatZodError(error), 400);
@@ -99,7 +99,7 @@ export function validateParams<T extends ZodSchema>(schema: T) {
       // Store validated params in context
       c.set('validatedParams', validated);
       
-      await next();
+      return await next();
     } catch (error) {
       if (error instanceof ZodError) {
         return c.json(formatZodError(error), 400);

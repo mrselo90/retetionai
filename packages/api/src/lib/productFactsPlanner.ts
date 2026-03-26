@@ -8,7 +8,7 @@ export interface ProductFactsPlannerOptions {
 
 export interface PlannedFactAnswer {
   answer: string;
-  queryType: 'volume' | 'ingredients' | 'active_ingredients' | 'skin_type' | 'usage' | 'warnings';
+  queryType: 'volume' | 'ingredients' | 'active_ingredients' | 'ingredient_presence' | 'skin_type' | 'usage' | 'warnings';
   usedProductId: string;
   usedFactKeys: string[];
   evidenceQuotesUsed?: string[];
@@ -41,18 +41,58 @@ function deterministicLanguageCompatible(
   return normalizedFactsLang === userLang;
 }
 
-function detectFactQueryType(query: string): PlannedFactAnswer['queryType'] | null {
+interface DetectedFactQuery {
+  queryType: PlannedFactAnswer['queryType'];
+  containsTarget?: string;
+}
+
+function normalizeIngredientTerm(value: string): string {
+  return value
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractIngredientPresenceTarget(query: string): string | null {
+  const raw = query.trim();
+  const patterns = [
+    /(?:does\s+(?:this|it|the product)\s+contain|contains?)\s+(.+?)(?:\?|$)/i,
+    /(?:içer(?:iyor|ir)\s*mi|var mı|var mi)\s+(.+?)(?:\?|$)/i,
+    /(.+?)\s+(?:içeriyor mu|içerir mi|var mı|var mi)(?:\?|$)/i,
+    /(?:tartalmazza|tartalmaz)\s+(.+?)(?:\?|$)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = raw.match(pattern);
+    const candidate = match?.[1]?.trim();
+    if (candidate) {
+      return candidate
+        .replace(/^(a|an|the|bu|ez|this)\s+/i, '')
+        .replace(/\b(product|ürün|termék)\b/gi, '')
+        .trim();
+    }
+  }
+
+  return null;
+}
+
+function detectFactQueryType(query: string): DetectedFactQuery | null {
   const q = query.toLowerCase();
-  if (/\b(ml|gram|g |oz|volume|kaç ml|hány ml)\b/i.test(q)) return 'volume';
-  if (/\b(active ingredients|hatóanyag|aktif içerik)\b/i.test(q)) return 'active_ingredients';
-  if (/\b(ingredients|inci|összetev|içerik|i̇çerik|parfüm|fragrance|illatanyag)\b/i.test(q)) return 'ingredients';
+  const containsTarget = extractIngredientPresenceTarget(query);
+  if (containsTarget) return { queryType: 'ingredient_presence', containsTarget };
+  if (/\b(ml|gram|g |oz|volume|kaç ml|hány ml)\b/i.test(q)) return { queryType: 'volume' };
+  if (/\b(active ingredients|hatóanyag|aktif içerik)\b/i.test(q)) return { queryType: 'active_ingredients' };
+  if (/\b(ingredients|inci|összetev|içerik|i̇çerik|parfüm|fragrance|illatanyag)\b/i.test(q)) return { queryType: 'ingredients' };
   if (/\b(how to use|directions|usage|nasıl kullan|kullanım|használat|alkalmaz|ne sıklıkla|kaç kez|milyen gyakran|how often|frequency)\b/i.test(q)) {
-    return 'usage';
+    return { queryType: 'usage' };
   }
   if (/\b(warning|caution|uyarı|dikkat|figyelmezt|avoid contact|göz(e)? kaç|szem(ébe|be) kerül|allergy|alerji|allergia)\b/i.test(q)) {
-    return 'warnings';
+    return { queryType: 'warnings' };
   }
-  if (/\b(skin|cilt|bőr|suitable|uygun|megfelelő|sensitive|sensitive skin|érzékeny)\b/i.test(q)) return 'skin_type';
+  if (/\b(skin|cilt|bőr|suitable|uygun|megfelelő|sensitive|sensitive skin|érzékeny)\b/i.test(q)) return { queryType: 'skin_type' };
   return null;
 }
 
@@ -106,6 +146,7 @@ function pickEvidenceQuotes(
       if (queryType === 'volume') return /volume|identity/.test(fk);
       if (queryType === 'ingredients') return /ingredient|inci/.test(fk);
       if (queryType === 'active_ingredients') return /active|ingredient/.test(fk);
+      if (queryType === 'ingredient_presence') return /ingredient|active|inci/.test(fk);
       if (queryType === 'usage') return /usage|frequency/.test(fk);
       if (queryType === 'warnings') return /warning|caution/.test(fk);
       if (queryType === 'skin_type') return /skin/.test(fk);
@@ -209,14 +250,27 @@ function warningActionHint(lang: SupportedLanguage, subtype: WarningSubtype): st
   return 'For the most accurate guidance, follow the warnings on the product label.';
 }
 
+function ingredientPresenceAnswer(lang: SupportedLanguage, productName: string, target: string, present: boolean): string {
+  if (present) {
+    if (lang === 'tr') return `${productName} için gördüğüm içeriklerde ${target} yer alıyor.`;
+    if (lang === 'hu') return `A(z) ${productName} termék összetevői között látom ezt: ${target}.`;
+    return `I can see ${target} listed for ${productName}.`;
+  }
+
+  if (lang === 'tr') return `${productName} için gördüğüm içerik ve aktif içerik listesinde ${target} yer almıyor.`;
+  if (lang === 'hu') return `A(z) ${productName} terméknél az általam látott összetevő- és hatóanyaglistában nem szerepel ez: ${target}.`;
+  return `I do not see ${target} in the ingredients or active ingredients I have for ${productName}.`;
+}
+
 export function planStructuredFactAnswer(
   query: string,
   lang: SupportedLanguage,
   snapshots: ProductFactSnapshot[],
   options?: ProductFactsPlannerOptions
 ): PlannedFactAnswer | null {
-  const queryType = detectFactQueryType(query);
-  if (!queryType) return null;
+  const detected = detectFactQueryType(query);
+  if (!detected) return null;
+  const { queryType, containsTarget } = detected;
 
   const snap = pickSnapshot(snapshots, query);
   if (!snap) return null;
@@ -284,6 +338,36 @@ export function planStructuredFactAnswer(
       return { answer: answer + evidenceSuffix(lang, quotes), queryType, usedProductId: snap.productId, usedFactKeys: ['active_ingredients'], evidenceQuotesUsed: quotes, direct: true };
     }
     return { answer: noInfo(lang, productName, lang === 'hu' ? 'hatóanyag' : lang === 'tr' ? 'aktif içerik' : 'active ingredient') + evidenceSuffix(lang, quotes), queryType, usedProductId: snap.productId, usedFactKeys: [], evidenceQuotesUsed: quotes, direct: true };
+  }
+
+  if (queryType === 'ingredient_presence') {
+    const target = normalizeIngredientTerm(containsTarget || '');
+    if (!target) return null;
+
+    const ingredients = Array.isArray(facts.ingredients) ? facts.ingredients.map(String).filter(Boolean) : [];
+    const active = Array.isArray(facts.active_ingredients) ? facts.active_ingredients.map(String).filter(Boolean) : [];
+    const allTerms = [...ingredients, ...active];
+    if (allTerms.length === 0) {
+      return {
+        answer: noInfo(lang, productName, lang === 'hu' ? 'összetevőlista' : lang === 'tr' ? 'içerik listesi' : 'ingredient list') + evidenceSuffix(lang, quotes),
+        queryType,
+        usedProductId: snap.productId,
+        usedFactKeys: [],
+        evidenceQuotesUsed: quotes,
+        direct: true,
+      };
+    }
+
+    const normalizedTerms = allTerms.map(normalizeIngredientTerm);
+    const present = normalizedTerms.some((term) => term === target || term.includes(target) || target.includes(term));
+    return {
+      answer: ingredientPresenceAnswer(lang, productName, containsTarget || target, present) + evidenceSuffix(lang, quotes),
+      queryType,
+      usedProductId: snap.productId,
+      usedFactKeys: ['ingredients', 'active_ingredients'],
+      evidenceQuotesUsed: quotes,
+      direct: true,
+    };
   }
 
   if (queryType === 'skin_type') {

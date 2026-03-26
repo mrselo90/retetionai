@@ -137,7 +137,7 @@ export class MultiLangChunkShadowWriteService {
     const svc = getSupabaseServiceClient();
     const { data: product, error } = await svc
       .from('products')
-      .select('id, merchant_id, name, url, raw_text, enriched_text, multilang_specs_json, multilang_faq_json')
+      .select('id, merchant_id, name, url, raw_text, enriched_text')
       .eq('id', productId)
       .eq('merchant_id', shopId)
       .single();

@@ -24,6 +24,7 @@ import {
 } from '@shopify/polaris';
 import { MessageSquare, Clock, User, ShoppingBag, Bot } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
 
 interface ConversationMessage {
   role: 'user' | 'assistant' | 'merchant';
@@ -60,6 +61,14 @@ interface ConversationDetail {
   returnPreventionAttempt?: ReturnPreventionAttempt;
 }
 
+interface PageFeedbackState {
+  tone: 'success' | 'critical' | 'info';
+  title: string;
+  message: string;
+  actionLabel?: string;
+  targetId?: string;
+}
+
 function DetailIconSurface({
   icon,
   background = 'bg-surface-secondary',
@@ -87,6 +96,7 @@ export default function ConversationDetailPage() {
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
+  const [pageFeedback, setPageFeedback] = useState<PageFeedbackState | null>(null);
 
   useEffect(() => {
     if (conversationId) {
@@ -157,8 +167,22 @@ export default function ConversationDetailPage() {
       setReplyText('');
       await loadConversation();
       toast.success(t('toasts.sent.title'), t('toasts.sent.message'));
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.sentTitle'),
+        message: t('feedback.sentMessage'),
+        actionLabel: t('feedback.reviewReplyPanel'),
+        targetId: 'conversation-reply-panel',
+      });
     } catch (err) {
       console.error('Failed to send reply:', err);
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.sendErrorTitle'),
+        message: t('toasts.sendError.message'),
+        actionLabel: t('feedback.reviewReplyPanel'),
+        targetId: 'conversation-reply-panel',
+      });
       toast.error(t('toasts.sendError.title'), t('toasts.sendError.message'));
     } finally {
       setSending(false);
@@ -178,7 +202,21 @@ export default function ConversationDetailPage() {
       await loadConversation();
       const statusLabels: Record<string, string> = { ai: t('statusAiLabel'), human: t('statusHumanLabel'), resolved: t('statusResolvedLabel') };
       toast.success(t('toasts.statusUpdated'), statusLabels[newStatus]);
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.statusUpdatedTitle'),
+        message: t('feedback.statusUpdatedMessage', { status: statusLabels[newStatus] }),
+        actionLabel: t('feedback.reviewStatusControls'),
+        targetId: 'conversation-status-controls',
+      });
     } catch (err) {
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.statusErrorTitle'),
+        message: t('toasts.statusError.message'),
+        actionLabel: t('feedback.reviewStatusControls'),
+        targetId: 'conversation-status-controls',
+      });
       toast.error(t('toasts.statusError.title'), t('toasts.statusError.message'));
     } finally {
       setTogglingStatus(false);
@@ -231,6 +269,25 @@ export default function ConversationDetailPage() {
       <Layout>
         <Layout.Section>
     <BlockStack gap="400">
+      {pageFeedback ? (
+        <PageFeedbackCard
+          tone={pageFeedback.tone}
+          title={pageFeedback.title}
+          message={pageFeedback.message}
+          actionLabel={pageFeedback.actionLabel}
+          onAction={
+            pageFeedback.targetId
+              ? () => {
+                  document
+                    .getElementById(pageFeedback.targetId!)
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              : undefined
+          }
+          dismissLabel={t('feedback.dismiss')}
+          onDismiss={() => setPageFeedback(null)}
+        />
+      ) : null}
       {/* Header */}
       <Card>
         <BlockStack gap="400">
@@ -259,7 +316,7 @@ export default function ConversationDetailPage() {
             </BlockStack>
           </InlineStack>
 
-          <BlockStack gap="300">
+          <BlockStack id="conversation-status-controls" gap="300">
             <InlineStack gap="200" wrap>
               <PolarisBadge tone={
                 conversation.conversationStatus === 'human'
@@ -344,6 +401,7 @@ export default function ConversationDetailPage() {
       </Card>
 
       {/* Chat Messages */}
+      <div id="conversation-reply-panel">
       <Card>
         <Box padding="400" borderBlockEndWidth="025" borderColor="border">
           <Text as="h2" variant="headingSm">{t('messageHistory')}</Text>
@@ -435,6 +493,7 @@ export default function ConversationDetailPage() {
           )}
         </Box>
       </Card>
+      </div>
 
       {/* Conversation Stats */}
       <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">

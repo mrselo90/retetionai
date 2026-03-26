@@ -1,9 +1,10 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Form, useActionData, useFetcher, useLoaderData, useNavigate, useNavigation, useSubmit } from "react-router";
+import { Form, isRouteErrorResponse, useActionData, useFetcher, useLoaderData, useNavigate, useNavigation, useRouteError, useSubmit } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ArrowLeftIcon, CheckIcon, MagicIcon } from "@shopify/polaris-icons";
 import {
+  Banner,
   Box,
   Button,
   Card,
@@ -30,6 +31,7 @@ import {
   updateMerchantProductInstruction,
 } from "../platform.server";
 import { MetricCard, SectionCard, StatusBadge } from "../components/shell-ui";
+import { FloatingActionFeedback } from "../components/FloatingActionFeedback";
 import {
   canCreateRecipe,
   getPlanSnapshotByDomain,
@@ -66,6 +68,13 @@ type MappingDataPayload = {
   instructions: MerchantProductInstruction[];
   localProducts: LocalProductRecord[];
   localProductCount: number;
+  error?: string | null;
+};
+
+type SaveFeedback = {
+  productId: string;
+  message: string;
+  savedAt: string;
 };
 
 function stripHtmlForRag(html?: string) {
@@ -89,6 +98,18 @@ function draftFromInstruction(instruction?: MerchantProductInstruction): Mapping
     prevention_tips: instruction?.prevention_tips || "",
     video_url: instruction?.video_url || "",
   };
+}
+
+function formatSavedAt(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function productTitleFor(rows: MappingRow[], productId?: string) {
+  if (!productId) return "Selected product";
+  return rows.find((row) => row.shopify.id === productId)?.shopify.title || "Selected product";
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -253,6 +274,7 @@ export default function ProductMappingPage() {
     [rows],
   );
   const localProductCount = mappingDataFetcher.data?.localProductCount ?? 0;
+  const mappingDataError = mappingDataFetcher.data?.error || null;
 
   const [selectedProductId, setSelectedProductId] = useState<string>(
     actionData?.selectedProductId || data.catalogProducts[0]?.id || "",
@@ -260,10 +282,21 @@ export default function ProductMappingPage() {
   const [drafts, setDrafts] = useState<Record<string, MappingDraft>>(() =>
     Object.fromEntries(data.catalogProducts.map((product) => [product.id, emptyDraft()])),
   );
+  const [saveFeedback, setSaveFeedback] = useState<SaveFeedback | null>(null);
 
   useEffect(() => {
     if (actionData?.selectedProductId) setSelectedProductId(actionData.selectedProductId);
   }, [actionData?.selectedProductId]);
+
+  useEffect(() => {
+    if (actionData?.ok && actionData.selectedProductId && actionData.message) {
+      setSaveFeedback({
+        productId: actionData.selectedProductId,
+        message: actionData.message,
+        savedAt: new Date().toISOString(),
+      });
+    }
+  }, [actionData]);
 
   useEffect(() => {
     if (!selectedProductId && rows[0]?.shopify.id) {
@@ -306,6 +339,18 @@ export default function ProductMappingPage() {
       currentDraft &&
       JSON.stringify(currentDraft) !== JSON.stringify(initialDraft),
   );
+  const selectedSaveFeedback =
+    selectedRow && saveFeedback?.productId === selectedRow.shopify.id ? saveFeedback : null;
+  const latestSavedProductTitle = productTitleFor(rows, saveFeedback?.productId);
+  const latestActionProductTitle = productTitleFor(rows, actionData?.selectedProductId);
+
+  useEffect(() => {
+    if (dirty && selectedSaveFeedback) {
+      setSaveFeedback((current) =>
+        current?.productId === selectedRow?.shopify.id ? null : current,
+      );
+    }
+  }, [dirty, selectedRow?.shopify.id, selectedSaveFeedback]);
 
   const selectOptions = rows.map((row) => ({
     label: row.shopify.title,
@@ -359,6 +404,33 @@ export default function ProductMappingPage() {
         />
       ) : null}
 
+      {saveFeedback ? (
+        <FloatingActionFeedback
+          tone="success"
+          title={`Saved ${latestSavedProductTitle}`}
+          message={`Mapping and recipe guidance were saved at ${formatSavedAt(saveFeedback.savedAt)}.`}
+          actionLabel="Open saved details"
+          onAction={() => {
+            setSelectedProductId(saveFeedback.productId);
+            document.getElementById("mapping-detail-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          onDismiss={() => setSaveFeedback(null)}
+        />
+      ) : null}
+
+      {actionData?.error && actionData.selectedProductId ? (
+        <FloatingActionFeedback
+          tone="critical"
+          title={`Could not save ${latestActionProductTitle}`}
+          message={actionData.error}
+          actionLabel="Return to details"
+          onAction={() => {
+            setSelectedProductId(actionData.selectedProductId || "");
+            document.getElementById("mapping-detail-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        />
+      ) : null}
+
       <Layout>
         <Layout.Section>
           {busy || mappingDataLoading ? <Spinner accessibilityLabel="Loading" size="small" /> : null}
@@ -385,6 +457,13 @@ export default function ProductMappingPage() {
               />
             </InlineGrid>
           </Box>
+          {mappingDataError ? (
+            <Box paddingBlockStart="400">
+              <Banner tone="critical" title="Mapping data refresh failed">
+                <p>{mappingDataError}</p>
+              </Banner>
+            </Box>
+          ) : null}
         </Layout.Section>
 
         <Layout.Section>
@@ -420,12 +499,19 @@ export default function ProductMappingPage() {
 
         {selectedRow && currentDraft ? (
           <Layout.Section>
-            {actionData?.message ? <StatusBadge status="active">{actionData.message}</StatusBadge> : null}
-            {actionData?.error ? <Text as="p" variant="bodyMd" tone="critical">{actionData.error}</Text> : null}
             <SectionCard
+              id="mapping-detail-card"
               title={selectedRow.shopify.title}
               subtitle="Define the exact usage guidance, recipe summary, and prevention tips that the AI should use after delivery."
-              badge={<StatusBadge status={selectedRow.localProductId ? "active" : "pending"}>{selectedRow.localProductId ? "Local record linked" : "Will create local record"}</StatusBadge>}
+              badge={
+                selectedSaveFeedback && !dirty ? (
+                  <StatusBadge status="active">Saved</StatusBadge>
+                ) : (
+                  <StatusBadge status={selectedRow.localProductId ? "active" : "pending"}>
+                    {selectedRow.localProductId ? "Local record linked" : "Will create local record"}
+                  </StatusBadge>
+                )
+              }
             >
               <Form method="post" id="mapping-form">
                 <input type="hidden" name="selected_product_id" value={selectedRow.shopify.id} />
@@ -434,6 +520,24 @@ export default function ProductMappingPage() {
                 <input type="hidden" name="external_id" value={selectedRow.shopify.id} />
                 <input type="hidden" name="description_html" value={selectedRow.shopify.descriptionHtml || ""} />
                 <input type="hidden" name="existing_product_id" value={selectedRow.localProductId || ""} />
+
+                {selectedSaveFeedback && !dirty ? (
+                  <Box paddingBlockEnd="400">
+                    <Banner tone="success">
+                      <Text as="p" variant="bodyMd">
+                        {selectedSaveFeedback.message} Saved at {formatSavedAt(selectedSaveFeedback.savedAt)}.
+                      </Text>
+                    </Banner>
+                  </Box>
+                ) : null}
+
+                {actionData?.error && actionData.selectedProductId === selectedRow.shopify.id ? (
+                  <Box paddingBlockEnd="400">
+                    <Banner tone="critical">
+                      <Text as="p" variant="bodyMd">{actionData.error}</Text>
+                    </Banner>
+                  </Box>
+                ) : null}
 
                 <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
                   <TextField
@@ -534,6 +638,11 @@ export default function ProductMappingPage() {
                     <Button onClick={() => navigate("/app/products")} icon={MagicIcon}>
                       Return to product workspace
                     </Button>
+                    {selectedSaveFeedback && !dirty ? (
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        Last saved at {formatSavedAt(selectedSaveFeedback.savedAt)}
+                      </Text>
+                    ) : null}
                   </InlineStack>
                 </Box>
               </Form>
@@ -546,18 +655,20 @@ export default function ProductMappingPage() {
 }
 
 function BlockArea({
+  id,
   options,
   selectedProductId,
   onChange,
   rows,
 }: {
+  id?: string;
   options: Array<{ label: string; value: string }>;
   selectedProductId: string;
   onChange: (value: string) => void;
   rows: MappingRow[];
 }) {
   return (
-    <>
+    <div id={id}>
       <Select label="Shopify product" options={options} value={selectedProductId} onChange={onChange} />
       <Box paddingBlockStart="400">
         <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
@@ -576,14 +687,47 @@ function BlockArea({
                   {row.mapped ? "Ready" : row.localProductId ? "Drafted" : "Unmapped"}
                 </StatusBadge>
               </InlineStack>
+              <Box paddingBlockStart="200">
+                <Text as="p" variant="bodySm" tone="subdued">
+                  {row.instruction?.usage_instructions
+                    ? "Usage guidance is already saved for this product."
+                    : "Still needs usage guidance before the AI can answer confidently."}
+                </Text>
+              </Box>
             </Card>
           ))}
         </InlineGrid>
       </Box>
-    </>
+    </div>
   );
 }
 
 export const headers: HeadersFunction = (headersArgs) => {
   return boundary.headers(headersArgs);
 };
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const title = isRouteErrorResponse(error) ? `${error.status} ${error.statusText}` : "Mapping page failed";
+  const message = isRouteErrorResponse(error)
+    ? (typeof error.data === "string" ? error.data : "The Shopify mapping page could not be loaded.")
+    : error instanceof Error
+      ? error.message
+      : "The Shopify mapping page could not be loaded.";
+
+  return (
+    <Page
+      backAction={{ content: "Products", url: "/app/products" }}
+      title="Shopify mapping"
+      subtitle="The page hit a server error. Review the details below and try again."
+    >
+      <Layout>
+        <Layout.Section>
+          <Banner tone="critical" title={title}>
+            <p>{message}</p>
+          </Banner>
+        </Layout.Section>
+      </Layout>
+    </Page>
+  );
+}

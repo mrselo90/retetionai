@@ -57,6 +57,19 @@ interface InstructionRow {
   recipe_summary?: string;
 }
 
+interface SaveFeedback {
+  productId: string;
+  productTitle: string;
+  savedAt: string;
+}
+
+function formatSavedAt(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
 export default function ShopifyMapPage() {
   const t = useTranslations('ShopifyMap');
   const router = useRouter();
@@ -66,6 +79,8 @@ export default function ShopifyMapPage() {
   const [editing, setEditing] = useState<Record<string, { usage_instructions: string; recipe_summary?: string }>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [saveFeedback, setSaveFeedback] = useState<Record<string, SaveFeedback>>({});
+  const [pageFeedback, setPageFeedback] = useState<SaveFeedback | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -178,6 +193,16 @@ export default function ShopifyMapPage() {
         }),
       });
       toast.success(t('toasts.saveSuccess.title'), t('toasts.saveSuccess.message'));
+      const feedback = {
+        productId: shopifyProduct.id,
+        productTitle: shopifyProduct.title,
+        savedAt: new Date().toISOString(),
+      };
+      setSaveFeedback((prev) => ({
+        ...prev,
+        [shopifyProduct.id]: feedback,
+      }));
+      setPageFeedback(feedback);
 
       // Add success highlight animation
       const row = document.querySelector(`tr[data-product-id="${shopifyProduct.id}"]`);
@@ -225,6 +250,44 @@ export default function ShopifyMapPage() {
           {t('backToProducts')}
         </PolarisButton>
       </div>
+
+      {pageFeedback ? (
+        <div className="sticky top-4 z-20">
+          <PolarisCard>
+            <Box padding="400">
+              <div className="flex flex-col gap-3 rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-50 via-white to-white p-4 shadow-sm">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <Text as="h2" variant="headingMd">
+                      {t('feedback.savedTitle', { title: pageFeedback.productTitle })}
+                    </Text>
+                    <div className="mt-1">
+                      <Text as="p" tone="subdued">
+                        {t('feedback.savedMessage', { time: formatSavedAt(pageFeedback.savedAt) })}
+                      </Text>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <PolarisButton
+                      onClick={() => {
+                        document
+                          .querySelector(`tr[data-product-id="${pageFeedback.productId}"]`)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      variant="primary"
+                    >
+                      {t('feedback.jumpToSaved')}
+                    </PolarisButton>
+                    <PolarisButton onClick={() => setPageFeedback(null)}>
+                      {t('feedback.dismiss')}
+                    </PolarisButton>
+                  </div>
+                </div>
+              </div>
+            </Box>
+          </PolarisCard>
+        </div>
+      ) : null}
 
       {/* Loading State */}
       {loading ? (
@@ -314,6 +377,11 @@ export default function ShopifyMapPage() {
                             <p className="text-xs text-muted-foreground font-medium mb-2">{p.handle}</p>
                             {(p.productType || p.vendor || (p.variants?.length && p.variants[0])) && (
                               <div className="flex flex-wrap gap-2">
+                                {saveFeedback[p.id] && (
+                                  <PolarisBadge tone="success">
+                                    {t('saved')}
+                                  </PolarisBadge>
+                                )}
                                 {p.productType && (
                                   <PolarisBadge tone="info">
                                     {p.productType}
@@ -349,10 +417,19 @@ export default function ShopifyMapPage() {
                           value={editing[p.id]?.usage_instructions ?? ''}
                           placeholder={t('placeholder')}
                           onChange={(value) =>
-                            setEditing((prev) => ({
-                              ...prev,
-                              [p.id]: { ...prev[p.id], usage_instructions: value },
-                            }))
+                            {
+                              setEditing((prev) => ({
+                                ...prev,
+                                [p.id]: { ...prev[p.id], usage_instructions: value },
+                              }));
+                              setSaveFeedback((prev) => {
+                                if (!prev[p.id]) return prev;
+                                const next = { ...prev };
+                                delete next[p.id];
+                                return next;
+                              });
+                              setPageFeedback((current) => (current?.productId === p.id ? null : current));
+                            }
                           }
                         />
                       </td>
@@ -367,6 +444,13 @@ export default function ShopifyMapPage() {
                         >
                           {saving === p.id ? t('saving') : t('save')}
                         </PolarisButton>
+                        {saveFeedback[p.id] ? (
+                          <div className="mt-2">
+                            <Text as="p" variant="bodySm" tone="success">
+                              {t('lastSaved', { time: formatSavedAt(saveFeedback[p.id].savedAt) })}
+                            </Text>
+                          </div>
+                        ) : null}
                       </td>
                     </tr>
                   ))}

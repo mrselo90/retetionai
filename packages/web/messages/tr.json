@@ -416,6 +416,21 @@
     "Products": {
         "title": "Ürünler",
         "description": "Ürünlerinizi yönetin ve yapay zekâ ile senkronize edin.",
+        "feedback": {
+            "dismiss": "Kapatın",
+            "reviewCatalog": "Ürün listesini inceleyin",
+            "reviewAddModal": "Ürün ekleme formunu inceleyin",
+            "addedTitle": "Ürün eklendi",
+            "addedMessage": "Ürün oluşturuldu, çekildi ve yapay zekâ senkronuna kuyruğa alındı.",
+            "addErrorTitle": "Ürün oluşturulamadı",
+            "deletedTitle": "Ürün kaldırıldı",
+            "deletedMessage": "Ürün kaldırıldı ve liste yenilendi.",
+            "deleteErrorTitle": "Ürün kaldırılamadı",
+            "bulkScrapeTitle": "Toplu çekim kuyruğa alındı",
+            "bulkEmbeddingsTitle": "Toplu embedding başlatıldı",
+            "bulkScrapeErrorTitle": "Toplu çekim başarısız oldu",
+            "bulkEmbeddingsErrorTitle": "Toplu embedding başarısız oldu"
+        },
         "view": {
             "grid": "Izgara",
             "list": "Liste"
@@ -677,6 +692,25 @@
     "Integrations": {
         "title": "Entegrasyonlar",
         "description": "E-ticaret platformlarınızı bağlayın ve sipariş takibini otomatikleştirin",
+        "feedback": {
+            "dismiss": "Kapatın",
+            "reviewActive": "Aktif entegrasyonları inceleyin",
+            "reviewDiscover": "Keşif listesini açın",
+            "importSavedTitle": "CSV içe aktarma tamamlandı",
+            "importSavedMessage": "{count} satır içe aktarıldı ve entegrasyon listesi yenilendi.",
+            "importErrorTitle": "CSV içe aktarma başarısız oldu",
+            "manualSavedTitle": "Manuel entegrasyon oluşturuldu",
+            "manualSavedMessage": "Manuel/API entegrasyonu artık aktif bağlantılarınızda görünüyor.",
+            "manualErrorTitle": "Manuel entegrasyon başarısız oldu",
+            "whatsappConnectedTitle": "WhatsApp bağlandı",
+            "whatsappConnectedMessage": "WhatsApp bağlantınız canlıya alındı ve mesaj akışlarına hazır.",
+            "whatsappUpdatedTitle": "WhatsApp güncellendi",
+            "whatsappUpdatedMessage": "WhatsApp bağlantı bilgileri başarıyla güncellendi.",
+            "whatsappErrorTitle": "WhatsApp kaydedilemedi",
+            "integrationRemovedTitle": "Entegrasyon kaldırıldı",
+            "integrationRemovedMessage": "Bağlantı kaldırıldı ve liste yenilendi.",
+            "deleteErrorTitle": "Entegrasyon kaldırılamadı"
+        },
         "platformSupport": {
             "title": "Kurumsal destek (Recete)",
             "subtitle": "WhatsApp üzerinden bize ulaşın"
@@ -847,6 +881,30 @@
     "Settings": {
         "title": "Ayarlar",
         "description": "Bot davranışı ve API erişimini yönetin.",
+        "feedback": {
+            "dismiss": "Kapatın",
+            "reviewLanguages": "Dil ayarlarını inceleyin",
+            "reviewPersona": "Bot kişiliğini inceleyin",
+            "reviewGuardrails": "Kuralları inceleyin",
+            "reviewModules": "Modülleri inceleyin",
+            "reviewData": "Veri kontrollerini inceleyin",
+            "multiLangSavedTitle": "Dil ayarları kaydedildi",
+            "multiLangSavedMessage": "Çok dilli yapay zekâ ayarları {time} itibarıyla canlıya alındı.",
+            "multiLangErrorTitle": "Dil ayarları kaydedilemedi",
+            "personaSavedTitle": "Bot kişiliği kaydedildi",
+            "personaSavedMessage": "Bot davranışı değişiklikleri {time} itibarıyla canlıya alındı.",
+            "personaErrorTitle": "Bot kişiliği kaydedilemedi",
+            "guardrailSavedTitle": "Kurallar güncellendi",
+            "guardrailSavedMessage": "Son kural değişiklikleri artık yeni konuşmalar için aktif.",
+            "guardrailErrorTitle": "Kural güncellemesi başarısız oldu",
+            "moduleErrorTitle": "Modül değişikliği başarısız oldu",
+            "exportSavedTitle": "Veri dışa aktarma başladı",
+            "exportSavedMessage": "Dışa aktarma dosyanız indirilmeye başladı.",
+            "exportErrorTitle": "Veri dışa aktarma başarısız oldu",
+            "deleteScheduledTitle": "Silme planlandı",
+            "deletePermanentTitle": "Hesap silme onaylandı",
+            "deleteErrorTitle": "Silme isteği başarısız oldu"
+        },
         "guardrailsLink": "Kurallar →",
         "botPersona": {
             "title": "Bot kişiliği",
@@ -1123,9 +1181,17 @@
             "ariaLabel": "Shopify ürünleri ve kullanım talimatları"
         },
         "placeholder": "Örn. Temizleme sonrası ince bir tabaka uygulayın. Günde 1–2 kez kullanılabilir.",
+        "saved": "Kaydedildi",
+        "lastSaved": "{time} itibarıyla kaydedildi",
         "save": "Kaydedin",
         "saving": "Kaydediliyor…",
         "instructionLabel": "Kullanım talimatları: {title}",
+        "feedback": {
+            "savedTitle": "{title} kaydedildi",
+            "savedMessage": "Değişiklikler canlıya alındı ve {time} itibarıyla kaydedildi.",
+            "jumpToSaved": "Satıra gidin",
+            "dismiss": "Kapatın"
+        },
         "toasts": {
             "shopifyNotConnected": {
                 "title": "Shopify bağlı değil",
@@ -1211,6 +1277,17 @@
     "ConversationDetail": {
         "backToConversations": "Konuşmalara dönün",
         "notFound": "Konuşma bulunamadı",
+        "feedback": {
+            "dismiss": "Kapatın",
+            "reviewReplyPanel": "Yanıt panelini inceleyin",
+            "reviewStatusControls": "Durum kontrollerini inceleyin",
+            "sentTitle": "Yanıt gönderildi",
+            "sentMessage": "WhatsApp yanıtınız konuşma akışına eklendi.",
+            "sendErrorTitle": "Yanıt gönderilemedi",
+            "statusUpdatedTitle": "Konuşma durumu güncellendi",
+            "statusUpdatedMessage": "Konuşma artık {status} olarak atanmış durumda.",
+            "statusErrorTitle": "Durum güncellenemedi"
+        },
         "order": "Sipariş",
         "messageHistory": "Mesaj geçmişi",
         "messageCount": "{count} mesaj · Otomatik güncelleniyor",
@@ -1265,6 +1342,12 @@
         "loading": "Yükleniyor…",
         "saveAll": "Tümünü kaydedin",
         "saving": "Kaydediliyor…",
+        "feedback": {
+            "dismiss": "Kapatın",
+            "savedTitle": "Bot yönergeleri kaydedildi",
+            "savedMessage": "Yapay zekâ yönergesi değişiklikleri {time} itibarıyla canlıya alındı.",
+            "saveErrorTitle": "Bot yönergeleri kaydedilemedi"
+        },
         "sections": {
             "brand_guidelines": {
                 "label": "Marka ve yönergeler",
@@ -1299,6 +1382,17 @@
         "backToProducts": "Ürünlere dönün",
         "editProduct": "Ürünü düzenle",
         "editDescription": "Ürün ayrıntılarını düzenle",
+        "feedback": {
+            "dismiss": "Kapatın",
+            "reviewInstructions": "Bot talimatlarını inceleyin",
+            "reviewScrapedContent": "Çekilen içeriği inceleyin",
+            "savedTitle": "Ürün değişiklikleri kaydedildi",
+            "savedMessage": "Ürün ayrıntıları ve talimat içeriği {time} itibarıyla canlıya alındı.",
+            "saveErrorTitle": "Ürün kaydedilemedi",
+            "rescanSavedTitle": "Ürün içeriği yenilendi",
+            "rescanSavedMessage": "Çekilen içerik yenilendi ve embedding süreci yeniden kuyruğa alındı.",
+            "rescanErrorTitle": "Ürün yenilenemedi"
+        },
         "save": "Kaydedin",
         "saving": "Kaydediliyor...",
         "rescrape": "Yeniden çek",

@@ -34,6 +34,8 @@ export async function metricsMiddleware(c: Context, next: Next) {
       const errorType = statusCode >= 500 ? 'server_error' : 'client_error';
       httpRequestErrors.inc({ method, route, error_type: errorType });
     }
+
+    return c.res;
   } catch (error) {
     const duration = (Date.now() - startTime) / 1000;
     const statusCode = c.res.status || 500;

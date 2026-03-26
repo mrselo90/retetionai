@@ -12,6 +12,10 @@ import { UnifiedRetrievalService } from '../lib/unifiedRetrieval.js';
 
 const rag = new Hono();
 
+function errorDetails(error: unknown) {
+  return error instanceof Error ? error.message : 'Unknown error';
+}
+
 // All routes require authentication
 rag.use('/*', authMiddleware);
 rag.use('/*', requireActiveSubscription as any);
@@ -115,6 +119,7 @@ rag.post('/query', async (c) => {
     return c.json(
       {
         error: 'Failed to query knowledge base',
+        details: errorDetails(error),
       },
       500
     );
@@ -145,6 +150,7 @@ rag.get('/order/:orderId/context', async (c) => {
     return c.json(
       {
         error: 'Failed to get order context',
+        details: errorDetails(error),
       },
       500
     );
@@ -189,6 +195,7 @@ rag.post('/test', async (c) => {
     return c.json(
       {
         error: 'Test failed',
+        details: errorDetails(error),
       },
       500
     );

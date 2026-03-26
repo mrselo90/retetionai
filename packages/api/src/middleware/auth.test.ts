@@ -4,6 +4,11 @@ import { getSupabaseServiceClient } from '@recete/shared';
 
 vi.mock('@recete/shared', () => ({
   getSupabaseServiceClient: vi.fn(),
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
 }));
 
 describe('Auth Middleware', () => {
@@ -91,6 +96,7 @@ describe('Auth Middleware', () => {
   it('supports internal-secret auth on internal product route', async () => {
     process.env.INTERNAL_SERVICE_SECRET = 'secret-123';
     mockContext.req.path = '/api/products/enrich';
+    mockSupabase.maybeSingle.mockResolvedValue({ data: { id: 'merchant-eval' }, error: null });
     mockContext.req.header.mockImplementation((name: string) => {
       if (name === 'X-Internal-Secret') return 'secret-123';
       if (name === 'X-Internal-Merchant-Id') return 'merchant-eval';
@@ -101,12 +107,14 @@ describe('Auth Middleware', () => {
 
     expect(mockContext.set).toHaveBeenCalledWith('merchantId', 'merchant-eval');
     expect(mockContext.set).toHaveBeenCalledWith('authMethod', 'internal');
+    expect(mockContext.set).toHaveBeenCalledWith('internalCall', true);
     expect(mockNext).toHaveBeenCalled();
   });
 
   it('supports internal-secret auth on internal whatsapp route', async () => {
     process.env.INTERNAL_SERVICE_SECRET = 'secret-123';
     mockContext.req.path = '/api/whatsapp/inbound-events/event-1/process';
+    mockSupabase.maybeSingle.mockResolvedValue({ data: { id: 'merchant-eval' }, error: null });
     mockContext.req.header.mockImplementation((name: string) => {
       if (name === 'X-Internal-Secret') return 'secret-123';
       if (name === 'X-Internal-Merchant-Id') return 'merchant-eval';
@@ -117,6 +125,7 @@ describe('Auth Middleware', () => {
 
     expect(mockContext.set).toHaveBeenCalledWith('merchantId', 'merchant-eval');
     expect(mockContext.set).toHaveBeenCalledWith('authMethod', 'internal');
+    expect(mockContext.set).not.toHaveBeenCalledWith('internalCall', true);
     expect(mockNext).toHaveBeenCalled();
   });
 

@@ -417,6 +417,21 @@
     "Products": {
         "title": "Products",
         "description": "Manage your products and sync them with the AI.",
+        "feedback": {
+            "dismiss": "Dismiss",
+            "reviewCatalog": "Review product list",
+            "reviewAddModal": "Review add product form",
+            "addedTitle": "Product added",
+            "addedMessage": "The product was created, scraped, and queued for AI sync.",
+            "addErrorTitle": "Product creation failed",
+            "deletedTitle": "Product removed",
+            "deletedMessage": "The product was removed and the list has been refreshed.",
+            "deleteErrorTitle": "Product removal failed",
+            "bulkScrapeTitle": "Bulk scrape queued",
+            "bulkEmbeddingsTitle": "Bulk embeddings started",
+            "bulkScrapeErrorTitle": "Bulk scrape failed",
+            "bulkEmbeddingsErrorTitle": "Bulk embeddings failed"
+        },
         "view": {
             "grid": "Grid",
             "list": "List"
@@ -678,6 +693,25 @@
     "Integrations": {
         "title": "Integrations",
         "description": "Connect your e-commerce platforms and automate order tracking",
+        "feedback": {
+            "dismiss": "Dismiss",
+            "reviewActive": "Review active integrations",
+            "reviewDiscover": "Open discovery list",
+            "importSavedTitle": "CSV import completed",
+            "importSavedMessage": "{count} rows were imported and the integration list has been refreshed.",
+            "importErrorTitle": "CSV import failed",
+            "manualSavedTitle": "Manual integration created",
+            "manualSavedMessage": "The manual/API integration is now available in your active connections.",
+            "manualErrorTitle": "Manual integration failed",
+            "whatsappConnectedTitle": "WhatsApp connected",
+            "whatsappConnectedMessage": "Your WhatsApp connection is live and ready for messaging workflows.",
+            "whatsappUpdatedTitle": "WhatsApp updated",
+            "whatsappUpdatedMessage": "The WhatsApp connection details were updated successfully.",
+            "whatsappErrorTitle": "WhatsApp save failed",
+            "integrationRemovedTitle": "Integration removed",
+            "integrationRemovedMessage": "The connection was removed and the list has been refreshed.",
+            "deleteErrorTitle": "Integration removal failed"
+        },
         "platformSupport": {
             "title": "Corporate support (Recete)",
             "subtitle": "Contact us via WhatsApp"
@@ -848,6 +882,30 @@
     "Settings": {
         "title": "Settings",
         "description": "Manage bot behavior and API access.",
+        "feedback": {
+            "dismiss": "Dismiss",
+            "reviewLanguages": "Review language settings",
+            "reviewPersona": "Review bot persona",
+            "reviewGuardrails": "Review guardrails",
+            "reviewModules": "Review modules",
+            "reviewData": "Review data controls",
+            "multiLangSavedTitle": "Language settings saved",
+            "multiLangSavedMessage": "Multilingual AI settings are live as of {time}.",
+            "multiLangErrorTitle": "Language settings failed",
+            "personaSavedTitle": "Bot persona saved",
+            "personaSavedMessage": "Your bot behavior changes are live as of {time}.",
+            "personaErrorTitle": "Bot persona failed to save",
+            "guardrailSavedTitle": "Guardrails updated",
+            "guardrailSavedMessage": "The latest rule changes are now active for future conversations.",
+            "guardrailErrorTitle": "Guardrail update failed",
+            "moduleErrorTitle": "Module change failed",
+            "exportSavedTitle": "Data export started",
+            "exportSavedMessage": "Your export file has started downloading.",
+            "exportErrorTitle": "Data export failed",
+            "deleteScheduledTitle": "Deletion scheduled",
+            "deletePermanentTitle": "Account deletion confirmed",
+            "deleteErrorTitle": "Deletion request failed"
+        },
         "guardrailsLink": "Guardrails →",
         "botPersona": {
             "title": "Bot Persona",
@@ -1124,9 +1182,17 @@
             "ariaLabel": "Shopify products and usage instructions"
         },
         "placeholder": "e.g. Apply a thin layer after cleansing. Can be used 1–2 times daily.",
+        "saved": "Saved",
+        "lastSaved": "Saved at {time}",
         "save": "Save",
         "saving": "Saving…",
         "instructionLabel": "Usage instructions: {title}",
+        "feedback": {
+            "savedTitle": "{title} saved",
+            "savedMessage": "Changes are live and were saved at {time}.",
+            "jumpToSaved": "Jump to row",
+            "dismiss": "Dismiss"
+        },
         "toasts": {
             "shopifyNotConnected": {
                 "title": "Shopify not connected",
@@ -1212,6 +1278,17 @@
     "ConversationDetail": {
         "backToConversations": "Back to Conversations",
         "notFound": "Conversation not found",
+        "feedback": {
+            "dismiss": "Dismiss",
+            "reviewReplyPanel": "Review reply panel",
+            "reviewStatusControls": "Review status controls",
+            "sentTitle": "Reply sent",
+            "sentMessage": "Your WhatsApp reply was added to the conversation thread.",
+            "sendErrorTitle": "Reply failed",
+            "statusUpdatedTitle": "Conversation status updated",
+            "statusUpdatedMessage": "The conversation is now assigned to {status}.",
+            "statusErrorTitle": "Status update failed"
+        },
         "order": "Order",
         "messageHistory": "Message History",
         "messageCount": "{count} messages · Auto-updating",
@@ -1266,6 +1343,12 @@
         "loading": "Loading…",
         "saveAll": "Save All",
         "saving": "Saving…",
+        "feedback": {
+            "dismiss": "Dismiss",
+            "savedTitle": "Bot guidelines saved",
+            "savedMessage": "The AI guideline changes are live as of {time}.",
+            "saveErrorTitle": "Bot guidelines failed to save"
+        },
         "sections": {
             "brand_guidelines": {
                 "label": "Brand & Guidelines",
@@ -1300,6 +1383,17 @@
         "backToProducts": "Back to Products",
         "editProduct": "Edit Product",
         "editDescription": "Edit product details",
+        "feedback": {
+            "dismiss": "Dismiss",
+            "reviewInstructions": "Review bot instructions",
+            "reviewScrapedContent": "Review scraped content",
+            "savedTitle": "Product changes saved",
+            "savedMessage": "Product details and instruction content are live as of {time}.",
+            "saveErrorTitle": "Product save failed",
+            "rescanSavedTitle": "Product content refreshed",
+            "rescanSavedMessage": "Scraped content was refreshed and embeddings were queued again.",
+            "rescanErrorTitle": "Product refresh failed"
+        },
         "save": "Save",
         "saving": "Saving...",
         "rescrape": "Rescrape",

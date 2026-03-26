@@ -5,6 +5,7 @@ import { getActiveProductFactsContext, getActiveProductFactsSnapshots } from './
 import { planStructuredFactAnswer } from './productFactsPlanner.js';
 import type { SupportedLanguage } from './i18n.js';
 import { UnifiedRetrievalService } from './unifiedRetrieval.js';
+import { getCosmeticRagPolicy } from './ragRetrievalPolicy.js';
 
 export interface GroundingAssemblyInput {
   merchantId: string;
@@ -94,6 +95,7 @@ export function buildGroundingCacheKey(input: Record<string, unknown>): string {
 export async function assembleGroundingEvidence(
   input: GroundingAssemblyInput,
 ): Promise<GroundingAssemblyOutput> {
+  const retrievalPolicy = getCosmeticRagPolicy(input.retrievalQuery || input.question);
   let scopedProductIds = Array.isArray(input.productIds) && input.productIds.length > 0
     ? [...new Set(input.productIds)]
     : undefined;
@@ -111,9 +113,9 @@ export async function assembleGroundingEvidence(
     merchantId: input.merchantId,
     retrievalQuery,
     productIds: scopedProductIds || null,
-    topK: input.topK || 8,
-    similarityThreshold: input.similarityThreshold || 0.6,
-    preferredSectionTypes: input.preferredSectionTypes || null,
+    topK: input.topK || retrievalPolicy.topK,
+    similarityThreshold: input.similarityThreshold || retrievalPolicy.similarityThreshold,
+    preferredSectionTypes: input.preferredSectionTypes || retrievalPolicy.preferredSectionTypes || null,
     lang: input.userLang,
   });
 
@@ -132,9 +134,9 @@ export async function assembleGroundingEvidence(
         question: retrievalQuery,
         userLang: input.userLang,
         productIds: scopedProductIds,
-        topK: input.topK || 8,
-        similarityThreshold: input.similarityThreshold || 0.6,
-        preferredSectionTypes: input.preferredSectionTypes,
+        topK: input.topK || retrievalPolicy.topK,
+        similarityThreshold: input.similarityThreshold || retrievalPolicy.similarityThreshold,
+        preferredSectionTypes: input.preferredSectionTypes || retrievalPolicy.preferredSectionTypes,
         cacheKey,
         cacheTtlSeconds: input.cacheTtlSeconds ?? 900,
       });

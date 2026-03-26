@@ -25,6 +25,7 @@ import { Plus, Trash2, ExternalLink, FileText, CheckCircle, Loader2, LayoutGrid,
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useTranslations, useLocale } from 'next-intl';
 import { SESSION_RECHECK_MS } from '@/lib/constants';
+import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
 
 interface Product {
   id: string;
@@ -67,6 +68,14 @@ type ProductsSavedView = {
   sortBy: ProductSortOption;
 };
 
+interface PageFeedbackState {
+  tone: 'success' | 'critical' | 'info';
+  title: string;
+  message: string;
+  actionLabel?: string;
+  targetId?: string;
+}
+
 export default function ProductsPage() {
   const t = useTranslations('Products');
   const locale = useLocale();
@@ -85,6 +94,7 @@ export default function ProductsPage() {
   const [newProductName, setNewProductName] = useState('');
   const [scraping, setScraping] = useState(false);
   const [scrapeProgress, setScrapeProgress] = useState('');
+  const [pageFeedback, setPageFeedback] = useState<PageFeedbackState | null>(null);
   const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -353,6 +363,13 @@ export default function ProductsPage() {
 
       setScrapeProgress(t('addModal.scraping.completed'));
       toast.success(t('toasts.addSuccess.title'), t('toasts.addSuccess.message'));
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.addedTitle'),
+        message: t('feedback.addedMessage'),
+        actionLabel: t('feedback.reviewCatalog'),
+        targetId: 'products-catalog',
+      });
 
       await loadProducts();
 
@@ -363,7 +380,14 @@ export default function ProductsPage() {
       setScrapeProgress('');
     } catch (err: unknown) {
       console.error('Failed to add product:', err);
-      toast.error(t('toasts.addError.title'), (err instanceof Error ? err.message : '') || t('toasts.addError.message'));
+      const message = (err instanceof Error ? err.message : '') || t('toasts.addError.message');
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.addErrorTitle'),
+        message,
+        actionLabel: t('feedback.reviewAddModal'),
+      });
+      toast.error(t('toasts.addError.title'), message);
       setScraping(false);
       setScrapeProgress('');
     }
@@ -381,9 +405,23 @@ export default function ProductsPage() {
       );
 
       toast.success(t('toasts.deleteSuccess.title'), t('toasts.deleteSuccess.message'));
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.deletedTitle'),
+        message: t('feedback.deletedMessage'),
+        actionLabel: t('feedback.reviewCatalog'),
+        targetId: 'products-catalog',
+      });
       await loadProducts();
     } catch (err) {
       console.error('Failed to delete product:', err);
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.deleteErrorTitle'),
+        message: t('toasts.deleteError.message'),
+        actionLabel: t('feedback.reviewCatalog'),
+        targetId: 'products-catalog',
+      });
       toast.error(t('toasts.deleteError.title'), t('toasts.deleteError.message'));
     }
   };
@@ -580,6 +618,16 @@ export default function ProductsPage() {
       }
 
       if (successCount > 0) {
+        setPageFeedback({
+          tone: 'success',
+          title: action === 'scrape' ? t('feedback.bulkScrapeTitle') : t('feedback.bulkEmbeddingsTitle'),
+          message: t('bulk.successMessage', {
+            success: successCount,
+            failed: failCount,
+          }),
+          actionLabel: t('feedback.reviewCatalog'),
+          targetId: 'products-catalog',
+        });
         toast.success(
           action === 'scrape' ? t('bulk.scrapeSuccessTitle') : t('bulk.embeddingsSuccessTitle'),
           t(action === 'scrape' ? 'bulk.successMessage' : 'bulk.successMessage', {
@@ -588,6 +636,13 @@ export default function ProductsPage() {
           })
         );
       } else {
+        setPageFeedback({
+          tone: 'critical',
+          title: action === 'scrape' ? t('feedback.bulkScrapeErrorTitle') : t('feedback.bulkEmbeddingsErrorTitle'),
+          message: t('bulk.allFailedMessage', { failed: failCount }),
+          actionLabel: t('feedback.reviewCatalog'),
+          targetId: 'products-catalog',
+        });
         toast.error(
           action === 'scrape' ? t('bulk.scrapeErrorTitle') : t('bulk.embeddingsErrorTitle'),
           t('bulk.allFailedMessage', { failed: failCount })
@@ -597,6 +652,13 @@ export default function ProductsPage() {
       await loadProducts();
     } catch (err: unknown) {
       console.error(`Bulk ${action} request failed:`, err);
+      setPageFeedback({
+        tone: 'critical',
+        title: action === 'scrape' ? t('feedback.bulkScrapeErrorTitle') : t('feedback.bulkEmbeddingsErrorTitle'),
+        message: (err instanceof Error ? err.message : '') || t('bulk.requestFailedMessage'),
+        actionLabel: t('feedback.reviewCatalog'),
+        targetId: 'products-catalog',
+      });
       toast.error(
         action === 'scrape' ? t('bulk.scrapeErrorTitle') : t('bulk.embeddingsErrorTitle'),
         (err instanceof Error ? err.message : '') || t('bulk.requestFailedMessage')
@@ -670,6 +732,25 @@ export default function ProductsPage() {
       <Layout>
         <Layout.Section>
           <div className="space-y-6 animate-fade-in pb-8">
+            {pageFeedback ? (
+              <PageFeedbackCard
+                tone={pageFeedback.tone}
+                title={pageFeedback.title}
+                message={pageFeedback.message}
+                actionLabel={pageFeedback.actionLabel}
+                onAction={
+                  pageFeedback.targetId
+                    ? () => {
+                        document
+                          .getElementById(pageFeedback.targetId!)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    : undefined
+                }
+                dismissLabel={t('feedback.dismiss')}
+                onDismiss={() => setPageFeedback(null)}
+              />
+            ) : null}
             {/* Header */}
             <PolarisCard>
               <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -717,6 +798,7 @@ export default function ProductsPage() {
             </PolarisCard>
 
             {products.length > 0 && (
+              <div id="products-catalog">
               <PolarisCard>
                 <div className="p-4 sm:p-5 space-y-4">
                   <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:items-start">
@@ -871,6 +953,7 @@ export default function ProductsPage() {
                   )}
                 </div>
               </PolarisCard>
+              </div>
             )}
 
             {products.length > 0 && (

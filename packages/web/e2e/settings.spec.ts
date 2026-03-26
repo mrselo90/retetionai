@@ -24,8 +24,10 @@ test.describe('Settings', () => {
       // Click save button
       await authenticatedPage.click('button:has-text("Save"), button:has-text("Kaydet")');
       
-      // Should show success message
-      await expect(authenticatedPage.locator('text=/success|başarı/i')).toBeVisible({ timeout: 5000 });
+      // Should show persistent page-level feedback for the save
+      await expect(
+        authenticatedPage.locator('text=/bot persona saved|bot kişiliği kaydedildi|settings are live|canlıya alındı/i')
+      ).toBeVisible({ timeout: 5000 });
     }
   });
 

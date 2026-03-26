@@ -7,6 +7,7 @@ import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { chunkText, generateEmbeddingsBatch, type TextChunk } from './embeddings.js';
 import crypto from 'node:crypto';
 import { trackAiUsageEvent } from './aiUsageEvents.js';
+import { getDefaultEmbeddingModel } from './runtimeModelSettings.js';
 
 export interface ProcessProductResult {
   productId: string;
@@ -118,6 +119,7 @@ export async function processProductForRAG(
 
     // Generate embeddings (batch)
     const embeddings = await generateEmbeddingsBatch(chunks);
+    const embeddingModel = await getDefaultEmbeddingModel();
 
     // Delete existing chunks for this product
     await serviceClient
@@ -150,7 +152,7 @@ export async function processProductForRAG(
       void trackAiUsageEvent({
         merchantId,
         feature: 'multilingual_chunk_rag_ingest',
-        model: 'text-embedding-3-small',
+        model: embeddingModel,
         requestKind: 'embedding',
         totalTokens,
         metadata: { productId, chunksCreated: chunks.length },

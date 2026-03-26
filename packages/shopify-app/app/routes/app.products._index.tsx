@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Form, useActionData, useLoaderData, useNavigate, useNavigation, useSubmit } from "react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { CircleUpIcon, DeleteIcon, MagicIcon, RefreshIcon, ConnectIcon } from "@shopify/polaris-icons";
 import {
@@ -27,11 +27,14 @@ import {
   scrapeMerchantProduct,
 } from "../platform.server";
 import { MetricCard, SectionCard, StatusBadge } from "../components/shell-ui";
+import { FloatingActionFeedback } from "../components/FloatingActionFeedback";
 
 type ActionResult = {
   ok: boolean;
+  intent?: string;
   message?: string;
   error?: string;
+  productId?: string;
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -53,31 +56,31 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const name = String(formData.get("name") || "").trim();
         const url = String(formData.get("url") || "").trim();
         if (!name || !url) {
-          return { ok: false, error: "Name and URL are required." } satisfies ActionResult;
+          return { ok: false, intent, error: "Name and URL are required." } satisfies ActionResult;
         }
         await createMerchantProduct(request, { name, url });
-        return { ok: true, message: "Product created successfully." } satisfies ActionResult;
+        return { ok: true, intent, message: "Product created successfully." } satisfies ActionResult;
       }
       case "scrape": {
         const productId = String(formData.get("productId") || "").trim();
-        if (!productId) return { ok: false, error: "Missing product id." } satisfies ActionResult;
+        if (!productId) return { ok: false, intent, error: "Missing product id." } satisfies ActionResult;
         await scrapeMerchantProduct(request, productId);
-        return { ok: true, message: "Scrape completed and content was refreshed." } satisfies ActionResult;
+        return { ok: true, intent, productId, message: "Scrape completed and content was refreshed." } satisfies ActionResult;
       }
       case "embeddings": {
         const productId = String(formData.get("productId") || "").trim();
-        if (!productId) return { ok: false, error: "Missing product id." } satisfies ActionResult;
+        if (!productId) return { ok: false, intent, error: "Missing product id." } satisfies ActionResult;
         await generateMerchantProductEmbeddings(request, productId);
-        return { ok: true, message: "Embeddings generated successfully." } satisfies ActionResult;
+        return { ok: true, intent, productId, message: "Embeddings generated successfully." } satisfies ActionResult;
       }
       case "delete": {
         const productId = String(formData.get("productId") || "").trim();
-        if (!productId) return { ok: false, error: "Missing product id." } satisfies ActionResult;
+        if (!productId) return { ok: false, intent, error: "Missing product id." } satisfies ActionResult;
         await deleteMerchantProduct(request, productId);
-        return { ok: true, message: "Product deleted successfully." } satisfies ActionResult;
+        return { ok: true, intent, productId, message: "Product deleted successfully." } satisfies ActionResult;
       }
       default:
-        return { ok: false, error: "Unknown action." } satisfies ActionResult;
+        return { ok: false, intent, error: "Unknown action." } satisfies ActionResult;
     }
   } catch (error) {
     if (error instanceof Response) {
@@ -85,6 +88,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
     return {
       ok: false,
+      intent,
       error: error instanceof Error ? error.message : "Product action failed.",
     } satisfies ActionResult;
   }
@@ -101,6 +105,7 @@ export default function ProductsPage() {
   const [url, setUrl] = useState("");
   const busy = navigation.state !== "idle";
   const dirty = name.trim().length > 0 || url.trim().length > 0;
+  const [feedbackOpen, setFeedbackOpen] = useState(true);
 
   const stats = useMemo(() => {
     const scraped = data.products.filter((product) => Boolean(product.raw_text)).length;
@@ -120,6 +125,12 @@ export default function ProductsPage() {
     setName("");
     setUrl("");
   };
+
+  useEffect(() => {
+    if (actionData?.message || actionData?.error) {
+      setFeedbackOpen(true);
+    }
+  }, [actionData?.message, actionData?.error]);
 
   if (navigation.state === "loading") {
     return (
@@ -154,6 +165,33 @@ export default function ProductsPage() {
         />
       ) : null}
 
+      {feedbackOpen && actionData?.message ? (
+        <FloatingActionFeedback
+          tone="success"
+          title="Catalog action completed"
+          message={actionData.message}
+          actionLabel={actionData.intent === "create" ? "Review products" : "Open product list"}
+          onAction={() => {
+            document.getElementById("catalog-operations")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          onDismiss={() => setFeedbackOpen(false)}
+        />
+      ) : null}
+
+      {feedbackOpen && actionData?.error ? (
+        <FloatingActionFeedback
+          tone="critical"
+          title="Catalog action failed"
+          message={actionData.error}
+          actionLabel="Review form"
+          onAction={() => {
+            document.getElementById(actionData.intent === "create" ? "add-catalog-entry" : "catalog-operations")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          onDismiss={() => setFeedbackOpen(false)}
+        />
+      ) : null}
+
       <Layout>
         <Layout.Section>
           {busy ? <Spinner accessibilityLabel="Saving product" size="small" /> : null}
@@ -170,6 +208,7 @@ export default function ProductsPage() {
 
         <Layout.Section>
           <SectionCard
+            id="add-catalog-entry"
             title="Add catalog entry"
             subtitle="Use this form when a merchant needs to seed or repair a product record inside the embedded app."
             badge={actionData?.message ? <StatusBadge status="active">{actionData.message}</StatusBadge> : undefined}
@@ -201,6 +240,7 @@ export default function ProductsPage() {
 
         <Layout.Section>
           <SectionCard
+            id="catalog-operations"
             title="Catalog operations"
             subtitle="Merchants should see product status, enrichment depth, and the next maintenance action in one screen."
             badge={<Button onClick={() => navigate("/app/products/mapping")} icon={ConnectIcon} variant="primary">Open Shopify mapping</Button>}

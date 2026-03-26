@@ -115,24 +115,45 @@ describe('generateGroundedProductAnswer', () => {
       retrievalFallbackLanguage: null,
     });
 
-    mockCreate.mockResolvedValueOnce({
-      choices: [{ message: { content: '' } }],
-      usage: { prompt_tokens: 50, completion_tokens: 0, total_tokens: 50 },
-    });
-
     const result = await generateGroundedProductAnswer({
       merchantId: 'merchant-1',
       question: 'Something?',
       channel: 'api',
     });
 
-    expect(result.answer).toContain('could not find enough reliable product information');
+    expect(result.answer).toContain('clear product evidence');
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('should replace unsupported guarantee-style model answers with a clarifying answer', async () => {
+    vi.mocked(assembleGroundingEvidence).mockResolvedValueOnce({
+      context: 'Evidence about a serum',
+      citedProducts: ['prod-1'],
+      usedDeterministicFacts: false,
+      orderScopeSource: undefined,
+      retrievalLanguage: 'en',
+      retrievalUsedFallback: false,
+      retrievalFallbackLanguage: null,
+    });
+
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: 'This is completely safe and guaranteed to work for everyone.' } }],
+      usage: { prompt_tokens: 70, completion_tokens: 12, total_tokens: 82 },
+    });
+
+    const result = await generateGroundedProductAnswer({
+      merchantId: 'merchant-1',
+      question: 'Can I use this safely?',
+      channel: 'api',
+    });
+
+    expect(result.answer).toContain('clear product evidence');
   });
 
   it('should use provided persona and merchant name without DB lookup', async () => {
     vi.mocked(assembleGroundingEvidence).mockResolvedValueOnce({
       context: 'Some context',
-      citedProducts: [],
+      citedProducts: ['prod-3'],
       usedDeterministicFacts: false,
       orderScopeSource: undefined,
       retrievalLanguage: 'tr',

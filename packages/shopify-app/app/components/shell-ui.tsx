@@ -82,18 +82,21 @@ export function ShellPage({
 }
 
 export function SectionCard({
+  id,
   title,
   subtitle,
   badge,
   children,
 }: {
+  id?: string;
   title: string;
   subtitle?: string;
   badge?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <Card padding="500">
+    <div id={id}>
+      <Card padding="500">
       <BlockStack gap="400">
         <InlineStack align="space-between" blockAlign="start" gap="400">
           <BlockStack gap="100">
@@ -112,7 +115,8 @@ export function SectionCard({
         </InlineStack>
         {children}
       </BlockStack>
-    </Card>
+      </Card>
+    </div>
   );
 }
 

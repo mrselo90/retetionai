@@ -98,6 +98,27 @@ export async function deleteCachePrefix(prefix: string): Promise<number> {
 }
 
 /**
+ * Delete cache entries whose key begins with a specific prefix fragment.
+ */
+export async function deleteCacheKeyPrefix(prefix: string, keyPrefix: string): Promise<number> {
+  try {
+    const redis = getRedisClient();
+    const pattern = getCacheKey(prefix, `${keyPrefix}*`);
+    const keys = await redis.keys(pattern);
+
+    if (keys.length === 0) {
+      return 0;
+    }
+
+    await redis.del(...keys);
+    return keys.length;
+  } catch (error) {
+    logger.error({ error, prefix, keyPrefix }, 'Failed to delete cache key prefix');
+    return 0;
+  }
+}
+
+/**
  * Cache merchant data
  */
 export async function getCachedMerchant(merchantId: string) {
@@ -169,6 +190,15 @@ export async function setCachedRAGQuery(
 ) {
   const key = `${merchantId}:${query}`;
   return setCache('rag', key, data, ttl);
+}
+
+export async function invalidateMerchantRagCaches(merchantId: string): Promise<number> {
+  const [legacyCount, i18nCount] = await Promise.all([
+    deleteCacheKeyPrefix('rag', `${merchantId}:`),
+    deleteCacheKeyPrefix('rag_query_i18n_v1', `${merchantId}:`),
+  ]);
+
+  return legacyCount + i18nCount;
 }
 
 /**

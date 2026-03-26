@@ -44,6 +44,41 @@ const SHOPIFY_OAUTH_SCOPES = [
   'write_webhooks',
 ];
 
+async function reactivateMerchantForShopifyInstall(
+  merchantId: string,
+  serviceClient: ReturnType<typeof getSupabaseServiceClient>,
+) {
+  const { data: merchant } = await serviceClient
+    .from('merchants')
+    .select('subscription_status')
+    .eq('id', merchantId)
+    .maybeSingle();
+
+  const status = typeof merchant?.subscription_status === 'string'
+    ? merchant.subscription_status
+    : null;
+
+  if (status === 'active' || status === 'trial') {
+    return;
+  }
+
+  const { error: merchantUpdateError } = await serviceClient
+    .from('merchants')
+    .update({
+      subscription_status: 'trial',
+      cancelled_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', merchantId);
+
+  if (merchantUpdateError) {
+    logger.error(
+      { merchantUpdateError, merchantId },
+      'Failed to reactivate merchant subscription during Shopify install'
+    );
+  }
+}
+
 /**
  * Official Shopify shell install sync.
  * POST /api/integrations/shopify/install-sync
@@ -98,6 +133,8 @@ shopify.post('/install-sync', async (c) => {
         logger.error({ updateError, shop }, 'Failed to update Shopify integration via install sync');
         return c.json({ error: 'Failed to update integration' }, 500);
       }
+
+      await reactivateMerchantForShopifyInstall(existingIntegration.merchant_id, serviceClient);
 
       return c.json({ ok: true, created: false, merchantId: existingIntegration.merchant_id });
     }
@@ -586,6 +623,8 @@ shopify.post('/verify-session', async (c) => {
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingIntegration.id);
+
+        await reactivateMerchantForShopifyInstall(existingIntegration.merchant_id, serviceClient);
 
       } else {
         // Create New Merchant & Integration

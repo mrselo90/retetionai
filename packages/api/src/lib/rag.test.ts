@@ -116,4 +116,49 @@ describe('getOrderProductContextResolved', () => {
     expect(result.source).toBe('external_events');
     expect(result.chunks).toEqual([]);
   });
+
+  it('should resolve a unique partial item-name match without broadening ambiguously', async () => {
+    const ordersBuilder: any = mockSupabaseClient.from('orders');
+    ordersBuilder.__pushResult({
+      data: {
+        id: 'order-2',
+        merchant_id: 'merchant-1',
+        user_id: 'user-1',
+        external_order_id: 'ORDER-002',
+      },
+      error: null,
+    });
+
+    const eventsBuilder: any = mockSupabaseClient.from('external_events');
+    eventsBuilder.__setDefaultResult({
+      data: [
+        {
+          payload: {
+            external_order_id: 'ORDER-002',
+            items: [
+              { name: 'Vitamin C Serum' },
+            ],
+          },
+        },
+      ],
+      error: null,
+    });
+
+    const productsBuilder: any = mockSupabaseClient.from('products');
+    productsBuilder.__pushResult({
+      data: [
+        { id: 'prod-1', name: 'Maruderm Vitamin C Serum' },
+        { id: 'prod-2', name: 'Maruderm Retinol Cream' },
+      ],
+      error: null,
+    });
+
+    const chunksBuilder: any = mockSupabaseClient.from('knowledge_chunks');
+    chunksBuilder.__setDefaultResult({ data: [], error: null });
+
+    const result = await getOrderProductContextResolved('order-2', 'merchant-1');
+
+    expect(result.productIds).toEqual(['prod-1']);
+    expect(result.source).toBe('external_events');
+  });
 });

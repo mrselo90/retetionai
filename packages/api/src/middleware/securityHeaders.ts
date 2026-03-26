@@ -57,5 +57,5 @@ export async function securityHeadersMiddleware(c: Context, next: Next) {
     'geolocation=(), microphone=(), camera=(), payment=()'
   );
 
-  await next();
+  return await next();
 }

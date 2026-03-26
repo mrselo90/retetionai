@@ -38,6 +38,7 @@ import { useTranslations } from 'next-intl';
 import { ShopifySaveBar } from '@/components/ui/ShopifySaveBar';
 import { InlineError } from '@/components/ui/InlineError';
 import { PlanGatedFeature } from '@/components/ui/PlanGatedFeature';
+import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
 import { isShopifyEmbedded } from '@/lib/shopifyEmbedded';
 
 /** Read-only system guardrail (shown in UI) */
@@ -96,6 +97,21 @@ interface Addon {
   planAllowed: boolean;
 }
 
+interface PageFeedbackState {
+  tone: 'success' | 'critical' | 'info';
+  title: string;
+  message: string;
+  actionLabel?: string;
+  targetId?: string;
+}
+
+function formatSavedAt(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
 export default function SettingsPage() {
   const t = useTranslations('Settings');
   const rp = useTranslations('ReturnPrevention');
@@ -146,6 +162,7 @@ export default function SettingsPage() {
   const [guardrailValue, setGuardrailValue] = useState('');
   const [guardrailAction, setGuardrailAction] = useState<'block' | 'escalate'>('block');
   const [guardrailSuggestedResponse, setGuardrailSuggestedResponse] = useState('');
+  const [pageFeedback, setPageFeedback] = useState<PageFeedbackState | null>(null);
 
   const getErrorMessage = (err: unknown, fallback: string) => {
     if (err instanceof Error && err.message) return err.message;
@@ -283,8 +300,24 @@ export default function SettingsPage() {
       setMultiLangDefaultSourceLang(response.settings.default_source_lang);
       setMultiLangEnabled(Boolean(response.settings.multi_lang_rag_enabled));
       toast.success(t('toasts.multiLangSuccess.title'), t('toasts.multiLangSuccess.message'));
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.multiLangSavedTitle'),
+        message: t('feedback.multiLangSavedMessage', {
+          time: formatSavedAt(new Date().toISOString()),
+        }),
+        actionLabel: t('feedback.reviewLanguages'),
+        targetId: 'settings-multilingual',
+      });
     } catch (err: unknown) {
       console.error('Failed to save multi-language RAG settings:', err);
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.multiLangErrorTitle'),
+        message: getErrorMessage(err, t('toasts.multiLangError.message')),
+        actionLabel: t('feedback.reviewLanguages'),
+        targetId: 'settings-multilingual',
+      });
       toast.error(
         t('toasts.multiLangError.title'),
         getErrorMessage(err, t('toasts.multiLangError.message'))
@@ -322,10 +355,27 @@ export default function SettingsPage() {
       toast.success(t('toasts.saveSuccess.title'), t('toasts.saveSuccess.message'));
       setSaveError(null);
       setIsDirty(false);
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.personaSavedTitle'),
+        message: t('feedback.personaSavedMessage', {
+          time: formatSavedAt(new Date().toISOString()),
+        }),
+        actionLabel: t('feedback.reviewPersona'),
+        targetId: 'settings-bot-persona',
+      });
       await loadData();
     } catch (err: unknown) {
       console.error('Failed to save persona:', err);
-      setSaveError(getErrorMessage(err, t('toasts.saveError.message')));
+      const message = getErrorMessage(err, t('toasts.saveError.message'));
+      setSaveError(message);
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.personaErrorTitle'),
+        message,
+        actionLabel: t('feedback.reviewPersona'),
+        targetId: 'settings-bot-persona',
+      });
     } finally {
       setSaving(false);
     }
@@ -372,6 +422,13 @@ export default function SettingsPage() {
       }
     } catch (err: unknown) {
       console.error('Addon action failed:', err);
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.moduleErrorTitle'),
+        message: getErrorMessage(err, t('toasts.saveError.message')),
+        actionLabel: t('feedback.reviewModules'),
+        targetId: 'modules',
+      });
       toast.error(t('toasts.saveError.title'), getErrorMessage(err, t('toasts.saveError.message')));
     }
   };
@@ -468,8 +525,22 @@ export default function SettingsPage() {
       });
       setCustomGuardrails(next);
       toast.success(t('toasts.guardrailSuccess.title'), t('toasts.guardrailSuccess.message'));
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.guardrailSavedTitle'),
+        message: t('feedback.guardrailSavedMessage'),
+        actionLabel: t('feedback.reviewGuardrails'),
+        targetId: 'guardrails',
+      });
       closeGuardrailModal();
     } catch (err: unknown) {
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.guardrailErrorTitle'),
+        message: getErrorMessage(err, t('toasts.guardrailError.message')),
+        actionLabel: t('feedback.reviewGuardrails'),
+        targetId: 'guardrails',
+      });
       toast.error(
         t('toasts.guardrailError.title'),
         getErrorMessage(err, t('toasts.guardrailError.message'))
@@ -494,7 +565,21 @@ export default function SettingsPage() {
       });
       setCustomGuardrails(next);
       toast.success(t('toasts.guardrailSuccess.title'), t('toasts.guardrailSuccess.message'));
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.guardrailSavedTitle'),
+        message: t('feedback.guardrailSavedMessage'),
+        actionLabel: t('feedback.reviewGuardrails'),
+        targetId: 'guardrails',
+      });
     } catch (err: unknown) {
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.guardrailErrorTitle'),
+        message: getErrorMessage(err, t('toasts.guardrailError.message')),
+        actionLabel: t('feedback.reviewGuardrails'),
+        targetId: 'guardrails',
+      });
       toast.error(
         t('toasts.guardrailError.title'),
         getErrorMessage(err, t('toasts.guardrailError.message'))
@@ -532,8 +617,22 @@ export default function SettingsPage() {
       URL.revokeObjectURL(url);
 
       toast.success(t('toasts.exportSuccess.title'), t('toasts.exportSuccess.message'));
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.exportSavedTitle'),
+        message: t('feedback.exportSavedMessage'),
+        actionLabel: t('feedback.reviewData'),
+        targetId: 'gdpr',
+      });
     } catch (err: unknown) {
       console.error('Failed to export data:', err);
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.exportErrorTitle'),
+        message: getErrorMessage(err, t('toasts.saveError.message')),
+        actionLabel: t('feedback.reviewData'),
+        targetId: 'gdpr',
+      });
       toast.error(t('toasts.saveError.title'), getErrorMessage(err, t('toasts.saveError.message')));
     } finally {
       setExportingData(false);
@@ -558,6 +657,13 @@ export default function SettingsPage() {
 
       if (permanent) {
         toast.warning(t('toasts.deletePermanent.title'), t('toasts.deletePermanent.message'));
+        setPageFeedback({
+          tone: 'info',
+          title: t('feedback.deletePermanentTitle'),
+          message: t('toasts.deletePermanent.message'),
+          actionLabel: t('feedback.reviewData'),
+          targetId: 'gdpr',
+        });
         // Redirect to home after 2 seconds
         setTimeout(() => {
           window.location.href = '/';
@@ -569,10 +675,26 @@ export default function SettingsPage() {
             date: new Date(response.permanent_deletion_at || '').toLocaleDateString(),
           })
         );
+        setPageFeedback({
+          tone: 'info',
+          title: t('feedback.deleteScheduledTitle'),
+          message: t('toasts.deleteScheduled.message', {
+            date: new Date(response.permanent_deletion_at || '').toLocaleDateString(),
+          }),
+          actionLabel: t('feedback.reviewData'),
+          targetId: 'gdpr',
+        });
       }
       setShowDeleteConfirm(false);
     } catch (err: unknown) {
       console.error('Failed to delete data:', err);
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.deleteErrorTitle'),
+        message: getErrorMessage(err, t('toasts.saveError.message')),
+        actionLabel: t('feedback.reviewData'),
+        targetId: 'gdpr',
+      });
       toast.error(t('toasts.saveError.title'), getErrorMessage(err, t('toasts.saveError.message')));
     } finally {
       setDeletingData(false);
@@ -612,6 +734,25 @@ export default function SettingsPage() {
       <Layout>
         <Layout.Section>
           <div className="space-y-6 animate-fade-in pb-8">
+            {pageFeedback ? (
+              <PageFeedbackCard
+                tone={pageFeedback.tone}
+                title={pageFeedback.title}
+                message={pageFeedback.message}
+                actionLabel={pageFeedback.actionLabel}
+                onAction={
+                  pageFeedback.targetId
+                    ? () => {
+                        document
+                          .getElementById(pageFeedback.targetId!)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    : undefined
+                }
+                dismissLabel={t('feedback.dismiss')}
+                onDismiss={() => setPageFeedback(null)}
+              />
+            ) : null}
             {/* Header */}
             <PolarisCard>
               <Box padding="400">
@@ -673,7 +814,7 @@ export default function SettingsPage() {
 
             {/* Multilingual Support Settings */}
             <PolarisCard>
-              <Box padding="400">
+              <Box id="settings-multilingual" padding="400">
                 <BlockStack gap="400">
                   <InlineStack gap="300" blockAlign="start">
                     <Box background="bg-fill-brand" borderRadius="300" padding="300">
@@ -757,7 +898,7 @@ export default function SettingsPage() {
 
             {/* Bot Persona Settings */}
             <PolarisCard>
-              <Box padding="400">
+              <Box id="settings-bot-persona" padding="400">
                 <BlockStack gap="400">
                   <InlineStack gap="300" blockAlign="start">
                     <Box background="bg-fill-brand" borderRadius="300" padding="300">
@@ -1233,7 +1374,7 @@ export default function SettingsPage() {
 
             {/* GDPR & Data Management */}
             <PolarisCard>
-              <Box padding="400">
+              <Box id="gdpr" padding="400">
                 <BlockStack gap="400">
                   <InlineStack gap="300" blockAlign="start">
                     <Box background="bg-fill-info" borderRadius="300" padding="300">

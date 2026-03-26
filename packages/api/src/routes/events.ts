@@ -26,8 +26,7 @@ async function requireInternalSecretOrSuperAdmin(c: Context, next: Next) {
     c.set('authMethod', 'internal');
     c.set('merchantId', 'internal-system');
     c.set('user', { merchantId: 'internal-system', authMethod: 'internal' });
-    await next();
-    return;
+    return await next();
   }
 
   // Fallback path: require normal auth first
@@ -60,7 +59,7 @@ async function requireInternalSecretOrSuperAdmin(c: Context, next: Next) {
     return c.json({ error: 'Forbidden: Requires Super Admin or internal secret' }, 403);
   }
 
-  await next();
+  return await next();
 }
 
 /**

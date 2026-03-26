@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AlertCircleIcon, GlobeIcon, LockIcon, SettingsIcon } from "@shopify/polaris-icons";
 import {
@@ -40,6 +40,7 @@ import {
   type MerchantGuardrail,
 } from "../platform.server";
 import { MetricCard, SectionCard, StatusBadge } from "../components/shell-ui";
+import { FloatingActionFeedback } from "../components/FloatingActionFeedback";
 import { getPlanSnapshotByDomain } from "../services/planService.server";
 import {
   GROWTH_MONTHLY_PLAN,
@@ -74,6 +75,13 @@ function parseGuardrailDrafts(
   } catch {
     return fallback;
   }
+}
+
+function formatSavedAt(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -268,6 +276,7 @@ export default function SettingsPage() {
     action: "block",
     suggested_response: "",
   });
+  const [lastCoreSettingsSavedAt, setLastCoreSettingsSavedAt] = useState<string | null>(null);
 
   const initialState = useMemo(
     () =>
@@ -300,6 +309,19 @@ export default function SettingsPage() {
     setFormState(JSON.parse(initialState));
   };
 
+  const showFloatingCoreSuccess = actionData?.ok && actionData.intent === "save-core" && actionData.message;
+  const showFloatingCoreError = !actionData?.ok && actionData?.intent === "save-core" && actionData.error;
+  const showFloatingGuardrailSuccess = actionData?.ok && actionData.intent === "save-guardrails" && actionData.message;
+  const showFloatingGuardrailError = !actionData?.ok && actionData?.intent === "save-guardrails" && actionData.error;
+  const showFloatingAddonSuccess = actionData?.ok && actionData.intent === "toggle-addon" && actionData.message;
+  const showFloatingAddonError = !actionData?.ok && actionData?.intent === "toggle-addon" && actionData.error;
+
+  useEffect(() => {
+    if (showFloatingCoreSuccess) {
+      setLastCoreSettingsSavedAt(new Date().toISOString());
+    }
+  }, [showFloatingCoreSuccess]);
+
   if (navigation.state === "loading") {
     return (
       <SkeletonPage title="Settings" primaryAction>
@@ -330,12 +352,63 @@ export default function SettingsPage() {
         />
       ) : null}
 
+      {showFloatingCoreSuccess && lastCoreSettingsSavedAt ? (
+        <FloatingActionFeedback
+          tone="success"
+          title="Core settings saved"
+          message={`${actionData?.message} Saved at ${formatSavedAt(lastCoreSettingsSavedAt)}.`}
+          onDismiss={() => setLastCoreSettingsSavedAt(null)}
+        />
+      ) : null}
+
+      {showFloatingCoreError ? (
+        <FloatingActionFeedback
+          tone="critical"
+          title="Could not save core settings"
+          message={actionData?.error || "Settings action failed."}
+        />
+      ) : null}
+
+      {showFloatingGuardrailSuccess ? (
+        <FloatingActionFeedback
+          tone="success"
+          title="Guardrail updated"
+          message={actionData?.message || "Custom guardrail added."}
+        />
+      ) : null}
+
+      {showFloatingGuardrailError ? (
+        <FloatingActionFeedback
+          tone="critical"
+          title="Could not update guardrails"
+          message={actionData?.error || "Settings action failed."}
+        />
+      ) : null}
+
+      {showFloatingAddonSuccess ? (
+        <FloatingActionFeedback
+          tone="success"
+          title="Add-on action completed"
+          message={actionData?.message || "Add-on status updated."}
+          actionLabel={actionData?.confirmationUrl ? "Open approval" : undefined}
+          onAction={actionData?.confirmationUrl ? () => { window.location.href = actionData.confirmationUrl!; } : undefined}
+        />
+      ) : null}
+
+      {showFloatingAddonError ? (
+        <FloatingActionFeedback
+          tone="critical"
+          title="Could not update add-on"
+          message={actionData?.error || "Settings action failed."}
+        />
+      ) : null}
+
       <Layout>
         <Layout.Section>
           {busy ? <Spinner accessibilityLabel="Saving" size="small" /> : null}
         </Layout.Section>
 
-        {actionData?.error ? (
+        {actionData?.error && !["save-core", "save-guardrails", "toggle-addon"].includes(actionData.intent || "") ? (
           <Layout.Section>
             <Banner tone="critical" icon={AlertCircleIcon}>
               <Text as="p" variant="bodyMd">{actionData.error}</Text>
@@ -343,7 +416,7 @@ export default function SettingsPage() {
           </Layout.Section>
         ) : null}
 
-        {actionData?.message ? (
+        {actionData?.message && !["save-core", "save-guardrails", "toggle-addon"].includes(actionData.intent || "") ? (
           <Layout.Section>
             <Banner tone="success">
               <Text as="p" variant="bodyMd">{actionData.message}</Text>

@@ -25,5 +25,5 @@ export async function requireActiveSubscription(c: Context, next: Next) {
         }, 402);
     }
 
-    await next();
+    return await next();
 }

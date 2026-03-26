@@ -23,6 +23,7 @@ import {
   TextField,
 } from '@shopify/polaris';
 import { useTranslations } from 'next-intl';
+import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
 
 interface ProductInstruction {
   usage_instructions: string;
@@ -56,6 +57,21 @@ interface Product {
   } | null;
 }
 
+interface PageFeedbackState {
+  tone: 'success' | 'critical' | 'info';
+  title: string;
+  message: string;
+  actionLabel?: string;
+  targetId?: string;
+}
+
+function formatSavedAt(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
 export default function ProductDetailPage() {
   const t = useTranslations('ProductDetail');
   const rp = useTranslations('ReturnPrevention');
@@ -74,6 +90,7 @@ export default function ProductDetailPage() {
   const [preventionTips, setPreventionTips] = useState('');
   const [usageInstructions, setUsageInstructions] = useState('');
   const [recipeSummary, setRecipeSummary] = useState('');
+  const [pageFeedback, setPageFeedback] = useState<PageFeedbackState | null>(null);
 
   const knowledgeReasonLabel = (reasonCode: string | undefined) => {
     const mapping: Record<string, string> = {
@@ -190,9 +207,24 @@ export default function ProductDetailPage() {
 
       await loadProduct();
       toast.success(t('toasts.saved.title'), t('toasts.saved.message'));
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.savedTitle'),
+        message: t('feedback.savedMessage', { time: formatSavedAt(new Date().toISOString()) }),
+        actionLabel: t('feedback.reviewInstructions'),
+        targetId: 'product-bot-instructions',
+      });
     } catch (err: unknown) {
       console.error('Failed to save product:', err);
-      toast.error(t('toasts.saveError.title'), (err instanceof Error ? err.message : '') || t('toasts.saveError.message'));
+      const message = (err instanceof Error ? err.message : '') || t('toasts.saveError.message');
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.saveErrorTitle'),
+        message,
+        actionLabel: t('feedback.reviewInstructions'),
+        targetId: 'product-bot-instructions',
+      });
+      toast.error(t('toasts.saveError.title'), message);
     } finally {
       setSaving(false);
     }
@@ -242,9 +274,24 @@ export default function ProductDetailPage() {
 
       await loadProduct();
       toast.success(t('toasts.rescanSuccess.title'), t('toasts.rescanSuccess.message'));
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.rescanSavedTitle'),
+        message: t('feedback.rescanSavedMessage'),
+        actionLabel: t('feedback.reviewScrapedContent'),
+        targetId: 'product-scraped-content',
+      });
     } catch (err: unknown) {
       console.error('Failed to rescrape product:', err);
-      toast.error(t('toasts.rescanError.title'), (err instanceof Error ? err.message : '') || t('toasts.rescanError.message'));
+      const message = (err instanceof Error ? err.message : '') || t('toasts.rescanError.message');
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.rescanErrorTitle'),
+        message,
+        actionLabel: t('feedback.reviewScrapedContent'),
+        targetId: 'product-scraped-content',
+      });
+      toast.error(t('toasts.rescanError.title'), message);
     } finally {
       setRescraping(false);
     }
@@ -306,6 +353,25 @@ export default function ProductDetailPage() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="500">
+            {pageFeedback ? (
+              <PageFeedbackCard
+                tone={pageFeedback.tone}
+                title={pageFeedback.title}
+                message={pageFeedback.message}
+                actionLabel={pageFeedback.actionLabel}
+                onAction={
+                  pageFeedback.targetId
+                    ? () => {
+                        document
+                          .getElementById(pageFeedback.targetId!)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    : undefined
+                }
+                dismissLabel={t('feedback.dismiss')}
+                onDismiss={() => setPageFeedback(null)}
+              />
+            ) : null}
 
             {knowledgeHealth && (
               <Card>
@@ -375,7 +441,7 @@ export default function ProductDetailPage() {
             )}
 
             <Card>
-              <Box padding="400">
+              <Box id="product-bot-instructions" padding="400">
                 <InlineGrid columns={{ xs: '1fr', md: '2fr auto' }} gap="400" alignItems="center">
                   <BlockStack gap="200">
                     <Button onClick={() => router.push('/dashboard/products')} variant="plain" textAlign="left">
@@ -403,7 +469,7 @@ export default function ProductDetailPage() {
             </Card>
 
             <Card>
-              <Box padding="400">
+              <Box id="product-scraped-content" padding="400">
                 <BlockStack gap="400">
                   <Text as="h2" variant="headingMd">
                     {t('productName')}

@@ -35,7 +35,7 @@ const RATE_LIMITS = {
   // Per IP: 100 requests per minute (general API)
   ip: {
     windowMs: 60 * 1000, // 1 minute
-    maxRequests: 100,
+    maxRequests: 1000,
     keyPrefix: 'ratelimit:ip:',
   },
   // Per IP: 200 requests per minute (Shopify webhook endpoint)
@@ -166,6 +166,14 @@ function getClientIdentifier(c: Context): {
  * Applies rate limiting based on client type (IP or merchant)
  */
 export async function rateLimitMiddleware(c: Context, next: Next) {
+  // Bypass rate limiting for internal localhost requests
+  const host = c.req.header('host') || '';
+  const xff = c.req.header('x-forwarded-for');
+  
+  if (host.includes('localhost') || host.includes('127.0.0.1')) {
+    return await next();
+  }
+
   const { type, identifier } = getClientIdentifier(c);
   const config = RATE_LIMITS[type];
 
@@ -177,6 +185,10 @@ export async function rateLimitMiddleware(c: Context, next: Next) {
   c.header('X-RateLimit-Reset', result.reset.toString());
 
   if (!result.allowed) {
+    logger.warn(
+      { host, xff, identifier, type, path: c.req.path },
+      `Rate limit exceeded for ${identifier}`
+    );
     return c.json(
       {
         error: 'Rate limit exceeded',
@@ -187,7 +199,7 @@ export async function rateLimitMiddleware(c: Context, next: Next) {
     );
   }
 
-  await next();
+  return await next();
 }
 
 /**
@@ -217,7 +229,7 @@ export async function optionalRateLimitMiddleware(c: Context, next: Next) {
     );
   }
 
-  await next();
+  return await next();
 }
 
 /**
@@ -226,6 +238,12 @@ export async function optionalRateLimitMiddleware(c: Context, next: Next) {
  * High enough for legitimate Shopify bursts, low enough to block floods
  */
 export async function webhookRateLimitMiddleware(c: Context, next: Next) {
+  // Bypass rate limiting for internal localhost requests
+  const host = c.req.header('host') || '';
+  if (host.includes('localhost') || host.includes('127.0.0.1')) {
+    return await next();
+  }
+
   const ip =
     c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
     c.req.header('x-real-ip') ||
@@ -249,7 +267,7 @@ export async function webhookRateLimitMiddleware(c: Context, next: Next) {
     );
   }
 
-  await next();
+  return await next();
 }
 
 /**
@@ -257,6 +275,12 @@ export async function webhookRateLimitMiddleware(c: Context, next: Next) {
  * 10 req/min per IP for login/signup to prevent credential stuffing
  */
 export async function authRateLimitMiddleware(c: Context, next: Next) {
+  // Bypass rate limiting for internal localhost requests
+  const host = c.req.header('host') || '';
+  if (host.includes('localhost') || host.includes('127.0.0.1')) {
+    return await next();
+  }
+
   const ip =
     c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
     c.req.header('x-real-ip') ||
@@ -279,5 +303,5 @@ export async function authRateLimitMiddleware(c: Context, next: Next) {
     );
   }
 
-  await next();
+  return await next();
 }

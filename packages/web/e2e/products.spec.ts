@@ -40,8 +40,10 @@ test.describe('Product Management', () => {
     await authenticatedPage.fill('input[name="url"], input[placeholder*="url" i]', 'https://example.com/product');
     await authenticatedPage.click('button[type="submit"]:has-text("Add"), button[type="submit"]:has-text("Ekle")');
     
-    // Should show success message
-    await expect(authenticatedPage.locator('text=/success|başarı/i')).toBeVisible({ timeout: 10000 });
+    // Should show persistent page-level feedback, not only a transient toast
+    await expect(
+      authenticatedPage.locator('text=/product added|ürün eklendi|scraped and queued|çekildi ve yapay zekâ senkronuna/i')
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test('should display product list', async ({ authenticatedPage }) => {

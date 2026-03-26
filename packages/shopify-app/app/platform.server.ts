@@ -373,19 +373,45 @@ async function internalMerchantRequest(
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      ...init,
+      headers,
+    });
+  } catch (err) {
+    console.error(
+      `[platform] Connection to API failed for ${path}:`,
+      err instanceof Error ? err.message : err,
+    );
+    throw jsonErrorResponse(502, {
+      error: `Platform API unreachable`,
+      detail: `Could not connect to ${baseUrl}${path}`,
+      cause: err instanceof Error ? err.message : String(err),
+    });
+  }
 
   return parseRequiredJson(response, `Platform request ${path}`);
 }
 
 export async function fetchMerchantOverviewFromRequest(request: Request) {
   const baseUrl = getRequiredEnv("PLATFORM_API_URL").replace(/\/$/, "");
-  const response = await fetch(`${baseUrl}/api/integrations/shopify/merchant-overview`, {
-    headers: buildPlatformAuthHeaders(request),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/api/integrations/shopify/merchant-overview`, {
+      headers: buildPlatformAuthHeaders(request),
+    });
+  } catch (err) {
+    console.error(
+      `[platform] Connection to API failed for merchant-overview:`,
+      err instanceof Error ? err.message : err,
+    );
+    throw jsonErrorResponse(502, {
+      error: `Platform API unreachable`,
+      detail: `Could not connect to ${baseUrl}/api/integrations/shopify/merchant-overview`,
+      cause: err instanceof Error ? err.message : String(err),
+    });
+  }
 
   return (await parseRequiredJson(response, "Platform merchant overview")) as ShopifyMerchantOverview;
 }

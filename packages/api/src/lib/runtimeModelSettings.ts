@@ -28,9 +28,13 @@ const DEFAULT_MEMORY_MODE: 'last_n' | 'full' = 'last_n';
 const DEFAULT_MEMORY_COUNT = 10;
 const DEFAULT_PRODUCTS_CACHE_TTL_SECONDS = 300;
 
+function normalizeModelId(value: unknown): string {
+  return String(value || '').replace(/\s+/g, '').trim();
+}
+
 function normalizeAllowed(value: unknown, fallback: string[]): string[] {
   if (!Array.isArray(value)) return fallback;
-  const arr = value.map((v) => String(v)).filter(Boolean);
+  const arr = value.map((v) => normalizeModelId(v)).filter(Boolean);
   return arr.length ? [...new Set(arr)] : fallback;
 }
 
@@ -83,11 +87,11 @@ export async function getPlatformAiSettings(): Promise<PlatformAiSettingsRow> {
 
   const fallback: PlatformAiSettingsRow = {
     id: 'default',
-    default_llm_model: process.env.LLM_MODEL || 'gpt-4o-mini',
+    default_llm_model: normalizeModelId(process.env.LLM_MODEL) || 'gpt-4o-mini',
     allowed_llm_models: DEFAULT_ALLOWED,
-    default_embedding_model: process.env.EMBEDDING_MODEL || 'text-embedding-3-small',
+    default_embedding_model: normalizeModelId(process.env.EMBEDDING_MODEL) || 'text-embedding-3-small',
     allowed_embedding_models: DEFAULT_ALLOWED_EMBEDDINGS,
-    default_vision_model: process.env.VISION_LLM_MODEL || process.env.LLM_MODEL || 'gpt-4o',
+    default_vision_model: normalizeModelId(process.env.VISION_LLM_MODEL) || normalizeModelId(process.env.LLM_MODEL) || 'gpt-4o',
     allowed_vision_models: DEFAULT_ALLOWED_VISION,
     corporate_whatsapp_provider: DEFAULT_CORPORATE_WHATSAPP_PROVIDER,
     corporate_whatsapp_from_number: process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_WHATSAPP_FROM || process.env.WHATSAPP_PHONE_NUMBER_ID || null,
@@ -118,11 +122,11 @@ export async function getPlatformAiSettings(): Promise<PlatformAiSettingsRow> {
     const row: PlatformAiSettingsRow = data
       ? {
           id: data.id || 'default',
-          default_llm_model: String(data.default_llm_model || fallback.default_llm_model),
+          default_llm_model: normalizeModelId(data.default_llm_model || fallback.default_llm_model),
           allowed_llm_models: normalizeAllowed(data.allowed_llm_models, DEFAULT_ALLOWED),
-          default_embedding_model: String(data.default_embedding_model || fallback.default_embedding_model),
+          default_embedding_model: normalizeModelId(data.default_embedding_model || fallback.default_embedding_model),
           allowed_embedding_models: normalizeAllowed(data.allowed_embedding_models, DEFAULT_ALLOWED_EMBEDDINGS),
-          default_vision_model: String(data.default_vision_model || data.default_llm_model || fallback.default_vision_model),
+          default_vision_model: normalizeModelId(data.default_vision_model || data.default_llm_model || fallback.default_vision_model),
           allowed_vision_models: normalizeAllowed(data.allowed_vision_models, DEFAULT_ALLOWED_VISION),
           corporate_whatsapp_provider: normalizeCorporateWhatsAppProvider(data.corporate_whatsapp_provider || fallback.corporate_whatsapp_provider),
           corporate_whatsapp_from_number: normalizeOptionalText(data.corporate_whatsapp_from_number ?? fallback.corporate_whatsapp_from_number),
@@ -148,12 +152,12 @@ export async function getPlatformAiSettings(): Promise<PlatformAiSettingsRow> {
 
 export async function getDefaultLlmModel(): Promise<string> {
   const settings = await getPlatformAiSettings();
-  return settings.default_llm_model || process.env.LLM_MODEL || 'gpt-4o-mini';
+  return normalizeModelId(settings.default_llm_model) || normalizeModelId(process.env.LLM_MODEL) || 'gpt-4o-mini';
 }
 
 export async function getDefaultEmbeddingModel(): Promise<string> {
   const settings = await getPlatformAiSettings();
-  return settings.default_embedding_model || process.env.EMBEDDING_MODEL || 'text-embedding-3-small';
+  return normalizeModelId(settings.default_embedding_model) || normalizeModelId(process.env.EMBEDDING_MODEL) || 'text-embedding-3-small';
 }
 
 export async function getAllowedEmbeddingModels(): Promise<string[]> {
@@ -163,7 +167,11 @@ export async function getAllowedEmbeddingModels(): Promise<string[]> {
 
 export async function getDefaultVisionModel(): Promise<string> {
   const settings = await getPlatformAiSettings();
-  return settings.default_vision_model || settings.default_llm_model || process.env.VISION_LLM_MODEL || process.env.LLM_MODEL || 'gpt-4o';
+  return normalizeModelId(settings.default_vision_model)
+    || normalizeModelId(settings.default_llm_model)
+    || normalizeModelId(process.env.VISION_LLM_MODEL)
+    || normalizeModelId(process.env.LLM_MODEL)
+    || 'gpt-4o';
 }
 
 export async function getAllowedVisionModels(): Promise<string[]> {
@@ -214,13 +222,13 @@ export async function updatePlatformAiSettings(input: {
   products_cache_ttl_seconds?: number;
 }): Promise<PlatformAiSettingsRow> {
   const svc = getSupabaseServiceClient();
-  const defaultModel = String(input.default_llm_model || '').trim();
+  const defaultModel = normalizeModelId(input.default_llm_model);
   if (!defaultModel) throw new Error('default_llm_model is required');
   const allowed = normalizeAllowed(input.allowed_llm_models || DEFAULT_ALLOWED, DEFAULT_ALLOWED);
   validateAllowedModels('allowed_llm_models', allowed, DEFAULT_ALLOWED);
   validateDefaultModel('default_llm_model', defaultModel, DEFAULT_ALLOWED);
   if (!allowed.includes(defaultModel)) allowed.unshift(defaultModel);
-  const defaultEmbeddingModel = String(input.default_embedding_model || '').trim() || 'text-embedding-3-small';
+  const defaultEmbeddingModel = normalizeModelId(input.default_embedding_model) || 'text-embedding-3-small';
   const allowedEmbeddingModels = normalizeAllowed(input.allowed_embedding_models || DEFAULT_ALLOWED_EMBEDDINGS, DEFAULT_ALLOWED_EMBEDDINGS);
   validateAllowedModels('allowed_embedding_models', allowedEmbeddingModels, DEFAULT_ALLOWED_EMBEDDINGS);
   if (!allowedEmbeddingModels.includes(defaultEmbeddingModel)) allowedEmbeddingModels.unshift(defaultEmbeddingModel);
@@ -233,7 +241,7 @@ export async function updatePlatformAiSettings(input: {
       throw new Error(`allowed_embedding_models contains an incompatible model for the current vector schema: ${model}`);
     }
   }
-  const defaultVisionModel = String(input.default_vision_model || '').trim() || defaultModel;
+  const defaultVisionModel = normalizeModelId(input.default_vision_model) || defaultModel;
   const allowedVisionModels = normalizeAllowed(input.allowed_vision_models || DEFAULT_ALLOWED_VISION, DEFAULT_ALLOWED_VISION);
   validateAllowedModels('allowed_vision_models', allowedVisionModels, DEFAULT_ALLOWED_VISION);
   validateDefaultModel('default_vision_model', defaultVisionModel, DEFAULT_ALLOWED_VISION);
@@ -281,11 +289,11 @@ export async function updatePlatformAiSettings(input: {
 
   const row: PlatformAiSettingsRow = {
     id: data.id || 'default',
-    default_llm_model: String(data.default_llm_model || defaultModel),
+    default_llm_model: normalizeModelId(data.default_llm_model || defaultModel),
     allowed_llm_models: normalizeAllowed(data.allowed_llm_models, DEFAULT_ALLOWED),
-    default_embedding_model: String(data.default_embedding_model || defaultEmbeddingModel),
+    default_embedding_model: normalizeModelId(data.default_embedding_model || defaultEmbeddingModel),
     allowed_embedding_models: normalizeAllowed(data.allowed_embedding_models, DEFAULT_ALLOWED_EMBEDDINGS),
-    default_vision_model: String(data.default_vision_model || defaultVisionModel),
+    default_vision_model: normalizeModelId(data.default_vision_model || defaultVisionModel),
     allowed_vision_models: normalizeAllowed(data.allowed_vision_models, DEFAULT_ALLOWED_VISION),
     corporate_whatsapp_provider: normalizeCorporateWhatsAppProvider(data.corporate_whatsapp_provider || corporateWhatsAppProvider),
     corporate_whatsapp_from_number: normalizeOptionalText(data.corporate_whatsapp_from_number ?? corporateWhatsAppFromNumber),

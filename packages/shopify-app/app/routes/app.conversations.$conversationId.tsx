@@ -28,6 +28,7 @@ import {
   updateMerchantConversationStatus,
 } from "../platform.server";
 import { DetailRows, MetricCard, StatusBadge } from "../components/shell-ui";
+import { FloatingActionFeedback } from "../components/FloatingActionFeedback";
 
 type ActionResult = {
   ok: boolean;
@@ -88,12 +89,19 @@ export default function ConversationDetailPage() {
   const conversation = data.conversation;
   const busy = navigation.state !== "idle";
   const [replyText, setReplyText] = useState("");
+  const [feedbackOpen, setFeedbackOpen] = useState(true);
 
   useEffect(() => {
     if (actionData?.ok && actionData.message?.includes("Reply sent")) {
       setReplyText("");
     }
   }, [actionData]);
+
+  useEffect(() => {
+    if (actionData?.message || actionData?.error) {
+      setFeedbackOpen(true);
+    }
+  }, [actionData?.message, actionData?.error]);
 
   if (navigation.state === "loading") {
     return (
@@ -118,12 +126,38 @@ export default function ConversationDetailPage() {
       subtitle={conversation.phone}
       primaryAction={{ content: "Back to queue", onAction: () => navigate("/app/conversations"), icon: ArrowLeftIcon }}
     >
+      {feedbackOpen && actionData?.message ? (
+        <FloatingActionFeedback
+          tone="success"
+          title="Conversation updated"
+          message={actionData.message}
+          actionLabel="Review controls"
+          onAction={() => {
+            document.getElementById("conversation-controls")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          onDismiss={() => setFeedbackOpen(false)}
+        />
+      ) : null}
+
+      {feedbackOpen && actionData?.error ? (
+        <FloatingActionFeedback
+          tone="critical"
+          title="Conversation action failed"
+          message={actionData.error}
+          actionLabel="Return to reply panel"
+          onAction={() => {
+            document.getElementById("conversation-controls")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          onDismiss={() => setFeedbackOpen(false)}
+        />
+      ) : null}
+
       <Layout>
         <Layout.Section>
           {busy ? <Spinner accessibilityLabel="Loading" size="small" /> : null}
         </Layout.Section>
 
-        {actionData?.error ? (
+        {actionData?.error && !feedbackOpen ? (
           <Layout.Section>
             <Banner tone="critical">
               <Text as="p" variant="bodyMd">{actionData.error}</Text>
@@ -131,7 +165,7 @@ export default function ConversationDetailPage() {
           </Layout.Section>
         ) : null}
 
-        {actionData?.message ? (
+        {actionData?.message && !feedbackOpen ? (
           <Layout.Section>
             <Banner tone="success">
               <Text as="p" variant="bodyMd">{actionData.message}</Text>
@@ -149,7 +183,8 @@ export default function ConversationDetailPage() {
         </Layout.Section>
 
         <Layout.Section>
-          <Card padding="500">
+          <div id="conversation-controls">
+            <Card padding="500">
             <BlockStack gap="400">
               <InlineStack align="space-between" gap="300" wrap>
                 <BlockStack gap="100">
@@ -195,7 +230,8 @@ export default function ConversationDetailPage() {
                 </Card>
               </InlineGrid>
             </BlockStack>
-          </Card>
+            </Card>
+          </div>
         </Layout.Section>
 
         <Layout.Section>

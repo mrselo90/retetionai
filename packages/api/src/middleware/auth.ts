@@ -308,8 +308,7 @@ export async function authMiddleware(c: Context, next: Next) {
         '[api-auth]'
       );
       setAuthenticatedUser(c, { merchantId, authMethod });
-      await next();
-      return;
+      return await next();
     }
   }
 
@@ -326,7 +325,7 @@ export async function authMiddleware(c: Context, next: Next) {
       return c.json({ error: 'Forbidden: Missing internal merchant context' }, 403);
     }
     setAuthenticatedUser(c, { merchantId: internal.merchantId, authMethod: 'internal' });
-    return next();
+    return await next();
   }
 
   if (!token) {
@@ -404,5 +403,5 @@ export async function optionalAuthMiddleware(c: Context, next: Next) {
     }
   }
 
-  await next();
+  return await next();
 }

@@ -53,6 +53,7 @@ export async function loggerMiddleware(c: Context, next: Next) {
       },
       'Request completed'
     );
+    return c.res;
   } catch (error) {
     // Log request error
     const duration = Date.now() - startTime;

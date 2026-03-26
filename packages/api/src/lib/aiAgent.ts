@@ -32,6 +32,7 @@ import { getActiveProductFactsContext, getActiveProductFactsSnapshots } from './
 import { generateGroundedProductAnswer } from './groundedAnswer.js';
 import { buildGroundedEvidenceContext } from './groundingAssembler.js';
 import { UnifiedRetrievalService } from './unifiedRetrieval.js';
+import { getCosmeticRagPolicy } from './ragRetrievalPolicy.js';
 
 export type Intent = 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent';
 
@@ -46,40 +47,6 @@ export interface AIResponse {
   requiresHuman?: boolean;
   upsellTriggered?: boolean;
   upsellMessage?: string;
-}
-
-function getCosmeticRAGConfig(query: string): { profile: string; topK: number; similarityThreshold: number } {
-  const q = query.toLowerCase();
-  const hasAny = (terms: string[]) => terms.some((t) => q.includes(t));
-
-  if (hasAny(['içerik', 'i̇çerik', 'ingredients', 'inci', 'összetev', 'hatóanyag', 'fragrance', 'parfüm', 'illatanyag'])) {
-    return { profile: 'ingredients', topK: 4, similarityThreshold: 0.62 };
-  }
-  if (hasAny(['nasıl kullan', 'kullanım', 'how to use', 'directions', 'használat', 'alkalmaz'])) {
-    return { profile: 'usage', topK: 5, similarityThreshold: 0.58 };
-  }
-  if (hasAny(['uyarı', 'warning', 'caution', 'figyelmezt', 'allergy', 'alerji', 'allergia', 'eye', 'göz', 'szem'])) {
-    return { profile: 'warnings', topK: 5, similarityThreshold: 0.55 };
-  }
-  if (hasAny(['ml', 'gram', 'g ', 'oz', 'spf', 'ph', '%'])) {
-    return { profile: 'specs', topK: 3, similarityThreshold: 0.65 };
-  }
-  return { profile: 'default', topK: 5, similarityThreshold: 0.6 };
-}
-
-function getPreferredSectionsForProfile(profile: string): string[] | undefined {
-  switch (profile) {
-    case 'ingredients':
-      return ['ingredients', 'active_ingredients', 'claims', 'general'];
-    case 'usage':
-      return ['usage', 'faq', 'general'];
-    case 'warnings':
-      return ['warnings', 'usage', 'general'];
-    case 'specs':
-      return ['specs', 'identity', 'general'];
-    default:
-      return undefined;
-  }
 }
 
 function buildRagCacheKey(input: Record<string, unknown>): string {
@@ -387,8 +354,8 @@ export async function generateAIResponse(
   if (intent === 'question') {
     try {
       const ragQuery = postDeliveryFollowUp.ragQueryOverride || message;
-      const ragConfig = getCosmeticRAGConfig(ragQuery);
-      const preferredSections = getPreferredSectionsForProfile(ragConfig.profile);
+      const ragConfig = getCosmeticRagPolicy(ragQuery);
+      const preferredSections = ragConfig.preferredSectionTypes;
       const orderScope = orderId
         ? await getOrderProductContextResolved(orderId, merchantId)
         : null;
@@ -542,9 +509,9 @@ export async function generateAIResponse(
       }
       // RAG: semantic search (order products if any).
       // Safety: when an order exists but we cannot resolve products, do NOT broaden to all merchant products.
-      const ragConfig = getCosmeticRAGConfig(ragQuery);
+      const ragConfig = getCosmeticRagPolicy(ragQuery);
       const queryLang = userLang;
-      const preferredSections = getPreferredSectionsForProfile(ragConfig.profile);
+      const preferredSections = ragConfig.preferredSectionTypes;
       const ragCacheKey = buildRagCacheKey({
         merchantId,
         query: ragQuery,

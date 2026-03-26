@@ -20,6 +20,7 @@ import {
   Box,
   Button,
   Card,
+  Frame,
   InlineGrid,
   InlineStack,
   SkeletonBodyText,
@@ -163,7 +164,7 @@ function AppShell({ initialShop }: { initialShop: string }) {
   const shellLoading = !bootstrapData && !bootstrapError;
 
   return (
-    <>
+    <Frame>
       <EmbeddedSessionTokenBoundary />
       <Box background="bg-surface-secondary" minHeight="100vh" padding="400">
         <div style={{ maxWidth: "1440px", margin: "0 auto" }}>
@@ -302,7 +303,7 @@ function AppShell({ initialShop }: { initialShop: string }) {
           </BlockStack>
         </div>
       </Box>
-    </>
+    </Frame>
   );
 }
 

@@ -30,8 +30,65 @@ export interface UnifiedRetrievalOutput {
   fallbackLanguage: string | null;
 }
 
+function normalizeTextForMatch(value: string): string {
+  return value
+    .toLocaleLowerCase('tr-TR')
+    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenizeForMatch(value: string): string[] {
+  return normalizeTextForMatch(value)
+    .split(' ')
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 3);
+}
+
 function maxSimilarity(results: RAGResult[]): number {
   return results.reduce((max, row) => Math.max(max, Number(row.similarity || 0)), 0);
+}
+
+function rerankResults(options: {
+  question: string;
+  results: RAGResult[];
+  preferredSectionTypes?: string[];
+  topK: number;
+}): RAGResult[] {
+  const { question, results, preferredSectionTypes, topK } = options;
+  const preferredSet = new Set((preferredSectionTypes || []).map((section) => section.toLowerCase()));
+  const queryTokens = new Set(tokenizeForMatch(question));
+  const perProductSeen = new Map<string, number>();
+
+  const ranked = results
+    .map((result) => {
+      let score = Number(result.similarity || 0);
+      const productTokens = tokenizeForMatch(result.productName || '');
+      const overlapCount = productTokens.filter((token) => queryTokens.has(token)).length;
+
+      if (preferredSet.size > 0 && result.sectionType && preferredSet.has(result.sectionType.toLowerCase())) {
+        score += 0.08;
+      }
+
+      if (productTokens.length > 0 && overlapCount > 0) {
+        score += Math.min(0.07, overlapCount * 0.03);
+      }
+
+      const priorCount = perProductSeen.get(result.productId) || 0;
+      perProductSeen.set(result.productId, priorCount + 1);
+      if (priorCount > 0) {
+        score -= Math.min(0.04, priorCount * 0.02);
+      }
+
+      return {
+        result,
+        score,
+      };
+    })
+    .sort((a, b) => b.score - a.score || Number(b.result.similarity || 0) - Number(a.result.similarity || 0))
+    .map((entry) => entry.result);
+
+  return ranked.slice(0, topK);
 }
 
 async function getQueryEmbedding(query: string): Promise<number[]> {
@@ -227,23 +284,17 @@ async function queryKnowledgeBaseI18n(options: UnifiedRetrievalInput & { languag
     };
   });
 
-  if (preferredSectionTypes?.length) {
-    const preferredSet = new Set(preferredSectionTypes.map((s) => s.toLowerCase()));
-    results = results
-      .map((r) => {
-        let score = r.similarity;
-        if (r.sectionType && preferredSet.has(r.sectionType.toLowerCase())) score += 0.08;
-        return { ...r, similarity: Math.min(0.999, score) };
-      })
-      .sort((a, b) => b.similarity - a.similarity);
-  } else {
-    results = results.sort((a, b) => b.similarity - a.similarity);
-  }
+  results = rerankResults({
+    question,
+    results,
+    preferredSectionTypes,
+    topK,
+  });
 
   const response = {
     query: question,
-    results: results.slice(0, topK),
-    totalResults: Math.min(results.length, topK),
+    results,
+    totalResults: results.length,
     executionTime: Date.now() - startTime,
   };
 

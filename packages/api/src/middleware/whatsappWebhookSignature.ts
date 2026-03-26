@@ -127,7 +127,7 @@ async function verifyMetaWebhook(c: Context, next: Next) {
     return c.json({ error: 'Invalid JSON webhook body' }, 400);
   }
 
-  await next();
+  return await next();
 }
 
 async function verifyTwilioWebhook(c: Context, next: Next) {
@@ -159,7 +159,7 @@ async function verifyTwilioWebhook(c: Context, next: Next) {
 
   c.set('whatsappWebhookBody', parseFormBodyToObject(params));
   c.set('whatsappWebhookProvider', 'twilio');
-  await next();
+  return await next();
 }
 
 export async function verifyWhatsAppWebhookSignature(c: Context, next: Next) {
@@ -180,4 +180,3 @@ export async function verifyWhatsAppWebhookSignature(c: Context, next: Next) {
     401
   );
 }
-

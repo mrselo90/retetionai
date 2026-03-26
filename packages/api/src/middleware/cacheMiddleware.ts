@@ -13,8 +13,7 @@ import { getCachedApiResponse, setCachedApiResponse } from '../lib/cache.js';
 export async function cacheMiddleware(c: Context, next: Next) {
   // Only cache GET requests
   if (c.req.method !== 'GET') {
-    await next();
-    return;
+    return await next();
   }
 
   const path = c.req.path;
@@ -22,8 +21,7 @@ export async function cacheMiddleware(c: Context, next: Next) {
   
   // Skip caching for certain paths
   if (path.startsWith('/health') || path.startsWith('/metrics') || path.startsWith('/api/docs')) {
-    await next();
-    return;
+    return await next();
   }
 
   // Try to get from cache
@@ -43,4 +41,6 @@ export async function cacheMiddleware(c: Context, next: Next) {
       await setCachedApiResponse(path, response, 60, query);
     }
   }
+
+  return c.res;
 }

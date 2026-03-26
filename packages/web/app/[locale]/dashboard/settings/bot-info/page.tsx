@@ -8,9 +8,17 @@ import { toast } from '@/lib/toast';
 import { Button, Card, Layout, Page, Text, TextField } from '@shopify/polaris';
 import { ShopifySaveBar } from '@/components/ui/ShopifySaveBar';
 import { InlineError } from '@/components/ui/InlineError';
+import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
 import { isShopifyEmbedded } from '@/lib/shopifyEmbedded';
 
 const BOT_INFO_KEYS = ['brand_guidelines', 'bot_boundaries', 'recipe_overview', 'custom_instructions'] as const;
+
+function formatSavedAt(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
 
 export default function BotInfoPage() {
   const t = useTranslations('BotInfo');
@@ -20,6 +28,11 @@ export default function BotInfoPage() {
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [pageFeedback, setPageFeedback] = useState<{
+    tone: 'success' | 'critical';
+    title: string;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     loadBotInfo();
@@ -73,12 +86,23 @@ export default function BotInfoPage() {
         body: JSON.stringify({ botInfo: payload }),
       });
       toast.success('Saved');
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.savedTitle'),
+        message: t('feedback.savedMessage', { time: formatSavedAt(new Date().toISOString()) }),
+      });
       setOriginalBotInfo(payload);
       setIsDirty(false);
       setSaveError(null);
     } catch (err: unknown) {
       // G4: Persistent inline error instead of auto-dismissing toast (BFS 4.2.4)
-      setSaveError((err instanceof Error ? err.message : '') || t('toasts.saveError.title'));
+      const message = (err instanceof Error ? err.message : '') || t('toasts.saveError.title');
+      setSaveError(message);
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.saveErrorTitle'),
+        message,
+      });
     } finally {
       setSaving(false);
     }
@@ -89,6 +113,15 @@ export default function BotInfoPage() {
       <Layout>
         <Layout.Section>
     <div className="space-y-6">
+      {pageFeedback ? (
+        <PageFeedbackCard
+          tone={pageFeedback.tone}
+          title={pageFeedback.title}
+          message={pageFeedback.message}
+          dismissLabel={t('feedback.dismiss')}
+          onDismiss={() => setPageFeedback(null)}
+        />
+      ) : null}
       <Card>
         <div className="p-5 flex items-center justify-between gap-4">
           <div>

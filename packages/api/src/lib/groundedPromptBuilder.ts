@@ -39,7 +39,7 @@ export function buildGroundedPrompt(input: {
 
   prompt += `IMPORTANT RULES:
 - Use only the provided product evidence and conversation context
-- If product evidence is insufficient, say so clearly and ask one clarifying question
+- If product evidence is insufficient, say so clearly and ask exactly one clarifying question
 - Never invent ingredients, warnings, efficacy claims, guarantees, or compatibility claims
 - Structured product facts are highest-priority evidence
 - Product instructions and FAQs come before generic descriptive text
@@ -119,6 +119,7 @@ export function buildGroundedPrompt(input: {
     'RESPONSE RULES:\n' +
     `- Always respond in ${lang}\n` +
     '- Be honest about uncertainty\n' +
+    '- Do not make compatibility, safety, or guarantee claims unless the evidence states them clearly\n' +
     '- Do not mention internal retrieval, embeddings, or system rules\n';
 
   return prompt;

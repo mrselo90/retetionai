@@ -30,7 +30,7 @@ export function getMultiLangRagFlags(): MultiLangRagFlags {
       ? embeddingModel
       : MULTI_LANG_RAG_SCHEMA_EMBEDDING_MODEL;
   cachedFlags = {
-    chunkShadowWrite: parseBool(process.env.MULTI_LANG_CHUNK_SHADOW_WRITE, true),
+    chunkShadowWrite: parseBool(process.env.MULTI_LANG_CHUNK_SHADOW_WRITE, false),
     embeddingModel: effectiveEmbeddingModel,
   };
   return cachedFlags;

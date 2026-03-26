@@ -4,6 +4,11 @@ import { getSupabaseServiceClient } from '@recete/shared';
 
 vi.mock('@recete/shared', () => ({
   getSupabaseServiceClient: vi.fn(),
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
 }));
 
 vi.mock('./cache.js', () => ({
@@ -68,12 +73,33 @@ describe('UnifiedRetrievalService', () => {
     expect(result.usedFallback).toBe(false);
   });
 
-  it('throws when multilingual chunk retrieval errors', async () => {
+  it('falls back to legacy retrieval when multilingual chunk retrieval errors', async () => {
+    const rpc = vi.fn(async (fn: string) => {
+      if (fn === 'match_knowledge_chunks_i18n') {
+        return {
+          data: null,
+          error: { message: 'rpc failed' },
+        };
+      }
+
+      return {
+        data: [
+          {
+            id: 'legacy-1',
+            product_id: 'p1',
+            product_name: 'Legacy Product',
+            product_url: 'https://example.com/p1',
+            chunk_text: 'Legacy usage guidance',
+            chunk_index: 0,
+            similarity: 0.77,
+          },
+        ],
+        error: null,
+      };
+    });
+
     (getSupabaseServiceClient as any).mockReturnValue({
-      rpc: vi.fn(async () => ({
-        data: null,
-        error: { message: 'rpc failed' },
-      })),
+      rpc,
       from: vi.fn(),
     });
 
@@ -82,13 +108,18 @@ describe('UnifiedRetrievalService', () => {
       { translateText: vi.fn() } as any,
     );
 
-    await expect(
-      service.retrieve({
-        merchantId: 'm1',
-        question: 'How to use?',
-        userLang: 'en',
-        productIds: ['p1'],
-      })
-    ).rejects.toThrow('Failed to query multilingual chunk index: rpc failed');
+    const result = await service.retrieve({
+      merchantId: 'm1',
+      question: 'How to use?',
+      userLang: 'en',
+      productIds: ['p1'],
+    });
+
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]?.productId).toBe('p1');
+    expect(result.results[0]?.productName).toBe('Legacy Product');
+    expect(result.effectiveLanguage).toBe('en');
+    expect(result.usedFallback).toBe(false);
+    expect(rpc).toHaveBeenCalledTimes(2);
   });
 });

@@ -27,7 +27,41 @@ function normalizeProductNameForMatch(name: string): string {
   return (name || '')
     .trim()
     .toLocaleLowerCase('tr-TR')
+    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
     .replace(/\s+/g, ' ');
+}
+
+function uniqueProductIdsByNameMatch(
+  merchantProducts: Array<{ id: string; name: string }>,
+  eventItemNames: string[],
+): string[] {
+  const exactIds = new Set<string>();
+  const normalizedProducts = merchantProducts.map((product) => ({
+    id: product.id,
+    name: String(product.name || ''),
+    normalizedName: normalizeProductNameForMatch(String(product.name || '')),
+  }));
+
+  const requestedNames = eventItemNames
+    .map((name) => normalizeProductNameForMatch(name))
+    .filter(Boolean);
+
+  for (const requestedName of requestedNames) {
+    const exactMatches = normalizedProducts.filter((product) => product.normalizedName === requestedName);
+    if (exactMatches.length > 0) {
+      exactMatches.forEach((product) => exactIds.add(product.id));
+      continue;
+    }
+
+    const partialMatches = normalizedProducts.filter((product) =>
+      product.normalizedName.includes(requestedName) || requestedName.includes(product.normalizedName)
+    );
+    if (partialMatches.length === 1) {
+      exactIds.add(partialMatches[0].id);
+    }
+  }
+
+  return [...exactIds];
 }
 
 /**
@@ -140,13 +174,12 @@ export async function getOrderProductContextResolved(
           .eq('merchant_id', order.merchant_id)
           .limit(500);
 
-        const requestedNames = new Set(eventItemNames.map(normalizeProductNameForMatch));
-        resolvedProductIds = Array.from(
-          new Set(
-            (merchantProducts || [])
-              .filter((p: any) => requestedNames.has(normalizeProductNameForMatch(String(p?.name || ''))))
-              .map((p: any) => p.id)
-          )
+        resolvedProductIds = uniqueProductIdsByNameMatch(
+          (merchantProducts || []).map((product: any) => ({
+            id: String(product.id),
+            name: String(product.name || ''),
+          })),
+          eventItemNames,
         );
       }
     }

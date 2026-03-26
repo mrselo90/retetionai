@@ -119,7 +119,7 @@ app.use('/*', async (c, next) => {
     return c.body(null, 204);
   }
 
-  await next();
+  return await next();
 });
 
 // Rate limiting (apply after CORS, before routes)
@@ -129,12 +129,11 @@ app.use('/*', async (c, next) => {
 
   // Skip rate limiting for health checks
   if (path === '/' || path === '/health') {
-    await next();
-    return;
+    return await next();
   }
 
   // Apply rate limiting to all other routes
-  await rateLimitMiddleware(c, next);
+  return await rateLimitMiddleware(c, next);
 });
 
 // Auth routes (stricter rate limit for login/signup)

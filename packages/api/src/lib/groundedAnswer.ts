@@ -53,6 +53,27 @@ export interface GroundedAnswerOutput {
   retrievalFallbackLanguage: string | null;
 }
 
+function buildClarifyingAnswer(lang: SupportedLanguage): string {
+  if (lang === 'tr') {
+    return 'Bu soruya güvenilir şekilde cevap verecek kadar net ürün kanıtı bulamadım. Hangi ürünü veya varyantı kastettiğinizi netleştirir misiniz?';
+  }
+  if (lang === 'hu') {
+    return 'Nem találtam elég egyértelmű termékbizonyítékot ehhez a válaszhoz. Pontosítaná, melyik termékről vagy változatról van szó?';
+  }
+  return 'I could not find enough clear product evidence to answer that safely. Could you clarify which product or variant you mean?';
+}
+
+function hasUsableGroundingEvidence(grounding: {
+  context?: string;
+  citedProducts: string[];
+}): boolean {
+  return Boolean(grounding.context?.trim()) && grounding.citedProducts.length > 0;
+}
+
+function answerHasUnsupportedGuarantee(answer: string): boolean {
+  return /\b(guarantee|guaranteed|definitely safe|completely safe|tamamen güvenli|kesin|garanti|biztosan biztonságos)\b/i.test(answer);
+}
+
 async function loadMerchantPresentation(
   merchantId: string,
   merchantName?: string,
@@ -112,6 +133,37 @@ export async function generateGroundedProductAnswer(
       latencyMs: Date.now() - start,
       ragContext: grounding.context,
       usedDeterministicFacts: true,
+      orderScopeSource: grounding.orderScopeSource,
+      retrievalLanguage: grounding.retrievalLanguage,
+      retrievalUsedFallback: grounding.retrievalUsedFallback,
+      retrievalFallbackLanguage: grounding.retrievalFallbackLanguage,
+    };
+  }
+
+  if (!hasUsableGroundingEvidence(grounding)) {
+    const answer = buildClarifyingAnswer(userLang);
+    logger.info(
+      {
+        merchantId: input.merchantId,
+        channel: input.channel,
+        conversationId: input.conversationId || null,
+        orderId: input.orderId || null,
+        userLang,
+        citedProducts: grounding.citedProducts,
+        retrievalLanguage: grounding.retrievalLanguage,
+        retrievalUsedFallback: grounding.retrievalUsedFallback,
+        retrievalFallbackLanguage: grounding.retrievalFallbackLanguage,
+      },
+      'grounded_answer_clarification_due_to_insufficient_evidence',
+    );
+
+    return {
+      answer,
+      langDetected: userLang,
+      citedProducts: grounding.citedProducts,
+      latencyMs: Date.now() - start,
+      ragContext: grounding.context,
+      usedDeterministicFacts: false,
       orderScopeSource: grounding.orderScopeSource,
       retrievalLanguage: grounding.retrievalLanguage,
       retrievalUsedFallback: grounding.retrievalUsedFallback,
@@ -218,14 +270,10 @@ export async function generateGroundedProductAnswer(
     },
   });
 
-  const answer = completion.choices[0]?.message?.content?.trim()
-    || (
-      userLang === 'tr'
-        ? 'Bu soruya güvenilir şekilde cevap verecek kadar ürün bilgisi bulamadım. Hangi ürünü kastettiğinizi netleştirir misiniz?'
-        : userLang === 'hu'
-          ? 'Nem találtam elég megbízható termékinformációt a válaszhoz. Pontosítaná, melyik termékről van szó?'
-          : 'I could not find enough reliable product information to answer that safely. Could you clarify which product you mean?'
-    );
+  const rawAnswer = completion.choices[0]?.message?.content?.trim() || '';
+  const answer = rawAnswer && !answerHasUnsupportedGuarantee(rawAnswer)
+    ? rawAnswer
+    : buildClarifyingAnswer(userLang);
 
   logger.info(
     {

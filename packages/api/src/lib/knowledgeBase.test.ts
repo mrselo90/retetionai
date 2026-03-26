@@ -11,6 +11,11 @@ import * as embeddings from './embeddings.js';
 // Mock dependencies
 vi.mock('@recete/shared', () => ({
     getSupabaseServiceClient: vi.fn(),
+    logger: {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
 }));
 
 vi.mock('./embeddings.js', () => ({

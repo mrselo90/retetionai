@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest, getApiUrl, getApiBaseUrlForDisplay } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
 import { Badge as PolarisBadge, Banner, BlockStack, Box, Button as PolarisButton, Card as PolarisCard, InlineStack, Layout, Page, Select, SkeletonPage, Text, TextField, EmptyState } from '@shopify/polaris';
 import { Loader2, X, Trash2, Pencil, Plug, Upload, Code, MessageSquare, ShoppingBag, MessageCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -21,6 +22,14 @@ interface Integration {
   from_number?: string;
   /** Shopify store domain (e.g. store.myshopify.com) when provider is shopify */
   shop_domain?: string;
+}
+
+interface PageFeedbackState {
+  tone: 'success' | 'critical' | 'info';
+  title: string;
+  message: string;
+  actionLabel?: string;
+  targetId?: string;
 }
 
 /** Manual integration is not in plan for now. */
@@ -49,6 +58,7 @@ export default function IntegrationsPage() {
   const [whatsappTwilioFromNumber, setWhatsappTwilioFromNumber] = useState('');
   const [editingWhatsAppId, setEditingWhatsAppId] = useState<string | null>(null);
   const [platformWhatsApp, setPlatformWhatsApp] = useState<string>('');
+  const [pageFeedback, setPageFeedback] = useState<PageFeedbackState | null>(null);
 
   useEffect(() => {
     loadIntegrations();
@@ -167,12 +177,26 @@ export default function IntegrationsPage() {
 
       const result = await response.json();
       toast.success(t('toasts.importSuccess.title'), t('toasts.importSuccess.message', { count: result.imported }));
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.importSavedTitle'),
+        message: t('feedback.importSavedMessage', { count: result.imported }),
+        actionLabel: t('feedback.reviewActive'),
+        targetId: 'active-integrations',
+      });
 
       setShowCsvModal(false);
       setCsvFile(null);
       await loadIntegrations();
     } catch (err: any) {
       console.error('Failed to import CSV:', err);
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.importErrorTitle'),
+        message: err.message || t('toasts.importError.message'),
+        actionLabel: t('feedback.reviewDiscover'),
+        targetId: 'discover-integrations',
+      });
       toast.error(t('toasts.importError.title'), err.message || t('toasts.importError.message'));
     } finally {
       setImporting(false);
@@ -198,10 +222,24 @@ export default function IntegrationsPage() {
       );
 
       toast.success(t('toasts.manualSuccess.title'), t('toasts.manualSuccess.message'));
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.manualSavedTitle'),
+        message: t('feedback.manualSavedMessage'),
+        actionLabel: t('feedback.reviewActive'),
+        targetId: 'active-integrations',
+      });
       setShowManualModal(false);
       await loadIntegrations();
     } catch (err: any) {
       console.error('Failed to create manual integration:', err);
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.manualErrorTitle'),
+        message: err.message || t('toasts.manualError.message'),
+        actionLabel: t('feedback.reviewDiscover'),
+        targetId: 'discover-integrations',
+      });
       toast.error(t('toasts.manualError.title'), err.message || t('toasts.manualError.message'));
     }
   };
@@ -266,6 +304,13 @@ export default function IntegrationsPage() {
           { method: 'PUT', body: JSON.stringify({ auth_data, status: 'active' }) }
         );
         toast.success(t('toasts.whatsappUpdateSuccess.title'), t('toasts.whatsappUpdateSuccess.message'));
+        setPageFeedback({
+          tone: 'success',
+          title: t('feedback.whatsappUpdatedTitle'),
+          message: t('feedback.whatsappUpdatedMessage'),
+          actionLabel: t('feedback.reviewActive'),
+          targetId: 'active-integrations',
+        });
       } else {
         await authenticatedRequest(
           '/api/integrations',
@@ -280,6 +325,13 @@ export default function IntegrationsPage() {
           }
         );
         toast.success(t('toasts.whatsappSuccess.title'), t('toasts.whatsappSuccess.message'));
+        setPageFeedback({
+          tone: 'success',
+          title: t('feedback.whatsappConnectedTitle'),
+          message: t('feedback.whatsappConnectedMessage'),
+          actionLabel: t('feedback.reviewActive'),
+          targetId: 'active-integrations',
+        });
       }
       setShowWhatsAppModal(false);
       setEditingWhatsAppId(null);
@@ -293,6 +345,13 @@ export default function IntegrationsPage() {
       setWhatsappTwilioFromNumber('');
       await loadIntegrations();
     } catch (err: any) {
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.whatsappErrorTitle'),
+        message: err.message || t('toasts.whatsappError.message'),
+        actionLabel: t('feedback.reviewDiscover'),
+        targetId: 'discover-integrations',
+      });
       toast.error(t('toasts.whatsappError.title'), err.message || t('toasts.whatsappError.message'));
     } finally {
       setConnectingWhatsApp(false);
@@ -313,9 +372,23 @@ export default function IntegrationsPage() {
       );
 
       toast.success(t('toasts.deleteSuccess.title'), t('toasts.deleteSuccess.message'));
+      setPageFeedback({
+        tone: 'success',
+        title: t('feedback.integrationRemovedTitle'),
+        message: t('feedback.integrationRemovedMessage'),
+        actionLabel: t('feedback.reviewDiscover'),
+        targetId: 'discover-integrations',
+      });
       await loadIntegrations();
     } catch (err: any) {
       console.error('Failed to delete integration:', err);
+      setPageFeedback({
+        tone: 'critical',
+        title: t('feedback.deleteErrorTitle'),
+        message: err.message || t('toasts.deleteError.message'),
+        actionLabel: t('feedback.reviewActive'),
+        targetId: 'active-integrations',
+      });
       toast.error(t('toasts.deleteError.title'), err.message || t('toasts.deleteError.message'));
     }
   };
@@ -420,6 +493,25 @@ export default function IntegrationsPage() {
       <Layout>
         <Layout.Section>
           <div className="space-y-6 animate-fade-in pb-8 font-sans text-[#303030]">
+            {pageFeedback ? (
+              <PageFeedbackCard
+                tone={pageFeedback.tone}
+                title={pageFeedback.title}
+                message={pageFeedback.message}
+                actionLabel={pageFeedback.actionLabel}
+                onAction={
+                  pageFeedback.targetId
+                    ? () => {
+                        document
+                          .getElementById(pageFeedback.targetId!)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    : undefined
+                }
+                dismissLabel={t('feedback.dismiss')}
+                onDismiss={() => setPageFeedback(null)}
+              />
+            ) : null}
             <PolarisCard>
               <Box padding="400">
                 <BlockStack gap="100">
@@ -451,7 +543,7 @@ export default function IntegrationsPage() {
             )}
 
             {/* Discover Integrations (Polaris List Style) */}
-            <div className="mt-8">
+            <div id="discover-integrations" className="mt-8">
               <h2 className="text-lg font-semibold text-[#1a1a1a] mb-3">Discover integrations</h2>
               <PolarisCard padding="0">
                 <div className="divide-y divide-zinc-100">
@@ -570,7 +662,7 @@ export default function IntegrationsPage() {
             </div>
 
             {/* Active Integrations */}
-            <div className="pt-8">
+            <div id="active-integrations" className="pt-8">
               <h2 className="text-lg font-semibold text-[#1a1a1a] mb-3">{t('active.title')}</h2>
               {integrations.length > 0 ? (
                 <PolarisCard padding="0">
