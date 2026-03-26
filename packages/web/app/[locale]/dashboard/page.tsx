@@ -98,6 +98,25 @@ const DEFAULT_STATS: DashboardStats = {
   alerts: [],
 };
 
+function normalizeDashboardStats(input: Partial<DashboardStats> | null | undefined): DashboardStats {
+  return {
+    kpis: {
+      ...DEFAULT_STATS.kpis,
+      ...(input?.kpis || {}),
+    },
+    knowledgeHealth: {
+      ...DEFAULT_STATS.knowledgeHealth,
+      ...(input?.knowledgeHealth || {}),
+      topAtRiskProducts: input?.knowledgeHealth?.topAtRiskProducts || DEFAULT_STATS.knowledgeHealth.topAtRiskProducts,
+    },
+    recentActivity: {
+      orders: input?.recentActivity?.orders || DEFAULT_STATS.recentActivity.orders,
+      conversations: input?.recentActivity?.conversations || DEFAULT_STATS.recentActivity.conversations,
+    },
+    alerts: input?.alerts || DEFAULT_STATS.alerts,
+  };
+}
+
 function statusTone(status: string): Parameters<typeof PolarisBadge>[0]['tone'] {
   if (status === 'delivered' || status === 'active') return 'success';
   if (status === 'failed' || status === 'error') return 'critical';
@@ -233,11 +252,11 @@ export default function DashboardPage() {
       setMerchant(merchantData.merchant);
 
       try {
-        const statsData = await authenticatedRequest<DashboardStats>(
+        const statsData = await authenticatedRequest<Partial<DashboardStats>>(
           '/api/merchants/me/stats',
           session.access_token
         );
-        setStats(statsData);
+        setStats(normalizeDashboardStats(statsData));
       } catch (statsErr: unknown) {
         console.warn('Dashboard stats failed:', statsErr);
         setStats(DEFAULT_STATS);
