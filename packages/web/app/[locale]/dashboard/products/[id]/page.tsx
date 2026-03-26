@@ -447,14 +447,9 @@ export default function ProductDetailPage() {
                     <Button onClick={() => router.push('/dashboard/products')} variant="plain" textAlign="left">
                       {t('backToProducts')}
                     </Button>
-                    <BlockStack gap="100">
-                      <Text as="h1" variant="headingLg">
-                        {t('editProduct')}
-                      </Text>
-                      <Text as="p" tone="subdued">
-                        {t('editDescription')}
-                      </Text>
-                    </BlockStack>
+                    <Text as="p" tone="subdued">
+                      {t('editDescription')}
+                    </Text>
                   </BlockStack>
                   <InlineStack gap="300" wrap={false} align="end">
                     <Button onClick={handleRescrape} disabled={rescraping} loading={rescraping}>
