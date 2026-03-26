@@ -265,6 +265,24 @@ export default function ProductsPage() {
                         </InlineGrid>
                       </Layout.Section>
                       <Layout.Section>
+                        <InlineGrid columns={{ xs: 1, sm: 2 }} gap="200">
+                          <Button
+                            fullWidth
+                            icon={ConnectIcon}
+                            variant="primary"
+                            onClick={() =>
+                              navigate(
+                                product.external_id
+                                  ? `/app/products/mapping?product=${encodeURIComponent(product.external_id)}`
+                                  : "/app/products/mapping",
+                              )
+                            }
+                          >
+                            Edit mapping
+                          </Button>
+                        </InlineGrid>
+                      </Layout.Section>
+                      <Layout.Section>
                         <InlineGrid columns={{ xs: 1, sm: 3 }} gap="200">
                           <InlineActionForm productId={product.id} intent="scrape" label="Scrape" icon={RefreshIcon} />
                           <InlineActionForm productId={product.id} intent="embeddings" label="Generate embeddings" icon={MagicIcon} />

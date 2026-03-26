@@ -1,10 +1,11 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Form, isRouteErrorResponse, useActionData, useFetcher, useLoaderData, useNavigate, useNavigation, useRouteError, useSubmit } from "react-router";
+import { Form, isRouteErrorResponse, useActionData, useFetcher, useLoaderData, useNavigate, useNavigation, useRouteError, useSearchParams, useSubmit } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ArrowLeftIcon, CheckIcon, MagicIcon } from "@shopify/polaris-icons";
 import {
   Banner,
+  BlockStack,
   Box,
   Button,
   Card,
@@ -211,6 +212,7 @@ export default function ProductMappingPage() {
   const actionData = useActionData<typeof action>();
   const mappingDataFetcher = useFetcher<MappingDataPayload>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const submit = useSubmit();
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
@@ -276,8 +278,9 @@ export default function ProductMappingPage() {
   const localProductCount = mappingDataFetcher.data?.localProductCount ?? 0;
   const mappingDataError = mappingDataFetcher.data?.error || null;
 
+  const requestedProductId = searchParams.get("product") || "";
   const [selectedProductId, setSelectedProductId] = useState<string>(
-    actionData?.selectedProductId || data.catalogProducts[0]?.id || "",
+    actionData?.selectedProductId || requestedProductId || data.catalogProducts[0]?.id || "",
   );
   const [drafts, setDrafts] = useState<Record<string, MappingDraft>>(() =>
     Object.fromEntries(data.catalogProducts.map((product) => [product.id, emptyDraft()])),
@@ -287,6 +290,12 @@ export default function ProductMappingPage() {
   useEffect(() => {
     if (actionData?.selectedProductId) setSelectedProductId(actionData.selectedProductId);
   }, [actionData?.selectedProductId]);
+
+  useEffect(() => {
+    if (requestedProductId && requestedProductId !== selectedProductId) {
+      setSelectedProductId(requestedProductId);
+    }
+  }, [requestedProductId, selectedProductId]);
 
   useEffect(() => {
     if (actionData?.ok && actionData.selectedProductId && actionData.message) {
@@ -303,6 +312,15 @@ export default function ProductMappingPage() {
       setSelectedProductId(rows[0].shopify.id);
     }
   }, [rows, selectedProductId]);
+
+  useEffect(() => {
+    if (!selectedProductId) return;
+    if (searchParams.get("product") === selectedProductId) return;
+
+    const next = new URLSearchParams(searchParams);
+    next.set("product", selectedProductId);
+    setSearchParams(next, { replace: true });
+  }, [searchParams, selectedProductId, setSearchParams]);
 
   useEffect(() => {
     if (!mappingDataFetcher.data) return;
@@ -673,7 +691,12 @@ function BlockArea({
       <Box paddingBlockStart="400">
         <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
           {rows.map((row) => (
-            <Card key={row.shopify.id} padding="500">
+            <Card
+              key={row.shopify.id}
+              padding="500"
+              background={row.shopify.id === selectedProductId ? "bg-surface-secondary" : undefined}
+            >
+              <BlockStack gap="300">
               <InlineStack align="space-between" blockAlign="start" gap="300">
                 <Box maxWidth="22rem">
                   <Text as="h3" variant="headingMd">
@@ -694,6 +717,15 @@ function BlockArea({
                     : "Still needs usage guidance before the AI can answer confidently."}
                 </Text>
               </Box>
+              <InlineStack gap="200">
+                <Button
+                  variant={row.shopify.id === selectedProductId ? "primary" : "secondary"}
+                  onClick={() => onChange(row.shopify.id)}
+                >
+                  {row.shopify.id === selectedProductId ? "Editing now" : "Edit mapping"}
+                </Button>
+              </InlineStack>
+              </BlockStack>
             </Card>
           ))}
         </InlineGrid>
