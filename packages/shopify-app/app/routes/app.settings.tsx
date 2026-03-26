@@ -64,6 +64,20 @@ type GuardrailDraft = {
   suggested_response: string;
 };
 
+type CoreSettingsFormState = {
+  bot_name: string;
+  tone: "friendly" | "professional" | "casual" | "formal";
+  response_length: "short" | "medium" | "long";
+  whatsapp_sender_mode: "merchant_own" | "corporate";
+  notification_phone: string;
+  whatsapp_welcome_template: string;
+  default_source_lang: string;
+  enabled_langs: string;
+  emoji: boolean;
+  ai_vision_enabled: boolean;
+  multi_lang_rag_enabled: boolean;
+};
+
 function parseGuardrailDrafts(
   raw: string,
   fallback: MerchantGuardrail[],
@@ -82,6 +96,36 @@ function formatSavedAt(value: string) {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function normalizeCoreFormState(
+  state: CoreSettingsFormState,
+  planType: "STARTER" | "GROWTH" | "PRO",
+): CoreSettingsFormState {
+  const defaultSourceLang = state.default_source_lang.trim() || "en";
+  const enabledLangs = Array.from(
+    new Set(
+      state.enabled_langs
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  );
+
+  if (!enabledLangs.includes(defaultSourceLang)) {
+    enabledLangs.unshift(defaultSourceLang);
+  }
+
+  return {
+    ...state,
+    bot_name: state.bot_name.trim(),
+    notification_phone: state.notification_phone.trim(),
+    whatsapp_welcome_template: state.whatsapp_welcome_template.trim(),
+    default_source_lang: defaultSourceLang,
+    enabled_langs: enabledLangs.join(", "),
+    whatsapp_sender_mode: planType === "PRO" ? state.whatsapp_sender_mode : "corporate",
+    ai_vision_enabled: planType === "STARTER" ? false : state.ai_vision_enabled,
+  };
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -255,7 +299,7 @@ export default function SettingsPage() {
   const persona = data.merchant.persona_settings || {};
   const busy = navigation.state !== "idle";
 
-  const [formState, setFormState] = useState({
+  const [formState, setFormState] = useState<CoreSettingsFormState>({
     bot_name: persona.bot_name || "",
     tone: persona.tone || "friendly",
     response_length: persona.response_length || "medium",
@@ -319,8 +363,9 @@ export default function SettingsPage() {
   useEffect(() => {
     if (showFloatingCoreSuccess) {
       setLastCoreSettingsSavedAt(new Date().toISOString());
+      setFormState((current) => normalizeCoreFormState(current, data.plan.planType));
     }
-  }, [showFloatingCoreSuccess]);
+  }, [data.plan.planType, showFloatingCoreSuccess]);
 
   if (navigation.state === "loading") {
     return (
