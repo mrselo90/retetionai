@@ -28,10 +28,10 @@ import {
   PersonIcon,
   ChatIcon,
   ProductIcon,
-  ChartTrendUpIcon,
+  ChartVerticalIcon,
   ChevronRightIcon,
   CheckCircleIcon,
-  CircleIcon,
+  AlertCircleIcon,
   SearchIcon,
 } from '@shopify/polaris-icons';
 import { useTranslations, useLocale } from 'next-intl';
@@ -499,7 +499,7 @@ export default function DashboardPage() {
                           {step.completed ? (
                             <Icon source={CheckCircleIcon} tone="success" />
                           ) : (
-                            <Icon source={CircleIcon} tone="subdued" />
+                            <Icon source={AlertCircleIcon} tone="subdued" />
                           )}
                           <BlockStack gap="050">
                             <Text as="p" variant="bodyMd" fontWeight="semibold">
@@ -635,7 +635,7 @@ export default function DashboardPage() {
               value={`${displayStats.kpis.responseRate ?? 0}%`}
               hint={t('kpi.replyRateHint')}
               detail={t('kpi.replyRateDetail')}
-              icon={ChartTrendUpIcon}
+              icon={ChartVerticalIcon}
             />
           </InlineGrid>
         </Layout.Section>
@@ -793,7 +793,7 @@ export default function DashboardPage() {
                   <InlineStack gap="300" blockAlign="start">
                     <DashboardIconTile
                       background="bg-fill-caution-secondary"
-                      icon={ChartTrendUpIcon}
+                      icon={ChartVerticalIcon}
                     />
                     <BlockStack gap="100">
                       <Text as="p" variant="bodySm" fontWeight="semibold">

@@ -33,11 +33,12 @@ import {
   ExternalIcon,
   NoteIcon,
   CheckCircleIcon,
-  LayoutGridIcon,
-  ListIcon,
+  AppsIcon,
+  ListBulletedIcon,
   SearchIcon,
   RefreshIcon,
   AlertBubbleIcon,
+  AlertCircleIcon,
 } from '@shopify/polaris-icons';
 import { useTranslations, useLocale } from 'next-intl';
 import { SESSION_RECHECK_MS } from '@/lib/constants';
@@ -761,14 +762,14 @@ export default function ProductsPage() {
                   <PolarisButtonGroup variant="segmented">
                     <PolarisButton
                       onClick={() => handleViewModeChange('grid')}
-                      icon={LayoutGridIcon}
+                      icon={AppsIcon}
                       pressed={viewMode === 'grid'}
                     >
                       <span className="hidden sm:inline">{t('view.grid')}</span>
                     </PolarisButton>
                     <PolarisButton
                       onClick={() => handleViewModeChange('list')}
-                      icon={ListIcon}
+                      icon={ListBulletedIcon}
                       pressed={viewMode === 'list'}
                     >
                       <span className="hidden md:inline">{t('view.list')}</span>
@@ -820,7 +821,7 @@ export default function ProductsPage() {
                               className="pr-2 pl-1 text-muted-foreground hover:text-destructive"
                               aria-label={t('savedViews.deleteAria', { name: view.name })}
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Icon source={DeleteIcon} tone="subdued" />
                             </button>
                           </span>
                         ))}
@@ -909,7 +910,7 @@ export default function ProductsPage() {
                           <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
                             {t('filters.searchChip', { value: searchQuery })}
                             <button type="button" onClick={() => setSearchQuery('')} className="text-muted-foreground hover:text-foreground">
-                              <Trash2 className="w-3 h-3" />
+                              <Icon source={DeleteIcon} tone="subdued" />
                             </button>
                           </span>
                         )}
@@ -917,7 +918,7 @@ export default function ProductsPage() {
                           <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
                             {t('filters.statusChip', { value: getStatusFilterLabel(statusFilter) })}
                             <button type="button" onClick={() => setStatusFilter('all')} className="text-muted-foreground hover:text-foreground">
-                              <Trash2 className="w-3 h-3" />
+                              <Icon source={DeleteIcon} tone="subdued" />
                             </button>
                           </span>
                         )}
@@ -925,7 +926,7 @@ export default function ProductsPage() {
                           <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
                             {t('filters.sortChip', { value: getSortLabel(sortBy) })}
                             <button type="button" onClick={() => setSortBy('updated_desc')} className="text-muted-foreground hover:text-foreground">
-                              <Trash2 className="w-3 h-3" />
+                              <Icon source={DeleteIcon} tone="subdued" />
                             </button>
                           </span>
                         )}
@@ -944,7 +945,7 @@ export default function ProductsPage() {
                     <PolarisButton
                       onClick={toggleSelectAllVisibleProducts}
                       disabled={visibleProductIds.length === 0}
-                      icon={allVisibleSelected ? CheckCircleIcon : CircleIcon}
+                      icon={allVisibleSelected ? CheckCircleIcon : AlertCircleIcon}
                     >
                       {allVisibleSelected ? t('bulk.unselectVisible') : t('bulk.selectVisible')}
                     </PolarisButton>
