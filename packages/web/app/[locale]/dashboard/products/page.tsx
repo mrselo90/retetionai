@@ -451,27 +451,16 @@ export default function ProductsPage() {
         </PolarisBadge>
       )}
       <PolarisBadge>
-        <InlineStack gap="100" blockAlign="center">
-          <Icon source={NoteIcon} tone="subdued" />
-          <Text as="span" variant="bodySm">
-            {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
-          </Text>
-        </InlineStack>
+        {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
       </PolarisBadge>
       {product.raw_text && (
         <PolarisBadge tone="success">
-          <InlineStack gap="100" blockAlign="center">
-            <Icon source={CheckCircleIcon} tone="success" />
-            <Text as="span" variant="bodySm">{t('card.scraped')}</Text>
-          </InlineStack>
+          {t('card.scraped')}
         </PolarisBadge>
       )}
       {product.raw_text && !product.chunkCountUnavailable && (product.chunkCount || 0) > 0 && (
         <PolarisBadge tone="success">
-          <InlineStack gap="100" blockAlign="center">
-            <Icon source={CheckCircleIcon} tone="success" />
-            <Text as="span" variant="bodySm">{t('card.ragReady')}</Text>
-          </InlineStack>
+          {t('card.ragReady')}
         </PolarisBadge>
       )}
     </InlineStack>
