@@ -10,3 +10,4 @@ export * from './queues.js';
 export * from './productInstructions.js';
 export * from './auth.js';
 export * from './logger.js';
+export * from './shopify.js';

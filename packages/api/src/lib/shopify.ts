@@ -4,6 +4,7 @@
  */
 
 import crypto from 'crypto';
+import { ShopifyProduct, ShopifyProductVariant, fetchShopifyProductByHandle as sharedFetchByHandle } from '@recete/shared';
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
@@ -200,15 +201,6 @@ export async function deleteWebhook(shop: string, accessToken: string, webhookId
   });
 }
 
-/** Shopify product variant (price/sku for AI context) */
-export interface ShopifyProductVariant {
-  id: string;
-  title: string;
-  price: string;
-  sku: string | null;
-  inventoryQuantity?: number | null;
-}
-
 export interface ShopifyLiveProductQuote {
   id: string;
   title: string;
@@ -220,26 +212,6 @@ export interface ShopifyLiveProductQuote {
     sku: string | null;
     inventoryQuantity: number | null;
   }>;
-}
-
-/** Shopify product (Admin GraphQL) – includes details for AI bot context */
-export interface ShopifyProduct {
-  id: string;
-  title: string;
-  handle: string;
-  status: string;
-  /** HTML description – used for RAG / AI responses */
-  descriptionHtml?: string;
-  /** Product type (e.g. Cream, Serum) */
-  productType?: string;
-  /** Vendor / brand */
-  vendor?: string;
-  /** Tags for filtering/context */
-  tags?: string[];
-  /** Featured image URL */
-  featuredImageUrl?: string;
-  /** First few variants (price, SKU) for AI context */
-  variants?: ShopifyProductVariant[];
 }
 
 /**
@@ -377,6 +349,11 @@ export async function fetchShopifyProducts(
     endCursor: data.pageInfo?.endCursor,
   };
 }
+
+/**
+ * Fetch a single product from Shopify by handle
+ */
+export const fetchShopifyProductByHandle = sharedFetchByHandle;
 
 /**
  * Fetch live product quotes (price/stock) by Shopify product IDs

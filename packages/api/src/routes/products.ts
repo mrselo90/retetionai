@@ -8,6 +8,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { scrapeProductPage } from '../lib/scraper.js';
+import { fetchShopifyProductByHandle } from '../lib/shopify.js';
 import { addScrapeJob } from '../queues.js';
 import { processProductForRAG, batchProcessProducts, getProductChunkCount } from '../lib/knowledgeBase.js';
 import { enrichProductDataDetailed } from '../lib/llm/enrichProduct.js';
@@ -467,14 +468,59 @@ products.post('/:id/scrape', async (c) => {
     }, 500);
   }
 
-  const rawContent = scrapeResult.product!.rawContent;
+  let rawContent = scrapeResult.product!.rawContent;
 
   // Detect Shopify password protection
   if (rawContent && rawContent.toLowerCase().includes('password protected')) {
-    return c.json({
-      error: 'Store is password protected',
-      details: 'Please disable the Shopify storefront password to allow scraping, or manually enter product details.',
-    }, 403);
+    // FALLBACK: If it's a Shopify store, try Admin API
+    const isShopifyUrl = product.url.includes('.myshopify.com') || product.url.includes('/products/');
+    
+    if (isShopifyUrl) {
+      const { data: integration } = await serviceClient
+        .from('integrations')
+        .select('auth_data')
+        .eq('merchant_id', merchantId)
+        .eq('provider', 'shopify')
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (integration) {
+        const authData = integration.auth_data as { shop: string; access_token: string };
+        const url = new URL(product.url);
+        const handleMatch = url.pathname.match(/\/products\/([^/?]+)/);
+        const handle = handleMatch ? handleMatch[1] : null;
+
+        if (handle) {
+          try {
+            logger.info({ merchantId, productId, handle }, 'Storefront blocked by password; attempting Shopify Admin API fallback');
+            const shopifyProduct = await fetchShopifyProductByHandle(
+              authData.shop,
+              authData.access_token,
+              handle
+            );
+
+            if (shopifyProduct && shopifyProduct.descriptionHtml) {
+              rawContent = shopifyProduct.descriptionHtml;
+              if (scrapeResult.product) {
+                scrapeResult.product.title = shopifyProduct.title || scrapeResult.product.title;
+                scrapeResult.product.rawContent = rawContent;
+              }
+              logger.info({ merchantId, productId }, 'Shopify Admin API fallback successful');
+            }
+          } catch (err) {
+            logger.error({ err, merchantId, productId }, 'Shopify Admin API fallback failed');
+          }
+        }
+      }
+    }
+
+    // If fallback didn't help (still password page content), return 403
+    if (rawContent.toLowerCase().includes('password protected')) {
+      return c.json({
+        error: 'Store is password protected',
+        details: 'Please disable the Shopify storefront password to allow scraping, or manually enter product details.',
+      }, 403);
+    }
   }
 
   // Enrich the scraped text

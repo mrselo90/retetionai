@@ -13,6 +13,7 @@ import {
   GdprJobData,
   WhatsAppInboundJobData,
   getUsageInstructionsForProductIds,
+  fetchShopifyProductByHandle,
   type ProductInstructionRow,
 } from '@recete/shared';
 import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from './lib/whatsapp.js';
@@ -565,17 +566,65 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
         throw new Error(scrapeResult.error || 'Scraping failed');
       }
 
+      let rawContent = scrapeResult.product!.rawContent;
+      let title = scrapeResult.product?.title || 'Unknown Product';
+
+      // Detect Shopify password protection
+      if (rawContent && rawContent.toLowerCase().includes('password protected')) {
+        const isShopifyUrl = url.includes('.myshopify.com') || url.includes('/products/');
+        if (isShopifyUrl) {
+          const serviceClient = getSupabaseServiceClient();
+          const { data: integration } = await serviceClient
+            .from('integrations')
+            .select('auth_data')
+            .eq('merchant_id', merchantId)
+            .eq('provider', 'shopify')
+            .eq('status', 'active')
+            .maybeSingle();
+
+          if (integration) {
+            const authData = integration.auth_data as { shop: string; access_token: string };
+            const parsedUrl = new URL(url);
+            const handleMatch = parsedUrl.pathname.match(/\/products\/([^/?]+)/);
+            const handle = handleMatch ? handleMatch[1] : null;
+
+            if (handle) {
+              try {
+                logger.info({ merchantId, productId, handle }, '[Scrape Job] Storefront blocked; trying Admin API fallback');
+                const shopifyProduct = await fetchShopifyProductByHandle(
+                  authData.shop,
+                  authData.access_token,
+                  handle
+                );
+
+                if (shopifyProduct && shopifyProduct.descriptionHtml) {
+                  rawContent = shopifyProduct.descriptionHtml;
+                  title = shopifyProduct.title || title;
+                  logger.info({ merchantId, productId }, '[Scrape Job] Admin API fallback successful');
+                }
+              } catch (err) {
+                logger.error({ err, merchantId, productId }, '[Scrape Job] Admin API fallback failed');
+              }
+            }
+          }
+        }
+      }
+
+      // If still password protected, throw error
+      if (rawContent.toLowerCase().includes('password protected')) {
+        throw new Error('Store is password protected. Cannot scrape storefront.');
+      }
+
       // Step 2: Enrich product content with LLM via API (internal route)
-      const rawContent = scrapeResult.product!.rawContent;
-      let enrichedText = rawContent;
       const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:3001';
+      let enrichedText = rawContent;
       try {
         const enrichRes = await fetch(`${apiUrl}/api/products/enrich`, {
           method: 'POST',
           headers: internalHeaders,
           body: JSON.stringify({
             rawText: rawContent,
-            title: scrapeResult.product?.title || 'Unknown Product',
+            title,
             rawSections: scrapeResult.product?.rawSections,
             productId,
             sourceUrl: url,
