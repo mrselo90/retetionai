@@ -17,12 +17,28 @@ import {
   EmptyState,
   Button as PolarisButton,
   Pagination,
+  TextField,
+  Badge as PolarisBadge,
+  Icon,
+  InlineStack,
+  BlockStack,
+  Box,
+  Modal,
+  ProgressBar,
+  Spinner,
 } from '@shopify/polaris';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, ExternalLink, FileText, CheckCircle, Loader2, LayoutGrid, List, Search } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  PlusIcon,
+  DeleteIcon,
+  ExternalIcon,
+  NoteIcon,
+  CheckCircleIcon,
+  LayoutGridIcon,
+  ListIcon,
+  SearchIcon,
+  RefreshIcon,
+  AlertBubbleIcon,
+} from '@shopify/polaris-icons';
 import { useTranslations, useLocale } from 'next-intl';
 import { SESSION_RECHECK_MS } from '@/lib/constants';
 import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
@@ -114,10 +130,10 @@ export default function ProductsPage() {
     return mapping[reasonCode] || reasonCode;
   };
 
-  const knowledgeToneClass = (score: number | undefined) => {
-    if ((score || 0) >= 80) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    if ((score || 0) >= 55) return 'bg-amber-50 text-amber-700 border-amber-200';
-    return 'bg-rose-50 text-rose-700 border-rose-200';
+  const knowledgeTone = (score: number | undefined): Parameters<typeof PolarisBadge>[0]['tone'] => {
+    if ((score || 0) >= 80) return 'success';
+    if ((score || 0) >= 55) return 'attention';
+    return 'critical';
   };
 
   const knowledgeCoverageLabel = (coverage: 'strong' | 'moderate' | 'weak') => {
@@ -427,45 +443,37 @@ export default function ProductsPage() {
   };
 
   const renderProductStatusBadges = (product: ProductWithChunks) => (
-    <div className="flex items-center gap-2 flex-wrap">
+    <InlineStack gap="200" wrap>
       {product.knowledgeHealth && (
-        <Badge
-          variant="outline"
-          size="sm"
-          className={`gap-1.5 border ${knowledgeToneClass(product.knowledgeHealth.score)}`}
-        >
+        <PolarisBadge tone={knowledgeTone(product.knowledgeHealth.score)}>
           {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
-        </Badge>
+        </PolarisBadge>
       )}
-      <Badge variant="outline-primary" size="sm" className="gap-1.5">
-        <FileText className="w-3.5 h-3.5" />
-        {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
-      </Badge>
+      <PolarisBadge>
+        <InlineStack gap="100" blockAlign="center">
+          <Icon source={NoteIcon} tone="subdued" />
+          <Text as="span" variant="bodySm">
+            {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
+          </Text>
+        </InlineStack>
+      </PolarisBadge>
       {product.raw_text && (
-        <Badge variant="success" size="sm" className="gap-1.5 shadow-sm">
-          <CheckCircle className="w-3.5 h-3.5" />
-          {t('card.scraped')}
-        </Badge>
+        <PolarisBadge tone="success">
+          <InlineStack gap="100" blockAlign="center">
+            <Icon source={CheckCircleIcon} tone="success" />
+            <Text as="span" variant="bodySm">{t('card.scraped')}</Text>
+          </InlineStack>
+        </PolarisBadge>
       )}
       {product.raw_text && !product.chunkCountUnavailable && (product.chunkCount || 0) > 0 && (
-        <Badge variant="success" size="sm" className="gap-1.5 shadow-sm">
-          <CheckCircle className="w-3.5 h-3.5" />
-          {t('card.ragReady')}
-        </Badge>
+        <PolarisBadge tone="success">
+          <InlineStack gap="100" blockAlign="center">
+            <Icon source={CheckCircleIcon} tone="success" />
+            <Text as="span" variant="bodySm">{t('card.ragReady')}</Text>
+          </InlineStack>
+        </PolarisBadge>
       )}
-      {product.raw_text && product.chunkCountUnavailable && (
-        <Badge variant="outline" size="sm" className="gap-1.5">
-          <FileText className="w-3.5 h-3.5" />
-          {t('card.ragStatusUnknown')}
-        </Badge>
-      )}
-      {product.raw_text && !product.chunkCountUnavailable && (product.chunkCount || 0) === 0 && (
-        <Badge variant="outline" size="sm" className="gap-1.5">
-          <FileText className="w-3.5 h-3.5" />
-          {t('card.ragNotReady')}
-        </Badge>
-      )}
-    </div>
+    </InlineStack>
   );
 
   const renderProductStatusCompact = (product: ProductWithChunks) => {
@@ -475,54 +483,45 @@ export default function ProductsPage() {
     const ragNotReady = hasRaw && !product.chunkCountUnavailable && (product.chunkCount || 0) === 0;
 
     return (
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-2 flex-wrap">
+      <BlockStack gap="150">
+        <InlineStack gap="200" wrap>
           {product.knowledgeHealth && (
-            <Badge
-              variant="outline"
-              size="sm"
-              className={`gap-1.5 border ${knowledgeToneClass(product.knowledgeHealth.score)}`}
-            >
+            <PolarisBadge tone={knowledgeTone(product.knowledgeHealth.score)}>
               {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
-            </Badge>
+            </PolarisBadge>
           )}
-          <Badge variant="outline-primary" size="sm" className="gap-1.5">
-            <FileText className="w-3.5 h-3.5" />
+          <PolarisBadge>
             {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
-          </Badge>
+          </PolarisBadge>
           {hasRaw && (
-            <Badge variant="success" size="sm" className="gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" />
+            <PolarisBadge tone="success">
               {t('card.scraped')}
-            </Badge>
+            </PolarisBadge>
           )}
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        </InlineStack>
+        <InlineStack gap="200" wrap>
           {ragReady && (
-            <Badge variant="success" size="sm" className="gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" />
+            <PolarisBadge tone="success">
               {t('card.ragReady')}
-            </Badge>
+            </PolarisBadge>
           )}
           {ragUnknown && (
-            <Badge variant="outline" size="sm" className="gap-1.5">
-              <FileText className="w-3.5 h-3.5" />
+            <PolarisBadge>
               {t('card.ragStatusUnknown')}
-            </Badge>
+            </PolarisBadge>
           )}
           {ragNotReady && (
-            <Badge variant="outline" size="sm" className="gap-1.5">
-              <FileText className="w-3.5 h-3.5" />
+            <PolarisBadge>
               {t('card.ragNotReady')}
-            </Badge>
+            </PolarisBadge>
           )}
           {!hasRaw && (
             <Text as="span" variant="bodySm" tone="subdued">
               {t('filters.statusOptions.notScraped')}
             </Text>
           )}
-        </div>
-      </div>
+        </InlineStack>
+      </BlockStack>
     );
   };
 
@@ -759,38 +758,26 @@ export default function ProductsPage() {
                   <Text as="p" tone="subdued">{t('description')}</Text>
                 </div>
                 <div className="grid w-full gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-none xl:auto-cols-max xl:grid-flow-col xl:items-center">
-                  <PolarisButtonGroup>
-                    <button
-                      type="button"
+                  <PolarisButtonGroup variant="segmented">
+                    <PolarisButton
                       onClick={() => handleViewModeChange('grid')}
-                      className={`inline-flex min-w-[76px] items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors border ${viewMode === 'grid'
-                        ? 'bg-[#1f6f53] text-white border-[#1f6f53]'
-                        : 'bg-white text-zinc-700 border-[var(--p-color-border)] hover:bg-zinc-50'
-                        }`}
-                      aria-pressed={viewMode === 'grid'}
-                      title={t('view.grid')}
+                      icon={LayoutGridIcon}
+                      pressed={viewMode === 'grid'}
                     >
-                      <LayoutGrid className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">{t('view.grid')}</span>
-                    </button>
-                    <button
-                      type="button"
+                    </PolarisButton>
+                    <PolarisButton
                       onClick={() => handleViewModeChange('list')}
-                      className={`inline-flex min-w-[76px] items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors border ${viewMode === 'list'
-                        ? 'bg-[#1f6f53] text-white border-[#1f6f53]'
-                        : 'bg-white text-zinc-700 border-[var(--p-color-border)] hover:bg-zinc-50'
-                        }`}
-                      aria-pressed={viewMode === 'list'}
-                      title={t('view.list')}
+                      icon={ListIcon}
+                      pressed={viewMode === 'list'}
                     >
-                      <List className="w-3.5 h-3.5" />
                       <span className="hidden md:inline">{t('view.list')}</span>
-                    </button>
+                    </PolarisButton>
                   </PolarisButtonGroup>
-                  <PolarisButton url={`/${locale}/dashboard/products/shopify-map`}>
+                  <PolarisButton url={`/${locale}/dashboard/products/shopify-map`} icon={RefreshIcon}>
                     {t('shopifyMapButton')}
                   </PolarisButton>
-                  <PolarisButton variant="primary" onClick={() => setShowAddModal(true)}>
+                  <PolarisButton variant="primary" onClick={() => setShowAddModal(true)} icon={PlusIcon}>
                     {t('addProductButton')}
                   </PolarisButton>
                 </div>
@@ -850,20 +837,14 @@ export default function ProductsPage() {
                   <div className="rounded-xl border border-[var(--p-color-border-secondary)] bg-[var(--p-color-bg-surface-secondary)]/35 p-3 sm:p-4">
                     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_260px_260px] 2xl:items-end">
                       <div className="min-w-0 lg:col-span-2 2xl:col-span-1">
-                        <label className="block text-xs font-medium text-zinc-700 mb-1.5">
-                          {t('filters.searchLabel')}
-                        </label>
-                        <div className="relative flex items-center">
-                          <Search className="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none" aria-hidden />
-                          <input
-                            type="text"
-                            autoComplete="off"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={t('filters.searchPlaceholder')}
-                            className="w-full rounded-lg border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-sm outline-none focus:border-[#1f6f53] focus:ring-2 focus:ring-[#1f6f53]/20 transition-colors"
-                          />
-                        </div>
+                        <TextField
+                          label={t('filters.searchLabel')}
+                          value={searchQuery}
+                          onChange={(value) => setSearchQuery(value)}
+                          placeholder={t('filters.searchPlaceholder')}
+                          autoComplete="off"
+                          prefix={<Icon source={SearchIcon} tone="subdued" />}
+                        />
                       </div>
 
                       <div className="min-w-0">
@@ -959,28 +940,18 @@ export default function ProductsPage() {
             {products.length > 0 && (
               <PolarisCard>
                 <div className="p-4 sm:p-5 grid gap-3 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-center">
-                  <div className="flex flex-wrap items-center gap-2 min-w-0">
-                    <button
-                      type="button"
+                  <InlineStack gap="300" blockAlign="center">
+                    <PolarisButton
                       onClick={toggleSelectAllVisibleProducts}
                       disabled={visibleProductIds.length === 0}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-background text-sm hover:bg-muted disabled:opacity-50"
+                      icon={allVisibleSelected ? CheckCircleIcon : CircleIcon}
                     >
-                      <span
-                        aria-hidden
-                        className={`inline-flex h-4 w-4 items-center justify-center rounded border text-[10px] ${allVisibleSelected ? 'bg-primary text-primary-foreground border-primary' : 'border-zinc-300 text-transparent'
-                          }`}
-                      >
-                        ✓
-                      </span>
-                      <span>
-                        {allVisibleSelected ? t('bulk.unselectVisible') : t('bulk.selectVisible')}
-                      </span>
-                    </button>
+                      {allVisibleSelected ? t('bulk.unselectVisible') : t('bulk.selectVisible')}
+                    </PolarisButton>
                     <Text as="p" tone="subdued">
                       {t('bulk.selectedCount', { count: selectedProductIds.length, visible: selectedVisibleCount })}
                     </Text>
-                  </div>
+                  </InlineStack>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 2xl:min-w-[420px]">
                     <PolarisButton
@@ -1048,19 +1019,26 @@ export default function ProductsPage() {
                     {paginatedProducts.map((product) => (
                       <PolarisCard key={product.id}>
                         <div className="p-4 sm:p-5 flex flex-col h-full space-y-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-2 min-w-0">
-                              <input
-                                type="checkbox"
-                                checked={selectedIdSet.has(product.id)}
-                                onChange={() => toggleProductSelection(product.id)}
-                                onClick={(e) => e.stopPropagation()}
-                                aria-label={t('bulk.selectProduct', { name: product.name })}
-                                className="mt-1 rounded border-zinc-300"
-                              />
-                              <h3 className="text-lg line-clamp-2 pr-2 font-bold text-foreground m-0">{product.name}</h3>
-                            </div>
-                            <button
+                          <InlineStack align="space-between" blockAlign="start">
+                            <InlineStack gap="200" blockAlign="start">
+                              <Box paddingBlockStart="100">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedIdSet.has(product.id)}
+                                  onChange={() => toggleProductSelection(product.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  aria-label={t('bulk.selectProduct', { name: product.name })}
+                                  className="rounded border-zinc-300"
+                                />
+                              </Box>
+                              <div className="min-w-0">
+                                <Text as="h3" variant="headingMd" breakWord>{product.name}</Text>
+                              </div>
+                            </InlineStack>
+                            <PolarisButton
+                              icon={DeleteIcon}
+                              tone="critical"
+                              variant="tertiary"
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -1068,33 +1046,33 @@ export default function ProductsPage() {
                                   handleDeleteProduct(product.id);
                                 }
                               }}
-                              type="button"
-                              title={t('card.deleteConfirm')}
-                              className="flex-shrink-0 p-2 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                              accessibilityLabel={t('card.deleteConfirm')}
+                            />
+                          </InlineStack>
                           <div className="space-y-4 flex flex-col flex-1">
-                            <a
-                              href={product.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-primary hover:text-primary/80 line-clamp-1 flex items-center gap-2 font-medium transition-colors group/link"
-                            >
-                              <ExternalLink className="w-4 h-4 shrink-0 group-hover/link:scale-110 transition-transform" />
-                              <span className="truncate">{product.url}</span>
-                            </a>
+                            <InlineStack gap="100" blockAlign="center">
+                              <Icon source={ExternalIcon} tone="primary" />
+                              <a
+                                href={product.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary hover:text-primary/80 truncate max-w-[240px] font-medium"
+                              >
+                                {product.url}
+                              </a>
+                            </InlineStack>
 
                             <div className="mb-auto">
                               {renderProductStatusBadges(product)}
                               {product.knowledgeHealth && (
-                                <p className="mt-3 text-sm text-muted-foreground">
-                                  {t('knowledge.cardHint', {
-                                    coverage: knowledgeCoverageLabel(product.knowledgeHealth.coverage),
-                                    gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
-                                  })}
-                                </p>
+                                <Box paddingBlockStart="300">
+                                  <Text as="p" variant="bodySm" tone="subdued">
+                                    {t('knowledge.cardHint', {
+                                      coverage: knowledgeCoverageLabel(product.knowledgeHealth.coverage),
+                                      gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
+                                    })}
+                                  </Text>
+                                </Box>
                               )}
                             </div>
 
@@ -1132,59 +1110,62 @@ export default function ProductsPage() {
                   <div className="divide-y divide-border">
                     {paginatedProducts.map((product) => (
                       <div key={`mobile-${product.id}`} className="px-4 sm:px-5 py-4 md:hidden">
-                        <div className="space-y-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex items-start gap-2">
-                              <input
-                                type="checkbox"
-                                checked={selectedIdSet.has(product.id)}
-                                onChange={() => toggleProductSelection(product.id)}
-                                aria-label={t('bulk.selectProduct', { name: product.name })}
-                                className="mt-1 rounded border-zinc-300"
-                              />
+                        <BlockStack gap="300">
+                          <InlineStack align="space-between" blockAlign="start">
+                            <InlineStack gap="200" blockAlign="start">
+                              <Box paddingBlockStart="100">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedIdSet.has(product.id)}
+                                  onChange={() => toggleProductSelection(product.id)}
+                                  aria-label={t('bulk.selectProduct', { name: product.name })}
+                                  className="rounded border-zinc-300"
+                                />
+                              </Box>
                               <div className="min-w-0">
-                                <p className="font-semibold text-foreground leading-snug line-clamp-2">{product.name}</p>
-                                <p className="mt-1 text-xs text-muted-foreground break-all">{product.id}</p>
+                                <Text as="p" fontWeight="semibold" breakWord>{product.name}</Text>
+                                <Text as="p" variant="bodyXs" tone="subdued" breakWord>{product.id}</Text>
                               </div>
-                            </div>
-                            <button
+                            </InlineStack>
+                            <PolarisButton
+                              icon={DeleteIcon}
+                              tone="critical"
+                              variant="tertiary"
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
                               }}
-                              type="button"
-                              title={t('card.deleteConfirm')}
-                              className="flex-shrink-0 p-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                              accessibilityLabel={t('card.deleteConfirm')}
+                            />
+                          </InlineStack>
 
-                          <a
-                            href={product.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-primary hover:text-primary/80 line-clamp-1 flex items-center gap-2 font-medium"
-                          >
-                            <ExternalLink className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{product.url}</span>
-                          </a>
+                          <InlineStack gap="100" blockAlign="center">
+                            <Icon source={ExternalIcon} tone="primary" />
+                            <a
+                              href={product.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:text-primary/80 truncate font-medium"
+                            >
+                              {product.url}
+                            </a>
+                          </InlineStack>
 
                           {renderProductStatusBadges(product)}
                           {product.knowledgeHealth && (
-                            <p className="text-sm text-muted-foreground">
+                            <Text as="p" variant="bodySm" tone="subdued">
                               {t('knowledge.cardHint', {
                                 coverage: knowledgeCoverageLabel(product.knowledgeHealth.coverage),
                                 gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
                               })}
-                            </p>
+                            </Text>
                           )}
 
                           <PolarisButton url={`/${locale}/dashboard/products/${product.id}`} fullWidth>
                             {t('card.edit')}
                           </PolarisButton>
-                        </div>
+                        </BlockStack>
                       </div>
                     ))}
 
@@ -1217,56 +1198,59 @@ export default function ProductsPage() {
                                 <div className="min-w-0 max-w-[320px]">
                                   <Link
                                     href={`/dashboard/products/${product.id}`}
-                                    className="block font-semibold text-foreground hover:text-primary line-clamp-2 break-words"
+                                    className="block font-semibold text-foreground hover:text-primary break-words"
                                   >
                                     {product.name}
                                   </Link>
-                                  <p className="mt-1 text-xs text-muted-foreground truncate">{product.id}</p>
+                                  <Text as="p" variant="bodyXs" tone="subdued" truncate>{product.id}</Text>
                                 </div>
                               </IndexTable.Cell>
                               <IndexTable.Cell>
                                 <div className="min-w-0 max-w-[440px]">
-                                  <a
-                                    href={product.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-primary hover:text-primary/80 line-clamp-1 inline-flex items-start gap-2"
-                                  >
-                                    <ExternalLink className="w-4 h-4 shrink-0 mt-0.5" />
-                                    <span className="truncate max-w-[390px]">{product.url}</span>
-                                  </a>
+                                  <InlineStack gap="100" blockAlign="center">
+                                    <Icon source={ExternalIcon} tone="subdued" />
+                                    <a
+                                      href={product.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-primary hover:text-primary/80 truncate max-w-[390px]"
+                                    >
+                                      {product.url}
+                                    </a>
+                                  </InlineStack>
                                 </div>
                               </IndexTable.Cell>
                               <IndexTable.Cell>
                                 <div className="w-[280px]">
                                   {renderProductStatusCompact(product)}
                                   {product.knowledgeHealth && (
-                                    <p className="mt-2 text-xs text-muted-foreground">
-                                      {t('knowledge.tableHint', {
-                                        gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
-                                      })}
-                                    </p>
+                                    <Box paddingBlockStart="200">
+                                      <Text as="p" variant="bodyXs" tone="subdued">
+                                        {t('knowledge.tableHint', {
+                                          gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
+                                        })}
+                                      </Text>
+                                    </Box>
                                   )}
                                 </div>
                               </IndexTable.Cell>
                               <IndexTable.Cell>
-                                <div className="flex items-center justify-end gap-2 min-w-[160px] whitespace-nowrap">
+                                <InlineStack align="end" gap="200">
                                   <PolarisButton url={`/dashboard/products/${product.id}`}>
                                     {t('card.edit')}
                                   </PolarisButton>
-                                  <button
+                                  <PolarisButton
+                                    icon={DeleteIcon}
+                                    tone="critical"
+                                    variant="tertiary"
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
                                       if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
                                     }}
-                                    type="button"
-                                    title={t('card.deleteConfirm')}
-                                    className="p-2 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
+                                    accessibilityLabel={t('card.deleteConfirm')}
+                                  />
+                                </InlineStack>
                               </IndexTable.Cell>
                             </IndexTable.Row>
                           ))}
@@ -1298,73 +1282,58 @@ export default function ProductsPage() {
             )}
 
             {/* Add Product Modal */}
-            <Dialog open={showAddModal} onOpenChange={(open) => {
-              if (!scraping) setShowAddModal(open);
-            }}>
-              <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center ">
-                      <Plus className="w-6 h-6" />
-                    </div>
-                    <DialogTitle className="text-2xl">{t('addModal.title')}</DialogTitle>
-                  </div>
-                </DialogHeader>
-
-                <div className="pt-4">
-                  {scraping ? (
-                    <div className="py-12 text-center">
-                      <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
-                        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            <Modal
+              open={showAddModal}
+              onClose={() => { if (!scraping) setShowAddModal(false); }}
+              title={t('addModal.title')}
+              primaryAction={{
+                content: t('addModal.submit'),
+                onAction: handleAddProduct,
+                loading: scraping,
+                disabled: scraping || !newProductName || !newProductUrl,
+              }}
+              secondaryActions={[
+                {
+                  content: t('addModal.cancel'),
+                  onAction: () => setShowAddModal(false),
+                  disabled: scraping,
+                },
+              ]}
+            >
+              <Modal.Section>
+                {scraping ? (
+                  <Box padding="1000">
+                    <BlockStack gap="500" inlineAlign="center">
+                      <Spinner size="large" />
+                      <Text as="p" variant="headingLg">{scrapeProgress}</Text>
+                      <Text as="p" tone="subdued">{t('addModal.scraping.wait')}</Text>
+                      <div className="w-full max-w-[320px]">
+                        <ProgressBar progress={60} animated />
                       </div>
-                      <p className="text-xl font-bold mb-2">{scrapeProgress}</p>
-                      <p className="text-sm text-muted-foreground font-medium">{t('addModal.scraping.wait')}</p>
-                      <div className="mt-6 w-full max-w-xs mx-auto bg-muted rounded-full h-2 overflow-hidden">
-                        <div className="h-full bg-primary animate-pulse rounded-full" style={{ width: '60%' }}></div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-5">
-                      <div className="space-y-2">
-                        <Label htmlFor="product-name">{t('addModal.nameLabel')}</Label>
-                        <Input
-                          id="product-name"
-                          type="text"
-                          value={newProductName}
-                          onChange={(e) => setNewProductName(e.target.value)}
-                          placeholder={t('addModal.namePlaceholder')}
-                          className="h-10"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="product-url">{t('addModal.urlLabel')}</Label>
-                        <Input
-                          id="product-url"
-                          type="url"
-                          value={newProductUrl}
-                          onChange={(e) => setNewProductUrl(e.target.value)}
-                          placeholder={t('addModal.urlPlaceholder')}
-                          className="h-10"
-                        />
-                        <p className="text-xs text-muted-foreground font-medium">
-                          {t('addModal.urlHelper')}
-                        </p>
-                      </div>
-
-                      <DialogFooter className="pt-4 gap-3 sm:gap-0">
-                        <PolarisButton onClick={() => setShowAddModal(false)}>
-                          {t('addModal.cancel')}
-                        </PolarisButton>
-                        <PolarisButton variant="primary" onClick={handleAddProduct}>
-                          {t('addModal.submit')}
-                        </PolarisButton>
-                      </DialogFooter>
-                    </div>
-                  )}
-                </div>
-              </DialogContent>
-            </Dialog>
+                    </BlockStack>
+                  </Box>
+                ) : (
+                  <BlockStack gap="400">
+                    <TextField
+                      label={t('addModal.nameLabel')}
+                      value={newProductName}
+                      onChange={(value) => setNewProductName(value)}
+                      placeholder={t('addModal.namePlaceholder')}
+                      autoComplete="off"
+                    />
+                    <TextField
+                      label={t('addModal.urlLabel')}
+                      value={newProductUrl}
+                      onChange={(value) => setNewProductUrl(value)}
+                      placeholder={t('addModal.urlPlaceholder')}
+                      autoComplete="off"
+                      helpText={t('addModal.urlHelper')}
+                      type="url"
+                    />
+                  </BlockStack>
+                )}
+              </Modal.Section>
+            </Modal>
           </div>
         </Layout.Section>
       </Layout>

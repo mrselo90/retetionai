@@ -18,7 +18,7 @@ import {
   Text,
   TextField,
 } from "@shopify/polaris";
-import { requireSessionTokenAuthorization } from "../lib/sessionToken.server";
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import {
   createMerchantProduct,
   deleteMerchantProduct,
@@ -38,15 +38,12 @@ type ActionResult = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  // Embedded data route: require the bearer token locally and rely on the
-  // platform API as the single verifier.
-  requireSessionTokenAuthorization(request);
+  await authenticateEmbeddedAdmin(request);
   return fetchMerchantProducts(request);
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  // Embedded data route: avoid duplicate local Shopify verification.
-  requireSessionTokenAuthorization(request);
+  await authenticateEmbeddedAdmin(request);
   const formData = await request.formData();
   const intent = String(formData.get("intent") || "");
 

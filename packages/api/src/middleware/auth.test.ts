@@ -73,6 +73,24 @@ describe('Auth Middleware', () => {
     expect(mockNext).toHaveBeenCalled();
   });
 
+  it('authenticates valid JWT on merchant settings route', async () => {
+    mockContext.req.path = '/api/merchants/me';
+    mockContext.req.header.mockImplementation((name: string) =>
+      name === 'Authorization' ? 'Bearer valid-jwt-token' : undefined
+    );
+    mockSupabase.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'merchant-1', email: 'x@test.com' } },
+      error: null,
+    });
+    mockSupabase.maybeSingle.mockResolvedValue({ data: { id: 'merchant-1' }, error: null });
+
+    await authMiddleware(mockContext, mockNext);
+
+    expect(mockContext.set).toHaveBeenCalledWith('merchantId', 'merchant-1');
+    expect(mockContext.set).toHaveBeenCalledWith('authMethod', 'jwt');
+    expect(mockNext).toHaveBeenCalled();
+  });
+
   it('creates merchant record for first-time OAuth user', async () => {
     mockContext.req.header.mockImplementation((name: string) =>
       name === 'Authorization' ? 'Bearer valid-jwt-token' : undefined

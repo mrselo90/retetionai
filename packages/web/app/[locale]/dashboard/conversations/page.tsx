@@ -22,8 +22,9 @@ import {
   Tabs,
   Text,
   EmptyState,
+  Icon,
 } from '@shopify/polaris';
-import { User, ShoppingBag, Clock } from 'lucide-react';
+import { PersonIcon, OrderFilledIcon, ClockIcon } from '@shopify/polaris-icons';
 import { useTranslations } from 'next-intl';
 
 interface Conversation {
@@ -53,18 +54,16 @@ function ConversationIconSurface({
   icon,
   background = 'bg-surface-secondary',
 }: {
-  icon: React.ReactNode;
+  icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
   background?: string;
 }) {
   return (
     <Box
       background={background as any}
       borderRadius="200"
-      minWidth="40px"
-      minHeight="40px"
       padding="200"
     >
-      {icon}
+      <Icon source={icon} tone="subdued" />
     </Box>
   );
 }
@@ -285,7 +284,7 @@ export default function ConversationsPage() {
                       >
                         <BlockStack gap="300">
                           <InlineStack gap="300" blockAlign="start">
-                            <ConversationIconSurface icon={<User className="w-5 h-5 text-muted-foreground" />} />
+                            <ConversationIconSurface icon={PersonIcon} />
                             <Box minWidth="0" width="100%">
                               <InlineStack gap="150" blockAlign="center" wrap>
                                 <Text as="p" variant="bodySm" fontWeight="semibold">
@@ -308,7 +307,7 @@ export default function ConversationsPage() {
                               </Box>
                               {conversation.order && (
                                 <InlineStack gap="150" blockAlign="center" wrap>
-                                  <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                                  <Icon source={OrderFilledIcon} tone="subdued" />
                                   <Text as="p" variant="bodyXs" tone="subdued">
                                     {t('list.order')}: #{conversation.order.external_order_id}
                                   </Text>
@@ -322,7 +321,7 @@ export default function ConversationsPage() {
                           <Box borderBlockStartWidth="025" borderColor="border" paddingBlockStart="300">
                             <InlineStack align="space-between" blockAlign="center" gap="200">
                               <InlineStack gap="150" blockAlign="center">
-                                <Clock className="w-3.5 h-3.5 shrink-0" />
+                                <Icon source={ClockIcon} tone="subdued" />
                                 <Text as="p" variant="bodyXs" tone="subdued">{formatDateTime(conversation.last_message_at)}</Text>
                               </InlineStack>
                               <PolarisBadge>{`${conversation.message_count} ${t('list.messages')}`}</PolarisBadge>
@@ -351,7 +350,7 @@ export default function ConversationsPage() {
                           <IndexTable.Cell>
                             <Link href={`/dashboard/conversations/${conversation.id}`} className="block no-underline">
                               <InlineStack gap="300" blockAlign="start">
-                                <ConversationIconSurface icon={<User className="w-4 h-4 text-muted-foreground" />} />
+                                <ConversationIconSurface icon={PersonIcon} />
                                 <BlockStack gap="050">
                                   <Text as="p" variant="bodySm" fontWeight="semibold">
                                     {conversation.userName || conversation.user?.name || t('list.guest')}
@@ -393,7 +392,7 @@ export default function ConversationsPage() {
                           </IndexTable.Cell>
                           <IndexTable.Cell>
                             <InlineStack align="end" gap="200" blockAlign="center">
-                              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                              <Icon source={ClockIcon} tone="subdued" />
                               <Text as="p" variant="bodySm" tone="subdued">{formatDateTime(conversation.last_message_at)}</Text>
                             </InlineStack>
                           </IndexTable.Cell>

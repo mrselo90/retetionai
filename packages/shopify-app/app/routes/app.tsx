@@ -3,6 +3,7 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import {
   Link as RemixLink,
   Outlet,
+  isRouteErrorResponse,
   useFetcher,
   useLoaderData,
   useLocation,
@@ -161,13 +162,16 @@ function AppShell({ initialShop }: { initialShop: string }) {
   const merchantName = bootstrapData?.merchantName || "Loading merchant";
   const shop = bootstrapData?.shop || initialShop || "Embedded Shopify store";
   const subscriptionStatus = bootstrapData?.subscriptionStatus || "loading";
+  const subscriptionTone = subscriptionStatus === "active" ? "success" : "attention";
+  const subscriptionLabel = subscriptionStatus === "active" ? "Subscription active" : `Subscription ${subscriptionStatus}`;
   const shellLoading = !bootstrapData && !bootstrapError;
+  const showOverviewHero = location.pathname === "/app";
 
   return (
     <Frame>
       <EmbeddedSessionTokenBoundary />
       <Box background="bg-surface-secondary" minHeight="100vh" padding="400">
-        <div style={{ maxWidth: "1440px", margin: "0 auto" }}>
+        <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
           <BlockStack gap="400">
             {navigation.state !== "idle" ? (
               <InlineStack align="center">
@@ -175,54 +179,64 @@ function AppShell({ initialShop }: { initialShop: string }) {
               </InlineStack>
             ) : null}
 
-            <Card padding="500">
-              <BlockStack gap="400">
-                <InlineGrid columns={{ xs: 1, lg: "2fr 1fr" }} gap="500">
-                  <BlockStack gap="200">
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Shopify merchant console
-                    </Text>
-                    {shellLoading ? (
-                      <SkeletonDisplayText size="medium" />
-                    ) : (
-                      <Text as="h1" variant="headingLg">
-                        {merchantName}
+            {showOverviewHero ? (
+              <Card padding="400">
+                <BlockStack gap="400">
+                  <InlineGrid columns={{ xs: 1, xl: "minmax(0, 1.9fr) 19rem" }} gap="400">
+                    <BlockStack gap="300">
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Shopify merchant console
                       </Text>
-                    )}
-                    <Box maxWidth="560px">
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Embedded command center for compliant WhatsApp retention,
-                        billing, product readiness, and buyer operations.
-                      </Text>
-                    </Box>
-                  </BlockStack>
+                      {shellLoading ? (
+                        <SkeletonDisplayText size="medium" />
+                      ) : (
+                        <Text as="h1" variant="headingLg">
+                          {merchantName}
+                        </Text>
+                      )}
+                      <Box maxWidth="34rem">
+                        <Text as="p" variant="bodyMd" tone="subdued">
+                          Embedded command center for compliant WhatsApp retention,
+                          billing, product readiness, and buyer operations.
+                        </Text>
+                      </Box>
+                    </BlockStack>
 
-                  <BlockStack gap="300">
-                    <InlineStack gap="200" wrap>
-                      <Badge tone="info">{shop}</Badge>
-                      <Badge tone={subscriptionStatus === "active" ? "success" : "attention"}>
-                        {`Subscription: ${subscriptionStatus}`}
-                      </Badge>
-                    </InlineStack>
-                    {shellLoading ? <Spinner accessibilityLabel="Loading merchant shell" size="small" /> : null}
-                    {bootstrapError ? (
-                      <Text as="p" variant="bodySm" tone="critical">
-                        {bootstrapError}
-                      </Text>
-                    ) : null}
-                    <InlineStack gap="200" wrap>
+                    <BlockStack gap="300">
+                      <BlockStack gap="100">
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          Store
+                        </Text>
+                        {shellLoading ? (
+                          <SkeletonBodyText lines={1} />
+                        ) : (
+                          <Text as="p" variant="bodyMd" fontWeight="semibold" breakWord>
+                            {shop}
+                          </Text>
+                        )}
+                      </BlockStack>
+                      <InlineStack gap="200" wrap>
+                        <Badge tone={subscriptionTone}>{subscriptionLabel}</Badge>
+                      </InlineStack>
+                      {shellLoading ? <Spinner accessibilityLabel="Loading merchant shell" size="small" /> : null}
+                      {bootstrapError ? (
+                        <Text as="p" variant="bodySm" tone="critical">
+                          {bootstrapError}
+                        </Text>
+                      ) : null}
                       <Button
+                        fullWidth
                         url="/app/billing"
                         icon={CartIcon}
                         variant="primary"
                       >
                         Review billing
                       </Button>
-                    </InlineStack>
-                  </BlockStack>
-                </InlineGrid>
-              </BlockStack>
-            </Card>
+                    </BlockStack>
+                  </InlineGrid>
+                </BlockStack>
+              </Card>
+            ) : null}
 
             <InlineGrid columns={{ xs: 1, lg: "280px 1fr" }} gap="400">
               <Card padding="500">
@@ -309,7 +323,42 @@ function AppShell({ initialShop }: { initialShop: string }) {
 
 // Shopify needs React Router to catch some thrown responses, so that their headers are included in the response.
 export function ErrorBoundary() {
-  return boundary.error(useRouteError());
+  const error = useRouteError();
+
+  if (isRouteErrorResponse(error)) {
+    const message =
+      typeof error.data === "object" &&
+      error.data !== null &&
+      "error" in error.data &&
+      typeof error.data.error === "string"
+        ? error.data.error
+        : error.statusText || "Unexpected route error";
+
+    return (
+      <AppProvider embedded apiKey="">
+        <PolarisAppProvider i18n={enPolarisTranslations} linkComponent={AppLink}>
+          <Frame>
+            <Box background="bg-surface-secondary" minHeight="100vh" padding="400">
+              <div style={{ maxWidth: "840px", margin: "0 auto" }}>
+                <Card padding="500">
+                  <BlockStack gap="300">
+                    <Text as="h1" variant="headingLg">
+                      {`Request failed (${error.status})`}
+                    </Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      {message}
+                    </Text>
+                  </BlockStack>
+                </Card>
+              </div>
+            </Box>
+          </Frame>
+        </PolarisAppProvider>
+      </AppProvider>
+    );
+  }
+
+  return boundary.error(error);
 }
 
 export const headers: HeadersFunction = (headersArgs) => {

@@ -20,16 +20,20 @@ import {
   SkeletonDisplayText,
   SkeletonPage,
   Text,
+  Icon,
+  EmptyState,
 } from '@shopify/polaris';
 import {
-  ArrowRight,
-  BarChart3,
-  CheckCircle2,
-  Circle,
-  MessageSquare,
-  Package,
-  ShoppingBag,
-} from 'lucide-react';
+  OrderFilledIcon,
+  PersonIcon,
+  ChatIcon,
+  ProductIcon,
+  ChartTrendUpIcon,
+  ChevronRightIcon,
+  CheckCircleIcon,
+  CircleIcon,
+  SearchIcon,
+} from '@shopify/polaris-icons';
 import { useTranslations, useLocale } from 'next-intl';
 
 interface Merchant {
@@ -130,16 +134,12 @@ function MetricCard({
   hint,
   detail,
   icon,
-  iconBackground,
-  iconClassName,
 }: {
   title: string;
   value: string | number;
   hint: string;
   detail: string;
-  icon: React.ReactNode;
-  iconBackground?: string;
-  iconClassName?: string;
+  icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
 }) {
   return (
     <PolarisCard>
@@ -148,15 +148,12 @@ function MetricCard({
           <Text as="p" variant="bodySm" tone="subdued">
             {title}
           </Text>
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <Box
-            background={(iconBackground || 'bg-surface-secondary') as any}
+            background="bg-surface-secondary"
             borderRadius="200"
-            minWidth="36px"
-            minHeight="36px"
             padding="200"
           >
-            <span className={iconClassName}>{icon}</span>
+            <Icon source={icon} tone="subdued" />
           </Box>
         </InlineStack>
         <BlockStack gap="100">
@@ -187,17 +184,14 @@ function ListEmptyPolaris({
   actionUrl?: string;
 }) {
   return (
-    <Box padding="400">
-      <BlockStack gap="200" inlineAlign="center">
-        <Text as="p" variant="bodySm" fontWeight="medium" alignment="center">
-          {title}
-        </Text>
-        <Text as="p" variant="bodySm" tone="subdued" alignment="center">
-          {description}
-        </Text>
-        {actionLabel && actionUrl ? <PolarisButton url={actionUrl}>{actionLabel}</PolarisButton> : null}
-      </BlockStack>
-    </Box>
+    <EmptyState
+      heading={title}
+      action={actionLabel && actionUrl ? { content: actionLabel, url: actionUrl } : undefined}
+      image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+      fullWidth
+    >
+      <p>{description}</p>
+    </EmptyState>
   );
 }
 
@@ -205,19 +199,16 @@ function DashboardIconTile({
   icon,
   background,
 }: {
-  icon: React.ReactNode;
+  icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
   background?: string;
 }) {
   return (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     <Box
       background={(background || 'bg-surface-secondary') as any}
       borderRadius="200"
-      minWidth="36px"
-      minHeight="36px"
-      padding="200"
+      padding="100"
     >
-      {icon}
+      <Icon source={icon} tone="subdued" />
     </Box>
   );
 }
@@ -506,9 +497,9 @@ export default function DashboardPage() {
                       <InlineStack align="space-between" blockAlign="start" gap="300">
                         <InlineStack blockAlign="start" gap="300">
                           {step.completed ? (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-700 mt-0.5" />
+                            <Icon source={CheckCircleIcon} tone="success" />
                           ) : (
-                            <Circle className="w-5 h-5 text-zinc-500 mt-0.5" />
+                            <Icon source={CircleIcon} tone="subdued" />
                           )}
                           <BlockStack gap="050">
                             <Text as="p" variant="bodyMd" fontWeight="semibold">
@@ -623,31 +614,28 @@ export default function DashboardPage() {
               value={displayStats.kpis.totalOrders ?? 0}
               hint={t('kpi.ordersReceivedHint')}
               detail={t('kpi.ordersReceivedDetail')}
-              icon={<ShoppingBag className="h-4 w-4 text-zinc-700" />}
+              icon={OrderFilledIcon}
             />
             <MetricCard
               title={t('kpi.activeCustomers')}
               value={displayStats.kpis.activeUsers ?? 0}
               hint={t('kpi.activeCustomersHint')}
               detail={t('kpi.activeCustomersDetail')}
-              icon={<ArrowRight className="h-4 w-4 text-emerald-700" />}
-              iconBackground="bg-fill-success-secondary"
+              icon={PersonIcon}
             />
             <MetricCard
               title={t('kpi.whatsappMessages')}
               value={displayStats.kpis.messagesSent ?? 0}
               hint={t('kpi.whatsappMessagesHint')}
               detail={t('kpi.whatsappMessagesDetail')}
-              icon={<MessageSquare className="h-4 w-4 text-blue-700" />}
-              iconBackground="bg-fill-info-secondary"
+              icon={ChatIcon}
             />
             <MetricCard
               title={t('kpi.replyRate')}
               value={`${displayStats.kpis.responseRate ?? 0}%`}
               hint={t('kpi.replyRateHint')}
               detail={t('kpi.replyRateDetail')}
-              icon={<BarChart3 className="h-4 w-4 text-amber-700" />}
-              iconBackground="bg-fill-caution-secondary"
+              icon={ChartTrendUpIcon}
             />
           </InlineGrid>
         </Layout.Section>
@@ -677,7 +665,7 @@ export default function DashboardPage() {
                       >
                         <InlineStack align="space-between" blockAlign="center" gap="300">
                           <InlineStack blockAlign="center" gap="300">
-                            <DashboardIconTile icon={<ShoppingBag className="w-4 h-4 text-zinc-600" />} />
+                            <DashboardIconTile icon={OrderFilledIcon} />
                             <BlockStack gap="050">
                               <Text as="p" variant="bodySm" fontWeight="semibold">
                                 #{order.external_order_id}
@@ -729,7 +717,7 @@ export default function DashboardPage() {
                             <InlineStack blockAlign="center" gap="300">
                               <DashboardIconTile
                                 background="bg-fill-info-secondary"
-                                icon={<MessageSquare className="w-4 h-4 text-blue-700" />}
+                                icon={ChatIcon}
                               />
                               <BlockStack gap="050">
                                 <Text as="p" variant="bodySm" fontWeight="semibold">
@@ -768,7 +756,7 @@ export default function DashboardPage() {
               <Link href="/dashboard/products" className="block no-underline">
                 <PolarisCard>
                   <InlineStack gap="300" blockAlign="start">
-                    <DashboardIconTile icon={<Package className="w-5 h-5 text-zinc-700" />} />
+                    <DashboardIconTile icon={ProductIcon} />
                     <BlockStack gap="100">
                       <Text as="p" variant="bodySm" fontWeight="semibold">
                         {t('quickActions.addProduct')}
@@ -786,7 +774,7 @@ export default function DashboardPage() {
                   <InlineStack gap="300" blockAlign="start">
                     <DashboardIconTile
                       background="bg-fill-info-secondary"
-                      icon={<ArrowRight className="w-5 h-5 text-blue-700" />}
+                      icon={ChevronRightIcon}
                     />
                     <BlockStack gap="100">
                       <Text as="p" variant="bodySm" fontWeight="semibold">
@@ -805,7 +793,7 @@ export default function DashboardPage() {
                   <InlineStack gap="300" blockAlign="start">
                     <DashboardIconTile
                       background="bg-fill-caution-secondary"
-                      icon={<BarChart3 className="w-5 h-5 text-amber-700" />}
+                      icon={ChartTrendUpIcon}
                     />
                     <BlockStack gap="100">
                       <Text as="p" variant="bodySm" fontWeight="semibold">

@@ -278,24 +278,18 @@ function setAuthenticatedUser(
  */
 export async function authMiddleware(c: Context, next: Next) {
   const token = extractToken(c);
-  const merchantInternalPath = isInternalMerchantPath(c.req.path);
 
   // Prefer end-user auth (JWT / Shopify session token) over internal-secret auth.
   // This prevents stale/injected X-Internal-Secret headers from breaking browser requests.
   if (token) {
     let merchantId: string | null = null;
-    let authMethod: 'jwt' | 'shopify' = 'shopify';
+    let authMethod: 'jwt' | 'shopify' = 'jwt';
 
-    if (merchantInternalPath) {
+    merchantId = await authenticateJWT(token);
+
+    if (!merchantId) {
       merchantId = await authenticateShopifyToken(token);
-    } else {
-      merchantId = await authenticateJWT(token);
-      authMethod = 'jwt';
-
-      if (!merchantId) {
-        merchantId = await authenticateShopifyToken(token);
-        authMethod = 'shopify';
-      }
+      authMethod = 'shopify';
     }
 
     if (isNonEmptyString(merchantId)) {
@@ -342,7 +336,7 @@ export async function authMiddleware(c: Context, next: Next) {
   logger.warn(
     {
       path: c.req.path,
-      authMethod: merchantInternalPath ? 'shopify-required' : 'invalid',
+      authMethod: 'invalid',
       hasAuthorization: true,
     },
     '[api-auth]'
@@ -372,22 +366,16 @@ export async function optionalAuthMiddleware(c: Context, next: Next) {
   }
 
   const token = extractToken(c);
-  const merchantInternalPath = isInternalMerchantPath(c.req.path);
 
   if (token) {
     let merchantId: string | null = null;
-    let authMethod: 'jwt' | 'shopify' = 'shopify';
+    let authMethod: 'jwt' | 'shopify' = 'jwt';
 
-    if (merchantInternalPath) {
+    merchantId = await authenticateJWT(token);
+
+    if (!merchantId) {
       merchantId = await authenticateShopifyToken(token);
-    } else {
-      merchantId = await authenticateJWT(token);
-      authMethod = 'jwt';
-
-      if (!merchantId) {
-        merchantId = await authenticateShopifyToken(token);
-        authMethod = 'shopify';
-      }
+      authMethod = 'shopify';
     }
 
     if (isNonEmptyString(merchantId)) {

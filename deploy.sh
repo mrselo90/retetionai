@@ -47,13 +47,14 @@ fi
 echo ""
 
 echo -e "${BLUE}Step 4/7: Building application${NC}"
-pnpm build
+NODE_ENV=production pnpm build
 echo -e "${GREEN}✓ Build completed${NC}"
 echo ""
 
-echo -e "${BLUE}Step 5/7: Restarting PM2 services${NC}"
-pm2 restart all --update-env
-echo -e "${GREEN}✓ Services restarted${NC}"
+echo -e "${BLUE}Step 5/7: Reloading PM2 from ecosystem.config.cjs${NC}"
+pm2 start ecosystem.config.cjs --update-env
+pm2 save
+echo -e "${GREEN}✓ PM2 services reloaded from ecosystem config and saved${NC}"
 echo ""
 
 echo -e "${BLUE}Step 6/7: Verifying services${NC}"
@@ -88,6 +89,15 @@ if [ "$WEB_STATUS" = "200" ] || [ "$WEB_STATUS" = "307" ]; then
     echo -e "${GREEN}✓ Web server is responding${NC}"
 else
     echo -e "${YELLOW}⚠ Web returned status: $WEB_STATUS${NC}"
+fi
+
+# Test Shopify shell (Port 3003)
+echo "Testing Shopify shell..."
+SHOP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3003/app/health || echo "000")
+if [ "$SHOP_STATUS" = "200" ] || [ "$SHOP_STATUS" = "503" ]; then
+    echo -e "${GREEN}✓ Shopify shell is responding${NC}"
+else
+    echo -e "${YELLOW}⚠ Shopify shell returned status: $SHOP_STATUS${NC}"
 fi
 
 # Test Redis

@@ -2,12 +2,14 @@ import type {
   HeadersFunction,
   LoaderFunctionArgs,
 } from "react-router";
-import { useLoaderData, useNavigation } from "react-router";
+import { redirect, useLoaderData, useNavigation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   Banner,
   Badge,
+  Box,
   BlockStack,
+  Button,
   Card,
   InlineGrid,
   InlineStack,
@@ -23,6 +25,7 @@ import {
   STARTER_MONTHLY_PLAN,
   STARTER_YEARLY_PLAN,
 } from "../shopify.server";
+import { getPlanDefinitionByKey, isPlanKey } from "../services/planDefinitions";
 import { EmptyCard, SectionCard, ShellPage, StatusBadge } from "../components/shell-ui";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 
@@ -34,6 +37,16 @@ const ALL_PLAN_KEYS = [
   PRO_MONTHLY_PLAN,
   PRO_YEARLY_PLAN,
 ] as const;
+
+function getStoreHandle(shop: string) {
+  return shop.replace(/\.myshopify\.com$/i, "");
+}
+
+function getManagedPricingUrl(shop: string) {
+  const storeHandle = getStoreHandle(shop);
+  const appHandle = process.env.SHOPIFY_MANAGED_PRICING_APP_HANDLE?.trim() || "blackeagle";
+  return `https://admin.shopify.com/store/${storeHandle}/charges/${appHandle}/pricing_plans`;
+}
 
 const PLAN_TIERS: ReadonlyArray<{
   tier: string;
@@ -91,7 +104,11 @@ function extractBillingErrorMessage(err: unknown): string {
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
-    const { billing } = await authenticateEmbeddedAdmin(request);
+    const url = new URL(request.url);
+    const requestedPlan = String(
+      url.searchParams.get("plan") || url.searchParams.get("upgradePlan") || "",
+    ).trim();
+    const { billing, session } = await authenticateEmbeddedAdmin(request);
     const billingState = await billing.check({
       plans: [...ALL_PLAN_KEYS],
       isTest: process.env.NODE_ENV !== "production",
@@ -99,6 +116,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     return {
       hasActivePayment: billingState.hasActivePayment,
+      managedPricingUrl: getManagedPricingUrl(session.shop),
+      requestedPlan: isPlanKey(requestedPlan) ? requestedPlan : null,
       subscriptions: billingState.appSubscriptions.map((subscription) => ({
         id: subscription.id,
         name: subscription.name,
@@ -112,10 +131,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error("[billing-loader]", err);
     return {
       hasActivePayment: false,
+      managedPricingUrl: null as string | null,
+      requestedPlan: null as (typeof ALL_PLAN_KEYS)[number] | null,
       subscriptions: [] as Array<{ id: string; name: string; status: string; lineItems: number }>,
       error: extractBillingErrorMessage(err),
     };
   }
+};
+
+export const action = async ({ request }: { request: Request }) => {
+  const formData = await request.formData();
+  const requestedPlan = String(formData.get("plan") || "").trim();
+
+  if (!isPlanKey(requestedPlan)) {
+    return Response.json(
+      { ok: false, error: "Unknown billing plan." },
+      { status: 400 },
+    );
+  }
+
+  throw redirect(`/app/billing?plan=${encodeURIComponent(requestedPlan)}`);
 };
 
 export default function BillingPage() {
@@ -125,11 +160,14 @@ export default function BillingPage() {
   const activePlanName = data.subscriptions.find(
     (s) => s.status === "ACTIVE" || s.status === "ACCEPTED",
   )?.name;
+  const requestedPlanDefinition = data.requestedPlan
+    ? getPlanDefinitionByKey(data.requestedPlan)
+    : null;
 
   return (
     <ShellPage
       title="Billing"
-      subtitle="Your subscription is managed by Shopify. Compare plans below and upgrade from the Shopify App Store."
+      subtitle="Your subscription is managed by Shopify. Compare plans below and open Shopify's hosted pricing screen to change plans."
     >
       {navigation.state !== "idle" ? <Spinner accessibilityLabel="Loading" size="small" /> : null}
 
@@ -137,6 +175,23 @@ export default function BillingPage() {
         <Banner title="Unable to load billing status" tone="warning">
           {data.error}
         </Banner>
+      ) : null}
+
+      {data.managedPricingUrl ? (
+        <SectionCard
+          title="Change plan in Shopify"
+          subtitle={
+            requestedPlanDefinition
+              ? `You selected ${requestedPlanDefinition.label}. Shopify will show the hosted plan selection page for this app.`
+              : "Plan upgrades and downgrades are handled on Shopify's hosted pricing page."
+          }
+        >
+          <Box paddingBlockStart="200">
+            <Button url={data.managedPricingUrl} target="_top" variant="primary">
+              Open Shopify plan selection
+            </Button>
+          </Box>
+        </SectionCard>
       ) : null}
 
       <SectionCard
@@ -167,9 +222,9 @@ export default function BillingPage() {
       </SectionCard>
 
       <Banner title="How to change your plan" tone="info">
-        Your subscription is managed through Shopify. To upgrade, downgrade, or cancel
-        your plan, visit the app listing on the Shopify App Store and choose a new plan
-        from there. Changes take effect immediately.
+        Your subscription is managed through Shopify Managed Pricing. To upgrade,
+        downgrade, or cancel your plan, open Shopify's hosted plan selection page and
+        choose the plan there.
       </Banner>
 
       <SectionCard

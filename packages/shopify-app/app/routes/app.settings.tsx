@@ -47,6 +47,16 @@ import {
   PRO_MONTHLY_PLAN,
 } from "../services/planDefinitions";
 
+function getStoreHandle(shop: string) {
+  return shop.replace(/\.myshopify\.com$/i, "");
+}
+
+function getManagedPricingUrl(shop: string) {
+  const storeHandle = getStoreHandle(shop);
+  const appHandle = process.env.SHOPIFY_MANAGED_PRICING_APP_HANDLE?.trim() || "blackeagle";
+  return `https://admin.shopify.com/store/${storeHandle}/charges/${appHandle}/pricing_plans`;
+}
+
 type ActionResult = {
   ok: boolean;
   intent?: string;
@@ -152,6 +162,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return {
     overview,
     merchant: merchantSettings.merchant,
+    managedPricingUrl: getManagedPricingUrl(session.shop),
     multiLang: multiLang.settings,
     guardrails,
     addons: addons.addons || [],
@@ -497,6 +508,7 @@ export default function SettingsPage() {
                 blocked={onStarter}
                 requiredPlan="GROWTH"
                 upgradePlan={GROWTH_MONTHLY_PLAN}
+                upgradeUrl={data.managedPricingUrl}
                 title="AI Vision"
                 message="Starter merchants cannot enable buyer photo analysis. Upgrade to Growth to accept customer photos and use AI vision workflows."
               >
@@ -511,6 +523,7 @@ export default function SettingsPage() {
                 blocked={onGrowthOrLower}
                 requiredPlan="PRO"
                 upgradePlan={PRO_MONTHLY_PLAN}
+                upgradeUrl={data.managedPricingUrl}
                 title="Smart Re-order"
                 message="Smart Re-order is a Pro-only upsell capability. Upgrade to Pro to unlock advanced reorder suggestions and custom-branded WhatsApp routing."
               >
@@ -525,6 +538,7 @@ export default function SettingsPage() {
                 blocked={onGrowthOrLower}
                 requiredPlan="PRO"
                 upgradePlan={PRO_MONTHLY_PLAN}
+                upgradeUrl={data.managedPricingUrl}
                 title="Advanced analytics"
                 message="Advanced analytics is reserved for Pro. Upgrade if the merchant needs deeper retention reporting from the embedded shell."
               >
@@ -539,6 +553,7 @@ export default function SettingsPage() {
                 blocked={onGrowthOrLower}
                 requiredPlan="PRO"
                 upgradePlan={PRO_MONTHLY_PLAN}
+                upgradeUrl={data.managedPricingUrl}
                 title="Custom branded WhatsApp"
                 message="Starter and Growth shops use the shared Recete number. Upgrade to Pro to switch the merchant onto a custom branded WhatsApp number."
               >
@@ -582,6 +597,7 @@ export default function SettingsPage() {
                   blocked={onStarter}
                   requiredPlan="GROWTH"
                   upgradePlan={GROWTH_MONTHLY_PLAN}
+                  upgradeUrl={data.managedPricingUrl}
                   title="AI Vision"
                   message="Starter merchants cannot enable buyer photo analysis. Upgrade to Growth to allow customer photo submissions in the embedded workflow."
                 >
