@@ -754,14 +754,14 @@ export default function ProductsPage() {
                       icon={AppsIcon}
                       pressed={viewMode === 'grid'}
                     >
-                      <span className="hidden sm:inline">{t('view.grid')}</span>
+                      {t('view.grid')}
                     </PolarisButton>
                     <PolarisButton
                       onClick={() => handleViewModeChange('list')}
                       icon={ListBulletedIcon}
                       pressed={viewMode === 'list'}
                     >
-                      <span className="hidden md:inline">{t('view.list')}</span>
+                      {t('view.list')}
                     </PolarisButton>
                   </PolarisButtonGroup>
                   <PolarisButton url={`/${locale}/dashboard/products/shopify-map`} icon={RefreshIcon}>
