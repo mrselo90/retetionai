@@ -1029,9 +1029,7 @@ export default function ProductsPage() {
                               icon={DeleteIcon}
                               tone="critical"
                               variant="tertiary"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
+                              onClick={() => {
                                 if (confirm(t('card.deleteConfirm'))) {
                                   handleDeleteProduct(product.id);
                                 }
@@ -1121,9 +1119,7 @@ export default function ProductsPage() {
                               icon={DeleteIcon}
                               tone="critical"
                               variant="tertiary"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
+                              onClick={() => {
                                 if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
                               }}
                               accessibilityLabel={t('card.deleteConfirm')}
@@ -1233,9 +1229,7 @@ export default function ProductsPage() {
                                     icon={DeleteIcon}
                                     tone="critical"
                                     variant="tertiary"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
+                                    onClick={() => {
                                       if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
                                     }}
                                     accessibilityLabel={t('card.deleteConfirm')}
