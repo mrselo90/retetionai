@@ -78,3 +78,12 @@ export const productInstructionSchema = z.object({
 });
 
 export type ProductInstructionInput = z.infer<typeof productInstructionSchema>;
+
+/**
+ * URL-based enrichment request schema
+ */
+export const enrichProductFromUrlSchema = z.object({
+  source_url: urlSchema,
+});
+
+export type EnrichProductFromUrlInput = z.infer<typeof enrichProductFromUrlSchema>;

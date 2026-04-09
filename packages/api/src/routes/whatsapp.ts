@@ -12,6 +12,7 @@ import {
   parseWhatsAppWebhook,
   getEffectiveWhatsAppCredentials,
   findMerchantByPhoneNumberId,
+  findMerchantByRecentCustomerPhone,
 } from '../lib/whatsapp.js';
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { addWhatsAppInboundJob } from '../queues.js';
@@ -67,6 +68,9 @@ async function webhookInboundHandler(c: any) {
       try {
         if (message.phoneNumberId) {
           merchantId = await findMerchantByPhoneNumberId(message.phoneNumberId);
+        }
+        if (!merchantId) {
+          merchantId = await findMerchantByRecentCustomerPhone(message.from);
         }
         if (!merchantId) merchantId = process.env.DEFAULT_MERCHANT_ID ?? null;
 

@@ -22,9 +22,11 @@ import { processSatisfactionCheck } from './upsell.js';
 import { getMerchantBotInfo } from './botInfo.js';
 import { isAddonActive, logReturnPreventionAttempt, hasPendingPreventionAttempt, updatePreventionOutcome } from './addons.js';
 import {
+  buildUnsupportedLanguageNotice,
   detectLanguage,
   getLocalizedHandoffResponse,
   getLocalizedEscalationResponse,
+  resolveMerchantReplyLanguage,
   type SupportedLanguage,
 } from './i18n.js';
 import crypto from 'node:crypto';
@@ -33,6 +35,7 @@ import { generateGroundedProductAnswer } from './groundedAnswer.js';
 import { buildGroundedEvidenceContext } from './groundingAssembler.js';
 import { UnifiedRetrievalService } from './unifiedRetrieval.js';
 import { getCosmeticRagPolicy } from './ragRetrievalPolicy.js';
+import { ShopSettingsService } from './multiLangRag/shopSettingsService.js';
 
 export type Intent = 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent';
 
@@ -81,18 +84,24 @@ function looksLikeUsageOnboardingPrompt(text: string): boolean {
 function buildUsageGuidanceRetrievalQuery(lang: SupportedLanguage): string {
   if (lang === 'tr') return 'Bu ürün nasıl kullanılır, kullanım adımları, kullanım sıklığı ve uyarılar';
   if (lang === 'hu') return 'A termék használata, használati lépések, gyakoriság és figyelmeztetések';
+  if (lang === 'de') return 'Wie dieses Produkt verwendet wird, Anwendungsschritte, Häufigkeit und Warnhinweise';
+  if (lang === 'el') return 'Πώς χρησιμοποιείται αυτό το προϊόν, βήματα χρήσης, συχνότητα και προειδοποιήσεις';
   return 'How to use this product, usage steps, frequency, and warnings';
 }
 
 function buildUsageHowRetrievalQuery(lang: SupportedLanguage): string {
   if (lang === 'tr') return 'Bu ürünün kullanım adımları ve nasıl uygulanacağı';
   if (lang === 'hu') return 'A termék használati lépései és alkalmazása';
+  if (lang === 'de') return 'Anwendungsschritte und wie dieses Produkt aufgetragen wird';
+  if (lang === 'el') return 'Βήματα χρήσης και πώς εφαρμόζεται αυτό το προϊόν';
   return 'Product usage steps and how to apply it';
 }
 
 function buildUsageFrequencyRetrievalQuery(lang: SupportedLanguage): string {
   if (lang === 'tr') return 'Bu ürünün kullanım sıklığı, günde kaç kez kullanılır';
   if (lang === 'hu') return 'A termék használatának gyakorisága, naponta hányszor';
+  if (lang === 'de') return 'Wie oft dieses Produkt verwendet wird, wie oft pro Tag';
+  if (lang === 'el') return 'Πόσο συχνά χρησιμοποιείται αυτό το προϊόν, πόσες φορές την ημέρα';
   return 'How often to use this product, frequency per day';
 }
 
@@ -103,7 +112,21 @@ function buildPostDeliveryAcknowledgementResponse(lang: SupportedLanguage): stri
   if (lang === 'hu') {
     return 'Szuper, örülök neki. Ha használat közben kérdése merül fel, írjon nyugodtan, lépésről lépésre segítek.';
   }
+  if (lang === 'de') {
+    return 'Perfekt, das freut mich. Wenn bei der Anwendung etwas unklar ist, schreiben Sie mir gern, dann helfe ich Schritt für Schritt.';
+  }
+  if (lang === 'el') {
+    return 'Τέλεια, χαίρομαι. Αν κάτι δεν είναι ξεκάθαρο κατά τη χρήση, γράψτε μου και θα βοηθήσω βήμα βήμα.';
+  }
   return 'Great, glad to hear that. If anything is unclear while using it, message me and I can help step by step.';
+}
+
+function applyLanguageFallbackNotice(
+  response: string,
+  options: { usedFallback: boolean; responseLanguage: SupportedLanguage; supportedLanguages: SupportedLanguage[] },
+) {
+  if (!options.usedFallback) return response;
+  return `${buildUnsupportedLanguageNotice(options.responseLanguage, options.supportedLanguages)}\n\n${response}`.trim();
 }
 
 export function detectPostDeliveryFollowUpSignal(
@@ -299,6 +322,10 @@ export async function generateAIResponse(
   const customGuardrails: CustomGuardrail[] = Array.isArray(guardrailSettings.custom_guardrails)
     ? (guardrailSettings.custom_guardrails as CustomGuardrail[])
     : [];
+  const userLang = detectLanguage(message);
+  const languageSettings = await new ShopSettingsService().getOrCreate(merchantId, message);
+  const replyLanguageDecision = resolveMerchantReplyLanguage(userLang, languageSettings.enabled_langs);
+  const responseLang = replyLanguageDecision.responseLanguage;
 
   // Step 1: Check guardrails for user message (system + custom)
   const userGuardrail = checkUserMessageGuardrails(message, { customGuardrails });
@@ -310,7 +337,14 @@ export async function generateAIResponse(
 
     return {
       intent: 'chat',
-      response: userGuardrail.suggestedResponse || getSafeResponse(userGuardrail.reason ?? 'custom'),
+      response: applyLanguageFallbackNotice(
+        userGuardrail.suggestedResponse || getSafeResponse(userGuardrail.reason ?? 'custom'),
+        {
+          usedFallback: replyLanguageDecision.usedFallback,
+          responseLanguage: responseLang,
+          supportedLanguages: replyLanguageDecision.supportedLanguages,
+        },
+      ),
       guardrailBlocked: true,
       guardrailReason: userGuardrail.reason,
       guardrailCustomName: userGuardrail.customReason,
@@ -321,10 +355,14 @@ export async function generateAIResponse(
   // Step 0.5: Check if the customer is explicitly requesting a human agent
   if (checkForHumanHandoffRequest(message)) {
     await escalateToHuman(userId, conversationId, 'human_request', message);
-    const lang = detectLanguage(message);
+    const lang = responseLang;
     return {
       intent: 'chat',
-      response: getLocalizedHandoffResponse(lang),
+      response: applyLanguageFallbackNotice(getLocalizedHandoffResponse(lang), {
+        usedFallback: replyLanguageDecision.usedFallback,
+        responseLanguage: responseLang,
+        supportedLanguages: replyLanguageDecision.supportedLanguages,
+      }),
       requiresHuman: true,
     };
   }
@@ -339,10 +377,13 @@ export async function generateAIResponse(
   const persona = merchant?.persona_settings || {};
   const merchantName = merchant?.name || 'Biz';
   const botInfo = await getMerchantBotInfo(merchantId);
-  const userLang = detectLanguage(message);
 
   if (postDeliveryFollowUp.detected && postDeliveryFollowUp.type === 'usage_onboarding_yes') {
-    const ack = buildPostDeliveryAcknowledgementResponse(userLang);
+    const ack = applyLanguageFallbackNotice(buildPostDeliveryAcknowledgementResponse(responseLang), {
+      usedFallback: replyLanguageDecision.usedFallback,
+      responseLanguage: responseLang,
+      supportedLanguages: replyLanguageDecision.supportedLanguages,
+    });
     return {
       intent,
       response: ack,
@@ -396,7 +437,7 @@ export async function generateAIResponse(
 
       const responseGuardrail = checkAIResponseGuardrails(grounded.answer, {
         customGuardrails,
-        languageHint: userLang,
+        languageHint: responseLang,
       });
 
       let finalAnswer = grounded.answer;
@@ -440,10 +481,14 @@ export async function generateAIResponse(
       return {
         intent,
         response:
-          userLang === 'tr'
+          responseLang === 'tr'
             ? 'Sorunu güvenilir şekilde yanitlamak icin yeterli urun bilgisine simdi erisemiyorum. Hangi urunu kullandiginizi veya siparis numaranizi paylasir misiniz?'
-            : userLang === 'hu'
+            : responseLang === 'hu'
               ? 'Most nem erek el eleg megbizhato termekinformaciot a valaszhoz. Megirna, melyik termeket hasznalja vagy mi a rendelesszama?'
+              : responseLang === 'de'
+                ? 'Ich kann im Moment nicht zuverlässig genug auf Produktinformationen zugreifen, um sicher zu antworten. Können Sie mir sagen, welches Produkt Sie verwenden oder wie Ihre Bestellnummer lautet?'
+                : responseLang === 'el'
+                  ? 'Δεν μπορώ να αποκτήσω αρκετά αξιόπιστες πληροφορίες προϊόντος αυτή τη στιγμή για να απαντήσω με ασφάλεια. Μπορείτε να μου πείτε ποιο προϊόν χρησιμοποιείτε ή ποιος είναι ο αριθμός παραγγελίας σας;'
               : 'I cannot access enough reliable product information right now to answer safely. Could you share which product you are using or your order number?',
         guardrailBlocked: false,
         requiresHuman: false,
@@ -463,10 +508,14 @@ export async function generateAIResponse(
       if (alreadyAttempted) {
         await updatePreventionOutcome(conversationId, 'escalated');
         await escalateToHuman(userId, conversationId, 'return_intent_insistence', message);
-        const lang = detectLanguage(message);
+        const lang = responseLang;
         return {
           intent,
-          response: getLocalizedEscalationResponse(lang),
+          response: applyLanguageFallbackNotice(getLocalizedEscalationResponse(lang), {
+            usedFallback: replyLanguageDecision.usedFallback,
+            responseLanguage: responseLang,
+            supportedLanguages: replyLanguageDecision.supportedLanguages,
+          }),
           requiresHuman: true,
         };
       }
@@ -628,7 +677,10 @@ export async function generateAIResponse(
     persona,
     intent,
     ragContext,
-    botInfo
+    botInfo,
+    responseLang,
+    replyLanguageDecision.usedFallback ? userLang : undefined,
+    replyLanguageDecision.supportedLanguages,
   );
   const runtimeHint = postDeliveryFollowUp.promptHint;
   const finalSystemPrompt = runtimeHint
@@ -690,7 +742,7 @@ export async function generateAIResponse(
     // Step 7: Check guardrails for AI response (system + custom)
     const responseGuardrail = checkAIResponseGuardrails(aiResponse, {
       customGuardrails,
-      languageHint: userLang,
+      languageHint: responseLang,
     });
 
     if (!responseGuardrail.safe) {
@@ -702,7 +754,11 @@ export async function generateAIResponse(
 
       return {
         intent,
-        response: aiResponse,
+        response: applyLanguageFallbackNotice(aiResponse, {
+          usedFallback: replyLanguageDecision.usedFallback,
+          responseLanguage: responseLang,
+          supportedLanguages: replyLanguageDecision.supportedLanguages,
+        }),
         ragContext: ragContext || undefined,
         guardrailBlocked: true,
         guardrailReason: responseGuardrail.reason,
@@ -750,7 +806,8 @@ export async function generateAIResponse(
         conversationId,
         orderId,
         intent,
-        userLang: detectLanguage(message),
+        userLang,
+        responseLanguage: responseLang,
         postDeliveryFollowUp: postDeliveryFollowUp.detected ? postDeliveryFollowUp.type : null,
         responseLang: detectLanguage(aiResponse),
         guardrailBlocked: false,
@@ -764,7 +821,11 @@ export async function generateAIResponse(
 
     return {
       intent,
-      response: aiResponse,
+      response: applyLanguageFallbackNotice(aiResponse, {
+        usedFallback: replyLanguageDecision.usedFallback,
+        responseLanguage: responseLang,
+        supportedLanguages: replyLanguageDecision.supportedLanguages,
+      }),
       ragContext: ragContext || undefined,
       guardrailBlocked: false,
       upsellTriggered: upsellResult?.upsellTriggered || false,
@@ -784,7 +845,10 @@ function buildSystemPrompt(
   persona: any,
   intent: Intent,
   ragContext?: string,
-  botInfo?: Record<string, string>
+  botInfo?: Record<string, string>,
+  responseLang: SupportedLanguage = 'en',
+  requestedLang?: SupportedLanguage,
+  supportedLanguages: SupportedLanguage[] = ['en'],
 ): string {
   const botName = persona?.bot_name || 'Recete Asistan';
 
@@ -908,7 +972,12 @@ function buildSystemPrompt(
 
   prompt +=
     'RESPONSE FORMAT:\n' +
-    '- ALWAYS respond in the SAME language the user writes in. If the user writes in Hungarian, respond in Hungarian. If in Turkish, respond in Turkish. If in English, respond in English. Match the user\'s language exactly.\n' +
+    `- Always respond in ${responseLang}\n` +
+    (
+      requestedLang && requestedLang !== responseLang
+        ? `- The user wrote in ${requestedLang}, but this merchant currently replies only in: ${supportedLanguages.join(', ')}. Do not switch back to ${requestedLang}.\n`
+        : ''
+    ) +
     '- Be natural and conversational\n' +
     '- Focus on being helpful and solving the customer\'s need\n';
 

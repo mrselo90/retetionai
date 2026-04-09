@@ -28,7 +28,6 @@ import {
   updateMerchantConversationStatus,
 } from "../platform.server";
 import { DetailRows, MetricCard, StatusBadge } from "../components/shell-ui";
-import { FloatingActionFeedback } from "../components/FloatingActionFeedback";
 
 type ActionResult = {
   ok: boolean;
@@ -89,19 +88,16 @@ export default function ConversationDetailPage() {
   const conversation = data.conversation;
   const busy = navigation.state !== "idle";
   const [replyText, setReplyText] = useState("");
-  const [feedbackOpen, setFeedbackOpen] = useState(true);
+  const needsAttention =
+    conversation.conversationStatus === "human" ||
+    conversation.status === "open" ||
+    conversation.returnPreventionAttempt?.outcome === "escalated";
 
   useEffect(() => {
     if (actionData?.ok && actionData.message?.includes("Reply sent")) {
       setReplyText("");
     }
   }, [actionData]);
-
-  useEffect(() => {
-    if (actionData?.message || actionData?.error) {
-      setFeedbackOpen(true);
-    }
-  }, [actionData?.message, actionData?.error]);
 
   if (navigation.state === "loading") {
     return (
@@ -126,48 +122,39 @@ export default function ConversationDetailPage() {
       subtitle={conversation.phone}
       primaryAction={{ content: "Back to queue", onAction: () => navigate("/app/conversations"), icon: ArrowLeftIcon }}
     >
-      {feedbackOpen && actionData?.message ? (
-        <FloatingActionFeedback
-          tone="success"
-          title="Conversation updated"
-          message={actionData.message}
-          actionLabel="Review controls"
-          onAction={() => {
-            document.getElementById("conversation-controls")?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}
-          onDismiss={() => setFeedbackOpen(false)}
-        />
-      ) : null}
-
-      {feedbackOpen && actionData?.error ? (
-        <FloatingActionFeedback
-          tone="critical"
-          title="Conversation action failed"
-          message={actionData.error}
-          actionLabel="Return to reply panel"
-          onAction={() => {
-            document.getElementById("conversation-controls")?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}
-          onDismiss={() => setFeedbackOpen(false)}
-        />
-      ) : null}
-
       <Layout>
         <Layout.Section>
           {busy ? <Spinner accessibilityLabel="Loading" size="small" /> : null}
         </Layout.Section>
 
-        {actionData?.error && !feedbackOpen ? (
+        {needsAttention ? (
           <Layout.Section>
-            <Banner tone="critical">
+            <Banner
+              tone={conversation.conversationStatus === "human" ? "warning" : "info"}
+              title={
+                conversation.conversationStatus === "human"
+                  ? "This thread needs manual handling"
+                  : "Review this conversation before leaving the page"
+              }
+            >
+              {conversation.conversationStatus === "human"
+                ? "The buyer has been escalated to a human queue. Resolve it or hand it back to AI deliberately."
+                : "Use the controls below to confirm ownership, send the next reply, or mark the thread resolved."}
+            </Banner>
+          </Layout.Section>
+        ) : null}
+
+        {actionData?.error ? (
+          <Layout.Section>
+            <Banner tone="critical" title="Conversation action failed">
               <Text as="p" variant="bodyMd">{actionData.error}</Text>
             </Banner>
           </Layout.Section>
         ) : null}
 
-        {actionData?.message && !feedbackOpen ? (
+        {actionData?.message ? (
           <Layout.Section>
-            <Banner tone="success">
+            <Banner tone="success" title="Conversation updated">
               <Text as="p" variant="bodyMd">{actionData.message}</Text>
             </Banner>
           </Layout.Section>

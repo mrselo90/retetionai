@@ -53,7 +53,7 @@ describe('UnifiedRetrievalService', () => {
     });
 
     const service = new UnifiedRetrievalService(
-      { getOrCreate: vi.fn(async () => ({ default_source_lang: 'hu' })) } as any,
+      { getOrCreate: vi.fn(async () => ({ default_source_lang: 'hu', enabled_langs: ['tr', 'en'] })) } as any,
       { translateText: vi.fn() } as any,
     );
 
@@ -104,7 +104,7 @@ describe('UnifiedRetrievalService', () => {
     });
 
     const service = new UnifiedRetrievalService(
-      { getOrCreate: vi.fn(async () => ({ default_source_lang: 'en' })) } as any,
+      { getOrCreate: vi.fn(async () => ({ default_source_lang: 'en', enabled_langs: ['en'] })) } as any,
       { translateText: vi.fn() } as any,
     );
 

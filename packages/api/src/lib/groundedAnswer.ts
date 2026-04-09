@@ -2,13 +2,20 @@ import {
   getSupabaseServiceClient,
   logger,
 } from '@recete/shared';
-import { detectLanguage, type SupportedLanguage } from './i18n.js';
+import {
+  buildUnsupportedLanguageNotice,
+  describeSupportedLanguagesForPrompt,
+  detectLanguage,
+  resolveMerchantReplyLanguage,
+  type SupportedLanguage,
+} from './i18n.js';
 import { getMerchantBotInfo } from './botInfo.js';
 import { getOpenAIClient } from './openaiClient.js';
 import { getConversationMemorySettings, getDefaultLlmModel } from './runtimeModelSettings.js';
 import { trackAiUsageEvent } from './aiUsageEvents.js';
 import { assembleGroundingEvidence } from './groundingAssembler.js';
 import { estimateTokenCount } from './embeddings.js';
+import { ShopSettingsService } from './multiLangRag/shopSettingsService.js';
 import {
   buildGroundedMessages,
   buildGroundedPrompt,
@@ -60,7 +67,25 @@ function buildClarifyingAnswer(lang: SupportedLanguage): string {
   if (lang === 'hu') {
     return 'Nem találtam elég egyértelmű termékbizonyítékot ehhez a válaszhoz. Pontosítaná, melyik termékről vagy változatról van szó?';
   }
+  if (lang === 'de') {
+    return 'Ich habe nicht genug eindeutige Produktnachweise gefunden, um das sicher zu beantworten. Könnten Sie genauer sagen, welches Produkt oder welche Variante Sie meinen?';
+  }
+  if (lang === 'el') {
+    return 'Δεν βρήκα αρκετά σαφή στοιχεία προϊόντος για να απαντήσω με ασφάλεια. Μπορείτε να διευκρινίσετε ποιο προϊόν ή ποια παραλλαγή εννοείτε;';
+  }
   return 'I could not find enough clear product evidence to answer that safely. Could you clarify which product or variant you mean?';
+}
+
+function applyLanguageFallbackNotice(
+  answer: string,
+  options: {
+    usedFallback: boolean;
+    responseLanguage: SupportedLanguage;
+    supportedLanguages: SupportedLanguage[];
+  },
+): string {
+  if (!options.usedFallback) return answer;
+  return `${buildUnsupportedLanguageNotice(options.responseLanguage, options.supportedLanguages)}\n\n${answer}`.trim();
 }
 
 function hasUsableGroundingEvidence(grounding: {
@@ -102,7 +127,10 @@ export async function generateGroundedProductAnswer(
   input: GroundedAnswerInput,
 ): Promise<GroundedAnswerOutput> {
   const start = Date.now();
-  const userLang = (input.userLang || detectLanguage(input.question)) as SupportedLanguage;
+  const requestedLanguage = (input.userLang || detectLanguage(input.question)) as SupportedLanguage;
+  const settings = await new ShopSettingsService().getOrCreate(input.merchantId, input.question);
+  const replyLanguageDecision = resolveMerchantReplyLanguage(requestedLanguage, settings.enabled_langs);
+  const userLang = replyLanguageDecision.responseLanguage;
   const {
     merchantName,
     persona,
@@ -111,7 +139,8 @@ export async function generateGroundedProductAnswer(
   const grounding = await assembleGroundingEvidence({
     merchantId: input.merchantId,
     question: input.question,
-    userLang,
+    userLang: requestedLanguage,
+    responseLang: replyLanguageDecision.responseLanguage,
     orderId: input.orderId,
     productIds: input.productIds,
     retrievalQuery: input.retrievalQuery,
@@ -127,7 +156,11 @@ export async function generateGroundedProductAnswer(
 
   if (grounding.usedDeterministicFacts && grounding.deterministicAnswer) {
     return {
-      answer: grounding.deterministicAnswer,
+      answer: applyLanguageFallbackNotice(grounding.deterministicAnswer, {
+        usedFallback: replyLanguageDecision.usedFallback,
+        responseLanguage: replyLanguageDecision.responseLanguage,
+        supportedLanguages: replyLanguageDecision.supportedLanguages,
+      }),
       langDetected: userLang,
       citedProducts: grounding.citedProducts,
       latencyMs: Date.now() - start,
@@ -141,14 +174,19 @@ export async function generateGroundedProductAnswer(
   }
 
   if (!hasUsableGroundingEvidence(grounding)) {
-    const answer = buildClarifyingAnswer(userLang);
+    const answer = applyLanguageFallbackNotice(buildClarifyingAnswer(userLang), {
+      usedFallback: replyLanguageDecision.usedFallback,
+      responseLanguage: replyLanguageDecision.responseLanguage,
+      supportedLanguages: replyLanguageDecision.supportedLanguages,
+    });
     logger.info(
       {
         merchantId: input.merchantId,
         channel: input.channel,
         conversationId: input.conversationId || null,
         orderId: input.orderId || null,
-        userLang,
+        userLang: requestedLanguage,
+        responseLanguage: replyLanguageDecision.responseLanguage,
         citedProducts: grounding.citedProducts,
         retrievalLanguage: grounding.retrievalLanguage,
         retrievalUsedFallback: grounding.retrievalUsedFallback,
@@ -178,6 +216,9 @@ export async function generateGroundedProductAnswer(
     ragContext: grounding.context,
     botInfo,
     lang: userLang,
+    requestedLang: requestedLanguage,
+    usedLanguageFallback: replyLanguageDecision.usedFallback,
+    supportedLanguages: describeSupportedLanguagesForPrompt(replyLanguageDecision.supportedLanguages).split(', '),
     channel: input.channel,
     runtimeHint: input.runtimeHint,
   });
@@ -230,6 +271,9 @@ export async function generateGroundedProductAnswer(
       ragContext: truncatedContext + '\n[... truncated for length]',
       botInfo,
       lang: userLang,
+      requestedLang: requestedLanguage,
+      usedLanguageFallback: replyLanguageDecision.usedFallback,
+      supportedLanguages: describeSupportedLanguagesForPrompt(replyLanguageDecision.supportedLanguages).split(', '),
       channel: input.channel,
       runtimeHint: input.runtimeHint,
     });
@@ -271,9 +315,16 @@ export async function generateGroundedProductAnswer(
   });
 
   const rawAnswer = completion.choices[0]?.message?.content?.trim() || '';
-  const answer = rawAnswer && !answerHasUnsupportedGuarantee(rawAnswer)
-    ? rawAnswer
-    : buildClarifyingAnswer(userLang);
+  const answer = applyLanguageFallbackNotice(
+    rawAnswer && !answerHasUnsupportedGuarantee(rawAnswer)
+      ? rawAnswer
+      : buildClarifyingAnswer(userLang),
+    {
+      usedFallback: replyLanguageDecision.usedFallback,
+      responseLanguage: replyLanguageDecision.responseLanguage,
+      supportedLanguages: replyLanguageDecision.supportedLanguages,
+    },
+  );
 
   logger.info(
     {
@@ -281,7 +332,8 @@ export async function generateGroundedProductAnswer(
       channel: input.channel,
       conversationId: input.conversationId || null,
       orderId: input.orderId || null,
-      userLang,
+      userLang: requestedLanguage,
+      responseLanguage: replyLanguageDecision.responseLanguage,
       citedProducts: grounding.citedProducts,
       usedDeterministicFacts: false,
       orderScopeSource: grounding.orderScopeSource || null,

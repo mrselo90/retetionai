@@ -5,7 +5,7 @@
 
 import { getSupabaseServiceClient } from '@recete/shared';
 import { getMerchantWhatsAppSenderMode } from './merchantPlanFeatures.js';
-import { getPlatformCorporateWhatsAppSettings } from './runtimeModelSettings.js';
+import { getPlatformAiSettings, getPlatformCorporateWhatsAppSettings } from './runtimeModelSettings.js';
 
 export interface WhatsAppMessage {
   to: string; // E.164 phone number
@@ -150,7 +150,7 @@ export interface WhatsAppWebhookMessage {
   timestamp: string;
   text?: string;
   type: 'text' | 'image' | 'video' | 'audio' | 'document' | 'location' | 'contacts';
-  phoneNumberId?: string; // Meta: phone_number_id (for multi-tenant merchant lookup)
+  phoneNumberId?: string; // Meta: phone_number_id; Twilio: recipient/from number for merchant lookup
   image?: {
     providerMediaId?: string;
     mimeType?: string;
@@ -534,6 +534,7 @@ function parseTwilioWhatsAppWebhook(body: any): WhatsAppWebhookMessage[] {
   }
 
   const fromRaw = typeof body.From === 'string' ? body.From.trim() : '';
+  const toRaw = typeof body.To === 'string' ? body.To.trim() : '';
   const messageId =
     (typeof body.MessageSid === 'string' && body.MessageSid.trim()) ||
     (typeof body.SmsMessageSid === 'string' && body.SmsMessageSid.trim()) ||
@@ -567,6 +568,8 @@ function parseTwilioWhatsAppWebhook(body: any): WhatsAppWebhookMessage[] {
       timestamp: new Date().toISOString(),
       text,
       type,
+      // Reuse the merchant lookup field for Twilio by carrying the recipient business number.
+      phoneNumberId: toRaw ? stripTwilioWhatsAppPrefix(toRaw) : undefined,
       image:
         type === 'image'
           ? {
@@ -711,6 +714,7 @@ export async function findMerchantByPhoneNumberId(
 ): Promise<string | null> {
   if (!phoneNumberId) return null;
   const serviceClient = getSupabaseServiceClient();
+  const normalizedLookup = stripTwilioWhatsAppPrefix(phoneNumberId);
   // Query integrations where the whatsapp auth_data contains this phone_number_id
   const { data: rows } = await serviceClient
     .from('integrations')
@@ -722,9 +726,50 @@ export async function findMerchantByPhoneNumberId(
 
   for (const row of rows) {
     const auth = row.auth_data as WhatsAppAuthData | null;
-    if (auth?.phone_number_id === phoneNumberId || auth?.from_number === phoneNumberId) {
+    const authPhoneNumberId = typeof auth?.phone_number_id === 'string' ? auth.phone_number_id.trim() : '';
+    const authFromNumber = typeof auth?.from_number === 'string' ? stripTwilioWhatsAppPrefix(auth.from_number) : '';
+    if (authPhoneNumberId === phoneNumberId || authPhoneNumberId === normalizedLookup || authFromNumber === normalizedLookup) {
       return row.merchant_id;
     }
+  }
+
+  return null;
+}
+
+export async function findMerchantByRecentCustomerPhone(
+  phone: string
+): Promise<string | null> {
+  const normalizedPhone = stripTwilioWhatsAppPrefix(phone).trim();
+  if (!normalizedPhone) return null;
+
+  const serviceClient = getSupabaseServiceClient();
+
+  const { data: templateEvent } = await serviceClient
+    .from('delivery_template_events')
+    .select('merchant_id')
+    .eq('to_phone', normalizedPhone)
+    .gte('conversation_window_open_until', new Date().toISOString())
+    .order('template_sent_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (templateEvent?.merchant_id) {
+    return templateEvent.merchant_id as string;
+  }
+
+  const recentOutboundThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: outboundEvent } = await serviceClient
+    .from('whatsapp_outbound_events')
+    .select('merchant_id')
+    .eq('to_phone', normalizedPhone)
+    .eq('status', 'sent')
+    .gte('sent_at', recentOutboundThreshold)
+    .order('sent_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (outboundEvent?.merchant_id) {
+    return outboundEvent.merchant_id as string;
   }
 
   return null;
@@ -763,6 +808,11 @@ export type WhatsAppSenderMode = 'merchant_own' | 'corporate';
 export async function getEffectiveWhatsAppCredentials(
   merchantId: string
 ): Promise<WhatsAppCredentials | null> {
+  const platformSettings = await getPlatformAiSettings();
+  if (platformSettings.force_corporate_whatsapp_for_customer_messaging) {
+    return getPlatformCorporateWhatsAppCredentials();
+  }
+
   const serviceClient = getSupabaseServiceClient();
   const { data: merchant } = await serviceClient
     .from('merchants')

@@ -12,6 +12,7 @@ type PlatformAiSettingsRow = {
   corporate_whatsapp_provider?: 'twilio' | 'meta';
   corporate_whatsapp_from_number?: string | null;
   corporate_whatsapp_phone_number_display?: string | null;
+  force_corporate_whatsapp_for_customer_messaging?: boolean;
   conversation_memory_mode?: 'last_n' | 'full';
   conversation_memory_count?: number;
   products_cache_ttl_seconds?: number;
@@ -96,6 +97,7 @@ export async function getPlatformAiSettings(): Promise<PlatformAiSettingsRow> {
     corporate_whatsapp_provider: DEFAULT_CORPORATE_WHATSAPP_PROVIDER,
     corporate_whatsapp_from_number: process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_WHATSAPP_FROM || process.env.WHATSAPP_PHONE_NUMBER_ID || null,
     corporate_whatsapp_phone_number_display: process.env.PLATFORM_WHATSAPP_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_WHATSAPP_FROM || null,
+    force_corporate_whatsapp_for_customer_messaging: false,
     conversation_memory_mode: DEFAULT_MEMORY_MODE,
     conversation_memory_count: DEFAULT_MEMORY_COUNT,
     products_cache_ttl_seconds: DEFAULT_PRODUCTS_CACHE_TTL_SECONDS,
@@ -105,7 +107,7 @@ export async function getPlatformAiSettings(): Promise<PlatformAiSettingsRow> {
     const svc = getSupabaseServiceClient();
     const { data, error } = await svc
       .from('platform_ai_settings')
-      .select('id, default_llm_model, allowed_llm_models, default_embedding_model, allowed_embedding_models, default_vision_model, allowed_vision_models, corporate_whatsapp_provider, corporate_whatsapp_from_number, corporate_whatsapp_phone_number_display, conversation_memory_mode, conversation_memory_count, products_cache_ttl_seconds')
+      .select('id, default_llm_model, allowed_llm_models, default_embedding_model, allowed_embedding_models, default_vision_model, allowed_vision_models, corporate_whatsapp_provider, corporate_whatsapp_from_number, corporate_whatsapp_phone_number_display, force_corporate_whatsapp_for_customer_messaging, conversation_memory_mode, conversation_memory_count, products_cache_ttl_seconds')
       .eq('id', 'default')
       .maybeSingle();
 
@@ -131,6 +133,9 @@ export async function getPlatformAiSettings(): Promise<PlatformAiSettingsRow> {
           corporate_whatsapp_provider: normalizeCorporateWhatsAppProvider(data.corporate_whatsapp_provider || fallback.corporate_whatsapp_provider),
           corporate_whatsapp_from_number: normalizeOptionalText(data.corporate_whatsapp_from_number ?? fallback.corporate_whatsapp_from_number),
           corporate_whatsapp_phone_number_display: normalizeOptionalText(data.corporate_whatsapp_phone_number_display ?? fallback.corporate_whatsapp_phone_number_display),
+          force_corporate_whatsapp_for_customer_messaging: Boolean(
+            data.force_corporate_whatsapp_for_customer_messaging ?? fallback.force_corporate_whatsapp_for_customer_messaging
+          ),
           conversation_memory_mode: data.conversation_memory_mode === 'full' ? 'full' : 'last_n',
           conversation_memory_count: typeof data.conversation_memory_count === 'number'
             ? Math.max(1, Math.min(200, Math.floor(data.conversation_memory_count)))
@@ -217,6 +222,7 @@ export async function updatePlatformAiSettings(input: {
   corporate_whatsapp_provider?: 'twilio' | 'meta';
   corporate_whatsapp_from_number?: string | null;
   corporate_whatsapp_phone_number_display?: string | null;
+  force_corporate_whatsapp_for_customer_messaging?: boolean;
   conversation_memory_mode?: 'last_n' | 'full';
   conversation_memory_count?: number;
   products_cache_ttl_seconds?: number;
@@ -249,6 +255,7 @@ export async function updatePlatformAiSettings(input: {
   const corporateWhatsAppProvider = normalizeCorporateWhatsAppProvider(input.corporate_whatsapp_provider);
   const corporateWhatsAppFromNumber = normalizeOptionalText(input.corporate_whatsapp_from_number);
   const corporateWhatsAppPhoneNumberDisplay = normalizeOptionalText(input.corporate_whatsapp_phone_number_display);
+  const forceCorporateWhatsAppForCustomerMessaging = Boolean(input.force_corporate_whatsapp_for_customer_messaging);
   validateCorporateWhatsAppSettings({
     corporate_whatsapp_provider: corporateWhatsAppProvider,
     corporate_whatsapp_from_number: corporateWhatsAppFromNumber,
@@ -275,6 +282,7 @@ export async function updatePlatformAiSettings(input: {
         corporate_whatsapp_provider: corporateWhatsAppProvider,
         corporate_whatsapp_from_number: corporateWhatsAppFromNumber,
         corporate_whatsapp_phone_number_display: corporateWhatsAppPhoneNumberDisplay,
+        force_corporate_whatsapp_for_customer_messaging: forceCorporateWhatsAppForCustomerMessaging,
         conversation_memory_mode: memoryMode,
         conversation_memory_count: memoryCount,
         products_cache_ttl_seconds: productsCacheTtlSeconds,
@@ -282,7 +290,7 @@ export async function updatePlatformAiSettings(input: {
       },
       { onConflict: 'id' }
     )
-    .select('id, default_llm_model, allowed_llm_models, default_embedding_model, allowed_embedding_models, default_vision_model, allowed_vision_models, corporate_whatsapp_provider, corporate_whatsapp_from_number, corporate_whatsapp_phone_number_display, conversation_memory_mode, conversation_memory_count, products_cache_ttl_seconds')
+    .select('id, default_llm_model, allowed_llm_models, default_embedding_model, allowed_embedding_models, default_vision_model, allowed_vision_models, corporate_whatsapp_provider, corporate_whatsapp_from_number, corporate_whatsapp_phone_number_display, force_corporate_whatsapp_for_customer_messaging, conversation_memory_mode, conversation_memory_count, products_cache_ttl_seconds')
     .single();
 
   if (error) throw new Error(`platform_ai_settings update failed: ${error.message}`);
@@ -298,6 +306,9 @@ export async function updatePlatformAiSettings(input: {
     corporate_whatsapp_provider: normalizeCorporateWhatsAppProvider(data.corporate_whatsapp_provider || corporateWhatsAppProvider),
     corporate_whatsapp_from_number: normalizeOptionalText(data.corporate_whatsapp_from_number ?? corporateWhatsAppFromNumber),
     corporate_whatsapp_phone_number_display: normalizeOptionalText(data.corporate_whatsapp_phone_number_display ?? corporateWhatsAppPhoneNumberDisplay),
+    force_corporate_whatsapp_for_customer_messaging: Boolean(
+      data.force_corporate_whatsapp_for_customer_messaging ?? forceCorporateWhatsAppForCustomerMessaging
+    ),
     conversation_memory_mode: data.conversation_memory_mode === 'full' ? 'full' : 'last_n',
     conversation_memory_count: typeof data.conversation_memory_count === 'number'
       ? Math.max(1, Math.min(200, Math.floor(data.conversation_memory_count)))

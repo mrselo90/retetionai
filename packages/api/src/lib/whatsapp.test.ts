@@ -66,6 +66,7 @@ describe('parseWhatsAppWebhook', () => {
       messageId: 'SM123',
       text: 'Merhaba',
       type: 'text',
+      phoneNumberId: '+14155238886',
     });
   });
 

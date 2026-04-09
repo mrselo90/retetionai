@@ -20,6 +20,9 @@ export function buildGroundedPrompt(input: {
   ragContext?: string;
   botInfo?: Record<string, string>;
   lang: string;
+  requestedLang?: string;
+  usedLanguageFallback?: boolean;
+  supportedLanguages?: string[];
   channel: 'api' | 'whatsapp';
   runtimeHint?: string;
 }): string {
@@ -30,6 +33,9 @@ export function buildGroundedPrompt(input: {
     ragContext,
     botInfo,
     lang,
+    requestedLang,
+    usedLanguageFallback,
+    supportedLanguages,
     channel,
     runtimeHint,
   } = input;
@@ -113,6 +119,14 @@ export function buildGroundedPrompt(input: {
 
   if (runtimeHint?.trim()) {
     prompt += `RUNTIME CONVERSATION HINT:\n- ${runtimeHint.trim()}\n\n`;
+  }
+
+  if (usedLanguageFallback) {
+    prompt +=
+      'LANGUAGE CONSTRAINT:\n' +
+      `- The customer originally wrote in ${requestedLang || lang}\n` +
+      `- This merchant currently replies only in: ${(supportedLanguages || []).join(', ') || lang}\n` +
+      `- Reply in ${lang} and do not switch back to the customer's unsupported language\n\n`;
   }
 
   prompt +=

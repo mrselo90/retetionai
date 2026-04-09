@@ -75,7 +75,6 @@ interface Merchant {
     emoji?: boolean;
     response_length?: 'short' | 'medium' | 'long';
     temperature?: number;
-    whatsapp_sender_mode?: 'merchant_own' | 'corporate';
     whatsapp_welcome_template?: string;
   };
   created_at: string;
@@ -105,6 +104,52 @@ interface PageFeedbackState {
   targetId?: string;
 }
 
+const WELCOME_TEMPLATE_TOKENS = [
+  {
+    label: 'First name',
+    token: '{{customer_first_name}}',
+    help: "Adds the buyer's first name.",
+  },
+  {
+    label: 'Order number',
+    token: '{{order_number}}',
+    help: 'Adds the order number from Shopify.',
+  },
+  {
+    label: 'Product names',
+    token: '{{product_names}}',
+    help: 'Adds product names in a natural sentence.',
+  },
+  {
+    label: 'Product count',
+    token: '{{product_count}}',
+    help: 'Adds how many products were in the order.',
+  },
+  {
+    label: 'Bot name',
+    token: '{{bot_name}}',
+    help: 'Adds the configured bot name.',
+  },
+] as const;
+
+function appendWelcomeTemplateToken(template: string, token: string) {
+  if (!template.trim()) return token;
+  return /[\s\n]$/.test(template) ? `${template}${token}` : `${template} ${token}`;
+}
+
+function buildWelcomeTemplatePreview(template: string, botName: string) {
+  const baseTemplate =
+    template.trim() ||
+    'Tekrar selamlar {{customer_first_name}}, "1212" nolu siparişinize ait {{product_names}} elinize ulaşmış olmalı. Nasıl kullanacağınızı biliyor musunuz? Destek olmamızı ister misiniz?';
+
+  return baseTemplate
+    .replace(/\{\{\s*customer_first_name\s*\}\}/gi, 'Ayse')
+    .replace(/\{\{\s*order_number\s*\}\}/gi, '1212')
+    .replace(/\{\{\s*product_names\s*\}\}/gi, 'A serumu ve B kremi')
+    .replace(/\{\{\s*product_count\s*\}\}/gi, '2')
+    .replace(/\{\{\s*bot_name\s*\}\}/gi, botName.trim() || 'Recete');
+}
+
 function formatSavedAt(value: string) {
   return new Intl.DateTimeFormat(undefined, {
     hour: 'numeric',
@@ -129,9 +174,6 @@ export default function SettingsPage() {
   const [emoji, setEmoji] = useState(true);
   const [responseLength, setResponseLength] = useState<'short' | 'medium' | 'long'>('medium');
   const [temperature, setTemperature] = useState(0.7);
-  const [whatsappSenderMode, setWhatsappSenderMode] = useState<'merchant_own' | 'corporate'>(
-    'merchant_own'
-  );
   const [whatsappWelcomeTemplate, setWhatsappWelcomeTemplate] = useState('');
   const [notificationPhone, setNotificationPhone] = useState('');
   const [multiLangRagSettings, setMultiLangRagSettings] = useState<MultiLangRagSettings | null>(
@@ -163,6 +205,7 @@ export default function SettingsPage() {
   const [guardrailAction, setGuardrailAction] = useState<'block' | 'escalate'>('block');
   const [guardrailSuggestedResponse, setGuardrailSuggestedResponse] = useState('');
   const [pageFeedback, setPageFeedback] = useState<PageFeedbackState | null>(null);
+  const welcomeTemplatePreview = buildWelcomeTemplatePreview(whatsappWelcomeTemplate, botName);
 
   const getErrorMessage = (err: unknown, fallback: string) => {
     if (err instanceof Error && err.message) return err.message;
@@ -202,9 +245,6 @@ export default function SettingsPage() {
       setEmoji(persona.emoji !== false);
       setResponseLength(persona.response_length || 'medium');
       setTemperature(persona.temperature || 0.7);
-      setWhatsappSenderMode(
-        persona.whatsapp_sender_mode === 'corporate' ? 'corporate' : 'merchant_own'
-      );
       setWhatsappWelcomeTemplate(
         typeof persona.whatsapp_welcome_template === 'string'
           ? persona.whatsapp_welcome_template
@@ -346,7 +386,6 @@ export default function SettingsPage() {
             emoji,
             response_length: responseLength,
             temperature,
-            whatsapp_sender_mode: whatsappSenderMode,
             whatsapp_welcome_template: whatsappWelcomeTemplate.trim() || undefined,
           },
         }),
@@ -1010,65 +1049,13 @@ export default function SettingsPage() {
                     </InlineStack>
                   </BlockStack>
 
-                  {/* WhatsApp sender: merchant's number vs corporate number — one must be chosen */}
                   <Divider />
                   <BlockStack gap="200">
-                    <ChoiceList
-                      title={t('botPersona.whatsappSenderLabel')}
-                      choices={[
-                        {
-                          label: t('botPersona.whatsappSenders.merchantOwn.label'),
-                          value: 'merchant_own',
-                        },
-                        {
-                          label: t('botPersona.whatsappSenders.corporate.label'),
-                          value: 'corporate',
-                        },
-                      ]}
-                      selected={[whatsappSenderMode]}
-                      onChange={(selected) => {
-                        const next = selected[0] as typeof whatsappSenderMode | undefined;
-                        if (next) {
-                          setWhatsappSenderMode(next);
-                          setIsDirty(true);
-                        }
-                      }}
-                    />
-                    <Text as="p" tone="subdued">
-                      {t('botPersona.whatsappSenderDesc')}
-                    </Text>
-                    <Box
-                      padding="300"
-                      borderWidth="025"
-                      borderColor="border"
-                      borderRadius="300"
-                      background="bg-surface-secondary"
-                    >
-                      <BlockStack gap="200">
-                        <Text as="p" variant="bodySm">
-                          <strong>{t('botPersona.whatsappSenders.merchantOwn.label')}</strong>
-                        </Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {t('botPersona.whatsappSenders.merchantOwn.desc')}
-                        </Text>
-                        <Text as="p" variant="bodySm">
-                          <strong>{t('botPersona.whatsappSenders.corporate.label')}</strong>
-                        </Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {t('botPersona.whatsappSenders.corporate.desc')}
-                        </Text>
-                      </BlockStack>
-                    </Box>
                     <Banner tone="info">
                       <p>
-                        <strong>{t('botPersona.whatsappHelpTitle')}</strong>{' '}
-                        {t('botPersona.whatsappHelpText')}
+                        Welcome messaging follows the 24-hour WhatsApp rule. If the customer already has an open conversation window, Recete sends the rendered welcome text below as a normal message. If the window is closed and Twilio is the sender, Recete uses a platform-managed approved WhatsApp template and injects the rendered message automatically.
                       </p>
                     </Banner>
-                  </BlockStack>
-
-                  <Divider />
-                  <BlockStack gap="200">
                     <TextField
                       label={t('botPersona.welcomeTemplateLabel')}
                       value={whatsappWelcomeTemplate}
@@ -1081,8 +1068,51 @@ export default function SettingsPage() {
                       autoComplete="off"
                     />
                     <Text as="p" tone="subdued">
-                      {t('botPersona.welcomeTemplateDesc')}
+                      Build the welcome message once. Recete fills in customer and order details automatically.
                     </Text>
+                    <BlockStack gap="200">
+                      <Text as="p" variant="bodyMd" fontWeight="medium">
+                        Insert order variables
+                      </Text>
+                      <InlineStack gap="200" wrap>
+                        {WELCOME_TEMPLATE_TOKENS.map((item) => (
+                          <PolarisButton
+                            key={item.token}
+                            onClick={() => {
+                              setWhatsappWelcomeTemplate((current) =>
+                                appendWelcomeTemplateToken(current, item.token)
+                              );
+                              setIsDirty(true);
+                            }}
+                          >
+                            {item.label}
+                          </PolarisButton>
+                        ))}
+                      </InlineStack>
+                      <BlockStack gap="100">
+                        {WELCOME_TEMPLATE_TOKENS.map((item) => (
+                          <Text key={item.token} as="p" variant="bodySm" tone="subdued">
+                            <strong>{item.token}</strong> {item.help}
+                          </Text>
+                        ))}
+                      </BlockStack>
+                    </BlockStack>
+                    <Box
+                      padding="300"
+                      borderWidth="025"
+                      borderColor="border"
+                      borderRadius="300"
+                      background="bg-surface-secondary"
+                    >
+                      <BlockStack gap="150">
+                        <Text as="p" variant="bodySm" fontWeight="medium">
+                          Preview
+                        </Text>
+                        <Text as="p" variant="bodySm">
+                          {welcomeTemplatePreview}
+                        </Text>
+                      </BlockStack>
+                    </Box>
                     <Box
                       padding="300"
                       borderWidth="025"
@@ -1099,6 +1129,9 @@ export default function SettingsPage() {
                         </Text>
                         <Text as="p" variant="bodySm" tone="subdued">
                           {t('botPersona.welcomeTemplatePlaceholderProducts')}
+                        </Text>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          Additional placeholders: {'{{customer_first_name}}'}, {'{{product_count}}'}, {'{{bot_name}}'}
                         </Text>
                       </BlockStack>
                     </Box>

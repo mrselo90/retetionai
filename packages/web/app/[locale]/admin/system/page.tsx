@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
-import { Badge, Banner, BlockStack, Box, Button, Card, InlineGrid, InlineStack, Layout, Page, Select, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text, TextField } from '@shopify/polaris';
+import { Badge, Banner, BlockStack, Box, Button, Card, Checkbox, InlineGrid, InlineStack, Layout, Page, Select, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text, TextField } from '@shopify/polaris';
 import { Database, Server, Activity, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -40,6 +40,7 @@ interface PlatformAiSettings {
     corporate_whatsapp_provider?: 'twilio' | 'meta';
     corporate_whatsapp_from_number?: string | null;
     corporate_whatsapp_phone_number_display?: string | null;
+    force_corporate_whatsapp_for_customer_messaging?: boolean;
     conversation_memory_mode?: 'last_n' | 'full';
     conversation_memory_count?: number;
     products_cache_ttl_seconds?: number;
@@ -90,6 +91,7 @@ export default function SystemHealthPage() {
     const [corporateWhatsAppProvider, setCorporateWhatsAppProvider] = useState<'twilio' | 'meta'>('twilio');
     const [corporateWhatsAppFromNumber, setCorporateWhatsAppFromNumber] = useState('');
     const [corporateWhatsAppPhoneDisplay, setCorporateWhatsAppPhoneDisplay] = useState('');
+    const [forceCorporateWhatsAppForCustomerMessaging, setForceCorporateWhatsAppForCustomerMessaging] = useState(false);
     const [conversationMemoryMode, setConversationMemoryMode] = useState<'last_n' | 'full'>('last_n');
     const [conversationMemoryCount, setConversationMemoryCount] = useState('10');
     const [productsCacheTtlSeconds, setProductsCacheTtlSeconds] = useState('300');
@@ -119,6 +121,7 @@ export default function SystemHealthPage() {
             setCorporateWhatsAppProvider(ai.settings.corporate_whatsapp_provider === 'meta' ? 'meta' : 'twilio');
             setCorporateWhatsAppFromNumber(ai.settings.corporate_whatsapp_from_number || '');
             setCorporateWhatsAppPhoneDisplay(ai.settings.corporate_whatsapp_phone_number_display || '');
+            setForceCorporateWhatsAppForCustomerMessaging(Boolean(ai.settings.force_corporate_whatsapp_for_customer_messaging));
             setConversationMemoryMode(ai.settings.conversation_memory_mode === 'full' ? 'full' : 'last_n');
             setConversationMemoryCount(String(ai.settings.conversation_memory_count ?? 10));
             setProductsCacheTtlSeconds(String(ai.settings.products_cache_ttl_seconds ?? 300));
@@ -164,6 +167,7 @@ export default function SystemHealthPage() {
                         corporate_whatsapp_provider: corporateWhatsAppProvider,
                         corporate_whatsapp_from_number: corporateWhatsAppFromNumber.trim() || null,
                         corporate_whatsapp_phone_number_display: corporateWhatsAppPhoneDisplay.trim() || null,
+                        force_corporate_whatsapp_for_customer_messaging: forceCorporateWhatsAppForCustomerMessaging,
                         conversation_memory_mode: conversationMemoryMode,
                         conversation_memory_count: Math.max(1, Math.min(200, parseInt(conversationMemoryCount || '10', 10) || 10)),
                         products_cache_ttl_seconds: Math.max(30, Math.min(3600, parseInt(productsCacheTtlSeconds || '300', 10) || 300)),
@@ -180,6 +184,7 @@ export default function SystemHealthPage() {
             setCorporateWhatsAppProvider(next.settings.corporate_whatsapp_provider === 'meta' ? 'meta' : 'twilio');
             setCorporateWhatsAppFromNumber(next.settings.corporate_whatsapp_from_number || '');
             setCorporateWhatsAppPhoneDisplay(next.settings.corporate_whatsapp_phone_number_display || '');
+            setForceCorporateWhatsAppForCustomerMessaging(Boolean(next.settings.force_corporate_whatsapp_for_customer_messaging));
             setConversationMemoryMode(next.settings.conversation_memory_mode === 'full' ? 'full' : 'last_n');
             setConversationMemoryCount(String(next.settings.conversation_memory_count ?? 10));
             setProductsCacheTtlSeconds(String(next.settings.products_cache_ttl_seconds ?? 300));
@@ -637,6 +642,12 @@ export default function SystemHealthPage() {
                                     value={corporateWhatsAppPhoneDisplay}
                                     onChange={setCorporateWhatsAppPhoneDisplay}
                                     helpText="Optional human-readable display value used in platform contact surfaces."
+                                />
+                                <Checkbox
+                                    label="Force corporate WhatsApp for customer messaging"
+                                    checked={forceCorporateWhatsAppForCustomerMessaging}
+                                    onChange={setForceCorporateWhatsAppForCustomerMessaging}
+                                    helpText="Default is off. Turn on to force all customer-facing WhatsApp sends (welcome, AI replies, manual replies, test kit) to use the Recete Ltd corporate line."
                                 />
                                 <Select
                                     label="Conversation memory mode"

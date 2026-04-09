@@ -92,3 +92,43 @@ export function normalizeLangCode(lang?: string | null): string {
   return v.slice(0, 8) || 'en';
 }
 
+export function detectSourceLanguageFromText(text: string, fallback = 'en'): string {
+  const source = String(text || '').trim();
+  if (!source) return normalizeLangCode(fallback);
+
+  const lower = source.toLowerCase();
+
+  const greekPatterns = [
+    /[α-ωάέίόύήώϊϋΐΰ]/i,
+    /\b(και|για|χρήση|προϊόν|οδηγίες|πελάτης|παραγγελία|βοήθεια)\b/i,
+  ];
+  for (const pattern of greekPatterns) {
+    if (pattern.test(lower)) return 'el';
+  }
+
+  const hungarianPatterns = [
+    /[őűŐŰ]/,
+    /\b(igen|nem|köszönöm|szia|kérem|rendben|értem|visszaküldés|termék|hogyan|miért|szeretném|tudnám)\b/i,
+  ];
+  for (const pattern of hungarianPatterns) {
+    if (pattern.test(lower)) return 'hu';
+  }
+
+  const turkishPatterns = [
+    /[şŞğĞıİçÇöÖüÜ]/,
+    /\b(merhaba|teşekkür|evet|hayır|nasıl|neden|ürün|kullanım|sipariş|iade|lütfen|yardım)\b/i,
+  ];
+  for (const pattern of turkishPatterns) {
+    if (pattern.test(lower)) return 'tr';
+  }
+
+  const germanPatterns = [
+    /[äöüßÄÖÜ]/,
+    /\b(und|oder|produkt|anwendung|kunden|bestellung|hilfe|bitte|danke|rückgabe)\b/i,
+  ];
+  for (const pattern of germanPatterns) {
+    if (pattern.test(lower)) return 'de';
+  }
+
+  return normalizeLangCode(fallback);
+}

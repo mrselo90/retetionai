@@ -1,17 +1,16 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AlertTriangleIcon, CartIcon, CatalogIcon, SettingsIcon } from "@shopify/polaris-icons";
-import { InlineGrid } from "@shopify/polaris";
+import { BlockStack, Button, InlineGrid, InlineStack, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantOverviewFromRequest } from "../platform.server";
 import {
-  ActionCard,
   DetailRows,
-  EmptyCard,
   MetricCard,
   SectionCard,
   ShellPage,
+  StatePanel,
   StatusBadge,
 } from "../components/shell-ui";
 
@@ -22,108 +21,165 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function DashboardPage() {
   const data = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
   const hasBilling = data.subscription?.status === "active";
   const hasProducts = data.metrics.totalProducts > 0;
   const hasOrders = data.metrics.totalOrders > 0;
-  const completedSteps = [hasBilling, hasProducts, hasOrders].filter(Boolean).length;
+  const hasHealthyResponseRate = data.metrics.responseRate >= 25;
+  const activeUsersHint =
+    data.metrics.activeUsers > 0
+      ? "Eligible customers available for compliant messaging."
+      : "No consent-safe customers yet — this will populate as orders come in.";
+  const todayPriority = !hasBilling
+    ? {
+        title: "Choose a plan",
+        description: "Select a Shopify plan when you are ready to launch.",
+        status: "pending",
+        action: { content: "Open billing", url: "/app/billing", icon: CartIcon },
+      }
+    : !hasProducts
+      ? {
+          title: "Prepare the catalog",
+          description: "Products need to be present and usable before AI workflows feel trustworthy.",
+          status: "pending",
+          action: { content: "Open products", url: "/app/products", icon: CatalogIcon },
+        }
+      : data.metrics.responseRate < 25
+        ? {
+            title: "Improve response quality",
+            description: "Response quality needs attention before scaling daily volume.",
+            status: "failed",
+            action: { content: "Open analytics", url: "/app/analytics", icon: AlertTriangleIcon },
+          }
+        : {
+            title: "Review buyer operations",
+            description: "Core setup is healthy. Keep conversations and customers under routine review.",
+            status: "active",
+            action: { content: "Open conversations", url: "/app/conversations", icon: AlertTriangleIcon },
+          };
+  const primaryBlocker = !hasBilling
+    ? {
+        title: "Choose a Shopify plan",
+        body: "Select a plan in Shopify when you are ready to make the app live.",
+        tone: "warning" as const,
+      }
+    : !hasProducts
+      ? {
+          title: "Catalog setup is still incomplete",
+          body: "The merchant needs usable products before AI answers, scraping, and recipe workflows can feel trustworthy.",
+          tone: "warning" as const,
+        }
+      : !hasOrders
+        ? {
+            title: "No order activity is visible yet",
+            body: "The app is configured, but retention workflows stay quiet until orders start flowing in.",
+            tone: "info" as const,
+          }
+        : data.metrics.responseRate < 25
+          ? {
+              title: "Merchant attention is needed",
+              body: "Low response rate usually points to product quality, settings, timing, or message relevance issues.",
+              tone: "critical" as const,
+            }
+          : null;
+  const quickActions = [
+    { content: "Open products", url: "/app/products", icon: CatalogIcon },
+    { content: "Adjust settings", url: "/app/settings", icon: SettingsIcon },
+    { content: "Open conversations", url: "/app/conversations", icon: AlertTriangleIcon },
+  ];
 
   return (
     <ShellPage
       title="Dashboard"
-      subtitle="High-signal merchant operations, setup status, and daily workflow readiness."
-      primaryAction={{ content: "Review products", url: "/app/products", icon: CatalogIcon }}
+      subtitle="Daily operating view for merchants after installation and initial setup."
+      primaryAction={todayPriority.action}
     >
+      {primaryBlocker ? (
+        <StatePanel
+          title={primaryBlocker.title}
+          description={primaryBlocker.body}
+          tone={primaryBlocker.tone === "warning" ? "attention" : primaryBlocker.tone}
+          action={todayPriority.action}
+        />
+      ) : null}
+
       <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
         <MetricCard label="Orders" value={data.metrics.totalOrders} hint="Orders currently visible to the retention engine." />
-        <MetricCard label="Consent-active users" value={data.metrics.activeUsers} hint="Eligible customers available for compliant messaging." />
+        <MetricCard label="Consent-active users" value={data.metrics.activeUsers} hint={activeUsersHint} />
         <MetricCard label="Catalog rows" value={data.metrics.totalProducts} hint="Products available for scraping, embeddings, and recipe logic." />
-        <MetricCard label="Response rate" value={`${data.metrics.responseRate}%`} hint="Conversation reply coverage across buyer threads." />
+        <MetricCard label="Response rate" value={`${data.metrics.responseRate}%`} hint="Replies sent vs. total buyer threads." />
       </InlineGrid>
 
       <SectionCard
-        title="Launch checklist"
-        subtitle="This should replace the old mental model of bouncing between multiple admin areas."
-        badge={
-          <StatusBadge status={completedSteps === 3 ? "active" : "pending"}>
-            {`${completedSteps}/3 complete`}
-          </StatusBadge>
-        }
+        title="Next focus"
+        subtitle="Complete one clear action at a time."
+        badge={<StatusBadge status={todayPriority.status}>{todayPriority.status === "active" ? "Healthy" : "Needs action"}</StatusBadge>}
       >
-        <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
-          <ActionCard
-            title="Billing"
-            description={hasBilling ? "Approved and ready for paid merchant usage." : "Still needs approval before core features should be considered active."}
-            action={{ content: "Open billing", url: "/app/billing", icon: CartIcon }}
-            status={hasBilling ? "active" : "pending"}
-          />
-          <ActionCard
-            title="Catalog"
-            description={hasProducts ? `${data.metrics.totalProducts} products are available.` : "No useful catalog rows yet. Add and scrape products first."}
-            action={{ content: "Open products", url: "/app/products", icon: CatalogIcon }}
-            status={hasProducts ? "active" : "pending"}
-          />
-          <ActionCard
-            title="Messaging controls"
-            description={hasOrders ? "Orders are flowing. Review tone and delivery settings now." : "No fulfilled order activity is visible yet."}
-            action={{ content: "Open settings", url: "/app/settings", icon: SettingsIcon }}
-            status={hasOrders ? "active" : "attention"}
-          />
-        </InlineGrid>
+        <BlockStack gap="300">
+          <Text as="h3" variant="headingMd">
+            {todayPriority.title}
+          </Text>
+          <Text as="p" variant="bodyMd">
+            {todayPriority.description}
+          </Text>
+          <InlineStack gap="300" wrap>
+            <Button
+              variant="primary"
+              icon={todayPriority.action.icon as never}
+              onClick={() => navigate(todayPriority.action.url)}
+            >
+              {todayPriority.action.content}
+            </Button>
+            {quickActions
+              .filter((action) => action.url !== todayPriority.action.url)
+              .slice(0, 2)
+              .map((action) => (
+                <Button key={action.url} variant="tertiary" icon={action.icon as never} onClick={() => navigate(action.url)}>
+                  {action.content}
+                </Button>
+              ))}
+          </InlineStack>
+        </BlockStack>
       </SectionCard>
 
       <SectionCard
-        title="Operational focus"
-        subtitle="Merchants should understand what to fix next without needing the legacy panel."
+        title="System status"
+        subtitle="One-line health view for launch and daily operations."
       >
-        <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+        <DetailRows
+          rows={[
+            { label: "Billing", value: hasBilling ? "Approved" : "Needs approval" },
+            { label: "Catalog", value: hasProducts ? "Ready" : "Needs setup" },
+            { label: "Orders", value: hasOrders ? "Receiving events" : "Waiting for first orders" },
+            {
+              label: "Conversation quality",
+              value: hasHealthyResponseRate ? `${data.metrics.responseRate}% healthy` : `${data.metrics.responseRate}% needs attention`,
+            },
+          ]}
+        />
+      </SectionCard>
+
+      <SectionCard
+        title="Recent orders"
+        subtitle="Latest order events seen by Recete."
+      >
+        {data.recentOrders.length > 0 ? (
           <DetailRows
-            rows={[
-              { label: "Billing", value: hasBilling ? "Approved" : "Needs approval" },
-              { label: "Catalog", value: hasProducts ? "Ready for AI flows" : "Needs product work" },
-              { label: "Orders", value: hasOrders ? "Receiving events" : "No fulfilled order signal yet" },
-              { label: "Conversation quality", value: `${data.metrics.responseRate}% response rate` },
-            ]}
+            rows={data.recentOrders.slice(0, 6).map((order) => ({
+              label: order.external_order_id || order.id,
+              value: `${order.status} • ${new Intl.DateTimeFormat("en", {
+                month: "short",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              }).format(new Date(order.created_at))}`,
+            }))}
           />
-          {data.recentOrders.length > 0 ? (
-            <DetailRows
-              rows={data.recentOrders.slice(0, 4).map((order) => ({
-                label: order.external_order_id || order.id,
-                value: order.status,
-              }))}
-            />
-          ) : (
-            <EmptyCard
-              heading="No recent orders"
-              description="No fulfilled orders have reached the retention engine yet."
-              action={{ content: "Review integrations", url: "/app/integrations" }}
-            />
-          )}
-        </InlineGrid>
-      </SectionCard>
-
-      <SectionCard
-        title="Merchant attention"
-        subtitle="Use clear escalation language instead of vague dashboard summaries."
-        badge={<StatusBadge status={data.metrics.responseRate >= 25 ? "active" : "failed"}>{data.metrics.responseRate >= 25 ? "Healthy" : "Needs work"}</StatusBadge>}
-      >
-        <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-          <ActionCard
-            title="Response quality"
-            description={
-              data.metrics.responseRate >= 25
-                ? "Response rate is healthy enough for normal merchant review."
-                : "Low response rate usually means product quality, timing, or message relevance needs work."
-            }
-            action={{ content: "Open analytics", url: "/app/analytics", icon: AlertTriangleIcon }}
-            status={data.metrics.responseRate >= 25 ? "active" : "failed"}
-          />
-          <ActionCard
-            title="Buyer operations"
-            description="Use conversations and customers as the daily operational surfaces after setup is complete."
-            action={{ content: "Open conversations", url: "/app/conversations", icon: AlertTriangleIcon }}
-            status="info"
-          />
-        </InlineGrid>
+        ) : (
+          <Text as="p" variant="bodyMd" tone="subdued">
+            Order events will appear here after the first fulfilled orders sync.
+          </Text>
+        )}
       </SectionCard>
     </ShellPage>
   );

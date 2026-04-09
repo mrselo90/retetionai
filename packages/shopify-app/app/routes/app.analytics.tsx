@@ -5,7 +5,7 @@ import { ChartVerticalIcon, ChatIcon, SettingsIcon } from "@shopify/polaris-icon
 import { Banner, BlockStack, Card, InlineGrid, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantOverviewFromRequest } from "../platform.server";
-import { ActionCard, DetailRows, MetricCard, SectionCard, ShellPage, StatusBadge } from "../components/shell-ui";
+import { ActionCard, DetailRows, MetricCard, SectionCard, ShellPage, StatePanel, StatusBadge } from "../components/shell-ui";
 import { getAnalyticsLevel, getPlanSnapshotByDomain } from "../services/planService.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -28,6 +28,49 @@ export default function AnalyticsPage() {
     data.analytics.totalConversations > 0
       ? Math.round((data.analytics.resolvedConversations / data.analytics.totalConversations) * 100)
       : 0;
+  const recommendations = [
+    {
+      title: data.metrics.responseRate < 25 ? "Raise response quality" : "Maintain response quality",
+      description: data.metrics.responseRate < 25
+        ? "Response rate is the clearest sign that messaging relevance or timing needs work."
+        : "Response rate is healthy. Keep reviewing conversations for edge cases rather than broad changes.",
+      status: data.metrics.responseRate < 25 ? "failed" : "active",
+      action: { content: data.metrics.responseRate < 25 ? "Adjust messaging settings" : "Review buyer threads", url: data.metrics.responseRate < 25 ? "/app/settings" : "/app/conversations", icon: SettingsIcon },
+    },
+    {
+      title: data.analytics.avgSentiment < 3.5 ? "Review buyer sentiment" : "Monitor sentiment drift",
+      description: data.analytics.avgSentiment < 3.5
+        ? "Sentiment is soft enough to justify checking replies and product readiness."
+        : "Sentiment is holding up, so only targeted review is needed.",
+      status: data.analytics.avgSentiment < 3.5 ? "pending" : "active",
+      action: { content: "Inspect conversations", url: "/app/conversations", icon: ChatIcon },
+    },
+    {
+      title: data.analyticsLevel === "ADVANCED" ? "Use advanced interpretation" : "Unlock deeper recommendations",
+      description: data.analyticsLevel === "ADVANCED"
+        ? "Advanced analytics is available, so use it to validate whether settings or product quality is the true issue."
+        : "Basic analytics can show trends, but Pro is needed for deeper interpretation.",
+      status: data.analyticsLevel === "ADVANCED" ? "active" : "pending",
+      action: { content: data.analyticsLevel === "ADVANCED" ? "Open conversations" : "Compare plans", url: data.analyticsLevel === "ADVANCED" ? "/app/conversations" : "/app/billing", icon: ChartVerticalIcon },
+    },
+  ];
+  const analyticsState = data.analyticsLevel !== "ADVANCED"
+    ? {
+        title: "Analytics is running in basic mode",
+        body: "Starter and Growth merchants can monitor core metrics here, but deeper interpretation still sits behind Pro.",
+        tone: "info" as const,
+      }
+    : data.metrics.responseRate < 25
+      ? {
+          title: "Analytics indicates a quality problem",
+          body: "Low response rate suggests product quality, tone, timing, or escalation handling needs attention.",
+          tone: "warning" as const,
+        }
+      : {
+          title: "Analytics is healthy enough for routine review",
+          body: "Use this page to confirm quality trends, then move into conversations or settings only when the numbers justify it.",
+          tone: "success" as const,
+        };
 
   return (
     <ShellPage
@@ -39,6 +82,17 @@ export default function AnalyticsPage() {
       }
       primaryAction={{ content: "Open conversations", url: "/app/conversations", icon: ChatIcon }}
     >
+      <StatePanel
+        title={analyticsState.title}
+        description={analyticsState.body}
+        tone={analyticsState.tone === "warning" ? "attention" : analyticsState.tone}
+        action={{
+          content: data.metrics.responseRate < 25 ? "Adjust messaging settings" : "Review buyer threads",
+          url: data.metrics.responseRate < 25 ? "/app/settings" : "/app/conversations",
+          icon: data.metrics.responseRate < 25 ? SettingsIcon : ChatIcon,
+        }}
+      />
+
       {data.analyticsLevel !== "ADVANCED" ? (
         <Banner tone="info" title="Advanced analytics requires Pro">
           Growth and Starter include basic analytics. Upgrade to Pro to unlock the advanced analytics package.
@@ -50,6 +104,23 @@ export default function AnalyticsPage() {
         <MetricCard label="Prevented returns" value={data.analytics.preventedReturns} hint="Recorded return prevention outcomes." />
         <MetricCard label="Conversations" value={data.analytics.totalConversations} hint={`${data.analytics.resolvedConversations} with 2+ messages.`} />
       </InlineGrid>
+
+      <SectionCard
+        title="Top recommendations"
+        subtitle="The merchant should leave analytics knowing what to change next."
+      >
+        <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
+          {recommendations.map((item) => (
+            <ActionCard
+              key={item.title}
+              title={item.title}
+              description={item.description}
+              status={item.status}
+              action={item.action}
+            />
+          ))}
+        </InlineGrid>
+      </SectionCard>
 
       {data.analyticsLevel === "ADVANCED" ? (
         <SectionCard
@@ -72,7 +143,7 @@ export default function AnalyticsPage() {
                     : "Sentiment is weak and likely needs settings or product-quality review."
               }
               status={data.analytics.avgSentiment >= 4 ? "active" : data.analytics.avgSentiment >= 3 ? "pending" : "failed"}
-              action={{ content: "Open settings", url: "/app/settings", icon: SettingsIcon }}
+              action={{ content: "Adjust messaging settings", url: "/app/settings", icon: SettingsIcon }}
             />
             <CardSummaryRows
               title="Coverage"
@@ -95,7 +166,7 @@ export default function AnalyticsPage() {
             title="Improve settings"
             description="If sentiment or resolution rate is weak, tone, template, and multilingual setup are the first things to review."
             status="info"
-            action={{ content: "Review settings", url: "/app/settings", icon: SettingsIcon }}
+            action={{ content: "Adjust messaging settings", url: "/app/settings", icon: SettingsIcon }}
           />
           <ActionCard
             title={data.analyticsLevel === "ADVANCED" ? "Inspect conversations" : "Upgrade for advanced analytics"}
@@ -106,7 +177,7 @@ export default function AnalyticsPage() {
             }
             status="info"
             action={{
-              content: data.analyticsLevel === "ADVANCED" ? "Open conversations" : "Open billing",
+              content: data.analyticsLevel === "ADVANCED" ? "Review buyer threads" : "Compare plans",
               url: data.analyticsLevel === "ADVANCED" ? "/app/conversations" : "/app/billing",
               icon: data.analyticsLevel === "ADVANCED" ? ChartVerticalIcon : ChartVerticalIcon,
             }}

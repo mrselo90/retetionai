@@ -4,6 +4,11 @@ import { adminAuthMiddleware } from '../middleware/adminAuth.js';
 import { getSupabaseServiceClient, getRedisClient } from '@recete/shared';
 import { getQueueStats } from '../queues.js';
 import { getPlatformAiSettings, updatePlatformAiSettings } from '../lib/runtimeModelSettings.js';
+import { normalizePhone, type NormalizedEvent } from '../lib/events.js';
+import { processNormalizedEvent } from '../lib/orderProcessor.js';
+import { addMessageToConversation, findUserByPhone, getConversationHistory, getOrCreateConversation } from '../lib/conversation.js';
+import { generateAIResponse } from '../lib/aiAgent.js';
+import { getEffectiveWhatsAppCredentials, sendWhatsAppMessage } from '../lib/whatsapp.js';
 
 const admin = new Hono();
 
@@ -25,6 +30,80 @@ function resolveAiWindowStart(aiWindowRaw: string | undefined): { key: 'mtd' | '
         return { key: '30d', periodStart: d.toISOString() };
     }
     return { key: 'mtd', periodStart: new Date(now.getFullYear(), now.getMonth(), 1).toISOString() };
+}
+
+function makeTestOrderExternalId(): string {
+    return `TEST-${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+}
+
+async function getMerchantOr404(serviceClient: ReturnType<typeof getSupabaseServiceClient>, merchantId: string) {
+    const { data: merchant, error } = await serviceClient
+        .from('merchants')
+        .select('id, name, subscription_plan, subscription_status')
+        .eq('id', merchantId)
+        .maybeSingle();
+
+    if (error || !merchant) return null;
+    return merchant;
+}
+
+async function getMerchantProducts(serviceClient: ReturnType<typeof getSupabaseServiceClient>, merchantId: string, productIds?: string[]) {
+    let query = serviceClient
+        .from('products')
+        .select('id, name, external_id, url, created_at, updated_at')
+        .eq('merchant_id', merchantId)
+        .order('updated_at', { ascending: false })
+        .limit(productIds && productIds.length > 0 ? Math.max(productIds.length, 50) : 100);
+
+    if (productIds && productIds.length > 0) {
+        query = query.in('id', productIds);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+        throw error;
+    }
+    return data || [];
+}
+
+function buildNormalizedTestEvent(input: {
+    merchantId: string;
+    integrationId?: string | null;
+    eventType: 'order_created' | 'order_delivered';
+    externalOrderId: string;
+    normalizedPhone: string;
+    customerName?: string;
+    customerEmail?: string;
+    customerLocale?: string;
+    products: Array<{ id: string; name: string; external_id?: string | null; url?: string | null }>;
+    deliveredAt?: string;
+}): NormalizedEvent {
+    const occurredAt = input.deliveredAt || new Date().toISOString();
+    return {
+        merchant_id: input.merchantId,
+        integration_id: input.integrationId || undefined,
+        source: 'super_admin_test',
+        event_type: input.eventType,
+        occurred_at: occurredAt,
+        external_order_id: input.externalOrderId,
+        customer: {
+            phone: input.normalizedPhone,
+            name: input.customerName,
+            email: input.customerEmail,
+        },
+        order: {
+            status: input.eventType === 'order_delivered' ? 'delivered' : 'created',
+            created_at: occurredAt,
+            delivered_at: input.deliveredAt,
+        },
+        items: input.products.map((product) => ({
+            external_product_id: product.external_id || product.id,
+            name: product.name,
+            url: product.url || undefined,
+        })),
+        consent_status: 'opt_in',
+        customer_locale: input.customerLocale || undefined,
+    };
 }
 
 /**
@@ -216,6 +295,58 @@ admin.get('/merchants/:id/ai-usage', async (c) => {
     }
 });
 
+/**
+ * Merchant test-kit bootstrap
+ * GET /api/admin/merchants/:id/test-kit
+ */
+admin.get('/merchants/:id/test-kit', async (c) => {
+    const serviceClient = getSupabaseServiceClient();
+    const merchantId = c.req.param('id');
+
+    try {
+        const merchant = await getMerchantOr404(serviceClient, merchantId);
+        if (!merchant) {
+            return c.json({ error: 'Merchant not found' }, 404);
+        }
+
+        const [products, integrations, effectiveWhatsApp] = await Promise.all([
+            getMerchantProducts(serviceClient, merchantId),
+            serviceClient
+                .from('integrations')
+                .select('provider, status')
+                .eq('merchant_id', merchantId),
+            getEffectiveWhatsAppCredentials(merchantId),
+        ]);
+
+        return c.json({
+            merchant,
+            integrations: integrations.data || [],
+            products: products.map((product: any) => ({
+                id: product.id,
+                name: product.name,
+                externalId: product.external_id || null,
+                url: product.url || null,
+                updatedAt: product.updated_at || product.created_at || null,
+            })),
+            whatsapp: effectiveWhatsApp
+                ? {
+                    configured: true,
+                    provider: effectiveWhatsApp.provider,
+                    from:
+                        effectiveWhatsApp.provider === 'twilio'
+                            ? effectiveWhatsApp.fromNumber
+                            : effectiveWhatsApp.phoneNumberId,
+                }
+                : {
+                    configured: false,
+                },
+        });
+    } catch (error) {
+        console.error('Failed to load merchant test kit:', error);
+        return c.json({ error: 'Failed to load merchant test kit' }, 500);
+    }
+});
+
 async function attachAiUsageSummary(serviceClient: ReturnType<typeof getSupabaseServiceClient>, merchants: any[], periodStartIso: string) {
     const merchantIds = merchants.map((m: any) => m.id).filter(Boolean);
     if (!merchantIds.length) return merchants;
@@ -364,6 +495,7 @@ admin.put('/ai-settings', async (c) => {
             typeof body.corporate_whatsapp_phone_number_display === 'string'
                 ? body.corporate_whatsapp_phone_number_display.trim()
                 : '';
+        const forceCorporateWhatsAppForCustomerMessaging = body.force_corporate_whatsapp_for_customer_messaging === true;
         const conversationMemoryMode = body.conversation_memory_mode === 'full' ? 'full' : 'last_n';
         const conversationMemoryCount =
             typeof body.conversation_memory_count === 'number' ? body.conversation_memory_count : 10;
@@ -393,6 +525,7 @@ admin.put('/ai-settings', async (c) => {
             corporate_whatsapp_provider: corporateWhatsAppProvider === 'meta' ? 'meta' : 'twilio',
             corporate_whatsapp_from_number: corporateWhatsAppFromNumber || null,
             corporate_whatsapp_phone_number_display: corporateWhatsAppPhoneNumberDisplay || null,
+            force_corporate_whatsapp_for_customer_messaging: forceCorporateWhatsAppForCustomerMessaging,
             conversation_memory_mode: conversationMemoryMode,
             conversation_memory_count: conversationMemoryCount,
             products_cache_ttl_seconds: productsCacheTtlSeconds,
@@ -402,6 +535,253 @@ admin.put('/ai-settings', async (c) => {
         console.error('Failed to update AI settings:', error);
         return c.json({
             error: 'Failed to update AI settings',
+        }, 500);
+    }
+});
+
+/**
+ * Create a super-admin test order and optionally mark it delivered immediately.
+ * POST /api/admin/test-kit/order
+ */
+admin.post('/test-kit/order', async (c) => {
+    const serviceClient = getSupabaseServiceClient();
+
+    try {
+        const body = await c.req.json();
+        const merchantId = typeof body.merchantId === 'string' ? body.merchantId.trim() : '';
+        const productIds = Array.isArray(body.productIds)
+            ? body.productIds.map((value: unknown) => String(value)).filter(Boolean)
+            : [];
+        const customerPhoneRaw = typeof body.customerPhone === 'string' ? body.customerPhone.trim() : '';
+        const customerName = typeof body.customerName === 'string' ? body.customerName.trim() : '';
+        const customerEmail = typeof body.customerEmail === 'string' ? body.customerEmail.trim().toLowerCase() : '';
+        const customerLocale = typeof body.customerLocale === 'string' ? body.customerLocale.trim().toLowerCase() : '';
+        const markDelivered = body.markDelivered !== false;
+        const externalOrderId =
+            typeof body.externalOrderId === 'string' && body.externalOrderId.trim()
+                ? body.externalOrderId.trim()
+                : makeTestOrderExternalId();
+
+        if (!merchantId) {
+            return c.json({ error: 'merchantId is required' }, 400);
+        }
+        if (productIds.length === 0) {
+            return c.json({ error: 'Select at least one product' }, 400);
+        }
+        if (!customerPhoneRaw) {
+            return c.json({ error: 'customerPhone is required' }, 400);
+        }
+
+        let normalizedPhone: string;
+        try {
+            normalizedPhone = normalizePhone(customerPhoneRaw);
+        } catch {
+            return c.json({ error: 'Enter a valid customer phone in E.164 or local format' }, 400);
+        }
+
+        const merchant = await getMerchantOr404(serviceClient, merchantId);
+        if (!merchant) {
+            return c.json({ error: 'Merchant not found' }, 404);
+        }
+
+        const { data: integration } = await serviceClient
+            .from('integrations')
+            .select('id')
+            .eq('merchant_id', merchantId)
+            .eq('provider', 'shopify')
+            .maybeSingle();
+
+        const products = await getMerchantProducts(serviceClient, merchantId, productIds);
+        if (products.length !== productIds.length) {
+            return c.json({ error: 'One or more selected products do not belong to the merchant' }, 400);
+        }
+
+        const createdEvent = buildNormalizedTestEvent({
+            merchantId,
+            integrationId: integration?.id ?? null,
+            eventType: 'order_created',
+            externalOrderId,
+            normalizedPhone,
+            customerName: customerName || undefined,
+            customerEmail: customerEmail || undefined,
+            customerLocale: customerLocale || undefined,
+            products: products as Array<{ id: string; name: string; external_id?: string | null; url?: string | null }>,
+        });
+
+        const createdResult = await processNormalizedEvent(createdEvent);
+
+        let deliveredResult: Awaited<ReturnType<typeof processNormalizedEvent>> | null = null;
+        let deliveredAt: string | null = null;
+
+        if (markDelivered) {
+            deliveredAt = new Date().toISOString();
+            const deliveredEvent = buildNormalizedTestEvent({
+                merchantId,
+                integrationId: integration?.id ?? null,
+                eventType: 'order_delivered',
+                externalOrderId,
+                normalizedPhone,
+                customerName: customerName || undefined,
+                customerEmail: customerEmail || undefined,
+                customerLocale: customerLocale || undefined,
+                products: products as Array<{ id: string; name: string; external_id?: string | null; url?: string | null }>,
+                deliveredAt,
+            });
+            deliveredResult = await processNormalizedEvent(deliveredEvent);
+        }
+
+        const { data: order } = await serviceClient
+            .from('orders')
+            .select('id, external_order_id, status, delivery_date, created_at')
+            .eq('merchant_id', merchantId)
+            .eq('external_order_id', externalOrderId)
+            .maybeSingle();
+
+        return c.json({
+            success: true,
+            merchant: {
+                id: merchant.id,
+                name: merchant.name,
+            },
+            order: {
+                id: order?.id || deliveredResult?.orderId || createdResult.orderId,
+                externalOrderId,
+                status: order?.status || (markDelivered ? 'delivered' : 'created'),
+                deliveryDate: order?.delivery_date || deliveredAt,
+                createdAt: order?.created_at || createdEvent.occurred_at,
+            },
+            user: {
+                id: deliveredResult?.userId || createdResult.userId,
+                phone: normalizedPhone,
+                name: customerName || null,
+                email: customerEmail || null,
+            },
+            products: products.map((product: any) => ({
+                id: product.id,
+                name: product.name,
+                externalId: product.external_id || null,
+            })),
+            queuedFollowUps: markDelivered,
+        });
+    } catch (error) {
+        console.error('Failed to create super admin test order:', error);
+        return c.json({
+            error: error instanceof Error ? error.message : 'Failed to create test order',
+        }, 500);
+    }
+});
+
+/**
+ * Simulate an inbound WhatsApp reply and optionally send the AI answer live.
+ * POST /api/admin/test-kit/whatsapp-reply
+ */
+admin.post('/test-kit/whatsapp-reply', async (c) => {
+    const serviceClient = getSupabaseServiceClient();
+
+    try {
+        const body = await c.req.json();
+        const merchantId = typeof body.merchantId === 'string' ? body.merchantId.trim() : '';
+        const phoneRaw = typeof body.phone === 'string' ? body.phone.trim() : '';
+        const message = typeof body.message === 'string' ? body.message.trim() : '';
+        const requestedOrderId = typeof body.orderId === 'string' ? body.orderId.trim() : '';
+        const sendReplyLive = body.sendReplyLive === true;
+
+        if (!merchantId || !phoneRaw || !message) {
+            return c.json({ error: 'merchantId, phone, and message are required' }, 400);
+        }
+
+        let normalizedPhoneValue: string;
+        try {
+            normalizedPhoneValue = normalizePhone(phoneRaw);
+        } catch {
+            return c.json({ error: 'Enter a valid customer phone in E.164 or local format' }, 400);
+        }
+
+        const merchant = await getMerchantOr404(serviceClient, merchantId);
+        if (!merchant) {
+            return c.json({ error: 'Merchant not found' }, 404);
+        }
+
+        const user = await findUserByPhone(normalizedPhoneValue, merchantId);
+        if (!user) {
+            return c.json({ error: 'Customer not found. Create a test order first.' }, 404);
+        }
+
+        let orderId = requestedOrderId || undefined;
+        if (!orderId) {
+            const { data: latestOrder } = await serviceClient
+                .from('orders')
+                .select('id, status')
+                .eq('merchant_id', merchantId)
+                .eq('user_id', user.userId)
+                .order('updated_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            orderId = latestOrder?.id || undefined;
+        }
+
+        const conversationId = await getOrCreateConversation(user.userId, orderId, merchantId);
+        await addMessageToConversation(conversationId, 'user', message);
+        const history = await getConversationHistory(conversationId);
+        const aiResponse = await generateAIResponse(
+            message,
+            merchantId,
+            user.userId,
+            conversationId,
+            orderId,
+            history
+        );
+        await addMessageToConversation(conversationId, 'assistant', aiResponse.response);
+
+        let liveSend: { attempted: boolean; success: boolean; error?: string | null; messageId?: string | null } | null = null;
+
+        if (sendReplyLive) {
+            const credentials = await getEffectiveWhatsAppCredentials(merchantId);
+            if (!credentials) {
+                liveSend = {
+                    attempted: true,
+                    success: false,
+                    error: 'WhatsApp is not configured for this merchant',
+                };
+            } else {
+                const result = await sendWhatsAppMessage(
+                    {
+                        to: normalizedPhoneValue,
+                        text: aiResponse.response,
+                        preview_url: false,
+                    },
+                    credentials
+                );
+
+                liveSend = {
+                    attempted: true,
+                    success: result.success,
+                    error: result.error || null,
+                    messageId: result.messageId || null,
+                };
+            }
+        }
+
+        return c.json({
+            success: true,
+            conversationId,
+            orderId: orderId || null,
+            user: {
+                id: user.userId,
+                name: user.userName || null,
+                phone: normalizedPhoneValue,
+            },
+            inboundMessage: message,
+            aiReply: aiResponse.response,
+            intent: aiResponse.intent,
+            guardrailBlocked: aiResponse.guardrailBlocked,
+            upsellTriggered: aiResponse.upsellTriggered,
+            liveSend,
+        });
+    } catch (error) {
+        console.error('Failed to simulate WhatsApp reply:', error);
+        return c.json({
+            error: error instanceof Error ? error.message : 'Failed to simulate WhatsApp reply',
         }, 500);
     }
 });

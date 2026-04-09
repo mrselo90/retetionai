@@ -163,6 +163,17 @@ export default function BillingPage() {
   const requestedPlanDefinition = data.requestedPlan
     ? getPlanDefinitionByKey(data.requestedPlan)
     : null;
+  const launchState = data.hasActivePayment
+    ? {
+        title: "Billing is active",
+        body: "Your Shopify plan is approved. You can continue setup and daily operations.",
+        tone: "success" as const,
+      }
+    : {
+        title: "Choose a Shopify plan",
+        body: "Select a plan in Shopify when you are ready to launch.",
+        tone: "warning" as const,
+      };
 
   return (
     <ShellPage
@@ -170,6 +181,10 @@ export default function BillingPage() {
       subtitle="Your subscription is managed by Shopify. Compare plans below and open Shopify's hosted pricing screen to change plans."
     >
       {navigation.state !== "idle" ? <Spinner accessibilityLabel="Loading" size="small" /> : null}
+
+      <Banner title={launchState.title} tone={launchState.tone}>
+        {launchState.body}
+      </Banner>
 
       {data.error ? (
         <Banner title="Unable to load billing status" tone="warning">
@@ -216,9 +231,42 @@ export default function BillingPage() {
         ) : (
           <EmptyCard
             heading="No active subscription"
-            description="Install a plan from the Shopify App Store to unlock retention features."
+            description="Select a Shopify plan to activate billing for this store."
           />
         )}
+      </SectionCard>
+
+      <SectionCard
+        title="Merchant decision"
+        subtitle="This page should make it obvious whether billing needs action right now."
+      >
+        <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+          <Card padding="500">
+            <BlockStack gap="200">
+              <Text as="h3" variant="headingMd">Current state</Text>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                {data.hasActivePayment
+                  ? `The active plan is ${activePlanName || "approved"}.`
+                  : "No approved subscription is active yet."}
+              </Text>
+            </BlockStack>
+          </Card>
+          <Card padding="500">
+            <BlockStack gap="200">
+              <Text as="h3" variant="headingMd">Recommended next step</Text>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                {data.hasActivePayment
+                  ? "Use Shopify pricing only if you want to change plans."
+                  : "Open Shopify pricing and choose the plan you want to use."}
+              </Text>
+              {data.managedPricingUrl ? (
+                <Button url={data.managedPricingUrl} target="_top" variant="primary">
+                  {data.hasActivePayment ? "Manage plan in Shopify" : "Approve plan in Shopify"}
+                </Button>
+              ) : null}
+            </BlockStack>
+          </Card>
+        </InlineGrid>
       </SectionCard>
 
       <Banner title="How to change your plan" tone="info">

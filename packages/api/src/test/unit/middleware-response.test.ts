@@ -63,16 +63,16 @@ describe('multi-lang rag flags', () => {
     __resetMultiLangRagFlagsForTests();
   });
 
-  it('disables chunk shadow writes by default', () => {
+  it('enables chunk shadow writes by default', () => {
     const flags = getMultiLangRagFlags();
-    expect(flags.chunkShadowWrite).toBe(false);
+    expect(flags.chunkShadowWrite).toBe(true);
   });
 
-  it('allows explicit opt-in for chunk shadow writes', () => {
-    process.env.MULTI_LANG_CHUNK_SHADOW_WRITE = 'true';
+  it('allows explicit opt-out for chunk shadow writes', () => {
+    process.env.MULTI_LANG_CHUNK_SHADOW_WRITE = 'false';
     __resetMultiLangRagFlagsForTests();
 
     const flags = getMultiLangRagFlags();
-    expect(flags.chunkShadowWrite).toBe(true);
+    expect(flags.chunkShadowWrite).toBe(false);
   });
 });

@@ -6,6 +6,7 @@
 import { Worker, WorkerOptions } from 'bullmq';
 import { getRedisClient, getSupabaseServiceClient, logger } from '@recete/shared';
 import {
+  buildShopifyProductFallbackContent,
   QUEUE_NAMES,
   ScheduledMessageJobData,
   ScrapeJobData,
@@ -16,7 +17,12 @@ import {
   fetchShopifyProductByHandle,
   type ProductInstructionRow,
 } from '@recete/shared';
-import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from './lib/whatsapp.js';
+import {
+  sendTwilioWhatsAppTemplate,
+  sendWhatsAppMessage,
+  getEffectiveWhatsAppCredentials,
+  type TwilioWhatsAppCredentials,
+} from './lib/whatsapp.js';
 import { scrapeProductPage } from './lib/scraper.js';
 import { processProductForRAG } from './lib/knowledgeBase.js';
 
@@ -65,19 +71,106 @@ function buildProductListText(productNames: string[]): string {
   return productNames.map((name) => `- ${name}`).join('\n');
 }
 
+function buildInlineProductNames(productNames: string[]): string {
+  if (productNames.length === 0) return 'your products';
+  if (productNames.length === 1) return productNames[0];
+  if (productNames.length === 2) return `${productNames[0]} and ${productNames[1]}`;
+  return `${productNames.slice(0, -1).join(', ')}, and ${productNames[productNames.length - 1]}`;
+}
+
+function getInternalApiBaseUrl(): string {
+  const configured =
+    process.env.INTERNAL_API_URL?.trim() ||
+    process.env.API_INTERNAL_URL?.trim() ||
+    process.env.VITE_API_URL?.trim() ||
+    process.env.API_URL?.trim() ||
+    '';
+
+  if (!configured) {
+    return 'http://127.0.0.1:3002';
+  }
+
+  // Production safety: older env files may still point workers to legacy local web port (3001),
+  // which returns HTML/404 for internal API routes. Normalize to API local port.
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      const parsed = new URL(configured);
+      if ((parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') && parsed.port === '3001') {
+        return 'http://127.0.0.1:3002';
+      }
+    } catch {
+      // Keep original value if URL parsing fails.
+    }
+  }
+
+  return configured;
+}
+
+function getWelcomeTemplateContentSid(lang: WorkerLang): string | null {
+  if (lang === 'hu') {
+    return process.env.TWILIO_TEMPLATE_WELCOME_HU?.trim() || process.env.TWILIO_TEMPLATE_WELCOME_EN?.trim() || null;
+  }
+  if (lang === 'tr') {
+    return process.env.TWILIO_TEMPLATE_WELCOME_TR?.trim() || process.env.TWILIO_TEMPLATE_WELCOME_EN?.trim() || null;
+  }
+  return process.env.TWILIO_TEMPLATE_WELCOME_EN?.trim() || null;
+}
+
 function applyWelcomeTemplate(
   template: string,
   context: {
+    customerFirstName?: string | null;
     orderNumber?: string | null;
     productList?: string | null;
+    productNames?: string | null;
+    productCount?: number | null;
+    botName?: string | null;
   }
 ): string {
+  const customerFirstName = context.customerFirstName?.trim() || 'Customer';
   const orderNumber = context.orderNumber?.trim() || '-';
   const productList = context.productList?.trim() || '-';
+  const productNames = context.productNames?.trim() || 'your products';
+  const productCount = typeof context.productCount === 'number' ? String(context.productCount) : '0';
+  const botName = context.botName?.trim() || 'Recete';
 
   return template
+    .replace(/\{\{\s*customer_first_name\s*\}\}/gi, customerFirstName)
     .replace(/\{\{\s*order_number\s*\}\}/gi, orderNumber)
-    .replace(/\{\{\s*product_list\s*\}\}/gi, productList);
+    .replace(/\{\{\s*product_list\s*\}\}/gi, productList)
+    .replace(/\{\{\s*product_names\s*\}\}/gi, productNames)
+    .replace(/\{\{\s*product_count\s*\}\}/gi, productCount)
+    .replace(/\{\{\s*bot_name\s*\}\}/gi, botName);
+}
+
+async function hasActiveWhatsAppConversationWindow(
+  serviceClient: ReturnType<typeof getSupabaseServiceClient>,
+  merchantId: string,
+  phone: string
+): Promise<boolean> {
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: recentInbound, error } = await serviceClient
+    .from('whatsapp_inbound_events')
+    .select('id')
+    .eq('merchant_id', merchantId)
+    .eq('from_phone', phone)
+    .gte('received_at', twentyFourHoursAgo)
+    .limit(1)
+    .maybeSingle();
+
+  if (!error && recentInbound?.id) return true;
+
+  const { data: openTemplateWindow } = await serviceClient
+    .from('delivery_template_events')
+    .select('id')
+    .eq('merchant_id', merchantId)
+    .eq('to_phone', phone)
+    .gte('conversation_window_open_until', new Date().toISOString())
+    .limit(1)
+    .maybeSingle();
+
+  return Boolean(openTemplateWindow?.id);
 }
 
 type ConversationHistoryMessage = {
@@ -255,6 +348,11 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
 
       // Generate message if template not provided
       let message = messageTemplate;
+      let welcomeTemplateContentSid: string | null = null;
+      let botNameForWelcome: string | null = null;
+      let welcomeProductNames: string[] = [];
+      let welcomeOrderNumber: string | null = null;
+      let welcomeCustomerFirstName: string | null = null;
 
       if (!message) {
         // Determine merchant language from persona_settings.default_language (fallback: 'tr')
@@ -271,6 +369,13 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           personaSettings.whatsapp_welcome_template.trim().length > 0
             ? personaSettings.whatsapp_welcome_template.trim()
             : null;
+        botNameForWelcome = typeof personaSettings?.bot_name === 'string' ? personaSettings.bot_name : null;
+        welcomeTemplateContentSid =
+          getWelcomeTemplateContentSid(lang) ||
+          (typeof personaSettings?.whatsapp_welcome_template_content_sid === 'string' &&
+          personaSettings.whatsapp_welcome_template_content_sid.trim().length > 0
+            ? personaSettings.whatsapp_welcome_template_content_sid.trim()
+            : null);
 
         // T+0 welcome: build beauty-consultant message from product usage instructions
         if (type === 'welcome' && productIds && productIds.length > 0) {
@@ -289,7 +394,6 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
             productNames = uniqueNonEmpty((products || []).map((p: any) => p.name));
           }
 
-          let orderNumber: string | null = null;
           if (orderId) {
             const { data: orderRow } = await serviceClient
               .from('orders')
@@ -297,14 +401,28 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
               .eq('id', orderId)
               .eq('merchant_id', merchantId)
               .single();
-            orderNumber = (orderRow as { external_order_id?: string } | null)?.external_order_id || null;
+            welcomeOrderNumber = (orderRow as { external_order_id?: string } | null)?.external_order_id || null;
           }
+          const { data: userRow } = await serviceClient
+            .from('users')
+            .select('name')
+            .eq('id', userId)
+            .eq('merchant_id', merchantId)
+            .maybeSingle();
+          welcomeCustomerFirstName = ((userRow as { name?: string | null } | null)?.name || '').trim().split(/\s+/)[0] || null;
+          welcomeProductNames = productNames;
+
+          const welcomeContext = {
+            customerFirstName: welcomeCustomerFirstName,
+            orderNumber: welcomeOrderNumber,
+            productList: buildProductListText(productNames),
+            productNames: buildInlineProductNames(productNames),
+            productCount: productNames.length,
+            botName: botNameForWelcome,
+          };
 
           if (customWelcomeTemplate) {
-            message = applyWelcomeTemplate(customWelcomeTemplate, {
-              orderNumber,
-              productList: buildProductListText(productNames),
-            });
+            message = applyWelcomeTemplate(customWelcomeTemplate, welcomeContext);
           } else if (instructions.length > 0) {
             const parts = instructions.map(
               (row: ProductInstructionRow) =>
@@ -318,7 +436,6 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
             message = tpl.welcome;
           }
         } else if (type === 'welcome' && customWelcomeTemplate) {
-          let orderNumber: string | null = null;
           if (orderId) {
             const { data: orderRow } = await serviceClient
               .from('orders')
@@ -326,26 +443,73 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
               .eq('id', orderId)
               .eq('merchant_id', merchantId)
               .single();
-            orderNumber = (orderRow as { external_order_id?: string } | null)?.external_order_id || null;
+            welcomeOrderNumber = (orderRow as { external_order_id?: string } | null)?.external_order_id || null;
           }
+          const { data: userRow } = await serviceClient
+            .from('users')
+            .select('name')
+            .eq('id', userId)
+            .eq('merchant_id', merchantId)
+            .maybeSingle();
+          welcomeCustomerFirstName = ((userRow as { name?: string | null } | null)?.name || '').trim().split(/\s+/)[0] || null;
           message = applyWelcomeTemplate(customWelcomeTemplate, {
-            orderNumber,
+            customerFirstName: welcomeCustomerFirstName,
+            orderNumber: welcomeOrderNumber,
             productList: '-',
+            productNames: 'your products',
+            productCount: 0,
+            botName: botNameForWelcome,
           });
         } else {
           message = tpl[type] || tpl.welcome;
         }
       }
 
-      // Send WhatsApp message
-      const sendResult = await sendWhatsAppMessage(
-        {
-          to,
-          text: message,
-          preview_url: false,
-        },
-        credentials
-      );
+      let sendResult;
+      if (type === 'welcome' && credentials.provider === 'twilio') {
+        const activeWindow = await hasActiveWhatsAppConversationWindow(serviceClient, merchantId, to);
+        if (!activeWindow) {
+          if (!welcomeTemplateContentSid) {
+            sendResult = {
+              success: false,
+              provider: 'twilio' as const,
+              error: 'Twilio welcome template requires a platform-managed Content SID when the 24-hour conversation window is closed',
+              retryable: false,
+              failureCategory: 'permanent' as const,
+            };
+          } else {
+            sendResult = await sendTwilioWhatsAppTemplate({
+              to,
+              contentSid: welcomeTemplateContentSid,
+              contentVariables: {
+                '1': message,
+                '2': welcomeCustomerFirstName?.trim() || 'Customer',
+                '3': welcomeOrderNumber?.trim() || '-',
+                '4': buildInlineProductNames(welcomeProductNames),
+              },
+              credentials: credentials as TwilioWhatsAppCredentials,
+            });
+          }
+        } else {
+          sendResult = await sendWhatsAppMessage(
+            {
+              to,
+              text: message,
+              preview_url: false,
+            },
+            credentials
+          );
+        }
+      } else {
+        sendResult = await sendWhatsAppMessage(
+          {
+            to,
+            text: message,
+            preview_url: false,
+          },
+          credentials
+        );
+      }
 
       if (!sendResult.success) {
         if (sendResult.retryable) {
@@ -465,7 +629,7 @@ export const commerceEventsWorker = new Worker<CommerceEventJobData>(
   async (job) => {
     const { externalEventId, merchantId } = job.data;
     const internalSecret = process.env.INTERNAL_SERVICE_SECRET?.trim();
-    const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:3001';
+    const apiUrl = getInternalApiBaseUrl();
 
     if (!internalSecret) {
       throw new Error('INTERNAL_SERVICE_SECRET is required for commerce event worker');
@@ -507,7 +671,7 @@ export const gdprJobsWorker = new Worker<GdprJobData>(
   async (job) => {
     const { gdprJobId, merchantId } = job.data;
     const internalSecret = process.env.INTERNAL_SERVICE_SECRET?.trim();
-    const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:3001';
+    const apiUrl = getInternalApiBaseUrl();
 
     if (!internalSecret) {
       throw new Error('INTERNAL_SERVICE_SECRET is required for GDPR jobs worker');
@@ -597,8 +761,12 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
                   handle
                 );
 
-                if (shopifyProduct && shopifyProduct.descriptionHtml) {
-                  rawContent = shopifyProduct.descriptionHtml;
+                const fallbackContent = shopifyProduct
+                  ? buildShopifyProductFallbackContent(shopifyProduct)
+                  : '';
+
+                if (shopifyProduct && fallbackContent) {
+                  rawContent = fallbackContent;
                   title = shopifyProduct.title || title;
                   logger.info({ merchantId, productId }, '[Scrape Job] Admin API fallback successful');
                 }
@@ -616,7 +784,7 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
       }
 
       // Step 2: Enrich product content with LLM via API (internal route)
-      const apiUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:3001';
+      const apiUrl = getInternalApiBaseUrl();
       let enrichedText = rawContent;
       try {
         const enrichRes = await fetch(`${apiUrl}/api/products/enrich`, {
@@ -726,12 +894,7 @@ export const whatsappInboundWorker = new Worker<WhatsAppInboundJobData>(
   async (job) => {
     const { inboundEventId, merchantId } = job.data;
     const internalSecret = process.env.INTERNAL_SERVICE_SECRET?.trim();
-    const apiUrl =
-      process.env.INTERNAL_API_URL?.trim() ||
-      process.env.API_INTERNAL_URL?.trim() ||
-      process.env.VITE_API_URL?.trim() ||
-      process.env.API_URL?.trim() ||
-      'http://127.0.0.1:3002';
+    const apiUrl = getInternalApiBaseUrl();
 
     if (!internalSecret) {
       throw new Error('INTERNAL_SERVICE_SECRET is required for whatsapp inbound worker');

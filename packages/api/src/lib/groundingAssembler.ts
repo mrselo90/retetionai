@@ -11,6 +11,7 @@ export interface GroundingAssemblyInput {
   merchantId: string;
   question: string;
   userLang: SupportedLanguage;
+  responseLang?: SupportedLanguage;
   orderId?: string;
   productIds?: string[];
   retrievalQuery?: string;
@@ -117,6 +118,7 @@ export async function assembleGroundingEvidence(
     similarityThreshold: input.similarityThreshold || retrievalPolicy.similarityThreshold,
     preferredSectionTypes: input.preferredSectionTypes || retrievalPolicy.preferredSectionTypes || null,
     lang: input.userLang,
+    responseLang: input.responseLang || input.userLang,
   });
 
   const ragResult = shouldSuppressBroadRetrieval
@@ -166,7 +168,7 @@ export async function assembleGroundingEvidence(
 
   const plannerQuery = input.plannerQuery || input.question;
   const planned = factsSnapshots.length > 0
-    ? planStructuredFactAnswer(plannerQuery, input.userLang, factsSnapshots, {
+    ? planStructuredFactAnswer(plannerQuery, input.responseLang || input.userLang, factsSnapshots, {
         responseLength: input.responseLength,
         includeEvidenceQuote: true,
       })

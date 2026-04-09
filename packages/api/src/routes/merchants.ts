@@ -8,13 +8,55 @@ import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
 import { getMerchantBotInfo, setMerchantBotInfoKey } from '../lib/botInfo.js';
 import { SYSTEM_GUARDRAILS, type CustomGuardrail } from '../lib/guardrails.js';
+import { invalidateApiCache } from '../lib/cache.js';
+import { MultiLangChunkShadowWriteService } from '../lib/multiLangRag/chunkShadowWriteService.js';
 import { ShopSettingsService } from '../lib/multiLangRag/shopSettingsService.js';
+import { normalizeLangCode } from '../lib/multiLangRag/utils.js';
 import { buildProductKnowledgeHealthMap, summarizeMerchantKnowledgeHealth } from '../lib/knowledgeHealth.js';
 
 const merchants = new Hono();
 
 // All routes require authentication
 merchants.use('/*', authMiddleware);
+
+function triggerLanguageBackfill(merchantId: string, reason: { added: string[]; removed: string[] }) {
+  void (async () => {
+    await invalidateApiCache(`products:${merchantId}`);
+    const serviceClient = getSupabaseServiceClient();
+    const syncService = new MultiLangChunkShadowWriteService();
+    const { data: products, error } = await serviceClient
+      .from('products')
+      .select('id')
+      .eq('merchant_id', merchantId);
+
+    if (error) {
+      logger.warn({ error: error.message, merchantId, reason }, 'Failed to start language backfill');
+      return;
+    }
+
+    for (const product of products || []) {
+      try {
+        await syncService.syncProduct(merchantId, String(product.id));
+      } catch (syncError) {
+        logger.warn(
+          {
+            error: syncError instanceof Error ? syncError.message : 'unknown',
+            merchantId,
+            productId: product.id,
+            reason,
+          },
+          'Product language backfill failed',
+        );
+      }
+    }
+
+    logger.info(
+      { merchantId, productCount: (products || []).length, reason },
+      'Product language backfill completed',
+    );
+    await invalidateApiCache(`products:${merchantId}`);
+  })();
+}
 
 /**
  * Get Current Merchant (Protected)
@@ -100,7 +142,7 @@ merchants.put('/me', async (c) => {
 });
 
 /**
- * Get Multi-language RAG settings (per shop/merchant)
+ * Get customer reply language settings (per shop/merchant)
  * GET /api/merchants/me/multi-lang-rag-settings
  */
 merchants.get('/me/multi-lang-rag-settings', async (c) => {
@@ -111,14 +153,14 @@ merchants.get('/me/multi-lang-rag-settings', async (c) => {
     return c.json({ settings });
   } catch (error) {
     return c.json({
-      error: 'Failed to load multi-language RAG settings',
+      error: 'Failed to load language settings',
       details: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }
 });
 
 /**
- * Update Multi-language RAG settings (per shop/merchant)
+ * Update customer reply language settings (per shop/merchant)
  * PUT /api/merchants/me/multi-lang-rag-settings
  */
 merchants.put('/me/multi-lang-rag-settings', async (c) => {
@@ -145,7 +187,7 @@ merchants.put('/me/multi-lang-rag-settings', async (c) => {
       if (typeof body.multi_lang_rag_enabled !== 'boolean') {
         return c.json({ error: 'multi_lang_rag_enabled must be a boolean' }, 400);
       }
-      patch.multi_lang_rag_enabled = body.multi_lang_rag_enabled;
+      patch.multi_lang_rag_enabled = true;
     }
 
     if (Object.keys(patch).length === 0) {
@@ -153,11 +195,31 @@ merchants.put('/me/multi-lang-rag-settings', async (c) => {
     }
 
     const service = new ShopSettingsService();
+    const previous = await service.getOrCreate(merchantId);
     const settings = await service.update(merchantId, patch);
-    return c.json({ settings });
+    await invalidateApiCache(`products:${merchantId}`);
+    const previousLangs = new Set((previous.enabled_langs || []).map((lang) => normalizeLangCode(lang)));
+    const nextLangs = new Set((settings.enabled_langs || []).map((lang) => normalizeLangCode(lang)));
+    const addedLangs = [...nextLangs].filter((lang) => !previousLangs.has(lang));
+    const removedLangs = [...previousLangs].filter((lang) => !nextLangs.has(lang));
+    const backfillTriggered = addedLangs.length > 0 || removedLangs.length > 0;
+
+    if (backfillTriggered) {
+      triggerLanguageBackfill(merchantId, {
+        added: addedLangs,
+        removed: removedLangs,
+      });
+    }
+
+    return c.json({
+      settings,
+      backfillTriggered,
+      addedLangs,
+      removedLangs,
+    });
   } catch (error) {
     return c.json({
-      error: 'Failed to update multi-language RAG settings',
+      error: 'Failed to update language settings',
       details: error instanceof Error ? error.message : 'Unknown error',
     }, 500);
   }

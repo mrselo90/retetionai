@@ -96,16 +96,16 @@ export function SectionCard({
 }) {
   return (
     <div id={id}>
-      <Card padding="500">
-      <BlockStack gap="400">
+      <Card padding="400" roundedAbove="sm">
+      <BlockStack gap="300">
         <InlineStack align="space-between" blockAlign="start" gap="400">
           <BlockStack gap="100">
-            <Text as="h2" variant="headingLg">
+            <Text as="h2" variant="headingMd">
               {title}
             </Text>
             {subtitle ? (
-              <Box maxWidth="560px">
-                <Text as="p" variant="bodyMd" tone="subdued">
+              <Box maxWidth="36rem">
+                <Text as="p" variant="bodySm">
                   {subtitle}
                 </Text>
               </Box>
@@ -138,7 +138,7 @@ export function MetricCard({
   hint: string;
 }) {
   return (
-    <Card padding="500">
+    <Card padding="400" roundedAbove="sm">
       <BlockStack gap="200">
         <Text as="p" variant="bodySm" tone="subdued">
           {label}
@@ -147,7 +147,7 @@ export function MetricCard({
           {value}
         </Text>
         <Box maxWidth="18rem">
-          <Text as="p" variant="bodyMd" tone="subdued">
+          <Text as="p" variant="bodySm">
             {hint}
           </Text>
         </Box>
@@ -222,26 +222,72 @@ export function ActionCard({
 }) {
   const navigate = useNavigate();
   return (
-    <Card padding="500">
+    <Card padding="400" roundedAbove="sm">
       <BlockStack gap="300">
         <InlineStack align="space-between" blockAlign="start" gap="300">
-          <Text as="h3" variant="headingLg">
+          <Text as="h3" variant="headingMd">
             {title}
           </Text>
           {status ? <StatusBadge status={status}>{status}</StatusBadge> : null}
         </InlineStack>
         <Box maxWidth="24rem">
-          <Text as="p" variant="bodyMd" tone="subdued">
+          <Text as="p" variant="bodySm">
             {description}
           </Text>
         </Box>
         {action ? (
           <InlineStack>
-            <Button onClick={() => navigate(action.url)} icon={action.icon as never} variant="primary">
+            <Button onClick={() => navigate(action.url)} icon={action.icon as never} variant="tertiary">
               {action.content}
             </Button>
           </InlineStack>
         ) : null}
+      </BlockStack>
+    </Card>
+  );
+}
+
+export function StatePanel({
+  title,
+  description,
+  tone = "info",
+  action,
+}: {
+  title: string;
+  description: string;
+  tone?: "success" | "attention" | "critical" | "info";
+  action?: { content: string; url: string; icon?: IconSource };
+}) {
+  const navigate = useNavigate();
+  return (
+    <Card padding="500" roundedAbove="sm">
+      <BlockStack gap="200">
+        <Text as="p" variant="bodySm" tone="subdued">
+          {tone === "critical"
+            ? "Needs attention"
+            : tone === "attention"
+              ? "In progress"
+              : tone === "success"
+                ? "Healthy"
+                : "Overview"}
+        </Text>
+        <InlineStack align="space-between" blockAlign="end" gap="300" wrap>
+          <Box maxWidth="42rem">
+            <BlockStack gap="150">
+              <Text as="h2" variant="headingLg">
+                {title}
+              </Text>
+              <Text as="p" variant="bodyMd">
+                {description}
+              </Text>
+            </BlockStack>
+          </Box>
+          {action ? (
+            <Button onClick={() => navigate(action.url)} icon={action.icon as never} variant="primary">
+              {action.content}
+            </Button>
+          ) : null}
+        </InlineStack>
       </BlockStack>
     </Card>
   );

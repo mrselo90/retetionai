@@ -6,7 +6,7 @@ import { EmbeddingService } from './embeddingService.js';
 import { ShopSettingsService } from './shopSettingsService.js';
 import { getMultiLangRagFlags } from './config.js';
 import { buildProductI18nSourceSnapshot } from './productI18nSnapshot.js';
-import { normalizeLangCode, stableStringify, stripHtmlToText } from './utils.js';
+import { buildEmbeddingDocument, detectSourceLanguageFromText, normalizeLangCode, stableStringify, stripHtmlToText } from './utils.js';
 
 type ChunkDoc = {
   lang: string;
@@ -146,12 +146,6 @@ export class MultiLangChunkShadowWriteService {
       return;
     }
 
-    const sourceText = String(product.enriched_text || product.raw_text || product.name || '').trim();
-    if (!sourceText) {
-      logger.info({ shopId, productId }, 'Multi-lang chunk shadow write skipped: no source text');
-      return;
-    }
-
     const { data: productInstruction } = await svc
       .from('product_instructions')
       .select('usage_instructions, recipe_summary, prevention_tips')
@@ -159,19 +153,27 @@ export class MultiLangChunkShadowWriteService {
       .eq('product_id', productId)
       .maybeSingle();
 
-    const settings = await this.settingsService.getOrCreate(shopId, sourceText);
     const sourceSnapshot = buildProductI18nSourceSnapshot({ ...product, product_instructions: productInstruction || null });
+    const sourceText = buildEmbeddingDocument(sourceSnapshot);
+    if (!sourceText) {
+      logger.info({ shopId, productId }, 'Multi-lang chunk shadow write skipped: no source content after snapshot build');
+      return;
+    }
+
+    const settings = await this.settingsService.getOrCreate(shopId, sourceText);
+    const detectedSourceLang = detectSourceLanguageFromText(sourceText, settings.default_source_lang);
+    const serviceLangs = [...new Set((settings.enabled_langs || []).map(normalizeLangCode).filter(Boolean))];
     await this.i18nService.upsertTranslations({
       shopId,
       productId,
       sourceSnapshot,
-      sourceLang: settings.default_source_lang,
-      enabledLangs: settings.enabled_langs,
+      sourceLang: detectedSourceLang,
+      enabledLangs: serviceLangs,
     });
 
     const langs = [...new Set([
-      normalizeLangCode(settings.default_source_lang),
-      ...settings.enabled_langs.map(normalizeLangCode),
+      detectedSourceLang,
+      ...serviceLangs,
     ])];
 
     await svc
@@ -221,6 +223,7 @@ export class MultiLangChunkShadowWriteService {
       {
         shopId,
         productId,
+        detectedSourceLang,
         langs,
         embeddingModel,
       },

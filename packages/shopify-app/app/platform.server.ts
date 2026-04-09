@@ -136,6 +136,13 @@ export interface MultiLangRagSettings {
   multi_lang_rag_enabled: boolean;
 }
 
+export interface MultiLangSettingsUpdateResponse {
+  settings: MultiLangRagSettings;
+  backfillTriggered?: boolean;
+  addedLangs?: string[];
+  removedLangs?: string[];
+}
+
 export interface MerchantProduct {
   id: string;
   name: string;
@@ -145,6 +152,56 @@ export interface MerchantProduct {
   created_at?: string | null;
   updated_at?: string | null;
   chunkCount?: number;
+  knowledgeHealth?: {
+    score: number;
+    coverage: "strong" | "moderate" | "weak";
+    answerRisk: "low" | "medium" | "high";
+    missingReasonCodes: string[];
+    metrics: {
+      chunkCount: number;
+      factFieldCount: number;
+      hasEnrichedText: boolean;
+      hasFacts: boolean;
+      hasPreventionTips: boolean;
+      hasRawText: boolean;
+      usageInstructionLength: number;
+    };
+  } | null;
+  languageHealth?: {
+    sourceLanguage: string | null;
+    requiredLanguages: string[];
+    translatedLanguages: string[];
+    readyLanguages: string[];
+    missingLanguages: string[];
+    pendingLanguages: string[];
+    translationCoverage: number;
+    answerCoverage: number;
+    state: "not_started" | "pending" | "ready";
+  } | null;
+}
+
+export interface ProductFactsSnapshot {
+  product_id: string;
+  detected_language?: string | null;
+  facts_json?: Record<string, unknown> | null;
+  source_type?: string | null;
+  source_url?: string | null;
+}
+
+export interface ProductStepOutcome {
+  step: "map_product" | "collect_sources" | "generate_ai_knowledge";
+  status: "not_started" | "in_progress" | "ready" | "error";
+  updatedAt?: string;
+  delta?: Record<string, unknown>;
+  error?: string | null;
+}
+
+export interface ProductActionApiResponse {
+  message?: string;
+  error?: string;
+  details?: string;
+  stepOutcome?: ProductStepOutcome;
+  [key: string]: unknown;
 }
 
 export interface ShopifyCatalogProduct {
@@ -474,7 +531,7 @@ export async function updateMerchantMultiLangSettings(
   return internalMerchantRequest(request, "/api/merchants/me/multi-lang-rag-settings", {
     method: "PUT",
     body: JSON.stringify(payload),
-  });
+  }) as Promise<MultiLangSettingsUpdateResponse>;
 }
 
 export async function createMerchantProduct(
@@ -490,13 +547,45 @@ export async function createMerchantProduct(
 export async function scrapeMerchantProduct(request: Request, productId: string) {
   return internalMerchantRequest(request, `/api/products/${productId}/scrape`, {
     method: "POST",
-  });
+  }) as Promise<ProductActionApiResponse>;
+}
+
+export async function scrapeMerchantProductAsync(request: Request, productId: string) {
+  return internalMerchantRequest(request, `/api/products/${productId}/scrape-async`, {
+    method: "POST",
+  }) as Promise<ProductActionApiResponse>;
+}
+
+export async function enrichMerchantProductFromUrl(
+  request: Request,
+  productId: string,
+  sourceUrl: string,
+) {
+  return internalMerchantRequest(request, `/api/products/${productId}/enrich-from-url`, {
+    method: "POST",
+    body: JSON.stringify({ source_url: sourceUrl }),
+  }) as Promise<ProductActionApiResponse>;
 }
 
 export async function generateMerchantProductEmbeddings(request: Request, productId: string) {
   return internalMerchantRequest(request, `/api/products/${productId}/generate-embeddings`, {
     method: "POST",
-  });
+  }) as Promise<ProductActionApiResponse>;
+}
+
+export async function previewMerchantProductAnswer(
+  request: Request,
+  productId: string,
+  question: string,
+) {
+  return internalMerchantRequest(request, "/api/answer", {
+    method: "POST",
+    body: JSON.stringify({ question, product_ids: [productId] }),
+  }) as Promise<{
+    answer?: string;
+    error?: string;
+    details?: string;
+  }>;
 }
 
 export async function deleteMerchantProduct(request: Request, productId: string) {
@@ -527,6 +616,29 @@ export async function fetchShopifyCatalog(
 export async function fetchMerchantProductInstructions(request: Request) {
   return (await internalMerchantRequest(request, "/api/products/instructions/list")) as {
     instructions: MerchantProductInstruction[];
+  };
+}
+
+export async function fetchMerchantProductFacts(request: Request, productIds: string[]) {
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    return { facts: [] as ProductFactsSnapshot[] };
+  }
+  const query = new URLSearchParams();
+  query.set("product_ids", productIds.join(","));
+  return (await internalMerchantRequest(
+    request,
+    `/api/products/facts?${query.toString()}`,
+  )) as { facts: ProductFactsSnapshot[] };
+}
+
+export async function fetchMerchantMappingData(request: Request) {
+  return (await internalMerchantRequest(request, "/api/products/mapping-index")) as {
+    localProducts: Array<{
+      id: string;
+      external_id?: string | null;
+    }>;
+    instructions: MerchantProductInstruction[];
+    localProductCount: number;
   };
 }
 

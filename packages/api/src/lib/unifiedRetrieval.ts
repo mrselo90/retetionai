@@ -313,6 +313,15 @@ export class UnifiedRetrievalService {
 
   async retrieve(input: UnifiedRetrievalInput): Promise<UnifiedRetrievalOutput> {
     const userLang = normalizeLangCode(input.userLang);
+    const settings = await this.shopSettingsService.getOrCreate(input.merchantId, input.question);
+    const serviceLanguages = [...new Set(
+      (settings.enabled_langs || []).map((lang) => normalizeLangCode(lang)).filter(Boolean),
+    )];
+    const replyLanguages =
+      serviceLanguages.length > 0
+        ? serviceLanguages
+        : ['en'];
+    const primaryLanguage = replyLanguages.includes(userLang) ? userLang : replyLanguages[0];
     const readPrimary = async (language: string, query: string, cacheKey?: string) =>
       queryKnowledgeBaseI18n({
         ...input,
@@ -322,12 +331,27 @@ export class UnifiedRetrievalService {
         languageCode: language,
       });
 
-    const primary = await readPrimary(userLang, input.question, input.cacheKey);
-
-    const settings = await this.shopSettingsService.getOrCreate(input.merchantId, input.question);
-    const defaultSourceLang = normalizeLangCode(settings.default_source_lang);
+    const primaryQuestion =
+      primaryLanguage === userLang
+        ? input.question
+        : await this.translationService.translateText(
+            input.question,
+            userLang,
+            primaryLanguage,
+            {
+              merchantId: input.merchantId,
+              feature: 'unified_retrieval_service_language_translation',
+              metadata: {
+                stage: 'service_language_entry',
+                original_lang: userLang,
+                service_lang: primaryLanguage,
+              },
+            },
+          );
+    const primary = await readPrimary(primaryLanguage, primaryQuestion, input.cacheKey);
+    const fallbackLanguage = replyLanguages.find((language) => language !== primaryLanguage) || null;
     const shouldTryFallback =
-      defaultSourceLang !== userLang
+      Boolean(fallbackLanguage)
       && (
         primary.results.length === 0
         || maxSimilarity(primary.results) < Math.max(0.55, (input.similarityThreshold || 0.6) - 0.05)
@@ -336,9 +360,9 @@ export class UnifiedRetrievalService {
     if (!shouldTryFallback) {
       return {
         ...primary,
-        effectiveLanguage: userLang,
-        usedFallback: false,
-        fallbackLanguage: null,
+        effectiveLanguage: primaryLanguage,
+        usedFallback: primaryLanguage !== userLang,
+        fallbackLanguage: primaryLanguage !== userLang ? primaryLanguage : null,
       };
     }
 
@@ -347,14 +371,14 @@ export class UnifiedRetrievalService {
       translatedQuestion = await this.translationService.translateText(
         input.question,
         userLang,
-        defaultSourceLang,
+        fallbackLanguage as string,
         {
           merchantId: input.merchantId,
           feature: 'unified_retrieval_query_fallback',
           metadata: {
             stage: 'query_fallback',
             original_lang: userLang,
-            fallback_lang: defaultSourceLang,
+            fallback_lang: fallbackLanguage,
           },
         },
       );
@@ -365,32 +389,32 @@ export class UnifiedRetrievalService {
       );
       return {
         ...primary,
-        effectiveLanguage: userLang,
-        usedFallback: false,
-        fallbackLanguage: null,
+        effectiveLanguage: primaryLanguage,
+        usedFallback: primaryLanguage !== userLang,
+        fallbackLanguage: primaryLanguage !== userLang ? primaryLanguage : null,
       };
     }
 
     const fallback = await readPrimary(
-      defaultSourceLang,
+      fallbackLanguage as string,
       translatedQuestion,
-      input.cacheKey ? `${input.cacheKey}:fallback:${defaultSourceLang}` : undefined,
+      input.cacheKey ? `${input.cacheKey}:fallback:${fallbackLanguage}` : undefined,
     );
 
     if (fallback.results.length === 0 || maxSimilarity(fallback.results) < maxSimilarity(primary.results)) {
       return {
         ...primary,
-        effectiveLanguage: userLang,
-        usedFallback: false,
-        fallbackLanguage: null,
+        effectiveLanguage: primaryLanguage,
+        usedFallback: primaryLanguage !== userLang,
+        fallbackLanguage: primaryLanguage !== userLang ? primaryLanguage : null,
       };
     }
 
     return {
       ...fallback,
-      effectiveLanguage: defaultSourceLang,
+      effectiveLanguage: fallbackLanguage as string,
       usedFallback: true,
-      fallbackLanguage: defaultSourceLang,
+      fallbackLanguage: fallbackLanguage as string,
     };
   }
 }

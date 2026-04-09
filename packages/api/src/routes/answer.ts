@@ -19,6 +19,9 @@ answer.post('/', async (c) => {
       return c.json({ error: 'shop_id mismatch for authenticated merchant' }, 403);
     }
     const question = typeof body.question === 'string' ? body.question.trim() : '';
+    const productIds = Array.isArray(body.product_ids)
+      ? body.product_ids.map((id: unknown) => String(id)).filter((id: string) => id.trim())
+      : [];
     const userLang = typeof body.user_lang === 'string' ? body.user_lang : detectLanguage(question);
     if (!question) return c.json({ error: 'question is required' }, 400);
 
@@ -39,6 +42,7 @@ answer.post('/', async (c) => {
       merchantName: merchant?.name || 'Biz',
       persona: (merchant?.persona_settings as any) || {},
       botInfo,
+      productIds: productIds.length > 0 ? productIds : undefined,
       instructionScope: 'facts_products',
       topK: 8,
       similarityThreshold: 0.6,

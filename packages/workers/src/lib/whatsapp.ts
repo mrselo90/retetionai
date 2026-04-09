@@ -48,6 +48,7 @@ type PlatformCorporateWhatsAppSettings = {
   provider: 'twilio' | 'meta';
   fromNumber: string | null;
   phoneNumberDisplay: string | null;
+  forceCorporateForCustomerMessaging: boolean;
 };
 
 function parseRetryAfterMs(headerValue: string | null): number | undefined {
@@ -158,6 +159,97 @@ export interface WhatsAppWebhookMessage {
   timestamp: string;
   text?: string;
   type: 'text' | 'image' | 'video' | 'audio' | 'document' | 'location' | 'contacts';
+}
+
+/**
+ * Send a Twilio WhatsApp template message using the Content API.
+ */
+export async function sendTwilioWhatsAppTemplate(params: {
+  to: string;
+  contentSid: string;
+  contentVariables: Record<string, string>;
+  credentials: TwilioWhatsAppCredentials;
+}): Promise<WhatsAppSendResponse> {
+  const { to, contentSid, contentVariables, credentials } = params;
+  try {
+    if (!to.startsWith('+')) {
+      return {
+        success: false,
+        provider: 'twilio',
+        error: 'Phone number must be in E.164 format (e.g., +905551234567)',
+        retryable: false,
+        failureCategory: 'permanent',
+      };
+    }
+
+    if (!credentials.accountSid || !credentials.authToken || !credentials.fromNumber) {
+      return {
+        success: false,
+        provider: 'twilio',
+        error: 'Twilio WhatsApp credentials are incomplete',
+        retryable: false,
+        failureCategory: 'permanent',
+      };
+    }
+
+    if (!contentSid) {
+      return {
+        success: false,
+        provider: 'twilio',
+        error: 'ContentSid is required for template messages',
+        retryable: false,
+        failureCategory: 'permanent',
+      };
+    }
+
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${credentials.accountSid}/Messages.json`;
+    const form = new URLSearchParams();
+    form.set('From', toTwilioWhatsAppAddress(credentials.fromNumber));
+    form.set('To', toTwilioWhatsAppAddress(to));
+    form.set('ContentSid', contentSid);
+    form.set('ContentVariables', JSON.stringify(contentVariables));
+
+    const basicAuth = Buffer.from(
+      `${credentials.accountSid}:${credentials.authToken}`,
+      'utf8'
+    ).toString('base64');
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${basicAuth}`,
+      },
+      body: form.toString(),
+    });
+
+    const raw = await response.text();
+    let data: any = null;
+    try {
+      data = raw ? JSON.parse(raw) : null;
+    } catch {
+      data = { message: raw };
+    }
+
+    if (!response.ok) {
+      return classifyTwilioError(response.status, data, parseRetryAfterMs(response.headers.get('Retry-After')));
+    }
+
+    return {
+      success: true,
+      provider: 'twilio',
+      messageId: data?.sid,
+    };
+  } catch (error) {
+    console.error('Twilio WhatsApp template send error:', error);
+    return {
+      success: false,
+      provider: 'twilio',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      retryable: true,
+      failureCategory: 'temporary',
+    };
+  }
 }
 
 /**
@@ -553,13 +645,14 @@ async function getPlatformCorporateWhatsAppSettings(): Promise<PlatformCorporate
       process.env.TWILIO_WHATSAPP_NUMBER?.trim() ||
       process.env.TWILIO_WHATSAPP_FROM?.trim() ||
       null,
+    forceCorporateForCustomerMessaging: false,
   };
 
   try {
     const svc = getSupabaseServiceClient();
     const { data, error } = await svc
       .from('platform_ai_settings')
-      .select('corporate_whatsapp_provider, corporate_whatsapp_from_number, corporate_whatsapp_phone_number_display')
+      .select('corporate_whatsapp_provider, corporate_whatsapp_from_number, corporate_whatsapp_phone_number_display, force_corporate_whatsapp_for_customer_messaging')
       .eq('id', 'default')
       .maybeSingle();
 
@@ -572,6 +665,9 @@ async function getPlatformCorporateWhatsAppSettings(): Promise<PlatformCorporate
       phoneNumberDisplay: typeof (data as any).corporate_whatsapp_phone_number_display === 'string' && (data as any).corporate_whatsapp_phone_number_display.trim()
         ? (data as any).corporate_whatsapp_phone_number_display.trim()
         : fallback.phoneNumberDisplay,
+      forceCorporateForCustomerMessaging: Boolean(
+        (data as any).force_corporate_whatsapp_for_customer_messaging ?? fallback.forceCorporateForCustomerMessaging
+      ),
     };
   } catch {
     return fallback;
@@ -645,6 +741,11 @@ export type WhatsAppSenderMode = 'merchant_own' | 'corporate';
 export async function getEffectiveWhatsAppCredentials(
   merchantId: string
 ): Promise<WhatsAppCredentials | null> {
+  const platformSettings = await getPlatformCorporateWhatsAppSettings();
+  if (platformSettings.forceCorporateForCustomerMessaging) {
+    return getPlatformCorporateWhatsAppCredentials();
+  }
+
   const serviceClient = getSupabaseServiceClient();
   const { data: merchant } = await serviceClient
     .from('merchants')

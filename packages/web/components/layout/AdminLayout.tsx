@@ -10,7 +10,8 @@ import {
     LogOut,
     Menu,
     X,
-    Server
+    Server,
+    TestTube2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -128,6 +129,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const navItems = [
         { name: 'Global Overview', href: '/admin', icon: BarChart3 },
         { name: 'Merchants', href: '/admin/merchants', icon: Users },
+        { name: 'Test Kit', href: '/admin/testing', icon: TestTube2 },
         { name: 'System Health', href: '/admin/system', icon: Server },
     ];
 

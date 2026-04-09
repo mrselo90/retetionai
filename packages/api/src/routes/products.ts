@@ -6,7 +6,7 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
-import { getSupabaseServiceClient, logger } from '@recete/shared';
+import { buildShopifyProductFallbackContent, getSupabaseServiceClient, logger } from '@recete/shared';
 import { scrapeProductPage } from '../lib/scraper.js';
 import { fetchShopifyProductByHandle } from '../lib/shopify.js';
 import { addScrapeJob } from '../queues.js';
@@ -14,7 +14,18 @@ import { processProductForRAG, batchProcessProducts, getProductChunkCount } from
 import { enrichProductDataDetailed } from '../lib/llm/enrichProduct.js';
 import { persistProductFactsSnapshot } from '../lib/productFactsStore.js';
 import { validateBody, validateParams } from '../middleware/validation.js';
-import { createProductSchema, updateProductSchema, productIdSchema, productInstructionSchema, CreateProductInput, UpdateProductInput, ProductIdParams, ProductInstructionInput } from '../schemas/products.js';
+import {
+  createProductSchema,
+  updateProductSchema,
+  productIdSchema,
+  productInstructionSchema,
+  enrichProductFromUrlSchema,
+  CreateProductInput,
+  UpdateProductInput,
+  ProductIdParams,
+  ProductInstructionInput,
+  EnrichProductFromUrlInput,
+} from '../schemas/products.js';
 import {
   getCachedProduct,
   setCachedProduct,
@@ -27,6 +38,8 @@ import {
 import { enforceStorageLimit } from '../lib/planLimits.js';
 import { checkMerchantRecipeCapacity } from '../lib/merchantPlanFeatures.js';
 import { MultiLangChunkShadowWriteService } from '../lib/multiLangRag/chunkShadowWriteService.js';
+import { buildProductLanguageHealthMap } from '../lib/multiLangRag/productLanguageHealth.js';
+import { ShopSettingsService } from '../lib/multiLangRag/shopSettingsService.js';
 import { getProductsCacheTtlSeconds } from '../lib/runtimeModelSettings.js';
 import { buildProductKnowledgeHealthMap } from '../lib/knowledgeHealth.js';
 
@@ -35,6 +48,27 @@ const multiLangChunkShadowWrite = new MultiLangChunkShadowWriteService();
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'unknown error');
+}
+
+type ProductPipelineStep = 'map_product' | 'collect_sources' | 'generate_ai_knowledge';
+type ProductPipelineStepStatus = 'not_started' | 'in_progress' | 'ready' | 'error';
+
+function buildStepOutcome(
+  step: ProductPipelineStep,
+  status: ProductPipelineStepStatus,
+  options?: {
+    updatedAt?: string | null;
+    delta?: Record<string, unknown>;
+    error?: string;
+  },
+) {
+  return {
+    step,
+    status,
+    updatedAt: options?.updatedAt || new Date().toISOString(),
+    delta: options?.delta || {},
+    error: options?.error || null,
+  };
 }
 
 function isSkippableShadowSyncError(error: unknown): boolean {
@@ -61,6 +95,22 @@ function shadowSyncProductKnowledge(merchantId: string, productId: string, reaso
       logger.warn(payload, 'Multi-lang chunk shadow write failed');
     }
   })();
+}
+
+function buildMergedLayerText(
+  existing: string | null | undefined,
+  incoming: string,
+  sourceUrl: string,
+  label: 'RAW' | 'ENRICHED',
+): string {
+  const incomingTrimmed = incoming.trim();
+  const existingTrimmed = (existing || '').trim();
+  if (!incomingTrimmed) return existingTrimmed;
+  if (!existingTrimmed) return incomingTrimmed;
+  if (existingTrimmed.includes(incomingTrimmed)) return existingTrimmed;
+
+  const stamp = new Date().toISOString();
+  return `${existingTrimmed}\n\n[${label}_ENRICHMENT_SOURCE url="${sourceUrl}" fetched_at="${stamp}"]\n${incomingTrimmed}`;
 }
 
 async function invalidateProductKnowledgeCaches(
@@ -103,11 +153,18 @@ products.get('/', async (c) => {
     return c.json({ error: 'Failed to fetch products' }, 500);
   }
 
-  const knowledgeHealthMap = await buildProductKnowledgeHealthMap(serviceClient, String(merchantId), products || []);
+  const settings = await new ShopSettingsService().getOrCreate(String(merchantId));
+  const [knowledgeHealthMap, languageHealthMap] = await Promise.all([
+    buildProductKnowledgeHealthMap(serviceClient, String(merchantId), products || []),
+    buildProductLanguageHealthMap(serviceClient, String(merchantId), products || [], {
+      requiredLanguages: settings.enabled_langs,
+    }),
+  ]);
   const payload = {
     products: (products || []).map((product) => ({
       ...product,
       knowledgeHealth: knowledgeHealthMap.get(product.id) || null,
+      languageHealth: languageHealthMap.get(product.id) || null,
     })),
   };
   const ttlSeconds = await getProductsCacheTtlSeconds();
@@ -120,6 +177,45 @@ products.get('/', async (c) => {
  * GET /api/products/instructions/list
  * Must be before /:id to avoid "instructions" as id
  */
+products.get('/mapping-index', async (c) => {
+  const merchantId = c.get('merchantId');
+  const serviceClient = getSupabaseServiceClient();
+
+  const [{ data: products, error: productsError }, { data: rows, error: instructionsError }] = await Promise.all([
+    serviceClient
+      .from('products')
+      .select('id, external_id')
+      .eq('merchant_id', merchantId),
+    serviceClient
+      .from('product_instructions')
+      .select('product_id, usage_instructions, recipe_summary, video_url, prevention_tips, products(id, name, external_id)')
+      .eq('merchant_id', merchantId),
+  ]);
+
+  if (productsError || instructionsError) {
+    return c.json({ error: 'Failed to fetch mapping index' }, 500);
+  }
+
+  const instructions = (rows || []).map((r: any) => ({
+    product_id: r.product_id,
+    product_name: r.products?.name,
+    external_id: r.products?.external_id,
+    usage_instructions: r.usage_instructions,
+    recipe_summary: r.recipe_summary,
+    video_url: r.video_url,
+    prevention_tips: r.prevention_tips,
+  }));
+
+  return c.json({
+    localProducts: (products || []).map((product) => ({
+      id: product.id,
+      external_id: product.external_id,
+    })),
+    localProductCount: products?.length || 0,
+    instructions,
+  });
+});
+
 products.get('/instructions/list', async (c) => {
   const merchantId = c.get('merchantId');
   const serviceClient = getSupabaseServiceClient();
@@ -146,6 +242,45 @@ products.get('/instructions/list', async (c) => {
   }));
 
   return c.json({ instructions });
+});
+
+/**
+ * List active product facts snapshots for merchant (for UI insights)
+ * GET /api/products/facts?product_ids=...
+ */
+products.get('/facts', async (c) => {
+  const merchantId = c.get('merchantId');
+  const serviceClient = getSupabaseServiceClient();
+  const rawIds = String(c.req.query('product_ids') || '');
+  const productIds = rawIds
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  if (productIds.length === 0) {
+    return c.json({ facts: [] });
+  }
+
+  const { data: rows, error } = await serviceClient
+    .from('product_facts')
+    .select('product_id, detected_language, facts_json, source_type, source_url')
+    .eq('merchant_id', merchantId)
+    .eq('is_active', true)
+    .in('product_id', productIds);
+
+  if (error) {
+    return c.json({ error: 'Failed to fetch product facts' }, 500);
+  }
+
+  const facts = (rows || []).map((row: any) => ({
+    product_id: row.product_id,
+    detected_language: row.detected_language || null,
+    facts_json: row.facts_json || null,
+    source_type: row.source_type || null,
+    source_url: row.source_url || null,
+  }));
+
+  return c.json({ facts });
 });
 
 /**
@@ -465,6 +600,10 @@ products.post('/:id/scrape', async (c) => {
     return c.json({
       error: 'Scraping failed',
       details: scrapeResult.error,
+      stepOutcome: buildStepOutcome('collect_sources', 'error', {
+        error: scrapeResult.error || 'Scrape failed',
+        delta: { source: 'product_url' },
+      }),
     }, 500);
   }
 
@@ -499,8 +638,12 @@ products.post('/:id/scrape', async (c) => {
               handle
             );
 
-            if (shopifyProduct && shopifyProduct.descriptionHtml) {
-              rawContent = shopifyProduct.descriptionHtml;
+            const fallbackContent = shopifyProduct
+              ? buildShopifyProductFallbackContent(shopifyProduct)
+              : '';
+
+            if (shopifyProduct && fallbackContent) {
+              rawContent = fallbackContent;
               if (scrapeResult.product) {
                 scrapeResult.product.title = shopifyProduct.title || scrapeResult.product.title;
                 scrapeResult.product.rawContent = rawContent;
@@ -519,6 +662,10 @@ products.post('/:id/scrape', async (c) => {
       return c.json({
         error: 'Store is password protected',
         details: 'Please disable the Shopify storefront password to allow scraping, or manually enter product details.',
+        stepOutcome: buildStepOutcome('collect_sources', 'error', {
+          error: 'Storefront is password protected',
+          delta: { source: 'product_url' },
+        }),
       }, 403);
     }
   }
@@ -570,7 +717,11 @@ products.post('/:id/scrape', async (c) => {
       error: 'Failed to update product',
       details: updateError.message,
       code: updateError.code,
-      hint: updateError.hint
+      hint: updateError.hint,
+      stepOutcome: buildStepOutcome('collect_sources', 'error', {
+        error: updateError.message,
+        delta: { source: 'product_url' },
+      }),
     }, 500);
   }
 
@@ -604,8 +755,192 @@ products.post('/:id/scrape', async (c) => {
     product: updatedProduct,
     scraped: scrapeResult.product,
     embeddings: embeddingResult,
+    stepOutcome: buildStepOutcome('collect_sources', 'ready', {
+      updatedAt: updatedProduct.updated_at || new Date().toISOString(),
+      delta: {
+        source: 'product_url',
+        chunksCreated: embeddingResult?.chunksCreated || 0,
+        totalTokens: embeddingResult?.totalTokens || 0,
+      },
+    }),
   });
 });
+
+/**
+ * Enrich product from an additional URL without replacing existing knowledge layers.
+ * POST /api/products/:id/enrich-from-url
+ */
+products.post(
+  '/:id/enrich-from-url',
+  validateParams(productIdSchema),
+  validateBody(enrichProductFromUrlSchema),
+  async (c) => {
+    const merchantId = c.get('merchantId');
+    const { id: productId } = c.get('validatedParams') as ProductIdParams;
+    const { source_url: sourceUrl } = c.get('validatedBody') as EnrichProductFromUrlInput;
+    const serviceClient = getSupabaseServiceClient();
+
+    const { data: product, error: fetchError } = await serviceClient
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .eq('merchant_id', merchantId)
+      .single();
+
+    if (fetchError || !product) {
+      return c.json({ error: 'Product not found' }, 404);
+    }
+
+    const scrapeResult = await scrapeProductPage(sourceUrl);
+    if (!scrapeResult.success) {
+      return c.json(
+        {
+          error: 'Scraping failed',
+          details: scrapeResult.error,
+          stepOutcome: buildStepOutcome('collect_sources', 'error', {
+            error: scrapeResult.error || 'Scrape failed',
+            delta: { source: 'workflow_url', sourceUrl },
+          }),
+        },
+        500,
+      );
+    }
+
+    let rawContent = scrapeResult.product!.rawContent;
+
+    if (rawContent && rawContent.toLowerCase().includes('password protected')) {
+      const isShopifyUrl = sourceUrl.includes('.myshopify.com') || sourceUrl.includes('/products/');
+      if (isShopifyUrl) {
+        const { data: integration } = await serviceClient
+          .from('integrations')
+          .select('auth_data')
+          .eq('merchant_id', merchantId)
+          .eq('provider', 'shopify')
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (integration) {
+          const authData = integration.auth_data as { shop: string; access_token: string };
+          const parsed = new URL(sourceUrl);
+          const handleMatch = parsed.pathname.match(/\/products\/([^/?]+)/);
+          const handle = handleMatch ? handleMatch[1] : null;
+          if (handle) {
+            try {
+              const shopifyProduct = await fetchShopifyProductByHandle(authData.shop, authData.access_token, handle);
+              const fallbackContent = shopifyProduct ? buildShopifyProductFallbackContent(shopifyProduct) : '';
+              if (fallbackContent) rawContent = fallbackContent;
+            } catch (error) {
+              logger.warn({ error, merchantId, productId, sourceUrl }, 'Shopify fallback failed for enrich-from-url');
+            }
+          }
+        }
+      }
+
+      if (rawContent.toLowerCase().includes('password protected')) {
+        return c.json(
+          {
+            error: 'Store is password protected',
+            details: 'Cannot enrich from this URL because storefront access is blocked.',
+            stepOutcome: buildStepOutcome('collect_sources', 'error', {
+              error: 'Storefront is password protected',
+              delta: { source: 'workflow_url', sourceUrl },
+            }),
+          },
+          403,
+        );
+      }
+    }
+
+    let enrichedText = rawContent;
+    try {
+      const enrichResult = await enrichProductDataDetailed(
+        rawContent,
+        scrapeResult.product?.title || product.name || 'Unknown Product',
+        {
+          rawSections: scrapeResult.product?.rawSections,
+          merchantId: String(merchantId),
+          productId,
+          sourceType: 'scrape_enrich_additional_url',
+        },
+      );
+      if (enrichResult.enrichedText) enrichedText = enrichResult.enrichedText;
+      if (enrichResult.facts) {
+        await persistProductFactsSnapshot({
+          productId,
+          merchantId,
+          facts: enrichResult.facts,
+          sourceUrl,
+          sourceType: 'scrape_enrich_additional_url',
+          extractionModel: 'gpt-4o-mini',
+          validationErrors: enrichResult.factsValidationErrors,
+        });
+      }
+    } catch (error) {
+      logger.warn({ error, merchantId, productId, sourceUrl }, 'Additional URL enrichment failed; using raw scrape output');
+    }
+
+    const mergedRawText = buildMergedLayerText(product.raw_text, rawContent, sourceUrl, 'RAW');
+    const mergedEnrichedText = buildMergedLayerText(product.enriched_text, enrichedText, sourceUrl, 'ENRICHED');
+
+    const { data: updatedProduct, error: updateError } = await serviceClient
+      .from('products')
+      .update({
+        raw_text: mergedRawText,
+        enriched_text: mergedEnrichedText,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', productId)
+      .select()
+      .single();
+
+    if (updateError) {
+      return c.json(
+        {
+          error: 'Failed to update product',
+          details: updateError.message,
+          code: updateError.code,
+          hint: updateError.hint,
+          stepOutcome: buildStepOutcome('collect_sources', 'error', {
+            error: updateError.message,
+            delta: { source: 'workflow_url', sourceUrl },
+          }),
+        },
+        500,
+      );
+    }
+
+    await setCachedProduct(productId, updatedProduct, 600);
+    await invalidateProductKnowledgeCaches(String(merchantId), productId);
+
+    let embeddingResult: { chunksCreated: number; totalTokens: number } | null = null;
+    try {
+      const result = await processProductForRAG(productId, mergedRawText, mergedEnrichedText || undefined);
+      if (result?.success) {
+        embeddingResult = { chunksCreated: result.chunksCreated, totalTokens: result.totalTokens };
+        await invalidateProductKnowledgeCaches(String(merchantId), productId);
+        shadowSyncProductKnowledge(String(merchantId), productId, 'additional url enrichment');
+      }
+    } catch (error) {
+      logger.warn({ error, merchantId, productId, sourceUrl }, 'Embedding generation after enrich-from-url failed');
+    }
+
+    return c.json({
+      message: 'Product enriched from URL successfully',
+      product: updatedProduct,
+      sourceUrl,
+      embeddings: embeddingResult,
+      stepOutcome: buildStepOutcome('collect_sources', 'ready', {
+        updatedAt: updatedProduct.updated_at || new Date().toISOString(),
+        delta: {
+          source: 'workflow_url',
+          sourceUrl,
+          chunksCreated: embeddingResult?.chunksCreated || 0,
+          totalTokens: embeddingResult?.totalTokens || 0,
+        },
+      }),
+    });
+  },
+);
 
 /**
  * Scrape product (async via queue)
@@ -638,6 +973,9 @@ products.post('/:id/scrape-async', async (c) => {
   return c.json({
     message: 'Scrape job queued',
     jobId: job.id,
+    stepOutcome: buildStepOutcome('collect_sources', 'in_progress', {
+      delta: { source: 'product_url', jobId: job.id },
+    }),
   });
 });
 
@@ -715,7 +1053,15 @@ products.post('/:id/generate-embeddings', async (c) => {
   }
 
   if (!product.raw_text && !product.enriched_text) {
-    return c.json({ error: 'Product has no content. Scrape first.' }, 400);
+    return c.json(
+      {
+        error: 'Product has no content. Scrape first.',
+        stepOutcome: buildStepOutcome('generate_ai_knowledge', 'error', {
+          error: 'No content available for embedding generation',
+        }),
+      },
+      400,
+    );
   }
 
   // Check storage limit before processing
@@ -727,6 +1073,9 @@ products.post('/:id/generate-embeddings', async (c) => {
     return c.json({
       error: 'Storage limit exceeded',
       message: limitError instanceof Error ? limitError.message : 'You have reached your storage limit. Please upgrade your plan.',
+      stepOutcome: buildStepOutcome('generate_ai_knowledge', 'error', {
+        error: limitError instanceof Error ? limitError.message : 'Storage limit exceeded',
+      }),
     }, 403);
   }
 
@@ -741,6 +1090,9 @@ products.post('/:id/generate-embeddings', async (c) => {
     return c.json({
       error: 'Failed to generate embeddings',
       details: result.error,
+      stepOutcome: buildStepOutcome('generate_ai_knowledge', 'error', {
+        error: result.error || 'Embedding generation failed',
+      }),
     }, 500);
   }
 
@@ -751,6 +1103,12 @@ products.post('/:id/generate-embeddings', async (c) => {
     message: 'Embeddings generated successfully',
     chunksCreated: result.chunksCreated,
     totalTokens: result.totalTokens,
+    stepOutcome: buildStepOutcome('generate_ai_knowledge', 'ready', {
+      delta: {
+        chunksCreated: result.chunksCreated,
+        totalTokens: result.totalTokens,
+      },
+    }),
   });
 });
 
