@@ -1142,6 +1142,10 @@ export default function ProductsPage() {
     navigation.state === "submitting" &&
     currentSelectedProductId === selectedRow?.shopify.id &&
     currentIntent === "delete";
+  const isPreviewingAnswer =
+    navigation.state === "submitting" &&
+    currentSelectedProductId === selectedRow?.shopify.id &&
+    currentIntent === "preview-answer";
 
   function replaceProductSearchParam(productId: string | null) {
     if (typeof window === "undefined") return;
@@ -1333,6 +1337,7 @@ export default function ProductsPage() {
               isSavingSetup={isSavingSetup}
               isRunningAiAction={isRunningAiAction}
               isDeletingLocalSetup={isDeletingLocalSetup}
+              isPreviewingAnswer={isPreviewingAnswer}
               onChangeDraft={(field, value) =>
                 setDrafts((current) => ({
                   ...current,
@@ -1836,6 +1841,7 @@ function SetupPanel({
   isSavingSetup,
   isRunningAiAction,
   isDeletingLocalSetup,
+  isPreviewingAnswer,
   embedded = false,
   onChangeDraft,
   onToggleOptional,
@@ -1863,6 +1869,7 @@ function SetupPanel({
   isSavingSetup: boolean;
   isRunningAiAction: boolean;
   isDeletingLocalSetup: boolean;
+  isPreviewingAnswer: boolean;
   embedded?: boolean;
   onChangeDraft: (field: keyof MappingDraft, value: string) => void;
   onToggleOptional: () => void;
@@ -2246,7 +2253,7 @@ function SetupPanel({
                 previewQuestion={previewQuestion}
                 previewAnswer={previewAnswer}
                 onPreviewQuestionChange={onPreviewQuestionChange}
-                loading={actionIntent === "preview-answer"}
+                loading={isPreviewingAnswer}
               />
 
               <LanguageCoveragePanel
