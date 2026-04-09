@@ -17,6 +17,7 @@ import {
   BlockStack,
   Box,
   Button,
+  Card,
   Checkbox,
   Collapsible,
   EmptyState,
@@ -2023,18 +2024,20 @@ function SetupPanel({
         </Banner>
       ) : null}
 
-      <ProductSetupStepCard
-        journey={journey}
-        stepLabel={activeStepMeta.label}
-        title={activeStepMeta.title}
-        reason={activeStepMeta.reason}
-        row={row}
-        recentAction={recentAction}
-        systemMessage={systemMessage}
-      />
+      {activeStep !== "ready" && (
+        <ProductSetupStepCard
+          journey={journey}
+          stepLabel={activeStepMeta.label}
+          title={activeStepMeta.title}
+          reason={activeStepMeta.reason}
+          row={row}
+          recentAction={recentAction}
+          systemMessage={systemMessage}
+        />
+      )}
 
       {activeStep === "guidance" || (activeStep === "ready" && showReadyEditor) ? (
-        <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300">
+        <Card>
           <Form
             method="post"
             id={`product-setup-form-${row.shopify.id}`}
@@ -2178,21 +2181,14 @@ function SetupPanel({
       ) : null}
 
       {activeStep === "ready" && !showReadyEditor ? (
-        <Box padding="300" background="bg-fill-success-secondary" borderRadius="300">
-          <BlockStack gap="150">
-            <InlineStack gap="150" blockAlign="center">
-              <Badge tone="success">Ready</Badge>
-              <Text as="p" variant="headingSm">
-                Customers can now ask questions and receive answers automatically.
-              </Text>
-            </InlineStack>
-            <Text as="p" variant="bodyMd" tone="subdued">
-              Setup is complete. Language coverage can keep improving in the background without blocking this product.
+        <Banner tone="success" title="Customers can now ask questions automatically">
+          <BlockStack gap="300">
+            <Text as="p" variant="bodyMd">
+              Setup is complete. Recete is actively using this product's information to handle support requests. 
+              Language coverage will continue improving automatically in the background.
             </Text>
             <InlineStack gap="200" wrap>
-              <Button variant="primary" onClick={() => setShowReadyEditor(true)}>
-                Edit setup
-              </Button>
+              <Button onClick={() => setShowReadyEditor(true)}>Edit setup</Button>
               <InlineActionForm
                 productId={row.localProduct?.id || ""}
                 shopifyProductId={row.shopify.id}
@@ -2209,7 +2205,7 @@ function SetupPanel({
               />
             </InlineStack>
           </BlockStack>
-        </Box>
+        </Banner>
       ) : null}
 
       {nextStepMeta ? (
@@ -2242,61 +2238,69 @@ function SetupPanel({
       ) : null}
 
       {revealSecondaryPanels ? (
-        <>
-          <LanguageCoveragePanel
-            row={row}
-            languageStatusText={languageStatusText}
-            workflowUrl={workflowUrl}
-            onWorkflowUrlChange={onWorkflowUrlChange}
-            onRefresh={submitEmbeddingsFromStep}
-            busy={isRunningAiAction || recentAction}
-            disabled={!row.localProduct || isSavingSetup || isDeletingLocalSetup}
-          />
+        <Layout>
+          <Layout.Section>
+            <BlockStack gap="400">
+              <PreviewAnswerPanel
+                row={row}
+                previewQuestion={previewQuestion}
+                previewAnswer={previewAnswer}
+                onPreviewQuestionChange={onPreviewQuestionChange}
+                loading={actionIntent === "preview-answer"}
+              />
 
-          <AIKnowledgePanel
-            row={row}
-            knowledge={knowledge}
-            open={showKnowledgeDetails}
-            onToggle={() => setShowKnowledgeDetails((current) => !current)}
-            draft={draft}
-            activeStep={activeStep}
-            showReadyEditor={showReadyEditor}
-            inlineValidationError={inlineValidationError}
-            onChangeDraft={onChangeDraft}
-            isSavingSetup={isSavingSetup}
-            isRunningAiAction={isRunningAiAction}
-            isDeletingLocalSetup={isDeletingLocalSetup}
-            setInlineValidationError={setInlineValidationError}
-          />
+              <LanguageCoveragePanel
+                row={row}
+                languageStatusText={languageStatusText}
+                workflowUrl={workflowUrl}
+                onWorkflowUrlChange={onWorkflowUrlChange}
+                onRefresh={submitEmbeddingsFromStep}
+                busy={isRunningAiAction || recentAction}
+                disabled={!row.localProduct || isSavingSetup || isDeletingLocalSetup}
+              />
+            </BlockStack>
+          </Layout.Section>
 
-          {knowledge.missingInfo.length > 0 ? (
-            <MissingInfoCallout
-              missingInfo={knowledge.missingInfo}
-              onAddDetails={() => {
-                setShowKnowledgeDetails(true);
-                if (activeStep === "ready") setShowReadyEditor(true);
-                if (!optionalVisible) onToggleOptional();
-              }}
-            />
-          ) : null}
+          <Layout.Section variant="oneThird">
+            <BlockStack gap="400">
+              <AIKnowledgePanel
+                row={row}
+                knowledge={knowledge}
+                open={showKnowledgeDetails}
+                onToggle={() => setShowKnowledgeDetails((current) => !current)}
+                draft={draft}
+                activeStep={activeStep}
+                showReadyEditor={showReadyEditor}
+                inlineValidationError={inlineValidationError}
+                onChangeDraft={onChangeDraft}
+                isSavingSetup={isSavingSetup}
+                isRunningAiAction={isRunningAiAction}
+                isDeletingLocalSetup={isDeletingLocalSetup}
+                setInlineValidationError={setInlineValidationError}
+              />
 
-          <PreviewAnswerPanel
-            row={row}
-            previewQuestion={previewQuestion}
-            previewAnswer={previewAnswer}
-            onPreviewQuestionChange={onPreviewQuestionChange}
-            loading={actionIntent === "preview-answer"}
-          />
+              {knowledge.missingInfo.length > 0 ? (
+                <MissingInfoCallout
+                  missingInfo={knowledge.missingInfo}
+                  onAddDetails={() => {
+                    setShowKnowledgeDetails(true);
+                    if (activeStep === "ready") setShowReadyEditor(true);
+                    if (!optionalVisible) onToggleOptional();
+                  }}
+                />
+              ) : null}
 
-          <StepOutcomeLine
-            title="Latest update"
-            outcome={
-              stepOutcomes?.collect_sources ||
-              stepOutcomes?.generate_ai_knowledge ||
-              stepOutcomes?.map_product
-            }
-          />
-        </>
+              <StepOutcomeLine
+                title="Latest update"
+                outcome={
+                  stepOutcomes?.collect_sources ||
+                  stepOutcomes?.generate_ai_knowledge ||
+                  stepOutcomes?.map_product
+                }
+              />
+            </BlockStack>
+          </Layout.Section>
+        </Layout>
       ) : null}
 
       {revealSecondaryPanels && row.localProduct ? (
@@ -2367,72 +2371,52 @@ function StickyProductContextHeader({
   statusLabel: string;
 }) {
   return (
-    <div style={{ position: "sticky", top: 0, zIndex: 30 }}>
-      <Box
-        padding="300"
-        borderWidth="025"
-        borderColor="border"
-        borderRadius="300"
-        background="bg-surface"
-        shadow="100"
-      >
-        <BlockStack gap="200">
-          <InlineStack align="space-between" blockAlign="start" gap="200" wrap>
-            <Button variant="plain" onClick={onBack}>
-              ← All products
-            </Button>
-            <Badge tone={statusTone}>{statusLabel}</Badge>
-          </InlineStack>
+    <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--p-color-bg-surface)", paddingBottom: "16px", paddingTop: "8px" }}>
+      <BlockStack gap="400">
+        <InlineStack align="start">
+          <Button variant="plain" onClick={onBack}>
+            ← All products
+          </Button>
+        </InlineStack>
 
-          <InlineGrid columns={{ xs: 1, md: "auto 1fr" }} gap="200">
-            <Box>
-              {row.shopify.featuredImageUrl ? (
-                <div
-                  style={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: 16,
-                    overflow: "hidden",
-                    background: "var(--p-color-bg-surface-secondary)",
-                  }}
-                >
-                  <img
-                    src={row.shopify.featuredImageUrl}
-                    alt={row.shopify.title}
-                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                  />
-                </div>
-              ) : (
-                <Box
-                  minWidth="72px"
-                  minHeight="72px"
-                  borderRadius="200"
-                  background="bg-surface-secondary"
+        <InlineStack align="space-between" blockAlign="center" wrap={false}>
+          <InlineStack gap="400" blockAlign="center" wrap={false}>
+            {row.shopify.featuredImageUrl ? (
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 6,
+                  overflow: "hidden",
+                  border: "1px solid var(--p-color-border)",
+                  background: "var(--p-color-bg-surface-secondary)",
+                }}
+              >
+                <img
+                  src={row.shopify.featuredImageUrl}
+                  alt={row.shopify.title}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                 />
-              )}
-            </Box>
-            <BlockStack gap="100">
+              </div>
+            ) : (
+              <Box minWidth="48px" minHeight="48px" borderRadius="100" background="bg-surface-secondary" />
+            )}
+            <BlockStack gap="050">
               <Text as="h1" variant="headingLg">
                 {row.shopify.title}
               </Text>
               <Text as="p" variant="bodySm" tone="subdued">
-                {[row.shopify.vendor || "Shopify product", `/${row.shopify.handle}`].join(" • ")}
-              </Text>
-              <InlineStack gap="150" wrap blockAlign="center">
-                <Badge tone={journey.activeStep === "ready" ? "success" : "info"}>
-                  {journey.activeStep === "ready" ? "Ready" : `Step ${Math.min(journey.completedSteps + 1, journey.totalSteps)} of ${journey.totalSteps}`}
-                </Badge>
-                <Text as="p" variant="bodyMd" fontWeight="semibold">
-                  {stepLabel}
-                </Text>
-              </InlineStack>
-              <Text as="p" variant="bodySm" tone="subdued">
-                {helperText}
+                {row.shopify.vendor ? `${row.shopify.vendor} • ` : ""}
+                <span style={{ fontFamily: "monospace" }}>/{row.shopify.handle}</span>
               </Text>
             </BlockStack>
-          </InlineGrid>
-        </BlockStack>
-      </Box>
+          </InlineStack>
+          <Badge tone={statusTone}>
+             {journey.activeStep === "ready" ? "Ready" : `Step ${Math.min(journey.completedSteps + 1, journey.totalSteps)} of ${journey.totalSteps}`}
+          </Badge>
+        </InlineStack>
+      </BlockStack>
+      <div style={{ height: "1px", background: "var(--p-color-border-subdued)", marginTop: "16px" }} />
     </div>
   );
 }
@@ -2455,7 +2439,7 @@ function ProductSetupStepCard({
   systemMessage: string;
 }) {
   return (
-    <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300">
+    <Card>
       <BlockStack gap="200">
         <BlockStack gap="100">
           <Text as="p" variant="bodySm" tone="subdued">
@@ -2540,7 +2524,7 @@ function ProductSetupStepCard({
           </BlockStack>
         </Box>
       </BlockStack>
-    </Box>
+    </Card>
   );
 }
 
@@ -2574,7 +2558,7 @@ function AIKnowledgePanel({
   setInlineValidationError: (value: string | null) => void;
 }) {
   return (
-    <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300">
+    <Card>
       <BlockStack gap="200">
         <InlineStack align="space-between" blockAlign="center" gap="200" wrap>
           <BlockStack gap="050">
@@ -2729,7 +2713,7 @@ function LanguageCoveragePanel({
   disabled: boolean;
 }) {
   return (
-    <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300">
+    <Card>
       <BlockStack gap="200">
         <BlockStack gap="050">
           <InlineStack align="space-between" blockAlign="center" gap="200" wrap>
@@ -2779,7 +2763,7 @@ function LanguageCoveragePanel({
           </InlineStack>
         )}
       </BlockStack>
-    </Box>
+    </Card>
   );
 }
 
@@ -2797,7 +2781,7 @@ function PreviewAnswerPanel({
   loading: boolean;
 }) {
   return (
-    <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300">
+    <Card>
       <Form method="post">
         <input type="hidden" name="intent" value="preview-answer" />
         <input type="hidden" name="productId" value={row.localProduct?.id || ""} />
@@ -2831,7 +2815,7 @@ function PreviewAnswerPanel({
           </Box>
         </BlockStack>
       </Form>
-    </Box>
+    </Card>
   );
 }
 
