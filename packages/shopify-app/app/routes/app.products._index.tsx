@@ -2143,7 +2143,7 @@ function SetupPanel({
               ) : null}
             </BlockStack>
           </Form>
-        </Box>
+        </Card>
       ) : null}
 
       {activeStep === "improve" ? (
@@ -2661,7 +2661,7 @@ function AIKnowledgePanel({
           </Box>
         </Collapsible>
       </BlockStack>
-    </Box>
+    </Card>
   );
 }
 

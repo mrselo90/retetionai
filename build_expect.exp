@@ -1,0 +1,6 @@
+#!/usr/bin/expect -f
+set timeout -1
+spawn ssh root@167.172.60.234 "cd /root/retetionai/packages/shopify-app && pnpm build"
+expect "*?assword:*"
+send "Kuleli29?\r"
+expect eof
