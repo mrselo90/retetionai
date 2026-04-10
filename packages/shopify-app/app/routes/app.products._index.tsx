@@ -2157,15 +2157,7 @@ function SetupPanel({
                         placeholder="Anything customers should avoid or watch for."
                       />
                     </InlineGrid>
-
-                    <TextField
-                      label="Extra source URL"
-                      autoComplete="off"
-                      value={workflowUrl}
-                      onChange={onWorkflowUrlChange}
-                      helpText="Optional page with FAQs, tutorials, or product details."
-                      placeholder="https://example.com/blog/how-to-use-product"
-                    />
+                    </InlineGrid>
                   </BlockStack>
                 </Box>
             </BlockStack>
@@ -2216,20 +2208,6 @@ function SetupPanel({
             </Text>
             <InlineStack gap="200" wrap>
               <Button onClick={() => setShowReadyEditor(true)}>Edit setup</Button>
-              <InlineActionForm
-                productId={row.localProduct?.id || ""}
-                shopifyProductId={row.shopify.id}
-                productName={row.shopify.title}
-                intent="embeddings"
-                label="Refresh AI answers"
-                icon={MagicIcon}
-                hasContent={Boolean(row.localProduct?.raw_text)}
-                enrichmentUrl={workflowUrl}
-                disabled={!row.localProduct || isSavingSetup || isDeletingLocalSetup}
-                loading={isRunningAiAction}
-                variant="secondary"
-                onActionStart={onEmbeddingsStart}
-              />
             </InlineStack>
           </BlockStack>
         </Banner>
