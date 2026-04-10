@@ -2288,15 +2288,6 @@ function SetupPanel({
           <Layout>
             <Layout.Section>
               <BlockStack gap="400">
-                <LanguageCoveragePanel
-                  row={row}
-                  languageStatusText={languageStatusText}
-                  workflowUrl={workflowUrl}
-                  onWorkflowUrlChange={onWorkflowUrlChange}
-                  onRefresh={submitEmbeddingsFromStep}
-                  busy={isRunningAiAction || recentAction}
-                  disabled={!row.localProduct || isSavingSetup || isDeletingLocalSetup}
-                />
                 <PreviewAnswerPanel
                   row={row}
                   previewQuestion={previewQuestion}
@@ -2765,78 +2756,6 @@ function QualityScoreCard({
             </BlockStack>
           </Box>
         ) : null}
-      </BlockStack>
-    </Card>
-  );
-}
-
-function LanguageCoveragePanel({
-  row,
-  languageStatusText,
-  workflowUrl,
-  onWorkflowUrlChange,
-  onRefresh,
-  busy,
-  disabled,
-}: {
-  row: WorkspaceRow;
-  languageStatusText: string;
-  workflowUrl: string;
-  onWorkflowUrlChange: (value: string) => void;
-  onRefresh: () => void;
-  busy: boolean;
-  disabled: boolean;
-}) {
-  return (
-    <Card>
-      <BlockStack gap="200">
-        <BlockStack gap="050">
-          <InlineStack align="space-between" blockAlign="center" gap="200" wrap>
-            <Text as="h3" variant="headingSm">
-              Language coverage
-            </Text>
-            <Badge tone={row.languageTone}>
-              {`${row.readyLanguageCount}/${row.requiredLanguageCount} ready`}
-            </Badge>
-          </InlineStack>
-          <Text as="p" variant="bodySm" tone="subdued">
-            Answer setup is complete. Language coverage can keep improving in the background.
-          </Text>
-        </BlockStack>
-
-        <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-          <BlockStack gap="100">
-            <ProgressBar progress={row.languageCoverage} size="small" />
-            <Text as="p" variant="bodySm" tone="subdued">
-              {languageStatusText}
-              {row.sourceLanguage ? ` Source content looks like ${languageLabel(row.sourceLanguage)}.` : ""}
-            </Text>
-          </BlockStack>
-        </Box>
-
-        <TextField
-          label="Extra source URL"
-          autoComplete="off"
-          value={workflowUrl}
-          onChange={onWorkflowUrlChange}
-          helpText="Optional: add another source if you want better multilingual coverage."
-          placeholder="https://example.com/blog/how-to-use-product"
-        />
-
-        {busy ? (
-          <InlineStack gap="100" blockAlign="center">
-            <Badge tone="info">Syncing</Badge>
-            <Text as="p" variant="bodySm" tone="subdued">
-              Recete is refreshing language coverage in the background.
-            </Text>
-          </InlineStack>
-        ) : (
-          <InlineStack gap="200" wrap>
-            <Button variant="secondary" disabled={disabled} onClick={onRefresh}>
-              Refresh language coverage
-            </Button>
-          </InlineStack>
-        )}
       </BlockStack>
     </Card>
   );
