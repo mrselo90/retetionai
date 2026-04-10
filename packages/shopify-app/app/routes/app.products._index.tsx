@@ -2108,29 +2108,32 @@ function SetupPanel({
                 helpText="Keep this practical: how to use the product, what to avoid, and what matters most after delivery."
               />
 
-              <InlineStack gap="200" wrap>
-                {!isSavingSetup ? (
-                  <Button
-                    submit
-                    variant="primary"
-                    disabled={isRunningAiAction || isDeletingLocalSetup}
-                    onClick={() => setSubmitIntent("save-setup")}
-                  >
-                    {activeStep === "ready" ? "Save changes" : "Save and continue"}
-                  </Button>
-                ) : (
-                  <InlineStack gap="100" blockAlign="center">
-                    <Badge tone="info">Saving</Badge>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Saving this step now.
-                    </Text>
-                  </InlineStack>
-                )}
-                {activeStep === "ready" ? (
-                  <Button variant="secondary" onClick={() => setShowReadyEditor(false)}>
-                    Cancel
-                  </Button>
-                ) : null}
+              <InlineStack align="space-between" blockAlign="center" wrap gap="200">
+                <InlineStack gap="200" wrap>
+                  {!isSavingSetup ? (
+                    <Button
+                      submit
+                      variant="primary"
+                      disabled={isRunningAiAction || isDeletingLocalSetup}
+                      onClick={() => setSubmitIntent("save-setup")}
+                    >
+                      {activeStep === "ready" ? "Save changes" : "Save and continue"}
+                    </Button>
+                  ) : (
+                    <InlineStack gap="100" blockAlign="center">
+                      <Badge tone="info">Saving</Badge>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Saving this step now.
+                      </Text>
+                    </InlineStack>
+                  )}
+                  {activeStep === "ready" ? (
+                    <Button variant="secondary" onClick={() => setShowReadyEditor(false)}>
+                      Cancel
+                    </Button>
+                  ) : null}
+                </InlineStack>
+
                 <Button size="slim" onClick={onToggleOptional}>
                   {optionalVisible ? "Hide supporting details" : "Add supporting details"}
                 </Button>
