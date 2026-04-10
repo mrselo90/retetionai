@@ -2159,14 +2159,7 @@ function SetupPanel({
                         placeholder="Anything customers should avoid or watch for."
                       />
                     </InlineGrid>
-                    <TextField
-                      label="Tutorial video URL"
-                      name="video_url"
-                      autoComplete="off"
-                      value={draft.video_url}
-                      onChange={(value) => onChangeDraft("video_url", value)}
-                      placeholder="https://example.com/video"
-                    />
+
                     <TextField
                       label="Extra source URL"
                       autoComplete="off"
