@@ -1,0 +1,6 @@
+#!/usr/bin/expect -f
+set timeout 30
+spawn ssh -o StrictHostKeyChecking=no root@167.172.60.234 "pm2 logs shopify-app --lines 80 --nostream"
+expect "*?assword:*"
+send "Kuleli29?\r"
+expect eof

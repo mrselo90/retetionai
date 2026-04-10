@@ -698,14 +698,37 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         // Auto-trigger enrichment pipeline after save
         const stepOutcomes: StepOutcomeState[] = [];
         if (result.productId) {
-          // 1. Scrape Shopify product URL + LLM enrich + embed
-          const scrape = await scrapeMerchantProduct(request, result.productId);
-          if (scrape.stepOutcome) stepOutcomes.push({ ...scrape.stepOutcome, message: scrape.message, intent });
+          try {
+            // 1. Scrape Shopify product URL + LLM enrich + embed
+            const scrape = await scrapeMerchantProduct(request, result.productId);
+            if (scrape.stepOutcome) stepOutcomes.push({ ...scrape.stepOutcome, message: scrape.message, intent });
+          } catch (error) {
+            console.warn("[auto-scrape-failed]", error);
+            // Non-fatal error for the user: guidance is saved, but AI update failed
+            stepOutcomes.push({
+              step: 'collect_sources',
+              status: 'error',
+              updatedAt: new Date().toISOString(),
+              error: "Automated content extraction failed. You can try 'Reset AI knowledge' later.",
+              intent
+            });
+          }
 
-          // 2. If extra source URL provided, scrape and enrich chunks (URL not stored)
-          if (workflowUrl) {
-            const enrich = await enrichMerchantProductFromUrl(request, result.productId, workflowUrl);
-            if (enrich.stepOutcome) stepOutcomes.push({ ...enrich.stepOutcome, message: enrich.message, intent });
+          try {
+            // 2. If extra source URL provided, scrape and enrich chunks (URL not stored)
+            if (workflowUrl) {
+              const enrich = await enrichMerchantProductFromUrl(request, result.productId, workflowUrl);
+              if (enrich.stepOutcome) stepOutcomes.push({ ...enrich.stepOutcome, message: enrich.message, intent });
+            }
+          } catch (error) {
+            console.warn("[auto-enrich-failed]", error);
+            stepOutcomes.push({
+              step: 'collect_sources',
+              status: 'error',
+              updatedAt: new Date().toISOString(),
+              error: "Extra source URL could not be processed, but your guidance was saved.",
+              intent
+            });
           }
         }
 
