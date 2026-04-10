@@ -4,6 +4,7 @@
  */
 
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
 import { buildShopifyProductFallbackContent, getSupabaseServiceClient, logger } from '@recete/shared';
@@ -52,6 +53,10 @@ function getErrorMessage(error: unknown): string {
 
 type ProductPipelineStep = 'map_product' | 'collect_sources' | 'generate_ai_knowledge';
 type ProductPipelineStepStatus = 'not_started' | 'in_progress' | 'ready' | 'error';
+type ProductLifecycleStatus = 'needs_setup' | 'needs_ai_answers' | 'ready';
+const prepareKnowledgeSchema = z.object({
+  source_url: z.string().url().max(2048).optional(),
+});
 
 function buildStepOutcome(
   step: ProductPipelineStep,
@@ -69,6 +74,91 @@ function buildStepOutcome(
     delta: options?.delta || {},
     error: options?.error || null,
   };
+}
+
+function buildProductLifecycle(options: {
+  hasGuidance: boolean;
+  hasKnowledge: boolean;
+  languageWorkflowEnabled: boolean;
+  languageCoverage: number;
+}): {
+  status: ProductLifecycleStatus;
+  label: string;
+  nextActionLabel: string;
+  message: string;
+} {
+  if (!options.hasGuidance) {
+    return {
+      status: 'needs_setup',
+      label: 'Needs setup',
+      nextActionLabel: 'Continue setup',
+      message: 'Add customer guidance so Recete knows what customers should do after delivery.',
+    };
+  }
+
+  if (!options.hasKnowledge) {
+    return {
+      status: 'needs_ai_answers',
+      label: 'Needs AI answers',
+      nextActionLabel: 'Prepare answers',
+      message: 'The guidance is saved. Recete still needs product knowledge before it can answer customers well.',
+    };
+  }
+
+  return {
+    status: 'ready',
+    label: 'Ready',
+    nextActionLabel: 'Review',
+    message: options.languageWorkflowEnabled && options.languageCoverage < 100
+      ? 'Setup is complete. Extra language coverage will keep improving in the background.'
+      : 'Setup is complete and this product is ready to answer customer questions.',
+  };
+}
+
+async function runInternalProductRequest(
+  merchantId: string,
+  path: string,
+  init?: RequestInit,
+) {
+  const baseUrl = (process.env.API_URL || 'http://localhost:3001').replace(/\/$/, '');
+  const internalSecret = process.env.INTERNAL_SERVICE_SECRET?.trim();
+
+  if (!internalSecret) {
+    throw new Error('INTERNAL_SERVICE_SECRET is required for internal product orchestration');
+  }
+
+  const headers = new Headers(init?.headers || {});
+  headers.set('X-Internal-Secret', internalSecret);
+  headers.set('X-Internal-Merchant-Id', merchantId);
+  if (init?.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers,
+  });
+
+  const bodyText = await response.text();
+  let parsed: any = null;
+  try {
+    parsed = bodyText ? JSON.parse(bodyText) : null;
+  } catch {
+    parsed = bodyText ? { raw: bodyText } : null;
+  }
+
+  if (!response.ok) {
+    const error = new Error(
+      (parsed?.details as string) ||
+      (parsed?.error as string) ||
+      `Internal product request failed for ${path}`,
+    ) as Error & { payload?: any; status?: number };
+    error.payload = parsed;
+    error.status = response.status;
+    throw error;
+  }
+
+  return parsed;
 }
 
 function isSkippableShadowSyncError(error: unknown): boolean {
@@ -153,7 +243,19 @@ products.get('/', async (c) => {
     return c.json({ error: 'Failed to fetch products' }, 500);
   }
 
+  const { data: instructionRows, error: instructionError } = await serviceClient
+    .from('product_instructions')
+    .select('product_id, usage_instructions')
+    .eq('merchant_id', merchantId);
+
+  if (instructionError) {
+    return c.json({ error: 'Failed to fetch product instructions' }, 500);
+  }
+
   const settings = await new ShopSettingsService().getOrCreate(String(merchantId));
+  const instructionByProductId = new Map(
+    (instructionRows || []).map((row) => [row.product_id as string, row.usage_instructions || '']),
+  );
   const [knowledgeHealthMap, languageHealthMap] = await Promise.all([
     buildProductKnowledgeHealthMap(serviceClient, String(merchantId), products || []),
     buildProductLanguageHealthMap(serviceClient, String(merchantId), products || [], {
@@ -161,11 +263,32 @@ products.get('/', async (c) => {
     }),
   ]);
   const payload = {
-    products: (products || []).map((product) => ({
-      ...product,
-      knowledgeHealth: knowledgeHealthMap.get(product.id) || null,
-      languageHealth: languageHealthMap.get(product.id) || null,
-    })),
+    products: (products || []).map((product) => {
+      const knowledgeHealth = knowledgeHealthMap.get(product.id) || null;
+      const languageHealth = languageHealthMap.get(product.id) || null;
+      const hasGuidance = Boolean(String(instructionByProductId.get(product.id) || '').trim());
+      const languageWorkflowEnabled = settings.enabled_langs.length > 1;
+      const languageCoverage = languageWorkflowEnabled
+        ? languageHealth?.answerCoverage ?? 0
+        : (knowledgeHealth?.metrics.chunkCount || 0) > 0
+          ? 100
+          : 0;
+      const hasKnowledge =
+        (languageHealth?.readyLanguages.length || 0) > 0 ||
+        (knowledgeHealth?.metrics.chunkCount || 0) > 0;
+
+      return {
+        ...product,
+        knowledgeHealth,
+        languageHealth,
+        lifecycle: buildProductLifecycle({
+          hasGuidance,
+          hasKnowledge,
+          languageWorkflowEnabled,
+          languageCoverage,
+        }),
+      };
+    }),
   };
   const ttlSeconds = await getProductsCacheTtlSeconds();
   await setCachedApiResponse(cacheKey, payload, ttlSeconds);
@@ -1148,6 +1271,48 @@ products.post('/:id/generate-embeddings', async (c) => {
     }),
   });
 });
+
+products.post(
+  '/:id/prepare-knowledge',
+  validateParams(productIdSchema),
+  validateBody(prepareKnowledgeSchema),
+  async (c) => {
+    const merchantId = String(c.get('merchantId'));
+    const { id: productId } = c.get('validatedParams') as ProductIdParams;
+    const body = c.get('validatedBody') as { source_url?: string };
+    const sourceUrl = body.source_url?.trim() || '';
+    const stepOutcomes: Array<ReturnType<typeof buildStepOutcome>> = [];
+
+    const scrapeResult = await runInternalProductRequest(
+      merchantId,
+      `/api/products/${productId}/scrape`,
+      { method: 'POST' },
+    );
+    if (scrapeResult?.stepOutcome) stepOutcomes.push(scrapeResult.stepOutcome);
+
+    let enrichResult: any = null;
+    if (sourceUrl) {
+      enrichResult = await runInternalProductRequest(
+        merchantId,
+        `/api/products/${productId}/enrich-from-url`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ source_url: sourceUrl }),
+        },
+      );
+      if (enrichResult?.stepOutcome) stepOutcomes.push(enrichResult.stepOutcome);
+    }
+
+    return c.json({
+      message: sourceUrl
+        ? 'Product knowledge prepared from product page and extra source.'
+        : 'Product knowledge prepared from the product page.',
+      stepOutcomes,
+      scrape: scrapeResult || null,
+      enrich: enrichResult || null,
+    });
+  },
+);
 
 /**
  * Internal route for Worker to enrich product data without OpenAI installed in worker package

@@ -138,6 +138,8 @@ const INTERNAL_PRODUCT_PATHS: Array<string | RegExp> = [
   /^\/api\/products\/[^/]+$/,
   '/api/products/enrich',
   /^\/api\/products\/[^/]+\/scrape$/,
+  /^\/api\/products\/[^/]+\/enrich-from-url$/,
+  /^\/api\/products\/[^/]+\/prepare-knowledge$/,
   '/api/products/scrape-batch',
   '/api/products/generate-embeddings-batch',
   /^\/api\/products\/[^/]+\/generate-embeddings$/,

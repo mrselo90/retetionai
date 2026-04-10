@@ -178,6 +178,12 @@ export interface MerchantProduct {
     answerCoverage: number;
     state: "not_started" | "pending" | "ready";
   } | null;
+  lifecycle?: {
+    status: "needs_setup" | "needs_ai_answers" | "ready";
+    label: string;
+    nextActionLabel: string;
+    message: string;
+  } | null;
 }
 
 export interface ProductFactsSnapshot {
@@ -565,6 +571,20 @@ export async function enrichMerchantProductFromUrl(
     method: "POST",
     body: JSON.stringify({ source_url: sourceUrl }),
   }) as Promise<ProductActionApiResponse>;
+}
+
+export async function prepareMerchantProductKnowledge(
+  request: Request,
+  productId: string,
+  sourceUrl?: string,
+) {
+  return internalMerchantRequest(request, `/api/products/${productId}/prepare-knowledge`, {
+    method: "POST",
+    body: JSON.stringify(sourceUrl ? { source_url: sourceUrl } : {}),
+  }) as Promise<{
+    message?: string;
+    stepOutcomes?: ProductStepOutcome[];
+  }>;
 }
 
 export async function generateMerchantProductEmbeddings(request: Request, productId: string) {
