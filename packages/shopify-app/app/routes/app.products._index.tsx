@@ -2157,6 +2157,14 @@ function SetupPanel({
                         placeholder="Anything customers should avoid or watch for."
                       />
                     </InlineGrid>
+                    <TextField
+                      label="Extra source URL"
+                      autoComplete="off"
+                      value={workflowUrl}
+                      onChange={onWorkflowUrlChange}
+                      helpText="Optional page with FAQs, tutorials, or product details."
+                      placeholder="https://example.com/blog/how-to-use-product"
+                    />
                   </BlockStack>
                 </Box>
             </BlockStack>
