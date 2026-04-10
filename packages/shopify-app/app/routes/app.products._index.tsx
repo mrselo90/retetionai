@@ -2157,7 +2157,6 @@ function SetupPanel({
                         placeholder="Anything customers should avoid or watch for."
                       />
                     </InlineGrid>
-                    </InlineGrid>
                   </BlockStack>
                 </Box>
             </BlockStack>
