@@ -127,6 +127,7 @@ type KnowledgeSummary = {
   warnings: string[];
   sources: string[];
   missingInfo: string[];
+  qualityScore: number;
 };
 
 type JourneyMeta = {
@@ -284,6 +285,12 @@ function buildKnowledgeSummary(row: WorkspaceRow): KnowledgeSummary {
   if (!benefits.length && !claims.length && !hasManualFeatures) missingInfo.push("Key benefits");
   if (!ingredients.length && !activeIngredients.length && !hasManualFeatures) missingInfo.push("Ingredients");
 
+  let qualityScore = 100;
+  if (!row.instruction?.usage_instructions?.trim()) qualityScore -= 20;
+  if (!warnings.length) qualityScore -= 10;
+  if (!benefits.length && !claims.length && !hasManualFeatures) qualityScore -= 10;
+  if (!ingredients.length && !activeIngredients.length && !hasManualFeatures) qualityScore -= 20;
+
   return {
     howToUse,
     keyDetails,
@@ -291,6 +298,7 @@ function buildKnowledgeSummary(row: WorkspaceRow): KnowledgeSummary {
     warnings,
     sources: sources.length ? sources : ["No sources connected yet"],
     missingInfo,
+    qualityScore,
   };
 }
 
@@ -2268,16 +2276,15 @@ function SetupPanel({
 
       {revealSecondaryPanels ? (
         <BlockStack gap="400">
-          {knowledge.missingInfo.length > 0 ? (
-            <MissingInfoCallout
-              missingInfo={knowledge.missingInfo}
-              onAddDetails={() => {
-                setShowKnowledgeDetails(true);
-                if (activeStep === "ready") setShowReadyEditor(true);
-                if (!optionalVisible) onToggleOptional();
-              }}
-            />
-          ) : null}
+          <QualityScoreCard
+            qualityScore={knowledge.qualityScore}
+            missingInfo={knowledge.missingInfo}
+            onAddDetails={() => {
+              setShowKnowledgeDetails(true);
+              if (activeStep === "ready") setShowReadyEditor(true);
+              if (!optionalVisible) onToggleOptional();
+            }}
+          />
           <Layout>
             <Layout.Section>
               <BlockStack gap="400">
@@ -2699,33 +2706,67 @@ function AIKnowledgePanel({
   );
 }
 
-function MissingInfoCallout({
+function QualityScoreCard({
+  qualityScore,
   missingInfo,
   onAddDetails,
 }: {
+  qualityScore: number;
   missingInfo: string[];
   onAddDetails: () => void;
 }) {
   return (
-    <Banner tone="warning" title="Your AI is missing important information">
-      <BlockStack gap="100">
-        <Text as="p" variant="bodyMd">
-          Some answers may be incomplete because we couldn’t find:
-        </Text>
-        <BlockStack gap="050">
-          {missingInfo.map((item) => (
-            <Text key={item} as="p" variant="bodySm" tone="subdued">
-              {item}
+    <Card padding="400">
+      <BlockStack gap="400">
+        <BlockStack gap="200">
+          <InlineStack align="space-between" blockAlign="center" wrap gap="200">
+            <Text as="h3" variant="headingMd">
+              AI Answer Quality
             </Text>
-          ))}
+            <Badge tone={qualityScore === 100 ? "success" : qualityScore >= 70 ? "attention" : "critical"}>
+              {qualityScore}%
+            </Badge>
+          </InlineStack>
+
+          <ProgressBar progress={qualityScore} size="small" tone={qualityScore === 100 ? "success" : "primary"} />
+
+          <Text as="p" variant="bodySm" tone="subdued">
+            {qualityScore === 100
+              ? "Great job! Recete has all the information it needs to help customers with this product."
+              : "Increase this score to ensure customers get detailed, accurate answers."}
+          </Text>
         </BlockStack>
-        <InlineStack>
-          <Button size="slim" onClick={onAddDetails}>
-            Add details
-          </Button>
-        </InlineStack>
+
+        {missingInfo.length > 0 ? (
+          <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+            <BlockStack gap="200">
+              <Text as="p" variant="bodySm" fontWeight="semibold">
+                To reach 100%, please add:
+              </Text>
+              <BlockStack gap="100">
+                {missingInfo.map((item) => {
+                  let points = 10;
+                  if (item === "How to use the product" || item === "Ingredients") points = 20;
+                  return (
+                    <InlineStack key={item} align="space-between" blockAlign="center">
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        • {item}
+                      </Text>
+                      <Badge tone="success">+{points}%</Badge>
+                    </InlineStack>
+                  );
+                })}
+              </BlockStack>
+              <InlineStack>
+                <Button size="slim" variant="primary" onClick={onAddDetails}>
+                  Add missing details
+                </Button>
+              </InlineStack>
+            </BlockStack>
+          </Box>
+        ) : null}
       </BlockStack>
-    </Banner>
+    </Card>
   );
 }
 
