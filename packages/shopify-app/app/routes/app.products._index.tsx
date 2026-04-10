@@ -2281,13 +2281,6 @@ function SetupPanel({
           <Layout>
             <Layout.Section>
               <BlockStack gap="400">
-                <PreviewAnswerPanel
-                  row={row}
-                  previewQuestion={previewQuestion}
-                  previewAnswer={previewAnswer}
-                  onPreviewQuestionChange={onPreviewQuestionChange}
-                  loading={isPreviewingAnswer}
-                />
                 <LanguageCoveragePanel
                   row={row}
                   languageStatusText={languageStatusText}
@@ -2296,6 +2289,13 @@ function SetupPanel({
                   onRefresh={submitEmbeddingsFromStep}
                   busy={isRunningAiAction || recentAction}
                   disabled={!row.localProduct || isSavingSetup || isDeletingLocalSetup}
+                />
+                <PreviewAnswerPanel
+                  row={row}
+                  previewQuestion={previewQuestion}
+                  previewAnswer={previewAnswer}
+                  onPreviewQuestionChange={onPreviewQuestionChange}
+                  loading={isPreviewingAnswer}
                 />
               </BlockStack>
             </Layout.Section>
