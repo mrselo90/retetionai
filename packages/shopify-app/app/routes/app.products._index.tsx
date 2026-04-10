@@ -1751,9 +1751,11 @@ function ProductListItem({
                 {recentAction ? "Refreshing" : row.statusLabel}
               </Badge>
             </InlineStack>
-            <Text as="p" variant="bodySm" tone="subdued">
-              {[row.shopify.vendor || "Shopify product", productPath].filter(Boolean).join(" • ")}
-            </Text>
+            {row.shopify.vendor ? (
+              <Text as="p" variant="bodySm" tone="subdued">
+                {row.shopify.vendor}
+              </Text>
+            ) : null}
           </BlockStack>
 
           <InlineStack align="end" blockAlign="center" gap="200" wrap>
@@ -2265,69 +2267,67 @@ function SetupPanel({
       ) : null}
 
       {revealSecondaryPanels ? (
-        <Layout>
-          <Layout.Section>
-            <BlockStack gap="400">
-              <PreviewAnswerPanel
-                row={row}
-                previewQuestion={previewQuestion}
-                previewAnswer={previewAnswer}
-                onPreviewQuestionChange={onPreviewQuestionChange}
-                loading={isPreviewingAnswer}
-              />
-
-              <LanguageCoveragePanel
-                row={row}
-                languageStatusText={languageStatusText}
-                workflowUrl={workflowUrl}
-                onWorkflowUrlChange={onWorkflowUrlChange}
-                onRefresh={submitEmbeddingsFromStep}
-                busy={isRunningAiAction || recentAction}
-                disabled={!row.localProduct || isSavingSetup || isDeletingLocalSetup}
-              />
-            </BlockStack>
-          </Layout.Section>
-
-          <Layout.Section variant="oneThird">
-            <BlockStack gap="400">
-              <AIKnowledgePanel
-                row={row}
-                knowledge={knowledge}
-                open={showKnowledgeDetails}
-                onToggle={() => setShowKnowledgeDetails((current) => !current)}
-                draft={draft}
-                activeStep={activeStep}
-                showReadyEditor={showReadyEditor}
-                inlineValidationError={inlineValidationError}
-                onChangeDraft={onChangeDraft}
-                isSavingSetup={isSavingSetup}
-                isRunningAiAction={isRunningAiAction}
-                isDeletingLocalSetup={isDeletingLocalSetup}
-                setInlineValidationError={setInlineValidationError}
-              />
-
-              {knowledge.missingInfo.length > 0 ? (
-                <MissingInfoCallout
-                  missingInfo={knowledge.missingInfo}
-                  onAddDetails={() => {
-                    setShowKnowledgeDetails(true);
-                    if (activeStep === "ready") setShowReadyEditor(true);
-                    if (!optionalVisible) onToggleOptional();
-                  }}
+        <BlockStack gap="400">
+          {knowledge.missingInfo.length > 0 ? (
+            <MissingInfoCallout
+              missingInfo={knowledge.missingInfo}
+              onAddDetails={() => {
+                setShowKnowledgeDetails(true);
+                if (activeStep === "ready") setShowReadyEditor(true);
+                if (!optionalVisible) onToggleOptional();
+              }}
+            />
+          ) : null}
+          <Layout>
+            <Layout.Section>
+              <BlockStack gap="400">
+                <PreviewAnswerPanel
+                  row={row}
+                  previewQuestion={previewQuestion}
+                  previewAnswer={previewAnswer}
+                  onPreviewQuestionChange={onPreviewQuestionChange}
+                  loading={isPreviewingAnswer}
                 />
-              ) : null}
-
-              <StepOutcomeLine
-                title="Latest update"
-                outcome={
-                  stepOutcomes?.collect_sources ||
-                  stepOutcomes?.generate_ai_knowledge ||
-                  stepOutcomes?.map_product
-                }
-              />
-            </BlockStack>
-          </Layout.Section>
-        </Layout>
+                <LanguageCoveragePanel
+                  row={row}
+                  languageStatusText={languageStatusText}
+                  workflowUrl={workflowUrl}
+                  onWorkflowUrlChange={onWorkflowUrlChange}
+                  onRefresh={submitEmbeddingsFromStep}
+                  busy={isRunningAiAction || recentAction}
+                  disabled={!row.localProduct || isSavingSetup || isDeletingLocalSetup}
+                />
+              </BlockStack>
+            </Layout.Section>
+            <Layout.Section variant="oneThird">
+              <BlockStack gap="400">
+                <AIKnowledgePanel
+                  row={row}
+                  knowledge={knowledge}
+                  open={showKnowledgeDetails}
+                  onToggle={() => setShowKnowledgeDetails((current) => !current)}
+                  draft={draft}
+                  activeStep={activeStep}
+                  showReadyEditor={showReadyEditor}
+                  inlineValidationError={inlineValidationError}
+                  onChangeDraft={onChangeDraft}
+                  isSavingSetup={isSavingSetup}
+                  isRunningAiAction={isRunningAiAction}
+                  isDeletingLocalSetup={isDeletingLocalSetup}
+                  setInlineValidationError={setInlineValidationError}
+                />
+                <StepOutcomeLine
+                  title="Latest update"
+                  outcome={
+                    stepOutcomes?.collect_sources ||
+                    stepOutcomes?.generate_ai_knowledge ||
+                    stepOutcomes?.map_product
+                  }
+                />
+              </BlockStack>
+            </Layout.Section>
+          </Layout>
+        </BlockStack>
       ) : null}
 
       {revealSecondaryPanels && row.localProduct ? (
@@ -2398,7 +2398,7 @@ function StickyProductContextHeader({
   statusLabel: string;
 }) {
   return (
-    <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--p-color-bg-surface)", paddingBottom: "16px", paddingTop: "8px" }}>
+    <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--p-color-bg-surface)", paddingBottom: "16px", paddingTop: "8px", borderBottom: "1px solid var(--p-color-border)", boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)" }}>
       <BlockStack gap="400">
         <InlineStack align="start">
           <Button variant="plain" onClick={onBack}>
@@ -2443,7 +2443,6 @@ function StickyProductContextHeader({
           </Badge>
         </InlineStack>
       </BlockStack>
-      <div style={{ height: "1px", background: "var(--p-color-border-subdued)", marginTop: "16px" }} />
     </div>
   );
 }
