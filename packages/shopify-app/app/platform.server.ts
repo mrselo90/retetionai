@@ -594,6 +594,12 @@ export async function deleteMerchantProduct(request: Request, productId: string)
   });
 }
 
+export async function resetMerchantProductKnowledge(request: Request, productId: string) {
+  return internalMerchantRequest(request, `/api/products/${productId}/knowledge`, {
+    method: "DELETE",
+  });
+}
+
 export async function fetchShopifyCatalog(
   request: Request,
   input?: { first?: number; after?: string },

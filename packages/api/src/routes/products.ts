@@ -573,6 +573,43 @@ products.delete('/:id', async (c) => {
 });
 
 /**
+ * Reset product AI knowledge (clears chunks only, keeps product + instructions)
+ * DELETE /api/products/:id/knowledge
+ */
+products.delete('/:id/knowledge', async (c) => {
+  const merchantId = c.get('merchantId');
+  const productId = c.req.param('id');
+  const serviceClient = getSupabaseServiceClient();
+
+  // Verify ownership
+  const { data: existing } = await serviceClient
+    .from('products')
+    .select('id')
+    .eq('id', productId)
+    .eq('merchant_id', merchantId)
+    .single();
+
+  if (!existing) {
+    return c.json({ error: 'Product not found' }, 404);
+  }
+
+  const { error } = await serviceClient
+    .from('knowledge_chunks')
+    .delete()
+    .eq('product_id', productId);
+
+  if (error) {
+    logger.error({ err: error, productId, merchantId }, 'Failed to delete knowledge chunks');
+    return c.json({ error: 'Failed to reset knowledge' }, 500);
+  }
+
+  await invalidateProductKnowledgeCaches(String(merchantId), productId);
+  shadowSyncProductKnowledge(String(merchantId), productId, 'reset knowledge');
+
+  return c.json({ message: 'Product AI knowledge reset successfully' });
+});
+
+/**
  * Scrape product (immediate)
  * POST /api/products/:id/scrape
  */

@@ -46,6 +46,7 @@ import {
   fetchShopifyCatalog,
   generateMerchantProductEmbeddings,
   previewMerchantProductAnswer,
+  resetMerchantProductKnowledge,
   scrapeMerchantProduct,
   type MerchantProduct,
   type MerchantProductInstruction,
@@ -674,6 +675,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
       case "save-setup":
       case "mark-ready": {
+        const workflowUrl = String(formData.get("workflow_url") || "").trim();
         const result = await persistProductSetup({
           request,
           shopDomain: session.shop,
@@ -693,14 +695,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           return { ...result, intent } satisfies ActionResult;
         }
 
+        // Auto-trigger enrichment pipeline after save
+        const stepOutcomes: StepOutcomeState[] = [];
+        if (result.productId) {
+          // 1. Scrape Shopify product URL + LLM enrich + embed
+          const scrape = await scrapeMerchantProduct(request, result.productId);
+          if (scrape.stepOutcome) stepOutcomes.push({ ...scrape.stepOutcome, message: scrape.message, intent });
+
+          // 2. If extra source URL provided, scrape and enrich chunks (URL not stored)
+          if (workflowUrl) {
+            const enrich = await enrichMerchantProductFromUrl(request, result.productId, workflowUrl);
+            if (enrich.stepOutcome) stepOutcomes.push({ ...enrich.stepOutcome, message: enrich.message, intent });
+          }
+        }
+
         return {
           ...result,
           ok: true,
           intent,
+          stepOutcomes,
           message:
             intent === "mark-ready"
               ? "Product marked ready."
-              : "Customer guidance saved.",
+              : "Customer guidance saved and AI updated.",
         } satisfies ActionResult;
       }
       case "embeddings": {
@@ -802,6 +819,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           productName,
           selectedProductId,
           message: `${productName || "Product"} local setup removed.`,
+        } satisfies ActionResult;
+      }
+      case "reset-knowledge": {
+        const productId = String(formData.get("productId") || "").trim();
+        const productName = String(formData.get("productName") || "").trim();
+        const selectedProductId = String(formData.get("shopifyProductId") || "").trim();
+
+        if (!productId) {
+          return { ok: false, intent, selectedProductId, error: "Missing product id." } satisfies ActionResult;
+        }
+
+        await resetMerchantProductKnowledge(request, productId);
+        return {
+          ok: true,
+          intent,
+          productId,
+          productName,
+          selectedProductId,
+          message: `AI knowledge for ${productName || "this product"} has been cleared.`,
         } satisfies ActionResult;
       }
       case "preview-answer": {
@@ -2094,6 +2130,7 @@ function SetupPanel({
             <input type="hidden" name="external_id" value={row.shopify.id} />
             <input type="hidden" name="description_html" value={row.shopify.descriptionHtml || ""} />
             <input type="hidden" name="existing_product_id" value={row.localProduct?.id || ""} />
+            <input type="hidden" name="workflow_url" value={workflowUrl} />
 
             <BlockStack gap="200">
               <TextField
@@ -2215,10 +2252,38 @@ function SetupPanel({
             </Text>
             <InlineStack gap="200" wrap>
               <Button onClick={() => setShowReadyEditor(true)}>Edit setup</Button>
+              <InlineActionForm
+                productId={row.localProduct?.id || ""}
+                shopifyProductId={row.shopify.id}
+                productName={row.shopify.title}
+                intent="reset-knowledge"
+                label="Reset AI knowledge"
+                hasContent={false}
+                enrichmentUrl=""
+                disabled={!row.localProduct || isSavingSetup || isDeletingLocalSetup}
+                loading={isRunningAiAction}
+                variant="secondary"
+                onActionStart={onEmbeddingsStart}
+              />
+              <InlineActionForm
+                productId={row.localProduct?.id || ""}
+                shopifyProductId={row.shopify.id}
+                productName={row.shopify.title}
+                intent="delete"
+                label="Remove from Recete"
+                hasContent={false}
+                enrichmentUrl=""
+                disabled={!row.localProduct || isSavingSetup || isRunningAiAction}
+                loading={isDeletingLocalSetup}
+                variant="secondary"
+                onActionStart={onDeleteStart}
+                confirmMessage={`This will remove "${row.shopify.title}" from Recete. The product will remain in Shopify.`}
+              />
             </InlineStack>
           </BlockStack>
         </Banner>
       ) : null}
+
 
       {nextStepMeta ? (
         <Box padding="200" background="bg-surface-secondary" borderRadius="300">
@@ -2931,13 +2996,14 @@ function InlineActionForm({
   loading = false,
   variant = "secondary",
   onActionStart,
+  confirmMessage,
 }: {
   productId: string;
   shopifyProductId: string;
   productName?: string;
   intent: string;
   label: string;
-  icon: unknown;
+  icon?: unknown;
   hasContent?: boolean;
   destructive?: boolean;
   enrichmentUrl?: string;
@@ -2945,11 +3011,13 @@ function InlineActionForm({
   loading?: boolean;
   variant?: "primary" | "secondary" | "tertiary";
   onActionStart?: () => void;
+  confirmMessage?: string;
 }) {
   const submit = useSubmit();
 
   function submitAction() {
     if (disabled || loading) return;
+    if (confirmMessage && !window.confirm(confirmMessage)) return;
     onActionStart?.();
 
     const formData = new FormData();
