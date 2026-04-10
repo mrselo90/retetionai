@@ -262,6 +262,7 @@ function buildKnowledgeSummary(row: WorkspaceRow): KnowledgeSummary {
   if (skinTypes.length) keyDetails.push(`Best for: ${skinTypes.slice(0, 3).join(", ")}`);
   if (activeIngredients.length) keyDetails.push(`Active ingredients: ${activeIngredients.slice(0, 3).join(", ")}`);
   if (ingredients.length) keyDetails.push(`Ingredients: ${ingredients.slice(0, 3).join(", ")}`);
+  if (row.instruction?.recipe_summary?.trim()) keyDetails.push(`Key features & ingredients: ${summarizeText(row.instruction.recipe_summary, 120)}`);
 
   const commonQuestions = [
     "How do I use this product?",
@@ -278,8 +279,10 @@ function buildKnowledgeSummary(row: WorkspaceRow): KnowledgeSummary {
   const missingInfo: string[] = [];
   if (!row.instruction?.usage_instructions?.trim()) missingInfo.push("How to use the product");
   if (!warnings.length) missingInfo.push("Warnings or important notes");
-  if (!benefits.length && !claims.length) missingInfo.push("Key benefits");
-  if (!ingredients.length && !activeIngredients.length) missingInfo.push("Ingredients");
+  
+  const hasManualFeatures = Boolean(row.instruction?.recipe_summary?.trim());
+  if (!benefits.length && !claims.length && !hasManualFeatures) missingInfo.push("Key benefits");
+  if (!ingredients.length && !activeIngredients.length && !hasManualFeatures) missingInfo.push("Ingredients");
 
   return {
     howToUse,
@@ -2663,6 +2666,14 @@ function AIKnowledgePanel({
                     name="prevention_tips"
                     value={draft.prevention_tips}
                     onChange={(value) => onChangeDraft("prevention_tips", value)}
+                    multiline={4}
+                    autoComplete="off"
+                  />
+                  <TextField
+                    label="Key features & ingredients"
+                    name="recipe_summary"
+                    value={draft.recipe_summary}
+                    onChange={(value) => onChangeDraft("recipe_summary", value)}
                     multiline={4}
                     autoComplete="off"
                   />
