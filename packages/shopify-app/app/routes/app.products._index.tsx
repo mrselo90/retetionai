@@ -2133,14 +2133,9 @@ function SetupPanel({
                     </Button>
                   ) : null}
                 </InlineStack>
-
-                <Button size="slim" onClick={onToggleOptional}>
-                  {optionalVisible ? "Hide supporting details" : "Add supporting details"}
-                </Button>
               </InlineStack>
 
-              {optionalVisible ? (
-                <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+              <Box padding="200" background="bg-surface-secondary" borderRadius="200">
                   <BlockStack gap="200">
                     <InlineGrid columns={{ xs: 1, md: 2 }} gap="200">
                       <TextField
@@ -2173,7 +2168,6 @@ function SetupPanel({
                     />
                   </BlockStack>
                 </Box>
-              ) : null}
             </BlockStack>
           </Form>
         </Card>
