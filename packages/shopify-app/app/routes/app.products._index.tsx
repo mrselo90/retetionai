@@ -349,7 +349,24 @@ function buildWorkspaceRows(
     (productFacts || []).map((fact) => [fact.product_id, fact]),
   );
 
-  return catalogProducts.map((shopify) => {
+  const catalogExternalIds = new Set(catalogProducts.map((p) => p.id));
+  const combinedProducts = [...catalogProducts];
+
+  for (const mp of merchantProducts) {
+    if (!mp.external_id || !catalogExternalIds.has(mp.external_id)) {
+      combinedProducts.push({
+        id: mp.id,
+        title: mp.name || "Manual Source",
+        handle: `manual-${mp.id.slice(0, 8)}`,
+        status: "ACTIVE",
+        vendor: "Manual Entry",
+        featuredImageUrl: undefined,
+      });
+      localByExternalId.set(mp.id, mp);
+    }
+  }
+
+  return combinedProducts.map((shopify) => {
     const localProduct = localByExternalId.get(shopify.id);
     const instruction =
       instructionsByExternalId.get(shopify.id) ||
