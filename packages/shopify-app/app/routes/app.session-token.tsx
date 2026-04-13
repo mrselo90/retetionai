@@ -8,16 +8,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // Data route: rely on the embedded bearer token and let the platform API
   // perform the single source of truth verification.
   requireSessionTokenAuthorization(request);
-  const merchantSettings = await fetchMerchantSettings(request);
+  try {
+    const merchantSettings = await fetchMerchantSettings(request);
 
-  return Response.json(
-    {
-      ok: true,
-      auth: "shopify-session-token",
-      merchantId: merchantSettings.merchant.id,
-    },
-    { status: 200 },
-  );
+    return Response.json(
+      {
+        ok: true,
+        auth: "shopify-session-token",
+        merchantId: merchantSettings.merchant.id,
+      },
+      { status: 200 },
+    );
+  } catch (error) {
+    // During fresh installs there can be a short race where the Shopify shell
+    // has a valid embedded token but merchant bootstrap in the platform API
+    // is still converging. Treat this as temporary pending, not hard failure.
+    if (error instanceof Response && (error.status === 403 || error.status === 404)) {
+      return Response.json(
+        {
+          ok: true,
+          pending: true,
+          auth: "shopify-session-token-pending",
+          reason: "merchant_bootstrap_pending",
+        },
+        { status: 202 },
+      );
+    }
+    throw error;
+  }
 };
 
 export default function AppSessionTokenRoute() {

@@ -11,6 +11,7 @@ import {
 } from "../lib/sessionToken.client";
 
 const SESSION_TOKEN_HEARTBEAT_MS = 45_000;
+let lastSoftFailureLogAt = 0;
 
 async function verifyEmbeddedSessionToken(
   pathname: string,
@@ -39,7 +40,20 @@ async function assertEmbeddedSessionToken(
 ) {
   const sessionToken = await getFreshToken(shopify);
   const response = await verifyEmbeddedSessionToken(pathname, search, sessionToken);
-  if (response.ok) {
+  if (response.ok || response.status === 202) {
+    return;
+  }
+
+  // Keep embedded app stable during short-lived install/bootstrap races.
+  if (response.status === 401 || response.status === 403 || response.status === 404) {
+    const now = Date.now();
+    if (now - lastSoftFailureLogAt > 30_000) {
+      lastSoftFailureLogAt = now;
+      console.warn("[shopify-auth] session token verification pending", {
+        status: response.status,
+        pathname,
+      });
+    }
     return;
   }
 
