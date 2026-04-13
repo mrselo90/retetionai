@@ -27,9 +27,11 @@ export interface ConversationStructuredState {
   order_id?: string | null;
   known_order_products: Array<{ id: string; name?: string }>;
   selected_products: 'all' | string[];
+  current_goal?: string;
   current_intent?: 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent';
   last_question_type?: string;
   language_preference?: string;
+  unresolved_clarification_need?: boolean;
   constraints?: {
     routine_scope?: 'morning' | 'evening' | 'both' | 'unknown';
     simplicity?: 'simple' | 'detailed' | 'unknown';
@@ -63,9 +65,11 @@ function normalizeStructuredState(
     order_id: input?.order_id ?? null,
     known_order_products,
     selected_products,
+    current_goal: input?.current_goal ? String(input.current_goal) : undefined,
     current_intent: input?.current_intent,
     last_question_type: input?.last_question_type || 'none',
     language_preference: input?.language_preference,
+    unresolved_clarification_need: Boolean(input?.unresolved_clarification_need),
     constraints: {
       routine_scope: input?.constraints?.routine_scope || 'unknown',
       simplicity: input?.constraints?.simplicity || 'unknown',

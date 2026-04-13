@@ -171,7 +171,8 @@ function mergeFlowStateWithStructuredState(
       derived.routine_format_preference !== 'unknown'
         ? derived.routine_format_preference
         : (constraints.routine_format || 'unknown'),
-    unresolved_clarification_need: derived.unresolved_clarification_need,
+    unresolved_clarification_need:
+      derived.unresolved_clarification_need || Boolean(structured.unresolved_clarification_need),
   };
 }
 
@@ -204,6 +205,7 @@ function asksForPurchasedProductInfo(answer: string): boolean {
   return (
     /which products did you buy/.test(normalized) ||
     /what products did you buy/.test(normalized) ||
+    /which product are you referring to/.test(normalized) ||
     /which product are you using or your order number/.test(normalized) ||
     /which product are you using/.test(normalized) ||
     /share exact product names/.test(normalized) ||
@@ -221,6 +223,17 @@ function buildKnownProductsRecoveryResponse(
     return `Siparisinizdeki urunleri bu sohbette hatirliyorum: ${names.join(', ')}. Isterseniz hepsi icin birlikte kullanim sirasi verebilirim.`;
   }
   return `I still have your order products in this chat: ${names.join(', ')}. I can give one combined routine for all of them right away.`;
+}
+
+function buildUnknownProductSafeFallback(
+  lang: SupportedLanguage,
+  products: OrderProductMeta[],
+): string {
+  const lines = products.slice(0, 8).map((item, idx) => `${idx + 1}. ${item.name}`).join('\n');
+  if (lang === 'tr') {
+    return `Bu ürün için yeterli bilgiye sahip degilim. Siparisinizdeki urunler:\n${lines}\n\nBir urun numarasi (1,2,3) yazabilir ya da "hepsi" diyebilirsiniz.`;
+  }
+  return `I do not have enough info about this product. Products in your order:\n${lines}\n\nReply with a product number (1,2,3) or say "all of them".`;
 }
 
 function buildStructuredStatePromptContext(state: ConversationStructuredState): string {
@@ -241,7 +254,9 @@ function buildStructuredStatePromptContext(state: ConversationStructuredState): 
     `selected_products: ${selected || 'none'}`,
     `last_question_type: ${state.last_question_type || 'none'}`,
     `language_preference: ${state.language_preference || 'unknown'}`,
+    `current_goal: ${state.current_goal || 'unknown'}`,
     `current_intent: ${state.current_intent || 'unknown'}`,
+    `unresolved_clarification_need: ${state.unresolved_clarification_need ? 'yes' : 'no'}`,
     '---------------------------------------------------------',
   ].join('\n');
 }
@@ -267,6 +282,35 @@ function tokenizeForMatch(value: string) {
     .split(' ')
     .map((token) => token.trim())
     .filter((token) => token.length >= 3);
+}
+
+function buildTrigrams(value: string): Set<string> {
+  const source = normalizeForMatch(value).replace(/\s+/g, ' ').trim();
+  if (source.length < 3) return new Set(source ? [source] : []);
+  const grams = new Set<string>();
+  for (let i = 0; i <= source.length - 3; i += 1) {
+    grams.add(source.slice(i, i + 3));
+  }
+  return grams;
+}
+
+function diceSimilarity(a: string, b: string): number {
+  const ag = buildTrigrams(a);
+  const bg = buildTrigrams(b);
+  if (ag.size === 0 || bg.size === 0) return 0;
+  let overlap = 0;
+  for (const item of ag) {
+    if (bg.has(item)) overlap += 1;
+  }
+  return (2 * overlap) / (ag.size + bg.size);
+}
+
+function looksLikeAllProductsReference(text: string): boolean {
+  const normalized = normalizeForMatch(text);
+  return (
+    /\b(all products|all my products|all of them|for all of them|everything i bought|all together|my products)\b/i.test(normalized) ||
+    /\b(these|them)\b/i.test(normalized)
+  );
 }
 
 function removeEmojis(value: string): string {
@@ -315,6 +359,21 @@ function parseIndexedSelection(message: string): number | null {
   return value;
 }
 
+function parseOrdinalSelection(message: string): number | null {
+  const normalized = normalizeForMatch(message);
+  if (!normalized) return null;
+  const patterns: Array<{ re: RegExp; index: number }> = [
+    { re: /\b(first|1st|birinci|elso|elso)\b/i, index: 1 },
+    { re: /\b(second|2nd|ikinci|masodik|második)\b/i, index: 2 },
+    { re: /\b(third|3rd|ucuncu|üçüncü|harmadik)\b/i, index: 3 },
+    { re: /\b(fourth|4th|dorduncu|dördüncü|negyedik)\b/i, index: 4 },
+  ];
+  for (const item of patterns) {
+    if (item.re.test(normalized)) return item.index;
+  }
+  return null;
+}
+
 function parseRecentAssistantProductList(conversationHistory: ConversationMessage[]): string[] {
   const recentAssistantMessages = conversationHistory
     .slice(-8)
@@ -341,17 +400,6 @@ function parseRecentAssistantProductList(conversationHistory: ConversationMessag
   }
 
   return [];
-}
-
-function buildProductClarificationQuestion(
-  lang: SupportedLanguage,
-  productName: string
-) {
-  if (lang === 'tr') return `Bu üründen mi bahsediyorsun: ${productName}?`;
-  if (lang === 'hu') return `Erre a termékre gondolsz: ${productName}?`;
-  if (lang === 'de') return `Meinst du dieses Produkt: ${productName}?`;
-  if (lang === 'el') return `Μιλάς για αυτό το προϊόν: ${productName};`;
-  return `Are you asking about this product: ${productName}?`;
 }
 
 async function fetchOrderProductsByIds(
@@ -384,13 +432,18 @@ function resolveMentionedOrderProduct(input: {
   lang: SupportedLanguage;
 }): {
   productId?: string;
-  clarificationQuestion?: string;
   reason?: 'index' | 'exact_name' | 'token_focus';
+  uncertain?: boolean;
+  unknownReference?: boolean;
 } {
-  const { message, conversationHistory, orderProducts, lang } = input;
+  const { message, conversationHistory, orderProducts } = input;
   if (!orderProducts.length) return {};
 
-  const indexedSelection = parseIndexedSelection(message);
+  if (looksLikeAllProductsReference(message)) {
+    return { reason: 'token_focus' };
+  }
+
+  const indexedSelection = parseIndexedSelection(message) || parseOrdinalSelection(message);
   if (indexedSelection) {
     const listedNames = parseRecentAssistantProductList(conversationHistory);
     if (listedNames.length >= indexedSelection) {
@@ -412,38 +465,42 @@ function resolveMentionedOrderProduct(input: {
   if (!msgNorm) return {};
 
   let exact: OrderProductMeta | null = null;
-  const tokenScored: Array<{ product: OrderProductMeta; score: number }> = [];
+  const fuzzyScored: Array<{ product: OrderProductMeta; score: number }> = [];
 
   for (const product of orderProducts) {
     const nameNorm = normalizeForMatch(product.name);
     if (!nameNorm) continue;
-    if (msgNorm.includes(nameNorm)) {
+    if (msgNorm === nameNorm || msgNorm.includes(nameNorm) || nameNorm.includes(msgNorm)) {
       exact = product;
       break;
     }
-    const nameTokens = tokenizeForMatch(product.name);
-    if (nameTokens.length === 0) continue;
-    const overlap = nameTokens.filter((token) => msgTokens.has(token)).length;
-    if (overlap > 0) {
-      tokenScored.push({ product, score: overlap / nameTokens.length });
+    const score = diceSimilarity(msgNorm, product.name);
+    if (score > 0) {
+      fuzzyScored.push({ product, score });
     }
   }
 
   if (exact) return { productId: exact.id, reason: 'exact_name' };
-  if (tokenScored.length === 0) return {};
-
-  tokenScored.sort((a, b) => b.score - a.score);
-  const best = tokenScored[0];
-  const second = tokenScored[1];
-
-  if (best.score >= 0.6 && (!second || best.score - second.score >= 0.25)) {
-    return { productId: best.product.id, reason: 'token_focus' };
+  if (fuzzyScored.length > 0) {
+    fuzzyScored.sort((a, b) => b.score - a.score);
+    const best = fuzzyScored[0];
+    const second = fuzzyScored[1];
+    if (best.score >= 0.9 && (!second || best.score - second.score >= 0.08)) {
+      return { productId: best.product.id, reason: 'token_focus' };
+    }
+    if (best.score >= 0.75) {
+      return { uncertain: true, reason: 'token_focus' };
+    }
   }
 
-  return {
-    clarificationQuestion: buildProductClarificationQuestion(lang, best.product.name),
-    reason: 'token_focus',
-  };
+  const unknownTokenHint =
+    /\b[a-z0-9]+-[a-z0-9]+\b/i.test(message) ||
+    /\b(product|urun|ürün)\b/i.test(message);
+  if (msgTokens.size > 0 || unknownTokenHint) {
+    return { unknownReference: true, reason: 'token_focus' };
+  }
+
+  return {};
 }
 
 function buildRagCacheKey(input: Record<string, unknown>): string {
@@ -582,7 +639,7 @@ function buildConversationFlowState(input: {
 }): ConversationFlowState {
   const { message, intent, conversationHistory, orderProducts } = input;
   const normalizedMessage = normalizeForMatch(message);
-  const allReply = isAllProductsContinuationReply(message);
+  const allReply = isAllProductsContinuationReply(message) || looksLikeAllProductsReference(message);
   const lastQuestionType = detectLastQuestionType(conversationHistory);
 
   let selectedProducts: 'all' | string[] = [];
@@ -1491,9 +1548,11 @@ export async function generateAIResponse(
 
   await persistStructuredState({
     current_intent: intent,
+    current_goal: userGoal,
     language_preference: responseLang,
     selected_products: flowState.selected_products,
     last_question_type: flowState.last_question_type,
+    unresolved_clarification_need: flowState.unresolved_clarification_need,
     constraints: toStructuredConstraints(flowState),
     known_order_products: structuredState.known_order_products,
   });
@@ -1587,18 +1646,18 @@ export async function generateAIResponse(
           }
         }
 
-        if (productResolution.clarificationQuestion && !isRoutineFlow) {
+        if (productResolution.unknownReference && !isRoutineFlow) {
           clarificationAskedCount.inc();
-          fallbackTriggeredCount.inc({ reason: 'product_clarification' });
+          fallbackTriggeredCount.inc({ reason: 'unknown_product_safe_fallback' });
           pilotClarificationAsked = true;
           pilotGenerationMode = 'fallback';
-          pilotFallbackReason = 'product_clarification';
+          pilotFallbackReason = 'unknown_product_safe_fallback';
           logger.info(
-            { merchantId, conversationId, reason: 'missing_product_selection' },
-            'Fallback triggered: product clarification required',
+            { merchantId, conversationId, reason: 'unknown_product_reference' },
+            'Fallback triggered: unknown product reference',
           );
           const clarificationResponse = finalizeConfiguredResponse({
-            response: productResolution.clarificationQuestion,
+            response: buildUnknownProductSafeFallback(responseLang, resolvedOrderProducts),
             persona,
             responseLang,
             replyLanguageDecision: {
@@ -1608,9 +1667,46 @@ export async function generateAIResponse(
           });
           await persistStructuredState({
             current_intent: intent,
+            current_goal: userGoal,
             language_preference: responseLang,
             selected_products: resolvedState.selected_products,
             last_question_type: 'product_selection',
+            unresolved_clarification_need: true,
+            known_order_products: stickyOrderProducts.map((item) => ({ id: item.id, name: item.name })),
+            constraints: {
+              ...toStructuredConstraints(resolvedState),
+            },
+          });
+          await capturePilot(clarificationResponse);
+          return {
+            intent: 'question',
+            response: clarificationResponse,
+            requiresHuman: false,
+          };
+        }
+
+        if (productResolution.uncertain && !isRoutineFlow) {
+          clarificationAskedCount.inc();
+          fallbackTriggeredCount.inc({ reason: 'product_selection_uncertain' });
+          pilotClarificationAsked = true;
+          pilotGenerationMode = 'fallback';
+          pilotFallbackReason = 'product_selection_uncertain';
+          const clarificationResponse = finalizeConfiguredResponse({
+            response: buildUnknownProductSafeFallback(responseLang, resolvedOrderProducts),
+            persona,
+            responseLang,
+            replyLanguageDecision: {
+              usedFallback: replyLanguageDecision.usedFallback,
+              supportedLanguages: replyLanguageDecision.supportedLanguages,
+            },
+          });
+          await persistStructuredState({
+            current_intent: intent,
+            current_goal: userGoal,
+            language_preference: responseLang,
+            selected_products: resolvedState.selected_products,
+            last_question_type: 'product_selection',
+            unresolved_clarification_need: true,
             known_order_products: stickyOrderProducts.map((item) => ({ id: item.id, name: item.name })),
             constraints: {
               ...toStructuredConstraints(resolvedState),
@@ -1737,11 +1833,13 @@ export async function generateAIResponse(
           });
           await persistStructuredState({
             current_intent: intent,
+            current_goal: userGoal,
             language_preference: responseLang,
             selected_products: resolvedState.selected_products === 'all'
               ? 'all'
               : (orderProductIds || resolvedOrderProducts.map((item) => item.id)),
             last_question_type: 'routine_builder',
+            unresolved_clarification_need: false,
             known_order_products: stickyOrderProducts.map((item) => ({ id: item.id, name: item.name })),
             constraints: toStructuredConstraints(resolvedState),
           });
@@ -1794,18 +1892,35 @@ export async function generateAIResponse(
           await escalateToHuman(userId, conversationId, responseGuardrail.reason ?? 'custom', finalAnswer);
         }
       }
-      finalAnswer = applyPersonaResponsePolicy(finalAnswer, persona, responseLang);
+      finalAnswer = finalizeConfiguredResponse({
+        response: finalAnswer,
+        persona,
+        responseLang,
+        replyLanguageDecision: {
+          usedFallback: replyLanguageDecision.usedFallback,
+          supportedLanguages: replyLanguageDecision.supportedLanguages,
+        },
+      });
       if (stickyOrderProducts.length > 0 && asksForPurchasedProductInfo(finalAnswer)) {
-        finalAnswer = isRoutineFlow
+        const recovered = isRoutineFlow
           ? buildBestEffortRoutineResponse(
-              responseLang,
-              routineClassifications.length > 0
-                ? routineClassifications
-                : stickyOrderProducts.map(classifyRoutineProductHeuristic),
-              persona,
-              resolvedState,
-            )
+            responseLang,
+            routineClassifications.length > 0
+              ? routineClassifications
+              : stickyOrderProducts.map(classifyRoutineProductHeuristic),
+            persona,
+            resolvedState,
+          )
           : buildKnownProductsRecoveryResponse(responseLang, stickyOrderProducts);
+        finalAnswer = finalizeConfiguredResponse({
+          response: recovered,
+          persona,
+          responseLang,
+          replyLanguageDecision: {
+            usedFallback: replyLanguageDecision.usedFallback,
+            supportedLanguages: replyLanguageDecision.supportedLanguages,
+          },
+        });
       }
       if (looksLikeEvidenceClarificationAnswer(finalAnswer)) {
         clarificationAskedCount.inc();
@@ -1815,11 +1930,13 @@ export async function generateAIResponse(
 
       await persistStructuredState({
         current_intent: intent,
+        current_goal: userGoal,
         language_preference: responseLang,
         selected_products: resolvedState.selected_products === 'all'
           ? 'all'
           : (orderProductIds || resolvedOrderProducts.map((item) => item.id)),
         last_question_type: isRoutineFlow ? 'routine_builder' : 'usage_how',
+        unresolved_clarification_need: false,
         known_order_products: stickyOrderProducts.map((item) => ({ id: item.id, name: item.name })),
         constraints: toStructuredConstraints(resolvedState),
       });
@@ -2199,9 +2316,11 @@ export async function generateAIResponse(
       });
       await persistStructuredState({
         current_intent: intent,
+        current_goal: pilotInferredGoal,
         language_preference: responseLang,
         selected_products: flowState.selected_products,
         last_question_type: flowState.last_question_type,
+        unresolved_clarification_need: flowState.unresolved_clarification_need,
         known_order_products: stickyOrderProducts.map((item) => ({ id: item.id, name: item.name })),
         constraints: toStructuredConstraints(flowState),
       });
@@ -2279,13 +2398,23 @@ export async function generateAIResponse(
       },
     });
     if (stickyOrderProducts.length > 0 && asksForPurchasedProductInfo(finalConfiguredResponse)) {
-      finalConfiguredResponse = buildKnownProductsRecoveryResponse(responseLang, stickyOrderProducts);
+      finalConfiguredResponse = finalizeConfiguredResponse({
+        response: buildKnownProductsRecoveryResponse(responseLang, stickyOrderProducts),
+        persona,
+        responseLang,
+        replyLanguageDecision: {
+          usedFallback: replyLanguageDecision.usedFallback,
+          supportedLanguages: replyLanguageDecision.supportedLanguages,
+        },
+      });
     }
     await persistStructuredState({
       current_intent: intent,
+      current_goal: pilotInferredGoal,
       language_preference: responseLang,
       selected_products: flowState.selected_products,
       last_question_type: flowState.last_question_type,
+      unresolved_clarification_need: flowState.unresolved_clarification_need,
       known_order_products: stickyOrderProducts.map((item) => ({ id: item.id, name: item.name })),
       constraints: toStructuredConstraints(flowState),
     });
