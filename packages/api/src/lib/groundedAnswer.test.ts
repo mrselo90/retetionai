@@ -4,15 +4,43 @@ import { __setOpenAIClientForTests } from './openaiClient';
 
 vi.mock('@recete/shared', () => ({
   getSupabaseServiceClient: vi.fn(() => ({
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          maybeSingle: vi.fn(() => ({
-            data: { name: 'TestShop', persona_settings: { bot_name: 'TestBot', tone: 'friendly' } },
+    from: vi.fn((table: string) => {
+      if (table === 'shop_settings') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(async () => ({
+                data: null,
+                error: null,
+              })),
+            })),
+          })),
+          insert: vi.fn(() => ({
+            select: vi.fn(() => ({
+              single: vi.fn(async () => ({
+                data: {
+                  shop_id: 'merchant-1',
+                  default_source_lang: 'en',
+                  enabled_langs: ['en', 'tr'],
+                },
+                error: null,
+              })),
+            })),
+          })),
+        };
+      }
+
+      return {
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(async () => ({
+              data: { name: 'TestShop', persona_settings: { bot_name: 'TestBot', tone: 'friendly' } },
+              error: null,
+            })),
           })),
         })),
-      })),
-    })),
+      };
+    }),
   })),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
@@ -36,6 +64,18 @@ vi.mock('./groundingAssembler', () => ({
 
 vi.mock('./i18n', () => ({
   detectLanguage: vi.fn(() => 'en'),
+  resolveMerchantReplyLanguage: vi.fn((requested: string, enabled: string[]) => {
+    const normalizedRequested = String(requested || 'en').toLowerCase();
+    const supported = Array.isArray(enabled) && enabled.length > 0 ? enabled : ['en'];
+    const canUseRequested = supported.includes(normalizedRequested);
+    return {
+      responseLanguage: canUseRequested ? normalizedRequested : 'en',
+      usedFallback: !canUseRequested,
+      supportedLanguages: supported,
+    };
+  }),
+  describeSupportedLanguagesForPrompt: vi.fn(() => 'English'),
+  buildUnsupportedLanguageNotice: vi.fn(() => 'Unsupported language fallback applied.'),
 }));
 
 import { assembleGroundingEvidence } from './groundingAssembler';

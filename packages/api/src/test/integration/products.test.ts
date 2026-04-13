@@ -29,6 +29,14 @@ vi.mock('../../lib/knowledgeBase', () => ({
   getProductChunkCount: vi.fn(),
 }));
 
+vi.mock('../../lib/llm/enrichProduct', () => ({
+  enrichProductDataDetailed: vi.fn(),
+}));
+
+vi.mock('../../lib/productFactsStore', () => ({
+  persistProductFactsSnapshot: vi.fn(),
+}));
+
 vi.mock('../../lib/planLimits', () => ({
   enforceStorageLimit: vi.fn(),
 }));
@@ -36,6 +44,8 @@ vi.mock('../../lib/planLimits', () => ({
 import { scrapeProductPage } from '../../lib/scraper';
 import { addScrapeJob } from '../../queues';
 import { processProductForRAG, batchProcessProducts, getProductChunkCount } from '../../lib/knowledgeBase';
+import { enrichProductDataDetailed } from '../../lib/llm/enrichProduct';
+import { persistProductFactsSnapshot } from '../../lib/productFactsStore';
 import { enforceStorageLimit } from '../../lib/planLimits';
 
 describe('Products Endpoints', () => {
@@ -50,6 +60,11 @@ describe('Products Endpoints', () => {
     merchant = setupAuthenticatedContext('test-merchant-id');
     vi.clearAllMocks();
     mockSupabaseClient.__reset();
+    (enrichProductDataDetailed as any).mockResolvedValue({
+      enrichedText: 'Enriched product content',
+      facts: null,
+      factsValidationErrors: [],
+    });
   });
 
   it('should list products', async () => {
@@ -88,7 +103,8 @@ describe('Products Endpoints', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.data.product).toEqual(product);
+    expect(response.data.product).toMatchObject(product);
+    expect(response.data.product).toHaveProperty('knowledgeHealth');
   });
 
   it('should create product', async () => {
@@ -239,6 +255,106 @@ describe('Products Endpoints', () => {
       expect(processProductForRAG).toHaveBeenCalledWith(product.id, 'Content', undefined);
       expect(enforceStorageLimit).toHaveBeenCalled();
       expect(response.data.chunksCreated).toBe(5);
+    });
+  });
+
+  describe('Enrichment Pipeline Endpoints', () => {
+    it('should enrich product from additional URL and regenerate embeddings', async () => {
+      const product = await testDb.createProduct('test-merchant-id', {
+        raw_text: 'Base raw text',
+        enriched_text: 'Base enriched text',
+      });
+      const sourceUrl = 'https://example.com/extra-details';
+
+      mockSupabaseClient.from('products').select().eq().eq().single.mockResolvedValue({
+        data: product,
+        error: null,
+      });
+
+      (scrapeProductPage as any).mockResolvedValue({
+        success: true,
+        product: {
+          title: 'Extra Source Title',
+          rawContent: 'Extra raw content from workflow source',
+          rawSections: [{ heading: 'Usage', text: 'Use twice daily' }],
+        },
+      });
+
+      (enrichProductDataDetailed as any).mockResolvedValue({
+        enrichedText: 'Extra enriched content',
+        facts: { benefits: ['hydration'] },
+        factsValidationErrors: [],
+      });
+
+      (persistProductFactsSnapshot as any).mockResolvedValue(undefined);
+
+      mockSupabaseClient.from('products').update().eq().select().single.mockResolvedValue({
+        data: {
+          ...product,
+          raw_text: `${product.raw_text}\n\n[RAW_ENRICHMENT_SOURCE url="${sourceUrl}" fetched_at="2026-04-13T00:00:00.000Z"]\nExtra raw content from workflow source`,
+          enriched_text: `${product.enriched_text}\n\n[ENRICHED_ENRICHMENT_SOURCE url="${sourceUrl}" fetched_at="2026-04-13T00:00:00.000Z"]\nExtra enriched content`,
+        },
+        error: null,
+      });
+
+      (processProductForRAG as any).mockResolvedValue({
+        success: true,
+        chunksCreated: 7,
+        totalTokens: 140,
+      });
+
+      const response = await testRequest(app, 'POST', `/api/products/${product.id}/enrich-from-url`, {
+        merchantId: 'test-merchant-id',
+        body: { source_url: sourceUrl },
+      });
+
+      expect(response.status).toBe(200);
+      expect(scrapeProductPage).toHaveBeenCalledWith(sourceUrl);
+      expect(enrichProductDataDetailed).toHaveBeenCalled();
+      expect(processProductForRAG).toHaveBeenCalled();
+      expect(response.data.embeddings.chunksCreated).toBe(7);
+      expect(response.data.message).toContain('enriched from URL');
+    });
+
+    it('should prepare knowledge by orchestrating scrape and enrich internal calls', async () => {
+      const product = await testDb.createProduct('test-merchant-id');
+      const sourceUrl = 'https://example.com/workflow-source';
+
+      const originalSecret = process.env.INTERNAL_SERVICE_SECRET;
+      process.env.INTERNAL_SERVICE_SECRET = 'test-internal-secret';
+
+      const fetchMock = vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({
+            message: 'Product scraped successfully',
+            stepOutcome: { step: 'collect_sources', status: 'ready' },
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          text: async () => JSON.stringify({
+            message: 'Product enriched from URL successfully',
+            stepOutcome: { step: 'collect_sources', status: 'ready' },
+          }),
+        });
+
+      vi.stubGlobal('fetch', fetchMock as any);
+
+      try {
+        const response = await testRequest(app, 'POST', `/api/products/${product.id}/prepare-knowledge`, {
+          merchantId: 'test-merchant-id',
+          body: { source_url: sourceUrl },
+        });
+
+        expect(response.status).toBe(200);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(response.data.stepOutcomes).toHaveLength(2);
+        expect(response.data.message).toContain('prepared from product page and extra source');
+      } finally {
+        vi.unstubAllGlobals();
+        process.env.INTERNAL_SERVICE_SECRET = originalSecret;
+      }
     });
   });
 

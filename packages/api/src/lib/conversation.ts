@@ -22,6 +22,60 @@ export interface ConversationState {
   messageCount: number;
 }
 
+export interface ConversationStructuredState {
+  conversation_id: string;
+  order_id?: string | null;
+  known_order_products: Array<{ id: string; name?: string }>;
+  selected_products: 'all' | string[];
+  current_intent?: 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent';
+  last_question_type?: string;
+  language_preference?: string;
+  constraints?: {
+    routine_scope?: 'morning' | 'evening' | 'both' | 'unknown';
+    simplicity?: 'simple' | 'detailed' | 'unknown';
+    for_whom?: 'self' | 'wife' | 'husband' | 'partner' | 'other' | 'unknown';
+    routine_format?: 'step_order' | 'sections' | 'unknown';
+  };
+  updated_at: string;
+}
+
+function normalizeStructuredState(
+  conversationId: string,
+  input?: Partial<ConversationStructuredState> | null,
+): ConversationStructuredState {
+  const knownProductsRaw = Array.isArray(input?.known_order_products) ? input?.known_order_products : [];
+  const known_order_products = knownProductsRaw
+    .map((item: any) => ({
+      id: String(item?.id || '').trim(),
+      name: item?.name ? String(item.name).trim() : undefined,
+    }))
+    .filter((item) => Boolean(item.id));
+  const selectedRaw = input?.selected_products;
+  const selected_products: 'all' | string[] =
+    selectedRaw === 'all'
+      ? 'all'
+      : Array.isArray(selectedRaw)
+        ? selectedRaw.map((value) => String(value || '').trim()).filter(Boolean)
+        : [];
+
+  return {
+    conversation_id: conversationId,
+    order_id: input?.order_id ?? null,
+    known_order_products,
+    selected_products,
+    current_intent: input?.current_intent,
+    last_question_type: input?.last_question_type || 'none',
+    language_preference: input?.language_preference,
+    constraints: {
+      routine_scope: input?.constraints?.routine_scope || 'unknown',
+      simplicity: input?.constraints?.simplicity || 'unknown',
+      for_whom: input?.constraints?.for_whom || 'unknown',
+      routine_format: input?.constraints?.routine_format || 'unknown',
+    },
+    updated_at: input?.updated_at || new Date().toISOString(),
+  };
+}
+
 async function findUserByDecryptScan(
   merchantId: string,
   normalizedPhone: string,
@@ -236,6 +290,89 @@ export async function getConversationHistory(
   }
 
   return (conversation.history as ConversationMessage[]) || [];
+}
+
+/**
+ * Get persistent structured conversation state.
+ * Falls back to a default state if the column does not exist yet.
+ */
+export async function getConversationStructuredState(
+  conversationId: string
+): Promise<ConversationStructuredState> {
+  const serviceClient = getSupabaseServiceClient();
+  const fallback = normalizeStructuredState(conversationId, {});
+
+  const { data, error } = await serviceClient
+    .from('conversations')
+    .select('id, order_id, current_state, conversation_context')
+    .eq('id', conversationId)
+    .maybeSingle();
+
+  if (error) {
+    // Column migration may not be applied yet.
+    if ((error as any)?.code === '42703') {
+      const { data: legacy } = await serviceClient
+        .from('conversations')
+        .select('id, order_id, current_state')
+        .eq('id', conversationId)
+        .maybeSingle();
+      if (!legacy) return fallback;
+      return normalizeStructuredState(conversationId, {
+        order_id: legacy.order_id || null,
+        current_intent: (legacy.current_state as any) || undefined,
+      });
+    }
+    return fallback;
+  }
+
+  if (!data) return fallback;
+  const context = (data as any).conversation_context || {};
+  return normalizeStructuredState(conversationId, {
+    ...context,
+    order_id: context.order_id || data.order_id || null,
+    current_intent: context.current_intent || (data as any).current_state || undefined,
+  });
+}
+
+/**
+ * Update persistent structured conversation state (merge patch).
+ * No-op fallback if the DB column is not available yet.
+ */
+export async function updateConversationStructuredState(
+  conversationId: string,
+  patch: Partial<ConversationStructuredState>
+): Promise<ConversationStructuredState> {
+  const serviceClient = getSupabaseServiceClient();
+  const current = await getConversationStructuredState(conversationId);
+  const merged = normalizeStructuredState(conversationId, {
+    ...current,
+    ...patch,
+    constraints: {
+      ...(current.constraints || {}),
+      ...(patch.constraints || {}),
+    },
+    known_order_products: patch.known_order_products ?? current.known_order_products,
+    selected_products: patch.selected_products ?? current.selected_products,
+    updated_at: new Date().toISOString(),
+  });
+
+  const { error } = await serviceClient
+    .from('conversations')
+    .update({
+      conversation_context: merged as any,
+      updated_at: merged.updated_at,
+    })
+    .eq('id', conversationId);
+
+  if (error) {
+    // Column may not be available yet.
+    if ((error as any)?.code === '42703') {
+      return merged;
+    }
+    throw new Error(`Failed to update conversation structured state: ${error.message}`);
+  }
+
+  return merged;
 }
 
 /**

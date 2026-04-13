@@ -19,9 +19,12 @@
     "test:unit": "pnpm --filter @recete/api test && pnpm --filter @recete/shared test",
     "test:integration": "pnpm --filter @recete/api test integration",
     "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test packages/web/e2e/auth.spec.ts packages/web/e2e/dashboard.spec.ts --project=chromium",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:coverage": "pnpm --filter @recete/api test:coverage"
+    "test:coverage": "pnpm --filter @recete/api test:coverage",
+    "test:flow": "pnpm typecheck && pnpm test:unit && pnpm test:integration",
+    "test:flow:full": "pnpm test:flow && pnpm test:e2e:smoke"
   },
   "pnpm": {
     "overrides": {

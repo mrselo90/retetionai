@@ -265,16 +265,34 @@ const MEDICAL_ADVICE_KEYWORDS = [
   'orvosi tanács',
 ];
 
+const AI_RESPONSE_HIGH_SEVERITY_CUES = [
+  'kill myself',
+  'kill yourself',
+  'end my life',
+  'commit suicide',
+  'suicide',
+  'kendimi öldüreceğim',
+  'intihar',
+  'call emergency',
+  '112',
+  'ambulance',
+];
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function containsKeywordByBoundary(text: string, keyword: string): boolean {
+  const pattern = `(?<!\\p{L})${escapeRegex(keyword)}(?!\\p{L})`;
+  return new RegExp(pattern, 'iu').test(text);
+}
+
 /**
  * Check if message contains crisis keywords
  */
 function containsCrisisKeywords(text: string): boolean {
   const lowerText = text.toLowerCase();
-  return CRISIS_KEYWORDS.some((keyword) => {
-    // Use word boundary for exact word matching to avoid false positives (e.g. "acı" in "yardımcı")
-    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-    return regex.test(lowerText);
-  });
+  return CRISIS_KEYWORDS.some((keyword) => containsKeywordByBoundary(lowerText, keyword.toLowerCase()));
 }
 
 /**
@@ -282,16 +300,59 @@ function containsCrisisKeywords(text: string): boolean {
  */
 function requestsMedicalAdvice(text: string): boolean {
   const lowerText = text.toLowerCase();
-  return MEDICAL_ADVICE_KEYWORDS.some((keyword) => {
-    // Use word boundary for exact word matching
-    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-    return regex.test(lowerText);
-  });
+  return MEDICAL_ADVICE_KEYWORDS.some((keyword) => containsKeywordByBoundary(lowerText, keyword.toLowerCase()));
+}
+
+function containsAiResponseHighSeverityCue(text: string): boolean {
+  const lowerText = text.toLowerCase();
+  return AI_RESPONSE_HIGH_SEVERITY_CUES.some((keyword) =>
+    containsKeywordByBoundary(lowerText, keyword.toLowerCase()),
+  );
+}
+
+function parseCrisisClassifierJson(raw: string): { is_crisis: boolean; severity: 'none' | 'low' | 'medium' | 'high' } | null {
+  if (!raw || typeof raw !== 'string') return null;
+  try {
+    const parsed = JSON.parse(raw.trim());
+    if (
+      parsed &&
+      typeof parsed.is_crisis === 'boolean' &&
+      (parsed.severity === 'none' || parsed.severity === 'low' || parsed.severity === 'medium' || parsed.severity === 'high')
+    ) {
+      return parsed;
+    }
+  } catch {
+    // no-op
+  }
+  return null;
+}
+
+function hasHighSeverityCrisisCue(text: string): boolean {
+  return /(kill myself|end my life|suicide|commit suicide|kendimi öldüreceğim|intihar|ambulance|acil servis|emergency room)/i.test(
+    text,
+  );
 }
 
 export interface GuardrailCheckOptions {
   customGuardrails?: CustomGuardrail[];
   languageHint?: SupportedLanguage;
+}
+
+export interface CrisisLayerDecision {
+  shouldEscalate: boolean;
+  precheckMatched: boolean;
+  llmConfirmed: boolean;
+  severity: 'none' | 'low' | 'medium' | 'high';
+  reason?: string;
+  suggestedResponse?: string;
+}
+
+export interface CrisisLlmClientLike {
+  chat: {
+    completions: {
+      create: (input: any) => Promise<any>;
+    };
+  };
 }
 
 /**
@@ -373,6 +434,120 @@ export function checkUserMessageGuardrails(
 }
 
 /**
+ * Guardrails excluding crisis checks.
+ * Use this when crisis is evaluated through the layered classifier path.
+ */
+export function checkUserMessageGuardrailsWithoutCrisis(
+  userMessage: string,
+  options?: GuardrailCheckOptions
+): GuardrailResult {
+  const lang = detectLanguage(userMessage);
+
+  if (requestsMedicalAdvice(userMessage)) {
+    return {
+      safe: false,
+      reason: 'medical_advice',
+      requiresHuman: false,
+      suggestedResponse: getLocalizedMedicalResponse(lang),
+    };
+  }
+
+  const custom = options?.customGuardrails;
+  if (custom?.length) {
+    const result = checkCustomGuardrails(userMessage, custom, 'user_message');
+    if (result) return result;
+  }
+
+  return {
+    safe: true,
+    requiresHuman: false,
+  };
+}
+
+/**
+ * Layered crisis decision:
+ * - Fast keyword pre-check
+ * - LLM confirmation for non-high-severity messages
+ */
+export async function evaluateCrisisEscalation(input: {
+  userMessage: string;
+  model: string;
+  llmClient: CrisisLlmClientLike;
+}): Promise<CrisisLayerDecision> {
+  const { userMessage, model, llmClient } = input;
+  const lang = detectLanguage(userMessage);
+  const precheckMatched = containsCrisisKeywords(userMessage);
+
+  if (!precheckMatched) {
+    return {
+      shouldEscalate: false,
+      precheckMatched: false,
+      llmConfirmed: false,
+      severity: 'none',
+    };
+  }
+
+  if (hasHighSeverityCrisisCue(userMessage)) {
+    return {
+      shouldEscalate: true,
+      precheckMatched: true,
+      llmConfirmed: false,
+      severity: 'high',
+      reason: 'high_severity_precheck',
+      suggestedResponse: getLocalizedCrisisResponse(lang),
+    };
+  }
+
+  try {
+    const response = await llmClient.chat.completions.create({
+      model,
+      temperature: 0,
+      max_tokens: 60,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You classify customer-support crisis risk. Return ONLY JSON: {"is_crisis": boolean, "severity":"none|low|medium|high"}.\n' +
+            'Mark crisis only for self-harm, severe health danger, explicit emergency, or legal threat.\n' +
+            'Do NOT mark benign product usage/routine/fallback messages as crisis.',
+        },
+        { role: 'user', content: userMessage },
+      ],
+    });
+
+    const raw = response?.choices?.[0]?.message?.content || '';
+    const parsed = parseCrisisClassifierJson(raw);
+    if (!parsed) {
+      return {
+        shouldEscalate: false,
+        precheckMatched: true,
+        llmConfirmed: false,
+        severity: 'low',
+        reason: 'llm_unparseable',
+      };
+    }
+
+    const llmConfirmed = parsed.is_crisis && (parsed.severity === 'medium' || parsed.severity === 'high');
+    return {
+      shouldEscalate: llmConfirmed,
+      precheckMatched: true,
+      llmConfirmed,
+      severity: parsed.severity,
+      reason: llmConfirmed ? 'llm_confirmed' : 'llm_rejected',
+      suggestedResponse: llmConfirmed ? getLocalizedCrisisResponse(lang) : undefined,
+    };
+  } catch {
+    return {
+      shouldEscalate: false,
+      precheckMatched: true,
+      llmConfirmed: false,
+      severity: 'low',
+      reason: 'llm_failed',
+    };
+  }
+}
+
+/**
  * Check guardrails for AI-generated response (system + optional custom)
  */
 export function checkAIResponseGuardrails(
@@ -381,12 +556,13 @@ export function checkAIResponseGuardrails(
 ): GuardrailResult {
   const lang = options?.languageHint ?? detectLanguage(aiResponse);
 
-  // 1. System: crisis-related content in AI response
-  if (containsCrisisKeywords(aiResponse)) {
+  // 1. System: only block truly high-severity crisis phrasing in AI output.
+  // We intentionally avoid escalating to human for AI-text matches to prevent false crisis loops.
+  if (containsAiResponseHighSeverityCue(aiResponse)) {
     return {
       safe: false,
       reason: 'crisis_keyword',
-      requiresHuman: true,
+      requiresHuman: false,
       suggestedResponse: getLocalizedClarificationResponse(lang),
     };
   }

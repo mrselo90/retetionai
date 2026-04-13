@@ -7,7 +7,7 @@ import { getPlatformAiSettings, updatePlatformAiSettings } from '../lib/runtimeM
 import { normalizePhone, type NormalizedEvent } from '../lib/events.js';
 import { processNormalizedEvent } from '../lib/orderProcessor.js';
 import { addMessageToConversation, findUserByPhone, getConversationHistory, getOrCreateConversation } from '../lib/conversation.js';
-import { generateAIResponse } from '../lib/aiAgent.js';
+import { generateAIResponse, type Intent } from '../lib/aiAgent.js';
 import { getEffectiveWhatsAppCredentials, sendWhatsAppMessage } from '../lib/whatsapp.js';
 
 const admin = new Hono();
@@ -34,6 +34,184 @@ function resolveAiWindowStart(aiWindowRaw: string | undefined): { key: 'mtd' | '
 
 function makeTestOrderExternalId(): string {
     return `TEST-${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+}
+
+type ShopifyScenarioDefinition = {
+    id: string;
+    title: string;
+    feature: string;
+    description: string;
+    messageTemplate: string;
+    assistantSeedTemplates?: string[];
+    expectedIntents?: Intent[];
+    expectedGuardrailBlocked?: boolean;
+    mustNotContainPhrases?: string[];
+};
+
+type ScenarioAssertionResult = {
+    id: string;
+    passed: boolean;
+    message: string;
+};
+
+const SHOPIFY_TEST_SCENARIOS: ShopifyScenarioDefinition[] = [
+    {
+        id: 'shopify_usage_how_tr',
+        title: 'Usage guidance (TR)',
+        feature: 'Post-delivery usage guidance',
+        description: 'Customer asks how to use the product in Turkish.',
+        messageTemplate: '{firstProductName} urununu nasil kullanmaliyim?',
+        expectedIntents: ['question'],
+        expectedGuardrailBlocked: false,
+    },
+    {
+        id: 'shopify_usage_frequency_tr',
+        title: 'Usage frequency (TR)',
+        feature: 'Post-delivery usage guidance',
+        description: 'Customer asks frequency in Turkish.',
+        messageTemplate: '{firstProductName} gunde kac kez kullanilir?',
+        expectedIntents: ['question'],
+        expectedGuardrailBlocked: false,
+    },
+    {
+        id: 'shopify_product_pick_numeric',
+        title: 'Product pick by number',
+        feature: 'Order product resolution',
+        description: 'Customer selects product with a numeric reply from an earlier list.',
+        assistantSeedTemplates: [
+            'Kullanmak istediginiz urunu secin:\n{numberedProductList}',
+            'Kullanmayi biliyor musun?',
+        ],
+        messageTemplate: '1',
+        expectedIntents: ['question'],
+        expectedGuardrailBlocked: false,
+        mustNotContainPhrases: ['mesajiniz eksik', 'message is incomplete'],
+    },
+    {
+        id: 'shopify_routine_request',
+        title: 'Routine request',
+        feature: 'Post-delivery routine builder',
+        description: 'Customer asks for a routine using products in the order.',
+        assistantSeedTemplates: ['Kullanmayi biliyor musun?'],
+        messageTemplate: 'Bu urunleri rutin olarak bu sirayla kullanmak istiyorum.',
+        expectedIntents: ['question'],
+        expectedGuardrailBlocked: false,
+    },
+    {
+        id: 'shopify_return_intent_tr',
+        title: 'Return intent (TR)',
+        feature: 'Return prevention / complaint routing',
+        description: 'Customer expresses return/refund intention.',
+        messageTemplate: '{firstProductName} ise yaramadi, iade etmek istiyorum.',
+        expectedIntents: ['return_intent', 'complaint'],
+    },
+    {
+        id: 'shopify_opt_out_tr',
+        title: 'Opt-out request',
+        feature: 'Unsubscribe handling',
+        description: 'Customer asks to stop receiving messages.',
+        messageTemplate: 'Bana artik mesaj gondermeyin.',
+        expectedIntents: ['opt_out'],
+    },
+    {
+        id: 'shopify_usage_how_en',
+        title: 'Usage guidance (EN)',
+        feature: 'Multilingual support',
+        description: 'Customer asks in English.',
+        messageTemplate: 'How should I use {firstProductName} in my routine?',
+        expectedIntents: ['question'],
+        expectedGuardrailBlocked: false,
+    },
+    {
+        id: 'shopify_usage_how_de',
+        title: 'Usage guidance (DE)',
+        feature: 'Multilingual support',
+        description: 'Customer asks in German.',
+        messageTemplate: 'Wie soll ich {firstProductName} verwenden?',
+        expectedIntents: ['question'],
+        expectedGuardrailBlocked: false,
+    },
+    {
+        id: 'shopify_usage_how_hu',
+        title: 'Usage guidance (HU)',
+        feature: 'Multilingual support',
+        description: 'Customer asks in Hungarian.',
+        messageTemplate: 'Hogyan hasznaljam a(z) {firstProductName} termeket?',
+        expectedIntents: ['question'],
+        expectedGuardrailBlocked: false,
+    },
+];
+
+function buildNumberedProductList(products: Array<{ name: string }>) {
+    return products
+        .slice(0, 5)
+        .map((product, index) => `${index + 1}. ${product.name}`)
+        .join('\n');
+}
+
+function resolveTemplateMessage(template: string, products: Array<{ name: string }>) {
+    const firstProductName = products[0]?.name || 'urun';
+    const secondProductName = products[1]?.name || firstProductName;
+    const numberedProductList = buildNumberedProductList(products);
+    return template
+        .replaceAll('{firstProductName}', firstProductName)
+        .replaceAll('{secondProductName}', secondProductName)
+        .replaceAll('{numberedProductList}', numberedProductList);
+}
+
+function evaluateScenarioResult(
+    scenario: ShopifyScenarioDefinition,
+    aiResult: Awaited<ReturnType<typeof generateAIResponse>>,
+): { passed: boolean; assertions: ScenarioAssertionResult[] } {
+    const assertions: ScenarioAssertionResult[] = [];
+    const response = (aiResult.response || '').trim();
+
+    assertions.push({
+        id: 'reply_non_empty',
+        passed: response.length > 0,
+        message: response.length > 0 ? 'AI reply produced.' : 'AI reply is empty.',
+    });
+
+    if (scenario.expectedIntents && scenario.expectedIntents.length > 0) {
+        const passed = scenario.expectedIntents.includes(aiResult.intent);
+        assertions.push({
+            id: 'intent_expected',
+            passed,
+            message: passed
+                ? `Intent matched (${aiResult.intent}).`
+                : `Intent mismatch. Expected one of: ${scenario.expectedIntents.join(', ')}. Got: ${aiResult.intent}.`,
+        });
+    }
+
+    if (typeof scenario.expectedGuardrailBlocked === 'boolean') {
+        const passed = Boolean(aiResult.guardrailBlocked) === scenario.expectedGuardrailBlocked;
+        assertions.push({
+            id: 'guardrail_expected',
+            passed,
+            message: passed
+                ? `Guardrail state matched (${Boolean(aiResult.guardrailBlocked)}).`
+                : `Guardrail mismatch. Expected ${scenario.expectedGuardrailBlocked}, got ${Boolean(aiResult.guardrailBlocked)}.`,
+        });
+    }
+
+    if (scenario.mustNotContainPhrases && scenario.mustNotContainPhrases.length > 0) {
+        const normalizedReply = response.toLowerCase();
+        const matchedPhrase = scenario.mustNotContainPhrases.find((phrase) =>
+            normalizedReply.includes(phrase.toLowerCase()),
+        );
+        assertions.push({
+            id: 'forbidden_phrase_absent',
+            passed: !matchedPhrase,
+            message: matchedPhrase
+                ? `Forbidden phrase detected: "${matchedPhrase}".`
+                : 'No forbidden phrase detected in reply.',
+        });
+    }
+
+    return {
+        passed: assertions.every((assertion) => assertion.passed),
+        assertions,
+    };
 }
 
 async function getMerchantOr404(serviceClient: ReturnType<typeof getSupabaseServiceClient>, merchantId: string) {
@@ -344,6 +522,240 @@ admin.get('/merchants/:id/test-kit', async (c) => {
     } catch (error) {
         console.error('Failed to load merchant test kit:', error);
         return c.json({ error: 'Failed to load merchant test kit' }, 500);
+    }
+});
+
+/**
+ * List built-in Shopify scenario definitions for super-admin runner.
+ * GET /api/admin/test-kit/shopify-scenarios
+ */
+admin.get('/test-kit/shopify-scenarios', async (c) => {
+    return c.json({
+        scenarios: SHOPIFY_TEST_SCENARIOS.map((scenario) => ({
+            id: scenario.id,
+            title: scenario.title,
+            feature: scenario.feature,
+            description: scenario.description,
+        })),
+    });
+});
+
+/**
+ * Run Shopify scenario suite for a merchant.
+ * POST /api/admin/test-kit/shopify-scenarios/run
+ */
+admin.post('/test-kit/shopify-scenarios/run', async (c) => {
+    const serviceClient = getSupabaseServiceClient();
+
+    try {
+        const body = await c.req.json();
+        const merchantId = typeof body.merchantId === 'string' ? body.merchantId.trim() : '';
+        const requestedScenarioIds: string[] = Array.isArray(body.scenarioIds)
+            ? body.scenarioIds.map((value: unknown) => String(value).trim()).filter(Boolean)
+            : [];
+        const requestedProductIds = Array.isArray(body.productIds)
+            ? body.productIds.map((value: unknown) => String(value).trim()).filter(Boolean)
+            : [];
+        const customerPhoneRaw = typeof body.customerPhone === 'string' ? body.customerPhone.trim() : '';
+        const customerName = typeof body.customerName === 'string' ? body.customerName.trim() : 'Test Customer';
+        const customerEmail = typeof body.customerEmail === 'string' ? body.customerEmail.trim().toLowerCase() : '';
+        const customerLocale = typeof body.customerLocale === 'string' ? body.customerLocale.trim().toLowerCase() : 'tr';
+        const externalOrderId = typeof body.externalOrderId === 'string' && body.externalOrderId.trim()
+            ? body.externalOrderId.trim()
+            : makeTestOrderExternalId();
+
+        if (!merchantId) {
+            return c.json({ error: 'merchantId is required' }, 400);
+        }
+        if (!customerPhoneRaw) {
+            return c.json({ error: 'customerPhone is required' }, 400);
+        }
+
+        let normalizedPhone: string;
+        try {
+            normalizedPhone = normalizePhone(customerPhoneRaw);
+        } catch {
+            return c.json({ error: 'Enter a valid customer phone in E.164 or local format' }, 400);
+        }
+
+        const merchant = await getMerchantOr404(serviceClient, merchantId);
+        if (!merchant) {
+            return c.json({ error: 'Merchant not found' }, 404);
+        }
+
+        const validScenarioIds = new Set(SHOPIFY_TEST_SCENARIOS.map((scenario) => scenario.id));
+        const invalidScenarioIds = requestedScenarioIds.filter((scenarioId) => !validScenarioIds.has(scenarioId));
+        if (invalidScenarioIds.length > 0) {
+            return c.json({ error: `Unknown scenario IDs: ${invalidScenarioIds.join(', ')}` }, 400);
+        }
+
+        const scenariosToRun = requestedScenarioIds.length > 0
+            ? SHOPIFY_TEST_SCENARIOS.filter((scenario) => requestedScenarioIds.includes(scenario.id))
+            : SHOPIFY_TEST_SCENARIOS;
+
+        if (!scenariosToRun.length) {
+            return c.json({ error: 'No scenarios selected' }, 400);
+        }
+
+        let products = requestedProductIds.length > 0
+            ? await getMerchantProducts(serviceClient, merchantId, requestedProductIds)
+            : await getMerchantProducts(serviceClient, merchantId);
+        if (requestedProductIds.length > 0 && products.length !== requestedProductIds.length) {
+            return c.json({ error: 'One or more selected products do not belong to the merchant' }, 400);
+        }
+        products = products.slice(0, 5);
+        if (products.length === 0) {
+            return c.json({ error: 'Merchant has no products to run Shopify scenarios' }, 400);
+        }
+
+        const { data: integration } = await serviceClient
+            .from('integrations')
+            .select('id')
+            .eq('merchant_id', merchantId)
+            .eq('provider', 'shopify')
+            .maybeSingle();
+
+        const createdEvent = buildNormalizedTestEvent({
+            merchantId,
+            integrationId: integration?.id ?? null,
+            eventType: 'order_created',
+            externalOrderId,
+            normalizedPhone,
+            customerName: customerName || undefined,
+            customerEmail: customerEmail || undefined,
+            customerLocale: customerLocale || undefined,
+            products: products as Array<{ id: string; name: string; external_id?: string | null; url?: string | null }>,
+        });
+        const createdResult = await processNormalizedEvent(createdEvent);
+
+        const deliveredAt = new Date().toISOString();
+        const deliveredEvent = buildNormalizedTestEvent({
+            merchantId,
+            integrationId: integration?.id ?? null,
+            eventType: 'order_delivered',
+            externalOrderId,
+            normalizedPhone,
+            customerName: customerName || undefined,
+            customerEmail: customerEmail || undefined,
+            customerLocale: customerLocale || undefined,
+            products: products as Array<{ id: string; name: string; external_id?: string | null; url?: string | null }>,
+            deliveredAt,
+        });
+        const deliveredResult = await processNormalizedEvent(deliveredEvent);
+
+        const { data: order } = await serviceClient
+            .from('orders')
+            .select('id, external_order_id, status, delivery_date, created_at')
+            .eq('merchant_id', merchantId)
+            .eq('external_order_id', externalOrderId)
+            .maybeSingle();
+
+        const user = await findUserByPhone(normalizedPhone, merchantId);
+        if (!user) {
+            return c.json({ error: 'Failed to resolve customer after creating test order' }, 500);
+        }
+
+        const conversationId = await getOrCreateConversation(
+            user.userId,
+            order?.id || deliveredResult.orderId || createdResult.orderId,
+            merchantId,
+        );
+
+        const scenarioResults: Array<{
+            id: string;
+            title: string;
+            feature: string;
+            passed: boolean;
+            inboundMessage: string;
+            aiReply: string;
+            intent: string;
+            guardrailBlocked: boolean;
+            upsellTriggered: boolean;
+            assertions: ScenarioAssertionResult[];
+        }> = [];
+
+        for (const scenario of scenariosToRun) {
+            const assistantSeedTemplates = scenario.assistantSeedTemplates || [];
+            for (const assistantSeedTemplate of assistantSeedTemplates) {
+                const seedMessage = resolveTemplateMessage(
+                    assistantSeedTemplate,
+                    products as Array<{ name: string }>,
+                );
+                await addMessageToConversation(conversationId, 'assistant', seedMessage);
+            }
+
+            const inboundMessage = resolveTemplateMessage(
+                scenario.messageTemplate,
+                products as Array<{ name: string }>,
+            );
+            await addMessageToConversation(conversationId, 'user', inboundMessage);
+
+            const history = await getConversationHistory(conversationId);
+            const aiResult = await generateAIResponse(
+                inboundMessage,
+                merchantId,
+                user.userId,
+                conversationId,
+                order?.id || deliveredResult.orderId || createdResult.orderId,
+                history,
+            );
+
+            await addMessageToConversation(conversationId, 'assistant', aiResult.response);
+
+            const evaluation = evaluateScenarioResult(scenario, aiResult);
+            scenarioResults.push({
+                id: scenario.id,
+                title: scenario.title,
+                feature: scenario.feature,
+                passed: evaluation.passed,
+                inboundMessage,
+                aiReply: aiResult.response,
+                intent: aiResult.intent,
+                guardrailBlocked: Boolean(aiResult.guardrailBlocked),
+                upsellTriggered: Boolean(aiResult.upsellTriggered),
+                assertions: evaluation.assertions,
+            });
+        }
+
+        const passed = scenarioResults.filter((result) => result.passed).length;
+        const failed = scenarioResults.length - passed;
+
+        return c.json({
+            success: failed === 0,
+            merchant: {
+                id: merchant.id,
+                name: merchant.name,
+            },
+            order: {
+                id: order?.id || deliveredResult.orderId || createdResult.orderId,
+                externalOrderId,
+                status: order?.status || 'delivered',
+                deliveryDate: order?.delivery_date || deliveredAt,
+                createdAt: order?.created_at || createdEvent.occurred_at,
+            },
+            user: {
+                id: user.userId,
+                phone: normalizedPhone,
+                name: user.userName || customerName || null,
+                email: customerEmail || null,
+            },
+            products: products.map((product: any) => ({
+                id: product.id,
+                name: product.name,
+                externalId: product.external_id || null,
+            })),
+            summary: {
+                total: scenarioResults.length,
+                passed,
+                failed,
+            },
+            results: scenarioResults,
+        });
+    } catch (error) {
+        console.error('Failed to run Shopify test scenarios:', error);
+        return c.json({
+            error: error instanceof Error ? error.message : 'Failed to run Shopify test scenarios',
+        }, 500);
     }
 });
 
@@ -876,6 +1288,77 @@ admin.post('/set-capped-amount', async (c) => {
         console.error('Update capped amount error:', error);
         return c.json({ error: 'Internal server error' }, 500);
     }
+});
+
+/**
+ * Pilot diagnostics samples
+ * GET /api/admin/pilot/diagnostics?merchant_id=<id>&limit=50
+ */
+admin.get('/pilot/diagnostics', async (c) => {
+    try {
+        const serviceClient = getSupabaseServiceClient();
+        const merchantId = (c.req.query('merchant_id') || '').trim();
+        const limitRaw = Number.parseInt(c.req.query('limit') || '50', 10);
+        const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, limitRaw)) : 50;
+
+        let query = serviceClient
+            .from('ai_usage_events')
+            .select('id, merchant_id, created_at, metadata')
+            .eq('feature', 'assistant_pilot_diagnostic')
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+        if (merchantId) {
+            query = query.eq('merchant_id', merchantId);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+            return c.json({ error: 'Failed to load pilot diagnostics' }, 500);
+        }
+
+        return c.json({
+            diagnostics: (data || []).map((item: any) => ({
+                id: item.id,
+                merchantId: item.merchant_id,
+                createdAt: item.created_at,
+                metadata: item.metadata || {},
+            })),
+        });
+    } catch (error) {
+        return c.json({ error: 'Failed to load pilot diagnostics' }, 500);
+    }
+});
+
+/**
+ * Pilot review rubric template
+ * GET /api/admin/pilot/review-template
+ */
+admin.get('/pilot/review-template', async (c) => {
+    return c.json({
+        rubric: [
+            'Did the assistant understand the user goal?',
+            'Did it use conversation context correctly?',
+            'Did it sound natural and human-like?',
+            'Did it respect merchant settings (tone/length/emoji/language)?',
+            'Did it avoid unnecessary clarification?',
+            'Did it avoid false escalation?',
+        ],
+        scoring: {
+            scale: '0-2',
+            meaning: {
+                0: 'Poor',
+                1: 'Acceptable',
+                2: 'Strong',
+            },
+        },
+        noteTemplate: {
+            transcriptId: '',
+            scoreByCriterion: {},
+            issues: [],
+            suggestedImprovement: '',
+        },
+    });
 });
 
 export default admin;

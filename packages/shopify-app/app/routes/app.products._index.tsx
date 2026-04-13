@@ -1053,7 +1053,7 @@ export default function ProductsPage() {
   const navigation = useNavigation();
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
-  const [showProductBrowser, setShowProductBrowser] = useState(false);
+  const [showReadyProducts, setShowReadyProducts] = useState(false);
   const [showManualEntryModal, setShowManualEntryModal] = useState(false);
   const [manualSourceDraft, setManualSourceDraft] = useState({
     name: "",
@@ -1114,6 +1114,14 @@ export default function ProductsPage() {
       return title.includes(query) || handle.includes(query) || vendor.includes(query);
     });
   }, [rows, searchQuery]);
+  const needsActionRows = useMemo(
+    () => searchedRows.filter((row) => row.state !== "ready"),
+    [searchedRows],
+  );
+  const readyRows = useMemo(
+    () => searchedRows.filter((row) => row.state === "ready"),
+    [searchedRows],
+  );
   const nextIncompleteProduct = useMemo(
     () => rows.find((row) => getJourneyMeta(row).activeStep !== "ready") || null,
     [rows],
@@ -1324,7 +1332,6 @@ export default function ProductsPage() {
     setHasInitializedSelection(true);
     setInlineValidationError(null);
     replaceProductSearchParam(null);
-    setShowProductBrowser(true);
   }
 
   function openProductBrowser() {
@@ -1403,29 +1410,35 @@ export default function ProductsPage() {
           <Layout.Section>
             <Box padding="300" borderWidth="025" borderColor="border" borderRadius="200">
               <BlockStack gap="300">
-                <InlineGrid columns={{ xs: 2, md: 4 }} gap="200">
-                  <TopStat label="Total products" value={summary.total} />
-                  <TopStat label="Needs setup" value={summary.needsSetup} />
-                  <TopStat label="Needs AI answers" value={summary.needsAiAnswers} />
-                  <TopStat label="Ready" value={summary.ready} />
-                </InlineGrid>
                 <InlineStack align="space-between" blockAlign="center" gap="200" wrap>
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    {nextIncompleteProduct
-                      ? "Open the next product and finish one step at a time."
-                      : "All products are ready."}
-                  </Text>
-                  <Button
-                    variant="primary"
-                    disabled={!nextIncompleteProduct}
-                    onClick={() => {
-                      if (!nextIncompleteProduct) return;
-                      handleSelectProduct(nextIncompleteProduct.shopify.id, true);
-                    }}
-                  >
-                    Open next product
-                  </Button>
+                  <BlockStack gap="050">
+                    <Text as="h2" variant="headingMd">
+                      Product setup queue
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {summary.needsSetup + summary.needsAiAnswers > 0
+                        ? `${summary.needsSetup + summary.needsAiAnswers} products need action.`
+                        : "All products are ready."}
+                    </Text>
+                  </BlockStack>
+                  {nextIncompleteProduct ? (
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        handleSelectProduct(nextIncompleteProduct.shopify.id, true);
+                      }}
+                    >
+                      Continue setup
+                    </Button>
+                  ) : (
+                    <Badge tone="success">All ready</Badge>
+                  )}
                 </InlineStack>
+                {nextIncompleteProduct ? (
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Next product: {nextIncompleteProduct.shopify.title}
+                  </Text>
+                ) : null}
               </BlockStack>
             </Box>
           </Layout.Section>
@@ -1514,44 +1527,72 @@ export default function ProductsPage() {
           <Layout.Section>
             <Box id="all-products-panel" padding="300" borderWidth="025" borderColor="border" borderRadius="300">
               <BlockStack gap="300">
-                <InlineStack align="space-between" blockAlign="center" gap="200" wrap>
-                  <BlockStack gap="050">
-                    <Text as="h2" variant="headingMd">
-                      All products
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Choose a product to continue its setup journey.
-                    </Text>
-                  </BlockStack>
-                  <Button
-                    variant="tertiary"
-                    onClick={() => setShowProductBrowser((current) => !current)}
-                    ariaExpanded={showProductBrowser}
-                    ariaControls="all-products-list"
-                  >
-                    {showProductBrowser ? "Hide products" : `Show products (${searchedRows.length})`}
-                  </Button>
-                </InlineStack>
+                <BlockStack gap="050">
+                  <Text as="h2" variant="headingMd">
+                    All products
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Start with products that need action.
+                  </Text>
+                </BlockStack>
 
-                <Collapsible open={showProductBrowser || !selectedRow} id="all-products-list">
-                  <BlockStack gap="300">
-                    <InlineGrid columns={{ xs: 1, md: "2fr auto" }} gap="200">
-                      <TextField
-                        label="Search products"
-                        labelHidden
-                        autoComplete="off"
-                        placeholder="Search by product title, handle, or vendor"
-                        value={searchQuery}
-                        onChange={setSearchQuery}
+                <InlineGrid columns={{ xs: 1, md: "2fr auto" }} gap="200">
+                  <TextField
+                    label="Search products"
+                    labelHidden
+                    autoComplete="off"
+                    placeholder="Search by product title, handle, or vendor"
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                  />
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    {searchedRows.length} {searchedRows.length === 1 ? "product" : "products"} shown
+                  </Text>
+                </InlineGrid>
+
+                {needsActionRows.length > 0 ? (
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodySm" fontWeight="semibold">
+                      Needs action ({needsActionRows.length})
+                    </Text>
+                    {needsActionRows.map((row) => (
+                      <ProductBrowserItem
+                        key={row.shopify.id}
+                        row={row}
+                        shopDomain={data.shopDomain}
+                        selected={row.shopify.id === selectedProductId}
+                        onSelect={() => {
+                          handleSelectProduct(row.shopify.id, true);
+                        }}
                       />
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        {searchedRows.length} {searchedRows.length === 1 ? "product" : "products"} shown
-                      </Text>
-                    </InlineGrid>
+                    ))}
+                  </BlockStack>
+                ) : (
+                  <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      No products need action right now.
+                    </Text>
+                  </Box>
+                )}
 
-                    {searchedRows.length > 0 ? (
+                {readyRows.length > 0 ? (
+                  <BlockStack gap="200">
+                    <InlineStack align="space-between" blockAlign="center">
+                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                        Ready products ({readyRows.length})
+                      </Text>
+                      <Button
+                        variant="tertiary"
+                        onClick={() => setShowReadyProducts((current) => !current)}
+                        ariaExpanded={showReadyProducts}
+                        ariaControls="ready-products-list"
+                      >
+                        {showReadyProducts ? "Hide ready products" : "Show ready products"}
+                      </Button>
+                    </InlineStack>
+                    <Collapsible open={showReadyProducts} id="ready-products-list">
                       <BlockStack gap="200">
-                        {searchedRows.map((row) => (
+                        {readyRows.map((row) => (
                           <ProductBrowserItem
                             key={row.shopify.id}
                             row={row}
@@ -1559,23 +1600,24 @@ export default function ProductsPage() {
                             selected={row.shopify.id === selectedProductId}
                             onSelect={() => {
                               handleSelectProduct(row.shopify.id, true);
-                              setShowProductBrowser(false);
                             }}
                           />
                         ))}
                       </BlockStack>
-                    ) : (
-                      <Box padding="400" borderWidth="025" borderColor="border" borderRadius="200">
-                        <EmptyState
-                          heading="No products match this view"
-                          image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                        >
-                          Try a different filter or search term.
-                        </EmptyState>
-                      </Box>
-                    )}
+                    </Collapsible>
                   </BlockStack>
-                </Collapsible>
+                ) : null}
+
+                {searchedRows.length === 0 ? (
+                  <Box padding="400" borderWidth="025" borderColor="border" borderRadius="200">
+                    <EmptyState
+                      heading="No products match this view"
+                      image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                    >
+                      Try a different filter or search term.
+                    </EmptyState>
+                  </Box>
+                ) : null}
               </BlockStack>
             </Box>
           </Layout.Section>
@@ -1659,21 +1701,6 @@ export default function ProductsPage() {
         </Modal.Section>
       </Modal>
     </Page>
-  );
-}
-
-function TopStat({ label, value }: { label: string; value: number }) {
-  return (
-    <Box padding="150">
-      <BlockStack gap="050">
-        <Text as="p" variant="bodySm" tone="subdued">
-          {label}
-        </Text>
-        <Text as="p" variant="headingMd">
-          {value}
-        </Text>
-      </BlockStack>
-    </Box>
   );
 }
 
@@ -1854,21 +1881,96 @@ function SetupPanel({
 }) {
   const submit = useSubmit();
   const [showReadyEditor, setShowReadyEditor] = useState(false);
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [showDangerZone, setShowDangerZone] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const journey = getJourneyMeta(row);
-  const activeStep = journey.activeStep;
+  const hasGuidance = Boolean(draft.usage_instructions.trim() || row.instruction?.usage_instructions?.trim());
+  const hasAiKnowledge = row.hasKnowledge;
+  const languagesDone =
+    !row.languageWorkflowEnabled || row.languageCoverage >= 100 || row.readyLanguageCount > 0;
+
+  const wizardSteps: Array<{
+    key: "instructions" | "responses" | "languages";
+    title: string;
+    why: string;
+    done: boolean;
+  }> = [
+    {
+      key: "instructions",
+      title: "Customer instructions",
+      why: "Clear instructions define what customers should do after delivery.",
+      done: hasGuidance,
+    },
+    {
+      key: "responses",
+      title: "AI responses",
+      why: "Knowledge generation improves answer quality and confidence.",
+      done: hasAiKnowledge,
+    },
+    {
+      key: "languages",
+      title: "Languages",
+      why: "Language coverage helps Recete answer customers consistently across locales.",
+      done: languagesDone,
+    },
+  ];
+  const firstIncompleteIndex = wizardSteps.findIndex((step) => !step.done);
+  const wizardComplete = row.state === "ready" || firstIncompleteIndex === -1;
+  const activeWizardIndex = firstIncompleteIndex === -1 ? wizardSteps.length - 1 : firstIncompleteIndex;
+  const resolvedWizardIndex = wizardComplete && showReadyEditor ? 0 : activeWizardIndex;
+  const activeWizardStep = wizardSteps[resolvedWizardIndex]?.key || "instructions";
+  const completedWizardSteps = wizardSteps.filter((step) => step.done).length;
+  const wizardProgress = Math.round((completedWizardSteps / wizardSteps.length) * 100);
   const knowledge = buildKnowledgeSummary(row);
+  const canSubmitSave = !isSavingSetup && !isRunningAiAction && !isDeletingLocalSetup;
+  const canRunAiStep = !isRunningAiAction && !isSavingSetup && !isDeletingLocalSetup;
+  const processRunning = isSavingSetup || isRunningAiAction || isDeletingLocalSetup;
+  const lifecycle = getLifecyclePresentation(row, {
+    actionError,
+    processRunning,
+  });
+  const statusLabel =
+    lifecycle.key === "ready" ? "Ready" : lifecycle.key === "processing" ? "In progress" : "Needs attention";
+  const statusTone: "success" | "info" | "attention" =
+    lifecycle.key === "ready" ? "success" : lifecycle.key === "processing" ? "info" : "attention";
+  const activeStepMeta = wizardSteps[resolvedWizardIndex];
 
   useEffect(() => {
     setShowReadyEditor(false);
+    setKnowledgeOpen(false);
+    setPreviewOpen(false);
     setShowDangerZone(false);
     setConfirmDelete(false);
   }, [row.shopify.id]);
 
+  function submitSaveDraft(requireInstructions: boolean) {
+    if (!canSubmitSave) return;
+    if (requireInstructions && !draft.usage_instructions.trim()) {
+      setInlineValidationError("Customer instructions are required before continuing.");
+      return;
+    }
+    setInlineValidationError(null);
+
+    const formData = new FormData();
+    formData.set("intent", "save-setup");
+    formData.set("selected_product_id", row.shopify.id);
+    formData.set("title", row.shopify.title);
+    formData.set("handle", row.shopify.handle);
+    formData.set("external_id", row.shopify.id);
+    formData.set("description_html", row.shopify.descriptionHtml || "");
+    formData.set("existing_product_id", row.localProduct?.id || "");
+    formData.set("workflow_url", workflowUrl || "");
+    formData.set("usage_instructions", draft.usage_instructions);
+    formData.set("recipe_summary", draft.recipe_summary);
+    formData.set("prevention_tips", draft.prevention_tips);
+    formData.set("video_url", draft.video_url);
+    submit(formData, { method: "post" });
+  }
+
   function submitEmbeddingsFromStep() {
-    if (!row.localProduct || isSavingSetup || isDeletingLocalSetup || isRunningAiAction) return;
+    if (!row.localProduct || !canRunAiStep) return;
     const formData = new FormData();
     formData.set("intent", "embeddings");
     formData.set("productId", row.localProduct?.id || "");
@@ -1879,21 +1981,51 @@ function SetupPanel({
     submit(formData, { method: "post" });
   }
 
-  const isReady = activeStep === "ready";
-  const needsAttention = !isReady || knowledge.missingInfo.length > 0;
-  const showEditor = activeStep === "guidance" || showReadyEditor || (isReady && knowledge.missingInfo.length > 0);
+  function submitPreviewAnswer() {
+    if (!row.localProduct || isPreviewingAnswer || processRunning) return;
+    const formData = new FormData();
+    formData.set("intent", "preview-answer");
+    formData.set("productId", row.localProduct.id);
+    formData.set("shopifyProductId", row.shopify.id);
+    formData.set("productName", row.shopify.title);
+    formData.set("previewQuestion", previewQuestion.trim() || "How do I use this product?");
+    submit(formData, { method: "post" });
+  }
+
+  const showEditor = activeWizardStep === "instructions" || showReadyEditor;
+  const showAiResponsesStep = activeWizardStep === "responses" && !showEditor;
+  const showLanguagesStep = activeWizardStep === "languages" && !showEditor;
+  const canContinueStep = !processRunning;
+  const setupScore = Math.max(0, Math.min(100, knowledge.qualityScore));
+  const readySummary = knowledge.missingInfo.length
+    ? "This product can answer questions, but coverage is not complete yet."
+    : "This product is fully prepared for customer replies.";
+  const runningMessage =
+    activeWizardStep === "languages"
+      ? "We’re updating product languages. This usually takes a few seconds."
+      : "We’re preparing product knowledge. This usually takes a few seconds.";
 
   const content = (
     <BlockStack gap="500">
-      <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--p-color-bg-surface)", paddingBottom: "16px", paddingTop: "8px", borderBottom: "1px solid var(--p-color-border)", boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)" }}>
-        <BlockStack gap="400">
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 30,
+          background: "var(--p-color-bg-surface)",
+          paddingBottom: "16px",
+          paddingTop: "8px",
+          borderBottom: "1px solid var(--p-color-border)",
+        }}
+      >
+        <BlockStack gap="200">
           <InlineStack align="start">
             <Button variant="plain" onClick={onBackToProducts}>
               ← All products
             </Button>
           </InlineStack>
 
-          <InlineStack align="space-between" blockAlign="center" wrap={false}>
+          <InlineStack align="space-between" blockAlign="center" wrap>
             <InlineStack gap="400" blockAlign="center" wrap={false}>
               {row.shopify.featuredImageUrl ? (
                 <div
@@ -1920,222 +2052,370 @@ function SetupPanel({
                   {row.shopify.title}
                 </Text>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  {needsAttention ? "Setup incomplete" : "Active & Ready"}
+                  {[row.shopify.vendor || "Shopify product", `/${row.shopify.handle}`].join(" • ")}
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  {lifecycle.message}
                 </Text>
               </BlockStack>
             </InlineStack>
-            <Badge tone={needsAttention ? "attention" : "success"}>
-               {needsAttention ? "Needs attention" : "Ready"}
+            <Badge tone={statusTone}>
+              {statusLabel}
             </Badge>
           </InlineStack>
+
+          <Box padding="150" background="bg-surface-secondary" borderRadius="200">
+            <BlockStack gap="100">
+              <InlineStack align="space-between" blockAlign="center">
+                <Text as="p" variant="bodySm" fontWeight="semibold">
+                  Step {resolvedWizardIndex + 1} of {wizardSteps.length}
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  {activeStepMeta?.title || "Setup"}
+                </Text>
+              </InlineStack>
+              <ProgressBar progress={wizardProgress} size="small" />
+            </BlockStack>
+          </Box>
         </BlockStack>
       </div>
 
-      {actionError && (
+      {processRunning ? (
+        <Banner tone="info" title="Updating">
+          <Text as="p" variant="bodyMd">{runningMessage}</Text>
+        </Banner>
+      ) : null}
+
+      {actionError && !processRunning ? (
         <Banner tone="critical" title="Action failed">
           <Text as="p" variant="bodyMd">{actionError}</Text>
         </Banner>
-      )}
-      {actionMessage && !actionError && (
+      ) : null}
+      {actionMessage && !actionError && !processRunning ? (
         <Banner tone="success" title="Success">
           <Text as="p" variant="bodyMd">{actionMessage}</Text>
         </Banner>
-      )}
+      ) : null}
 
-      <Card padding="500">
-        <BlockStack gap="400">
-          <InlineStack align="space-between" blockAlign="start" gap="200" wrap>
-            <BlockStack gap="100">
-              <Text as="h2" variant="headingMd">
-                Setup completeness: {knowledge.qualityScore}%
-              </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                {knowledge.qualityScore === 100
-                  ? "Product is fully configured for automated replies."
-                  : "Complete missing details to improve answer accuracy."}
-              </Text>
-            </BlockStack>
-            <div style={{ width: "120px" }}>
-              <ProgressBar progress={knowledge.qualityScore} size="small" tone={knowledge.qualityScore === 100 ? "success" : "primary"} />
-            </div>
-          </InlineStack>
-
-          {!showEditor && knowledge.missingInfo.length > 0 && (
-             <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-               <BlockStack gap="200">
-                 <Text as="p" variant="bodySm" fontWeight="semibold">Missing for full coverage</Text>
-                 <BlockStack gap="100">
-                    {knowledge.missingInfo.map((info) => (
-                       <Text key={info} as="p" variant="bodySm" tone="subdued">• {info}</Text>
-                    ))}
-                 </BlockStack>
-                 <InlineStack>
-                   <Button onClick={() => setShowReadyEditor(true)}>Add missing details</Button>
-                 </InlineStack>
-               </BlockStack>
-             </Box>
-          )}
-
-          {!showEditor && !needsAttention && (
-             <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-               <InlineStack align="space-between" blockAlign="center" wrap>
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Everything is set up perfectly.
-                  </Text>
-                  <Button onClick={() => setShowReadyEditor(true)}>Edit setup</Button>
-               </InlineStack>
-             </Box>
-          )}
-
-          {showEditor && (
-            <Form
-              method="post"
-              id={`product-setup-form-${row.shopify.id}`}
-              onSubmit={(event) => {
-                if (!draft.usage_instructions.trim()) {
-                  event.preventDefault();
-                  setInlineValidationError("Customer guidance is required before saving.");
-                  return;
-                }
-                setInlineValidationError(null);
-              }}
-            >
-              <input type="hidden" name="intent" value="save-setup" />
-              <input type="hidden" name="selected_product_id" value={row.shopify.id} />
-              <input type="hidden" name="title" value={row.shopify.title} />
-              <input type="hidden" name="handle" value={row.shopify.handle} />
-              <input type="hidden" name="external_id" value={row.shopify.id} />
-              <input type="hidden" name="description_html" value={row.shopify.descriptionHtml || ""} />
-              <input type="hidden" name="existing_product_id" value={row.localProduct?.id || ""} />
-              <input type="hidden" name="workflow_url" value={workflowUrl} />
-
-              <BlockStack gap="400">
-                <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                  <BlockStack gap="300">
-                    <TextField
-                      label="Customer guidance"
-                      name="usage_instructions"
-                      value={draft.usage_instructions}
-                      onChange={(value) => onChangeDraft("usage_instructions", value)}
-                      multiline={4}
-                      autoComplete="off"
-                      error={inlineValidationError ? "Required" : undefined}
-                      placeholder="E.g. Take two pills daily with water."
-                    />
-                    <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">
-                      <TextField
-                        label="Warnings and notes"
-                        name="prevention_tips"
-                        value={draft.prevention_tips}
-                        onChange={(value) => onChangeDraft("prevention_tips", value)}
-                        multiline={3}
-                        autoComplete="off"
-                        placeholder="E.g. Keep away from children."
-                      />
-                      <TextField
-                        label="Key features summary"
-                        name="recipe_summary"
-                        value={draft.recipe_summary}
-                        onChange={(value) => onChangeDraft("recipe_summary", value)}
-                        multiline={3}
-                        autoComplete="off"
-                      />
-                    </InlineGrid>
+      {!wizardComplete || showReadyEditor ? (
+        <Card padding="500">
+          <BlockStack gap="400">
+            {showEditor && (
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingMd">
+                  Step 1: Customer instructions
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  {wizardSteps[0].why}
+                </Text>
+                <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+                  <BlockStack gap="100">
+                    <Text as="p" variant="bodySm" fontWeight="semibold">
+                      Good examples:
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      Use twice daily on clean skin, morning and evening.
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      Avoid direct contact with eyes. Stop use if irritation appears.
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      Keep away from children and store below 25C.
+                    </Text>
                   </BlockStack>
                 </Box>
+
+                <TextField
+                  label="Customer instructions"
+                  name="usage_instructions"
+                  value={draft.usage_instructions}
+                  onChange={(value) => onChangeDraft("usage_instructions", value)}
+                  multiline={6}
+                  autoComplete="off"
+                  error={inlineValidationError ? "Customer instructions are required." : undefined}
+                  helpText="Write the exact guidance Recete should send to customers after delivery."
+                />
+
+                <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">
+                  <TextField
+                    label="Warnings and important notes"
+                    name="prevention_tips"
+                    value={draft.prevention_tips}
+                    onChange={(value) => onChangeDraft("prevention_tips", value)}
+                    multiline={3}
+                    autoComplete="off"
+                  />
+                  <TextField
+                    label="Key product summary"
+                    name="recipe_summary"
+                    value={draft.recipe_summary}
+                    onChange={(value) => onChangeDraft("recipe_summary", value)}
+                    multiline={3}
+                    autoComplete="off"
+                  />
+                </InlineGrid>
+
                 <InlineStack gap="200" wrap>
-                  <Button submit variant="primary" loading={isSavingSetup}>
-                    {isReady ? "Save updates" : "Complete setup"}
-                  </Button>
-                  {(isReady || showReadyEditor) && knowledge.missingInfo.length === 0 && (
-                    <Button onClick={() => setShowReadyEditor(false)}>Cancel</Button>
-                  )}
+                  {canContinueStep ? (
+                    <>
+                      <Button
+                        variant="primary"
+                        loading={isSavingSetup}
+                        disabled={!canSubmitSave}
+                        onClick={() => submitSaveDraft(true)}
+                      >
+                        Continue
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={!canSubmitSave}
+                        onClick={() => submitSaveDraft(false)}
+                      >
+                        Save draft
+                      </Button>
+                    </>
+                  ) : null}
                 </InlineStack>
               </BlockStack>
-            </Form>
-          )}
+            )}
 
-          {activeStep === "improve" && !showEditor && (
-             <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                <BlockStack gap="300">
-                   <BlockStack gap="100">
-                     <Text as="h3" variant="headingSm">Generate AI Knowledge</Text>
-                     <Text as="p" variant="bodySm" tone="subdued">
-                       Guidance is saved. Click below to analyze product data and generate answers.
-                     </Text>
-                   </BlockStack>
-                   <InlineStack>
-                     <Button loading={isRunningAiAction} variant="primary" onClick={submitEmbeddingsFromStep}>
-                       Complete setup
-                     </Button>
-                   </InlineStack>
+            {showAiResponsesStep && (
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingMd">
+                  Step 2: AI responses
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  {wizardSteps[1].why}
+                </Text>
+
+                <TextField
+                  label="Extra source URL"
+                  autoComplete="off"
+                  value={workflowUrl}
+                  onChange={onWorkflowUrlChange}
+                  placeholder="https://example.com/product-faq"
+                  helpText="Optional. Add a page with FAQs or usage details to improve answer quality."
+                />
+
+                <InlineStack gap="200" wrap>
+                  {canContinueStep ? (
+                    <>
+                      <Button
+                        variant="primary"
+                        loading={isRunningAiAction}
+                        disabled={!row.localProduct || !canRunAiStep}
+                        onClick={submitEmbeddingsFromStep}
+                      >
+                        Continue
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={!canSubmitSave}
+                        onClick={() => submitSaveDraft(false)}
+                      >
+                        Save draft
+                      </Button>
+                    </>
+                  ) : null}
+                </InlineStack>
+              </BlockStack>
+            )}
+
+            {showLanguagesStep && (
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingMd">
+                  Step 3: Languages
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  {wizardSteps[2].why}
+                </Text>
+
+                <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+                  <BlockStack gap="100">
+                    <Text as="p" variant="bodySm" fontWeight="semibold">
+                      Current coverage
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {row.languageWorkflowEnabled
+                        ? `${row.readyLanguageCount} of ${row.requiredLanguageCount} languages ready (${row.languageCoverage}%).`
+                        : "Primary language coverage is active."}
+                    </Text>
+                  </BlockStack>
+                </Box>
+
+                {row.languageWorkflowEnabled && row.languageCoverage < 100 ? (
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Language sync may continue in the background. You can continue now and monitor coverage later.
+                  </Text>
+                ) : null}
+
+                <InlineStack gap="200" wrap>
+                  {canContinueStep ? (
+                    <>
+                      <Button
+                        variant="primary"
+                        loading={isRunningAiAction}
+                        disabled={!row.localProduct || !canRunAiStep}
+                        onClick={submitEmbeddingsFromStep}
+                      >
+                        Continue
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={!canSubmitSave}
+                        onClick={() => submitSaveDraft(false)}
+                      >
+                        Save draft
+                      </Button>
+                    </>
+                  ) : null}
+                </InlineStack>
+              </BlockStack>
+            )}
+          </BlockStack>
+        </Card>
+      ) : (
+        <BlockStack gap="400">
+          <Card padding="500">
+            <BlockStack gap="300">
+              <InlineStack align="space-between" blockAlign="center" wrap>
+                <BlockStack gap="050">
+                  <Text as="h2" variant="headingMd">
+                    Setup completeness: {setupScore}%
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    {readySummary}
+                  </Text>
                 </BlockStack>
-             </Box>
-          )}
-        </BlockStack>
-      </Card>
-
-      {isReady && (
-         <BlockStack gap="300">
-           <Text as="h3" variant="headingSm">Tools & Information</Text>
-           <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">
-             <Card>
-               <BlockStack gap="300">
-                 <BlockStack gap="100">
-                   <Text as="h3" variant="headingSm">Review AI Knowledge</Text>
-                   <Text as="p" variant="bodySm" tone="subdued">Reference information currently in use.</Text>
-                 </BlockStack>
-                 <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodySm" fontWeight="medium">How to use</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">{knowledge.howToUse || "-"}</Text>
-
-                      <Text as="p" variant="bodySm" fontWeight="medium">Warnings</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        {knowledge.warnings.length > 0 ? knowledge.warnings.join(", ") : "-"}
+                <Badge tone={knowledge.missingInfo.length ? "attention" : "success"}>
+                  {knowledge.missingInfo.length ? "Needs attention" : "Ready"}
+                </Badge>
+              </InlineStack>
+              <ProgressBar progress={setupScore} tone={knowledge.missingInfo.length ? "highlight" : "success"} />
+              {knowledge.missingInfo.length > 0 ? (
+                <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+                  <BlockStack gap="100">
+                    <Text as="p" variant="bodySm" fontWeight="semibold">
+                      Missing for full coverage
+                    </Text>
+                    {knowledge.missingInfo.map((item) => (
+                      <Text key={item} as="p" variant="bodySm" tone="subdued">
+                        • {item}
                       </Text>
-                    </BlockStack>
-                 </Box>
-               </BlockStack>
-             </Card>
+                    ))}
+                    <InlineStack>
+                      <Button onClick={() => setShowReadyEditor(true)} disabled={processRunning}>
+                        Add missing details
+                      </Button>
+                    </InlineStack>
+                  </BlockStack>
+                </Box>
+              ) : (
+                <InlineStack>
+                  <Button onClick={() => setShowReadyEditor(true)} disabled={processRunning}>
+                    Edit setup
+                  </Button>
+                </InlineStack>
+              )}
+            </BlockStack>
+          </Card>
 
-             <Card>
-               <Form method="post">
-                 <input type="hidden" name="intent" value="preview-answer" />
-                 <input type="hidden" name="productId" value={row.localProduct?.id || ""} />
-                 <input type="hidden" name="shopifyProductId" value={row.shopify.id} />
-                 <BlockStack gap="300">
-                   <BlockStack gap="100">
-                     <Text as="h3" variant="headingSm">Preview answer</Text>
-                     <Text as="p" variant="bodySm" tone="subdued">Simulate a customer question.</Text>
-                   </BlockStack>
-                   <TextField
-                     label="Sample question"
-                     labelHidden
-                     name="question"
-                     value={previewQuestion}
-                     onChange={onPreviewQuestionChange}
-                     autoComplete="off"
-                     placeholder="How do I use this product?"
-                   />
-                   <InlineStack gap="200" wrap>
-                     <Button submit disabled={!row.localProduct} loading={isPreviewingAnswer}>
-                       Preview
-                     </Button>
-                   </InlineStack>
-                   {previewAnswer && (
-                     <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-                       <Text as="p" variant="bodySm">{previewAnswer}</Text>
-                     </Box>
-                   )}
-                 </BlockStack>
-               </Form>
-             </Card>
-           </InlineGrid>
-         </BlockStack>
+          <Card padding="400">
+            <BlockStack gap="200">
+              <InlineStack align="space-between" blockAlign="center">
+                <Text as="h3" variant="headingSm">
+                  AI knowledge
+                </Text>
+                <Button
+                  variant="tertiary"
+                  onClick={() => setKnowledgeOpen((current) => !current)}
+                  ariaExpanded={knowledgeOpen}
+                >
+                  {knowledgeOpen ? "Hide" : "Review"}
+                </Button>
+              </InlineStack>
+              <Text as="p" variant="bodySm" tone="subdued">
+                This is the information Recete uses to answer customer questions.
+              </Text>
+              <Collapsible open={knowledgeOpen} id={`knowledge-${row.shopify.id}`}>
+                <BlockStack gap="200">
+                  <InfoMiniCard title="How Recete should answer" body={knowledge.howToUse} />
+                  <InfoListCard
+                    title="Key product details"
+                    items={knowledge.keyDetails}
+                    empty="No key details yet."
+                  />
+                  <InfoListCard
+                    title="Warnings"
+                    items={knowledge.warnings}
+                    empty="No warnings saved yet."
+                  />
+                  <InfoListCard
+                    title="Common customer questions"
+                    items={knowledge.commonQuestions}
+                    empty="No common question patterns yet."
+                  />
+                  <StepOutcomeLine
+                    title="Latest update"
+                    outcome={
+                      stepOutcomes?.collect_sources ||
+                      stepOutcomes?.generate_ai_knowledge ||
+                      stepOutcomes?.map_product
+                    }
+                  />
+                </BlockStack>
+              </Collapsible>
+            </BlockStack>
+          </Card>
+
+          <Card padding="400">
+            <BlockStack gap="200">
+              <InlineStack align="space-between" blockAlign="center">
+                <Text as="h3" variant="headingSm">
+                  Preview answer
+                </Text>
+                <Button
+                  variant="tertiary"
+                  onClick={() => setPreviewOpen((current) => !current)}
+                  ariaExpanded={previewOpen}
+                >
+                  {previewOpen ? "Hide" : "Open"}
+                </Button>
+              </InlineStack>
+              <Text as="p" variant="bodySm" tone="subdued">
+                Ask a sample question and see how Recete responds.
+              </Text>
+              <Collapsible open={previewOpen} id={`preview-${row.shopify.id}`}>
+                <BlockStack gap="200">
+                  <TextField
+                    label="Sample question"
+                    autoComplete="off"
+                    value={previewQuestion}
+                    onChange={onPreviewQuestionChange}
+                  />
+                  <InlineStack>
+                    <Button
+                      variant="secondary"
+                      loading={isPreviewingAnswer}
+                      disabled={!row.localProduct || processRunning}
+                      onClick={submitPreviewAnswer}
+                    >
+                      Regenerate answer
+                    </Button>
+                  </InlineStack>
+                  <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {previewAnswer || "Generate a preview to inspect the response."}
+                    </Text>
+                  </Box>
+                </BlockStack>
+              </Collapsible>
+            </BlockStack>
+          </Card>
+        </BlockStack>
       )}
 
-      {isReady && row.localProduct && (
+      {wizardComplete && row.localProduct && (
         <BlockStack gap="200">
           <InlineStack>
             <Button

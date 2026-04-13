@@ -18,6 +18,8 @@ vi.mock('@recete/shared', async () => {
     logger: {
       info: vi.fn(),
       error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
     },
   };
 });
@@ -33,6 +35,7 @@ describe('rateLimitMiddleware', () => {
       req: {
         header: vi.fn((name: string) => {
           if (name === 'x-forwarded-for') return '192.168.1.1';
+          if (name === 'host') return 'api.recete.co.uk';
           return undefined;
         }),
         method: 'GET',
@@ -66,8 +69,8 @@ describe('rateLimitMiddleware', () => {
       } as any,
     });
 
-    // Mock: 100 requests already in window (ip limit is 100/min)
-    const many = Array.from({ length: 200 }, (_, i) => String(1000 + i)); // WITHSCORES => pairs
+    // Mock: 1000 requests already in window (ip limit is 1000/min)
+    const many = Array.from({ length: 2000 }, (_, i) => String(1000 + i)); // WITHSCORES => pairs
     mockRedisClient.zrangebyscore.mockResolvedValue(many);
 
     const next = vi.fn();

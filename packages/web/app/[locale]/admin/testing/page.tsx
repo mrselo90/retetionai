@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import {
@@ -24,7 +24,7 @@ import {
     Text,
     TextField,
 } from '@shopify/polaris';
-import { FlaskConical, MessageSquareReply, PackageCheck, Store } from 'lucide-react';
+import { FlaskConical, ListChecks, MessageSquareReply, PackageCheck, Store } from 'lucide-react';
 
 interface MerchantOption {
     id: string;
@@ -94,6 +94,57 @@ interface ReplyResult {
     } | null;
 }
 
+interface ShopifyScenarioDefinition {
+    id: string;
+    title: string;
+    feature: string;
+    description: string;
+}
+
+interface ScenarioAssertionResult {
+    id: string;
+    passed: boolean;
+    message: string;
+}
+
+interface ShopifyScenarioResult {
+    id: string;
+    title: string;
+    feature: string;
+    passed: boolean;
+    inboundMessage: string;
+    aiReply: string;
+    intent: string;
+    guardrailBlocked: boolean;
+    upsellTriggered: boolean;
+    assertions: ScenarioAssertionResult[];
+}
+
+interface ShopifyScenarioRunResponse {
+    success: boolean;
+    merchant: { id: string; name: string };
+    order: {
+        id: string;
+        externalOrderId: string;
+        status: string;
+        deliveryDate: string | null;
+        createdAt: string;
+    };
+    user: {
+        id: string;
+        phone: string;
+        name: string | null;
+        email: string | null;
+    };
+    products: Array<{ id: string; name: string; externalId: string | null }>;
+    summary: {
+        total: number;
+        passed: number;
+        failed: number;
+    };
+    results: ShopifyScenarioResult[];
+}
+
 export default function AdminTestingPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -110,10 +161,15 @@ export default function AdminTestingPage() {
     const [markDelivered, setMarkDelivered] = useState(true);
     const [creatingOrder, setCreatingOrder] = useState(false);
     const [orderResult, setOrderResult] = useState<TestOrderResult | null>(null);
-    const [replyMessage, setReplyMessage] = useState('Ürünü nasıl kullanmalıyım?');
+    const [replyMessage, setReplyMessage] = useState('Urunu nasil kullanmaliyim?');
     const [sendReplyLive, setSendReplyLive] = useState(false);
     const [simulatingReply, setSimulatingReply] = useState(false);
     const [replyResult, setReplyResult] = useState<ReplyResult | null>(null);
+    const [scenarioCatalog, setScenarioCatalog] = useState<ShopifyScenarioDefinition[]>([]);
+    const [selectedScenarioIds, setSelectedScenarioIds] = useState<string[]>([]);
+    const [scenariosLoading, setScenariosLoading] = useState(false);
+    const [runningScenarios, setRunningScenarios] = useState(false);
+    const [scenarioRunResult, setScenarioRunResult] = useState<ShopifyScenarioRunResponse | null>(null);
 
     const fetchMerchants = async () => {
         try {
@@ -122,7 +178,7 @@ export default function AdminTestingPage() {
 
             const response = await authenticatedRequest<{ merchants: MerchantOption[] }>(
                 '/api/admin/merchants',
-                session.access_token
+                session.access_token,
             );
             setMerchants(response.merchants || []);
             if (!selectedMerchantId && response.merchants?.length) {
@@ -132,6 +188,26 @@ export default function AdminTestingPage() {
             setError(err.message || 'Failed to load merchants');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchScenarioCatalog = async () => {
+        setScenariosLoading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const response = await authenticatedRequest<{ scenarios: ShopifyScenarioDefinition[] }>(
+                '/api/admin/test-kit/shopify-scenarios',
+                session.access_token,
+            );
+            const scenarios = response.scenarios || [];
+            setScenarioCatalog(scenarios);
+            setSelectedScenarioIds(scenarios.map((scenario) => scenario.id));
+        } catch (err: any) {
+            setError(err.message || 'Failed to load Shopify scenarios');
+        } finally {
+            setScenariosLoading(false);
         }
     };
 
@@ -145,16 +221,17 @@ export default function AdminTestingPage() {
         setMerchantLoading(true);
         setOrderResult(null);
         setReplyResult(null);
+        setScenarioRunResult(null);
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
             const response = await authenticatedRequest<MerchantTestKitData>(
                 `/api/admin/merchants/${merchantId}/test-kit`,
-                session.access_token
+                session.access_token,
             );
             setMerchantData(response);
-            setSelectedProductIds(response.products.slice(0, 1).map((product) => product.id));
+            setSelectedProductIds(response.products.slice(0, 2).map((product) => product.id));
         } catch (err: any) {
             setError(err.message || 'Failed to load merchant test data');
         } finally {
@@ -164,6 +241,7 @@ export default function AdminTestingPage() {
 
     useEffect(() => {
         void fetchMerchants();
+        void fetchScenarioCatalog();
     }, []);
 
     useEffect(() => {
@@ -178,6 +256,15 @@ export default function AdminTestingPage() {
                 return current.includes(productId) ? current : [...current, productId];
             }
             return current.filter((id) => id !== productId);
+        });
+    };
+
+    const toggleScenario = (scenarioId: string, checked: boolean) => {
+        setSelectedScenarioIds((current) => {
+            if (checked) {
+                return current.includes(scenarioId) ? current : [...current, scenarioId];
+            }
+            return current.filter((id) => id !== scenarioId);
         });
     };
 
@@ -203,7 +290,7 @@ export default function AdminTestingPage() {
                         customerLocale,
                         markDelivered,
                     }),
-                }
+                },
             );
             setOrderResult(response);
             setCustomerPhone(response.user.phone);
@@ -233,7 +320,7 @@ export default function AdminTestingPage() {
                         orderId: orderResult?.order.id,
                         sendReplyLive,
                     }),
-                }
+                },
             );
             setReplyResult(response);
         } catch (err: any) {
@@ -242,6 +329,68 @@ export default function AdminTestingPage() {
             setSimulatingReply(false);
         }
     };
+
+    const runShopifyScenarioSuite = async () => {
+        setRunningScenarios(true);
+        setError('');
+        setScenarioRunResult(null);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const response = await authenticatedRequest<ShopifyScenarioRunResponse>(
+                '/api/admin/test-kit/shopify-scenarios/run',
+                session.access_token,
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        merchantId: selectedMerchantId,
+                        scenarioIds: selectedScenarioIds,
+                        productIds: selectedProductIds,
+                        customerName,
+                        customerEmail,
+                        customerPhone,
+                        customerLocale,
+                    }),
+                },
+            );
+            setScenarioRunResult(response);
+            setCustomerPhone(response.user.phone);
+        } catch (err: any) {
+            setError(err.message || 'Failed to run Shopify scenario suite');
+        } finally {
+            setRunningScenarios(false);
+        }
+    };
+
+    const filteredProducts = useMemo(() => {
+        return merchantData?.products.filter((product) => {
+            const query = productQuery.trim().toLowerCase();
+            if (!query) return true;
+            return (
+                product.name.toLowerCase().includes(query) ||
+                (product.externalId || '').toLowerCase().includes(query)
+            );
+        }) || [];
+    }, [merchantData?.products, productQuery]);
+
+    const merchantOptions = [
+        { label: 'Select merchant', value: '' },
+        ...merchants.map((merchant) => ({
+            label: merchant.name || merchant.id,
+            value: merchant.id,
+        })),
+    ];
+
+    const allScenariosSelected = scenarioCatalog.length > 0 && selectedScenarioIds.length === scenarioCatalog.length;
+    const canCreateOrder = Boolean(selectedMerchantId && customerPhone.trim() && selectedProductIds.length > 0);
+    const canSimulateReply = Boolean(selectedMerchantId && customerPhone.trim() && replyMessage.trim());
+    const canRunScenarioSuite = Boolean(
+        selectedMerchantId &&
+        customerPhone.trim() &&
+        selectedProductIds.length > 0 &&
+        selectedScenarioIds.length > 0,
+    );
 
     if (loading) {
         return (
@@ -264,30 +413,10 @@ export default function AdminTestingPage() {
         );
     }
 
-    const filteredProducts = merchantData?.products.filter((product) => {
-        const query = productQuery.trim().toLowerCase();
-        if (!query) return true;
-        return (
-            product.name.toLowerCase().includes(query) ||
-            (product.externalId || '').toLowerCase().includes(query)
-        );
-    }) || [];
-
-    const merchantOptions = [
-        { label: 'Select merchant', value: '' },
-        ...merchants.map((merchant) => ({
-            label: merchant.name || merchant.id,
-            value: merchant.id,
-        })),
-    ];
-
-    const canCreateOrder = Boolean(selectedMerchantId && customerPhone.trim() && selectedProductIds.length > 0);
-    const canSimulateReply = Boolean(selectedMerchantId && customerPhone.trim() && replyMessage.trim());
-
     return (
         <Page
             title="Merchant Test Kit"
-            subtitle="Create a realistic test order, move it into delivered state, and verify the AI WhatsApp follow-up path for any merchant."
+            subtitle="Create real test orders, simulate customer replies, and run full Shopify scenario suites from Super Admin."
             fullWidth
         >
             <Layout>
@@ -295,7 +424,8 @@ export default function AdminTestingPage() {
                     <BlockStack gap="400">
                         <Banner tone="info">
                             <p>
-                                Use this screen to prepare the merchant state for WhatsApp testing without impersonation. The order action uses the real order processor. The reply action simulates the inbound message path and can optionally send the AI answer through the merchant’s live WhatsApp provider.
+                                This page includes an automated Shopify scenario runner. It creates a delivered test
+                                order, reuses the real AI pipeline, and validates scenario assertions for each flow.
                             </p>
                         </Banner>
 
@@ -408,7 +538,7 @@ export default function AdminTestingPage() {
                                             value={customerPhone}
                                             onChange={setCustomerPhone}
                                             autoComplete="tel"
-                                            helpText="Use a real WhatsApp number in E.164 format if you want live follow-up messages to arrive."
+                                            helpText="Use E.164 format for predictable test behavior."
                                         />
                                         <InlineGrid columns={{ xs: '1fr', md: '1fr 1fr' }} gap="300">
                                             <TextField
@@ -428,7 +558,7 @@ export default function AdminTestingPage() {
                                             label="Mark order as delivered immediately"
                                             checked={markDelivered}
                                             onChange={setMarkDelivered}
-                                            helpText="When enabled, the real delivered-event flow runs right away and post-delivery message scheduling is triggered."
+                                            helpText="Triggers delivered-event flow and follow-up scheduling right away."
                                         />
                                         <Button
                                             variant="primary"
@@ -511,7 +641,8 @@ export default function AdminTestingPage() {
                                     </InlineStack>
 
                                     <Text as="p" tone="subdued">
-                                        This lets super admin test the AI answer path without waiting for a real provider webhook. If you enable live send, the generated AI answer is also pushed to the customer through the merchant’s active WhatsApp sender.
+                                        This runs one inbound message through the same AI pipeline used in production.
+                                        Enable live send only for safe test numbers.
                                     </Text>
 
                                     <TextField
@@ -525,7 +656,7 @@ export default function AdminTestingPage() {
                                         label="Send AI reply to customer as a live WhatsApp message"
                                         checked={sendReplyLive}
                                         onChange={setSendReplyLive}
-                                        helpText="Leave this off for a dry run. Turn it on only when the merchant has a safe test number configured."
+                                        helpText="Keep disabled for dry-run validation."
                                     />
                                     <Button
                                         variant="primary"
@@ -567,6 +698,152 @@ export default function AdminTestingPage() {
                                                     </Box>
                                                 </Card>
                                             </InlineGrid>
+                                        </>
+                                    ) : null}
+                                </BlockStack>
+                            </Box>
+                        </Card>
+
+                        <Card>
+                            <Box padding="400">
+                                <BlockStack gap="400">
+                                    <InlineStack align="space-between" blockAlign="center">
+                                        <InlineStack gap="300" blockAlign="center">
+                                            <ListChecks className="h-5 w-5 text-zinc-500" />
+                                            <Text as="h2" variant="headingMd">4. Run Shopify scenario suite</Text>
+                                        </InlineStack>
+                                        <InlineStack gap="200">
+                                            <Button
+                                                onClick={() => {
+                                                    if (allScenariosSelected) {
+                                                        setSelectedScenarioIds([]);
+                                                    } else {
+                                                        setSelectedScenarioIds(scenarioCatalog.map((scenario) => scenario.id));
+                                                    }
+                                                }}
+                                                disabled={scenariosLoading || scenarioCatalog.length === 0}
+                                            >
+                                                {allScenariosSelected ? 'Clear all' : 'Select all'}
+                                            </Button>
+                                            <Button
+                                                variant="primary"
+                                                loading={runningScenarios}
+                                                onClick={runShopifyScenarioSuite}
+                                                disabled={!canRunScenarioSuite}
+                                            >
+                                                {`Run selected (${selectedScenarioIds.length})`}
+                                            </Button>
+                                        </InlineStack>
+                                    </InlineStack>
+
+                                    <Text as="p" tone="subdued">
+                                        Covers Shopify order lifecycle, conversation intent handling, numeric product
+                                        selection, routine requests, return and opt-out flows, and multilingual guidance.
+                                    </Text>
+
+                                    {scenariosLoading ? <SkeletonBodyText lines={4} /> : null}
+
+                                    {!scenariosLoading && scenarioCatalog.length > 0 ? (
+                                        <Scrollable shadow style={{ maxHeight: '360px' }}>
+                                            <BlockStack gap="200">
+                                                {scenarioCatalog.map((scenario) => (
+                                                    <Card key={scenario.id}>
+                                                        <Box padding="300">
+                                                            <BlockStack gap="200">
+                                                                <Checkbox
+                                                                    label={scenario.title}
+                                                                    checked={selectedScenarioIds.includes(scenario.id)}
+                                                                    onChange={(checked) => toggleScenario(scenario.id, checked)}
+                                                                    helpText={scenario.description}
+                                                                />
+                                                                <InlineStack gap="200" wrap>
+                                                                    <Badge>{scenario.feature}</Badge>
+                                                                    <Badge tone="info">{scenario.id}</Badge>
+                                                                </InlineStack>
+                                                            </BlockStack>
+                                                        </Box>
+                                                    </Card>
+                                                ))}
+                                            </BlockStack>
+                                        </Scrollable>
+                                    ) : null}
+
+                                    {scenarioRunResult ? (
+                                        <>
+                                            <Divider />
+                                            <Banner tone={scenarioRunResult.summary.failed === 0 ? 'success' : 'warning'}>
+                                                <p>
+                                                    Suite completed for <strong>{scenarioRunResult.merchant.name}</strong>:
+                                                    {' '}{scenarioRunResult.summary.passed}/{scenarioRunResult.summary.total} passed,
+                                                    {' '}{scenarioRunResult.summary.failed} failed.
+                                                </p>
+                                            </Banner>
+
+                                            <InlineGrid columns={{ xs: '1fr', md: '1fr 1fr 1fr' }} gap="300">
+                                                <Card>
+                                                    <Box padding="300">
+                                                        <BlockStack gap="100">
+                                                            <Text as="p" variant="bodySm" tone="subdued">Test order</Text>
+                                                            <Text as="p" variant="headingSm">{scenarioRunResult.order.externalOrderId}</Text>
+                                                            <Text as="p" variant="bodySm">{scenarioRunResult.order.status}</Text>
+                                                        </BlockStack>
+                                                    </Box>
+                                                </Card>
+                                                <Card>
+                                                    <Box padding="300">
+                                                        <BlockStack gap="100">
+                                                            <Text as="p" variant="bodySm" tone="subdued">Customer</Text>
+                                                            <Text as="p" variant="headingSm">{scenarioRunResult.user.phone}</Text>
+                                                            <Text as="p" variant="bodySm">
+                                                                {scenarioRunResult.user.name || 'Unnamed test user'}
+                                                            </Text>
+                                                        </BlockStack>
+                                                    </Box>
+                                                </Card>
+                                                <Card>
+                                                    <Box padding="300">
+                                                        <BlockStack gap="100">
+                                                            <Text as="p" variant="bodySm" tone="subdued">Products</Text>
+                                                            <Text as="p" variant="headingSm">{scenarioRunResult.products.length} selected</Text>
+                                                        </BlockStack>
+                                                    </Box>
+                                                </Card>
+                                            </InlineGrid>
+
+                                            <BlockStack gap="300">
+                                                {scenarioRunResult.results.map((result) => (
+                                                    <Card key={result.id}>
+                                                        <Box padding="300">
+                                                            <BlockStack gap="200">
+                                                                <InlineStack align="space-between" blockAlign="center" wrap>
+                                                                    <InlineStack gap="200" blockAlign="center" wrap>
+                                                                        <Text as="h3" variant="headingSm">{result.title}</Text>
+                                                                        <Badge tone={result.passed ? 'success' : 'critical'}>
+                                                                            {result.passed ? 'Passed' : 'Failed'}
+                                                                        </Badge>
+                                                                        <Badge>{result.intent}</Badge>
+                                                                        {result.guardrailBlocked ? <Badge tone="critical">Guardrail</Badge> : null}
+                                                                        {result.upsellTriggered ? <Badge tone="success">Upsell</Badge> : null}
+                                                                    </InlineStack>
+                                                                    <Badge tone="info">{result.feature}</Badge>
+                                                                </InlineStack>
+                                                                <Text as="p" variant="bodySm" tone="subdued">Inbound: {result.inboundMessage}</Text>
+                                                                <Text as="p">{result.aiReply}</Text>
+                                                                <BlockStack gap="100">
+                                                                    {result.assertions.map((assertion) => (
+                                                                        <InlineStack key={`${result.id}-${assertion.id}`} gap="200" blockAlign="start">
+                                                                            <Badge tone={assertion.passed ? 'success' : 'critical'}>
+                                                                                {assertion.passed ? 'PASS' : 'FAIL'}
+                                                                            </Badge>
+                                                                            <Text as="p" variant="bodySm">{assertion.message}</Text>
+                                                                        </InlineStack>
+                                                                    ))}
+                                                                </BlockStack>
+                                                            </BlockStack>
+                                                        </Box>
+                                                    </Card>
+                                                ))}
+                                            </BlockStack>
                                         </>
                                     ) : null}
                                 </BlockStack>

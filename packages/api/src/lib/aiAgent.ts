@@ -9,11 +9,17 @@ import { getConversationMemorySettings, getDefaultLlmModel } from './runtimeMode
 import { trackAiUsageEvent } from './aiUsageEvents.js';
 import { formatRAGResultsForLLM, getOrderProductContextResolved } from './rag.js';
 import { getSupabaseServiceClient, logger, getProductInstructionsByProductIds } from '@recete/shared';
-import type { ConversationMessage } from './conversation.js';
 import {
-  checkUserMessageGuardrails,
+  getConversationStructuredState,
+  updateConversationStructuredState,
+  type ConversationMessage,
+  type ConversationStructuredState,
+} from './conversation.js';
+import {
+  checkUserMessageGuardrailsWithoutCrisis,
   checkAIResponseGuardrails,
   checkForHumanHandoffRequest,
+  evaluateCrisisEscalation,
   escalateToHuman,
   getSafeResponse,
   type CustomGuardrail,
@@ -36,6 +42,19 @@ import { buildGroundedEvidenceContext } from './groundingAssembler.js';
 import { UnifiedRetrievalService } from './unifiedRetrieval.js';
 import { getCosmeticRagPolicy } from './ragRetrievalPolicy.js';
 import { ShopSettingsService } from './multiLangRag/shopSettingsService.js';
+import {
+  bestEffortRoutineUsedCount,
+  clarificationAskedCount,
+  contextualContinuationResolvedCount,
+  crisisConfirmedCount,
+  crisisPrecheckCount,
+  crisisRejectedCount,
+  fallbackTriggeredCount,
+  humanHandoffRequestedCount,
+  routineIntentDetectedCount,
+  routineQualityRegeneratedCount,
+} from './metrics.js';
+import { captureAssistantPilotDiagnostic } from './assistantPilotDiagnostics.js';
 
 export type Intent = 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent';
 
@@ -52,6 +71,381 @@ export interface AIResponse {
   upsellMessage?: string;
 }
 
+type OrderProductMeta = {
+  id: string;
+  name: string;
+};
+
+type RoutineBuckets = {
+  morning: string[];
+  evening: string[];
+  anytime: string[];
+  excluded: string[];
+};
+
+type UserGoal =
+  | 'build_routine'
+  | 'understand_product'
+  | 'troubleshoot'
+  | 'return_request'
+  | 'unsubscribe'
+  | 'human_handoff'
+  | 'smalltalk'
+  | 'unknown';
+
+type ConversationQuestionType =
+  | 'product_selection'
+  | 'routine_builder'
+  | 'usage_how'
+  | 'usage_frequency'
+  | 'none';
+
+type ConversationFlowState = {
+  current_intent: Intent;
+  selected_products: 'all' | string[];
+  last_question_type: ConversationQuestionType;
+  for_whom: 'self' | 'wife' | 'husband' | 'partner' | 'other' | 'unknown';
+  preferred_routine_scope: 'morning' | 'evening' | 'both' | 'unknown';
+  simplicity_preference: 'simple' | 'detailed' | 'unknown';
+  routine_format_preference: 'step_order' | 'sections' | 'unknown';
+  unresolved_clarification_need: boolean;
+};
+
+type RoutineProductCategory = 'skincare' | 'hygiene' | 'irrelevant';
+
+type RoutineProductClassification = {
+  productId: string;
+  name: string;
+  category: RoutineProductCategory;
+  slot: 'morning' | 'evening' | 'anytime' | 'exclude';
+  exclusionReason?: string;
+};
+
+type PersonaSettings = {
+  bot_name?: string;
+  tone?: 'friendly' | 'professional' | 'casual' | 'formal' | string;
+  emoji?: boolean;
+  response_length?: 'short' | 'medium' | 'long' | string;
+  temperature?: number;
+};
+
+type StructuredStateConstraints = NonNullable<ConversationStructuredState['constraints']>;
+
+function toStructuredConstraints(state: ConversationFlowState): StructuredStateConstraints {
+  return {
+    routine_scope: state.preferred_routine_scope,
+    simplicity: state.simplicity_preference,
+    for_whom: state.for_whom,
+    routine_format: state.routine_format_preference,
+  };
+}
+
+function mergeFlowStateWithStructuredState(
+  derived: ConversationFlowState,
+  structured: ConversationStructuredState,
+): ConversationFlowState {
+  const selectedProducts =
+    derived.selected_products === 'all'
+      ? 'all'
+      : derived.selected_products.length > 0
+        ? derived.selected_products
+        : structured.selected_products;
+  const constraints = structured.constraints || {};
+  return {
+    current_intent: derived.current_intent || structured.current_intent || 'chat',
+    selected_products: selectedProducts,
+    last_question_type:
+      derived.last_question_type !== 'none'
+        ? derived.last_question_type
+        : ((structured.last_question_type as ConversationQuestionType) || 'none'),
+    for_whom: derived.for_whom !== 'unknown' ? derived.for_whom : (constraints.for_whom || 'unknown'),
+    preferred_routine_scope:
+      derived.preferred_routine_scope !== 'unknown'
+        ? derived.preferred_routine_scope
+        : (constraints.routine_scope || 'unknown'),
+    simplicity_preference:
+      derived.simplicity_preference !== 'unknown'
+        ? derived.simplicity_preference
+        : (constraints.simplicity || 'unknown'),
+    routine_format_preference:
+      derived.routine_format_preference !== 'unknown'
+        ? derived.routine_format_preference
+        : (constraints.routine_format || 'unknown'),
+    unresolved_clarification_need: derived.unresolved_clarification_need,
+  };
+}
+
+function buildModelHistory(
+  history: ConversationMessage[],
+  memorySettings: { mode: 'last_n' | 'full'; count: number },
+): { history: ConversationMessage[]; truncated: boolean } {
+  if (memorySettings.mode !== 'full') {
+    return { history: history.slice(-Math.max(1, memorySettings.count)), truncated: false };
+  }
+
+  // Full mode must include complete usable history. We only truncate when payload is too large.
+  const maxChars = 50_000;
+  let total = 0;
+  const selected: ConversationMessage[] = [];
+  for (let i = history.length - 1; i >= 0; i -= 1) {
+    const item = history[i];
+    const cost = String(item.content || '').length + 80;
+    if (selected.length > 0 && total + cost > maxChars) break;
+    selected.push(item);
+    total += cost;
+  }
+  selected.reverse();
+  const truncated = selected.length < history.length;
+  return { history: selected, truncated };
+}
+
+function asksForPurchasedProductInfo(answer: string): boolean {
+  const normalized = normalizeForMatch(answer);
+  return (
+    /which products did you buy/.test(normalized) ||
+    /what products did you buy/.test(normalized) ||
+    /which product are you using or your order number/.test(normalized) ||
+    /which product are you using/.test(normalized) ||
+    /share exact product names/.test(normalized) ||
+    /urun adlarini paylas/.test(normalized) ||
+    /hangi urunu kullandigini/.test(normalized)
+  );
+}
+
+function buildKnownProductsRecoveryResponse(
+  lang: SupportedLanguage,
+  products: OrderProductMeta[],
+): string {
+  const names = products.map((item) => item.name).filter(Boolean).slice(0, 6);
+  if (lang === 'tr') {
+    return `Siparisinizdeki urunleri bu sohbette hatirliyorum: ${names.join(', ')}. Isterseniz hepsi icin birlikte kullanim sirasi verebilirim.`;
+  }
+  return `I still have your order products in this chat: ${names.join(', ')}. I can give one combined routine for all of them right away.`;
+}
+
+function buildStructuredStatePromptContext(state: ConversationStructuredState): string {
+  const productNames = (state.known_order_products || [])
+    .map((item) => String(item.name || '').trim())
+    .filter(Boolean)
+    .slice(0, 15);
+  const selected =
+    state.selected_products === 'all'
+      ? 'all'
+      : Array.isArray(state.selected_products)
+        ? state.selected_products.join(',')
+        : '';
+  return [
+    '--- CONVERSATION STATE (authoritative, do not ignore) ---',
+    `order_id: ${state.order_id || 'none'}`,
+    `known_order_products: ${productNames.length > 0 ? productNames.join(' | ') : 'none'}`,
+    `selected_products: ${selected || 'none'}`,
+    `last_question_type: ${state.last_question_type || 'none'}`,
+    `language_preference: ${state.language_preference || 'unknown'}`,
+    `current_intent: ${state.current_intent || 'unknown'}`,
+    '---------------------------------------------------------',
+  ].join('\n');
+}
+
+function normalizeForMatch(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ı/g, 'i')
+    .replace(/ş/g, 's')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenizeForMatch(value: string) {
+  return normalizeForMatch(value)
+    .split(' ')
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 3);
+}
+
+function removeEmojis(value: string): string {
+  return value.replace(/\p{Extended_Pictographic}|\uFE0F/gu, '').replace(/\s{2,}/g, ' ').trim();
+}
+
+function applyPersonaResponsePolicy(
+  response: string,
+  persona: PersonaSettings,
+  responseLang: SupportedLanguage,
+): string {
+  let value = String(response || '').trim();
+  if (!value) return value;
+
+  if (persona?.emoji === false) {
+    value = removeEmojis(value);
+  }
+
+  const lengthSetting = String(persona?.response_length || '').toLowerCase();
+  if (lengthSetting === 'short') {
+    const lines = value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    if (lines.length > 7) {
+      value = lines.slice(0, 7).join('\n');
+    }
+    if (value.length > 480) value = `${value.slice(0, 477).trim()}...`;
+  } else if (lengthSetting === 'medium' && value.length > 900) {
+    value = `${value.slice(0, 897).trim()}...`;
+  }
+
+  const tone = String(persona?.tone || '').toLowerCase();
+  if (tone === 'formal') {
+    value = value.replace(/\b(I'm|I’m)\b/g, 'I am').replace(/\b(can't|can’t)\b/g, 'cannot');
+  } else if (tone === 'casual' && responseLang === 'en') {
+    value = value.replace(/^Great,/i, 'Sure,');
+  }
+
+  return value;
+}
+
+function parseIndexedSelection(message: string): number | null {
+  const trimmed = message.trim();
+  const match = trimmed.match(/^(?:#\s*)?(\d{1,2})[.)]?\s*$/);
+  if (!match) return null;
+  const value = Number.parseInt(match[1], 10);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return value;
+}
+
+function parseRecentAssistantProductList(conversationHistory: ConversationMessage[]): string[] {
+  const recentAssistantMessages = conversationHistory
+    .slice(-8)
+    .filter((m) => m.role === 'assistant' || m.role === 'merchant')
+    .map((m) => String(m.content || ''));
+
+  for (let idx = recentAssistantMessages.length - 1; idx >= 0; idx -= 1) {
+    const message = recentAssistantMessages[idx];
+    const lines = message.split(/\r?\n/).map((line) => line.trim());
+    const numbered = lines
+      .map((line) => {
+        const m = line.match(/^(\d{1,2})[.)]\s+(.+)$/);
+        if (!m) return null;
+        const order = Number.parseInt(m[1], 10);
+        if (!Number.isFinite(order) || order <= 0) return null;
+        return { order, name: m[2].trim() };
+      })
+      .filter(Boolean) as Array<{ order: number; name: string }>;
+
+    if (numbered.length === 0) continue;
+    return numbered
+      .sort((a, b) => a.order - b.order)
+      .map((item) => item.name);
+  }
+
+  return [];
+}
+
+function buildProductClarificationQuestion(
+  lang: SupportedLanguage,
+  productName: string
+) {
+  if (lang === 'tr') return `Bu üründen mi bahsediyorsun: ${productName}?`;
+  if (lang === 'hu') return `Erre a termékre gondolsz: ${productName}?`;
+  if (lang === 'de') return `Meinst du dieses Produkt: ${productName}?`;
+  if (lang === 'el') return `Μιλάς για αυτό το προϊόν: ${productName};`;
+  return `Are you asking about this product: ${productName}?`;
+}
+
+async function fetchOrderProductsByIds(
+  merchantId: string,
+  productIds: string[]
+): Promise<OrderProductMeta[]> {
+  if (!Array.isArray(productIds) || productIds.length === 0) return [];
+  const serviceClient = getSupabaseServiceClient();
+  const uniqueIds = [...new Set(productIds.map((id) => String(id).trim()).filter(Boolean))];
+  if (uniqueIds.length === 0) return [];
+
+  const { data, error } = await serviceClient
+    .from('products')
+    .select('id, name')
+    .eq('merchant_id', merchantId)
+    .in('id', uniqueIds);
+
+  if (error || !data) return [];
+
+  return data.map((item: any) => ({
+    id: String(item.id),
+    name: String(item.name || '').trim(),
+  }));
+}
+
+function resolveMentionedOrderProduct(input: {
+  message: string;
+  conversationHistory: ConversationMessage[];
+  orderProducts: OrderProductMeta[];
+  lang: SupportedLanguage;
+}): {
+  productId?: string;
+  clarificationQuestion?: string;
+  reason?: 'index' | 'exact_name' | 'token_focus';
+} {
+  const { message, conversationHistory, orderProducts, lang } = input;
+  if (!orderProducts.length) return {};
+
+  const indexedSelection = parseIndexedSelection(message);
+  if (indexedSelection) {
+    const listedNames = parseRecentAssistantProductList(conversationHistory);
+    if (listedNames.length >= indexedSelection) {
+      const chosenName = listedNames[indexedSelection - 1];
+      const chosenNorm = normalizeForMatch(chosenName);
+      const matched = orderProducts.find((p) => normalizeForMatch(p.name) === chosenNorm)
+        || orderProducts.find((p) => normalizeForMatch(p.name).includes(chosenNorm) || chosenNorm.includes(normalizeForMatch(p.name)));
+      if (matched) {
+        return { productId: matched.id, reason: 'index' };
+      }
+    }
+    if (orderProducts[indexedSelection - 1]) {
+      return { productId: orderProducts[indexedSelection - 1].id, reason: 'index' };
+    }
+  }
+
+  const msgNorm = normalizeForMatch(message);
+  const msgTokens = new Set(tokenizeForMatch(message));
+  if (!msgNorm) return {};
+
+  let exact: OrderProductMeta | null = null;
+  const tokenScored: Array<{ product: OrderProductMeta; score: number }> = [];
+
+  for (const product of orderProducts) {
+    const nameNorm = normalizeForMatch(product.name);
+    if (!nameNorm) continue;
+    if (msgNorm.includes(nameNorm)) {
+      exact = product;
+      break;
+    }
+    const nameTokens = tokenizeForMatch(product.name);
+    if (nameTokens.length === 0) continue;
+    const overlap = nameTokens.filter((token) => msgTokens.has(token)).length;
+    if (overlap > 0) {
+      tokenScored.push({ product, score: overlap / nameTokens.length });
+    }
+  }
+
+  if (exact) return { productId: exact.id, reason: 'exact_name' };
+  if (tokenScored.length === 0) return {};
+
+  tokenScored.sort((a, b) => b.score - a.score);
+  const best = tokenScored[0];
+  const second = tokenScored[1];
+
+  if (best.score >= 0.6 && (!second || best.score - second.score >= 0.25)) {
+    return { productId: best.product.id, reason: 'token_focus' };
+  }
+
+  return {
+    clarificationQuestion: buildProductClarificationQuestion(lang, best.product.name),
+    reason: 'token_focus',
+  };
+}
+
 function buildRagCacheKey(input: Record<string, unknown>): string {
   return crypto.createHash('sha256').update(JSON.stringify(input)).digest('hex');
 }
@@ -59,6 +453,8 @@ function buildRagCacheKey(input: Record<string, unknown>): string {
 type PostDeliveryFollowUpType =
   | 'usage_onboarding_no'
   | 'usage_onboarding_yes'
+  | 'usage_product_pick'
+  | 'usage_routine_request'
   | 'usage_how'
   | 'usage_frequency'
   | 'warning_signal';
@@ -87,6 +483,25 @@ function buildUsageGuidanceRetrievalQuery(lang: SupportedLanguage): string {
   if (lang === 'de') return 'Wie dieses Produkt verwendet wird, Anwendungsschritte, Häufigkeit und Warnhinweise';
   if (lang === 'el') return 'Πώς χρησιμοποιείται αυτό το προϊόν, βήματα χρήσης, συχνότητα και προειδοποιήσεις';
   return 'How to use this product, usage steps, frequency, and warnings';
+}
+
+function looksLikeRoutineRequest(text: string): boolean {
+  return /(routine|rutin|rutini|regimen|program|daily routine|skincare routine|use together|together|all my products|all the products|everything i bought|all products)/i.test(
+    text,
+  );
+}
+
+function looksLikeProductSelectionPrompt(text: string): boolean {
+  return /which product|which products|hangi urun|hangi ürün|hangi urunleri|hangi ürünleri|pick a product|select a product|urun sec|ürün seç|secmek istedigin/i.test(
+    text,
+  );
+}
+
+function isAllProductsContinuationReply(text: string): boolean {
+  const trimmed = text.trim().toLowerCase();
+  return /^(for all of them|all of them|all|all products|all my products|everything|everything i bought|all together|for everything|hepsi|hepsini|hepsi icin|hepsi için|tum urunler|tüm ürünler|tamami|tamamı)$/i.test(
+    trimmed,
+  );
 }
 
 function buildUsageHowRetrievalQuery(lang: SupportedLanguage): string {
@@ -129,6 +544,183 @@ function applyLanguageFallbackNotice(
   return `${buildUnsupportedLanguageNotice(options.responseLanguage, options.supportedLanguages)}\n\n${response}`.trim();
 }
 
+function finalizeConfiguredResponse(input: {
+  response: string;
+  persona: PersonaSettings;
+  responseLang: SupportedLanguage;
+  replyLanguageDecision: { usedFallback: boolean; supportedLanguages: SupportedLanguage[] };
+}): string {
+  const withFallback = applyLanguageFallbackNotice(input.response, {
+    usedFallback: input.replyLanguageDecision.usedFallback,
+    responseLanguage: input.responseLang,
+    supportedLanguages: input.replyLanguageDecision.supportedLanguages,
+  });
+  return applyPersonaResponsePolicy(withFallback, input.persona, input.responseLang);
+}
+
+function detectLastQuestionType(conversationHistory: ConversationMessage[]): ConversationQuestionType {
+  const recentAssistantMessages = conversationHistory
+    .slice(-8)
+    .filter((m) => m.role === 'assistant' || m.role === 'merchant')
+    .map((m) => String(m.content || ''));
+
+  for (let idx = recentAssistantMessages.length - 1; idx >= 0; idx -= 1) {
+    const message = recentAssistantMessages[idx];
+    if (looksLikeProductSelectionPrompt(message)) return 'product_selection';
+    if (looksLikeRoutineRequest(message)) return 'routine_builder';
+    if (/how to use|nasıl kullan|hogyan használ|uygulama adımları/i.test(message)) return 'usage_how';
+    if (/how often|kaç kez|sıklık|gyakoriság/i.test(message)) return 'usage_frequency';
+  }
+  return 'none';
+}
+
+function buildConversationFlowState(input: {
+  message: string;
+  intent: Intent;
+  conversationHistory: ConversationMessage[];
+  orderProducts: OrderProductMeta[];
+}): ConversationFlowState {
+  const { message, intent, conversationHistory, orderProducts } = input;
+  const normalizedMessage = normalizeForMatch(message);
+  const allReply = isAllProductsContinuationReply(message);
+  const lastQuestionType = detectLastQuestionType(conversationHistory);
+
+  let selectedProducts: 'all' | string[] = [];
+  if (allReply && (lastQuestionType === 'product_selection' || lastQuestionType === 'routine_builder')) {
+    selectedProducts = 'all';
+  } else {
+    const picked = resolveMentionedOrderProduct({
+      message,
+      conversationHistory,
+      orderProducts,
+      lang: detectLanguage(message),
+    });
+    if (picked.productId) selectedProducts = [picked.productId];
+  }
+
+  let forWhom: ConversationFlowState['for_whom'] = 'unknown';
+  if (/\b(for my wife|my wife|esim icin|eşim için|felesegemnek)\b/i.test(normalizedMessage)) forWhom = 'wife';
+  else if (/\b(for my husband|my husband|kocam icin|férjemnek)\b/i.test(normalizedMessage)) forWhom = 'husband';
+  else if (/\b(for me|myself|benim icin|kendim icin)\b/i.test(normalizedMessage)) forWhom = 'self';
+
+  let preferredRoutineScope: ConversationFlowState['preferred_routine_scope'] = 'unknown';
+  if (/\b(morning only|only morning|sadece sabah|reggel)\b/i.test(normalizedMessage)) preferredRoutineScope = 'morning';
+  else if (/\b(evening only|only evening|sadece aksam|sadece akşam|este)\b/i.test(normalizedMessage)) preferredRoutineScope = 'evening';
+  else if (/\b(both|morning and evening|sabah aksam|sabah akşam)\b/i.test(normalizedMessage)) preferredRoutineScope = 'both';
+
+  let simplicityPreference: ConversationFlowState['simplicity_preference'] = 'unknown';
+  if (/\b(simple|keep it simple|kisa|kısa|short version|egyszeruen|egyszerűen)\b/i.test(normalizedMessage)) {
+    simplicityPreference = 'simple';
+  } else if (/\b(detailed|more detail|ayrintili|ayrıntılı|reszletes|részletes)\b/i.test(normalizedMessage)) {
+    simplicityPreference = 'detailed';
+  }
+
+  let routineFormatPreference: ConversationFlowState['routine_format_preference'] = 'unknown';
+  if (/\b(just tell me the order|order only|just the order|sadece sirayi|sadece sırayı|sırayla yaz|sirayla yaz|only order)\b/i.test(normalizedMessage)) {
+    routineFormatPreference = 'step_order';
+  } else if (/\b(morning|evening|sabah|aksam|akşam)\b/i.test(normalizedMessage)) {
+    routineFormatPreference = 'sections';
+  }
+
+  return {
+    current_intent: intent,
+    selected_products: selectedProducts,
+    last_question_type: lastQuestionType,
+    for_whom: forWhom,
+    preferred_routine_scope: preferredRoutineScope,
+    simplicity_preference: simplicityPreference,
+    routine_format_preference: routineFormatPreference,
+    unresolved_clarification_need: false,
+  };
+}
+
+function inferUserGoalHeuristic(input: {
+  message: string;
+  intentHint: Intent;
+  state: ConversationFlowState;
+}): UserGoal {
+  const msg = normalizeForMatch(input.message);
+  if (input.intentHint === 'return_intent') return 'return_request';
+  if (input.intentHint === 'opt_out') return 'unsubscribe';
+  if (checkForHumanHandoffRequest(input.message)) return 'human_handoff';
+  if (
+    input.state.selected_products === 'all' ||
+    looksLikeRoutineRequest(msg) ||
+    /use.*together|all products|everything i bought|daily routine|rutin/i.test(msg)
+  ) {
+    return 'build_routine';
+  }
+  if (/problem|issue|does not work|çalışmıyor|sorun|error|hata/i.test(msg)) return 'troubleshoot';
+  if (input.intentHint === 'question' || /\?/.test(input.message)) return 'understand_product';
+  if (input.intentHint === 'chat') return 'smalltalk';
+  return 'unknown';
+}
+
+function looksLikeContextualRoutineContinuation(message: string, state: ConversationFlowState): boolean {
+  const normalized = normalizeForMatch(message);
+  const continuationLike =
+    /\b(all|all of them|all together|together|both|same routine|yes)\b/i.test(normalized) ||
+    /\b(morning only|evening only|for all of them|all my products|everything i bought|keep it simple|for my wife|for my husband|just tell me the order|order only)\b/i.test(
+      normalized,
+    );
+  if (!continuationLike) return false;
+  return state.last_question_type === 'product_selection' || state.last_question_type === 'routine_builder';
+}
+
+async function inferUserGoal(input: {
+  openai: OpenAI;
+  model: string;
+  message: string;
+  intentHint: Intent;
+  state: ConversationFlowState;
+}): Promise<UserGoal> {
+  const fallback = inferUserGoalHeuristic({
+    message: input.message,
+    intentHint: input.intentHint,
+    state: input.state,
+  });
+  try {
+    const response = await input.openai.chat.completions.create({
+      model: input.model,
+      temperature: 0,
+      max_tokens: 20,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Infer customer goal. Return one token only: build_routine, understand_product, troubleshoot, return_request, unsubscribe, human_handoff, smalltalk, unknown.\n' +
+            'Use context fields strongly, especially when user says short continuation like "for all of them".',
+        },
+        {
+          role: 'user',
+          content: JSON.stringify({
+            message: input.message,
+            intent_hint: input.intentHint,
+            last_question_type: input.state.last_question_type,
+            selected_products: input.state.selected_products === 'all' ? 'all' : input.state.selected_products.length,
+          }),
+        },
+      ],
+    });
+    const raw = String(response?.choices?.[0]?.message?.content || '').trim().toLowerCase();
+    if (
+      raw === 'build_routine' ||
+      raw === 'understand_product' ||
+      raw === 'troubleshoot' ||
+      raw === 'return_request' ||
+      raw === 'unsubscribe' ||
+      raw === 'human_handoff' ||
+      raw === 'smalltalk' ||
+      raw === 'unknown'
+    ) {
+      return raw;
+    }
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export function detectPostDeliveryFollowUpSignal(
   message: string,
   conversationHistory: ConversationMessage[] = []
@@ -140,8 +732,12 @@ export function detectPostDeliveryFollowUpSignal(
     .filter((m) => m.role === 'assistant' || m.role === 'merchant')
     .map((m) => m.content || '');
   const inOnboardingUsageContext = recentAssistantMessages.some(looksLikeUsageOnboardingPrompt);
+  const inRoutineContext =
+    recentAssistantMessages.some((candidate) => looksLikeRoutineRequest(String(candidate || ''))) ||
+    recentAssistantMessages.some((candidate) => looksLikeProductSelectionPrompt(String(candidate || '')));
+  const messageIsStandaloneRoutineRequest = looksLikeRoutineRequest(msg);
 
-  if (!inOnboardingUsageContext) {
+  if (!inOnboardingUsageContext && !inRoutineContext && !messageIsStandaloneRoutineRequest) {
     return { detected: false, promoteIntentToQuestion: false };
   }
 
@@ -176,6 +772,59 @@ export function detectPostDeliveryFollowUpSignal(
           : lang === 'hu'
             ? 'A felhasználó azt jelzi, hogy tudja a használatot; röviden erősítsd meg, és jelezd, hogy kérdezhet.'
             : 'The user says they know how to use it; briefly acknowledge and mention they can ask follow-up questions.',
+    };
+  }
+
+  const isProductIndexSelection = /^(?:#\s*)?\d{1,2}[.)]?\s*$/.test(msg);
+  if (isProductIndexSelection) {
+    const selectedIndex = Number.parseInt(msg.replace(/[^\d]/g, ''), 10);
+    return {
+      detected: true,
+      type: 'usage_product_pick',
+      promoteIntentToQuestion: true,
+      ragQueryOverride: buildUsageGuidanceRetrievalQuery(lang),
+      plannerQueryOverride: buildUsageGuidanceRetrievalQuery(lang),
+      promptHint:
+        lang === 'tr'
+          ? `Kullanıcı önceki listeden ürün numarası seçti (${selectedIndex || 1}). Bunu geçerli ürün seçimi olarak kabul et; mesajın eksik olduğunu söyleme ve listeyi tekrar isteme. Seçilen ürün için doğrudan kullanım/rutin önerisi ver.`
+          : lang === 'hu'
+            ? `A felhasználó egy termékszámot választott az előző listából (${selectedIndex || 1}). Kezeld ezt érvényes választásként; ne mondd, hogy hiányos az üzenet, és ne kérd újra a listát. Adj közvetlen használati/rutin javaslatot a kiválasztott termékhez.`
+            : `The user selected a product number from the previous list (${selectedIndex || 1}). Treat this as a valid product selection; do not say the message is incomplete and do not ask for the list again. Give direct usage/routine guidance for the selected product.`,
+    };
+  }
+
+  const isRoutineRequest =
+    looksLikeRoutineRequest(msg) ||
+    /(in this order|this order|bu sırayla|bu sirayla|sırayla|sirayla)/i.test(msg);
+  if (isRoutineRequest) {
+    return {
+      detected: true,
+      type: 'usage_routine_request',
+      promoteIntentToQuestion: true,
+      ragQueryOverride: buildUsageGuidanceRetrievalQuery(lang),
+      plannerQueryOverride: buildUsageGuidanceRetrievalQuery(lang),
+      promptHint:
+        lang === 'tr'
+          ? 'Kullanıcı siparişindeki ürünlerle bir rutin istiyor. Siparişteki mevcut ürün bağlamını kullan; ürün listesini tekrar isteme. Mümkünse ürün sırasına göre kısa ve uygulanabilir bir rutin öner.'
+          : lang === 'hu'
+            ? 'A felhasználó rutint kér a rendelésben lévő termékekkel. Használd a meglévő rendelési termék kontextust; ne kérd újra a terméklistát. Ha lehet, adj rövid, végrehajtható rutint terméksorrenddel.'
+            : 'The user wants a routine with products in their order. Use the existing order product context; do not ask for the product list again. If possible, provide a short actionable routine in product order.',
+    };
+  }
+
+  if (isAllProductsContinuationReply(msg)) {
+    return {
+      detected: true,
+      type: 'usage_routine_request',
+      promoteIntentToQuestion: true,
+      ragQueryOverride: buildUsageGuidanceRetrievalQuery(lang),
+      plannerQueryOverride: buildUsageGuidanceRetrievalQuery(lang),
+      promptHint:
+        lang === 'tr'
+          ? 'Kullanici "hepsi" diyerek onceki urun secim sorusuna cevap verdi. Bunu tum siparis urunleri olarak yorumla ve dogrudan kisa bir rutin ver. Gereksiz netlestirme sorma.'
+          : lang === 'hu'
+            ? 'A felhasznalo "mindegyik" valaszt adott az elozo termekvalasztasi kerdesre. Ertelmezd ezt ugy, hogy a rendeles osszes termeke szerepeljen, es adj kozvetlen rovid rutint.'
+            : 'The user answered with an all-products continuation reply. Interpret this as using all order products and provide a direct short routine without unnecessary clarification.',
     };
   }
 
@@ -230,6 +879,234 @@ export function detectPostDeliveryFollowUpSignal(
   }
 
   return { detected: false, promoteIntentToQuestion: false };
+}
+
+function classifyRoutineProductHeuristic(product: OrderProductMeta): RoutineProductClassification {
+  const normalized = normalizeForMatch(product.name);
+  if (
+    /(deodorant|parfum|perfume|body spray|shampoo|conditioner|body wash|sabun|soap|dis macunu|dis fircasi|toothpaste|toothbrush)/i.test(
+      normalized,
+    )
+  ) {
+    return {
+      productId: product.id,
+      name: product.name,
+      category: 'hygiene',
+      slot: 'exclude',
+      exclusionReason: 'Not part of a facial skincare routine',
+    };
+  }
+  if (/(placeholder|test product|sample|dummy)/i.test(normalized)) {
+    return {
+      productId: product.id,
+      name: product.name,
+      category: 'irrelevant',
+      slot: 'exclude',
+      exclusionReason: 'Not a real routine item',
+    };
+  }
+  if (/(sunscreen|sun screen|spf|gunes kremi|güneş kremi)/i.test(normalized)) {
+    return { productId: product.id, name: product.name, category: 'skincare', slot: 'morning' };
+  }
+  if (/(retinol|peeling|acid|aha|bha|salicylic|night cream|gece kremi)/i.test(normalized)) {
+    return { productId: product.id, name: product.name, category: 'skincare', slot: 'evening' };
+  }
+  return { productId: product.id, name: product.name, category: 'skincare', slot: 'anytime' };
+}
+
+async function classifyRoutineProducts(
+  openai: OpenAI,
+  model: string,
+  orderProducts: OrderProductMeta[],
+): Promise<RoutineProductClassification[]> {
+  if (orderProducts.length === 0) return [];
+  try {
+    const response = await openai.chat.completions.create({
+      model,
+      temperature: 0,
+      max_tokens: 500,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Classify products for a practical skincare routine.\n' +
+            'Return ONLY JSON array of objects: { "name": string, "category": "skincare|hygiene|irrelevant", "slot": "morning|evening|anytime|exclude", "exclusionReason": string|null }.\n' +
+            'Exclude hygiene/irrelevant products from skincare routine.',
+        },
+        {
+          role: 'user',
+          content: JSON.stringify(orderProducts.map((p) => ({ id: p.id, name: p.name }))),
+        },
+      ],
+    });
+    const raw = String(response?.choices?.[0]?.message?.content || '').trim();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('not-array');
+    const byName = new Map(orderProducts.map((product) => [normalizeForMatch(product.name), product]));
+    const normalized = parsed
+      .map((item: any) => {
+        const product = byName.get(normalizeForMatch(String(item?.name || '')));
+        if (!product) return null;
+        const category: RoutineProductCategory =
+          item?.category === 'hygiene' || item?.category === 'irrelevant' ? item.category : 'skincare';
+        const slot: RoutineProductClassification['slot'] =
+          item?.slot === 'morning' || item?.slot === 'evening' || item?.slot === 'exclude' ? item.slot : 'anytime';
+        return {
+          productId: product.id,
+          name: product.name,
+          category,
+          slot,
+          exclusionReason: slot === 'exclude' ? String(item?.exclusionReason || 'Not compatible with skincare routine') : undefined,
+        } as RoutineProductClassification;
+      })
+      .filter(Boolean) as RoutineProductClassification[];
+    if (normalized.length === orderProducts.length) return normalized;
+  } catch {
+    // fallback to deterministic classification
+  }
+  return orderProducts.map(classifyRoutineProductHeuristic);
+}
+
+function bucketRoutineProducts(classifications: RoutineProductClassification[]): RoutineBuckets {
+  return classifications.reduce<RoutineBuckets>(
+    (acc, product) => {
+      if (product.slot === 'exclude') {
+        acc.excluded.push(product.name);
+      } else {
+        acc[product.slot].push(product.name);
+      }
+      return acc;
+    },
+    { morning: [], evening: [], anytime: [], excluded: [] },
+  );
+}
+
+function listToLine(items: string[]): string {
+  return items.map((item) => `- ${item}`).join('\n');
+}
+
+function buildBestEffortRoutineResponse(
+  lang: SupportedLanguage,
+  classifications: RoutineProductClassification[],
+  persona: PersonaSettings,
+  state: ConversationFlowState,
+): string {
+  const buckets = bucketRoutineProducts(classifications);
+  const usableProducts = [...buckets.morning, ...buckets.anytime, ...buckets.evening];
+
+  if (usableProducts.length === 0) {
+    if (lang === 'tr') {
+      return 'Siparisinizde rutin formatina uygun urunleri net ayiramadim. En guvenli baslangic olarak temizleme + nemlendirme adimi uygulayin; urun adlarini paylasirsaniz daha net bir sabah/aksam rutin olusturabilirim.';
+    }
+    return 'I could not clearly map your products to a routine format. Safe baseline: cleanser + moisturizer. Share exact product names and I can build a sharper morning/evening routine.';
+  }
+
+  const morningItems = [...buckets.anytime, ...buckets.morning];
+  const eveningItems = [...buckets.anytime, ...buckets.evening];
+  const scope = state.preferred_routine_scope;
+  const includeMorning = scope === 'unknown' || scope === 'both' || scope === 'morning';
+  const includeEvening = scope === 'unknown' || scope === 'both' || scope === 'evening';
+  const concise = String(persona?.response_length || '').toLowerCase() === 'short' || state.simplicity_preference === 'simple';
+  const orderOnly = state.routine_format_preference === 'step_order';
+
+  const introTarget =
+    state.for_whom === 'wife' ? (lang === 'tr' ? 'Esiniz icin ' : 'For your wife, ')
+      : state.for_whom === 'husband' ? (lang === 'tr' ? 'Esiniz icin ' : 'For your husband, ')
+        : '';
+
+  if (lang === 'tr') {
+    const intro = persona?.tone === 'formal'
+      ? `${introTarget}siparisinizdeki uyumlu urunlere gore pratik bir rutin hazirladim.`
+      : `${introTarget}uyumlu urunlerinizle pratik bir rutin hazirladim.`;
+    const excludedNote = buckets.excluded.length > 0
+      ? `\n\nRutin disinda biraktigim urunler:\n${listToLine(buckets.excluded)}`
+      : '';
+    if (orderOnly) {
+      const ordered = [...(includeMorning ? morningItems : []), ...(includeEvening ? eveningItems : [])];
+      const deduped = [...new Set(ordered)];
+      const steps = deduped.map((item, idx) => `${idx + 1}. ${item}`).join('\n');
+      return `${intro}\n\nSadece uygulama sirasi:\n${steps}${excludedNote}`.trim();
+    }
+    const body = [
+      intro,
+      includeMorning ? `\nSabah:\n${listToLine(morningItems)}` : '',
+      includeEvening ? `\nAksam:\n${listToLine(eveningItems)}` : '',
+      excludedNote,
+      concise ? '' : '\n\nCiltte hassasiyet olursa kullanim sikligini azaltin.',
+    ].join('');
+    return body.trim();
+  }
+
+  const excludedNote = buckets.excluded.length > 0
+    ? `\n\nSkipped from routine:\n${listToLine(buckets.excluded)}`
+    : '';
+  const intro = persona?.tone === 'formal'
+    ? `${introTarget}Here is a practical routine using the compatible products in your order.`
+    : `${introTarget}Here is a practical routine using your compatible products.`;
+  if (orderOnly) {
+    const ordered = [...(includeMorning ? morningItems : []), ...(includeEvening ? eveningItems : [])];
+    const deduped = [...new Set(ordered)];
+    const steps = deduped.map((item, idx) => `${idx + 1}. ${item}`).join('\n');
+    return `${intro}\n\nJust the order:\n${steps}${excludedNote}`.trim();
+  }
+  const body = [
+    intro,
+    includeMorning ? `\n\nMorning:\n${listToLine(morningItems)}` : '',
+    includeEvening ? `\n\nEvening:\n${listToLine(eveningItems)}` : '',
+    excludedNote,
+    concise ? '' : '\n\nIf your skin feels sensitive, reduce frequency.',
+  ].join('');
+  return body.trim();
+}
+
+function buildRoutineExclusionNote(lang: SupportedLanguage, classifications: RoutineProductClassification[]): string {
+  const excluded = classifications.filter((item) => item.slot === 'exclude');
+  if (excluded.length === 0) return '';
+  if (lang === 'tr') {
+    return `\n\nRutin disinda biraktigim urunler:\n${excluded
+      .map((item) => `- ${item.name}: ${item.exclusionReason || 'Rutinle uyumlu degil'}`)
+      .join('\n')}`;
+  }
+  return `\n\nSkipped from routine:\n${excluded
+    .map((item) => `- ${item.name}: ${item.exclusionReason || 'Not routine-compatible'}`)
+    .join('\n')}`;
+}
+
+function validateRoutineAnswerQuality(answer: string, includedProducts: RoutineProductClassification[]): {
+  ok: boolean;
+  reasons: string[];
+} {
+  const reasons: string[] = [];
+  const normalized = normalizeForMatch(answer);
+  const hasStructuredSections =
+    /(morning|evening|sabah|aksam)/i.test(answer) ||
+    /^(\s*[-*]\s+.+|\s*\d+[.)]\s+.+)$/m.test(answer);
+  if (!hasStructuredSections) reasons.push('missing_structure');
+
+  const includedNames = includedProducts
+    .filter((item) => item.slot !== 'exclude')
+    .map((item) => normalizeForMatch(item.name));
+  const hasAnyProduct = includedNames.some((name) => name.length > 0 && normalized.includes(name));
+  if (!hasAnyProduct) reasons.push('no_real_product');
+
+  if (
+    looksLikeEvidenceClarificationAnswer(answer) ||
+    /share more detail|could you clarify|which product/i.test(answer)
+  ) {
+    reasons.push('generic_or_clarifying');
+  }
+  return { ok: reasons.length === 0, reasons };
+}
+
+function looksLikeEvidenceClarificationAnswer(answer: string): boolean {
+  const normalized = answer.toLowerCase();
+  return (
+    normalized.includes('clear product evidence') ||
+    normalized.includes('hangi ürünü') ||
+    normalized.includes('hangi urunu') ||
+    normalized.includes('which product or variant') ||
+    normalized.includes('welches produkt')
+  );
 }
 
 /**
@@ -322,29 +1199,191 @@ export async function generateAIResponse(
   const customGuardrails: CustomGuardrail[] = Array.isArray(guardrailSettings.custom_guardrails)
     ? (guardrailSettings.custom_guardrails as CustomGuardrail[])
     : [];
+  const persona = (personaSettings || merchant?.persona_settings || {}) as PersonaSettings;
   const userLang = detectLanguage(message);
   const languageSettings = await new ShopSettingsService().getOrCreate(merchantId, message);
   const replyLanguageDecision = resolveMerchantReplyLanguage(userLang, languageSettings.enabled_langs);
   const responseLang = replyLanguageDecision.responseLanguage;
+  const memorySettings = await getConversationMemorySettings();
+  const modelHistory = buildModelHistory(conversationHistory, memorySettings);
+  const stateHistory = memorySettings.mode === 'full'
+    ? conversationHistory
+    : conversationHistory.slice(-Math.max(6, memorySettings.count));
+  if (memorySettings.mode === 'full' && modelHistory.truncated) {
+    logger.info(
+      { merchantId, conversationId, totalHistory: conversationHistory.length, usedHistory: modelHistory.history.length },
+      'Full conversation mode required explicit truncation for model context window',
+    );
+  }
+  let structuredState = await getConversationStructuredState(conversationId);
+  const effectiveOrderId = orderId || structuredState.order_id || undefined;
+  const persistStructuredState = async (patch: Partial<ConversationStructuredState>) => {
+    try {
+      structuredState = await updateConversationStructuredState(conversationId, {
+        order_id: effectiveOrderId || null,
+        ...patch,
+      });
+    } catch (error) {
+      logger.warn({ error, conversationId, merchantId }, 'Failed to persist conversation structured state');
+    }
+  };
+  let pilotInferredGoal: UserGoal = 'unknown';
+  let pilotSelectedProducts: 'all' | string[] = [];
+  let pilotExcludedProducts: Array<{ name: string; reason?: string }> = [];
+  let pilotGenerationMode: 'generated' | 'regenerated' | 'fallback' = 'generated';
+  let pilotRegenerated = false;
+  let pilotFallbackReason: string | null = null;
+  let pilotEscalationDecision: { escalated: boolean; reason?: string } = { escalated: false };
+  let pilotContextualContinuationResolved = false;
+  let pilotRoutineIntentDetected = false;
+  let routineIntentMetricIncremented = false;
+  let pilotClarificationAsked = false;
+  let pilotBestEffortRoutineUsed = false;
+  let stickyOrderProducts: OrderProductMeta[] = Array.isArray(structuredState.known_order_products)
+    ? structuredState.known_order_products
+        .map((item) => ({
+          id: String(item.id || '').trim(),
+          name: String(item.name || '').trim(),
+        }))
+        .filter((item) => item.id.length > 0 && item.name.length > 0)
+    : [];
 
-  // Step 1: Check guardrails for user message (system + custom)
-  const userGuardrail = checkUserMessageGuardrails(message, { customGuardrails });
+  const capturePilot = async (responseText: string) => {
+    await captureAssistantPilotDiagnostic({
+      merchantId,
+      conversationId,
+      orderId: effectiveOrderId,
+      model: llmModel,
+      userMessage: message,
+      assistantResponse: responseText,
+      diagnostics: {
+        inferredGoal: pilotInferredGoal,
+        selectedProducts: pilotSelectedProducts,
+        excludedProducts: pilotExcludedProducts,
+        merchantSettings: {
+          bot_name: persona?.bot_name || null,
+          tone: persona?.tone || null,
+          response_length: persona?.response_length || null,
+          emoji: typeof persona?.emoji === 'boolean' ? persona.emoji : null,
+          supported_reply_languages: replyLanguageDecision.supportedLanguages,
+        },
+        memoryMode: memorySettings.mode,
+        memoryCount: memorySettings.count,
+        memoryHistoryTruncated: modelHistory.truncated,
+        generationMode: pilotGenerationMode,
+        regenerated: pilotRegenerated,
+        fallbackReason: pilotFallbackReason,
+        escalationDecision: pilotEscalationDecision,
+        routineIntentDetected: pilotRoutineIntentDetected,
+        contextualContinuationResolved: pilotContextualContinuationResolved,
+        clarificationAsked: pilotClarificationAsked,
+        bestEffortRoutineUsed: pilotBestEffortRoutineUsed,
+      },
+    });
+  };
+
+  // Step 1: Layered crisis evaluation (fast pre-check + LLM confirm)
+  const crisisDecision = await evaluateCrisisEscalation({
+    userMessage: message,
+    model: llmModel,
+    llmClient: openai as any,
+  });
+  if (crisisDecision.precheckMatched) {
+    crisisPrecheckCount.inc();
+  }
+
+  if (crisisDecision.shouldEscalate) {
+    crisisConfirmedCount.inc();
+    pilotEscalationDecision = { escalated: true, reason: crisisDecision.reason || 'crisis_keyword' };
+    logger.warn(
+      {
+        merchantId,
+        conversationId,
+        precheckMatched: crisisDecision.precheckMatched,
+        llmConfirmed: crisisDecision.llmConfirmed,
+        severity: crisisDecision.severity,
+        reason: crisisDecision.reason,
+      },
+      'Escalation triggered by layered crisis detection',
+    );
+    await escalateToHuman(userId, conversationId, 'crisis_keyword', message);
+    const crisisResponse = finalizeConfiguredResponse({
+      response: crisisDecision.suggestedResponse || getSafeResponse('crisis_keyword'),
+      persona,
+      responseLang,
+      replyLanguageDecision: {
+        usedFallback: replyLanguageDecision.usedFallback,
+        supportedLanguages: replyLanguageDecision.supportedLanguages,
+      },
+    });
+    await persistStructuredState({
+      current_intent: 'chat',
+      language_preference: responseLang,
+      selected_products: structuredState.selected_products,
+      last_question_type: structuredState.last_question_type || 'none',
+      known_order_products: structuredState.known_order_products,
+      constraints: structuredState.constraints,
+    });
+    await capturePilot(crisisResponse);
+    return {
+      intent: 'chat',
+      response: crisisResponse,
+      guardrailBlocked: true,
+      guardrailReason: 'crisis_keyword',
+      requiresHuman: true,
+    };
+  }
+
+  if (crisisDecision.precheckMatched && !crisisDecision.shouldEscalate) {
+    crisisRejectedCount.inc();
+    logger.info(
+      {
+        merchantId,
+        conversationId,
+        reason: crisisDecision.reason,
+        llmConfirmed: crisisDecision.llmConfirmed,
+      },
+      'Crisis precheck matched but escalation skipped by layered classifier',
+    );
+  }
+
+  // Step 1b: Non-crisis guardrails (medical/custom)
+  const userGuardrail = checkUserMessageGuardrailsWithoutCrisis(message, { customGuardrails });
 
   if (!userGuardrail.safe) {
+    fallbackTriggeredCount.inc({ reason: `guardrail_${userGuardrail.reason || 'custom'}` });
+    pilotGenerationMode = 'fallback';
+    pilotFallbackReason = `guardrail_${userGuardrail.reason || 'custom'}`;
     if (userGuardrail.requiresHuman) {
+      pilotEscalationDecision = { escalated: true, reason: userGuardrail.reason || 'custom' };
+      logger.warn(
+        { merchantId, conversationId, reason: userGuardrail.reason ?? 'custom' },
+        'Escalation triggered by user guardrail',
+      );
       await escalateToHuman(userId, conversationId, userGuardrail.reason ?? 'custom', message);
     }
 
+    const blockedResponse = finalizeConfiguredResponse({
+      response: userGuardrail.suggestedResponse || getSafeResponse(userGuardrail.reason ?? 'custom'),
+      persona,
+      responseLang,
+      replyLanguageDecision: {
+        usedFallback: replyLanguageDecision.usedFallback,
+        supportedLanguages: replyLanguageDecision.supportedLanguages,
+      },
+    });
+    await persistStructuredState({
+      current_intent: 'chat',
+      language_preference: responseLang,
+      selected_products: structuredState.selected_products,
+      last_question_type: structuredState.last_question_type || 'none',
+      known_order_products: structuredState.known_order_products,
+      constraints: structuredState.constraints,
+    });
+    await capturePilot(blockedResponse);
     return {
       intent: 'chat',
-      response: applyLanguageFallbackNotice(
-        userGuardrail.suggestedResponse || getSafeResponse(userGuardrail.reason ?? 'custom'),
-        {
-          usedFallback: replyLanguageDecision.usedFallback,
-          responseLanguage: responseLang,
-          supportedLanguages: replyLanguageDecision.supportedLanguages,
-        },
-      ),
+      response: blockedResponse,
       guardrailBlocked: true,
       guardrailReason: userGuardrail.reason,
       guardrailCustomName: userGuardrail.customReason,
@@ -354,36 +1393,133 @@ export async function generateAIResponse(
 
   // Step 0.5: Check if the customer is explicitly requesting a human agent
   if (checkForHumanHandoffRequest(message)) {
+    humanHandoffRequestedCount.inc();
+    pilotEscalationDecision = { escalated: true, reason: 'human_request' };
     await escalateToHuman(userId, conversationId, 'human_request', message);
     const lang = responseLang;
+    const handoffResponse = finalizeConfiguredResponse({
+      response: getLocalizedHandoffResponse(lang),
+      persona,
+      responseLang,
+      replyLanguageDecision: {
+        usedFallback: replyLanguageDecision.usedFallback,
+        supportedLanguages: replyLanguageDecision.supportedLanguages,
+      },
+    });
+    await persistStructuredState({
+      current_intent: 'chat',
+      language_preference: responseLang,
+      selected_products: structuredState.selected_products,
+      last_question_type: structuredState.last_question_type || 'none',
+      known_order_products: structuredState.known_order_products,
+      constraints: structuredState.constraints,
+    });
+    await capturePilot(handoffResponse);
     return {
       intent: 'chat',
-      response: applyLanguageFallbackNotice(getLocalizedHandoffResponse(lang), {
-        usedFallback: replyLanguageDecision.usedFallback,
-        responseLanguage: responseLang,
-        supportedLanguages: replyLanguageDecision.supportedLanguages,
-      }),
+      response: handoffResponse,
       requiresHuman: true,
     };
   }
 
   // Step 2: Classify intent
   let intent = await classifyIntent(message, merchantId);
-  const postDeliveryFollowUp = detectPostDeliveryFollowUpSignal(message, conversationHistory);
+  let postDeliveryFollowUp = detectPostDeliveryFollowUpSignal(message, stateHistory);
   if (postDeliveryFollowUp.detected && postDeliveryFollowUp.promoteIntentToQuestion && intent === 'chat') {
     intent = 'question';
   }
 
-  const persona = merchant?.persona_settings || {};
+  const derivedState = buildConversationFlowState({
+    message,
+    intent,
+    conversationHistory: stateHistory,
+    orderProducts: stickyOrderProducts,
+  });
+  const flowState = mergeFlowStateWithStructuredState(derivedState, structuredState);
+  pilotSelectedProducts = flowState.selected_products === 'all' ? 'all' : flowState.selected_products;
+  const userGoal = await inferUserGoal({
+    openai,
+    model: llmModel,
+    message,
+    intentHint: intent,
+    state: flowState,
+  });
+  pilotInferredGoal = userGoal;
+  if (userGoal === 'build_routine') {
+    if (!routineIntentMetricIncremented) {
+      routineIntentDetectedCount.inc();
+      routineIntentMetricIncremented = true;
+    }
+    pilotRoutineIntentDetected = true;
+    postDeliveryFollowUp = postDeliveryFollowUp.detected
+      ? postDeliveryFollowUp
+      : {
+          detected: true,
+          type: 'usage_routine_request',
+          promoteIntentToQuestion: true,
+          ragQueryOverride: buildUsageGuidanceRetrievalQuery(responseLang),
+          plannerQueryOverride: buildUsageGuidanceRetrievalQuery(responseLang),
+          promptHint:
+            responseLang === 'tr'
+              ? 'Kullanici amaci rutin olusturmak. Uygun tum siparis urunleri ile direkt sabah/aksam rutin ver, gereksiz netlestirme sorma.'
+              : 'User goal is routine-building. Use compatible products and provide a direct morning/evening routine.',
+        };
+    if (intent !== 'question') intent = 'question';
+  }
+
+  if (looksLikeContextualRoutineContinuation(message, flowState)) {
+    contextualContinuationResolvedCount.inc();
+    if (!routineIntentMetricIncremented) {
+      routineIntentDetectedCount.inc();
+      routineIntentMetricIncremented = true;
+    }
+    pilotContextualContinuationResolved = true;
+    pilotRoutineIntentDetected = true;
+    postDeliveryFollowUp = {
+      detected: true,
+      type: 'usage_routine_request',
+      promoteIntentToQuestion: true,
+      ragQueryOverride: buildUsageGuidanceRetrievalQuery(responseLang),
+      plannerQueryOverride: buildUsageGuidanceRetrievalQuery(responseLang),
+      promptHint:
+        responseLang === 'tr'
+          ? 'Kisa baglamsal cevap, onceki urun secim sorusunun devami. Tum uygun urunleri kullanip dogrudan rutin ver.'
+          : 'Short contextual continuation of prior product-selection question. Use all compatible products and provide routine directly.',
+    };
+    intent = 'question';
+  }
+
+  await persistStructuredState({
+    current_intent: intent,
+    language_preference: responseLang,
+    selected_products: flowState.selected_products,
+    last_question_type: flowState.last_question_type,
+    constraints: toStructuredConstraints(flowState),
+    known_order_products: structuredState.known_order_products,
+  });
+
   const merchantName = merchant?.name || 'Biz';
   const botInfo = await getMerchantBotInfo(merchantId);
 
   if (postDeliveryFollowUp.detected && postDeliveryFollowUp.type === 'usage_onboarding_yes') {
-    const ack = applyLanguageFallbackNotice(buildPostDeliveryAcknowledgementResponse(responseLang), {
-      usedFallback: replyLanguageDecision.usedFallback,
-      responseLanguage: responseLang,
-      supportedLanguages: replyLanguageDecision.supportedLanguages,
+    const ack = finalizeConfiguredResponse({
+      response: buildPostDeliveryAcknowledgementResponse(responseLang),
+      persona,
+      responseLang,
+      replyLanguageDecision: {
+        usedFallback: replyLanguageDecision.usedFallback,
+        supportedLanguages: replyLanguageDecision.supportedLanguages,
+      },
     });
+    await persistStructuredState({
+      current_intent: intent,
+      language_preference: responseLang,
+      selected_products: flowState.selected_products,
+      last_question_type: flowState.last_question_type,
+      known_order_products: stickyOrderProducts,
+      constraints: toStructuredConstraints(flowState),
+    });
+    await capturePilot(ack);
     return {
       intent,
       response: ack,
@@ -394,13 +1530,105 @@ export async function generateAIResponse(
   // Question answering is handled by the shared grounded-answer path.
   if (intent === 'question') {
     try {
+      const structuredStateRuntimeHint = buildStructuredStatePromptContext(structuredState);
       const ragQuery = postDeliveryFollowUp.ragQueryOverride || message;
       const ragConfig = getCosmeticRagPolicy(ragQuery);
       const preferredSections = ragConfig.preferredSectionTypes;
-      const orderScope = orderId
-        ? await getOrderProductContextResolved(orderId, merchantId)
+      const orderScope = effectiveOrderId
+        ? await getOrderProductContextResolved(effectiveOrderId, merchantId)
         : null;
-      const orderProductIds = orderScope?.productIds?.length ? orderScope.productIds : null;
+      let orderProductIds = orderScope?.productIds?.length ? [...orderScope.productIds] : null;
+      let resolvedOrderProducts: OrderProductMeta[] = [];
+      let routineClassifications: RoutineProductClassification[] = [];
+      let resolvedState: ConversationFlowState = flowState;
+      const isRoutineFlow = postDeliveryFollowUp.detected && postDeliveryFollowUp.type === 'usage_routine_request';
+
+      if ((!orderProductIds || orderProductIds.length === 0) && stickyOrderProducts.length > 0) {
+        orderProductIds = stickyOrderProducts.map((item) => item.id);
+      }
+
+      if (orderProductIds && orderProductIds.length > 0) {
+        const orderProducts = await fetchOrderProductsByIds(merchantId, orderProductIds);
+        resolvedOrderProducts = orderProducts.length > 0 ? orderProducts : stickyOrderProducts;
+        if (orderProducts.length > 0) {
+          stickyOrderProducts = orderProducts;
+          await persistStructuredState({
+            known_order_products: orderProducts.map((item) => ({ id: item.id, name: item.name })),
+          });
+        }
+        resolvedState = buildConversationFlowState({
+          message,
+          intent,
+          conversationHistory: stateHistory,
+          orderProducts: resolvedOrderProducts,
+        });
+        resolvedState = mergeFlowStateWithStructuredState(resolvedState, structuredState);
+        pilotSelectedProducts = resolvedState.selected_products === 'all' ? 'all' : resolvedState.selected_products;
+        const productResolution = resolveMentionedOrderProduct({
+          message,
+          conversationHistory: stateHistory,
+          orderProducts: resolvedOrderProducts,
+          lang: responseLang,
+        });
+
+        if (isRoutineFlow) {
+          routineClassifications = await classifyRoutineProducts(openai, llmModel, orderProducts);
+          const compatibleProductIds = routineClassifications
+            .filter((product) => product.slot !== 'exclude')
+            .map((product) => product.productId);
+          if (compatibleProductIds.length > 0) {
+            if (resolvedState.selected_products === 'all' || userGoal === 'build_routine') {
+              orderProductIds = compatibleProductIds;
+            } else if (Array.isArray(resolvedState.selected_products) && resolvedState.selected_products.length > 0) {
+              orderProductIds = compatibleProductIds.filter((id) => resolvedState.selected_products.includes(id));
+            } else {
+              orderProductIds = compatibleProductIds;
+            }
+          }
+        }
+
+        if (productResolution.clarificationQuestion && !isRoutineFlow) {
+          clarificationAskedCount.inc();
+          fallbackTriggeredCount.inc({ reason: 'product_clarification' });
+          pilotClarificationAsked = true;
+          pilotGenerationMode = 'fallback';
+          pilotFallbackReason = 'product_clarification';
+          logger.info(
+            { merchantId, conversationId, reason: 'missing_product_selection' },
+            'Fallback triggered: product clarification required',
+          );
+          const clarificationResponse = finalizeConfiguredResponse({
+            response: productResolution.clarificationQuestion,
+            persona,
+            responseLang,
+            replyLanguageDecision: {
+              usedFallback: replyLanguageDecision.usedFallback,
+              supportedLanguages: replyLanguageDecision.supportedLanguages,
+            },
+          });
+          await persistStructuredState({
+            current_intent: intent,
+            language_preference: responseLang,
+            selected_products: resolvedState.selected_products,
+            last_question_type: 'product_selection',
+            known_order_products: stickyOrderProducts.map((item) => ({ id: item.id, name: item.name })),
+            constraints: {
+              ...toStructuredConstraints(resolvedState),
+            },
+          });
+          await capturePilot(clarificationResponse);
+          return {
+            intent: 'question',
+            response: clarificationResponse,
+            requiresHuman: false,
+          };
+        }
+
+        if (productResolution.productId && !isRoutineFlow) {
+          orderProductIds = [productResolution.productId];
+        }
+      }
+
       const ragCacheKey = buildRagCacheKey({
         merchantId,
         query: ragQuery,
@@ -411,21 +1639,23 @@ export async function generateAIResponse(
         preferredLanguage: userLang,
       });
 
-      const grounded = await generateGroundedProductAnswer({
+      let grounded = await generateGroundedProductAnswer({
         merchantId,
         question: message,
         userLang,
         channel: 'whatsapp',
         intent: 'question',
-        orderId,
+        orderId: effectiveOrderId,
         conversationId,
-        conversationHistory,
+        conversationHistory: modelHistory.history,
         merchantName,
         persona,
         botInfo,
         retrievalQuery: ragQuery,
         plannerQuery: postDeliveryFollowUp.plannerQueryOverride || message,
-        runtimeHint: postDeliveryFollowUp.promptHint,
+        runtimeHint: isRoutineFlow
+          ? `${postDeliveryFollowUp.promptHint || ''}\n${structuredStateRuntimeHint}\nOutput format: brief intro + Morning + Evening. Use real product names. Avoid clarification questions unless truly blocked.`
+          : `${postDeliveryFollowUp.promptHint || ''}\n${structuredStateRuntimeHint}`.trim(),
         productIds: orderProductIds || undefined,
         instructionScope: 'order_only',
         topK: ragConfig.topK,
@@ -435,26 +1665,173 @@ export async function generateAIResponse(
         cacheTtlSeconds: 900,
       });
 
-      const responseGuardrail = checkAIResponseGuardrails(grounded.answer, {
+      let answer = grounded.answer;
+      if (isRoutineFlow && resolvedOrderProducts.length > 0) {
+        if (routineClassifications.length === 0) {
+          routineClassifications = await classifyRoutineProducts(openai, llmModel, resolvedOrderProducts);
+        }
+
+        let routineQuality = validateRoutineAnswerQuality(answer, routineClassifications);
+        if (!routineQuality.ok) {
+          routineQualityRegeneratedCount.inc();
+          pilotRegenerated = true;
+          pilotGenerationMode = 'regenerated';
+          logger.info(
+            { merchantId, conversationId, reasons: routineQuality.reasons },
+            'Routine response quality validation failed, retrying with stricter instructions',
+          );
+          grounded = await generateGroundedProductAnswer({
+            merchantId,
+            question: message,
+            userLang,
+            channel: 'whatsapp',
+            intent: 'question',
+            orderId: effectiveOrderId,
+            conversationId,
+            conversationHistory: modelHistory.history,
+            merchantName,
+            persona,
+            botInfo,
+            retrievalQuery: ragQuery,
+            plannerQuery: postDeliveryFollowUp.plannerQueryOverride || message,
+            runtimeHint:
+              `Return ONLY a practical routine with real product names from available context. Format: Morning then Evening. No generic clarification.\n${structuredStateRuntimeHint}`,
+            productIds: orderProductIds || undefined,
+            instructionScope: 'order_only',
+            topK: ragConfig.topK,
+            similarityThreshold: ragConfig.similarityThreshold,
+            preferredSectionTypes: preferredSections,
+            cacheKey: ragCacheKey,
+            cacheTtlSeconds: 900,
+          });
+          answer = grounded.answer;
+          routineQuality = validateRoutineAnswerQuality(answer, routineClassifications);
+        }
+
+        if (!routineQuality.ok || grounded.citedProducts.length === 0 || looksLikeEvidenceClarificationAnswer(answer)) {
+          bestEffortRoutineUsedCount.inc();
+          fallbackTriggeredCount.inc({ reason: 'routine_best_effort' });
+          pilotBestEffortRoutineUsed = true;
+          pilotGenerationMode = 'fallback';
+          pilotFallbackReason = 'routine_best_effort';
+          pilotExcludedProducts = routineClassifications
+            .filter((product) => product.slot === 'exclude')
+            .map((product) => ({ name: product.name, reason: product.exclusionReason }));
+          logger.info(
+            {
+              merchantId,
+              conversationId,
+              reason: 'routine_best_effort_fallback',
+              qualityReasons: routineQuality.reasons,
+            },
+            'Fallback triggered: best-effort routine builder',
+          );
+          const routineFallbackResponse = finalizeConfiguredResponse({
+            response: buildBestEffortRoutineResponse(responseLang, routineClassifications, persona, resolvedState),
+            persona,
+            responseLang,
+            replyLanguageDecision: {
+              usedFallback: replyLanguageDecision.usedFallback,
+              supportedLanguages: replyLanguageDecision.supportedLanguages,
+            },
+          });
+          await persistStructuredState({
+            current_intent: intent,
+            language_preference: responseLang,
+            selected_products: resolvedState.selected_products === 'all'
+              ? 'all'
+              : (orderProductIds || resolvedOrderProducts.map((item) => item.id)),
+            last_question_type: 'routine_builder',
+            known_order_products: stickyOrderProducts.map((item) => ({ id: item.id, name: item.name })),
+            constraints: toStructuredConstraints(resolvedState),
+          });
+          await capturePilot(routineFallbackResponse);
+          return {
+            intent,
+            response: routineFallbackResponse,
+            ragContext: grounded.ragContext,
+            guardrailBlocked: false,
+            requiresHuman: false,
+          };
+        }
+
+        answer = `${answer.trim()}${buildRoutineExclusionNote(responseLang, routineClassifications)}`.trim();
+        logger.info(
+          {
+            merchantId,
+            conversationId,
+            includedProducts: routineClassifications.filter((product) => product.slot !== 'exclude').map((product) => product.name),
+            excludedProducts: routineClassifications.filter((product) => product.slot === 'exclude').map((product) => ({
+              name: product.name,
+              reason: product.exclusionReason || 'Not routine-compatible',
+            })),
+          },
+          'Routine builder used with compatibility filtering',
+        );
+        pilotExcludedProducts = routineClassifications
+          .filter((product) => product.slot === 'exclude')
+          .map((product) => ({ name: product.name, reason: product.exclusionReason }));
+      }
+
+      const responseGuardrail = checkAIResponseGuardrails(answer, {
         customGuardrails,
         languageHint: responseLang,
       });
 
-      let finalAnswer = grounded.answer;
+      let finalAnswer = answer;
       if (!responseGuardrail.safe) {
+        fallbackTriggeredCount.inc({ reason: `ai_response_guardrail_${responseGuardrail.reason || 'custom'}` });
+        pilotGenerationMode = 'fallback';
+        pilotFallbackReason = `ai_response_guardrail_${responseGuardrail.reason || 'custom'}`;
         finalAnswer = responseGuardrail.suggestedResponse || getSafeResponse(responseGuardrail.reason ?? 'custom');
 
         if (responseGuardrail.requiresHuman) {
+          pilotEscalationDecision = { escalated: true, reason: responseGuardrail.reason || 'custom' };
+          logger.warn(
+            { merchantId, conversationId, reason: responseGuardrail.reason ?? 'custom' },
+            'Escalation triggered by AI response guardrail',
+          );
           await escalateToHuman(userId, conversationId, responseGuardrail.reason ?? 'custom', finalAnswer);
         }
       }
+      finalAnswer = applyPersonaResponsePolicy(finalAnswer, persona, responseLang);
+      if (stickyOrderProducts.length > 0 && asksForPurchasedProductInfo(finalAnswer)) {
+        finalAnswer = isRoutineFlow
+          ? buildBestEffortRoutineResponse(
+              responseLang,
+              routineClassifications.length > 0
+                ? routineClassifications
+                : stickyOrderProducts.map(classifyRoutineProductHeuristic),
+              persona,
+              resolvedState,
+            )
+          : buildKnownProductsRecoveryResponse(responseLang, stickyOrderProducts);
+      }
+      if (looksLikeEvidenceClarificationAnswer(finalAnswer)) {
+        clarificationAskedCount.inc();
+        pilotClarificationAsked = true;
+      }
+      await capturePilot(finalAnswer);
+
+      await persistStructuredState({
+        current_intent: intent,
+        language_preference: responseLang,
+        selected_products: resolvedState.selected_products === 'all'
+          ? 'all'
+          : (orderProductIds || resolvedOrderProducts.map((item) => item.id)),
+        last_question_type: isRoutineFlow ? 'routine_builder' : 'usage_how',
+        known_order_products: stickyOrderProducts.map((item) => ({ id: item.id, name: item.name })),
+        constraints: toStructuredConstraints(resolvedState),
+      });
 
       logger.info(
         {
           merchantId,
           conversationId,
-          orderId,
+          orderId: effectiveOrderId,
           intent,
+          userGoal,
+          conversationState: flowState,
           userLang,
           postDeliveryFollowUp: postDeliveryFollowUp.detected ? postDeliveryFollowUp.type : null,
           responseLang: detectLanguage(finalAnswer),
@@ -462,7 +1839,7 @@ export async function generateAIResponse(
           ragUsed: Boolean(grounded.ragContext),
           citedProducts: grounded.citedProducts,
           usedDeterministicFacts: grounded.usedDeterministicFacts,
-          orderScopeSource: grounded.orderScopeSource || (orderId ? 'none' : 'not_applicable'),
+          orderScopeSource: grounded.orderScopeSource || (effectiveOrderId ? 'none' : 'not_applicable'),
         },
         'AI response generated via grounded answer service'
       );
@@ -477,19 +1854,48 @@ export async function generateAIResponse(
         requiresHuman: responseGuardrail.safe ? false : responseGuardrail.requiresHuman,
       };
     } catch (error) {
-      logger.error({ error, merchantId, conversationId, orderId }, 'Shared grounded answer service failed');
+      logger.error({ error, merchantId, conversationId, orderId: effectiveOrderId }, 'Shared grounded answer service failed');
+      fallbackTriggeredCount.inc({ reason: 'grounded_answer_error' });
+      pilotGenerationMode = 'fallback';
+      pilotFallbackReason = 'grounded_answer_error';
+      logger.info(
+        { merchantId, conversationId, reason: 'grounded_answer_error' },
+        'Fallback triggered: grounded answer unavailable',
+      );
+      const fallbackAnswer = stickyOrderProducts.length > 0
+        ? buildKnownProductsRecoveryResponse(responseLang, stickyOrderProducts)
+        : responseLang === 'tr'
+          ? 'Sorunu güvenilir şekilde yanitlamak icin yeterli urun bilgisine simdi erisemiyorum. Siparis numaranizi paylasir misiniz?'
+          : responseLang === 'hu'
+            ? 'Most nem erek el eleg megbizhato termekinformaciot a valaszhoz. Megirna a rendelesszamat?'
+            : responseLang === 'de'
+              ? 'Ich kann im Moment nicht zuverlässig genug auf Produktinformationen zugreifen, um sicher zu antworten. Können Sie mir Ihre Bestellnummer senden?'
+              : responseLang === 'el'
+                ? 'Δεν μπορώ να αποκτήσω αρκετά αξιόπιστες πληροφορίες προϊόντος αυτή τη στιγμή για να απαντήσω με ασφάλεια. Μπορείτε να μοιραστείτε τον αριθμό παραγγελίας σας;'
+                : 'I cannot access enough reliable product information right now to answer safely. Could you share your order number?';
       return {
         intent,
-        response:
-          responseLang === 'tr'
-            ? 'Sorunu güvenilir şekilde yanitlamak icin yeterli urun bilgisine simdi erisemiyorum. Hangi urunu kullandiginizi veya siparis numaranizi paylasir misiniz?'
-            : responseLang === 'hu'
-              ? 'Most nem erek el eleg megbizhato termekinformaciot a valaszhoz. Megirna, melyik termeket hasznalja vagy mi a rendelesszama?'
-              : responseLang === 'de'
-                ? 'Ich kann im Moment nicht zuverlässig genug auf Produktinformationen zugreifen, um sicher zu antworten. Können Sie mir sagen, welches Produkt Sie verwenden oder wie Ihre Bestellnummer lautet?'
-                : responseLang === 'el'
-                  ? 'Δεν μπορώ να αποκτήσω αρκετά αξιόπιστες πληροφορίες προϊόντος αυτή τη στιγμή για να απαντήσω με ασφάλεια. Μπορείτε να μου πείτε ποιο προϊόν χρησιμοποιείτε ή ποιος είναι ο αριθμός παραγγελίας σας;'
-              : 'I cannot access enough reliable product information right now to answer safely. Could you share which product you are using or your order number?',
+        response: await (async () => {
+          const v = finalizeConfiguredResponse({
+          response: fallbackAnswer,
+          persona,
+          responseLang,
+          replyLanguageDecision: {
+            usedFallback: replyLanguageDecision.usedFallback,
+            supportedLanguages: replyLanguageDecision.supportedLanguages,
+          },
+          });
+          await persistStructuredState({
+            current_intent: intent,
+            language_preference: responseLang,
+            selected_products: flowState.selected_products,
+            last_question_type: flowState.last_question_type,
+            known_order_products: stickyOrderProducts.map((item) => ({ id: item.id, name: item.name })),
+            constraints: toStructuredConstraints(flowState),
+          });
+          await capturePilot(v);
+          return v;
+        })(),
         guardrailBlocked: false,
         requiresHuman: false,
       };
@@ -507,15 +1913,30 @@ export async function generateAIResponse(
       const alreadyAttempted = await hasPendingPreventionAttempt(conversationId);
       if (alreadyAttempted) {
         await updatePreventionOutcome(conversationId, 'escalated');
+        pilotEscalationDecision = { escalated: true, reason: 'return_intent_insistence' };
         await escalateToHuman(userId, conversationId, 'return_intent_insistence', message);
         const lang = responseLang;
+        const escalationResponse = finalizeConfiguredResponse({
+          response: getLocalizedEscalationResponse(lang),
+          persona,
+          responseLang,
+          replyLanguageDecision: {
+            usedFallback: replyLanguageDecision.usedFallback,
+            supportedLanguages: replyLanguageDecision.supportedLanguages,
+          },
+        });
+        await persistStructuredState({
+          current_intent: intent,
+          language_preference: responseLang,
+          selected_products: flowState.selected_products,
+          last_question_type: flowState.last_question_type,
+          known_order_products: stickyOrderProducts.map((item) => ({ id: item.id, name: item.name })),
+          constraints: toStructuredConstraints(flowState),
+        });
+        await capturePilot(escalationResponse);
         return {
           intent,
-          response: applyLanguageFallbackNotice(getLocalizedEscalationResponse(lang), {
-            usedFallback: replyLanguageDecision.usedFallback,
-            responseLanguage: responseLang,
-            supportedLanguages: replyLanguageDecision.supportedLanguages,
-          }),
+          response: escalationResponse,
           requiresHuman: true,
         };
       }
@@ -551,10 +1972,19 @@ export async function generateAIResponse(
       const ragQuery = postDeliveryFollowUp.ragQueryOverride || message;
       let orderProductIds: string[] | undefined;
       let orderScopeSource: string | undefined;
-      if (orderId) {
-        const orderScope = await getOrderProductContextResolved(orderId, merchantId);
+      if (effectiveOrderId) {
+        const orderScope = await getOrderProductContextResolved(effectiveOrderId, merchantId);
         orderProductIds = orderScope.productIds;
         orderScopeSource = orderScope.source;
+        if (orderProductIds && orderProductIds.length > 0) {
+          const knownProducts = await fetchOrderProductsByIds(merchantId, orderProductIds);
+          if (knownProducts.length > 0) {
+            stickyOrderProducts = knownProducts;
+            await persistStructuredState({
+              known_order_products: knownProducts.map((item) => ({ id: item.id, name: item.name })),
+            });
+          }
+        }
       }
       // RAG: semantic search (order products if any).
       // Safety: when an order exists but we cannot resolve products, do NOT broaden to all merchant products.
@@ -571,7 +2001,7 @@ export async function generateAIResponse(
         preferredLanguage: queryLang,
       });
       const ragResult =
-        orderId && (!orderProductIds || orderProductIds.length === 0)
+        effectiveOrderId && (!orderProductIds || orderProductIds.length === 0)
           ? {
               query: ragQuery,
               results: [],
@@ -597,12 +2027,12 @@ export async function generateAIResponse(
         {
           merchantId,
           conversationId,
-          orderId,
+          orderId: effectiveOrderId,
           intent,
           queryLang,
           postDeliveryFollowUp: postDeliveryFollowUp.detected ? postDeliveryFollowUp.type : null,
           ragQueryOverridden: ragQuery !== message,
-          orderScopeSource: orderScopeSource || (orderId ? 'none' : 'not_applicable'),
+          orderScopeSource: orderScopeSource || (effectiveOrderId ? 'none' : 'not_applicable'),
           ragProfile: ragConfig.profile,
           retrievalLanguage: ragResult.effectiveLanguage,
           retrievalUsedFallback: ragResult.usedFallback,
@@ -625,7 +2055,7 @@ export async function generateAIResponse(
 
       // Policy: usage instructions are only included for products in the customer's own order.
       let instructionProductIds: string[] = [];
-      if (orderId && orderProductIds && orderProductIds.length > 0) {
+      if (effectiveOrderId && orderProductIds && orderProductIds.length > 0) {
         instructionProductIds = orderProductIds;
       }
 
@@ -648,7 +2078,7 @@ export async function generateAIResponse(
           {
             merchantId,
             conversationId,
-            orderId,
+            orderId: effectiveOrderId,
             factsProductIdsCount: factsProductIds.length,
             factsSnapshotsFound: factsContext.factCount,
           },
@@ -683,9 +2113,10 @@ export async function generateAIResponse(
     replyLanguageDecision.supportedLanguages,
   );
   const runtimeHint = postDeliveryFollowUp.promptHint;
+  const structuredStatePrompt = buildStructuredStatePromptContext(structuredState);
   const finalSystemPrompt = runtimeHint
-    ? `${systemPrompt}\nRUNTIME CONVERSATION HINT:\n- ${runtimeHint}\n`
-    : systemPrompt;
+    ? `${systemPrompt}\n${structuredStatePrompt}\nRUNTIME CONVERSATION HINT:\n- ${runtimeHint}\n`
+    : `${systemPrompt}\n${structuredStatePrompt}\n`;
 
   // Step 5: Build conversation messages
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
@@ -696,10 +2127,7 @@ export async function generateAIResponse(
   ];
 
   // Add conversation history (last 10 messages)
-  const memorySettings = await getConversationMemorySettings();
-  const recentHistory = memorySettings.mode === 'full'
-    ? conversationHistory
-    : conversationHistory.slice(-Math.max(1, memorySettings.count));
+  const recentHistory = modelHistory.history;
   for (const msg of recentHistory) {
     messages.push({
       role: msg.role === 'user' ? 'user' : 'assistant',
@@ -731,7 +2159,7 @@ export async function generateAIResponse(
       totalTokens: (response as any).usage?.total_tokens || 0,
       metadata: {
         conversationId,
-        orderId: orderId || null,
+        orderId: effectiveOrderId || null,
         intent,
         ragUsed: Boolean(ragContext),
       },
@@ -746,19 +2174,41 @@ export async function generateAIResponse(
     });
 
     if (!responseGuardrail.safe) {
+      fallbackTriggeredCount.inc({ reason: `ai_response_guardrail_${responseGuardrail.reason || 'custom'}` });
+      pilotGenerationMode = 'fallback';
+      pilotFallbackReason = `ai_response_guardrail_${responseGuardrail.reason || 'custom'}`;
       aiResponse = responseGuardrail.suggestedResponse || getSafeResponse(responseGuardrail.reason ?? 'custom');
 
       if (responseGuardrail.requiresHuman) {
+        pilotEscalationDecision = { escalated: true, reason: responseGuardrail.reason || 'custom' };
+        logger.warn(
+          { merchantId, conversationId, reason: responseGuardrail.reason ?? 'custom' },
+          'Escalation triggered by AI response guardrail',
+        );
         await escalateToHuman(userId, conversationId, responseGuardrail.reason ?? 'custom', aiResponse);
       }
 
+      const guardedResponse = finalizeConfiguredResponse({
+        response: aiResponse,
+        persona,
+        responseLang,
+        replyLanguageDecision: {
+          usedFallback: replyLanguageDecision.usedFallback,
+          supportedLanguages: replyLanguageDecision.supportedLanguages,
+        },
+      });
+      await persistStructuredState({
+        current_intent: intent,
+        language_preference: responseLang,
+        selected_products: flowState.selected_products,
+        last_question_type: flowState.last_question_type,
+        known_order_products: stickyOrderProducts.map((item) => ({ id: item.id, name: item.name })),
+        constraints: toStructuredConstraints(flowState),
+      });
+      await capturePilot(guardedResponse);
       return {
         intent,
-        response: applyLanguageFallbackNotice(aiResponse, {
-          usedFallback: replyLanguageDecision.usedFallback,
-          responseLanguage: responseLang,
-          supportedLanguages: replyLanguageDecision.supportedLanguages,
-        }),
+        response: guardedResponse,
         ragContext: ragContext || undefined,
         guardrailBlocked: true,
         guardrailReason: responseGuardrail.reason,
@@ -774,7 +2224,7 @@ export async function generateAIResponse(
           merchantId,
           conversationId,
           userId,
-          orderId,
+          orderId: effectiveOrderId,
           triggerMessage: message,
           preventionResponse: aiResponse,
         });
@@ -785,12 +2235,12 @@ export async function generateAIResponse(
 
     // Step 8b: Check for satisfaction and trigger upsell if appropriate
     let upsellResult = null;
-    if (intent === 'chat' && orderId) {
+    if (intent === 'chat' && effectiveOrderId) {
       // Check if user is satisfied (positive sentiment in chat)
       try {
         upsellResult = await processSatisfactionCheck(
           userId,
-          orderId,
+          effectiveOrderId,
           merchantId,
           message
         );
@@ -804,7 +2254,7 @@ export async function generateAIResponse(
       {
         merchantId,
         conversationId,
-        orderId,
+        orderId: effectiveOrderId,
         intent,
         userLang,
         responseLanguage: responseLang,
@@ -819,13 +2269,30 @@ export async function generateAIResponse(
       'AI response generated'
     );
 
+    let finalConfiguredResponse = finalizeConfiguredResponse({
+      response: aiResponse,
+      persona,
+      responseLang,
+      replyLanguageDecision: {
+        usedFallback: replyLanguageDecision.usedFallback,
+        supportedLanguages: replyLanguageDecision.supportedLanguages,
+      },
+    });
+    if (stickyOrderProducts.length > 0 && asksForPurchasedProductInfo(finalConfiguredResponse)) {
+      finalConfiguredResponse = buildKnownProductsRecoveryResponse(responseLang, stickyOrderProducts);
+    }
+    await persistStructuredState({
+      current_intent: intent,
+      language_preference: responseLang,
+      selected_products: flowState.selected_products,
+      last_question_type: flowState.last_question_type,
+      known_order_products: stickyOrderProducts.map((item) => ({ id: item.id, name: item.name })),
+      constraints: toStructuredConstraints(flowState),
+    });
+    await capturePilot(finalConfiguredResponse);
     return {
       intent,
-      response: applyLanguageFallbackNotice(aiResponse, {
-        usedFallback: replyLanguageDecision.usedFallback,
-        responseLanguage: responseLang,
-        supportedLanguages: replyLanguageDecision.supportedLanguages,
-      }),
+      response: finalConfiguredResponse,
       ragContext: ragContext || undefined,
       guardrailBlocked: false,
       upsellTriggered: upsellResult?.upsellTriggered || false,

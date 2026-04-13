@@ -126,6 +126,70 @@ export const productsScraped = new Counter({
 });
 
 /**
+ * Assistant pilot-readiness metrics
+ */
+export const routineIntentDetectedCount = new Counter({
+  name: 'routine_intent_detected_count',
+  help: 'Total routine intent detections',
+  registers: [register],
+});
+
+export const contextualContinuationResolvedCount = new Counter({
+  name: 'contextual_continuation_resolved_count',
+  help: 'Total contextual continuation resolutions',
+  registers: [register],
+});
+
+export const clarificationAskedCount = new Counter({
+  name: 'clarification_asked_count',
+  help: 'Total clarification questions asked by assistant',
+  registers: [register],
+});
+
+export const bestEffortRoutineUsedCount = new Counter({
+  name: 'best_effort_routine_used_count',
+  help: 'Total best-effort routine responses used',
+  registers: [register],
+});
+
+export const routineQualityRegeneratedCount = new Counter({
+  name: 'routine_quality_regenerated_count',
+  help: 'Total routine quality regeneration attempts',
+  registers: [register],
+});
+
+export const fallbackTriggeredCount = new Counter({
+  name: 'fallback_triggered_count',
+  help: 'Total fallback paths triggered',
+  labelNames: ['reason'],
+  registers: [register],
+});
+
+export const crisisPrecheckCount = new Counter({
+  name: 'crisis_precheck_count',
+  help: 'Total crisis precheck matches',
+  registers: [register],
+});
+
+export const crisisConfirmedCount = new Counter({
+  name: 'crisis_confirmed_count',
+  help: 'Total confirmed crisis escalations',
+  registers: [register],
+});
+
+export const crisisRejectedCount = new Counter({
+  name: 'crisis_rejected_count',
+  help: 'Total crisis prechecks rejected by second-layer classifier',
+  registers: [register],
+});
+
+export const humanHandoffRequestedCount = new Counter({
+  name: 'human_handoff_requested_count',
+  help: 'Total explicit human handoff requests',
+  registers: [register],
+});
+
+/**
  * Update system metrics periodically
  */
 export function updateSystemMetrics() {

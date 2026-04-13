@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { classifyIntent, generateAIResponse } from './aiAgent';
+import { classifyIntent, detectPostDeliveryFollowUpSignal, generateAIResponse } from './aiAgent';
 import { __setOpenAIClientForTests } from './openaiClient';
 
 // Mock dependencies
@@ -18,8 +18,14 @@ vi.mock('./groundedAnswer', () => ({
 }));
 
 vi.mock('./guardrails', () => ({
-  checkUserMessageGuardrails: vi.fn(() => ({ safe: true, requiresHuman: false })),
+  checkUserMessageGuardrailsWithoutCrisis: vi.fn(() => ({ safe: true, requiresHuman: false })),
   checkAIResponseGuardrails: vi.fn(() => ({ safe: true, requiresHuman: false })),
+  evaluateCrisisEscalation: vi.fn(async () => ({
+    shouldEscalate: false,
+    precheckMatched: false,
+    llmConfirmed: false,
+    severity: 'none',
+  })),
   checkForHumanHandoffRequest: vi.fn(() => false),
   escalateToHuman: vi.fn(),
   getSafeResponse: vi.fn(),
@@ -27,6 +33,12 @@ vi.mock('./guardrails', () => ({
 
 vi.mock('./i18n', () => ({
   detectLanguage: vi.fn(() => 'en'),
+  resolveMerchantReplyLanguage: vi.fn(() => ({
+    responseLanguage: 'en',
+    usedFallback: false,
+    supportedLanguages: ['en'],
+  })),
+  buildUnsupportedLanguageNotice: vi.fn(() => 'Unsupported language fallback applied.'),
   getLocalizedHandoffResponse: vi.fn(() => 'Connecting you with our team.'),
   getLocalizedEscalationResponse: vi.fn(() => 'Let me connect you with a team member.'),
 }));
@@ -36,6 +48,23 @@ vi.mock('./conversation', () => ({
   getOrCreateConversation: vi.fn(),
   addMessageToConversation: vi.fn(),
   getConversationHistory: vi.fn(() => []),
+  getConversationStructuredState: vi.fn(async (conversationId: string) => ({
+    conversation_id: conversationId,
+    order_id: null,
+    known_order_products: [],
+    selected_products: [],
+    current_intent: undefined,
+    last_question_type: 'none',
+    language_preference: 'en',
+    constraints: {
+      routine_scope: 'unknown',
+      simplicity: 'unknown',
+      for_whom: 'unknown',
+      routine_format: 'unknown',
+    },
+    updated_at: new Date().toISOString(),
+  })),
+  updateConversationStructuredState: vi.fn(async (_conversationId: string, patch: any) => patch),
 }));
 
 describe('classifyIntent', () => {
@@ -182,12 +211,15 @@ describe('generateAIResponse', () => {
   });
 
   it('should handle guardrail violations', async () => {
-    const { checkUserMessageGuardrails } = await import('./guardrails');
+    const { evaluateCrisisEscalation } = await import('./guardrails');
 
-    (checkUserMessageGuardrails as any).mockReturnValueOnce({
-      safe: false,
-      reason: 'crisis_keyword',
-      requiresHuman: true,
+    (evaluateCrisisEscalation as any).mockResolvedValueOnce({
+      shouldEscalate: true,
+      precheckMatched: true,
+      llmConfirmed: true,
+      severity: 'high',
+      reason: 'llm_confirmed',
+      suggestedResponse: 'Crisis response',
     });
 
     const response = await generateAIResponse(
@@ -210,6 +242,10 @@ describe('generateAIResponse', () => {
     // intent classification
     mockCreate.mockResolvedValueOnce({
       choices: [{ message: { role: 'assistant', content: 'chat' } }],
+    });
+    // user goal inference
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { role: 'assistant', content: 'smalltalk' } }],
     });
     // final response generation
     mockCreate.mockResolvedValueOnce({
@@ -240,9 +276,37 @@ describe('generateAIResponse', () => {
 
     expect(response).toBeDefined();
     // Should include conversation history in messages
-    const callArgs = mockCreate.mock.calls[1]?.[0];
+    const callArgs = mockCreate.mock.calls[mockCreate.mock.calls.length - 1]?.[0];
     const messages = callArgs?.messages || [];
     expect(messages.some((m: any) => m?.content === 'Hello')).toBe(true);
     expect(messages.some((m: any) => m?.content === 'Hi! How can I help?')).toBe(true);
+  });
+});
+
+describe('detectPostDeliveryFollowUpSignal', () => {
+  it('should detect standalone routine-building asks', () => {
+    const signal = detectPostDeliveryFollowUpSignal('Can you make a daily skincare routine?');
+    expect(signal.detected).toBe(true);
+    expect(signal.type).toBe('usage_routine_request');
+    expect(signal.promoteIntentToQuestion).toBe(true);
+  });
+
+  it('should detect "use all products together" phrasing', () => {
+    const signal = detectPostDeliveryFollowUpSignal('How should I use all the products together?');
+    expect(signal.detected).toBe(true);
+    expect(signal.type).toBe('usage_routine_request');
+  });
+
+  it('should treat "For all of them" as valid continuation in product-selection context', () => {
+    const signal = detectPostDeliveryFollowUpSignal('For all of them', [
+      {
+        role: 'assistant',
+        content: 'Which products would you like to use in your routine?',
+        timestamp: new Date().toISOString(),
+      } as any,
+    ]);
+    expect(signal.detected).toBe(true);
+    expect(signal.type).toBe('usage_routine_request');
+    expect(signal.promoteIntentToQuestion).toBe(true);
   });
 });

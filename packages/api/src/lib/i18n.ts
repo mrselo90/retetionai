@@ -36,14 +36,6 @@ export function detectLanguage(text: string): SupportedLanguage {
     if (pattern.test(lower)) return 'el';
   }
 
-  const germanPatterns = [
-    /[äöüßÄÖÜ]/,
-    /\b(und|oder|produkt|anwendung|kunden|bestellung|hilfe|bitte|danke|rückgabe)\b/,
-  ];
-  for (const pattern of germanPatterns) {
-    if (pattern.test(lower)) return 'de';
-  }
-
   // Hungarian indicators (unique characters and common words)
   const huPatterns = [
     /[őűŐŰ]/, // Hungarian-specific characters
@@ -56,10 +48,20 @@ export function detectLanguage(text: string): SupportedLanguage {
   // Turkish indicators (unique characters and common words)
   const trPatterns = [
     /[şŞğĞıİçÇöÖüÜ]/, // Turkish-specific characters
-    /\b(merhaba|teşekkür|evet|hayır|nasıl|neden|ürün|kullanım|sipariş|iade|lütfen|yardım)\b/,
+    /\b(merhaba|teşekkür|evet|hayır|nasıl|neden|ürün|kullanım|sipariş|iade|lütfen|yardım|kaç|günde|sence)\b/,
   ];
   for (const pattern of trPatterns) {
     if (pattern.test(lower)) return 'tr';
+  }
+
+  // German indicators
+  // NOTE: We intentionally do this after Turkish because "ö/ü" also appear in Turkish.
+  const germanPatterns = [
+    /[äß]/,
+    /\b(und|oder|produkt|anwendung|kunden|bestellung|hilfe|bitte|danke|rückgabe|wie|warum|hallo)\b/,
+  ];
+  for (const pattern of germanPatterns) {
+    if (pattern.test(lower)) return 'de';
   }
 
   // Default to English
