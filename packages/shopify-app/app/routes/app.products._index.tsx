@@ -643,14 +643,6 @@ async function persistProductSetup({
     } satisfies ActionResult;
   }
 
-  if (!usageInstructions) {
-    return {
-      ok: false,
-      selectedProductId,
-      error: "Customer guidance is required before saving.",
-    } satisfies ActionResult;
-  }
-
   let productId = existingProductId;
   if (!productId) {
     // Defensive resolution: if UI context misses existingProductId for the same
@@ -1007,7 +999,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             ok: false,
             intent,
             selectedProductId,
-            error: "No selected products were ready for bulk update.",
+            error: "No selected products had a saved setup yet. Open each product once and click Save draft, then retry bulk update.",
           } satisfies ActionResult;
         }
 
@@ -2034,12 +2026,8 @@ function SetupPanel({
     setConfirmDelete(false);
   }, [row.shopify.id]);
 
-  function submitSaveDraft(requireInstructions: boolean) {
+  function submitSaveDraft() {
     if (!canSubmitSave) return;
-    if (requireInstructions && !draft.usage_instructions.trim()) {
-      setInlineValidationError("Customer instructions are required before continuing.");
-      return;
-    }
     setInlineValidationError(null);
 
     const formData = new FormData();
@@ -2238,14 +2226,14 @@ function SetupPanel({
                         variant="primary"
                         loading={isSavingSetup}
                         disabled={!canSubmitSave}
-                        onClick={() => submitSaveDraft(true)}
+                        onClick={submitSaveDraft}
                       >
                         Save and update AI
                       </Button>
                       <Button
                         variant="secondary"
                         disabled={!canSubmitSave}
-                        onClick={() => submitSaveDraft(false)}
+                        onClick={submitSaveDraft}
                       >
                         Save draft
                       </Button>
@@ -2323,7 +2311,7 @@ function SetupPanel({
                       <Button
                         variant="secondary"
                         disabled={!canSubmitSave}
-                        onClick={() => submitSaveDraft(false)}
+                        onClick={submitSaveDraft}
                       >
                         Save draft
                       </Button>
@@ -2550,6 +2538,11 @@ function ProductBrowserItem({
             <Badge tone={lifecycle.tone}>
               {lifecycle.label}
             </Badge>
+            {!row.hasGuidance ? (
+              <Badge tone="attention">
+                Missing instructions
+              </Badge>
+            ) : null}
           </InlineStack>
           <Text as="p" variant="bodySm" tone="subdued">
             {lifecycle.message}
