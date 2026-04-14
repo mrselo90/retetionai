@@ -141,6 +141,7 @@ type SetupStep = {
   status: "complete" | "pending";
   detail: string;
   to: string;
+  actionLabel?: string;
 };
 
 export function useAppBootstrapData() {
@@ -252,8 +253,9 @@ function AppShell({ initialShop }: { initialShop: string }) {
           detail:
             overview.metrics.totalOrders > 0
               ? `${overview.metrics.totalOrders} orders visible.`
-              : "No order activity yet.",
-          to: "/app/integrations",
+              : "Create and fulfill a Shopify test order, then refresh integration status.",
+          to: "/app/integrations#orders-flow",
+          actionLabel: "Open order flow setup",
         },
       ]
     : [];
@@ -420,7 +422,7 @@ function AppShell({ initialShop }: { initialShop: string }) {
                         </Collapsible>
                         {nextStep ? (
                           <Button url={nextStep.to} variant="primary" fullWidth>
-                            Continue setup
+                            {nextStep.actionLabel || "Continue setup"}
                           </Button>
                         ) : (
                           <Button url="/app/dashboard" fullWidth>

@@ -1,8 +1,8 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { ConnectIcon, CreditCardIcon, SettingsIcon } from "@shopify/polaris-icons";
-import { Button, InlineGrid } from "@shopify/polaris";
+import { ConnectIcon, CreditCardIcon, SettingsIcon, ViewIcon } from "@shopify/polaris-icons";
+import { BlockStack, Button, InlineGrid, InlineStack, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantOverviewFromRequest } from "../platform.server";
 import { ActionCard, EmptyCard, MetricCard, SectionCard, ShellPage, StatusBadge } from "../components/shell-ui";
@@ -14,6 +14,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function IntegrationsPage() {
   const data = useLoaderData<typeof loader>();
+  const hasOrdersFlow = data.metrics.totalOrders > 0;
   const activeCount = data.integrations.filter((integration) =>
     ["active", "connected", "approved"].includes((integration.status || "").toLowerCase()),
   ).length;
@@ -53,6 +54,52 @@ export default function IntegrationsPage() {
             action={{ content: "Open settings", url: "/app/settings", icon: SettingsIcon }}
           />
         </InlineGrid>
+      </SectionCard>
+
+      <SectionCard
+        id="orders-flow"
+        title="Orders flow setup"
+        subtitle="Complete this to finish the checklist step named Orders flowing."
+        badge={
+          <StatusBadge status={hasOrdersFlow ? "active" : "pending"}>
+            {hasOrdersFlow ? "active" : "pending"}
+          </StatusBadge>
+        }
+      >
+        {hasOrdersFlow ? (
+          <ActionCard
+            title="Order flow is active"
+            description={`${data.metrics.totalOrders} order(s) are already visible in Recete. You can continue daily operations from Dashboard.`}
+            status="active"
+            action={{ content: "Open dashboard", url: "/app/dashboard", icon: ViewIcon }}
+          />
+        ) : (
+          <BlockStack gap="300">
+            <Text as="p" variant="bodySm" tone="subdued">
+              No order activity is visible yet. To complete this step, follow these actions:
+            </Text>
+            <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+              <ActionCard
+                title="1) Create a test order in Shopify"
+                description="In Shopify Admin, create a real test order for this store so Recete can receive order data."
+                status="pending"
+              />
+              <ActionCard
+                title="2) Mark it fulfilled/delivered"
+                description="Fulfillment status should progress so post-purchase flows can start."
+                status="pending"
+              />
+            </InlineGrid>
+            <InlineStack gap="200" wrap>
+              <Button url="/app/dashboard" icon={ViewIcon} variant="primary">
+                Go to dashboard
+              </Button>
+              <Button url="/app/integrations" icon={ConnectIcon} variant="tertiary">
+                Refresh order flow status
+              </Button>
+            </InlineStack>
+          </BlockStack>
+        )}
       </SectionCard>
 
       <SectionCard
