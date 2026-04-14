@@ -1893,9 +1893,10 @@ function SetupPanel({
   const hasAiKnowledge = row.hasKnowledge;
   const languagesDone =
     !row.languageWorkflowEnabled || row.languageCoverage >= 100 || row.readyLanguageCount > 0;
+  const enhancementDone = hasAiKnowledge && languagesDone;
 
   const wizardSteps: Array<{
-    key: "instructions" | "responses" | "languages";
+    key: "instructions" | "enhancement";
     title: string;
     why: string;
     done: boolean;
@@ -1907,22 +1908,16 @@ function SetupPanel({
       done: hasGuidance,
     },
     {
-      key: "responses",
-      title: "AI responses",
-      why: "Knowledge generation improves answer quality and confidence.",
-      done: hasAiKnowledge,
-    },
-    {
-      key: "languages",
-      title: "Languages",
-      why: "Language coverage helps Recete answer customers consistently across locales.",
-      done: languagesDone,
+      key: "enhancement",
+      title: "Enhancement",
+      why: "Refine AI answers with extra sources and keep language coverage healthy.",
+      done: enhancementDone,
     },
   ];
   const firstIncompleteIndex = wizardSteps.findIndex((step) => !step.done);
   const wizardComplete = row.state === "ready" || firstIncompleteIndex === -1;
   const activeWizardIndex = firstIncompleteIndex === -1 ? wizardSteps.length - 1 : firstIncompleteIndex;
-  const resolvedWizardIndex = wizardComplete && showReadyEditor ? 0 : activeWizardIndex;
+  const resolvedWizardIndex = activeWizardIndex;
   const activeWizardStep = wizardSteps[resolvedWizardIndex]?.key || "instructions";
   const completedWizardSteps = wizardSteps.filter((step) => step.done).length;
   const wizardProgress = Math.round((completedWizardSteps / wizardSteps.length) * 100);
@@ -1995,18 +1990,18 @@ function SetupPanel({
     submit(formData, { method: "post" });
   }
 
-  const showEditor = activeWizardStep === "instructions" || showReadyEditor;
-  const showAiResponsesStep = activeWizardStep === "responses" && !showEditor;
-  const showLanguagesStep = activeWizardStep === "languages" && !showEditor;
+  const showEditor = activeWizardStep === "instructions";
+  const showEnhancementStep = activeWizardStep === "enhancement" && !showEditor;
   const canContinueStep = !processRunning;
   const setupScore = Math.max(0, Math.min(100, knowledge.qualityScore));
   const readySummary = knowledge.missingInfo.length
     ? "This product can answer questions, but coverage is not complete yet."
     : "This product is fully prepared for customer replies.";
   const runningMessage =
-    activeWizardStep === "languages"
-      ? "We’re updating product languages. This usually takes a few seconds."
-      : "We’re preparing product knowledge. This usually takes a few seconds.";
+    activeWizardStep === "enhancement"
+      ? "We’re applying enhancement updates. This usually takes a few seconds."
+      : "We’re preparing product guidance. This usually takes a few seconds.";
+  const showSetupWizard = !wizardComplete || showReadyEditor || hasGuidance;
 
   const content = (
     <BlockStack gap="500">
@@ -2100,7 +2095,7 @@ function SetupPanel({
         </Banner>
       ) : null}
 
-      {!wizardComplete || showReadyEditor ? (
+      {showSetupWizard ? (
         <Card padding="500">
           <BlockStack gap="400">
             {showEditor && (
@@ -2182,10 +2177,10 @@ function SetupPanel({
               </BlockStack>
             )}
 
-            {showAiResponsesStep && (
+            {showEnhancementStep && (
               <BlockStack gap="300">
                 <Text as="h2" variant="headingMd">
-                  Step 2: AI responses
+                  Step 2: Enhancement
                 </Text>
                 <Text as="p" variant="bodySm" tone="subdued">
                   {wizardSteps[1].why}
@@ -2221,26 +2216,18 @@ function SetupPanel({
                     </>
                   ) : null}
                 </InlineStack>
-              </BlockStack>
-            )}
-
-            {showLanguagesStep && (
-              <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">
-                  Step 3: Languages
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  {wizardSteps[2].why}
-                </Text>
-
-                <TextField
-                  label="Extra source URL"
-                  autoComplete="off"
-                  value={workflowUrl}
-                  onChange={onWorkflowUrlChange}
-                  placeholder="https://example.com/product-faq"
-                  helpText="Optional. If Step 2 was auto-completed, you can still add a source URL here before continuing."
-                />
+                <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+                  <BlockStack gap="100">
+                    <Text as="p" variant="bodySm" fontWeight="semibold">
+                      AI knowledge
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {hasAiKnowledge
+                        ? "AI knowledge exists for this product."
+                        : "AI knowledge is not ready yet. Continue to generate it."}
+                    </Text>
+                  </BlockStack>
+                </Box>
 
                 <Box padding="200" background="bg-surface-secondary" borderRadius="200">
                   <BlockStack gap="100">
