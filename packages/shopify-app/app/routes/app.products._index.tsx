@@ -2196,8 +2196,8 @@ function SetupPanel({
                   onChange={(value) => onChangeDraft("usage_instructions", value)}
                   multiline={6}
                   autoComplete="off"
-                  error={inlineValidationError ? "Customer instructions are required." : undefined}
-                  helpText="Write the exact guidance Recete should send to customers after delivery."
+                  error={inlineValidationError || undefined}
+                  helpText="Optional but recommended. Write the guidance Recete should send to customers after delivery."
                 />
 
                 <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">

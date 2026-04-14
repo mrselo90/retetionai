@@ -71,7 +71,7 @@ export type ProductIdParams = z.infer<typeof productIdSchema>;
  * Product instruction (recipe & usage) request schema
  */
 export const productInstructionSchema = z.object({
-  usage_instructions: z.string().min(1, 'Usage instructions are required').max(50000, 'Max 50k characters').trim(),
+  usage_instructions: z.string().max(50000, 'Max 50k characters').trim(),
   recipe_summary: z.string().max(2000).trim().optional(),
   video_url: z.string().url('Invalid URL').max(2048).trim().optional().or(z.literal('')),
   prevention_tips: z.string().max(5000).trim().optional(),
