@@ -197,16 +197,6 @@ function formatOutcomeDelta(delta?: Record<string, unknown>) {
   return parts.join(" • ");
 }
 
-function displayProductPath(url?: string) {
-  if (!url) return "/";
-
-  try {
-    return new URL(url).pathname || "/";
-  } catch {
-    return url;
-  }
-}
-
 function normalizeOptionalUrl(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return "";
@@ -977,6 +967,62 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           stepOutcomes,
         } satisfies ActionResult;
       }
+      case "bulk-prepare": {
+        const shopifyProductIds = String(formData.get("shopifyProductIds") || "")
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean);
+
+        if (!shopifyProductIds.length) {
+          return { ok: false, intent, error: "Select at least one product." } satisfies ActionResult;
+        }
+
+        const mappingData = await fetchMerchantMappingData(request);
+        const localByExternalId = new Map(
+          (mappingData.localProducts || [])
+            .filter((product) => product.external_id)
+            .map((product) => [String(product.external_id), product]),
+        );
+
+        let processed = 0;
+        let skipped = 0;
+        const selectedProductId = shopifyProductIds[0];
+
+        for (const externalId of shopifyProductIds) {
+          const localProduct = localByExternalId.get(externalId);
+          if (!localProduct?.id) {
+            skipped += 1;
+            continue;
+          }
+          try {
+            await prepareMerchantProductKnowledge(request, localProduct.id);
+            processed += 1;
+          } catch {
+            skipped += 1;
+          }
+        }
+
+        if (!processed) {
+          return {
+            ok: false,
+            intent,
+            selectedProductId,
+            error: "No selected products were ready for bulk update.",
+          } satisfies ActionResult;
+        }
+
+        const message =
+          skipped > 0
+            ? `AI update started for ${processed} products. ${skipped} products were skipped.`
+            : `AI update started for ${processed} products.`;
+
+        return {
+          ok: true,
+          intent,
+          selectedProductId,
+          message,
+        } satisfies ActionResult;
+      }
       case "delete": {
         const productId = String(formData.get("productId") || "").trim();
         const productName = String(formData.get("productName") || "").trim();
@@ -1065,6 +1111,7 @@ export default function ProductsPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
+  const submit = useSubmit();
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [showReadyProducts, setShowReadyProducts] = useState(false);
@@ -1081,6 +1128,7 @@ export default function ProductsPage() {
   const [workflowUrlByProduct, setWorkflowUrlByProduct] = useState<Record<string, string>>({});
   const [previewQuestionByProduct, setPreviewQuestionByProduct] = useState<Record<string, string>>({});
   const [previewAnswerByProduct, setPreviewAnswerByProduct] = useState<Record<string, string>>({});
+  const [bulkSelectedProductIds, setBulkSelectedProductIds] = useState<string[]>([]);
   const [outcomesByProduct, setOutcomesByProduct] = useState<
     Record<string, Partial<Record<ProductStepOutcome["step"], StepOutcomeState>>>
   >({});
@@ -1311,6 +1359,10 @@ export default function ProductsPage() {
     navigation.state === "submitting" &&
     currentSelectedProductId === selectedRow?.shopify.id &&
     currentIntent === "preview-answer";
+  const isBulkPreparing =
+    navigation.state === "submitting" &&
+    currentIntent === "bulk-prepare";
+  const selectedBulkCount = bulkSelectedProductIds.length;
 
   function replaceProductSearchParam(productId: string | null) {
     if (typeof window === "undefined") return;
@@ -1355,6 +1407,28 @@ export default function ProductsPage() {
     window.requestAnimationFrame(() => {
       document.getElementById("all-products-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+  }
+
+  function toggleBulkSelection(productId: string, checked: boolean) {
+    setBulkSelectedProductIds((current) => {
+      if (checked) {
+        if (current.includes(productId)) return current;
+        return [...current, productId];
+      }
+      return current.filter((id) => id !== productId);
+    });
+  }
+
+  function setBulkSelectionFromRows(nextRows: WorkspaceRow[]) {
+    setBulkSelectedProductIds(nextRows.map((row) => row.shopify.id));
+  }
+
+  function submitBulkPrepare() {
+    if (!bulkSelectedProductIds.length) return;
+    const formData = new FormData();
+    formData.set("intent", "bulk-prepare");
+    formData.set("shopifyProductIds", bulkSelectedProductIds.join(","));
+    submit(formData, { method: "post" });
   }
 
   if (navigation.state === "loading" && rows.length === 0) {
@@ -1564,6 +1638,40 @@ export default function ProductsPage() {
                   </Text>
                 </InlineGrid>
 
+                <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+                  <InlineStack align="space-between" blockAlign="center" wrap gap="200">
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {selectedBulkCount > 0
+                        ? `${selectedBulkCount} product${selectedBulkCount > 1 ? "s" : ""} selected`
+                        : "Select products to run bulk actions."}
+                    </Text>
+                    <InlineStack gap="200" wrap>
+                      <Button
+                        variant="tertiary"
+                        onClick={() => setBulkSelectionFromRows(searchedRows)}
+                        disabled={searchedRows.length === 0}
+                      >
+                        Select all shown
+                      </Button>
+                      <Button
+                        variant="tertiary"
+                        onClick={() => setBulkSelectedProductIds([])}
+                        disabled={selectedBulkCount === 0}
+                      >
+                        Clear
+                      </Button>
+                      <Button
+                        variant="primary"
+                        onClick={submitBulkPrepare}
+                        loading={isBulkPreparing}
+                        disabled={selectedBulkCount === 0 || isBulkPreparing}
+                      >
+                        Update AI for selected
+                      </Button>
+                    </InlineStack>
+                  </InlineStack>
+                </Box>
+
                 {needsActionRows.length > 0 ? (
                   <BlockStack gap="200">
                     <Text as="p" variant="bodySm" fontWeight="semibold">
@@ -1573,8 +1681,9 @@ export default function ProductsPage() {
                       <ProductBrowserItem
                         key={row.shopify.id}
                         row={row}
-                        shopDomain={data.shopDomain}
                         selected={row.shopify.id === selectedProductId}
+                        bulkSelected={bulkSelectedProductIds.includes(row.shopify.id)}
+                        onBulkSelectChange={(checked) => toggleBulkSelection(row.shopify.id, checked)}
                         onSelect={() => {
                           handleSelectProduct(row.shopify.id, true);
                         }}
@@ -1610,8 +1719,9 @@ export default function ProductsPage() {
                           <ProductBrowserItem
                             key={row.shopify.id}
                             row={row}
-                            shopDomain={data.shopDomain}
                             selected={row.shopify.id === selectedProductId}
+                            bulkSelected={bulkSelectedProductIds.includes(row.shopify.id)}
+                            onBulkSelectChange={(checked) => toggleBulkSelection(row.shopify.id, checked)}
                             onSelect={() => {
                               handleSelectProduct(row.shopify.id, true);
                             }}
@@ -1733,9 +1843,6 @@ function ProductListItem({
   quiet?: boolean;
   children?: ReactNode;
 }) {
-  const productPath = displayProductPath(
-    row.localProduct?.url || `https://${shopDomain}/products/${row.shopify.handle}`,
-  );
   const journey = getJourneyMeta(row);
 
   return (
@@ -1900,41 +2007,12 @@ function SetupPanel({
   const [showDangerZone, setShowDangerZone] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const hasPersistedGuidance = Boolean(row.instruction?.usage_instructions?.trim());
-  // Do not mark Step 1 as done from unsaved typing. This prevents accidental
-  // step jumps (e.g. typing one character) before pressing Continue/Save draft.
-  const hasGuidance = hasPersistedGuidance || (!dirty && Boolean(draft.usage_instructions.trim()));
+  const hasGuidance = Boolean(row.instruction?.usage_instructions?.trim()) || (!dirty && Boolean(draft.usage_instructions.trim()));
   const hasAiKnowledge = row.hasKnowledge;
   const languagesDone =
     !row.languageWorkflowEnabled || row.languageCoverage >= 100 || row.readyLanguageCount > 0;
   const enhancementDone = hasAiKnowledge && languagesDone;
-
-  const wizardSteps: Array<{
-    key: "instructions" | "enhancement";
-    title: string;
-    why: string;
-    done: boolean;
-  }> = [
-    {
-      key: "instructions",
-      title: "Customer instructions",
-      why: "Clear instructions define what customers should do after delivery.",
-      done: hasGuidance,
-    },
-    {
-      key: "enhancement",
-      title: "Enhancement",
-      why: "Refine AI answers with extra sources and keep language coverage healthy.",
-      done: enhancementDone,
-    },
-  ];
-  const firstIncompleteIndex = wizardSteps.findIndex((step) => !step.done);
-  const wizardComplete = row.state === "ready" || firstIncompleteIndex === -1;
-  const activeWizardIndex = firstIncompleteIndex === -1 ? wizardSteps.length - 1 : firstIncompleteIndex;
-  const resolvedWizardIndex = activeWizardIndex;
-  const activeWizardStep = wizardSteps[resolvedWizardIndex]?.key || "instructions";
-  const completedWizardSteps = wizardSteps.filter((step) => step.done).length;
-  const wizardProgress = Math.round((completedWizardSteps / wizardSteps.length) * 100);
+  const setupComplete = row.state === "ready" || (hasGuidance && enhancementDone);
   const knowledge = buildKnowledgeSummary(row);
   const canSubmitSave = !isSavingSetup && !isRunningAiAction && !isDeletingLocalSetup;
   const canRunAiStep = !isRunningAiAction && !isSavingSetup && !isDeletingLocalSetup;
@@ -1947,7 +2025,6 @@ function SetupPanel({
     lifecycle.key === "ready" ? "Ready" : lifecycle.key === "processing" ? "In progress" : "Needs attention";
   const statusTone: "success" | "info" | "attention" =
     lifecycle.key === "ready" ? "success" : lifecycle.key === "processing" ? "info" : "attention";
-  const activeStepMeta = wizardSteps[resolvedWizardIndex];
 
   useEffect(() => {
     setShowReadyEditor(false);
@@ -2004,19 +2081,14 @@ function SetupPanel({
     submit(formData, { method: "post" });
   }
 
-  const showEditor = activeWizardStep === "instructions";
-  const showEnhancementStep = activeWizardStep === "enhancement" && !showEditor;
   const enhancementNeedsRun = !enhancementDone || Boolean(workflowUrl.trim());
-  const canContinueStep = !processRunning;
+  const canSubmitStep = !processRunning;
   const setupScore = Math.max(0, Math.min(100, knowledge.qualityScore));
   const readySummary = knowledge.missingInfo.length
     ? "This product can answer questions, but coverage is not complete yet."
     : "This product is fully prepared for customer replies.";
-  const runningMessage =
-    activeWizardStep === "enhancement"
-      ? "We’re applying enhancement updates. This usually takes a few seconds."
-      : "We’re preparing product guidance. This usually takes a few seconds.";
-  const showSetupWizard = !wizardComplete || showReadyEditor || hasGuidance;
+  const runningMessage = "We’re applying updates. This usually takes a few seconds.";
+  const showSetupWizard = true;
 
   const content = (
     <BlockStack gap="500">
@@ -2065,9 +2137,6 @@ function SetupPanel({
                   {row.shopify.title}
                 </Text>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  {[row.shopify.vendor || "Shopify product", `/${row.shopify.handle}`].join(" • ")}
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
                   {lifecycle.message}
                 </Text>
               </BlockStack>
@@ -2078,17 +2147,14 @@ function SetupPanel({
           </InlineStack>
 
           <Box padding="150" background="bg-surface-secondary" borderRadius="200">
-            <BlockStack gap="100">
-              <InlineStack align="space-between" blockAlign="center">
-                <Text as="p" variant="bodySm" fontWeight="semibold">
-                  Step {resolvedWizardIndex + 1} of {wizardSteps.length}
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  {activeStepMeta?.title || "Setup"}
-                </Text>
-              </InlineStack>
-              <ProgressBar progress={wizardProgress} size="small" />
-            </BlockStack>
+            <InlineStack align="space-between" blockAlign="center" wrap>
+              <Text as="p" variant="bodySm" tone="subdued">
+                Fill guidance and enhancement fields on this page, then update AI.
+              </Text>
+              <Badge tone={setupComplete ? "success" : "attention"}>
+                {setupComplete ? "Complete" : "Needs action"}
+              </Badge>
+            </InlineStack>
           </Box>
         </BlockStack>
       </div>
@@ -2113,14 +2179,13 @@ function SetupPanel({
       {showSetupWizard ? (
         <Card padding="500">
           <BlockStack gap="400">
-            {showEditor && (
-              <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">
-                  Step 1: Customer instructions
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  {wizardSteps[0].why}
-                </Text>
+            <BlockStack gap="300">
+              <Text as="h2" variant="headingMd">
+                Customer instructions
+              </Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                Clear instructions define what customers should do after delivery.
+              </Text>
                 <Box padding="200" background="bg-surface-secondary" borderRadius="200">
                   <BlockStack gap="100">
                     <Text as="p" variant="bodySm" fontWeight="semibold">
@@ -2169,7 +2234,7 @@ function SetupPanel({
                 </InlineGrid>
 
                 <InlineStack gap="200" wrap>
-                  {canContinueStep ? (
+                  {canSubmitStep ? (
                     <>
                       <Button
                         variant="primary"
@@ -2177,7 +2242,7 @@ function SetupPanel({
                         disabled={!canSubmitSave}
                         onClick={() => submitSaveDraft(true)}
                       >
-                        Continue
+                        Save and update AI
                       </Button>
                       <Button
                         variant="secondary"
@@ -2189,17 +2254,15 @@ function SetupPanel({
                     </>
                   ) : null}
                 </InlineStack>
-              </BlockStack>
-            )}
+            </BlockStack>
 
-            {showEnhancementStep && (
-              <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">
-                  Step 2: Enhancement
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  {wizardSteps[1].why}
-                </Text>
+            <BlockStack gap="300">
+              <Text as="h2" variant="headingMd">
+                Enhancement
+              </Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                Refine AI answers with extra sources and keep language coverage healthy.
+              </Text>
 
                 <TextField
                   label="Extra source URL"
@@ -2243,7 +2306,7 @@ function SetupPanel({
                 ) : null}
 
                 <InlineStack gap="200" wrap>
-                  {canContinueStep ? (
+                  {canSubmitStep ? (
                     <>
                       <Button
                         variant="primary"
@@ -2257,7 +2320,7 @@ function SetupPanel({
                           onBackToProducts?.();
                         }}
                       >
-                        {enhancementNeedsRun ? "Continue" : "Done"}
+                        {enhancementNeedsRun ? "Update AI" : "Done"}
                       </Button>
                       <Button
                         variant="secondary"
@@ -2269,8 +2332,7 @@ function SetupPanel({
                     </>
                   ) : null}
                 </InlineStack>
-              </BlockStack>
-            )}
+            </BlockStack>
           </BlockStack>
         </Card>
       ) : (
@@ -2414,7 +2476,7 @@ function SetupPanel({
         </BlockStack>
       )}
 
-      {wizardComplete && row.localProduct && (
+      {setupComplete && row.localProduct && (
         <BlockStack gap="200">
           <InlineStack>
             <Button
@@ -2467,19 +2529,18 @@ function SetupPanel({
 
 function ProductBrowserItem({
   row,
-  shopDomain,
   selected,
+  bulkSelected,
+  onBulkSelectChange,
   onSelect,
 }: {
   row: WorkspaceRow;
-  shopDomain: string;
   selected: boolean;
+  bulkSelected: boolean;
+  onBulkSelectChange: (checked: boolean) => void;
   onSelect: () => void;
 }) {
   const journey = getJourneyMeta(row);
-  const productPath = displayProductPath(
-    row.localProduct?.url || `https://${shopDomain}/products/${row.shopify.handle}`,
-  );
   const lifecycle = getLifecyclePresentation(row);
 
   return (
@@ -2493,6 +2554,12 @@ function ProductBrowserItem({
       <InlineGrid columns={{ xs: 1, md: "2fr auto" }} gap="200">
         <BlockStack gap="100">
           <InlineStack gap="150" wrap blockAlign="center">
+            <Checkbox
+              label=""
+              labelHidden
+              checked={bulkSelected}
+              onChange={onBulkSelectChange}
+            />
             <Text as="h3" variant="headingSm">
               {row.shopify.title}
             </Text>
@@ -2500,9 +2567,6 @@ function ProductBrowserItem({
               {lifecycle.label}
             </Badge>
           </InlineStack>
-          <Text as="p" variant="bodySm" tone="subdued">
-            {[row.shopify.vendor || "Shopify product", productPath].filter(Boolean).join(" • ")}
-          </Text>
           <Text as="p" variant="bodySm" tone="subdued">
             {lifecycle.message}
           </Text>
