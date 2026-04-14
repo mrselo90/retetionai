@@ -96,6 +96,108 @@ export async function permanentlyDeleteMerchantData(merchantId: string): Promise
 }
 
 /**
+ * Clear merchant operational data while preserving the merchant record itself.
+ * This is intended for admin reset flows where merchant identity/bootstrap must stay.
+ */
+export async function clearMerchantDataKeepMerchant(merchantId: string): Promise<void> {
+  const supabase = getSupabaseServiceClient();
+
+  const { data: products, error: productsError } = await supabase
+    .from('products')
+    .select('id')
+    .eq('merchant_id', merchantId);
+  if (productsError) {
+    throw new Error(`Failed to load merchant products: ${productsError.message}`);
+  }
+  const productIds = (products || []).map((p) => String(p.id));
+
+  const { data: facts, error: factsError } = await supabase
+    .from('product_facts')
+    .select('id')
+    .eq('merchant_id', merchantId);
+  if (factsError && factsError.code !== '42P01') {
+    throw new Error(`Failed to load product facts: ${factsError.message}`);
+  }
+  const factIds = (facts || []).map((f: any) => String(f.id));
+
+  // Child rows first
+  if (factIds.length > 0) {
+    const { error } = await supabase.from('product_fact_evidence').delete().in('product_fact_id', factIds);
+    if (error && error.code !== '42P01') throw new Error(`Failed to delete product_fact_evidence: ${error.message}`);
+  }
+
+  if (productIds.length > 0) {
+    const { error: chunksError } = await supabase.from('knowledge_chunks').delete().in('product_id', productIds);
+    if (chunksError && chunksError.code !== '42P01') {
+      throw new Error(`Failed to delete knowledge_chunks: ${chunksError.message}`);
+    }
+    const { error: i18nChunksError } = await supabase.from('knowledge_chunks_i18n').delete().in('product_id', productIds);
+    if (i18nChunksError && i18nChunksError.code !== '42P01') {
+      throw new Error(`Failed to delete knowledge_chunks_i18n: ${i18nChunksError.message}`);
+    }
+    const { error: productI18nError } = await supabase.from('product_i18n').delete().in('product_id', productIds);
+    if (productI18nError && productI18nError.code !== '42P01') {
+      throw new Error(`Failed to delete product_i18n: ${productI18nError.message}`);
+    }
+  }
+
+  // Merchant-scoped operational tables
+  const merchantScopedTables = [
+    'analytics_events',
+    'ai_usage_events',
+    'delivery_template_events',
+    'feedback_requests',
+    'return_prevention_attempts',
+    'whatsapp_outbound_events',
+    'whatsapp_inbound_events',
+    'product_instructions',
+    'sync_jobs',
+    'conversations',
+    'orders',
+    'users',
+    'products',
+    'product_facts',
+    'integrations',
+    'external_events',
+    'scheduled_tasks',
+    'usage_tracking',
+    'gdpr_exports',
+    'gdpr_jobs',
+    'merchant_addons',
+    'merchant_bot_info',
+    'merchant_members',
+    'platform_ai_settings',
+    'shop_settings',
+    'subscription_plans',
+  ] as const;
+
+  for (const table of merchantScopedTables) {
+    const { error } = await supabase.from(table).delete().eq('merchant_id', merchantId);
+    if (error && error.code !== '42P01') {
+      throw new Error(`Failed to delete ${table}: ${error.message}`);
+    }
+  }
+
+  // Reset merchant mutable settings/billing flags but preserve merchant identity.
+  const { error: merchantUpdateError } = await supabase
+    .from('merchants')
+    .update({
+      persona_settings: {},
+      notification_phone: null,
+      guardrail_settings: { custom_guardrails: [] },
+      subscription_status: 'inactive',
+      subscription_plan: null,
+      trial_ends_at: null,
+      deleted_at: null,
+    })
+    .eq('id', merchantId);
+
+  if (merchantUpdateError) {
+    throw new Error(`Failed to reset merchant settings: ${merchantUpdateError.message}`);
+  }
+}
+
+/**
  * Soft delete user data
  */
 export async function softDeleteUserData(userId: string): Promise<{

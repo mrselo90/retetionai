@@ -13,6 +13,7 @@ import { MultiLangChunkShadowWriteService } from '../lib/multiLangRag/chunkShado
 import { ShopSettingsService } from '../lib/multiLangRag/shopSettingsService.js';
 import { normalizeLangCode } from '../lib/multiLangRag/utils.js';
 import { buildProductKnowledgeHealthMap, summarizeMerchantKnowledgeHealth } from '../lib/knowledgeHealth.js';
+import { clearMerchantDataKeepMerchant } from '../lib/dataDeletion.js';
 
 const merchants = new Hono();
 
@@ -353,6 +354,32 @@ merchants.put('/me/guardrails', async (c) => {
     return c.json({
       error: 'Internal server error',
     }, 500);
+  }
+});
+
+/**
+ * Clear merchant operational data but keep merchant identity/bootstrap row.
+ * DELETE /api/merchants/me/data-reset
+ */
+merchants.delete('/me/data-reset', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const body = await c.req.json().catch(() => ({} as any));
+    const confirm = body?.confirm === true;
+    if (!confirm) {
+      return c.json({ error: 'Deletion must be confirmed' }, 400);
+    }
+
+    await clearMerchantDataKeepMerchant(merchantId);
+    await invalidateApiCache(`products:${merchantId}`);
+
+    return c.json({
+      ok: true,
+      message: 'Merchant operational data was deleted. Merchant record is preserved.',
+    });
+  } catch (error) {
+    logger.error({ error }, 'Merchant data reset failed');
+    return c.json({ error: 'Failed to reset merchant data' }, 500);
   }
 });
 

@@ -351,7 +351,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         intent,
         message:
           result?.message ||
-          "All merchant data has been permanently deleted. This action is irreversible.",
+          "Merchant operational data has been deleted. Merchant identity is preserved. This action is irreversible.",
       } satisfies ActionResult;
     }
 
@@ -938,7 +938,8 @@ export default function SettingsPage() {
             <BlockStack gap="300">
               <Banner tone="critical">
                 This permanently deletes merchant data including products, knowledge, conversations, orders, users,
-                analytics, and WhatsApp event records. This action cannot be undone.
+                analytics, billing/add-ons, settings, integrations, and WhatsApp event records while keeping the merchant
+                creation record. This action cannot be undone.
               </Banner>
               <Form method="post">
                 <input type="hidden" name="intent" value="wipe-merchant-data" />

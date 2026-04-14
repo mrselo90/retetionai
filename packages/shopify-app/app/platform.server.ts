@@ -720,15 +720,14 @@ export async function cancelMerchantAddon(request: Request, addonKey: string) {
 }
 
 export async function deleteMerchantDataFromAdminPanel(request: Request) {
-  return internalMerchantRequest(request, "/api/gdpr/delete", {
+  return internalMerchantRequest(request, "/api/merchants/me/data-reset", {
     method: "DELETE",
     body: JSON.stringify({
       confirm: true,
-      permanent: true,
     }),
   }) as Promise<{
+    ok?: boolean;
     message?: string;
-    warning?: string;
   }>;
 }
 
