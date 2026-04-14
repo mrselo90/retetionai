@@ -271,7 +271,7 @@ function AppShell({ initialShop }: { initialShop: string }) {
       <Box background="bg-surface" minHeight="100vh" padding="400">
         <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
           <BlockStack gap="400">
-            {navigation.state !== "idle" ? (
+            {navigation.state === "loading" ? (
               <InlineStack align="center">
                 <Spinner accessibilityLabel="Loading page" size="small" />
               </InlineStack>
