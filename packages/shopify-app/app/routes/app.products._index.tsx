@@ -949,7 +949,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         let processed = 0;
         let skipped = 0;
-        const selectedProductId = shopifyProductIds[0];
 
         for (const externalId of shopifyProductIds) {
           const localProduct = localByExternalId.get(externalId);
@@ -969,7 +968,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           return {
             ok: false,
             intent,
-            selectedProductId,
             error: "No selected products had a saved setup yet. Open each product once and click Save draft, then retry bulk update.",
           } satisfies ActionResult;
         }
@@ -982,7 +980,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return {
           ok: true,
           intent,
-          selectedProductId,
           message,
         } satisfies ActionResult;
       }
