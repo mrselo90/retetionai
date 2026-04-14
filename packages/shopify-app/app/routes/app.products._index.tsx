@@ -38,6 +38,7 @@ import {
   createMerchantProduct,
   deleteMerchantProduct,
   enrichMerchantProductFromUrl,
+  fetchMerchantMappingData,
   fetchMerchantMultiLangSettings,
   fetchMerchantProductInstructions,
   fetchMerchantProducts,
@@ -661,6 +662,19 @@ async function persistProductSetup({
   }
 
   let productId = existingProductId;
+  if (!productId) {
+    // Defensive resolution: if UI context misses existingProductId for the same
+    // Shopify product, recover it from merchant mappings so we don't consume
+    // plan capacity as if this were a brand-new setup.
+    const mappingData = await fetchMerchantMappingData(request).catch(() => null);
+    const mappedProduct = mappingData?.localProducts?.find(
+      (product) => String(product.external_id || "").trim() === externalId,
+    );
+    if (mappedProduct?.id) {
+      productId = mappedProduct.id;
+    }
+  }
+
   if (!productId) {
     const plan = await getPlanSnapshotByDomain(shopDomain);
     const recipeCapacity = await canCreateRecipe(plan.shopId);
