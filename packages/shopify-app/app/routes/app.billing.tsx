@@ -7,10 +7,10 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   Banner,
   Badge,
-  Box,
   BlockStack,
   Button,
   Card,
+  EmptyState,
   InlineGrid,
   InlineStack,
   List,
@@ -25,8 +25,8 @@ import {
   STARTER_MONTHLY_PLAN,
   STARTER_YEARLY_PLAN,
 } from "../shopify.server";
-import { getPlanDefinitionByKey, isPlanKey } from "../services/planDefinitions";
-import { EmptyCard, SectionCard, ShellPage, StatusBadge } from "../components/shell-ui";
+import { isPlanKey } from "../services/planDefinitions";
+import { SectionCard, ShellPage, StatusBadge } from "../components/shell-ui";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 
 const ALL_PLAN_KEYS = [
@@ -160,9 +160,6 @@ export default function BillingPage() {
   const activePlanName = data.subscriptions.find(
     (s) => s.status === "ACTIVE" || s.status === "ACCEPTED",
   )?.name;
-  const requestedPlanDefinition = data.requestedPlan
-    ? getPlanDefinitionByKey(data.requestedPlan)
-    : null;
   const launchState = data.hasActivePayment
     ? {
         title: "Billing is active",
@@ -192,23 +189,6 @@ export default function BillingPage() {
         </Banner>
       ) : null}
 
-      {data.managedPricingUrl ? (
-        <SectionCard
-          title="Change plan in Shopify"
-          subtitle={
-            requestedPlanDefinition
-              ? `You selected ${requestedPlanDefinition.label}. Shopify will show the hosted plan selection page for this app.`
-              : "Plan upgrades and downgrades are handled on Shopify's hosted pricing page."
-          }
-        >
-          <Box paddingBlockStart="200">
-            <Button url={data.managedPricingUrl} target="_top" variant="primary">
-              Open Shopify plan selection
-            </Button>
-          </Box>
-        </SectionCard>
-      ) : null}
-
       <SectionCard
         title="Current subscription"
         badge={
@@ -229,10 +209,25 @@ export default function BillingPage() {
             ))}
           </InlineGrid>
         ) : (
-          <EmptyCard
-            heading="No active subscription"
-            description="Select a Shopify plan to activate billing for this store."
-          />
+          <Card padding="500">
+            <EmptyState
+              heading="No active subscription"
+              image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+            >
+              <BlockStack gap="200">
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Select a Shopify plan to activate billing for this store.
+                </Text>
+                {data.managedPricingUrl ? (
+                  <InlineStack>
+                    <Button url={data.managedPricingUrl} target="_top" variant="primary">
+                      Choose a Shopify plan
+                    </Button>
+                  </InlineStack>
+                ) : null}
+              </BlockStack>
+            </EmptyState>
+          </Card>
         )}
       </SectionCard>
 

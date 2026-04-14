@@ -359,11 +359,6 @@ function AppShell({ initialShop }: { initialShop: string }) {
                     <Text as="h2" variant="headingMd">
                       Merchant workspace
                     </Text>
-                    <Box maxWidth="20rem">
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        Keep setup and daily operations inside Shopify without a second admin panel feel.
-                      </Text>
-                    </Box>
                   </BlockStack>
 
                   {setupSteps.length > 0 && !isProductSetupDetailView ? (
@@ -427,11 +422,7 @@ function AppShell({ initialShop }: { initialShop: string }) {
                           <Button url={nextStep.to} variant="primary" fullWidth>
                             {nextStep.actionLabel || "Continue setup"}
                           </Button>
-                        ) : (
-                          <Button url="/app/dashboard" fullWidth>
-                            Open dashboard
-                          </Button>
-                        )}
+                        ) : null}
                       </BlockStack>
                     </Box>
                   ) : null}
