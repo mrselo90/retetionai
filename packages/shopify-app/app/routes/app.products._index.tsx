@@ -1611,7 +1611,7 @@ export default function ProductsPage() {
           </Layout.Section>
         ) : null}
 
-        {!isSingleTaskMode ? (
+        {!selectedRow ? (
           <Layout.Section>
             <Box id="all-products-panel" padding="300" borderWidth="025" borderColor="border" borderRadius="300">
               <BlockStack gap="300">
