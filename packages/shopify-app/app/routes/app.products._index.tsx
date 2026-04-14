@@ -2450,16 +2450,28 @@ function SetupPanel({
 
       {setupComplete && row.localProduct && (
         <BlockStack gap="200">
-          <InlineStack>
-            <Button
-              size="slim"
-              variant="plain"
-              tone="critical"
-              onClick={() => setShowDangerZone((current) => !current)}
-            >
-              {showDangerZone ? "Hide danger zone" : "Show danger zone"}
-            </Button>
-          </InlineStack>
+          <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+            <BlockStack gap="150">
+              <InlineStack align="space-between" blockAlign="center" wrap gap="200">
+                <BlockStack gap="050">
+                  <Text as="p" variant="bodySm" fontWeight="semibold" tone="critical">
+                    Danger zone
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Remove only if you want to delete this product&apos;s Recete setup and AI knowledge.
+                  </Text>
+                </BlockStack>
+                <Button
+                  size="slim"
+                  variant="secondary"
+                  tone="critical"
+                  onClick={() => setShowDangerZone((current) => !current)}
+                >
+                  {showDangerZone ? "Hide" : "Open"}
+                </Button>
+              </InlineStack>
+            </BlockStack>
+          </Box>
 
           {showDangerZone && (
             <Box padding="200" background="bg-surface-secondary" borderRadius="200">
