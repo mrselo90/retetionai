@@ -1886,7 +1886,10 @@ function SetupPanel({
   const [showDangerZone, setShowDangerZone] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const hasGuidance = Boolean(draft.usage_instructions.trim() || row.instruction?.usage_instructions?.trim());
+  const hasPersistedGuidance = Boolean(row.instruction?.usage_instructions?.trim());
+  // Do not mark Step 1 as done from unsaved typing. This prevents accidental
+  // step jumps (e.g. typing one character) before pressing Continue/Save draft.
+  const hasGuidance = hasPersistedGuidance || (!dirty && Boolean(draft.usage_instructions.trim()));
   const hasAiKnowledge = row.hasKnowledge;
   const languagesDone =
     !row.languageWorkflowEnabled || row.languageCoverage >= 100 || row.readyLanguageCount > 0;
