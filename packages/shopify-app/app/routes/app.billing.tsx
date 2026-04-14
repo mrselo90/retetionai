@@ -52,6 +52,9 @@ const PLAN_TIERS: ReadonlyArray<{
   yearly: string;
   planKey: (typeof ALL_PLAN_KEYS)[number];
   recommended?: boolean;
+  audience: string;
+  yearlySavings: string;
+  ctaLabel: string;
   features: readonly string[];
 }> = [
   {
@@ -59,6 +62,9 @@ const PLAN_TIERS: ReadonlyArray<{
     monthly: "$29/mo",
     yearly: "$290/yr",
     planKey: STARTER_MONTHLY_PLAN,
+    audience: "Best for new or low-volume stores starting post-purchase support.",
+    yearlySavings: "Save $58 with yearly billing (2 months free).",
+    ctaLabel: "Choose Starter plan",
     features: [
       "150 included chats per month",
       "Up to 20 recipes",
@@ -72,6 +78,9 @@ const PLAN_TIERS: ReadonlyArray<{
     yearly: "$690/yr",
     planKey: GROWTH_MONTHLY_PLAN,
     recommended: true,
+    audience: "Best for active stores with daily support traffic and regular repeat orders.",
+    yearlySavings: "Save $138 with yearly billing (2 months free).",
+    ctaLabel: "Choose Growth plan",
     features: [
       "1,000 included chats per month",
       "Up to 500 recipes",
@@ -84,6 +93,9 @@ const PLAN_TIERS: ReadonlyArray<{
     monthly: "$199/mo",
     yearly: "$1,990/yr",
     planKey: PRO_MONTHLY_PLAN,
+    audience: "Best for high-volume operations that need advanced automation and insights.",
+    yearlySavings: "Save $398 with yearly billing (2 months free).",
+    ctaLabel: "Choose Pro plan",
     features: [
       "3,000 included chats per month",
       "Unlimited recipes",
@@ -165,7 +177,7 @@ export default function BillingPage() {
   return (
     <ShellPage
       title="Billing"
-      subtitle="Choose a subscription plan to activate Recete on your store."
+      subtitle="Choose the plan that matches your monthly support volume to activate Recete."
     >
       {data.error ? (
         <Card padding="300">
@@ -188,7 +200,7 @@ export default function BillingPage() {
 
       <SectionCard
         title="Compare plans"
-        subtitle="Select a plan to continue setup and activate billing in Shopify."
+        subtitle="Pick based on chat volume and feature depth. You will confirm billing inside Shopify on the next screen."
       >
         <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
           {PLAN_TIERS.map((plan) => {
@@ -205,10 +217,13 @@ export default function BillingPage() {
                       {plan.recommended ? <Badge tone="success">Recommended</Badge> : null}
                       {isCurrentTier ? <Badge tone="info">Current</Badge> : null}
                     </InlineStack>
-                    <InlineStack gap="200">
+                    <InlineStack gap="200" blockAlign="center">
                       <Badge tone="info">{plan.monthly}</Badge>
                       <Badge>{plan.yearly}</Badge>
                     </InlineStack>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {plan.audience}
+                    </Text>
                   </BlockStack>
 
                   <List>
@@ -216,6 +231,13 @@ export default function BillingPage() {
                       <List.Item key={feature}>{feature}</List.Item>
                     ))}
                   </List>
+
+                  <Card background="bg-surface-secondary" padding="200">
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {plan.yearlySavings}
+                    </Text>
+                  </Card>
+
                   <Button
                     variant="primary"
                     fullWidth
@@ -223,8 +245,11 @@ export default function BillingPage() {
                     url={planSelectionUrl}
                     target="_top"
                   >
-                    Choose {plan.tier}
+                    {plan.ctaLabel}
                   </Button>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Redirects to Shopify billing approval.
+                  </Text>
                 </BlockStack>
               </Card>
             );
