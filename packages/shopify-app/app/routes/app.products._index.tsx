@@ -2077,7 +2077,7 @@ function SetupPanel({
     formData.set("productId", row.localProduct.id);
     formData.set("shopifyProductId", row.shopify.id);
     formData.set("productName", row.shopify.title);
-    formData.set("previewQuestion", previewQuestion.trim() || "How do I use this product?");
+    formData.set("question", previewQuestion.trim() || "How do I use this product?");
     submit(formData, { method: "post" });
   }
 
@@ -2088,7 +2088,6 @@ function SetupPanel({
     ? "This product can answer questions, but coverage is not complete yet."
     : "This product is fully prepared for customer replies.";
   const runningMessage = "We’re applying updates. This usually takes a few seconds.";
-  const showSetupWizard = true;
 
   const content = (
     <BlockStack gap="500">
@@ -2176,10 +2175,9 @@ function SetupPanel({
         </Banner>
       ) : null}
 
-      {showSetupWizard ? (
-        <Card padding="500">
-          <BlockStack gap="400">
-            <BlockStack gap="300">
+      <Card padding="500">
+        <BlockStack gap="400">
+          <BlockStack gap="300">
               <Text as="h2" variant="headingMd">
                 Customer instructions
               </Text>
@@ -2254,9 +2252,9 @@ function SetupPanel({
                     </>
                   ) : null}
                 </InlineStack>
-            </BlockStack>
+          </BlockStack>
 
-            <BlockStack gap="300">
+          <BlockStack gap="300">
               <Text as="h2" variant="headingMd">
                 Enhancement
               </Text>
@@ -2332,149 +2330,123 @@ function SetupPanel({
                     </>
                   ) : null}
                 </InlineStack>
-            </BlockStack>
+          </BlockStack>
+        </BlockStack>
+      </Card>
+
+      <BlockStack gap="400">
+        <Card padding="500">
+          <BlockStack gap="300">
+            <InlineStack align="space-between" blockAlign="center" wrap>
+              <BlockStack gap="050">
+                <Text as="h2" variant="headingMd">
+                  Setup completeness: {setupScore}%
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  {readySummary}
+                </Text>
+              </BlockStack>
+              <Badge tone={knowledge.missingInfo.length ? "attention" : "success"}>
+                {knowledge.missingInfo.length ? "Needs attention" : "Ready"}
+              </Badge>
+            </InlineStack>
+            <ProgressBar progress={setupScore} tone={knowledge.missingInfo.length ? "highlight" : "success"} />
           </BlockStack>
         </Card>
-      ) : (
-        <BlockStack gap="400">
-          <Card padding="500">
-            <BlockStack gap="300">
-              <InlineStack align="space-between" blockAlign="center" wrap>
-                <BlockStack gap="050">
-                  <Text as="h2" variant="headingMd">
-                    Setup completeness: {setupScore}%
-                  </Text>
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    {readySummary}
-                  </Text>
-                </BlockStack>
-                <Badge tone={knowledge.missingInfo.length ? "attention" : "success"}>
-                  {knowledge.missingInfo.length ? "Needs attention" : "Ready"}
-                </Badge>
-              </InlineStack>
-              <ProgressBar progress={setupScore} tone={knowledge.missingInfo.length ? "highlight" : "success"} />
-              {knowledge.missingInfo.length > 0 ? (
-                <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-                  <BlockStack gap="100">
-                    <Text as="p" variant="bodySm" fontWeight="semibold">
-                      Missing for full coverage
-                    </Text>
-                    {knowledge.missingInfo.map((item) => (
-                      <Text key={item} as="p" variant="bodySm" tone="subdued">
-                        • {item}
-                      </Text>
-                    ))}
-                    <InlineStack>
-                      <Button onClick={() => setShowReadyEditor(true)} disabled={processRunning}>
-                        Add missing details
-                      </Button>
-                    </InlineStack>
-                  </BlockStack>
-                </Box>
-              ) : (
+
+        <Card padding="400">
+          <BlockStack gap="200">
+            <InlineStack align="space-between" blockAlign="center">
+              <Text as="h3" variant="headingSm">
+                AI knowledge
+              </Text>
+              <Button
+                variant="tertiary"
+                onClick={() => setKnowledgeOpen((current) => !current)}
+                ariaExpanded={knowledgeOpen}
+              >
+                {knowledgeOpen ? "Hide" : "Review"}
+              </Button>
+            </InlineStack>
+            <Text as="p" variant="bodySm" tone="subdued">
+              This is the information Recete uses to answer customer questions.
+            </Text>
+            <Collapsible open={knowledgeOpen} id={`knowledge-${row.shopify.id}`}>
+              <BlockStack gap="200">
+                <InfoMiniCard title="How Recete should answer" body={knowledge.howToUse} />
+                <InfoListCard
+                  title="Key product details"
+                  items={knowledge.keyDetails}
+                  empty="No key details yet."
+                />
+                <InfoListCard
+                  title="Warnings"
+                  items={knowledge.warnings}
+                  empty="No warnings saved yet."
+                />
+                <InfoListCard
+                  title="Common customer questions"
+                  items={knowledge.commonQuestions}
+                  empty="No common question patterns yet."
+                />
+                <StepOutcomeLine
+                  title="Latest update"
+                  outcome={
+                    stepOutcomes?.collect_sources ||
+                    stepOutcomes?.generate_ai_knowledge ||
+                    stepOutcomes?.map_product
+                  }
+                />
+              </BlockStack>
+            </Collapsible>
+          </BlockStack>
+        </Card>
+
+        <Card padding="400">
+          <BlockStack gap="200">
+            <InlineStack align="space-between" blockAlign="center">
+              <Text as="h3" variant="headingSm">
+                Preview answer
+              </Text>
+              <Button
+                variant="tertiary"
+                onClick={() => setPreviewOpen((current) => !current)}
+                ariaExpanded={previewOpen}
+              >
+                {previewOpen ? "Hide" : "Open"}
+              </Button>
+            </InlineStack>
+            <Text as="p" variant="bodySm" tone="subdued">
+              Ask a sample question and see how Recete responds.
+            </Text>
+            <Collapsible open={previewOpen} id={`preview-${row.shopify.id}`}>
+              <BlockStack gap="200">
+                <TextField
+                  label="Sample question"
+                  autoComplete="off"
+                  value={previewQuestion}
+                  onChange={onPreviewQuestionChange}
+                />
                 <InlineStack>
-                  <Button onClick={() => setShowReadyEditor(true)} disabled={processRunning}>
-                    Edit setup
+                  <Button
+                    variant="secondary"
+                    loading={isPreviewingAnswer}
+                    disabled={!row.localProduct || processRunning}
+                    onClick={submitPreviewAnswer}
+                  >
+                    Regenerate answer
                   </Button>
                 </InlineStack>
-              )}
-            </BlockStack>
-          </Card>
-
-          <Card padding="400">
-            <BlockStack gap="200">
-              <InlineStack align="space-between" blockAlign="center">
-                <Text as="h3" variant="headingSm">
-                  AI knowledge
-                </Text>
-                <Button
-                  variant="tertiary"
-                  onClick={() => setKnowledgeOpen((current) => !current)}
-                  ariaExpanded={knowledgeOpen}
-                >
-                  {knowledgeOpen ? "Hide" : "Review"}
-                </Button>
-              </InlineStack>
-              <Text as="p" variant="bodySm" tone="subdued">
-                This is the information Recete uses to answer customer questions.
-              </Text>
-              <Collapsible open={knowledgeOpen} id={`knowledge-${row.shopify.id}`}>
-                <BlockStack gap="200">
-                  <InfoMiniCard title="How Recete should answer" body={knowledge.howToUse} />
-                  <InfoListCard
-                    title="Key product details"
-                    items={knowledge.keyDetails}
-                    empty="No key details yet."
-                  />
-                  <InfoListCard
-                    title="Warnings"
-                    items={knowledge.warnings}
-                    empty="No warnings saved yet."
-                  />
-                  <InfoListCard
-                    title="Common customer questions"
-                    items={knowledge.commonQuestions}
-                    empty="No common question patterns yet."
-                  />
-                  <StepOutcomeLine
-                    title="Latest update"
-                    outcome={
-                      stepOutcomes?.collect_sources ||
-                      stepOutcomes?.generate_ai_knowledge ||
-                      stepOutcomes?.map_product
-                    }
-                  />
-                </BlockStack>
-              </Collapsible>
-            </BlockStack>
-          </Card>
-
-          <Card padding="400">
-            <BlockStack gap="200">
-              <InlineStack align="space-between" blockAlign="center">
-                <Text as="h3" variant="headingSm">
-                  Preview answer
-                </Text>
-                <Button
-                  variant="tertiary"
-                  onClick={() => setPreviewOpen((current) => !current)}
-                  ariaExpanded={previewOpen}
-                >
-                  {previewOpen ? "Hide" : "Open"}
-                </Button>
-              </InlineStack>
-              <Text as="p" variant="bodySm" tone="subdued">
-                Ask a sample question and see how Recete responds.
-              </Text>
-              <Collapsible open={previewOpen} id={`preview-${row.shopify.id}`}>
-                <BlockStack gap="200">
-                  <TextField
-                    label="Sample question"
-                    autoComplete="off"
-                    value={previewQuestion}
-                    onChange={onPreviewQuestionChange}
-                  />
-                  <InlineStack>
-                    <Button
-                      variant="secondary"
-                      loading={isPreviewingAnswer}
-                      disabled={!row.localProduct || processRunning}
-                      onClick={submitPreviewAnswer}
-                    >
-                      Regenerate answer
-                    </Button>
-                  </InlineStack>
-                  <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {previewAnswer || "Generate a preview to inspect the response."}
-                    </Text>
-                  </Box>
-                </BlockStack>
-              </Collapsible>
-            </BlockStack>
-          </Card>
-        </BlockStack>
-      )}
+                <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    {previewAnswer || "Generate a preview to inspect the response."}
+                  </Text>
+                </Box>
+              </BlockStack>
+            </Collapsible>
+          </BlockStack>
+        </Card>
+      </BlockStack>
 
       {setupComplete && row.localProduct && (
         <BlockStack gap="200">
