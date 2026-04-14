@@ -2233,6 +2233,15 @@ function SetupPanel({
                   {wizardSteps[2].why}
                 </Text>
 
+                <TextField
+                  label="Extra source URL"
+                  autoComplete="off"
+                  value={workflowUrl}
+                  onChange={onWorkflowUrlChange}
+                  placeholder="https://example.com/product-faq"
+                  helpText="Optional. If Step 2 was auto-completed, you can still add a source URL here before continuing."
+                />
+
                 <Box padding="200" background="bg-surface-secondary" borderRadius="200">
                   <BlockStack gap="100">
                     <Text as="p" variant="bodySm" fontWeight="semibold">
