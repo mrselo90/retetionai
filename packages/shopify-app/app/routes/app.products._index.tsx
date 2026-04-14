@@ -2006,6 +2006,7 @@ function SetupPanel({
 
   const showEditor = activeWizardStep === "instructions";
   const showEnhancementStep = activeWizardStep === "enhancement" && !showEditor;
+  const enhancementNeedsRun = !enhancementDone || Boolean(workflowUrl.trim());
   const canContinueStep = !processRunning;
   const setupScore = Math.max(0, Math.min(100, knowledge.qualityScore));
   const readySummary = knowledge.missingInfo.length
@@ -2246,11 +2247,17 @@ function SetupPanel({
                     <>
                       <Button
                         variant="primary"
-                        loading={isRunningAiAction}
-                        disabled={!row.localProduct || !canRunAiStep}
-                        onClick={submitEmbeddingsFromStep}
+                        loading={enhancementNeedsRun ? isRunningAiAction : false}
+                        disabled={enhancementNeedsRun ? !row.localProduct || !canRunAiStep : false}
+                        onClick={() => {
+                          if (enhancementNeedsRun) {
+                            submitEmbeddingsFromStep();
+                            return;
+                          }
+                          onBackToProducts?.();
+                        }}
                       >
-                        Continue
+                        {enhancementNeedsRun ? "Continue" : "Done"}
                       </Button>
                       <Button
                         variant="secondary"
