@@ -16,16 +16,17 @@ import {
   Text,
 } from "@shopify/polaris";
 import {
-  GROWTH_MONTHLY_PLAN,
-  GROWTH_YEARLY_PLAN,
-  PRO_MONTHLY_PLAN,
-  PRO_YEARLY_PLAN,
-  STARTER_MONTHLY_PLAN,
-  STARTER_YEARLY_PLAN,
-} from "../shopify.server";
-import { isPlanKey } from "../services/planDefinitions";
+  isPlanKey,
+} from "../services/planDefinitions";
 import { SectionCard, ShellPage } from "../components/shell-ui";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
+
+const STARTER_MONTHLY_PLAN = "starter-monthly";
+const STARTER_YEARLY_PLAN = "starter-yearly";
+const GROWTH_MONTHLY_PLAN = "growth-monthly";
+const GROWTH_YEARLY_PLAN = "growth-yearly";
+const PRO_MONTHLY_PLAN = "pro-monthly";
+const PRO_YEARLY_PLAN = "pro-yearly";
 
 const ALL_PLAN_KEYS = [
   STARTER_MONTHLY_PLAN,
