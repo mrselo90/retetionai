@@ -1114,7 +1114,7 @@ export default function ProductsPage() {
   const submit = useSubmit();
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
-  const [showReadyProducts, setShowReadyProducts] = useState(false);
+  const [showReadyProducts, setShowReadyProducts] = useState(true);
   const [showManualEntryModal, setShowManualEntryModal] = useState(false);
   const [manualSourceDraft, setManualSourceDraft] = useState({
     name: "",
