@@ -1865,6 +1865,19 @@ function SetupPanel({
     submit(formData, { method: "post" });
   }
 
+  function handlePrimarySaveAndUpdate() {
+    if (!canSubmitStep) return;
+    if (!row.localProduct || dirty) {
+      submitSaveDraft();
+      return;
+    }
+    if (enhancementNeedsRun) {
+      submitEmbeddingsFromStep();
+      return;
+    }
+    onBackToProducts?.();
+  }
+
   function submitPreviewAnswer() {
     if (!row.localProduct || isPreviewingAnswer || processRunning) return;
     const formData = new FormData();
@@ -2076,15 +2089,9 @@ function SetupPanel({
                     <>
                       <Button
                         variant="primary"
-                        loading={enhancementNeedsRun ? isRunningAiAction : false}
-                        disabled={enhancementNeedsRun ? !row.localProduct || !canRunAiStep : false}
-                        onClick={() => {
-                          if (enhancementNeedsRun) {
-                            submitEmbeddingsFromStep();
-                            return;
-                          }
-                          onBackToProducts?.();
-                        }}
+                        loading={isSavingSetup || isRunningAiAction}
+                        disabled={!canSubmitStep}
+                        onClick={handlePrimarySaveAndUpdate}
                       >
                         Save & Update AI
                       </Button>

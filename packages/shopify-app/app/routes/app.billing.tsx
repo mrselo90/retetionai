@@ -2,7 +2,7 @@ import type {
   HeadersFunction,
   LoaderFunctionArgs,
 } from "react-router";
-import { redirect, useLoaderData, useNavigation } from "react-router";
+import { redirect, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   Badge,
@@ -12,7 +12,6 @@ import {
   InlineGrid,
   InlineStack,
   List,
-  Spinner,
   Text,
 } from "@shopify/polaris";
 import {
@@ -158,7 +157,6 @@ export const action = async ({ request }: { request: Request }) => {
 
 export default function BillingPage() {
   const data = useLoaderData<typeof loader>();
-  const navigation = useNavigation();
 
   const activePlanName = data.subscriptions.find(
     (s) => s.status === "ACTIVE" || s.status === "ACCEPTED",
@@ -169,8 +167,6 @@ export default function BillingPage() {
       title="Billing"
       subtitle="Choose a subscription plan to activate Recete on your store."
     >
-      {navigation.state !== "idle" ? <Spinner accessibilityLabel="Loading" size="small" /> : null}
-
       {data.error ? (
         <Card padding="300">
           <Text as="p" variant="bodySm" tone="critical">
