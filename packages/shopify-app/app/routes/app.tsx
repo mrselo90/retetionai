@@ -217,6 +217,9 @@ function AppShell({ initialShop }: { initialShop: string }) {
   const subscriptionLabel = subscriptionStatus === "active" ? "Subscription active" : `Subscription ${subscriptionStatus}`;
   const shellLoading = !bootstrapData && !bootstrapError;
   const showOverviewHero = location.pathname === "/app";
+  const isProductSetupDetailView =
+    location.pathname.startsWith("/app/products") &&
+    new URLSearchParams(location.search).has("product");
   const overview = bootstrapData?.overview;
   const setupSteps: SetupStep[] = overview
     ? [
@@ -363,7 +366,7 @@ function AppShell({ initialShop }: { initialShop: string }) {
                     </Box>
                   </BlockStack>
 
-                  {setupSteps.length > 0 ? (
+                  {setupSteps.length > 0 && !isProductSetupDetailView ? (
                     <Box padding="300" background="bg-surface-secondary" borderRadius="200">
                       <BlockStack gap="200">
                         <InlineStack align="space-between" blockAlign="center">
