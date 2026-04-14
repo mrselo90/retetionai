@@ -2133,16 +2133,11 @@ function SetupPanel({
             </Badge>
           </InlineStack>
 
-          <Box padding="150" background="bg-surface-secondary" borderRadius="200">
-            <InlineStack align="space-between" blockAlign="center" wrap>
-              <Text as="p" variant="bodySm" tone="subdued">
-                Fill guidance and enhancement fields on this page, then update AI.
-              </Text>
-              <Badge tone={setupComplete ? "success" : "attention"}>
-                {setupComplete ? "Complete" : "Needs action"}
-              </Badge>
-            </InlineStack>
-          </Box>
+          <Banner tone="info">
+            <Text as="p" variant="bodySm">
+              Fill guidance and enhancement fields on this page, then update AI.
+            </Text>
+          </Banner>
         </BlockStack>
       </div>
 
@@ -2219,28 +2214,7 @@ function SetupPanel({
                   />
                 </InlineGrid>
 
-                <InlineStack gap="200" wrap>
-                  {canSubmitStep ? (
-                    <>
-                      <Button
-                        variant="primary"
-                        loading={isSavingSetup}
-                        disabled={!canSubmitSave}
-                        onClick={submitSaveDraft}
-                      >
-                        Save and update AI
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        disabled={!canSubmitSave}
-                        onClick={submitSaveDraft}
-                      >
-                        Save draft
-                      </Button>
-                    </>
-                  ) : null}
-                </InlineStack>
-          </BlockStack>
+            </BlockStack>
 
           <BlockStack gap="300">
               <Text as="h2" variant="headingMd">
@@ -2306,14 +2280,14 @@ function SetupPanel({
                           onBackToProducts?.();
                         }}
                       >
-                        {enhancementNeedsRun ? "Update AI" : "Done"}
+                        Save & Update AI
                       </Button>
                       <Button
                         variant="secondary"
                         disabled={!canSubmitSave}
                         onClick={submitSaveDraft}
                       >
-                        Save draft
+                        Save Draft
                       </Button>
                     </>
                   ) : null}
@@ -2334,9 +2308,6 @@ function SetupPanel({
                   {readySummary}
                 </Text>
               </BlockStack>
-              <Badge tone={knowledge.missingInfo.length ? "attention" : "success"}>
-                {knowledge.missingInfo.length ? "Needs attention" : "Ready"}
-              </Badge>
             </InlineStack>
             <ProgressBar progress={setupScore} tone={knowledge.missingInfo.length ? "highlight" : "success"} />
           </BlockStack>
