@@ -7,7 +7,7 @@ import {
   useSearchParams,
   useSubmit,
 } from "react-router";
-import { useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { DeleteIcon, MagicIcon } from "@shopify/polaris-icons";
 import {
@@ -116,12 +116,6 @@ type WorkspaceRow = {
   detailHint: string;
 };
 
-type SaveFeedback = {
-  productId: string;
-  message: string;
-  savedAt: string;
-};
-
 type LifecyclePresentation = {
   key: "needs_setup" | "needs_ai_answers" | "processing" | "ready" | "error";
   label: string;
@@ -168,13 +162,6 @@ function draftFromInstruction(instruction?: MerchantProductInstruction): Mapping
     prevention_tips: instruction?.prevention_tips || "",
     video_url: instruction?.video_url || "",
   };
-}
-
-function formatSavedAt(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
 }
 
 function formatOutcomeDelta(delta?: Record<string, unknown>) {
@@ -228,22 +215,6 @@ async function getActionErrorMessage(error: unknown, fallback: string) {
   }
 
   return fallback;
-}
-
-function languageLabel(code?: string | null) {
-  switch ((code || "").toLowerCase()) {
-    case "tr":
-      return "Turkish";
-    case "hu":
-      return "Hungarian";
-    case "de":
-      return "German";
-    case "el":
-      return "Greek";
-    case "en":
-    default:
-      return "English";
-  }
 }
 
 function summarizeText(text: string, maxLength = 140) {
@@ -1115,8 +1086,6 @@ export default function ProductsPage() {
   });
   const [drafts, setDrafts] = useState<Record<string, MappingDraft>>({});
   const [savedDrafts, setSavedDrafts] = useState<Record<string, MappingDraft>>({});
-  const [saveFeedback, setSaveFeedback] = useState<SaveFeedback | null>(null);
-  const [inlineValidationError, setInlineValidationError] = useState<string | null>(null);
   const [workflowUrlByProduct, setWorkflowUrlByProduct] = useState<Record<string, string>>({});
   const [previewQuestionByProduct, setPreviewQuestionByProduct] = useState<Record<string, string>>({});
   const [previewAnswerByProduct, setPreviewAnswerByProduct] = useState<Record<string, string>>({});
@@ -1261,11 +1230,6 @@ export default function ProductsPage() {
         ...current,
         [actionData.selectedProductId as string]: actionData.savedDraft as MappingDraft,
       }));
-      setSaveFeedback({
-        productId: actionData.selectedProductId,
-        message: actionData.message,
-        savedAt: new Date().toISOString(),
-      });
     }
   }, [actionData]);
 
@@ -1281,7 +1245,6 @@ export default function ProductsPage() {
       delete next[actionData.selectedProductId as string];
       return next;
     });
-    setSaveFeedback(null);
   }, [actionData]);
 
   useEffect(() => {
@@ -1309,17 +1272,11 @@ export default function ProductsPage() {
   }, [actionData]);
 
   const selectedRow = searchedRows.find((row) => row.shopify.id === selectedProductId) || null;
-  const selectedJourney = selectedRow ? getJourneyMeta(selectedRow) : null;
-  const isSingleTaskMode = Boolean(
-    selectedRow && selectedJourney && selectedJourney.activeStep !== "ready",
-  );
   const currentDraft = selectedRow ? drafts[selectedRow.shopify.id] || emptyDraft() : emptyDraft();
   const initialDraft = selectedRow
     ? savedDrafts[selectedRow.shopify.id] || draftFromInstruction(selectedRow.instruction)
     : emptyDraft();
   const dirty = JSON.stringify(currentDraft) !== JSON.stringify(initialDraft);
-  const selectedSaveFeedback =
-    selectedRow && saveFeedback?.productId === selectedRow.shopify.id ? saveFeedback : null;
   const workflowUrl = selectedRow ? workflowUrlByProduct[selectedRow.shopify.id] || "" : "";
   const previewQuestion = selectedRow
     ? previewQuestionByProduct[selectedRow.shopify.id] || "How do I use this product?"
@@ -1375,7 +1332,6 @@ export default function ProductsPage() {
     const nextProductId = forceOpen ? productId : selectedProductId === productId ? "" : productId;
     setSelectedProductId(nextProductId);
     setHasInitializedSelection(true);
-    setInlineValidationError(null);
     replaceProductSearchParam(nextProductId || null);
 
     if (nextProductId && typeof window !== "undefined") {
@@ -1388,7 +1344,6 @@ export default function ProductsPage() {
   function closeSelectedProduct() {
     setSelectedProductId("");
     setHasInitializedSelection(true);
-    setInlineValidationError(null);
     replaceProductSearchParam(null);
   }
 
@@ -1551,12 +1506,9 @@ export default function ProductsPage() {
           <Layout.Section>
             <SetupPanel
               row={selectedRow}
-              shopDomain={data.shopDomain}
               draft={currentDraft}
               dirty={dirty}
               workflowUrl={workflowUrl}
-              saveFeedback={selectedSaveFeedback}
-              inlineValidationError={inlineValidationError}
               actionError={
                 actionData?.error && actionData.selectedProductId === selectedRow.shopify.id
                   ? actionData.error
@@ -1567,11 +1519,6 @@ export default function ProductsPage() {
                 actionData.selectedProductId === selectedRow.shopify.id &&
                 actionData.message
                   ? actionData.message
-                  : null
-              }
-              actionIntent={
-                actionData?.ok && actionData.selectedProductId === selectedRow.shopify.id
-                  ? actionData.intent || null
                   : null
               }
               previewQuestion={previewQuestion}
@@ -1597,7 +1544,6 @@ export default function ProductsPage() {
                   [selectedRow.shopify.id]: value,
                 }))
               }
-              setInlineValidationError={setInlineValidationError}
               onBackToProducts={openProductBrowser}
             />
           </Layout.Section>
@@ -1820,140 +1766,13 @@ export default function ProductsPage() {
   );
 }
 
-function ProductListItem({
-  row,
-  shopDomain,
-  selected,
-  onSelect,
-  quiet = false,
-  children,
-}: {
-  row: WorkspaceRow;
-  shopDomain: string;
-  selected: boolean;
-  onSelect: () => void;
-  quiet?: boolean;
-  children?: ReactNode;
-}) {
-  const journey = getJourneyMeta(row);
-
-  return (
-    <Box
-      padding="200"
-      borderWidth="025"
-      borderColor="border"
-      borderRadius="200"
-      background={selected ? "bg-surface-secondary" : quiet ? "bg-surface-secondary" : undefined}
-    >
-      <BlockStack gap="200">
-        <InlineGrid columns={{ xs: 1, lg: "2fr auto" }} gap="300">
-          <BlockStack gap="100">
-            <InlineStack gap="150" wrap blockAlign="center">
-              <Text as="h3" variant="headingSm">
-                {row.shopify.title}
-              </Text>
-              <Badge tone={row.statusTone}>
-                {row.statusLabel}
-              </Badge>
-            </InlineStack>
-            {row.shopify.vendor ? (
-              <Text as="p" variant="bodySm" tone="subdued">
-                {row.shopify.vendor}
-              </Text>
-            ) : null}
-          </BlockStack>
-
-          <InlineStack align="end" blockAlign="center" gap="200" wrap>
-            <Box padding="050">
-              <BlockStack gap="050">
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Setup journey
-                </Text>
-                <Text as="p" variant="bodyMd" fontWeight="semibold">
-                  {journey.completedSteps} of {journey.totalSteps} steps completed
-                </Text>
-              </BlockStack>
-            </Box>
-            <Button
-              variant={selected || row.state === "ready" ? "secondary" : "primary"}
-              onClick={onSelect}
-            >
-              {selected ? "Close" : journey.nextActionLabel}
-            </Button>
-          </InlineStack>
-        </InlineGrid>
-
-        <BlockStack gap="100">
-          <InlineStack align="space-between" blockAlign="center" gap="200" wrap>
-            <Text as="p" variant="bodySm" tone="subdued">
-              {journey.shortStatus}
-            </Text>
-            <InlineStack gap="150" wrap>
-              {row.state === "ready" ? (
-                <Badge tone="success">Setup complete</Badge>
-              ) : row.hasGuidance && row.hasKnowledge ? (
-                <Badge tone="info">Background sync</Badge>
-              ) : null}
-            </InlineStack>
-          </InlineStack>
-          <JourneyStepper journey={journey} />
-          <Text as="p" variant="bodySm" tone="subdued">
-            {row.detailHint}
-          </Text>
-        </BlockStack>
-
-        {selected && children ? (
-          <Box paddingBlockStart="100">
-            {children}
-          </Box>
-        ) : null}
-      </BlockStack>
-    </Box>
-  );
-}
-
-function JourneyStepper({ journey }: { journey: JourneyMeta }) {
-  const steps: Array<{ key: JourneyStep; label: string }> = [
-    { key: "guidance", label: "Guidance" },
-    { key: "improve", label: "Improve replies" },
-  ];
-
-  return (
-    <InlineGrid columns={{ xs: 1, md: 2 }} gap="150">
-      {steps.map((step, index) => {
-        const done = journey.completedSteps > index;
-        const current = journey.activeStep === step.key;
-        return (
-          <Box key={step.key} padding="100" background="bg-surface-secondary" borderRadius="150">
-            <InlineStack gap="100" blockAlign="center">
-              <Box
-                minWidth="8px"
-                minHeight="8px"
-                borderRadius="full"
-                background={done ? "bg-fill-success" : current ? "bg-fill-brand" : "bg-fill-tertiary"}
-              />
-              <Text as="p" variant="bodySm" tone={done ? "success" : current ? undefined : "subdued"}>
-                {step.label}
-              </Text>
-            </InlineStack>
-          </Box>
-        );
-      })}
-    </InlineGrid>
-  );
-}
-
 function SetupPanel({
   row,
-  shopDomain,
   draft,
   dirty,
   workflowUrl,
-  saveFeedback,
-  inlineValidationError,
   actionError,
   actionMessage,
-  actionIntent,
   previewQuestion,
   previewAnswer,
   onPreviewQuestionChange,
@@ -1965,19 +1784,14 @@ function SetupPanel({
   embedded = false,
   onChangeDraft,
   onWorkflowUrlChange,
-  setInlineValidationError,
   onBackToProducts,
 }: {
   row: WorkspaceRow;
-  shopDomain: string;
   draft: MappingDraft;
   dirty: boolean;
   workflowUrl: string;
-  saveFeedback: SaveFeedback | null;
-  inlineValidationError: string | null;
   actionError: string | null;
   actionMessage: string | null;
-  actionIntent: string | null;
   previewQuestion: string;
   previewAnswer: string;
   onPreviewQuestionChange: (value: string) => void;
@@ -1989,11 +1803,9 @@ function SetupPanel({
   embedded?: boolean;
   onChangeDraft: (field: keyof MappingDraft, value: string) => void;
   onWorkflowUrlChange: (value: string) => void;
-  setInlineValidationError: (value: string | null) => void;
   onBackToProducts?: () => void;
 }) {
   const submit = useSubmit();
-  const [showReadyEditor, setShowReadyEditor] = useState(false);
   const [knowledgeOpen, setKnowledgeOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [showDangerZone, setShowDangerZone] = useState(false);
@@ -2019,7 +1831,6 @@ function SetupPanel({
     lifecycle.key === "ready" ? "success" : lifecycle.key === "processing" ? "info" : "attention";
 
   useEffect(() => {
-    setShowReadyEditor(false);
     setKnowledgeOpen(false);
     setPreviewOpen(false);
     setShowDangerZone(false);
@@ -2028,7 +1839,6 @@ function SetupPanel({
 
   function submitSaveDraft() {
     if (!canSubmitSave) return;
-    setInlineValidationError(null);
 
     const formData = new FormData();
     formData.set("intent", "save-setup");
@@ -2191,7 +2001,6 @@ function SetupPanel({
                   onChange={(value) => onChangeDraft("usage_instructions", value)}
                   multiline={6}
                   autoComplete="off"
-                  error={inlineValidationError || undefined}
                   helpText="Optional but recommended. Write the guidance Recete should send to customers after delivery."
                 />
 
