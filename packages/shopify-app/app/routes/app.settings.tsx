@@ -26,6 +26,7 @@ import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { PlanGate } from "../components/PlanGate";
 import {
   cancelMerchantAddon,
+  deleteMerchantDataFromAdminPanel,
   fetchMerchantAddons,
   fetchMerchantGuardrails,
   fetchMerchantMultiLangSettings,
@@ -59,6 +60,8 @@ type ActionResult = {
   error?: string;
   confirmationUrl?: string;
 };
+
+const MERCHANT_RESET_CONFIRM_PHRASE = "DELETE ALL MERCHANT DATA";
 
 type GuardrailDraft = {
   name: string;
@@ -332,6 +335,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       } satisfies ActionResult;
     }
 
+    if (intent === "wipe-merchant-data") {
+      const confirmationText = String(formData.get("wipe_confirmation") || "").trim();
+      if (confirmationText !== MERCHANT_RESET_CONFIRM_PHRASE) {
+        return {
+          ok: false,
+          intent,
+          error: `Type exactly "${MERCHANT_RESET_CONFIRM_PHRASE}" to confirm.`,
+        } satisfies ActionResult;
+      }
+
+      const result = await deleteMerchantDataFromAdminPanel(request);
+      return {
+        ok: true,
+        intent,
+        message:
+          result?.message ||
+          "All merchant data has been permanently deleted. This action is irreversible.",
+      } satisfies ActionResult;
+    }
+
     return { ok: false, intent, error: "Unknown settings action." } satisfies ActionResult;
   } catch (error) {
     return {
@@ -369,6 +392,7 @@ export default function SettingsPage() {
     action: "block",
     suggested_response: "",
   });
+  const [wipeConfirmation, setWipeConfirmation] = useState("");
   const [lastCoreSettingsSavedAt, setLastCoreSettingsSavedAt] = useState<string | null>(null);
 
   const loaderState = useMemo(
@@ -427,6 +451,8 @@ export default function SettingsPage() {
   const showGuardrailError = !actionData?.ok && actionData?.intent === "save-guardrails" && actionData.error;
   const showAddonSuccess = actionData?.ok && actionData.intent === "toggle-addon" && actionData.message;
   const showAddonError = !actionData?.ok && actionData?.intent === "toggle-addon" && actionData.error;
+  const showWipeSuccess = actionData?.ok && actionData.intent === "wipe-merchant-data" && actionData.message;
+  const showWipeError = !actionData?.ok && actionData?.intent === "wipe-merchant-data" && actionData.error;
   const welcomeTemplatePreview = useMemo(
     () => buildWelcomeTemplatePreview(formState.whatsapp_welcome_template, formState.bot_name),
     [formState.bot_name, formState.whatsapp_welcome_template],
@@ -560,7 +586,23 @@ export default function SettingsPage() {
           </Layout.Section>
         ) : null}
 
-        {actionData?.error && !["save-core", "save-guardrails", "toggle-addon"].includes(actionData.intent || "") ? (
+        {showWipeSuccess ? (
+          <Layout.Section>
+            <Banner tone="success" title="Merchant data deleted">
+              <Text as="p" variant="bodyMd">{actionData?.message}</Text>
+            </Banner>
+          </Layout.Section>
+        ) : null}
+
+        {showWipeError ? (
+          <Layout.Section>
+            <Banner tone="critical" title="Could not delete merchant data">
+              <Text as="p" variant="bodyMd">{actionData?.error}</Text>
+            </Banner>
+          </Layout.Section>
+        ) : null}
+
+        {actionData?.error && !["save-core", "save-guardrails", "toggle-addon", "wipe-merchant-data"].includes(actionData.intent || "") ? (
           <Layout.Section>
             <Banner tone="critical" icon={AlertCircleIcon}>
               <Text as="p" variant="bodyMd">{actionData.error}</Text>
@@ -568,7 +610,7 @@ export default function SettingsPage() {
           </Layout.Section>
         ) : null}
 
-        {actionData?.message && !["save-core", "save-guardrails", "toggle-addon"].includes(actionData.intent || "") ? (
+        {actionData?.message && !["save-core", "save-guardrails", "toggle-addon", "wipe-merchant-data"].includes(actionData.intent || "") ? (
           <Layout.Section>
             <Banner tone="success">
               <Text as="p" variant="bodyMd">{actionData.message}</Text>
@@ -884,6 +926,44 @@ export default function SettingsPage() {
                   No add-ons are configured for this merchant yet.
                 </Text>
               )}
+            </BlockStack>
+          </SectionCard>
+        </Layout.Section>
+
+        <Layout.Section>
+          <SectionCard
+            title="Danger zone"
+            subtitle="Use only when you intentionally want to permanently clear merchant data from Recete."
+          >
+            <BlockStack gap="300">
+              <Banner tone="critical">
+                This permanently deletes merchant data including products, knowledge, conversations, orders, users,
+                analytics, and WhatsApp event records. This action cannot be undone.
+              </Banner>
+              <Form method="post">
+                <input type="hidden" name="intent" value="wipe-merchant-data" />
+                <BlockStack gap="300">
+                  <TextField
+                    label={`Type "${MERCHANT_RESET_CONFIRM_PHRASE}" to confirm`}
+                    name="wipe_confirmation"
+                    value={wipeConfirmation}
+                    onChange={setWipeConfirmation}
+                    autoComplete="off"
+                    helpText="This protects against accidental data deletion."
+                  />
+                  <InlineStack>
+                    <Button
+                      submit
+                      tone="critical"
+                      variant="primary"
+                      loading={busy}
+                      disabled={wipeConfirmation.trim() !== MERCHANT_RESET_CONFIRM_PHRASE}
+                    >
+                      Delete all merchant data
+                    </Button>
+                  </InlineStack>
+                </BlockStack>
+              </Form>
             </BlockStack>
           </SectionCard>
         </Layout.Section>

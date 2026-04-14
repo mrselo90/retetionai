@@ -719,6 +719,19 @@ export async function cancelMerchantAddon(request: Request, addonKey: string) {
   });
 }
 
+export async function deleteMerchantDataFromAdminPanel(request: Request) {
+  return internalMerchantRequest(request, "/api/gdpr/delete", {
+    method: "DELETE",
+    body: JSON.stringify({
+      confirm: true,
+      permanent: true,
+    }),
+  }) as Promise<{
+    message?: string;
+    warning?: string;
+  }>;
+}
+
 export async function fetchMerchantConversations(request: Request) {
   return (await internalMerchantRequest(request, "/api/conversations")) as {
     conversations: MerchantConversation[];
