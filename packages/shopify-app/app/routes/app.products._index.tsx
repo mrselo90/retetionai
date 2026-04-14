@@ -2195,27 +2195,6 @@ function SetupPanel({
                   helpText="Optional. Add a page with FAQs or usage details to improve answer quality."
                 />
 
-                <InlineStack gap="200" wrap>
-                  {canContinueStep ? (
-                    <>
-                      <Button
-                        variant="primary"
-                        loading={isRunningAiAction}
-                        disabled={!row.localProduct || !canRunAiStep}
-                        onClick={submitEmbeddingsFromStep}
-                      >
-                        Continue
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        disabled={!canSubmitSave}
-                        onClick={() => submitSaveDraft(false)}
-                      >
-                        Save draft
-                      </Button>
-                    </>
-                  ) : null}
-                </InlineStack>
                 <Box padding="200" background="bg-surface-secondary" borderRadius="200">
                   <BlockStack gap="100">
                     <Text as="p" variant="bodySm" fontWeight="semibold">
