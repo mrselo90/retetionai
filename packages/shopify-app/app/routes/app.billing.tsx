@@ -5,12 +5,10 @@ import type {
 import { redirect, useLoaderData, useNavigation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
-  Banner,
   Badge,
   BlockStack,
   Button,
   Card,
-  EmptyState,
   InlineGrid,
   InlineStack,
   List,
@@ -26,7 +24,7 @@ import {
   STARTER_YEARLY_PLAN,
 } from "../shopify.server";
 import { isPlanKey } from "../services/planDefinitions";
-import { SectionCard, ShellPage, StatusBadge } from "../components/shell-ui";
+import { SectionCard, ShellPage } from "../components/shell-ui";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 
 const ALL_PLAN_KEYS = [
@@ -52,6 +50,7 @@ const PLAN_TIERS: ReadonlyArray<{
   tier: string;
   monthly: string;
   yearly: string;
+  planKey: (typeof ALL_PLAN_KEYS)[number];
   recommended?: boolean;
   features: readonly string[];
 }> = [
@@ -59,6 +58,7 @@ const PLAN_TIERS: ReadonlyArray<{
     tier: "Starter",
     monthly: "$29/mo",
     yearly: "$290/yr",
+    planKey: STARTER_MONTHLY_PLAN,
     features: [
       "150 included chats per month",
       "Up to 20 recipes",
@@ -70,6 +70,7 @@ const PLAN_TIERS: ReadonlyArray<{
     tier: "Growth",
     monthly: "$69/mo",
     yearly: "$690/yr",
+    planKey: GROWTH_MONTHLY_PLAN,
     recommended: true,
     features: [
       "1,000 included chats per month",
@@ -82,6 +83,7 @@ const PLAN_TIERS: ReadonlyArray<{
     tier: "Pro",
     monthly: "$199/mo",
     yearly: "$1,990/yr",
+    planKey: PRO_MONTHLY_PLAN,
     features: [
       "3,000 included chats per month",
       "Unlimited recipes",
@@ -160,123 +162,43 @@ export default function BillingPage() {
   const activePlanName = data.subscriptions.find(
     (s) => s.status === "ACTIVE" || s.status === "ACCEPTED",
   )?.name;
-  const launchState = data.hasActivePayment
-    ? {
-        title: "Billing is active",
-        body: "Your Shopify plan is approved. You can continue setup and daily operations.",
-        tone: "success" as const,
-      }
-    : {
-        title: "Choose a Shopify plan",
-        body: "Select a plan in Shopify when you are ready to launch.",
-        tone: "warning" as const,
-      };
 
   return (
     <ShellPage
       title="Billing"
-      subtitle="Your subscription is managed by Shopify. Compare plans below and open Shopify's hosted pricing screen to change plans."
+      subtitle="Choose a subscription plan to activate Recete on your store."
     >
       {navigation.state !== "idle" ? <Spinner accessibilityLabel="Loading" size="small" /> : null}
 
-      <Banner title={launchState.title} tone={launchState.tone}>
-        {launchState.body}
-      </Banner>
-
       {data.error ? (
-        <Banner title="Unable to load billing status" tone="warning">
-          {data.error}
-        </Banner>
+        <Card padding="300">
+          <Text as="p" variant="bodySm" tone="critical">
+            Unable to load billing status: {data.error}
+          </Text>
+        </Card>
       ) : null}
 
-      <SectionCard
-        title="Current subscription"
-        badge={
+      <Card padding="300">
+        <InlineStack align="space-between" blockAlign="center" wrap>
+          <Text as="p" variant="bodySm" tone="subdued">
+            Current Status
+          </Text>
           <Badge tone={data.hasActivePayment ? "success" : "attention"}>
-            {data.hasActivePayment ? "Active" : "No active plan"}
+            {data.hasActivePayment ? `Active${activePlanName ? ` · ${activePlanName}` : ""}` : "Free / No Plan"}
           </Badge>
-        }
-      >
-        {data.subscriptions.length > 0 ? (
-          <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-            {data.subscriptions.map((subscription) => (
-              <Card key={subscription.id} padding="500">
-                <BlockStack gap="200">
-                  <Text as="h3" variant="headingMd">{subscription.name}</Text>
-                  <StatusBadge status={subscription.status}>{subscription.status}</StatusBadge>
-                </BlockStack>
-              </Card>
-            ))}
-          </InlineGrid>
-        ) : (
-          <Card padding="500">
-            <EmptyState
-              heading="No active subscription"
-              image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-            >
-              <BlockStack gap="200">
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  Select a Shopify plan to activate billing for this store.
-                </Text>
-                {data.managedPricingUrl ? (
-                  <InlineStack>
-                    <Button url={data.managedPricingUrl} target="_top" variant="primary">
-                      Choose a Shopify plan
-                    </Button>
-                  </InlineStack>
-                ) : null}
-              </BlockStack>
-            </EmptyState>
-          </Card>
-        )}
-      </SectionCard>
-
-      <SectionCard
-        title="Merchant decision"
-        subtitle="This page should make it obvious whether billing needs action right now."
-      >
-        <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-          <Card padding="500">
-            <BlockStack gap="200">
-              <Text as="h3" variant="headingMd">Current state</Text>
-              <Text as="p" variant="bodyMd" tone="subdued">
-                {data.hasActivePayment
-                  ? `The active plan is ${activePlanName || "approved"}.`
-                  : "No approved subscription is active yet."}
-              </Text>
-            </BlockStack>
-          </Card>
-          <Card padding="500">
-            <BlockStack gap="200">
-              <Text as="h3" variant="headingMd">Recommended next step</Text>
-              <Text as="p" variant="bodyMd" tone="subdued">
-                {data.hasActivePayment
-                  ? "Use Shopify pricing only if you want to change plans."
-                  : "Open Shopify pricing and choose the plan you want to use."}
-              </Text>
-              {data.managedPricingUrl ? (
-                <Button url={data.managedPricingUrl} target="_top" variant="primary">
-                  {data.hasActivePayment ? "Manage plan in Shopify" : "Approve plan in Shopify"}
-                </Button>
-              ) : null}
-            </BlockStack>
-          </Card>
-        </InlineGrid>
-      </SectionCard>
-
-      <Banner title="How to change your plan" tone="info">
-        Your subscription is managed through Shopify Managed Pricing. To upgrade,
-        downgrade, or cancel your plan, open Shopify's hosted plan selection page and
-        choose the plan there.
-      </Banner>
+        </InlineStack>
+      </Card>
 
       <SectionCard
         title="Compare plans"
-        subtitle="All plans include WhatsApp-based retention messaging, RAG-powered product answers, and usage-based overage billing capped at $500."
+        subtitle="Select a plan to continue setup and activate billing in Shopify."
       >
         <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
           {PLAN_TIERS.map((plan) => {
             const isCurrentTier = activePlanName?.toLowerCase().includes(plan.tier.toLowerCase());
+            const planSelectionUrl = data.managedPricingUrl
+              ? `${data.managedPricingUrl}?plan=${encodeURIComponent(plan.planKey)}`
+              : undefined;
             return (
               <Card key={plan.tier} padding="500" background={isCurrentTier ? "bg-surface-success" : undefined}>
                 <BlockStack gap="400">
@@ -297,12 +219,32 @@ export default function BillingPage() {
                       <List.Item key={feature}>{feature}</List.Item>
                     ))}
                   </List>
+                  <Button
+                    variant="primary"
+                    fullWidth
+                    disabled={!planSelectionUrl}
+                    url={planSelectionUrl}
+                    target="_top"
+                  >
+                    Choose {plan.tier}
+                  </Button>
                 </BlockStack>
               </Card>
             );
           })}
         </InlineGrid>
       </SectionCard>
+
+      <Card padding="300">
+        <InlineStack align="space-between" blockAlign="center" wrap>
+          <Text as="p" variant="bodySm" tone="subdued">
+            Need help choosing the right plan?
+          </Text>
+          <Button variant="plain" url="/app/integrations">
+            Billing support
+          </Button>
+        </InlineStack>
+      </Card>
     </ShellPage>
   );
 }
