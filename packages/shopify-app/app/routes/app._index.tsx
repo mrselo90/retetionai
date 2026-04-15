@@ -41,11 +41,17 @@ export default function Index() {
     );
   }
 
-  return <SetupOverview data={data} />;
+  return <SetupOverview data={data} billingApproved={bootstrapData?.billingApproved} />;
 }
 
-function SetupOverview({ data }: { data: ShopifyMerchantOverview }) {
-  const hasBilling = isBillingReady(data.subscription?.status);
+function SetupOverview({
+  data,
+  billingApproved,
+}: {
+  data: ShopifyMerchantOverview;
+  billingApproved?: boolean;
+}) {
+  const hasBilling = billingApproved ?? isBillingReady(data.subscription?.status);
   const hasProducts = data.metrics.totalProducts > 0 || (data.products?.length || 0) > 0;
   const hasMessaging = Boolean(data.settings?.personaSettings?.bot_name);
   const hasOrderFlow = data.metrics.totalOrders > 0;

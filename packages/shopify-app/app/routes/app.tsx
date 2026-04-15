@@ -129,6 +129,7 @@ export type AppBootstrapData = {
   overview: ShopifyMerchantOverview;
   shop: string;
   subscriptionStatus: string;
+  billingApproved?: boolean;
 };
 
 export type AppBootstrapContext = {
@@ -215,7 +216,7 @@ function AppShell({ initialShop }: { initialShop: string }) {
   const shop = bootstrapData?.shop || initialShop || "Embedded Shopify store";
   const subscriptionStatus = bootstrapData?.subscriptionStatus || "loading";
   const normalizedSubscriptionStatus = normalizeSubscriptionStatus(subscriptionStatus);
-  const hasBillingApproved = isBillingReady(subscriptionStatus);
+  const hasBillingApproved = bootstrapData?.billingApproved ?? isBillingReady(subscriptionStatus);
   const subscriptionTone = hasBillingApproved ? "success" : "attention";
   const subscriptionLabel = hasBillingApproved
     ? "Subscription active"

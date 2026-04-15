@@ -1,7 +1,26 @@
 import type { LoaderFunctionArgs } from "react-router";
 
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
+import { isBillingReady } from "../lib/billingStatus";
 import { requireSessionTokenAuthorization } from "../lib/sessionToken.server";
 import { fetchMerchantOverviewFromRequest } from "../platform.server";
+import {
+  GROWTH_MONTHLY_PLAN,
+  GROWTH_YEARLY_PLAN,
+  PRO_MONTHLY_PLAN,
+  PRO_YEARLY_PLAN,
+  STARTER_MONTHLY_PLAN,
+  STARTER_YEARLY_PLAN,
+} from "../services/planDefinitions";
+
+const ALL_PLAN_KEYS = [
+  STARTER_MONTHLY_PLAN,
+  STARTER_YEARLY_PLAN,
+  GROWTH_MONTHLY_PLAN,
+  GROWTH_YEARLY_PLAN,
+  PRO_MONTHLY_PLAN,
+  PRO_YEARLY_PLAN,
+] as const;
 
 function buildPendingOverview(shop: string) {
   const merchantName = shop.replace(".myshopify.com", "");
@@ -54,14 +73,25 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   requireSessionTokenAuthorization(request);
   const requestUrl = new URL(request.url);
   try {
-    const overview = await fetchMerchantOverviewFromRequest(request);
+    const [{ billing }, overview] = await Promise.all([
+      authenticateEmbeddedAdmin(request),
+      fetchMerchantOverviewFromRequest(request),
+    ]);
     const shop = requestUrl.searchParams.get("shop") || overview.shop;
+    const billingState = await billing.check({
+      plans: [...ALL_PLAN_KEYS],
+      isTest: process.env.NODE_ENV !== "production",
+    });
+    const billingApproved = billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
 
     return Response.json({
       merchantName: overview.merchant.name || shop.replace(".myshopify.com", ""),
       overview,
       shop,
-      subscriptionStatus: overview.merchant.subscription_status || "inactive",
+      subscriptionStatus: billingApproved
+        ? "active"
+        : overview.merchant.subscription_status || "inactive",
+      billingApproved,
     });
   } catch (error) {
     // Fresh installs can hit a short timing window where embedded auth is valid
@@ -77,6 +107,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           overview,
           shop,
           subscriptionStatus: "pending",
+          billingApproved: false,
         },
         { status: 202 },
       );
