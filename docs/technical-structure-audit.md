@@ -4,11 +4,59 @@
 
 **Note:** Findings are based on codebase review at audit time. Verify before treating as current state.
 
+**Last updated:** 2026-04-15 — 5 critical issues from the deep technical audit resolved and deployed (commit `157cdff`). See [Resolved Critical Issues](#resolved-critical-issues) below.
+
 ---
 
 ## Executive summary
 
 The stack is modern (Hono, Next.js, React Router + Shopify, BullMQ, Supabase) with solid patterns in webhooks, logging, and TypeScript strictness. The main weak areas are **database RLS consistency**, **timeouts on outbound HTTP**, **rate limiting vs auth ordering**, **signup scalability**, **worker DLQ semantics**, and **client-only protection** on the standalone web app.
+
+---
+
+## Resolved Critical Issues
+
+The following 5 critical issues were identified in the April 2026 deep technical audit and have been fixed and deployed (commit `157cdff`, 2026-04-15).
+
+### [FIXED] C1 — Shopify HMAC fails open when secret is empty
+
+**Files:** `packages/api/src/routes/webhooks.ts`, `packages/api/src/middleware/shopifyGdprHmac.ts`
+
+**Was:** Both paths used `process.env.SHOPIFY_API_SECRET || ''` — an empty string passed to `createHmac` accepts any payload.
+
+**Fix:** Both verifiers now check the secret is non-empty before computing the HMAC. If `SHOPIFY_API_SECRET` is unset, the endpoint returns `500` immediately (fail-closed), never accepting an attacker-crafted payload.
+
+### [FIXED] C2 — Cross-tenant event processing via internal secret
+
+**File:** `packages/api/src/routes/events.ts`
+
+**Was:** `POST /api/events/:id/process` only applied `.eq('merchant_id', ...)` if `X-Internal-Merchant-Id` was non-empty and not `'internal-system'`. Any holder of `INTERNAL_SERVICE_SECRET` could fetch and process any tenant's event by UUID.
+
+**Fix:** Internal callers must now supply a real `X-Internal-Merchant-Id` (missing or `'internal-system'` returns `403`). The DB query always scopes by the resolved `merchant_id`. The local secret check now accepts both `INTERNAL_SERVICE_SECRET` and `PLATFORM_INTERNAL_SECRET`, aligned with `auth.ts`.
+
+### [FIXED] C3 — Silent partial deletes in GDPR/data-deletion flows
+
+**File:** `packages/api/src/lib/dataDeletion.ts`
+
+**Was:** All `await supabase.from(...).delete()` calls in `permanentlyDeleteMerchantData` and `permanentlyDeleteUserData` were bare — no error checking. A failing delete was silently skipped; GDPR wipes reported success with data still present.
+
+**Fix:** Every delete now destructures `{ error }` and throws on failure. The `products` select also has an error check before proceeding to chunk/product deletion.
+
+### [FIXED] C4 — Non-atomic chunk replacement leaves products with zero RAG chunks
+
+**Files:** `packages/api/src/lib/knowledgeBase.ts`, `packages/workers/src/lib/knowledgeBase.ts`
+
+**Was:** Delete-then-insert. If the insert failed after the delete, the product had zero knowledge chunks — RAG silently returned no results.
+
+**Fix:** Switched to insert-then-delete. New chunks are inserted first; if that succeeds, old chunks are deleted (filtering by hashes not in the new set). A failed insert leaves old chunks fully intact — zero-chunk window is no longer possible.
+
+### [FIXED] C5 — `processExternalEvents` reprocesses same rows on every run
+
+**Files:** `packages/api/src/lib/orderProcessor.ts`, `supabase/migrations/040_external_events_processed_at.sql`
+
+**Was:** Query selected the oldest N rows by `received_at` with no processed-state filter — the same events were re-applied on every scheduler tick.
+
+**Fix:** Migration `040` adds `processed_at TIMESTAMPTZ` to `external_events` with a partial index (`WHERE processed_at IS NULL`). `processExternalEvents` now filters `.is('processed_at', null)` and stamps `processed_at` after each successful event.
 
 ---
 
@@ -292,7 +340,7 @@ e.g. `icon={... as never}`
 
 | Area | Notes |
 |------|--------|
-| Shopify webhooks | HMAC verification via official library |
+| Shopify webhooks | HMAC verification; fails-closed when secret unset (fixed 2026-04-15) |
 | Logging | Structured Pino usage |
 | BullMQ | Retries, backoff, retention defaults |
 | TypeScript | `strict: true` across packages |
@@ -327,5 +375,14 @@ e.g. `icon={... as never}`
 | **CI/CD** | Dockerfile path, conditional migrations, `pnpm install` without frozen lockfile |
 
 ---
+
+---
+
+## Changelog
+
+| Date | What changed |
+|------|-------------|
+| 2026-04-15 | Deep technical audit performed across 5 domains (security, data, Shopify app, workers/AI, infra). 47 findings catalogued in canvas artifact. |
+| 2026-04-15 | 5 critical findings (C1–C5) fixed in commit `157cdff` and deployed to production (`167.172.60.234`). Auth bug fix (products route 403) in commit `779c53c`. |
 
 *Generated as a consolidated technical audit. Update this document after major refactors.*
