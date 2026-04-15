@@ -3,7 +3,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { isBillingReady } from "../lib/billingStatus";
 import { requireSessionTokenAuthorization } from "../lib/sessionToken.server";
-import { fetchMerchantOverviewFromRequest } from "../platform.server";
+import { fetchMerchantOverviewFromRequest, syncShopInstall } from "../platform.server";
 import {
   GROWTH_MONTHLY_PLAN,
   GROWTH_YEARLY_PLAN,
@@ -72,7 +72,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // The platform API remains the single verifier for embedded bearer tokens.
   requireSessionTokenAuthorization(request);
   const requestUrl = new URL(request.url);
-  const { billing } = await authenticateEmbeddedAdmin(request);
+  const { billing, session } = await authenticateEmbeddedAdmin(request);
   const billingState = await billing.check({
     plans: [...ALL_PLAN_KEYS],
     isTest: process.env.NODE_ENV !== "production",
@@ -93,6 +93,38 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       billingApproved,
     });
   } catch (error) {
+    if (
+      error instanceof Response &&
+      error.status === 404 &&
+      session.shop &&
+      session.accessToken
+    ) {
+      try {
+        await syncShopInstall({
+          shop: session.shop,
+          accessToken: session.accessToken,
+          scope: session.scope ?? null,
+        });
+
+        const overview = await fetchMerchantOverviewFromRequest(request);
+        const shop = requestUrl.searchParams.get("shop") || overview.shop;
+        const billingApproved =
+          billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
+
+        return Response.json({
+          merchantName: overview.merchant.name || shop.replace(".myshopify.com", ""),
+          overview,
+          shop,
+          subscriptionStatus: billingApproved
+            ? "active"
+            : overview.merchant.subscription_status || "inactive",
+          billingApproved,
+        });
+      } catch (repairError) {
+        console.error("[app-bootstrap] install sync repair failed", repairError);
+      }
+    }
+
     // Fresh installs can hit a short timing window where embedded auth is valid
     // but merchant records are not fully bootstrapped in the platform API yet.
     if (error instanceof Response && (error.status === 403 || error.status === 404)) {
