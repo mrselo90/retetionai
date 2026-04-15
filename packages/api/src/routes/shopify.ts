@@ -349,7 +349,10 @@ shopify.get('/merchant-overview', authMiddleware, async (c) => {
     }
 
     if (authMethod === 'internal') {
-      const shopRaw = c.req.query('shop')?.trim();
+      const shopRaw =
+        c.req.query('shop')?.trim() ||
+        c.req.header('X-Internal-Shop-Domain')?.trim() ||
+        '';
       if (!shopRaw) {
         return c.json({ error: 'shop is required' }, 400);
       }
