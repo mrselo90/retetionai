@@ -21,14 +21,17 @@ import * as crypto from 'crypto';
 const shopify = new Hono();
 
 function verifyInternalSecret(c: any) {
-  const expectedSecret = process.env.INTERNAL_SERVICE_SECRET?.trim() || '';
+  const expectedSecrets = [
+    process.env.INTERNAL_SERVICE_SECRET?.trim(),
+    process.env.PLATFORM_INTERNAL_SECRET?.trim(),
+  ].filter((value): value is string => Boolean(value));
   const providedSecret = c.req.header('X-Internal-Secret')?.trim() || '';
 
-  if (!expectedSecret) {
+  if (expectedSecrets.length === 0) {
     return { ok: false as const, status: 500 as const, error: 'Internal auth is not configured' };
   }
 
-  if (!providedSecret || providedSecret !== expectedSecret) {
+  if (!providedSecret || !expectedSecrets.includes(providedSecret)) {
     return { ok: false as const, status: 403 as const, error: 'Forbidden: Invalid internal secret' };
   }
 
