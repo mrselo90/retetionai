@@ -5,7 +5,17 @@ import { ChatIcon, PersonIcon } from "@shopify/polaris-icons";
 import { BlockStack, InlineGrid, InlineStack, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantCustomers, fetchMerchantOverviewFromRequest } from "../platform.server";
-import { ActionCard, EmptyCard, MetricCard, SectionCard, ShellPage, StatePanel } from "../components/shell-ui";
+import {
+  ActionCard,
+  EmptyCard,
+  MetricCard,
+  SectionCard,
+  SetupDependencyList,
+  type SetupDependencyItem,
+  ShellPage,
+  StatePanel,
+  ValuePreview,
+} from "../components/shell-ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
@@ -72,12 +82,32 @@ export default function CustomersPage() {
             ? { content: "Configure messaging", url: "/app/settings", icon: ChatIcon }
             : { content: "Check order flow", url: "/app/integrations#orders-flow", icon: ChatIcon };
 
-  const setupDependencies = [
-    { label: "Plan activation", value: hasBilling ? "✅ Completed" : "❌ Required" },
-    { label: "Product sync", value: hasProducts ? "✅ Completed" : "🔒 Available after plan activation" },
-    { label: "Messaging setup", value: hasMessagingConfigured ? "✅ Completed" : "🔒 Unlocks after products are added" },
-    { label: "First order", value: hasOrders ? "✅ Received" : "🔒 Available after setup is complete" },
-    { label: "Conversations", value: hasOrders ? "⏳ Waiting for first customer thread" : "🔒 Available after first order" },
+  const setupDependencies: SetupDependencyItem[] = [
+    {
+      label: "Plan activation",
+      state: hasBilling ? "completed" : "current",
+      hint: hasBilling ? "Billing approved." : "Activate your plan to continue setup.",
+    },
+    {
+      label: "Product sync",
+      state: hasProducts ? "completed" : hasBilling ? "current" : "locked",
+      hint: hasProducts ? "Products are available." : hasBilling ? "Add products to unlock customer intelligence." : "Available after plan activation.",
+    },
+    {
+      label: "Messaging setup",
+      state: hasMessagingConfigured ? "completed" : hasBilling && hasProducts ? "current" : "locked",
+      hint: hasMessagingConfigured ? "Messaging is configured." : hasBilling && hasProducts ? "Configure WhatsApp/bot settings." : "Available after product sync.",
+    },
+    {
+      label: "First order",
+      state: hasOrders ? "completed" : setupReady ? "current" : "locked",
+      hint: hasOrders ? "Order flow started." : setupReady ? "Waiting for first order to generate customer records." : "Available after messaging setup.",
+    },
+    {
+      label: "Conversations",
+      state: customers.length > 0 ? "completed" : hasOrders ? "current" : "locked",
+      hint: customers.length > 0 ? "Customer intelligence is active." : hasOrders ? "Waiting for first conversation signals." : "Available after first order.",
+    },
   ];
 
   return (
@@ -85,9 +115,9 @@ export default function CustomersPage() {
       title="Customers"
       subtitle={
         uiState === "onboarding_incomplete"
-          ? "Setup overview for customer insights."
+          ? "This section unlocks after setup milestones are complete."
           : uiState === "ready_no_data"
-            ? "Customer workspace is ready and waiting for first live data."
+            ? "Setup is complete. Customer insights will appear after first activity."
             : "Customer health, segment visibility, and churn risk inside Shopify Admin."
       }
       primaryAction={primaryCta}
@@ -95,47 +125,39 @@ export default function CustomersPage() {
       {uiState === "onboarding_incomplete" ? (
         <>
           <StatePanel
-            title="No customer data yet because Recete is not fully set up"
-            description="Customer insights depend on completing setup in sequence. Finish setup to unlock segments, churn risk, and engagement signals."
+            title="This section is not available yet because setup is incomplete"
+            description="Complete setup to unlock customer insights and analytics. Recete needs billing, products, messaging, and first order activity first."
             tone="attention"
-            action={primaryCta}
+            statusLabel="In progress"
           />
 
           <SectionCard
             title="Setup dependencies"
-            subtitle="Customer intelligence unlocks only after these steps are complete."
+            subtitle="Follow this order to unlock customer intelligence."
           >
-            <BlockStack gap="200">
-              {setupDependencies.map((dependency) => (
-                <InlineStack key={dependency.label} align="space-between" blockAlign="center">
-                  <Text as="p" variant="bodyMd">{dependency.label}</Text>
-                  <Text as="p" variant="bodySm" tone="subdued">{dependency.value}</Text>
-                </InlineStack>
-              ))}
-            </BlockStack>
+            <SetupDependencyList items={setupDependencies} />
           </SectionCard>
 
           <SectionCard
             title="What will appear here after setup"
-            subtitle="This page becomes your customer action workspace once data starts flowing."
+            subtitle="Preview of the value you unlock once live data starts flowing."
           >
-            <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
-              <ActionCard
-                title="Customer segments"
-                description="Identify at-risk and engaged customer groups automatically."
-                status="pending"
-              />
-              <ActionCard
-                title="Conversation insights"
-                description="Track customer engagement signals from real conversation history."
-                status="pending"
-              />
-              <ActionCard
-                title="Retention opportunities"
-                description="Prioritize buyers who need action before churn risk increases."
-                status="pending"
-              />
-            </InlineGrid>
+            <ValuePreview
+              items={[
+                {
+                  title: "Customer segments",
+                  description: "Identify at-risk buyers and engaged customers automatically.",
+                },
+                {
+                  title: "Conversation insights",
+                  description: "Understand engagement quality from real buyer conversations.",
+                },
+                {
+                  title: "Retention opportunities",
+                  description: "Prioritize churn-prevention actions early.",
+                },
+              ]}
+            />
           </SectionCard>
         </>
       ) : null}
@@ -147,10 +169,10 @@ export default function CustomersPage() {
             description={
               unavailableReason
                 ? "Customer analytics will load automatically once connectivity is restored."
-                : "No customers yet. This workspace will update after your first order and conversation."
+                : "No customer records yet because no order and conversation signals exist. This workspace will update automatically after first activity."
             }
             tone={unavailableReason ? "attention" : "info"}
-            action={primaryCta}
+            statusLabel="Ready"
           />
 
           <SectionCard
@@ -195,7 +217,7 @@ export default function CustomersPage() {
                   : "Use this screen to prioritize retention actions and monitor customer health."
             }
             tone={unavailableReason || highRiskCount > 0 ? "attention" : "success"}
-            action={primaryCta}
+            statusLabel="Live"
           />
 
           <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
@@ -233,12 +255,6 @@ export default function CustomersPage() {
                 }
                 status={engagedCustomers.length > 0 ? "active" : "pending"}
                 action={{ content: "Inspect conversation health", url: "/app/conversations", icon: ChatIcon }}
-              />
-              <ActionCard
-                title="Customer board"
-                description="Review all customer segments and prioritize actions based on churn signals."
-                status="info"
-                action={{ content: "Open customer board", url: "/app/customers", icon: PersonIcon }}
               />
             </InlineGrid>
           </SectionCard>

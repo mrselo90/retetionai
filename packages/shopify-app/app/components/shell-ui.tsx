@@ -251,11 +251,13 @@ export function StatePanel({
   title,
   description,
   tone = "info",
+  statusLabel,
   action,
 }: {
   title: string;
   description: string;
   tone?: "success" | "attention" | "critical" | "info";
+  statusLabel?: string;
   action?: { content: string; url: string; icon?: IconSource };
 }) {
   const navigate = useNavigate();
@@ -263,13 +265,15 @@ export function StatePanel({
     <Card padding="500" roundedAbove="sm">
       <BlockStack gap="200">
         <Text as="p" variant="bodySm" tone="subdued">
-          {tone === "critical"
-            ? "Needs attention"
-            : tone === "attention"
-              ? "In progress"
-              : tone === "success"
-                ? "Healthy"
-                : "Overview"}
+          {statusLabel
+            ? statusLabel
+            : tone === "critical"
+              ? "Needs attention"
+              : tone === "attention"
+                ? "In progress"
+                : tone === "success"
+                  ? "Healthy"
+                  : "Overview"}
         </Text>
         <InlineStack align="space-between" blockAlign="end" gap="300" wrap>
           <Box maxWidth="42rem">
@@ -290,5 +294,56 @@ export function StatePanel({
         </InlineStack>
       </BlockStack>
     </Card>
+  );
+}
+
+export type SetupDependencyItem = {
+  label: string;
+  state: "completed" | "current" | "locked";
+  hint: string;
+};
+
+export function SetupDependencyList({
+  items,
+}: {
+  items: SetupDependencyItem[];
+}) {
+  return (
+    <BlockStack gap="200">
+      {items.map((item) => (
+        <InlineStack key={item.label} align="space-between" blockAlign="start" gap="400">
+          <Text as="p" variant="bodyMd">{item.label}</Text>
+          <BlockStack gap="100" inlineAlign="end">
+            <Text as="p" variant="bodySm" fontWeight="semibold">
+              {item.state === "completed"
+                ? "Completed"
+                : item.state === "current"
+                  ? "Current step"
+                  : "Locked"}
+            </Text>
+            <Text as="p" variant="bodySm" tone="subdued">{item.hint}</Text>
+          </BlockStack>
+        </InlineStack>
+      ))}
+    </BlockStack>
+  );
+}
+
+export function ValuePreview({
+  items,
+}: {
+  items: Array<{ title: string; description: string }>;
+}) {
+  return (
+    <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
+      {items.map((item) => (
+        <Card key={item.title} padding="400" roundedAbove="sm">
+          <BlockStack gap="200">
+            <Text as="h3" variant="headingMd">{item.title}</Text>
+            <Text as="p" variant="bodySm" tone="subdued">{item.description}</Text>
+          </BlockStack>
+        </Card>
+      ))}
+    </InlineGrid>
   );
 }
