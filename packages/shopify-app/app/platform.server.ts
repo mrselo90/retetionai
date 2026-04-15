@@ -360,6 +360,25 @@ function buildPlatformAuthHeaders(request: Request, initHeaders?: HeadersInit) {
   return headers;
 }
 
+function buildPlatformMerchantHeaders(request: Request, initHeaders?: HeadersInit) {
+  const headers = new Headers(initHeaders || {});
+  const url = new URL(request.url);
+  const shopRaw = url.searchParams.get("shop")?.trim();
+  const internalSecret =
+    process.env.INTERNAL_SERVICE_SECRET?.trim() ||
+    process.env.PLATFORM_INTERNAL_SECRET?.trim() ||
+    "";
+
+  if (shopRaw && internalSecret) {
+    const shop = shopRaw.includes(".myshopify.com") ? shopRaw : `${shopRaw}.myshopify.com`;
+    headers.set("X-Internal-Secret", internalSecret);
+    headers.set("X-Internal-Shop-Domain", shop);
+    return headers;
+  }
+
+  return buildPlatformAuthHeaders(request, initHeaders);
+}
+
 export async function syncShopInstall(session: {
   shop: string;
   accessToken?: string;
@@ -431,7 +450,7 @@ async function internalMerchantRequest(
   init?: RequestInit,
 ) {
   const baseUrl = getRequiredEnv("PLATFORM_API_URL").replace(/\/$/, "");
-  const headers = buildPlatformAuthHeaders(request, init?.headers);
+  const headers = buildPlatformMerchantHeaders(request, init?.headers);
   if (init?.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
@@ -462,7 +481,7 @@ export async function fetchMerchantOverviewFromRequest(request: Request) {
   let response: Response;
   try {
     response = await fetch(`${baseUrl}/api/integrations/shopify/merchant-overview`, {
-      headers: buildPlatformAuthHeaders(request),
+      headers: buildPlatformMerchantHeaders(request),
     });
   } catch (err) {
     console.error(

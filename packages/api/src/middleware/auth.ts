@@ -204,12 +204,18 @@ async function authenticateInternalSecret(c: Context): Promise<{
   const isMerchantInternal = isInternalMerchantPath(path);
   if (!isProduct && !isWhatsAppInternal && !isMerchantInternal) return null;
 
-  const expectedSecret = process.env.INTERNAL_SERVICE_SECRET;
-  const providedSecret = c.req.header('X-Internal-Secret');
+  const expectedSecrets = [
+    process.env.INTERNAL_SERVICE_SECRET?.trim(),
+    process.env.PLATFORM_INTERNAL_SECRET?.trim(),
+  ].filter(isNonEmptyString);
+  const providedSecret = c.req.header('X-Internal-Secret')?.trim() || '';
   const merchantIdHeaderRaw = c.req.header('X-Internal-Merchant-Id');
   const merchantIdHeader = merchantIdHeaderRaw?.trim() || '';
+  const shopDomainHeaderRaw = c.req.header('X-Internal-Shop-Domain');
+  const shopDomainHeader = shopDomainHeaderRaw?.trim() || '';
+  let resolvedMerchantId = merchantIdHeader;
 
-  if (!isNonEmptyString(expectedSecret)) {
+  if (expectedSecrets.length === 0) {
     return {
       ok: false,
       status: 500,
@@ -217,7 +223,7 @@ async function authenticateInternalSecret(c: Context): Promise<{
     };
   }
 
-  if (!isNonEmptyString(providedSecret) || providedSecret !== expectedSecret) {
+  if (!providedSecret || !expectedSecrets.includes(providedSecret)) {
     return {
       ok: false,
       status: 403,
@@ -225,20 +231,36 @@ async function authenticateInternalSecret(c: Context): Promise<{
     };
   }
 
-  if (!merchantIdHeader) {
-    return {
-      ok: false,
-      status: 403,
-      error: 'Forbidden: Missing X-Internal-Merchant-Id for internal product route',
-    };
-  }
-
   try {
     const supabase = getSupabaseServiceClient();
+
+    if (!resolvedMerchantId && isMerchantInternal && shopDomainHeader) {
+      const { data: integration, error: integrationLookupError } = await supabase
+        .from('integrations')
+        .select('merchant_id')
+        .eq('provider', 'shopify')
+        .contains('auth_data', { shop: shopDomainHeader })
+        .maybeSingle();
+
+      if (!integrationLookupError && integration?.merchant_id) {
+        resolvedMerchantId = integration.merchant_id;
+      }
+    }
+
+    if (!resolvedMerchantId) {
+      return {
+        ok: false,
+        status: 403,
+        error: isMerchantInternal
+          ? 'Forbidden: Missing internal merchant context'
+          : 'Forbidden: Missing X-Internal-Merchant-Id for internal product route',
+      };
+    }
+
     const { data: merchant, error: lookupError } = await supabase
       .from('merchants')
       .select('id')
-      .eq('id', merchantIdHeader)
+      .eq('id', resolvedMerchantId)
       .maybeSingle();
 
     if (lookupError || !merchant) {
@@ -259,7 +281,7 @@ async function authenticateInternalSecret(c: Context): Promise<{
 
   return {
     ok: true,
-    merchantId: merchantIdHeader,
+    merchantId: resolvedMerchantId || undefined,
     internalCall: isProduct,
   };
 }

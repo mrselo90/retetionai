@@ -35,6 +35,7 @@ describe('Auth Middleware', () => {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      contains: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn(),
       insert: vi.fn().mockReturnThis(),
       single: vi.fn(),
@@ -144,6 +145,25 @@ describe('Auth Middleware', () => {
     expect(mockContext.set).toHaveBeenCalledWith('merchantId', 'merchant-eval');
     expect(mockContext.set).toHaveBeenCalledWith('authMethod', 'internal');
     expect(mockContext.set).not.toHaveBeenCalledWith('internalCall', true);
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  it('supports internal-secret auth on internal merchant route via shop domain lookup', async () => {
+    process.env.INTERNAL_SERVICE_SECRET = 'secret-123';
+    mockContext.req.path = '/api/integrations/shopify/merchant-overview';
+    mockSupabase.maybeSingle
+      .mockResolvedValueOnce({ data: { merchant_id: 'merchant-shop' }, error: null })
+      .mockResolvedValueOnce({ data: { id: 'merchant-shop' }, error: null });
+    mockContext.req.header.mockImplementation((name: string) => {
+      if (name === 'X-Internal-Secret') return 'secret-123';
+      if (name === 'X-Internal-Shop-Domain') return 'receteshop.myshopify.com';
+      return undefined;
+    });
+
+    await authMiddleware(mockContext, mockNext);
+
+    expect(mockContext.set).toHaveBeenCalledWith('merchantId', 'merchant-shop');
+    expect(mockContext.set).toHaveBeenCalledWith('authMethod', 'internal');
     expect(mockNext).toHaveBeenCalled();
   });
 
