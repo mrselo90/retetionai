@@ -167,6 +167,26 @@ describe('Auth Middleware', () => {
     expect(mockNext).toHaveBeenCalled();
   });
 
+  it('supports internal-secret auth on internal product route via shop domain lookup', async () => {
+    process.env.INTERNAL_SERVICE_SECRET = 'secret-123';
+    mockContext.req.path = '/api/products';
+    mockSupabase.maybeSingle
+      .mockResolvedValueOnce({ data: { merchant_id: 'merchant-shop' }, error: null })
+      .mockResolvedValueOnce({ data: { id: 'merchant-shop' }, error: null });
+    mockContext.req.header.mockImplementation((name: string) => {
+      if (name === 'X-Internal-Secret') return 'secret-123';
+      if (name === 'X-Internal-Shop-Domain') return 'receteshop.myshopify.com';
+      return undefined;
+    });
+
+    await authMiddleware(mockContext, mockNext);
+
+    expect(mockContext.set).toHaveBeenCalledWith('merchantId', 'merchant-shop');
+    expect(mockContext.set).toHaveBeenCalledWith('authMethod', 'internal');
+    expect(mockContext.set).toHaveBeenCalledWith('internalCall', true);
+    expect(mockNext).toHaveBeenCalled();
+  });
+
   it('optionalAuth proceeds without auth', async () => {
     mockContext.req.path = '/api/public-resource';
     mockContext.req.header.mockReturnValue(undefined);

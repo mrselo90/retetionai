@@ -234,7 +234,7 @@ async function authenticateInternalSecret(c: Context): Promise<{
   try {
     const supabase = getSupabaseServiceClient();
 
-    if (!resolvedMerchantId && isMerchantInternal && shopDomainHeader) {
+    if (!resolvedMerchantId && shopDomainHeader) {
       const { data: integration, error: integrationLookupError } = await supabase
         .from('integrations')
         .select('merchant_id')
