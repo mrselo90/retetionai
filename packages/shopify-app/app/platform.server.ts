@@ -337,6 +337,27 @@ function extractBearerToken(request: Request): string | null {
   return null;
 }
 
+function extractShopDomainFromBearerToken(request: Request): string | null {
+  const authorization = extractBearerToken(request);
+  if (!authorization?.startsWith("Bearer ")) return null;
+
+  const token = authorization.slice("Bearer ".length).trim();
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")) as {
+      dest?: string;
+    };
+    const rawDest = typeof payload.dest === "string" ? payload.dest.trim() : "";
+    if (!rawDest.startsWith("https://")) return null;
+    const shop = rawDest.replace(/^https:\/\//i, "").replace(/\/.*$/, "").trim().toLowerCase();
+    return /^[a-z0-9-]+\.myshopify\.com$/.test(shop) ? shop : null;
+  } catch {
+    return null;
+  }
+}
+
 function buildPlatformAuthHeaders(request: Request, initHeaders?: HeadersInit) {
   const authorization = extractBearerToken(request);
   if (!authorization) {
@@ -363,7 +384,10 @@ function buildPlatformAuthHeaders(request: Request, initHeaders?: HeadersInit) {
 function buildPlatformMerchantHeaders(request: Request, initHeaders?: HeadersInit) {
   const headers = new Headers(initHeaders || {});
   const url = new URL(request.url);
-  const shopRaw = url.searchParams.get("shop")?.trim();
+  const shopRaw =
+    url.searchParams.get("shop")?.trim() ||
+    extractShopDomainFromBearerToken(request) ||
+    "";
   const internalSecret =
     process.env.INTERNAL_SERVICE_SECRET?.trim() ||
     process.env.PLATFORM_INTERNAL_SECRET?.trim() ||

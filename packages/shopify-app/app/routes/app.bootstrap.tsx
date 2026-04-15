@@ -128,7 +128,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Fresh installs can hit a short timing window where embedded auth is valid
     // but merchant records are not fully bootstrapped in the platform API yet.
     if (error instanceof Response && (error.status === 403 || error.status === 404)) {
-      const shop = requestUrl.searchParams.get("shop")?.trim() || "unknown.myshopify.com";
+      const shop =
+        requestUrl.searchParams.get("shop")?.trim() ||
+        session.shop ||
+        "unknown.myshopify.com";
       const overview = buildPendingOverview(shop);
       const billingApproved = billingState.hasActivePayment;
       if (billingApproved) {
