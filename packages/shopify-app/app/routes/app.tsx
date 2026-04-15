@@ -59,6 +59,7 @@ import {
 } from "@shopify/polaris-icons";
 
 import { EmbeddedSessionTokenBoundary } from "../components/EmbeddedSessionTokenBoundary";
+import { isBillingReady, normalizeSubscriptionStatus } from "../lib/billingStatus";
 import type { AppBridgeWithIdToken } from "../lib/sessionToken.client";
 import type { ShopifyMerchantOverview } from "../platform.server";
 
@@ -213,8 +214,12 @@ function AppShell({ initialShop }: { initialShop: string }) {
   const merchantName = bootstrapData?.merchantName || "Loading merchant";
   const shop = bootstrapData?.shop || initialShop || "Embedded Shopify store";
   const subscriptionStatus = bootstrapData?.subscriptionStatus || "loading";
-  const subscriptionTone = subscriptionStatus === "active" ? "success" : "attention";
-  const subscriptionLabel = subscriptionStatus === "active" ? "Subscription active" : `Subscription ${subscriptionStatus}`;
+  const normalizedSubscriptionStatus = normalizeSubscriptionStatus(subscriptionStatus);
+  const hasBillingApproved = isBillingReady(subscriptionStatus);
+  const subscriptionTone = hasBillingApproved ? "success" : "attention";
+  const subscriptionLabel = hasBillingApproved
+    ? "Subscription active"
+    : `Subscription ${normalizedSubscriptionStatus || "loading"}`;
   const shellLoading = !bootstrapData && !bootstrapError;
   const isProductSetupDetailView =
     location.pathname.startsWith("/app/products") &&
@@ -228,9 +233,9 @@ function AppShell({ initialShop }: { initialShop: string }) {
         return [
         {
           label: "Billing approved",
-          status: bootstrapData?.subscriptionStatus === "active" ? "complete" : "pending",
+          status: hasBillingApproved ? "complete" : "pending",
           detail:
-            bootstrapData?.subscriptionStatus === "active"
+            hasBillingApproved
               ? "Plan is active."
               : "Approve the app plan in Shopify.",
           to: "/app/billing",

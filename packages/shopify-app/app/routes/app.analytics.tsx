@@ -4,6 +4,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ChartVerticalIcon, ChatIcon, SettingsIcon } from "@shopify/polaris-icons";
 import { BlockStack, Card, InlineGrid, InlineStack, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
+import { isBillingReady } from "../lib/billingStatus";
 import { fetchMerchantOverviewFromRequest } from "../platform.server";
 import {
   ActionCard,
@@ -35,7 +36,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function AnalyticsPage() {
   const data = useLoaderData<typeof loader>();
-  const hasBilling = data.subscription?.status === "active";
+  const hasBilling = isBillingReady(data.subscription?.status);
   const hasProducts = data.metrics.totalProducts > 0;
   const hasMessagingConfigured = Boolean(
     data.settings?.notificationPhone ||

@@ -3,6 +3,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { CartIcon, CatalogIcon, ConnectIcon, SettingsIcon, ViewIcon } from "@shopify/polaris-icons";
 import { Badge, BlockStack, Box, Button, Card, InlineGrid, InlineStack, List, Text } from "@shopify/polaris";
 import { ShellPage } from "../components/shell-ui";
+import { isBillingReady } from "../lib/billingStatus";
 import type { ShopifyMerchantOverview } from "../platform.server";
 import { useAppBootstrapData } from "./app";
 
@@ -44,7 +45,7 @@ export default function Index() {
 }
 
 function SetupOverview({ data }: { data: ShopifyMerchantOverview }) {
-  const hasBilling = (data.subscription?.status || "").toLowerCase() === "active";
+  const hasBilling = isBillingReady(data.subscription?.status);
   const hasProducts = data.metrics.totalProducts > 0 || (data.products?.length || 0) > 0;
   const hasMessaging = Boolean(data.settings?.personaSettings?.bot_name);
   const hasOrderFlow = data.metrics.totalOrders > 0;

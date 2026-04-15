@@ -4,6 +4,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ChatIcon, PersonIcon } from "@shopify/polaris-icons";
 import { BlockStack, InlineGrid, InlineStack, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
+import { isBillingReady } from "../lib/billingStatus";
 import { fetchMerchantCustomers, fetchMerchantOverviewFromRequest } from "../platform.server";
 import {
   ActionCard,
@@ -54,7 +55,7 @@ export default function CustomersPage() {
   const engagedCustomers = sortedCustomers.filter((item) => (item.conversationCount || 0) > 0);
   const engagedCount = engagedCustomers.length;
 
-  const hasBilling = data.overview.subscription?.status === "active";
+  const hasBilling = isBillingReady(data.overview.subscription?.status);
   const hasProducts = data.overview.metrics.totalProducts > 0;
   const hasMessagingConfigured = Boolean(
     data.overview.settings?.notificationPhone ||
