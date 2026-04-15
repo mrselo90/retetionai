@@ -171,6 +171,10 @@ export async function invalidateApiCache(endpoint: string, params?: Record<strin
   return deleteCache('api', key);
 }
 
+export async function invalidateMerchantOverviewCache(merchantId: string) {
+  return deleteCacheKeyPrefix('api', `shopify-merchant-overview:${merchantId}:`);
+}
+
 /**
  * Cache RAG query results
  */

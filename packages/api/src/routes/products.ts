@@ -34,6 +34,7 @@ import {
   getCachedApiResponse,
   setCachedApiResponse,
   invalidateApiCache,
+  invalidateMerchantOverviewCache,
   invalidateMerchantRagCaches,
 } from '../lib/cache.js';
 import { enforceStorageLimit } from '../lib/planLimits.js';
@@ -212,6 +213,7 @@ async function invalidateProductKnowledgeCaches(
     invalidateMerchantRagCaches(String(merchantId)),
     options?.invalidateProductDetails && productId ? invalidateProductCache(productId) : Promise.resolve(true),
     invalidateApiCache(`products:${merchantId}`),
+    invalidateMerchantOverviewCache(String(merchantId)),
   ]);
 }
 

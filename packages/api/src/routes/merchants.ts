@@ -8,7 +8,7 @@ import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
 import { getMerchantBotInfo, setMerchantBotInfoKey } from '../lib/botInfo.js';
 import { SYSTEM_GUARDRAILS, type CustomGuardrail } from '../lib/guardrails.js';
-import { invalidateApiCache } from '../lib/cache.js';
+import { invalidateApiCache, invalidateMerchantOverviewCache } from '../lib/cache.js';
 import { MultiLangChunkShadowWriteService } from '../lib/multiLangRag/chunkShadowWriteService.js';
 import { ShopSettingsService } from '../lib/multiLangRag/shopSettingsService.js';
 import { normalizeLangCode } from '../lib/multiLangRag/utils.js';
@@ -133,6 +133,8 @@ merchants.put('/me', async (c) => {
     if (error) {
       return c.json({ error: 'Failed to update merchant' }, 500);
     }
+
+    await invalidateMerchantOverviewCache(merchantId);
 
     return c.json({ merchant });
   } catch (error) {
@@ -372,6 +374,7 @@ merchants.delete('/me/data-reset', async (c) => {
 
     await clearMerchantDataKeepMerchant(merchantId);
     await invalidateApiCache(`products:${merchantId}`);
+    await invalidateMerchantOverviewCache(merchantId);
 
     return c.json({
       ok: true,
