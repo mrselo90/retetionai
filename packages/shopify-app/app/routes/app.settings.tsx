@@ -363,7 +363,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         } satisfies ActionResult;
       }
 
-      const result = await deleteMerchantDataFromAdminPanel(request);
+      const result = await deleteMerchantDataFromAdminPanel(session.shop);
       return {
         ok: true,
         intent,
@@ -375,10 +375,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     return { ok: false, intent, error: "Unknown settings action." } satisfies ActionResult;
   } catch (error) {
+    let errorMessage = "Settings action failed.";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (error instanceof Response) {
+      try {
+        const body = await error.clone().json() as { error?: string; message?: string };
+        errorMessage = body?.error || body?.message || `Request failed (${error.status})`;
+      } catch {
+        errorMessage = `Request failed (${error.status})`;
+      }
+    }
     return {
       ok: false,
       intent,
-      error: error instanceof Error ? error.message : "Settings action failed.",
+      error: errorMessage,
     } satisfies ActionResult;
   }
 };

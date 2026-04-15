@@ -775,16 +775,35 @@ export async function cancelMerchantAddon(request: Request, addonKey: string) {
   });
 }
 
-export async function deleteMerchantDataFromAdminPanel(request: Request) {
-  return internalMerchantRequest(request, "/api/merchants/me/data-reset", {
+export async function deleteMerchantDataFromAdminPanel(shopDomain: string) {
+  const baseUrl = getRequiredEnv("PLATFORM_API_URL").replace(/\/$/, "");
+  const internalSecret = (
+    process.env.INTERNAL_SERVICE_SECRET?.trim() ||
+    process.env.PLATFORM_INTERNAL_SECRET?.trim() ||
+    ""
+  );
+  if (!internalSecret) {
+    throw new Error("INTERNAL_SERVICE_SECRET is not configured");
+  }
+  const shop = shopDomain.includes(".myshopify.com")
+    ? shopDomain
+    : `${shopDomain}.myshopify.com`;
+
+  const response = await fetch(`${baseUrl}/api/merchants/me/data-reset`, {
     method: "DELETE",
-    body: JSON.stringify({
-      confirm: true,
-    }),
-  }) as Promise<{
+    headers: {
+      "Content-Type": "application/json",
+      "X-Internal-Secret": internalSecret,
+      "X-Internal-Shop-Domain": shop,
+    },
+    body: JSON.stringify({ confirm: true }),
+    signal: platformSignal(),
+  });
+
+  return (await parseRequiredJson(response, "Merchant data reset")) as {
     ok?: boolean;
     message?: string;
-  }>;
+  };
 }
 
 export async function fetchMerchantConversations(request: Request) {
