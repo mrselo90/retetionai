@@ -2,7 +2,7 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ChartVerticalIcon, ChatIcon, SettingsIcon } from "@shopify/polaris-icons";
-import { Banner, BlockStack, Card, InlineGrid, Text } from "@shopify/polaris";
+import { BlockStack, Card, InlineGrid, InlineStack, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantOverviewFromRequest } from "../platform.server";
 import { ActionCard, DetailRows, MetricCard, SectionCard, ShellPage, StatePanel, StatusBadge } from "../components/shell-ui";
@@ -24,108 +24,256 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function AnalyticsPage() {
   const data = useLoaderData<typeof loader>();
+  const hasBilling = data.subscription?.status === "active";
+  const hasProducts = data.metrics.totalProducts > 0;
+  const hasMessagingConfigured = Boolean(
+    data.settings?.notificationPhone ||
+      data.settings?.personaSettings?.bot_name ||
+      data.settings?.personaSettings?.whatsapp_welcome_template,
+  );
+  const hasConversations = data.analytics.totalConversations > 0;
+  const hasAnalyticsSignals =
+    hasConversations ||
+    data.analytics.preventedReturns > 0 ||
+    data.analytics.returnRate > 0 ||
+    data.analytics.avgSentiment > 0;
+  const onboardingIncomplete = !hasBilling || !hasProducts || !hasMessagingConfigured;
+  const readyNoData = !onboardingIncomplete && !hasAnalyticsSignals;
+  const isPro = data.analyticsLevel === "ADVANCED";
+
+  const analyticsState: "onboarding_incomplete" | "ready_no_data" | "has_data_basic" | "has_data_pro" =
+    onboardingIncomplete
+      ? "onboarding_incomplete"
+      : readyNoData
+        ? "ready_no_data"
+        : isPro
+          ? "has_data_pro"
+          : "has_data_basic";
+
   const resolvedRate =
     data.analytics.totalConversations > 0
       ? Math.round((data.analytics.resolvedConversations / data.analytics.totalConversations) * 100)
       : 0;
-  const recommendations = [
-    {
-      title: data.metrics.responseRate < 25 ? "Raise response quality" : "Maintain response quality",
-      description: data.metrics.responseRate < 25
-        ? "Response rate is the clearest sign that messaging relevance or timing needs work."
-        : "Response rate is healthy. Keep reviewing conversations for edge cases rather than broad changes.",
-      status: data.metrics.responseRate < 25 ? "failed" : "active",
-      action: { content: data.metrics.responseRate < 25 ? "Adjust messaging settings" : "Review buyer threads", url: data.metrics.responseRate < 25 ? "/app/settings" : "/app/conversations", icon: SettingsIcon },
-    },
-    {
-      title: data.analytics.avgSentiment < 3.5 ? "Review buyer sentiment" : "Monitor sentiment drift",
-      description: data.analytics.avgSentiment < 3.5
-        ? "Sentiment is soft enough to justify checking replies and product readiness."
-        : "Sentiment is holding up, so only targeted review is needed.",
-      status: data.analytics.avgSentiment < 3.5 ? "pending" : "active",
-      action: { content: "Inspect conversations", url: "/app/conversations", icon: ChatIcon },
-    },
-    {
-      title: data.analyticsLevel === "ADVANCED" ? "Use advanced interpretation" : "Unlock deeper recommendations",
-      description: data.analyticsLevel === "ADVANCED"
-        ? "Advanced analytics is available, so use it to validate whether settings or product quality is the true issue."
-        : "Basic analytics can show trends, but Pro is needed for deeper interpretation.",
-      status: data.analyticsLevel === "ADVANCED" ? "active" : "pending",
-      action: { content: data.analyticsLevel === "ADVANCED" ? "Open conversations" : "Compare plans", url: data.analyticsLevel === "ADVANCED" ? "/app/conversations" : "/app/billing", icon: ChartVerticalIcon },
-    },
-  ];
-  const analyticsState = data.analyticsLevel !== "ADVANCED"
-    ? {
-        title: "Analytics is running in basic mode",
-        body: "Starter and Growth merchants can monitor core metrics here, but deeper interpretation still sits behind Pro.",
-        tone: "info" as const,
-      }
-    : data.metrics.responseRate < 25
+
+  const setupAction = !hasBilling
+    ? { content: "Activate plan", url: "/app/billing", icon: ChartVerticalIcon }
+    : !hasProducts
+      ? { content: "Add products", url: "/app/products", icon: ChatIcon }
+      : !hasMessagingConfigured
+        ? { content: "Configure messaging", url: "/app/settings", icon: SettingsIcon }
+        : { content: "Open conversations", url: "/app/conversations", icon: ChatIcon };
+
+  const primaryAction =
+    analyticsState === "onboarding_incomplete"
+      ? setupAction
+      : analyticsState === "ready_no_data"
+        ? { content: "Start conversations", url: "/app/conversations", icon: ChatIcon }
+        : data.metrics.responseRate < 25
+          ? { content: "Adjust messaging settings", url: "/app/settings", icon: SettingsIcon }
+          : { content: "Review buyer threads", url: "/app/conversations", icon: ChatIcon };
+
+  const topInsight =
+    analyticsState === "has_data_pro"
       ? {
-          title: "Analytics indicates a quality problem",
-          body: "Low response rate suggests product quality, tone, timing, or escalation handling needs attention.",
-          tone: "warning" as const,
+          title: data.metrics.responseRate < 25 ? "Quality risk detected" : "Analytics looks healthy",
+          description:
+            data.metrics.responseRate < 25
+              ? "Response quality is below target. Focus on messaging relevance and escalation handling."
+              : "Core performance is stable. Keep optimizing with trend and segmentation analysis.",
+          tone: data.metrics.responseRate < 25 ? "attention" as const : "success" as const,
         }
-      : {
-          title: "Analytics is healthy enough for routine review",
-          body: "Use this page to confirm quality trends, then move into conversations or settings only when the numbers justify it.",
-          tone: "success" as const,
-        };
+      : analyticsState === "has_data_basic"
+        ? {
+            title: "Core analytics is active",
+            description: "You can monitor key signals now. Upgrade to Pro when you need deeper interpretation and predictive insights.",
+            tone: "info" as const,
+          }
+        : analyticsState === "ready_no_data"
+          ? {
+              title: "Analytics is ready and waiting for first interactions",
+              description: "Data appears after the first customer conversations and post-purchase events.",
+              tone: "info" as const,
+            }
+          : {
+              title: "Analytics will be available after setup",
+              description: "This workspace unlocks after plan activation, product sync, messaging setup, and first customer conversations.",
+              tone: "attention" as const,
+            };
+
+  const recommendationCard =
+    data.metrics.responseRate < 25
+      ? {
+          title: "Raise response quality",
+          description: "Low response rate suggests message relevance, tone, or timing needs adjustment.",
+          action: { content: "Adjust messaging settings", url: "/app/settings", icon: SettingsIcon },
+        }
+      : data.analytics.avgSentiment < 3.5
+        ? {
+            title: "Review sentiment drivers",
+            description: "Customer sentiment is soft. Review risky conversations and product guidance consistency.",
+            action: { content: "Inspect conversations", url: "/app/conversations", icon: ChatIcon },
+          }
+        : {
+            title: "Maintain healthy performance",
+            description: "Current signals are stable. Continue routine thread review and incremental improvements.",
+            action: { content: "Review buyer threads", url: "/app/conversations", icon: ChatIcon },
+          };
 
   return (
     <ShellPage
       title="Analytics"
       subtitle={
-        data.analyticsLevel === "ADVANCED"
-          ? "Retention quality signals that should help the merchant decide what to adjust next."
-          : "Basic analytics are available on this plan. Upgrade to Pro for advanced analytics workflows."
+        analyticsState === "onboarding_incomplete"
+          ? "Finish setup to unlock customer analytics."
+          : analyticsState === "ready_no_data"
+            ? "Analytics workspace is ready and waiting for first live activity."
+            : isPro
+              ? "Advanced analytics workspace for retention, trend, and customer-level decision making."
+              : "Core analytics workspace for tracking post-purchase performance."
       }
-      primaryAction={{ content: "Open conversations", url: "/app/conversations", icon: ChatIcon }}
+      primaryAction={primaryAction}
     >
       <StatePanel
-        title={analyticsState.title}
-        description={analyticsState.body}
-        tone={analyticsState.tone === "warning" ? "attention" : analyticsState.tone}
-        action={{
-          content: data.metrics.responseRate < 25 ? "Adjust messaging settings" : "Review buyer threads",
-          url: data.metrics.responseRate < 25 ? "/app/settings" : "/app/conversations",
-          icon: data.metrics.responseRate < 25 ? SettingsIcon : ChatIcon,
-        }}
+        title={topInsight.title}
+        description={topInsight.description}
+        tone={topInsight.tone}
+        action={primaryAction}
       />
 
-      {data.analyticsLevel !== "ADVANCED" ? (
-        <Banner tone="info" title="Advanced analytics requires Pro">
-          Growth and Starter include basic analytics. Upgrade to Pro to unlock the advanced analytics package.
-        </Banner>
-      ) : null}
-      <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
-        <MetricCard label="Avg sentiment" value={data.analytics.avgSentiment.toFixed(2)} hint="Conversation sentiment across tracked interactions." />
-        <MetricCard label="Return rate" value={`${data.analytics.returnRate}%`} hint="Returned orders relative to the visible order pool." />
-        <MetricCard label="Prevented returns" value={data.analytics.preventedReturns} hint="Recorded return prevention outcomes." />
-        <MetricCard label="Conversations" value={data.analytics.totalConversations} hint={`${data.analytics.resolvedConversations} with 2+ messages.`} />
-      </InlineGrid>
-
-      <SectionCard
-        title="Top recommendations"
-        subtitle="The merchant should leave analytics knowing what to change next."
-      >
-        <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
-          {recommendations.map((item) => (
-            <ActionCard
-              key={item.title}
-              title={item.title}
-              description={item.description}
-              status={item.status}
-              action={item.action}
+      {analyticsState === "onboarding_incomplete" ? (
+        <>
+          <SectionCard
+            title="Setup dependencies"
+            subtitle="Analytics becomes active after setup milestones are complete."
+          >
+            <CardSummaryRows
+              title="Required before analytics"
+              rows={[
+                { label: "Plan activation", value: hasBilling ? "✅ Completed" : "❌ Required" },
+                { label: "Product sync", value: hasProducts ? "✅ Completed" : "🔒 Available after plan activation" },
+                { label: "Messaging setup", value: hasMessagingConfigured ? "✅ Completed" : "🔒 Unlocks after products are added" },
+                { label: "First conversations", value: hasConversations ? "✅ Active" : "🔒 Available after setup is complete" },
+              ]}
             />
-          ))}
-        </InlineGrid>
-      </SectionCard>
+          </SectionCard>
 
-      {data.analyticsLevel === "ADVANCED" ? (
+          <SectionCard
+            title="What you'll see here after setup"
+            subtitle="Analytics will shift from setup guidance to actionable insights."
+          >
+            <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
+              <ActionCard
+                title="Sentiment tracking"
+                description="Monitor customer mood trends across post-purchase conversations."
+                status="pending"
+              />
+              <ActionCard
+                title="Return prevention insights"
+                description="Measure prevented returns and identify high-risk interaction patterns."
+                status="pending"
+              />
+              <ActionCard
+                title="Conversation analytics"
+                description="Track response and resolution quality over time."
+                status="pending"
+              />
+            </InlineGrid>
+          </SectionCard>
+        </>
+      ) : null}
+
+      {analyticsState === "ready_no_data" ? (
+        <>
+          <SectionCard
+            title="Waiting for first live interactions"
+            subtitle="The analytics model is ready; insights appear after the first customer conversations."
+          >
+            <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
+              <MetricCard label="Avg sentiment" value="—" hint="Waiting for first conversations." />
+              <MetricCard label="Return rate" value="—" hint="Will appear after order outcomes are tracked." />
+              <MetricCard label="Prevented returns" value="—" hint="Will appear after prevention workflows run." />
+              <MetricCard label="Conversations" value="—" hint="No conversations yet." />
+            </InlineGrid>
+          </SectionCard>
+
+          <SectionCard
+            title="What to do now"
+            subtitle="Trigger first activity to unlock real analytics."
+          >
+            <BlockStack gap="200">
+              <Text as="p" variant="bodyMd">Start a conversation to see analytics begin populating.</Text>
+              <Text as="p" variant="bodyMd">Data will appear automatically after customer interactions.</Text>
+            </BlockStack>
+          </SectionCard>
+
+          <SectionCard
+            title="What will be recommended once data is available"
+            subtitle="Recommendations are generated only from real conversation and return signals."
+          >
+            <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+              <ActionCard
+                title="Quality interventions"
+                description="Recete will suggest message or timing changes when response quality drops."
+                status="pending"
+              />
+              <ActionCard
+                title="Retention opportunities"
+                description="Recete will surface high-impact actions when churn risk signals emerge."
+                status="pending"
+              />
+            </InlineGrid>
+          </SectionCard>
+        </>
+      ) : null}
+
+      {analyticsState === "has_data_basic" || analyticsState === "has_data_pro" ? (
+        <>
+          <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
+            <MetricCard label="Avg sentiment" value={data.analytics.avgSentiment.toFixed(2)} hint="Conversation sentiment across tracked interactions." />
+            <MetricCard label="Return rate" value={`${data.analytics.returnRate}%`} hint="Returned orders relative to tracked order pool." />
+            <MetricCard label="Prevented returns" value={data.analytics.preventedReturns} hint="Recorded return prevention outcomes." />
+            <MetricCard label="Conversations" value={data.analytics.totalConversations} hint={`${data.analytics.resolvedConversations} with 2+ messages.`} />
+          </InlineGrid>
+
+          <SectionCard
+            title="Recommended next action"
+            subtitle="Generated from current analytics signals."
+          >
+            <ActionCard
+              title={recommendationCard.title}
+              description={recommendationCard.description}
+              status={data.metrics.responseRate < 25 ? "failed" : data.analytics.avgSentiment < 3.5 ? "pending" : "active"}
+              action={recommendationCard.action}
+            />
+          </SectionCard>
+        </>
+      ) : null}
+
+      {analyticsState === "has_data_basic" ? (
         <SectionCard
-          title="Interpretation"
-          subtitle="The merchant should leave this screen knowing whether message quality, catalog, or settings need attention."
+          title="Unlock deeper insights with Pro"
+          subtitle="Expand analytics depth when you are ready to move from core monitoring to prediction and segmentation."
+        >
+          <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+            <ActionCard
+              title="What Pro adds"
+              description="Customer-level breakdowns, trend analysis, and predictive signals for retention decisions."
+              status="info"
+            />
+            <ActionCard
+              title="Upgrade path"
+              description="Keep your existing analytics and add deeper interpretation layers without changing current workflows."
+              status="pending"
+              action={{ content: "Compare plans", url: "/app/billing", icon: ChartVerticalIcon }}
+            />
+          </InlineGrid>
+        </SectionCard>
+      ) : null}
+
+      {analyticsState === "has_data_pro" ? (
+        <SectionCard
+          title="Advanced interpretation"
+          subtitle="Use trend and segmentation signals to decide whether to adjust settings, products, or escalation policy."
           badge={
             <StatusBadge status={data.metrics.responseRate >= 25 ? "active" : "pending"}>
               {`${data.metrics.responseRate}% response`}
@@ -134,19 +282,19 @@ export default function AnalyticsPage() {
         >
           <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
             <ActionCard
-              title="Conversation quality"
+              title="Conversation quality trend"
               description={
                 data.analytics.avgSentiment >= 4
-                  ? "Buyer sentiment is healthy."
+                  ? "Buyer sentiment trend is healthy."
                   : data.analytics.avgSentiment >= 3
-                    ? "Sentiment is neutral and should be monitored."
-                    : "Sentiment is weak and likely needs settings or product-quality review."
+                    ? "Sentiment trend is neutral and should be monitored."
+                    : "Sentiment trend is weak and likely needs message quality intervention."
               }
               status={data.analytics.avgSentiment >= 4 ? "active" : data.analytics.avgSentiment >= 3 ? "pending" : "failed"}
               action={{ content: "Adjust messaging settings", url: "/app/settings", icon: SettingsIcon }}
             />
             <CardSummaryRows
-              title="Coverage"
+              title="Trend coverage"
               rows={[
                 { label: "Total conversations", value: data.analytics.totalConversations },
                 { label: "Resolved conversations", value: data.analytics.resolvedConversations },
@@ -156,34 +304,6 @@ export default function AnalyticsPage() {
           </InlineGrid>
         </SectionCard>
       ) : null}
-
-      <SectionCard
-        title={data.analyticsLevel === "ADVANCED" ? "Recommended actions" : "Next steps"}
-        subtitle="Analytics should push the merchant toward action, not just static reporting."
-      >
-        <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-          <ActionCard
-            title="Improve settings"
-            description="If sentiment or resolution rate is weak, tone, template, and multilingual setup are the first things to review."
-            status="info"
-            action={{ content: "Adjust messaging settings", url: "/app/settings", icon: SettingsIcon }}
-          />
-          <ActionCard
-            title={data.analyticsLevel === "ADVANCED" ? "Inspect conversations" : "Upgrade for advanced analytics"}
-            description={
-              data.analyticsLevel === "ADVANCED"
-                ? "Conversation lists show whether problems are really buyer mood, escalation handling, or simple lack of activity."
-                : "Pro unlocks the advanced interpretation and recommendation layer on top of the same base metrics."
-            }
-            status="info"
-            action={{
-              content: data.analyticsLevel === "ADVANCED" ? "Review buyer threads" : "Compare plans",
-              url: data.analyticsLevel === "ADVANCED" ? "/app/conversations" : "/app/billing",
-              icon: data.analyticsLevel === "ADVANCED" ? ChartVerticalIcon : ChartVerticalIcon,
-            }}
-          />
-        </InlineGrid>
-      </SectionCard>
     </ShellPage>
   );
 }
