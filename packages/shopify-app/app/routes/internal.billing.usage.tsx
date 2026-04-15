@@ -13,16 +13,17 @@ type UsageActionPayload = {
 };
 
 function assertInternalSecret(request: Request) {
-  const expected =
-    process.env.PLATFORM_INTERNAL_SECRET?.trim() ||
-    process.env.INTERNAL_SERVICE_SECRET?.trim();
+  const expectedSecrets = [
+    process.env.PLATFORM_INTERNAL_SECRET?.trim(),
+    process.env.INTERNAL_SERVICE_SECRET?.trim(),
+  ].filter((value): value is string => Boolean(value));
   const provided = request.headers.get("X-Internal-Secret")?.trim();
 
-  if (!expected) {
+  if (expectedSecrets.length === 0) {
     throw new Response("Internal auth is not configured", { status: 500 });
   }
 
-  if (!provided || provided !== expected) {
+  if (!provided || !expectedSecrets.includes(provided)) {
     throw new Response("Forbidden", { status: 403 });
   }
 }
