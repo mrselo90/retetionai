@@ -21,7 +21,12 @@ export const verifyShopifyGdprWebhook = async (c: Context<{ Variables: { parsedG
 
     try {
         const rawBody = await c.req.text();
-        const secret = process.env.SHOPIFY_API_SECRET || process.env.SHOPIFY_CLIENT_SECRET || '';
+        const secret = (process.env.SHOPIFY_API_SECRET || process.env.SHOPIFY_CLIENT_SECRET || '').trim();
+
+        // Fail closed — reject with 500 if secret is not configured
+        if (!secret) {
+            return c.json({ error: 'Webhook verification not configured' }, 500);
+        }
 
         const generatedHash = crypto
             .createHmac('sha256', secret)

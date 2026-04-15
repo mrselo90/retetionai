@@ -12,20 +12,30 @@ const events = new Hono();
 
 async function requireInternalSecretOrSuperAdmin(c: Context, next: Next) {
   const providedSecret = c.req.header('X-Internal-Secret')?.trim() || '';
-  const expectedSecret = process.env.INTERNAL_SERVICE_SECRET?.trim() || '';
 
-  // Internal service path: allow with valid shared secret
+  // Internal service path: allow with valid shared secret (accept either configured secret)
   if (providedSecret) {
-    if (!expectedSecret) {
+    const validSecrets = [
+      process.env.INTERNAL_SERVICE_SECRET?.trim(),
+      process.env.PLATFORM_INTERNAL_SECRET?.trim(),
+    ].filter((s): s is string => Boolean(s));
+
+    if (validSecrets.length === 0) {
       return c.json({ error: 'Internal auth is not configured' }, 500);
     }
-    if (providedSecret !== expectedSecret) {
+    if (!validSecrets.includes(providedSecret)) {
       return c.json({ error: 'Forbidden: Invalid internal secret' }, 403);
     }
 
+    // Resolve merchant from header — required for all internal callers
+    const merchantIdHeader = c.req.header('X-Internal-Merchant-Id')?.trim() || '';
+    if (!merchantIdHeader || merchantIdHeader === 'internal-system') {
+      return c.json({ error: 'Forbidden: X-Internal-Merchant-Id is required for event processing' }, 403);
+    }
+
     c.set('authMethod', 'internal');
-    c.set('merchantId', 'internal-system');
-    c.set('user', { merchantId: 'internal-system', authMethod: 'internal' });
+    c.set('merchantId', merchantIdHeader);
+    c.set('user', { merchantId: merchantIdHeader, authMethod: 'internal' });
     return await next();
   }
 
@@ -93,19 +103,17 @@ events.post('/process', requireInternalSecretOrSuperAdmin, async (c) => {
 events.post('/:id/process', requireInternalSecretOrSuperAdmin, async (c) => {
   try {
     const eventId = c.req.param('id');
-    const merchantIdHeader = c.req.header('X-Internal-Merchant-Id')?.trim() || '';
+    // merchantId is always a real tenant ID after requireInternalSecretOrSuperAdmin
+    const resolvedMerchantId = c.get('merchantId') as string;
     const supabase = getSupabaseServiceClient();
 
-    let query = supabase
+    // Always scope by merchant_id to prevent cross-tenant access
+    const { data: eventRow, error } = await supabase
       .from('external_events')
       .select('id, merchant_id, payload')
-      .eq('id', eventId);
-
-    if (merchantIdHeader && merchantIdHeader !== 'internal-system') {
-      query = query.eq('merchant_id', merchantIdHeader);
-    }
-
-    const { data: eventRow, error } = await query.single();
+      .eq('id', eventId)
+      .eq('merchant_id', resolvedMerchantId)
+      .single();
 
     if (error || !eventRow?.payload) {
       return c.json({ error: 'Event not found' }, 404);

@@ -49,9 +49,13 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
     const rawBody = await c.req.text();
     const body = JSON.parse(rawBody);
 
-    // Verify HMAC
+    // Verify HMAC — fail closed if secret is not configured
+    const webhookSecret = process.env.SHOPIFY_API_SECRET?.trim();
+    if (!webhookSecret) {
+      return c.json({ error: 'Webhook verification not configured' }, 500);
+    }
     const calculatedHmac = crypto
-      .createHmac('sha256', process.env.SHOPIFY_API_SECRET || '')
+      .createHmac('sha256', webhookSecret)
       .update(rawBody, 'utf8')
       .digest('base64');
 

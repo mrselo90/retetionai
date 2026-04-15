@@ -297,11 +297,11 @@ export async function processExternalEvents(limit: number = 100): Promise<{
 }> {
   const serviceClient = getSupabaseServiceClient();
 
-  // Get unprocessed events (events that don't have corresponding orders yet)
-  // For MVP, we'll process all events. Later we can add a processed_at field.
+  // Fetch only unprocessed events (processed_at IS NULL)
   const { data: events, error: fetchError } = await serviceClient
     .from('external_events')
     .select('id, merchant_id, integration_id, source, event_type, payload, received_at')
+    .is('processed_at', null)
     .order('received_at', { ascending: true })
     .limit(limit);
 
@@ -324,6 +324,13 @@ export async function processExternalEvents(limit: number = 100): Promise<{
       normalizedEvent.source = event.source;
 
       await processNormalizedEvent(normalizedEvent);
+
+      // Mark as processed so it is never re-processed on the next run
+      await serviceClient
+        .from('external_events')
+        .update({ processed_at: new Date().toISOString() })
+        .eq('id', event.id);
+
       processed++;
     } catch (error) {
       console.error(`Error processing event ${event.id}:`, error);

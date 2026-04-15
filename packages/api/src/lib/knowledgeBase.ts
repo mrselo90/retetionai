@@ -121,13 +121,7 @@ export async function processProductForRAG(
     const embeddings = await generateEmbeddingsBatch(chunks);
     const embeddingModel = await getDefaultEmbeddingModel();
 
-    // Delete existing chunks for this product
-    await serviceClient
-      .from('knowledge_chunks')
-      .delete()
-      .eq('product_id', productId);
-
-    // Insert new chunks with embeddings (prefix each chunk with product name for better retrieval)
+    // Build new chunk rows before any DB writes
     const chunksToInsert = chunks.map((chunk, index) => ({
       product_id: productId,
       chunk_text: productName ? `[${productName}] ${stripRAGMarkers(chunk.text)}` : stripRAGMarkers(chunk.text),
@@ -139,6 +133,7 @@ export async function processProductForRAG(
       chunk_hash: crypto.createHash('sha256').update(chunk.text).digest('hex'),
     }));
 
+    // Insert new chunks FIRST — if this fails, old chunks are still intact (no zero-chunk window)
     const { error: insertError } = await serviceClient
       .from('knowledge_chunks')
       .insert(chunksToInsert);
@@ -146,6 +141,15 @@ export async function processProductForRAG(
     if (insertError) {
       throw new Error(`Failed to insert chunks: ${insertError.message}`);
     }
+
+    // Only delete old chunks after the insert succeeded, keeping any that weren't replaced
+    const newHashes = chunksToInsert.map((c) => c.chunk_hash);
+    await serviceClient
+      .from('knowledge_chunks')
+      .delete()
+      .eq('product_id', productId)
+      .not('chunk_hash', 'in', `(${newHashes.map((h) => `"${h}"`).join(',')})`);
+
 
     const totalTokens = embeddings.reduce((sum, e) => sum + e.tokenCount, 0);
     if (merchantId) {
