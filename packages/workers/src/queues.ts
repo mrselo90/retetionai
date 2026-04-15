@@ -168,9 +168,13 @@ export const whatsappInboundQueue = new Queue<WhatsAppInboundJobData>(
   }
 );
 
+/** Max attempts configured globally — DLQ only fires when this is exhausted. */
+const MAX_ATTEMPTS = defaultQueueOptions.defaultJobOptions?.attempts ?? 3;
+
 /**
  * Attach DLQ listeners to all queues.
- * When a job exhausts all retries it is copied to the dead-letter queue.
+ * Only forwards to dead-letter when a job has exhausted ALL retry attempts,
+ * not on every intermediate failure (which would produce duplicate DLQ records).
  */
 export function setupDeadLetterForwarding() {
   const queues = [
@@ -182,17 +186,34 @@ export function setupDeadLetterForwarding() {
     { name: QUEUE_NAMES.WHATSAPP_INBOUND, queue: whatsappInboundQueue },
   ];
 
-  for (const { name } of queues) {
+  for (const { name, queue } of queues) {
+    const queueMaxAttempts =
+      (queue.defaultJobOptions as { attempts?: number } | undefined)?.attempts ?? MAX_ATTEMPTS;
     const events = new QueueEvents(name, { connection });
+
     events.on('failed', async ({ jobId, failedReason }) => {
+      // Fetch the job to read attemptsMade — only forward to DLQ when retries are exhausted.
+      // Jobs are retained for 7 days (removeOnFail config) so they are available here.
+      const job = await queue.getJob(jobId).catch(() => null);
+      const attemptsMade = job?.attemptsMade ?? queueMaxAttempts;
+
+      if (attemptsMade < queueMaxAttempts) {
+        logger.info(
+          { queue: name, jobId, attemptsMade, maxAttempts: queueMaxAttempts },
+          'Job failed but has remaining retries — skipping DLQ'
+        );
+        return;
+      }
+
       try {
         await deadLetterQueue.add('failed-job', {
           originalQueue: name,
           originalJobId: jobId,
           failedReason,
+          attemptsMade,
           failedAt: new Date().toISOString(),
         });
-        logger.warn({ queue: name, jobId, failedReason }, 'Job moved to dead-letter queue');
+        logger.warn({ queue: name, jobId, failedReason, attemptsMade }, 'Job exhausted retries — moved to dead-letter queue');
       } catch (dlqError) {
         logger.error({ queue: name, jobId, error: dlqError }, 'Failed to forward job to DLQ');
       }

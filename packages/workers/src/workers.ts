@@ -643,6 +643,7 @@ export const commerceEventsWorker = new Worker<CommerceEventJobData>(
         'X-Internal-Merchant-Id': merchantId,
       },
       body: '{}',
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!response.ok) {
@@ -685,6 +686,7 @@ export const gdprJobsWorker = new Worker<GdprJobData>(
         'X-Internal-Merchant-Id': merchantId,
       },
       body: '{}',
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!response.ok) {
@@ -797,7 +799,8 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
             productId,
             sourceUrl: url,
             sourceType: 'scrape_enrich_worker',
-          })
+          }),
+          signal: AbortSignal.timeout(120_000),
         });
         if (enrichRes.ok) {
           const { enrichedText: et } = (await enrichRes.json()) as { enrichedText?: string };
@@ -830,6 +833,7 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
       const embedRes = await fetch(`${apiUrl}/api/products/${productId}/generate-embeddings`, {
         method: 'POST',
         headers: internalHeaders,
+        signal: AbortSignal.timeout(120_000),
       });
 
       if (!embedRes.ok) {
@@ -908,6 +912,7 @@ export const whatsappInboundWorker = new Worker<WhatsAppInboundJobData>(
         'X-Internal-Merchant-Id': merchantId,
       },
       body: '{}',
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!response.ok) {

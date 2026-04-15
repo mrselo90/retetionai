@@ -6,6 +6,13 @@ function getRequiredEnv(name: string): string {
   return value;
 }
 
+/** Default timeout for all platform API calls (30s). Override per-call for LLM-heavy paths. */
+const PLATFORM_FETCH_TIMEOUT_MS = 30_000;
+
+function platformSignal(ms = PLATFORM_FETCH_TIMEOUT_MS): AbortSignal {
+  return AbortSignal.timeout(ms);
+}
+
 function parseJsonSafe(text: string) {
   if (!text) return null;
   try {
@@ -427,6 +434,7 @@ export async function syncShopInstall(session: {
         accessToken: session.accessToken,
         scope: session.scope ?? null,
       }),
+      signal: platformSignal(),
     },
   );
 
@@ -457,6 +465,7 @@ export async function forwardWebhookToPlatform(request: Request, path: string) {
       method: "POST",
       headers,
       body: rawBody,
+      signal: platformSignal(),
     },
   );
 
@@ -486,6 +495,7 @@ async function internalMerchantRequest(
     response = await fetch(`${baseUrl}${path}`, {
       ...init,
       headers,
+      signal: platformSignal(),
     });
   } catch (err) {
     console.error(
@@ -508,6 +518,7 @@ export async function fetchMerchantOverviewFromRequest(request: Request) {
   try {
     response = await fetch(`${baseUrl}/api/integrations/shopify/merchant-overview`, {
       headers: buildPlatformMerchantHeaders(request),
+      signal: platformSignal(),
     });
   } catch (err) {
     console.error(

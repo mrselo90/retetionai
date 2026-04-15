@@ -26,23 +26,42 @@ auth.post('/signup', validateBody(signupSchema), async (c) => {
     const serviceClient = getSupabaseServiceClient();
     const supabase = getAuthClient();
 
-    // Check if user already exists in Supabase Auth using admin API
-    const { data: { users }, error: listError } = await serviceClient.auth.admin.listUsers();
-    
-    if (listError) {
-      logger.error(listError, 'Failed to list users during signup');
-      throw new Error('Failed to verify existing accounts');
+    // Attempt signup directly. Supabase returns identities:[] when the email is
+    // already registered (security-safe way to detect duplicates without scanning all users).
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const signupResult = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${frontendUrl}/auth/callback?type=signup`,
+      },
+    });
+
+    const authData: any = signupResult.data;
+    const authError = signupResult.error;
+
+    if (authError) {
+      logger.error(authError, 'Supabase Auth signup error');
+      return c.json({
+        error: authError.message || 'Signup failed',
+        message: authError.message || 'Signup failed',
+      }, 400);
     }
 
-    const existingAuthUser = users.find(u => u.email === email);
+    if (!authData?.user) {
+      return c.json({
+        error: 'User creation failed - no user returned',
+        message: 'User creation failed - no user returned',
+      }, 400);
+    }
 
-    let userId: string;
-    let isNewUser = false;
-    let authData: any = null; // Store authData for email confirmation check
+    // identities is empty when the email is already registered in Supabase Auth
+    const emailAlreadyRegistered = Array.isArray(authData.user.identities) && authData.user.identities.length === 0;
+    const userId: string = authData.user.id;
+    const isNewUser = !emailAlreadyRegistered;
 
-    if (existingAuthUser) {
-      // User already exists, check if merchant exists
-      userId = existingAuthUser.id;
+    if (emailAlreadyRegistered) {
+      // User exists in Auth — check if merchant record also exists
       const { data: existingMerchant } = await serviceClient
         .from('merchants')
         .select('id')
@@ -56,39 +75,8 @@ auth.post('/signup', validateBody(signupSchema), async (c) => {
         }, 409);
       }
 
-      // User exists but merchant doesn't - we'll create the merchant record below
+      // Auth user exists but merchant record missing — fall through to create it
       logger.info({ userId, email }, 'User exists in Auth but missing from merchants table');
-    } else {
-      // Create new user in Supabase Auth
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      const signupResult = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${frontendUrl}/auth/callback?type=signup`,
-        },
-      });
-
-      authData = signupResult.data;
-      const authError = signupResult.error;
-
-      if (authError) {
-        logger.error(authError, 'Supabase Auth signup error');
-        return c.json({
-          error: authError.message || 'Signup failed',
-          message: authError.message || 'Signup failed',
-        }, 400);
-      }
-
-      if (!authData?.user) {
-        return c.json({
-          error: 'User creation failed - no user returned',
-          message: 'User creation failed - no user returned',
-        }, 400);
-      }
-
-      userId = authData.user.id;
-      isNewUser = true;
     }
 
     // Check if merchant already exists again (double check)
