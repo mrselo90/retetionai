@@ -4,7 +4,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ChartVerticalIcon, ChatIcon, SettingsIcon } from "@shopify/polaris-icons";
 import { BlockStack, Card, InlineGrid, InlineStack, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
-import { isBillingReady } from "../lib/billingStatus";
+import { getSetupProgress } from "../lib/setupProgress";
 import { fetchMerchantOverviewFromRequest } from "../platform.server";
 import {
   ActionCard,
@@ -36,13 +36,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function AnalyticsPage() {
   const data = useLoaderData<typeof loader>();
-  const hasBilling = isBillingReady(data.subscription?.status);
-  const hasProducts = data.metrics.totalProducts > 0;
-  const hasMessagingConfigured = Boolean(
-    data.settings?.notificationPhone ||
-      data.settings?.personaSettings?.bot_name ||
-      data.settings?.personaSettings?.whatsapp_welcome_template,
-  );
+  const progress = getSetupProgress(data);
+  const hasBilling = progress.hasBilling;
+  const hasProducts = progress.hasProducts;
+  const hasMessagingConfigured = progress.hasMessagingConfigured;
   const hasConversations = data.analytics.totalConversations > 0;
   const hasAnalyticsSignals =
     hasConversations ||

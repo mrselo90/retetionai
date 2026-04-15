@@ -84,6 +84,7 @@ export interface ShopifyMerchantOverview {
       response_length?: "short" | "medium" | "long";
       whatsapp_sender_mode?: "merchant_own" | "corporate";
       whatsapp_welcome_template?: string;
+      onboarding_settings_configured_at?: string;
     };
   };
   integrations: Array<{
@@ -125,6 +126,7 @@ export interface MerchantSettingsRecord {
       temperature?: number;
       whatsapp_sender_mode?: "merchant_own" | "corporate";
       whatsapp_welcome_template?: string;
+      onboarding_settings_configured_at?: string;
     };
   };
 }

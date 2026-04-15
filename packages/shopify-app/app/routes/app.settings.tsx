@@ -23,6 +23,7 @@ import {
   TextField,
 } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
+import { getSetupProgress } from "../lib/setupProgress";
 import { PlanGate } from "../components/PlanGate";
 import {
   cancelMerchantAddon,
@@ -229,31 +230,48 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     if (intent === "save-core") {
       const plan = await getPlanSnapshotByDomain(session.shop);
+      const currentSettings = await fetchMerchantSettings(request);
+      const existingPersonaSettings = currentSettings.merchant.persona_settings || {};
       const enabledLangs = parseLanguageList(String(formData.get("enabled_langs") || "")).filter(Boolean);
+      const botName = String(formData.get("bot_name") || "").trim();
+      const welcomeTemplate = String(formData.get("whatsapp_welcome_template") || "").trim();
+      const nextPersonaSettings: Record<string, unknown> = {
+        ...existingPersonaSettings,
+        tone:
+          (String(formData.get("tone") || "").trim() as
+            | "friendly"
+            | "professional"
+            | "casual"
+            | "formal") || "friendly",
+        emoji: formData.get("emoji") === "on",
+        response_length:
+          (String(formData.get("response_length") || "").trim() as
+            | "short"
+            | "medium"
+            | "long") || "medium",
+        ai_vision_enabled:
+          plan.planType === "STARTER"
+            ? false
+            : formData.get("ai_vision_enabled") === "on",
+        onboarding_settings_configured_at: new Date().toISOString(),
+      };
+
+      if (botName) {
+        nextPersonaSettings.bot_name = botName;
+      } else {
+        delete nextPersonaSettings.bot_name;
+      }
+
+      if (welcomeTemplate) {
+        nextPersonaSettings.whatsapp_welcome_template = welcomeTemplate;
+      } else {
+        delete nextPersonaSettings.whatsapp_welcome_template;
+      }
+
       const [, multiLangResponse] = await Promise.all([
         updateMerchantSettings(request, {
           notification_phone: String(formData.get("notification_phone") || "").trim() || null,
-          persona_settings: {
-            bot_name: String(formData.get("bot_name") || "").trim() || undefined,
-            tone:
-              (String(formData.get("tone") || "").trim() as
-                | "friendly"
-                | "professional"
-                | "casual"
-                | "formal") || "friendly",
-            emoji: formData.get("emoji") === "on",
-            response_length:
-              (String(formData.get("response_length") || "").trim() as
-                | "short"
-                | "medium"
-                | "long") || "medium",
-            ai_vision_enabled:
-              plan.planType === "STARTER"
-                ? false
-                : formData.get("ai_vision_enabled") === "on",
-            whatsapp_welcome_template:
-              String(formData.get("whatsapp_welcome_template") || "").trim() || undefined,
-          },
+          persona_settings: nextPersonaSettings,
         }),
         updateMerchantMultiLangSettings(request, {
           enabled_langs: enabledLangs.length > 0 ? enabledLangs : ["en"],
@@ -423,13 +441,14 @@ export default function SettingsPage() {
   const guardrailNameMissing = !guardrailDraft.name.trim();
   const guardrailValueMissing = !guardrailDraft.value.trim();
   const guardrailDraftIncomplete = guardrailNameMissing || guardrailValueMissing;
-  const setupBlocker = !data.overview.subscription?.status || data.overview.subscription.status !== "active"
+  const setupProgress = getSetupProgress(data.overview);
+  const setupBlocker = !setupProgress.hasBilling
     ? {
         title: "Choose a plan before launch",
         body: "You can finish settings now, but the shop still needs an active Shopify plan before launch.",
         tone: "warning" as const,
       }
-    : !data.overview.metrics.totalProducts
+    : !setupProgress.hasProducts
       ? {
           title: "Products still need setup",
           body: "These settings work best after products are prepared in the Products page.",

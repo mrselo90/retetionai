@@ -4,7 +4,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ChatIcon, PersonIcon } from "@shopify/polaris-icons";
 import { BlockStack, InlineGrid, InlineStack, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
-import { isBillingReady } from "../lib/billingStatus";
+import { getSetupProgress } from "../lib/setupProgress";
 import { fetchMerchantCustomers, fetchMerchantOverviewFromRequest } from "../platform.server";
 import {
   ActionCard,
@@ -55,14 +55,11 @@ export default function CustomersPage() {
   const engagedCustomers = sortedCustomers.filter((item) => (item.conversationCount || 0) > 0);
   const engagedCount = engagedCustomers.length;
 
-  const hasBilling = isBillingReady(data.overview.subscription?.status);
-  const hasProducts = data.overview.metrics.totalProducts > 0;
-  const hasMessagingConfigured = Boolean(
-    data.overview.settings?.notificationPhone ||
-      data.overview.settings?.personaSettings?.bot_name ||
-      data.overview.settings?.personaSettings?.whatsapp_welcome_template,
-  );
-  const hasOrders = data.overview.metrics.totalOrders > 0;
+  const progress = getSetupProgress(data.overview);
+  const hasBilling = progress.hasBilling;
+  const hasProducts = progress.hasProducts;
+  const hasMessagingConfigured = progress.hasMessagingConfigured;
+  const hasOrders = progress.hasOrders;
   const setupReady = hasBilling && hasProducts && hasMessagingConfigured;
 
   const uiState: "onboarding_incomplete" | "ready_no_data" | "has_data" =

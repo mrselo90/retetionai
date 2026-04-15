@@ -60,6 +60,7 @@ import {
 
 import { EmbeddedSessionTokenBoundary } from "../components/EmbeddedSessionTokenBoundary";
 import { isBillingReady, normalizeSubscriptionStatus } from "../lib/billingStatus";
+import { getSetupProgress } from "../lib/setupProgress";
 import type { AppBridgeWithIdToken } from "../lib/sessionToken.client";
 import type { ShopifyMerchantOverview } from "../platform.server";
 
@@ -228,42 +229,40 @@ function AppShell({ initialShop }: { initialShop: string }) {
   const overview = bootstrapData?.overview;
   const setupSteps: SetupStep[] = overview
     ? (() => {
-        const hasCatalogReady =
-          (overview.metrics.totalProducts || 0) > 0 ||
-          (overview.products?.length || 0) > 0;
+        const progress = getSetupProgress(overview, hasBillingApproved);
         return [
         {
           label: "Billing approved",
-          status: hasBillingApproved ? "complete" : "pending",
+          status: progress.hasBilling ? "complete" : "pending",
           detail:
-            hasBillingApproved
+            progress.hasBilling
               ? "Plan is active."
               : "Approve the app plan in Shopify.",
           to: "/app/billing",
         },
         {
           label: "Catalog ready",
-          status: hasCatalogReady ? "complete" : "pending",
+          status: progress.hasProducts ? "complete" : "pending",
           detail:
-            hasCatalogReady
-              ? `${Math.max(overview.metrics.totalProducts || 0, overview.products?.length || 0)} products available.`
+            progress.hasProducts
+              ? `${progress.productCount} products available.`
               : "Open Products, select at least one item, and save setup.",
           to: "/app/products",
         },
         {
           label: "Messaging configured",
-          status: overview.settings?.personaSettings?.bot_name ? "complete" : "pending",
+          status: progress.hasMessagingConfigured ? "complete" : "pending",
           detail:
-            overview.settings?.personaSettings?.bot_name
+            progress.hasMessagingConfigured
               ? "Bot settings saved."
               : "Review bot and WhatsApp settings.",
           to: "/app/settings",
         },
         {
           label: "Orders flowing",
-          status: overview.metrics.totalOrders > 0 ? "complete" : "pending",
+          status: progress.hasOrders ? "complete" : "pending",
           detail:
-            overview.metrics.totalOrders > 0
+            progress.hasOrders
               ? `${overview.metrics.totalOrders} orders visible.`
               : "Create and fulfill a Shopify test order, then refresh integration status.",
           to: "/app/integrations#orders-flow",

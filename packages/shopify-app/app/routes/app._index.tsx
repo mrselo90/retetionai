@@ -3,7 +3,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { CartIcon, CatalogIcon, ConnectIcon, SettingsIcon, ViewIcon } from "@shopify/polaris-icons";
 import { Badge, BlockStack, Box, Button, Card, InlineGrid, InlineStack, List, Text } from "@shopify/polaris";
 import { ShellPage } from "../components/shell-ui";
-import { isBillingReady } from "../lib/billingStatus";
+import { getSetupProgress } from "../lib/setupProgress";
 import type { ShopifyMerchantOverview } from "../platform.server";
 import { useAppBootstrapData } from "./app";
 
@@ -51,10 +51,7 @@ function SetupOverview({
   data: ShopifyMerchantOverview;
   billingApproved?: boolean;
 }) {
-  const hasBilling = billingApproved ?? isBillingReady(data.subscription?.status);
-  const hasProducts = data.metrics.totalProducts > 0 || (data.products?.length || 0) > 0;
-  const hasMessaging = Boolean(data.settings?.personaSettings?.bot_name);
-  const hasOrderFlow = data.metrics.totalOrders > 0;
+  const progress = getSetupProgress(data, billingApproved);
 
   const steps: SetupStep[] = [
     {
@@ -63,7 +60,7 @@ function SetupOverview({
       description: "Activate your plan to unlock the rest of setup.",
       to: "/app/billing",
       icon: CartIcon,
-      status: hasBilling ? "done" : "in_progress",
+      status: progress.hasBilling ? "done" : "in_progress",
     },
     {
       id: "products",
@@ -71,7 +68,7 @@ function SetupOverview({
       description: "Sync products so Recete can generate product-aware guidance.",
       to: "/app/products",
       icon: CatalogIcon,
-      status: hasProducts ? "done" : hasBilling ? "in_progress" : "not_started",
+      status: progress.hasProducts ? "done" : progress.hasBilling ? "in_progress" : "not_started",
     },
     {
       id: "messaging",
@@ -79,7 +76,7 @@ function SetupOverview({
       description: "Configure bot behavior and WhatsApp messaging.",
       to: "/app/settings",
       icon: SettingsIcon,
-      status: hasMessaging ? "done" : hasBilling && hasProducts ? "in_progress" : "not_started",
+      status: progress.hasMessagingConfigured ? "done" : progress.hasBilling && progress.hasProducts ? "in_progress" : "not_started",
     },
     {
       id: "orders",
@@ -87,7 +84,7 @@ function SetupOverview({
       description: "Create and fulfill a Shopify test order to start live events.",
       to: "/app/integrations#orders-flow",
       icon: ConnectIcon,
-      status: hasOrderFlow ? "done" : hasBilling && hasProducts && hasMessaging ? "in_progress" : "not_started",
+      status: progress.hasOrders ? "done" : progress.hasBilling && progress.hasProducts && progress.hasMessagingConfigured ? "in_progress" : "not_started",
     },
   ];
 

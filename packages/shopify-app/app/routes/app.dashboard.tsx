@@ -4,7 +4,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { CartIcon } from "@shopify/polaris-icons";
 import { BlockStack, Button, InlineGrid, InlineStack, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
-import { isBillingReady } from "../lib/billingStatus";
+import { getSetupProgress } from "../lib/setupProgress";
 import { fetchMerchantOverviewFromRequest } from "../platform.server";
 import {
   MetricCard,
@@ -20,14 +20,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function DashboardPage() {
   const data = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  const hasBilling = isBillingReady(data.subscription?.status);
-  const hasProducts = data.metrics.totalProducts > 0;
-  const hasOrders = data.metrics.totalOrders > 0;
-  const hasMessagingConfigured = Boolean(
-    data.settings?.notificationPhone ||
-      data.settings?.personaSettings?.bot_name ||
-      data.settings?.personaSettings?.whatsapp_welcome_template,
-  );
+  const progress = getSetupProgress(data);
+  const hasBilling = progress.hasBilling;
+  const hasProducts = progress.hasProducts;
+  const hasOrders = progress.hasOrders;
+  const hasMessagingConfigured = progress.hasMessagingConfigured;
 
   const setupSteps = [
     {
@@ -65,14 +62,6 @@ export default function DashboardPage() {
           ? "⏳ Pending"
           : "🔒 Available after setup is complete",
       blockedHint: "Available after setup is complete",
-    },
-    {
-      label: "Start conversations",
-      complete: hasBilling && hasProducts && hasMessagingConfigured && hasOrders,
-      value: hasBilling && hasProducts && hasMessagingConfigured && hasOrders
-        ? "✅ Active"
-        : "🔒 Available after first order",
-      blockedHint: "Available after first order",
     },
   ];
   const completedStepCount = setupSteps.filter((step) => step.complete).length;
