@@ -221,7 +221,11 @@ function AppShell({ initialShop }: { initialShop: string }) {
     new URLSearchParams(location.search).has("product");
   const overview = bootstrapData?.overview;
   const setupSteps: SetupStep[] = overview
-    ? [
+    ? (() => {
+        const hasCatalogReady =
+          (overview.metrics.totalProducts || 0) > 0 ||
+          (overview.products?.length || 0) > 0;
+        return [
         {
           label: "Billing approved",
           status: bootstrapData?.subscriptionStatus === "active" ? "complete" : "pending",
@@ -233,11 +237,11 @@ function AppShell({ initialShop }: { initialShop: string }) {
         },
         {
           label: "Catalog ready",
-          status: overview.metrics.totalProducts > 0 ? "complete" : "pending",
+          status: hasCatalogReady ? "complete" : "pending",
           detail:
-            overview.metrics.totalProducts > 0
-              ? `${overview.metrics.totalProducts} products available.`
-              : "Add or sync products first.",
+            hasCatalogReady
+              ? `${Math.max(overview.metrics.totalProducts || 0, overview.products?.length || 0)} products available.`
+              : "Open Products, select at least one item, and save setup.",
           to: "/app/products",
         },
         {
@@ -259,7 +263,8 @@ function AppShell({ initialShop }: { initialShop: string }) {
           to: "/app/integrations#orders-flow",
           actionLabel: "Open order flow setup",
         },
-      ]
+      ];
+      })()
     : [];
   const nextStep = setupSteps.find((step) => step.status === "pending") ?? null;
   const setupIncomplete = Boolean(nextStep);

@@ -45,7 +45,7 @@ export default function Index() {
 
 function SetupOverview({ data }: { data: ShopifyMerchantOverview }) {
   const hasBilling = (data.subscription?.status || "").toLowerCase() === "active";
-  const hasProducts = data.metrics.totalProducts > 0;
+  const hasProducts = data.metrics.totalProducts > 0 || (data.products?.length || 0) > 0;
   const hasMessaging = Boolean(data.settings?.personaSettings?.bot_name);
   const hasOrderFlow = data.metrics.totalOrders > 0;
 
