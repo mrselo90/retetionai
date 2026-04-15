@@ -216,7 +216,6 @@ function AppShell({ initialShop }: { initialShop: string }) {
   const subscriptionTone = subscriptionStatus === "active" ? "success" : "attention";
   const subscriptionLabel = subscriptionStatus === "active" ? "Subscription active" : `Subscription ${subscriptionStatus}`;
   const shellLoading = !bootstrapData && !bootstrapError;
-  const showOverviewHero = location.pathname === "/app";
   const isProductSetupDetailView =
     location.pathname.startsWith("/app/products") &&
     new URLSearchParams(location.search).has("product");
@@ -263,7 +262,13 @@ function AppShell({ initialShop }: { initialShop: string }) {
       ]
     : [];
   const nextStep = setupSteps.find((step) => step.status === "pending") ?? null;
+  const setupIncomplete = Boolean(nextStep);
   const [showLaunchChecklist, setShowLaunchChecklist] = useState(false);
+  const simplifiedNavItems = [
+    { to: "/app", label: "Setup", hint: "Getting started", icon: HomeIcon, disabled: false },
+    { to: "/app/dashboard", label: "Dashboard", hint: "Available after setup", icon: ViewIcon, disabled: setupIncomplete },
+    { to: "/app/settings", label: "Settings", hint: "Available after setup", icon: SettingsIcon, disabled: setupIncomplete },
+  ];
 
   return (
     <Frame>
@@ -277,81 +282,6 @@ function AppShell({ initialShop }: { initialShop: string }) {
               </InlineStack>
             ) : null}
 
-            {showOverviewHero ? (
-              <Card padding="500" roundedAbove="sm">
-                <BlockStack gap="300">
-                  <InlineGrid columns={{ xs: 1, xl: "minmax(0, 1.8fr) 18rem" }} gap="400">
-                    <BlockStack gap="300">
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        Embedded workspace
-                      </Text>
-                      {shellLoading ? (
-                        <SkeletonDisplayText size="medium" />
-                      ) : (
-                        <Text as="h1" variant="headingLg">
-                          {merchantName}
-                        </Text>
-                      )}
-                      <Box maxWidth="34rem">
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          Compliant retention, catalog readiness, and buyer operations inside Shopify Admin.
-                        </Text>
-                      </Box>
-                      {overview ? (
-                        <InlineGrid columns={{ xs: 1, sm: 3 }} gap="200">
-                          <Box padding="200" borderWidth="025" borderColor="border-secondary" borderRadius="300">
-                            <Text as="p" variant="bodyXs" tone="subdued">Plan</Text>
-                            <Text as="p" variant="bodySm" fontWeight="semibold">{subscriptionLabel}</Text>
-                          </Box>
-                          <Box padding="200" borderWidth="025" borderColor="border-secondary" borderRadius="300">
-                            <Text as="p" variant="bodyXs" tone="subdued">Catalog</Text>
-                            <Text as="p" variant="bodySm" fontWeight="semibold">
-                              {overview.metrics.totalProducts > 0 ? `${overview.metrics.totalProducts} products` : "No products yet"}
-                            </Text>
-                          </Box>
-                          <Box padding="200" borderWidth="025" borderColor="border-secondary" borderRadius="300">
-                            <Text as="p" variant="bodyXs" tone="subdued">Orders</Text>
-                            <Text as="p" variant="bodySm" fontWeight="semibold">
-                              {overview.metrics.totalOrders > 0 ? `${overview.metrics.totalOrders} orders` : "No order flow"}
-                            </Text>
-                          </Box>
-                        </InlineGrid>
-                      ) : null}
-                    </BlockStack>
-
-                    <BlockStack gap="300">
-                      <BlockStack gap="100">
-                        <Text as="p" variant="bodyXs" tone="subdued">
-                          Store
-                        </Text>
-                        {shellLoading ? (
-                          <SkeletonBodyText lines={1} />
-                        ) : (
-                          <Text as="p" variant="bodySm" fontWeight="semibold" breakWord>
-                            {shop}
-                          </Text>
-                        )}
-                      </BlockStack>
-                      {shellLoading ? <Spinner accessibilityLabel="Loading merchant shell" size="small" /> : null}
-                      {bootstrapError ? (
-                        <Text as="p" variant="bodySm" tone="critical">
-                          {bootstrapError}
-                        </Text>
-                      ) : null}
-                      <InlineStack gap="200" wrap>
-                        <Button url={nextStep?.to || "/app/dashboard"} icon={nextStep ? undefined : ViewIcon} variant="primary">
-                          {nextStep ? "Continue setup" : "Open dashboard"}
-                        </Button>
-                        <Button url="/app/billing" icon={CartIcon} variant="tertiary">
-                          Billing
-                        </Button>
-                      </InlineStack>
-                    </BlockStack>
-                  </InlineGrid>
-                </BlockStack>
-              </Card>
-            ) : null}
-
             <InlineGrid columns={{ xs: 1, lg: "280px 1fr" }} gap="400">
               <Card padding="300" roundedAbove="sm">
                 <BlockStack gap="400">
@@ -361,7 +291,7 @@ function AppShell({ initialShop }: { initialShop: string }) {
                     </Text>
                   </BlockStack>
 
-                  {setupSteps.length > 0 && !isProductSetupDetailView ? (
+                  {setupSteps.length > 0 && !isProductSetupDetailView && location.pathname !== "/app" ? (
                     <Box padding="300" background="bg-surface-secondary" borderRadius="200">
                       <BlockStack gap="200">
                         <InlineStack align="space-between" blockAlign="center">
@@ -427,14 +357,49 @@ function AppShell({ initialShop }: { initialShop: string }) {
                     </Box>
                   ) : null}
 
-                  {navigationSections.map((section) => (
-                    <BlockStack key={section.title} gap="150">
+                  {setupIncomplete ? (
+                    <BlockStack gap="150">
                       <Text as="p" variant="bodyXs" tone="subdued">
-                        {section.title}
+                        Navigation
                       </Text>
                       <BlockStack gap="100">
-                        {section.items.map((item) => {
+                        {simplifiedNavItems.map((item) => {
                           const active = navButtonVariant(item.to) === "primary";
+                          const navCard = (
+                            <Box
+                              padding="200"
+                              borderWidth={active ? "025" : undefined}
+                              borderColor={active ? "border-brand" : undefined}
+                              borderRadius="200"
+                              background={active ? "bg-surface-secondary" : "bg-surface"}
+                              opacity={item.disabled ? "0.6" : undefined}
+                            >
+                              <InlineStack blockAlign="start" gap="200">
+                                <InlineStack gap="150" blockAlign="start">
+                                  <Icon source={item.icon} tone={item.disabled ? "subdued" : active ? "base" : "subdued"} />
+                                  {active ? (
+                                    <Box
+                                      minWidth="4px"
+                                      minHeight="2rem"
+                                      borderRadius="full"
+                                      background="bg-fill-brand"
+                                    />
+                                  ) : null}
+                                  <BlockStack gap="050">
+                                    <Text as="p" variant="bodySm" fontWeight="semibold">
+                                      {item.label}
+                                    </Text>
+                                    <Text as="p" variant="bodyXs" tone="subdued">
+                                      {item.hint}
+                                    </Text>
+                                  </BlockStack>
+                                </InlineStack>
+                              </InlineStack>
+                            </Box>
+                          );
+                          if (item.disabled) {
+                            return <div key={item.to}>{navCard}</div>;
+                          }
                           return (
                             <AppLink
                               key={item.to}
@@ -445,41 +410,67 @@ function AppShell({ initialShop }: { initialShop: string }) {
                                 display: "block",
                               }}
                             >
-                              <Box
-                                padding="200"
-                                borderWidth={active ? "025" : undefined}
-                                borderColor={active ? "border-brand" : undefined}
-                                borderRadius="200"
-                                background={active ? "bg-surface-secondary" : "bg-surface"}
-                              >
-                                <InlineStack blockAlign="start" gap="200">
-                                  <InlineStack gap="150" blockAlign="start">
-                                    <Icon source={item.icon} tone={active ? "base" : "subdued"} />
-                                    {active ? (
-                                      <Box
-                                        minWidth="4px"
-                                        minHeight="2rem"
-                                        borderRadius="full"
-                                        background="bg-fill-brand"
-                                      />
-                                    ) : null}
-                                    <BlockStack gap="050">
-                                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                                        {item.label}
-                                      </Text>
-                                      <Text as="p" variant="bodyXs" tone="subdued">
-                                        {item.hint}
-                                      </Text>
-                                    </BlockStack>
-                                  </InlineStack>
-                                </InlineStack>
-                              </Box>
+                              {navCard}
                             </AppLink>
                           );
                         })}
                       </BlockStack>
                     </BlockStack>
-                  ))}
+                  ) : (
+                    navigationSections.map((section) => (
+                      <BlockStack key={section.title} gap="150">
+                        <Text as="p" variant="bodyXs" tone="subdued">
+                          {section.title}
+                        </Text>
+                        <BlockStack gap="100">
+                          {section.items.map((item) => {
+                            const active = navButtonVariant(item.to) === "primary";
+                            return (
+                              <AppLink
+                                key={item.to}
+                                url={item.to}
+                                style={{
+                                  textDecoration: "none",
+                                  color: "inherit",
+                                  display: "block",
+                                }}
+                              >
+                                <Box
+                                  padding="200"
+                                  borderWidth={active ? "025" : undefined}
+                                  borderColor={active ? "border-brand" : undefined}
+                                  borderRadius="200"
+                                  background={active ? "bg-surface-secondary" : "bg-surface"}
+                                >
+                                  <InlineStack blockAlign="start" gap="200">
+                                    <InlineStack gap="150" blockAlign="start">
+                                      <Icon source={item.icon} tone={active ? "base" : "subdued"} />
+                                      {active ? (
+                                        <Box
+                                          minWidth="4px"
+                                          minHeight="2rem"
+                                          borderRadius="full"
+                                          background="bg-fill-brand"
+                                        />
+                                      ) : null}
+                                      <BlockStack gap="050">
+                                        <Text as="p" variant="bodySm" fontWeight="semibold">
+                                          {item.label}
+                                        </Text>
+                                        <Text as="p" variant="bodyXs" tone="subdued">
+                                          {item.hint}
+                                        </Text>
+                                      </BlockStack>
+                                    </InlineStack>
+                                  </InlineStack>
+                                </Box>
+                              </AppLink>
+                            );
+                          })}
+                        </BlockStack>
+                      </BlockStack>
+                    ))
+                  )}
                 </BlockStack>
               </Card>
 
@@ -502,12 +493,14 @@ function AppShell({ initialShop }: { initialShop: string }) {
                 )}
               </Box>
             </InlineGrid>
-            <Box paddingInlineStart="200">
-              <Text as="p" variant="bodySm">
-                Need a deeper setup pass? Use <Link url="/app/settings">Settings</Link> for bot behavior and{" "}
-                <Link url="/app/products">Products</Link> for catalog readiness.
-              </Text>
-            </Box>
+            {location.pathname !== "/app" ? (
+              <Box paddingInlineStart="200">
+                <Text as="p" variant="bodySm">
+                  Need a deeper setup pass? Use <Link url="/app/settings">Settings</Link> for bot behavior and{" "}
+                  <Link url="/app/products">Products</Link> for catalog readiness.
+                </Text>
+              </Box>
+            ) : null}
           </BlockStack>
         </div>
       </Box>

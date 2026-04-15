@@ -2,15 +2,20 @@ import type { HeadersFunction } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { CartIcon, CatalogIcon, ConnectIcon, SettingsIcon, ViewIcon } from "@shopify/polaris-icons";
 import { Badge, BlockStack, Box, Button, Card, InlineGrid, InlineStack, List, Text } from "@shopify/polaris";
-import {
-  ActionCard,
-  MetricCard,
-  SectionCard,
-  ShellPage,
-  StatusBadge,
-} from "../components/shell-ui";
+import { ShellPage } from "../components/shell-ui";
 import type { ShopifyMerchantOverview } from "../platform.server";
 import { useAppBootstrapData } from "./app";
+
+type SetupStepStatus = "done" | "in_progress" | "not_started";
+
+type SetupStep = {
+  id: string;
+  title: string;
+  description: string;
+  to: string;
+  icon: typeof CartIcon;
+  status: SetupStepStatus;
+};
 
 export default function Index() {
   const { bootstrapData, bootstrapError, shellLoading } = useAppBootstrapData();
@@ -19,174 +24,145 @@ export default function Index() {
   if (!data) {
     return (
       <ShellPage
-        title="Overview"
-        subtitle="Merchant launch status and the fastest route to a usable retention workflow."
-        primaryAction={{ content: "Open dashboard", url: "/app/dashboard", icon: CartIcon }}
+        title="Welcome to Recete"
+        subtitle="Complete setup to start using Recete."
       >
         <Card padding="500">
           <Text as="p" variant="bodyMd" tone="subdued">
             {bootstrapError
               ? `Shopify bootstrap error: ${bootstrapError}`
               : shellLoading
-                ? "Waiting for Shopify session-token bootstrap."
-                : "Shopify bootstrap has not completed yet."}
+                ? "Preparing your setup workspace."
+                : "Setup data is not ready yet."}
           </Text>
         </Card>
       </ShellPage>
     );
   }
 
+  return <SetupOverview data={data} />;
+}
+
+function SetupOverview({ data }: { data: ShopifyMerchantOverview }) {
+  const hasBilling = (data.subscription?.status || "").toLowerCase() === "active";
+  const hasProducts = data.metrics.totalProducts > 0;
+  const hasMessaging = Boolean(data.settings?.personaSettings?.bot_name);
+  const hasOrderFlow = data.metrics.totalOrders > 0;
+
+  const steps: SetupStep[] = [
+    {
+      id: "billing",
+      title: "Step 1: Approve billing",
+      description: "Activate your plan to unlock the rest of setup.",
+      to: "/app/billing",
+      icon: CartIcon,
+      status: hasBilling ? "done" : "in_progress",
+    },
+    {
+      id: "products",
+      title: "Step 2: Add products",
+      description: "Sync products so Recete can generate product-aware guidance.",
+      to: "/app/products",
+      icon: CatalogIcon,
+      status: hasProducts ? "done" : hasBilling ? "in_progress" : "not_started",
+    },
+    {
+      id: "messaging",
+      title: "Step 3: Enable messaging",
+      description: "Configure bot behavior and WhatsApp messaging.",
+      to: "/app/settings",
+      icon: SettingsIcon,
+      status: hasMessaging ? "done" : hasBilling && hasProducts ? "in_progress" : "not_started",
+    },
+    {
+      id: "orders",
+      title: "Step 4: Activate order flow",
+      description: "Create and fulfill a Shopify test order to start live events.",
+      to: "/app/integrations#orders-flow",
+      icon: ConnectIcon,
+      status: hasOrderFlow ? "done" : hasBilling && hasProducts && hasMessaging ? "in_progress" : "not_started",
+    },
+  ];
+
+  const completedCount = steps.filter((step) => step.status === "done").length;
+  const setupComplete = completedCount === steps.length;
+  const readinessPercent = Math.round((completedCount / steps.length) * 100);
+  const nextStep = steps.find((step) => step.status !== "done") || null;
+
   return (
     <ShellPage
-      title="Overview"
-      subtitle="Merchant launch status and the fastest route to a usable retention workflow."
-      primaryAction={{ content: "Open dashboard", url: "/app/dashboard", icon: CartIcon }}
+      title={setupComplete ? "Recete is ready" : "Welcome to Recete"}
+      subtitle={
+        setupComplete
+          ? "Setup is complete. You can now run daily operations."
+          : "Complete setup to start using Recete."
+      }
+      primaryAction={
+        setupComplete
+          ? { content: "Open dashboard", url: "/app/dashboard", icon: ViewIcon }
+          : { content: "Continue setup", url: nextStep?.to || "/app/billing", icon: nextStep?.icon || CartIcon }
+      }
     >
-      <OverviewContent data={data} />
+      <Card padding="500" roundedAbove="sm">
+        <BlockStack gap="300">
+          <InlineStack align="space-between" blockAlign="center" wrap>
+            <Text as="h2" variant="headingLg">Welcome to Recete</Text>
+            <Badge tone={setupComplete ? "success" : "attention"}>
+              {setupComplete ? "Ready to go live" : "In progress"}
+            </Badge>
+          </InlineStack>
+          <Box maxWidth="42rem">
+            <Text as="p" variant="bodyMd" tone="subdued">
+              {`You are ${readinessPercent}% ready to go live.`}
+            </Text>
+          </Box>
+          <List>
+            <List.Item>Guide customers after purchase with clear product instructions.</List.Item>
+            <List.Item>Automate WhatsApp conversations with your bot settings.</List.Item>
+            <List.Item>Increase repeat orders with better post-purchase support.</List.Item>
+          </List>
+        </BlockStack>
+      </Card>
+
+      <Card padding="500" roundedAbove="sm">
+        <BlockStack gap="300">
+          <InlineStack align="space-between" blockAlign="center" wrap>
+            <Text as="h2" variant="headingMd">Setup checklist</Text>
+            <Text as="p" variant="bodySm" tone="subdued">
+              {`${completedCount}/${steps.length} completed`}
+            </Text>
+          </InlineStack>
+
+          <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">
+            {steps.map((step) => (
+              <Card key={step.id} padding="300" roundedAbove="sm" background={step.status === "done" ? "bg-surface-success" : undefined}>
+                <BlockStack gap="200">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="h3" variant="headingSm">{step.title}</Text>
+                    <Badge tone={statusTone(step.status)}>
+                      {step.status === "done" ? "Done" : step.status === "in_progress" ? "In progress" : "Not started"}
+                    </Badge>
+                  </InlineStack>
+                  <Text as="p" variant="bodySm" tone="subdued">{step.description}</Text>
+                  <InlineStack>
+                    <Button url={step.to} variant="tertiary" icon={step.icon}>
+                      Open step
+                    </Button>
+                  </InlineStack>
+                </BlockStack>
+              </Card>
+            ))}
+          </InlineGrid>
+        </BlockStack>
+      </Card>
     </ShellPage>
   );
 }
 
-function OverviewContent({ data }: { data: ShopifyMerchantOverview }) {
-  const hasBilling = (data.subscription?.status || "").toLowerCase() === "active";
-  const hasCatalog = data.metrics.totalProducts > 0;
-  const hasOrders = data.metrics.totalOrders > 0;
-  const hasBotSettings = Boolean(data.settings?.personaSettings?.bot_name);
-  const completedCount = [hasBilling, hasCatalog, hasOrders, hasBotSettings].filter(Boolean).length;
-  const nextAction = !hasBilling
-    ? { label: "Approve billing", url: "/app/billing", icon: CartIcon }
-    : !hasCatalog
-      ? { label: "Prepare products", url: "/app/products", icon: CatalogIcon }
-      : !hasBotSettings
-        ? { label: "Review settings", url: "/app/settings", icon: SettingsIcon }
-        : !hasOrders
-          ? { label: "Check integrations", url: "/app/integrations", icon: ConnectIcon }
-          : { label: "Open dashboard", url: "/app/dashboard", icon: ViewIcon };
-
-  return (
-    <>
-      <Card padding="400">
-        <BlockStack gap="300">
-          <InlineStack align="space-between" blockAlign="center">
-            <Text as="h2" variant="headingMd">
-              {completedCount === 4 ? "Launch is in a healthy state" : "Finish setup before treating the app as live"}
-            </Text>
-            <Badge tone={completedCount === 4 ? "success" : "attention"}>
-              {completedCount === 4 ? "Ready" : "Action needed"}
-            </Badge>
-          </InlineStack>
-          <Text as="p" variant="bodyMd" tone="subdued">
-            {completedCount === 4
-              ? "Core setup is complete. Daily operations can move to dashboard, conversations, and customers."
-              : "Billing, catalog, messaging, and order flow should be clear before the merchant relies on the app day to day."}
-          </Text>
-          <div>
-            <Button url={nextAction.url} icon={nextAction.icon as never}>
-              {completedCount === 4 ? "Open dashboard" : "Continue setup"}
-            </Button>
-          </div>
-        </BlockStack>
-      </Card>
-
-      <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
-        <MetricCard
-          label="Orders"
-          value={data.metrics.totalOrders}
-          hint="Imported orders currently visible in the platform."
-        />
-        <MetricCard
-          label="Active users"
-          value={data.metrics.activeUsers}
-          hint={
-            data.metrics.activeUsers === 0
-              ? "No consent-safe customers yet — this will populate as orders come in."
-              : "Customers currently eligible for consent-safe engagement."
-          }
-        />
-        <MetricCard
-          label="Products"
-          value={data.metrics.totalProducts}
-          hint="Catalog rows visible for scraping and enrichment."
-        />
-        <MetricCard
-          label="Response rate"
-          value={`${data.metrics.responseRate}%`}
-          hint="Replies sent vs. total buyer threads."
-        />
-      </InlineGrid>
-
-      <SectionCard
-        title="Setup status"
-        subtitle="A compact launch checklist reads better than a dense dashboard."
-        badge={<StatusBadge status={completedCount === 4 ? "active" : "pending"}>{`${completedCount}/4 complete`}</StatusBadge>}
-      >
-        <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-          <Card padding="400">
-            <Text as="h3" variant="headingMd">
-              Checklist
-            </Text>
-            <div style={{ marginTop: "0.75rem" }}>
-              <List>
-                <List.Item>
-                  Billing: {hasBilling ? "approved" : "pending"}
-                </List.Item>
-                <List.Item>
-                  Catalog: {hasCatalog ? `${data.metrics.totalProducts} products available` : "no products prepared yet"}
-                </List.Item>
-                <List.Item>
-                  Messaging: {hasBotSettings ? "settings saved" : "bot settings not reviewed yet"}
-                </List.Item>
-                <List.Item>
-                  Orders: {hasOrders ? `${data.metrics.totalOrders} orders visible` : "no order activity yet"}
-                </List.Item>
-              </List>
-            </div>
-          </Card>
-          <ActionCard
-            title="Next step"
-            description={
-              completedCount === 4
-                ? "Setup is complete. Move into daily review and optimization."
-                : "Use the next action as the shortest route to launch readiness."
-            }
-            status={completedCount === 4 ? "active" : "pending"}
-            action={{ content: nextAction.label, url: nextAction.url, icon: nextAction.icon }}
-          />
-        </InlineGrid>
-      </SectionCard>
-
-      <SectionCard
-        title="Recommended actions"
-        subtitle="Use concise action cards instead of an overloaded launch dashboard."
-      >
-        <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
-          <ActionCard
-            title="Catalog"
-            description={hasCatalog ? "Catalog is ready for scraping and enrichment." : "Product readiness still blocks strong AI answers."}
-            status={hasCatalog ? "active" : "pending"}
-            action={{ content: hasCatalog ? "Open products" : "Prepare products", url: "/app/products", icon: CatalogIcon }}
-          />
-          <ActionCard
-            title="Billing"
-            description={hasBilling ? "Plan approval is no longer blocking merchant setup." : "Billing approval is still the main conversion checkpoint."}
-            status={hasBilling ? "active" : "pending"}
-            action={hasBilling ? { content: "Review billing", url: "/app/billing", icon: CartIcon } : undefined}
-          />
-          <ActionCard
-            title="Messaging"
-            description={hasBotSettings ? "Bot tone and behavior are configured." : "Messaging settings still need review before live conversations feel trustworthy."}
-            status={hasBotSettings ? "active" : "attention"}
-            action={{ content: hasBotSettings ? "Open settings" : "Configure settings", url: "/app/settings", icon: SettingsIcon }}
-          />
-        </InlineGrid>
-      </SectionCard>
-      <Box paddingBlockStart="300">
-        <Text as="p" variant="bodySm" tone="subdued">
-          Want more control? Adjust bot behavior in Settings or prepare your catalog in Products.
-        </Text>
-      </Box>
-    </>
-  );
+function statusTone(status: SetupStepStatus): "success" | "attention" | "info" {
+  if (status === "done") return "success";
+  if (status === "in_progress") return "attention";
+  return "info";
 }
 
 export const headers: HeadersFunction = (headersArgs) => {
