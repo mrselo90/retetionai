@@ -90,11 +90,11 @@ const PLAN_TIERS: ReadonlyArray<{
   },
   {
     tier: "Pro",
-    monthly: "$199/mo",
-    yearly: "$1,990/yr",
+    monthly: "$169/mo",
+    yearly: "$1,690/yr",
     planKey: PRO_MONTHLY_PLAN,
     audience: "Best for high-volume operations that need advanced automation and insights.",
-    yearlySavings: "Save $398 with yearly billing (2 months free).",
+    yearlySavings: "Save $338 with yearly billing (2 months free).",
     ctaLabel: "Choose Pro plan",
     features: [
       "3,000 included chats per month",

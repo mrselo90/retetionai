@@ -346,7 +346,7 @@ export function getPlanPrice(planId: SubscriptionPlan, billingCycle: 'monthly' |
     free: { monthly: 0, yearly: 0 },
     starter: { monthly: 29.00, yearly: 290.00 },
     growth: { monthly: 69.00, yearly: 690.00 },
-    pro: { monthly: 199.00, yearly: 1990.00 },
+    pro: { monthly: 169.00, yearly: 1690.00 },
     enterprise: { monthly: 0, yearly: 0 }, // Custom pricing
   };
 
