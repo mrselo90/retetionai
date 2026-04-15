@@ -72,16 +72,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // The platform API remains the single verifier for embedded bearer tokens.
   requireSessionTokenAuthorization(request);
   const requestUrl = new URL(request.url);
+  const { billing } = await authenticateEmbeddedAdmin(request);
+  const billingState = await billing.check({
+    plans: [...ALL_PLAN_KEYS],
+    isTest: process.env.NODE_ENV !== "production",
+  });
+
   try {
-    const [{ billing }, overview] = await Promise.all([
-      authenticateEmbeddedAdmin(request),
-      fetchMerchantOverviewFromRequest(request),
-    ]);
+    const overview = await fetchMerchantOverviewFromRequest(request);
     const shop = requestUrl.searchParams.get("shop") || overview.shop;
-    const billingState = await billing.check({
-      plans: [...ALL_PLAN_KEYS],
-      isTest: process.env.NODE_ENV !== "production",
-    });
     const billingApproved = billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
 
     return Response.json({
@@ -99,6 +98,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     if (error instanceof Response && (error.status === 403 || error.status === 404)) {
       const shop = requestUrl.searchParams.get("shop")?.trim() || "unknown.myshopify.com";
       const overview = buildPendingOverview(shop);
+      const billingApproved = billingState.hasActivePayment;
+      if (billingApproved) {
+        overview.merchant.subscription_status = "active";
+        overview.subscription.status = "active";
+      }
       return Response.json(
         {
           pending: true,
@@ -106,8 +110,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           merchantName: overview.merchant.name,
           overview,
           shop,
-          subscriptionStatus: "pending",
-          billingApproved: false,
+          subscriptionStatus: billingApproved ? "active" : "pending",
+          billingApproved,
         },
         { status: 202 },
       );

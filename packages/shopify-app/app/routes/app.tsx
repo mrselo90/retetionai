@@ -275,6 +275,12 @@ function AppShell({ initialShop }: { initialShop: string }) {
   const nextStep = setupSteps.find((step) => step.status === "pending") ?? null;
   const setupIncomplete = Boolean(nextStep);
   const [showLaunchChecklist, setShowLaunchChecklist] = useState(false);
+
+  useEffect(() => {
+    if (setupIncomplete) {
+      setShowLaunchChecklist(true);
+    }
+  }, [setupIncomplete]);
   const simplifiedNavItems = [
     { to: "/app", label: "Setup", hint: "Getting started", icon: HomeIcon, disabled: false },
     { to: "/app/dashboard", label: "Dashboard", hint: "Available after setup", icon: ViewIcon, disabled: setupIncomplete },
@@ -321,18 +327,20 @@ function AppShell({ initialShop }: { initialShop: string }) {
                             : "All launch checks are complete."}
                         </Text>
                         <InlineStack align="space-between" blockAlign="center">
-                          <Button
-                            variant="plain"
-                            size="slim"
-                            onClick={() => setShowLaunchChecklist((current) => !current)}
-                            ariaExpanded={showLaunchChecklist}
-                            ariaControls="launch-checklist"
-                          >
-                            {showLaunchChecklist ? "Hide checklist" : "View checklist"}
-                          </Button>
+                          {setupIncomplete ? null : (
+                            <Button
+                              variant="plain"
+                              size="slim"
+                              onClick={() => setShowLaunchChecklist((current) => !current)}
+                              ariaExpanded={showLaunchChecklist}
+                              ariaControls="launch-checklist"
+                            >
+                              {showLaunchChecklist ? "Hide checklist" : "View checklist"}
+                            </Button>
+                          )}
                         </InlineStack>
                         <Collapsible
-                          open={showLaunchChecklist}
+                          open={setupIncomplete ? true : showLaunchChecklist}
                           id="launch-checklist"
                           transition={{ duration: "150ms", timingFunction: "ease-in-out" }}
                         >
