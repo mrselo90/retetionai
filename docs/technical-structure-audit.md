@@ -4,7 +4,7 @@
 
 **Note:** Findings are based on codebase review at audit time. Verify before treating as current state.
 
-**Last updated:** 2026-04-15 — 5 critical issues from the deep technical audit resolved and deployed (commit `157cdff`). See [Resolved Critical Issues](#resolved-critical-issues) below.
+**Last updated:** 2026-04-15 — 5 critical + 4 high-priority issues resolved and deployed (commits `157cdff`, `e728c2d`). See [Resolved Critical Issues](#resolved-critical-issues) and [Resolved High-Priority Issues](#resolved-high-priority-issues) below.
 
 ---
 
@@ -88,6 +88,44 @@ Examples: `usage_tracking`, `subscription_plans`, `merchant_members`, `whatsapp_
 
 ---
 
+## Resolved High-Priority Issues
+
+The following 4 high-priority issues were fixed and deployed (commit `e728c2d`, 2026-04-15).
+
+### [FIXED] H6 — Signup uses unbounded `listUsers()`
+
+**File:** `packages/api/src/routes/auth.ts`
+
+**Was:** `serviceClient.auth.admin.listUsers()` fetched every auth user on every signup call to do a `.find(u => u.email === email)` scan — O(n) and would time out at scale.
+
+**Fix:** Replaced with the official Supabase v2 pattern: call `signUp` directly, then detect an already-registered email via `user.identities.length === 0`. A single Auth call instead of a full-table scan.
+
+### [FIXED] H7 — No fetch timeouts (workers → internal API)
+
+**File:** `packages/workers/src/workers.ts`
+
+**Was:** 5 bare `fetch()` calls to internal API endpoints (commerce events, GDPR jobs, product enrich, embedding generation, WhatsApp inbound) had no `AbortSignal` — a hung downstream could block the entire BullMQ worker thread.
+
+**Fix:** Added `signal: AbortSignal.timeout(30_000)` to fast processing calls and `120_000` to LLM-heavy enrich/embedding calls.
+
+### [FIXED] H8 — No fetch timeouts (Shopify app → platform API)
+
+**File:** `packages/shopify-app/app/platform.server.ts`
+
+**Was:** All 4 platform-facing `fetch` calls (`syncShopInstall`, `forwardWebhookToPlatform`, `internalMerchantRequest`, `fetchMerchantOverviewFromRequest`) had no timeout, risking React Router server thread exhaustion.
+
+**Fix:** Added a shared `platformSignal()` helper (30s default) and applied it to all 4 call sites.
+
+### [FIXED] H9 — DLQ fires on every retry, not just exhausted jobs
+
+**File:** `packages/workers/src/queues.ts`
+
+**Was:** `QueueEvents` `'failed'` listener forwarded every failure (including intermediate retries) to the dead-letter queue, producing up to `maxAttempts` duplicate DLQ records per job.
+
+**Fix:** Handler now fetches the job via `queue.getJob(jobId)` and only forwards to DLQ when `job.attemptsMade >= maxAttempts`. Intermediate failures are logged and skipped.
+
+---
+
 ## High
 
 ### 5. Rate limiter runs before auth
@@ -95,30 +133,6 @@ Examples: `usage_tracking`, `subscription_plans`, `merchant_members`, `whatsapp_
 **Location:** `packages/api/src/index.ts`, `packages/api/src/middleware/rateLimit.ts`
 
 Global `rateLimitMiddleware` runs before route `authMiddleware`. `merchantId` in context is often unset, so limiting falls back to per-IP; merchant-scoped buckets may be ineffective.
-
-### 6. Signup uses unbounded `listUsers()`
-
-**Location:** `packages/api/src/routes/auth.ts`
-
-`serviceClient.auth.admin.listUsers()` without pagination to detect duplicate emails — scalability and abuse concerns.
-
-### 7. No fetch timeouts (workers → API / WhatsApp)
-
-**Location:** `packages/workers/src/workers.ts`, `packages/workers/src/lib/whatsapp.ts`
-
-Many `fetch` calls lack `AbortSignal.timeout` — hung upstream calls can block workers.
-
-### 8. No fetch timeouts (Shopify app → platform API)
-
-**Location:** `packages/shopify-app/app/platform.server.ts`
-
-Platform `fetch` calls have no timeout — can tie up the React Router server.
-
-### 9. Dead-letter queue semantics and coverage
-
-**Location:** `packages/workers/src/queues.ts`
-
-`QueueEvents` `'failed'` may enqueue DLQ on every failure (including retries), causing duplicate DLQ entries. Intelligence queues may lack DLQ wiring entirely.
 
 ### 10. Client-only auth for dashboard/admin (web)
 
