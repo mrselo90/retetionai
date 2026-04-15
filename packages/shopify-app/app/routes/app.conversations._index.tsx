@@ -99,11 +99,7 @@ export default function ConversationsPage() {
         title={primaryState.title}
         description={primaryState.body}
         tone={primaryState.tone === "warning" ? "attention" : primaryState.tone}
-        action={
-          manualQueue.length > 0
-            ? { content: "Handle next", url: `/app/conversations/${manualQueue[0].id}`, icon: ChatIcon }
-            : undefined
-        }
+        statusLabel={unavailableReason ? "Needs attention" : humanCount > 0 ? "In progress" : conversations.length === 0 ? "Ready" : "Live"}
       />
 
       <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">

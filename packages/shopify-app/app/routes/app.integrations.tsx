@@ -27,7 +27,6 @@ export default function IntegrationsPage() {
     <ShellPage
       title="Integrations"
       subtitle="Connection health across Shopify and the merchant’s adjacent service stack."
-      primaryAction={{ content: "Review billing", url: "/app/billing", icon: CreditCardIcon }}
     >
       <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
         <MetricCard label="Connected" value={activeCount} hint="Integrations in a healthy active state." />
