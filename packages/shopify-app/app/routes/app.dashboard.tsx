@@ -22,24 +22,94 @@ export default function DashboardPage() {
   const hasBilling = data.subscription?.status === "active";
   const hasProducts = data.metrics.totalProducts > 0;
   const hasOrders = data.metrics.totalOrders > 0;
-  const setupChecklist = [
+  const hasMessagingConfigured = Boolean(
+    data.settings?.notificationPhone ||
+      data.settings?.personaSettings?.bot_name ||
+      data.settings?.personaSettings?.whatsapp_welcome_template,
+  );
+
+  const setupSteps = [
     {
       label: "Activate plan",
-      value: hasBilling ? "✅ Done" : "❌ Required",
+      complete: hasBilling,
+      value: hasBilling ? "✅ Completed" : "❌ Required",
+      blockedHint: "Required before setup can continue",
     },
     {
-      label: "Add products",
-      value: hasProducts ? "✅ Done" : hasBilling ? "❌ Required" : "🔒 Locked until plan activation",
+      label: "Add or sync products",
+      complete: hasProducts,
+      value: hasProducts
+        ? "✅ Completed"
+        : hasBilling
+          ? "❌ Required"
+          : "🔒 Available after plan activation",
+      blockedHint: "Unlocks after plan activation",
+    },
+    {
+      label: "Configure messaging",
+      complete: hasMessagingConfigured,
+      value: hasMessagingConfigured
+        ? "✅ Completed"
+        : hasBilling && hasProducts
+          ? "❌ Required"
+          : "🔒 Unlocks after products are added",
+      blockedHint: "Unlocks after products are added",
     },
     {
       label: "Receive first order",
-      value: hasOrders ? "✅ Done" : hasBilling && hasProducts ? "⏳ Pending" : "🔒 Locked until setup is ready",
+      complete: hasOrders,
+      value: hasOrders
+        ? "✅ Completed"
+        : hasBilling && hasProducts && hasMessagingConfigured
+          ? "⏳ Pending"
+          : "🔒 Available after setup is complete",
+      blockedHint: "Available after setup is complete",
     },
     {
       label: "Start conversations",
-      value: hasBilling && hasProducts && hasOrders ? "✅ Active" : "🔒 Locked",
+      complete: hasBilling && hasProducts && hasMessagingConfigured && hasOrders,
+      value: hasBilling && hasProducts && hasMessagingConfigured && hasOrders
+        ? "✅ Active"
+        : "🔒 Available after first order",
+      blockedHint: "Available after first order",
     },
   ];
+  const completedStepCount = setupSteps.filter((step) => step.complete).length;
+  const setupComplete = completedStepCount === setupSteps.length;
+
+  const currentStep = !hasBilling
+    ? {
+        title: "Activate plan",
+        description: "Plan activation is required before Recete can process orders or send messages.",
+        ctaLabel: "Activate plan",
+        ctaUrl: "/app/billing",
+        unlocks: "After activation, product setup will unlock.",
+      }
+    : !hasProducts
+      ? {
+          title: "Add or sync products",
+          description: "Recete needs product data to generate accurate post-purchase guidance.",
+          ctaLabel: "Add products",
+          ctaUrl: "/app/products",
+          unlocks: "After products are ready, messaging configuration will unlock.",
+        }
+      : !hasMessagingConfigured
+        ? {
+            title: "Configure messaging",
+            description: "Set bot behavior and messaging so Recete can start customer communication.",
+            ctaLabel: "Configure messaging",
+            ctaUrl: "/app/settings",
+            unlocks: "After messaging setup, Recete waits for your first order.",
+          }
+        : !hasOrders
+          ? {
+              title: "Receive first order",
+              description: "Setup is complete. Recete will start conversations automatically after the first order event.",
+              ctaLabel: "Review order flow",
+              ctaUrl: "/app/integrations#orders-flow",
+              unlocks: "After first order, the live dashboard and conversations become active.",
+            }
+          : null;
 
   const ordersHint =
     data.metrics.totalOrders > 0
@@ -61,98 +131,100 @@ export default function DashboardPage() {
 
   return (
     <ShellPage
-      title="Dashboard"
-      subtitle="Daily operating view for merchants after installation and initial setup."
+      title={setupComplete ? "Dashboard" : "Getting started"}
+      subtitle={
+        setupComplete
+          ? "Daily operating view for live Recete activity."
+          : `Setup overview · ${completedStepCount} of ${setupSteps.length} steps completed`
+      }
     >
-      <SectionCard
-        title="Start using Recete"
-        subtitle="Activate your plan to start automating customer conversations."
-      >
-        <BlockStack gap="300">
-          <InlineStack>
-            <Button
-              variant="primary"
-              icon={CartIcon}
-              onClick={() => navigate("/app/billing")}
-            >
-              Activate Recete
-            </Button>
-          </InlineStack>
-        </BlockStack>
-      </SectionCard>
-
-      <SectionCard
-        title="Next step"
-        subtitle="Complete this to unlock live workflow automation."
-      >
-        <BlockStack gap="300">
-          <Text as="p" variant="bodyMd">
-            {!hasBilling
-              ? "Without activating your plan, Recete cannot process orders or send messages."
-              : !hasProducts
-                ? "Activation is complete. Next, add products so Recete can generate useful customer guidance."
-                : !hasOrders
-                  ? "Setup is ready. Recete will start working as soon as your first order arrives."
-                  : "Recete is active. Continue monitoring conversations and buyer outcomes."}
-          </Text>
-          <InlineStack>
-            <Button
-              variant="secondary"
-              onClick={() => navigate(!hasBilling ? "/app/billing" : !hasProducts ? "/app/products" : "/app/conversations")}
-            >
-              {!hasBilling ? "Review activation" : !hasProducts ? "Add products" : "View conversations"}
-            </Button>
-          </InlineStack>
-        </BlockStack>
-      </SectionCard>
-
-      <SectionCard
-        title="Setup progress"
-        subtitle="Follow this checklist to complete onboarding."
-      >
-        <BlockStack gap="200">
-          {setupChecklist.map((item) => (
-            <InlineStack key={item.label} align="space-between" blockAlign="center">
-              <Text as="p" variant="bodyMd">{item.label}</Text>
-              <Text as="p" variant="bodyMd" tone="subdued">{item.value}</Text>
-            </InlineStack>
-          ))}
-        </BlockStack>
-      </SectionCard>
-
-      <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
-        <MetricCard label="Orders" value={data.metrics.totalOrders} hint={ordersHint} />
-        <MetricCard label="Customers who allowed messages" value={data.metrics.activeUsers} hint={activeUsersHint} />
-        <MetricCard label="Products ready" value={data.metrics.totalProducts} hint={productsHint} />
-        <MetricCard label="Reply performance" value={responseValue} hint={responseHint} />
-      </InlineGrid>
-
-      <SectionCard
-        title="Recent orders"
-        subtitle="Latest order events seen by Recete."
-      >
-        {data.recentOrders.length > 0 ? (
-          <BlockStack gap="200">
-            {data.recentOrders.slice(0, 6).map((order) => (
-              <InlineStack key={order.id} align="space-between" blockAlign="center">
-                <Text as="p" variant="bodyMd">{order.external_order_id || order.id}</Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  {`${order.status} • ${new Intl.DateTimeFormat("en", {
-                    month: "short",
-                    day: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }).format(new Date(order.created_at))}`}
-                </Text>
+      {!setupComplete && currentStep ? (
+        <>
+          <SectionCard
+            title={`Current step: ${currentStep.title}`}
+            subtitle={currentStep.description}
+          >
+            <BlockStack gap="300">
+              <InlineStack>
+                <Button
+                  variant="primary"
+                  icon={CartIcon}
+                  onClick={() => navigate(currentStep.ctaUrl)}
+                >
+                  {currentStep.ctaLabel}
+                </Button>
               </InlineStack>
-            ))}
-          </BlockStack>
-        ) : (
-          <Text as="p" variant="bodyMd" tone="subdued">
-            No orders yet — this will appear after your first sale.
-          </Text>
-        )}
-      </SectionCard>
+              <Text as="p" variant="bodySm" tone="subdued">
+                {currentStep.unlocks}
+              </Text>
+            </BlockStack>
+          </SectionCard>
+
+          <SectionCard
+            title="Setup steps"
+            subtitle="Complete steps in order. Later steps unlock automatically."
+          >
+            <BlockStack gap="200">
+              {setupSteps.map((step, index) => (
+                <InlineStack key={step.label} align="space-between" blockAlign="center">
+                  <Text as="p" variant="bodyMd">{`${index + 1}. ${step.label}`}</Text>
+                  <Text as="p" variant="bodySm" tone="subdued">{step.value}</Text>
+                </InlineStack>
+              ))}
+            </BlockStack>
+          </SectionCard>
+
+          <SectionCard
+            title="Live dashboard preview"
+            subtitle="These insights appear automatically after setup is complete."
+          >
+            <BlockStack gap="200">
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Orders, customers, and reply performance are hidden until onboarding is completed and first order data arrives.
+              </Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                {`Current status: ${completedStepCount} of ${setupSteps.length} setup steps completed.`}
+              </Text>
+            </BlockStack>
+          </SectionCard>
+        </>
+      ) : (
+        <>
+          <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
+            <MetricCard label="Orders" value={data.metrics.totalOrders} hint={ordersHint} />
+            <MetricCard label="Customers who allowed messages" value={data.metrics.activeUsers} hint={activeUsersHint} />
+            <MetricCard label="Products ready" value={data.metrics.totalProducts} hint={productsHint} />
+            <MetricCard label="Reply performance" value={responseValue} hint={responseHint} />
+          </InlineGrid>
+
+          <SectionCard
+            title="Recent orders"
+            subtitle="Latest order events seen by Recete."
+          >
+            {data.recentOrders.length > 0 ? (
+              <BlockStack gap="200">
+                {data.recentOrders.slice(0, 6).map((order) => (
+                  <InlineStack key={order.id} align="space-between" blockAlign="center">
+                    <Text as="p" variant="bodyMd">{order.external_order_id || order.id}</Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {`${order.status} • ${new Intl.DateTimeFormat("en", {
+                        month: "short",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }).format(new Date(order.created_at))}`}
+                    </Text>
+                  </InlineStack>
+                ))}
+              </BlockStack>
+            ) : (
+              <Text as="p" variant="bodyMd" tone="subdued">
+                No orders yet — this will appear after your first sale.
+              </Text>
+            )}
+          </SectionCard>
+        </>
+      )}
     </ShellPage>
   );
 }
