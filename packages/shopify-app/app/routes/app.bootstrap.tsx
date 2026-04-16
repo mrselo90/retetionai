@@ -93,9 +93,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       billingApproved,
     });
   } catch (error) {
+    // Attempt install-sync repair when the platform doesn't know about this shop yet.
+    // 404 = merchant/integration not found; 403 = shop domain not in integrations table.
     if (
       error instanceof Response &&
-      error.status === 404 &&
+      (error.status === 404 || error.status === 403) &&
       session.shop &&
       session.accessToken
     ) {

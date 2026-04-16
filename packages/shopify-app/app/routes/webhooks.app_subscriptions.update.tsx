@@ -13,7 +13,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await syncShopSubscriptionFromAdmin(shop, admin);
   }
 
-  await forwardWebhookToPlatform(forwardRequest, "/webhooks/commerce/shopify");
+  // Forward to platform — non-fatal if platform doesn't have the integration yet
+  // (e.g. during initial install before install-sync completes).
+  try {
+    await forwardWebhookToPlatform(forwardRequest, "/webhooks/commerce/shopify");
+  } catch (err) {
+    console.error(`[${topic}] Platform forward failed for ${shop}:`, err instanceof Error ? err.message : err);
+  }
 
   return new Response(null, { status: 200 });
 };
