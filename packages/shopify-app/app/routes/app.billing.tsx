@@ -6,6 +6,7 @@ import { redirect, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   Badge,
+  Banner,
   BlockStack,
   Button,
   Card,
@@ -128,16 +129,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       isTest: process.env.NODE_ENV !== "production",
     });
 
+    const subscriptions = billingState.appSubscriptions.map((subscription) => ({
+      id: subscription.id,
+      name: subscription.name,
+      status: subscription.status,
+      lineItems: subscription.lineItems.length,
+    }));
+
     return {
       hasActivePayment: billingState.hasActivePayment,
+      hasDeclinedSubscription: subscriptions.some(
+        (s) => s.status === "DECLINED" || s.status === "EXPIRED" || s.status === "CANCELLED",
+      ),
       managedPricingUrl: getManagedPricingUrl(session.shop),
       requestedPlan: isPlanKey(requestedPlan) ? requestedPlan : null,
-      subscriptions: billingState.appSubscriptions.map((subscription) => ({
-        id: subscription.id,
-        name: subscription.name,
-        status: subscription.status,
-        lineItems: subscription.lineItems.length,
-      })),
+      subscriptions,
       error: null as string | null,
     };
   } catch (err) {
@@ -145,6 +151,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error("[billing-loader]", err);
     return {
       hasActivePayment: false,
+      hasDeclinedSubscription: false,
       managedPricingUrl: null as string | null,
       requestedPlan: null as (typeof ALL_PLAN_KEYS)[number] | null,
       subscriptions: [] as Array<{ id: string; name: string; status: string; lineItems: number }>,
@@ -197,6 +204,20 @@ export default function BillingPage() {
           </Badge>
         </InlineStack>
       </Card>
+
+      {data.hasDeclinedSubscription ? (
+        <Banner
+          tone="critical"
+          title="Billing requires attention"
+          action={
+            data.managedPricingUrl
+              ? { content: "Reactivate billing", url: data.managedPricingUrl, target: "_top" }
+              : undefined
+          }
+        >
+          <p>Your previous subscription was declined or expired. Choose a plan below to reactivate Recete.</p>
+        </Banner>
+      ) : null}
 
       <SectionCard
         title="Compare plans"

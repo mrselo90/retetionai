@@ -4,12 +4,23 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ConnectIcon, CreditCardIcon, SettingsIcon, ViewIcon } from "@shopify/polaris-icons";
 import { BlockStack, Button, InlineGrid, InlineStack, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
-import { fetchMerchantOverviewFromRequest } from "../platform.server";
+import { fetchMerchantOverviewFromRequest, type ShopifyMerchantOverview } from "../platform.server";
 import { ActionCard, EmptyCard, MetricCard, SectionCard, ShellPage, StatusBadge } from "../components/shell-ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
-  return fetchMerchantOverviewFromRequest(request);
+  return fetchMerchantOverviewFromRequest(request).catch((): ShopifyMerchantOverview => ({
+    merchant: { id: '', name: '' },
+    shop: '',
+    integration: { id: '', provider: 'shopify', status: 'unknown' },
+    subscription: null,
+    metrics: { totalOrders: 0, activeUsers: 0, totalProducts: 0, responseRate: 0 },
+    analytics: { avgSentiment: 0, returnRate: 0, preventedReturns: 0, totalConversations: 0, resolvedConversations: 0 },
+    settings: {},
+    integrations: [],
+    products: [],
+    recentOrders: [],
+  }));
 };
 
 export default function IntegrationsPage() {

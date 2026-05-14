@@ -131,6 +131,7 @@ export type AppBootstrapData = {
   shop: string;
   subscriptionStatus: string;
   billingApproved?: boolean;
+  themeEmbedEnabled?: boolean;
 };
 
 export type AppBootstrapContext = {
@@ -229,7 +230,13 @@ function AppShell({ initialShop }: { initialShop: string }) {
   const overview = bootstrapData?.overview;
   const setupSteps: SetupStep[] = overview
     ? (() => {
-        const progress = getSetupProgress(overview, hasBillingApproved);
+        const themeEmbedEnabled = bootstrapData?.themeEmbedEnabled ?? false;
+        const storeHandle = (bootstrapData?.shop || "").replace(/\.myshopify\.com$/i, "");
+        const extensionUuid = typeof process !== "undefined" ? process.env?.SHOPIFY_APP_EXTENSION_UUID?.trim() || "" : "";
+        const themeEditorUrl = extensionUuid
+          ? `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?context=apps&activateAppId=${extensionUuid}/app-embed`
+          : `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?context=apps`;
+        const progress = getSetupProgress(overview, hasBillingApproved, themeEmbedEnabled);
         return [
         {
           label: "Billing approved",
@@ -267,6 +274,15 @@ function AppShell({ initialShop }: { initialShop: string }) {
               : "Create and fulfill a Shopify test order, then refresh integration status.",
           to: "/app/integrations#orders-flow",
           actionLabel: "Open order flow setup",
+        },
+        {
+          label: "Theme embed enabled",
+          status: progress.hasThemeEmbed ? "complete" : "pending",
+          detail: progress.hasThemeEmbed
+            ? "Theme embed is active."
+            : "Activate the Recete embed block in your theme editor.",
+          to: themeEditorUrl,
+          actionLabel: "Open theme editor",
         },
       ];
       })()

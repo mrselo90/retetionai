@@ -5,7 +5,7 @@ import { CartIcon } from "@shopify/polaris-icons";
 import { BlockStack, Button, InlineGrid, InlineStack, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { getSetupProgress } from "../lib/setupProgress";
-import { fetchMerchantOverviewFromRequest } from "../platform.server";
+import { fetchMerchantOverviewFromRequest, type ShopifyMerchantOverview } from "../platform.server";
 import {
   MetricCard,
   SectionCard,
@@ -14,7 +14,18 @@ import {
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
-  return fetchMerchantOverviewFromRequest(request);
+  return fetchMerchantOverviewFromRequest(request).catch((): ShopifyMerchantOverview => ({
+    merchant: { id: '', name: '' },
+    shop: '',
+    integration: { id: '', provider: 'shopify', status: 'unknown' },
+    subscription: null,
+    metrics: { totalOrders: 0, activeUsers: 0, totalProducts: 0, responseRate: 0 },
+    analytics: { avgSentiment: 0, returnRate: 0, preventedReturns: 0, totalConversations: 0, resolvedConversations: 0 },
+    settings: {},
+    integrations: [],
+    products: [],
+    recentOrders: [],
+  }));
 };
 
 export default function DashboardPage() {

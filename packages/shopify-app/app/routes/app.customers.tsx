@@ -2,10 +2,10 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ChatIcon, PersonIcon } from "@shopify/polaris-icons";
-import { BlockStack, InlineGrid, InlineStack, Text } from "@shopify/polaris";
+import { Banner, BlockStack, InlineGrid, InlineStack, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { getSetupProgress } from "../lib/setupProgress";
-import { fetchMerchantCustomers, fetchMerchantOverviewFromRequest } from "../platform.server";
+import { fetchMerchantCustomers, fetchMerchantOverviewFromRequest, type ShopifyMerchantOverview } from "../platform.server";
 import {
   ActionCard,
   EmptyCard,
@@ -21,7 +21,18 @@ import {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
 
-  const overview = await fetchMerchantOverviewFromRequest(request);
+  const overview = await fetchMerchantOverviewFromRequest(request).catch((): ShopifyMerchantOverview => ({
+    merchant: { id: '', name: '' },
+    shop: '',
+    integration: { id: '', provider: 'shopify', status: 'unknown' },
+    subscription: null,
+    metrics: { totalOrders: 0, activeUsers: 0, totalProducts: 0, responseRate: 0 },
+    analytics: { avgSentiment: 0, returnRate: 0, preventedReturns: 0, totalConversations: 0, resolvedConversations: 0 },
+    settings: {},
+    integrations: [],
+    products: [],
+    recentOrders: [],
+  }));
 
   try {
     const customerData = await fetchMerchantCustomers(request, { page: 1, limit: 20 });
@@ -120,6 +131,12 @@ export default function CustomersPage() {
       }
       primaryAction={primaryCta}
     >
+      <Banner tone="info">
+        Customer insights shown here (churn risk, segments, conversation history) are derived
+        from WhatsApp post-purchase conversations handled by Recete — not collected via
+        Shopify&apos;s storefront or checkout. No customer data is modified in your Shopify admin.
+      </Banner>
+
       {uiState === "onboarding_incomplete" ? (
         <>
           <StatePanel

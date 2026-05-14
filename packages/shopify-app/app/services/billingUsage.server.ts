@@ -169,6 +169,14 @@ export async function syncShopSubscriptionFromAdmin(
   });
 }
 
+export async function markThemeEmbedEnabled(shopDomain: string) {
+  const shop = await ensureShop(shopDomain);
+  await prisma.shop.update({
+    where: { id: shop.id },
+    data: { themeEmbedEnabled: true },
+  });
+}
+
 export async function syncShopUninstalled(shopDomain: string) {
   const shop = await ensureShop(shopDomain);
   await prisma.shop.update({

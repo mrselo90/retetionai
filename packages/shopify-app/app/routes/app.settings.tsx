@@ -39,6 +39,8 @@ import {
   updateMerchantSettings,
   type MerchantAddon,
   type MerchantGuardrail,
+  type MerchantSettingsRecord,
+  type ShopifyMerchantOverview,
 } from "../platform.server";
 import { SectionCard, StatusBadge } from "../components/shell-ui";
 import { getPlanSnapshotByDomain } from "../services/planService.server";
@@ -193,8 +195,21 @@ function buildWelcomeTemplatePreview(template: string, botName: string) {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticateEmbeddedAdmin(request);
   const [overview, merchantSettings, multiLang, guardrails, addons, plan] = await Promise.all([
-    fetchMerchantOverviewFromRequest(request),
-    fetchMerchantSettings(request),
+    fetchMerchantOverviewFromRequest(request).catch((): ShopifyMerchantOverview => ({
+      merchant: { id: '', name: '' },
+      shop: '',
+      integration: { id: '', provider: 'shopify', status: 'unknown' },
+      subscription: null,
+      metrics: { totalOrders: 0, activeUsers: 0, totalProducts: 0, responseRate: 0 },
+      analytics: { avgSentiment: 0, returnRate: 0, preventedReturns: 0, totalConversations: 0, resolvedConversations: 0 },
+      settings: {},
+      integrations: [],
+      products: [],
+      recentOrders: [],
+    })),
+    fetchMerchantSettings(request).catch((): MerchantSettingsRecord => ({
+      merchant: { id: '', name: '' },
+    })),
     fetchMerchantMultiLangSettings(request).catch(() => ({
       settings: {
         shop_id: "",

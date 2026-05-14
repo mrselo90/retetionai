@@ -1,11 +1,14 @@
-import type { HeadersFunction } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction } from "react-router";
+import { useFetcher } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { CartIcon, CatalogIcon, ConnectIcon, SettingsIcon, ViewIcon } from "@shopify/polaris-icons";
+import { CartIcon, CatalogIcon, CodeIcon, ConnectIcon, SettingsIcon, ViewIcon } from "@shopify/polaris-icons";
 import { Badge, BlockStack, Box, Button, Card, InlineGrid, InlineStack, List, Text } from "@shopify/polaris";
 import { ShellPage } from "../components/shell-ui";
 import { getSetupProgress } from "../lib/setupProgress";
 import type { ShopifyMerchantOverview } from "../platform.server";
 import { useAppBootstrapData } from "./app";
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
+import { markThemeEmbedEnabled } from "../services/billingUsage.server";
 
 type SetupStepStatus = "done" | "in_progress" | "not_started";
 
@@ -16,6 +19,20 @@ type SetupStep = {
   to: string;
   icon: typeof CartIcon;
   status: SetupStepStatus;
+  markAsDoneAction?: boolean;
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { session } = await authenticateEmbeddedAdmin(request);
+  const formData = await request.formData();
+  const intent = String(formData.get("intent") || "");
+
+  if (intent === "markThemeEmbedDone") {
+    await markThemeEmbedEnabled(session.shop);
+    return Response.json({ ok: true });
+  }
+
+  return Response.json({ ok: false, error: "Unknown intent" }, { status: 400 });
 };
 
 export default function Index() {
@@ -41,17 +58,35 @@ export default function Index() {
     );
   }
 
-  return <SetupOverview data={data} billingApproved={bootstrapData?.billingApproved} />;
+  return (
+    <SetupOverview
+      data={data}
+      billingApproved={bootstrapData?.billingApproved}
+      themeEmbedEnabled={bootstrapData?.themeEmbedEnabled}
+      shop={bootstrapData?.shop || ""}
+    />
+  );
+}
+
+function getThemeEditorUrl(shop: string): string {
+  const storeHandle = shop.replace(/\.myshopify\.com$/i, "");
+  return `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?context=apps`;
 }
 
 function SetupOverview({
   data,
   billingApproved,
+  themeEmbedEnabled,
+  shop,
 }: {
   data: ShopifyMerchantOverview;
   billingApproved?: boolean;
+  themeEmbedEnabled?: boolean;
+  shop: string;
 }) {
-  const progress = getSetupProgress(data, billingApproved);
+  const progress = getSetupProgress(data, billingApproved, themeEmbedEnabled);
+  const fetcher = useFetcher();
+  const themeEditorUrl = getThemeEditorUrl(shop);
 
   const steps: SetupStep[] = [
     {
@@ -85,6 +120,15 @@ function SetupOverview({
       to: "/app/integrations#orders-flow",
       icon: ConnectIcon,
       status: progress.hasOrders ? "done" : progress.hasBilling && progress.hasProducts && progress.hasMessagingConfigured ? "in_progress" : "not_started",
+    },
+    {
+      id: "themeEmbed",
+      title: "Step 5: Enable theme embed",
+      description: "Activate the Recete embed block in your Shopify theme editor to enable on-site features.",
+      to: themeEditorUrl,
+      icon: CodeIcon,
+      status: progress.hasThemeEmbed ? "done" : progress.hasOrders ? "in_progress" : "not_started",
+      markAsDoneAction: true,
     },
   ];
 
@@ -148,10 +192,18 @@ function SetupOverview({
                     </Badge>
                   </InlineStack>
                   <Text as="p" variant="bodySm" tone="subdued">{step.description}</Text>
-                  <InlineStack>
-                    <Button url={step.to} variant="tertiary" icon={step.icon}>
-                      Open step
+                  <InlineStack gap="200">
+                    <Button url={step.to} variant="tertiary" icon={step.icon} target={step.id === "themeEmbed" ? "_blank" : undefined}>
+                      {step.id === "themeEmbed" ? "Open theme editor" : "Open step"}
                     </Button>
+                    {step.markAsDoneAction && step.status !== "done" ? (
+                      <fetcher.Form method="post">
+                        <input type="hidden" name="intent" value="markThemeEmbedDone" />
+                        <Button submit variant="plain" loading={fetcher.state !== "idle"}>
+                          Mark as done
+                        </Button>
+                      </fetcher.Form>
+                    ) : null}
                   </InlineStack>
                 </BlockStack>
               </Card>

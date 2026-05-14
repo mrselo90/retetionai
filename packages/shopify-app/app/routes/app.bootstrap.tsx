@@ -4,6 +4,7 @@ import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { isBillingReady } from "../lib/billingStatus";
 import { requireSessionTokenAuthorization } from "../lib/sessionToken.server";
 import { fetchMerchantOverviewFromRequest, syncShopInstall } from "../platform.server";
+import prisma from "../db.server";
 import {
   GROWTH_MONTHLY_PLAN,
   GROWTH_YEARLY_PLAN,
@@ -82,6 +83,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const overview = await fetchMerchantOverviewFromRequest(request);
     const shop = requestUrl.searchParams.get("shop") || overview.shop;
     const billingApproved = billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
+    const shopRecord = await prisma.shop.findUnique({ where: { shopDomain: session.shop }, select: { themeEmbedEnabled: true } });
 
     return Response.json({
       merchantName: overview.merchant.name || shop.replace(".myshopify.com", ""),
@@ -91,6 +93,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         ? "active"
         : overview.merchant.subscription_status || "inactive",
       billingApproved,
+      themeEmbedEnabled: shopRecord?.themeEmbedEnabled ?? false,
     });
   } catch (error) {
     // Attempt install-sync repair when the platform doesn't know about this shop yet.
@@ -112,6 +115,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const shop = requestUrl.searchParams.get("shop") || overview.shop;
         const billingApproved =
           billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
+        const shopRecord2 = await prisma.shop.findUnique({ where: { shopDomain: session.shop }, select: { themeEmbedEnabled: true } });
 
         return Response.json({
           merchantName: overview.merchant.name || shop.replace(".myshopify.com", ""),
@@ -121,6 +125,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             ? "active"
             : overview.merchant.subscription_status || "inactive",
           billingApproved,
+          themeEmbedEnabled: shopRecord2?.themeEmbedEnabled ?? false,
         });
       } catch (repairError) {
         console.error("[app-bootstrap] install sync repair failed", repairError);

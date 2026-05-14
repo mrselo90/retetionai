@@ -164,24 +164,6 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
       }
     }
 
-    const consentGuardTopics = new Set(['orders/create', 'orders/fulfilled', 'orders/updated']);
-    if (consentGuardTopics.has(topic)) {
-      const customer = body?.customer;
-      const hasMarketingConsent =
-        customer?.buyer_accepts_marketing === true ||
-        customer?.sms_marketing_consent?.state === 'subscribed';
-
-      // Strict App Store compliance rule:
-      // if the customer has not opted in, do not persist, queue, or process anything.
-      if (!hasMarketingConsent) {
-        return c.json({
-          ok: true,
-          ignored: true,
-          reason: 'Customer has not opted in to marketing or SMS marketing',
-        }, 200);
-      }
-    }
-
     // Normalize event (for standard commerce webhooks)
     const normalizedEvent = normalizeShopifyEvent(
       integration.merchant_id,

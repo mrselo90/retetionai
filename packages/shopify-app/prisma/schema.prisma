@@ -68,6 +68,7 @@ model Shop {
   subscriptionLineItemId String?
   isTrial           Boolean                 @default(true)
   currentPeriodEnd  DateTime?
+  themeEmbedEnabled Boolean                 @default(false)
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
   usageTracker      UsageTracker?

@@ -11,6 +11,7 @@ import { scheduleOrderMessages } from './messageScheduler.js';
 import { scheduleMessage } from '../queues.js';
 import { normalizeAndHashPhone } from './phoneLookup.js';
 import { sendDeliveryTemplate } from './deliveryTemplateService.js';
+import { invalidateMerchantOverviewCache } from './cache.js';
 
 /**
  * Process normalized event and upsert order/user
@@ -283,6 +284,9 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
       );
     }
   }
+
+  // Bust the merchant overview cache so the dashboard reflects the new order immediately
+  void invalidateMerchantOverviewCache(event.merchant_id);
 
   return { userId, orderId, created };
 }

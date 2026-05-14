@@ -3,13 +3,14 @@ import type { ShopifyMerchantOverview } from "../platform.server";
 
 type PersonaSettings = NonNullable<ShopifyMerchantOverview["settings"]["personaSettings"]>;
 
-export type SetupStepKey = "billing" | "products" | "messaging" | "orders";
+export type SetupStepKey = "billing" | "products" | "messaging" | "orders" | "themeEmbed";
 
 export type SetupProgress = {
   hasBilling: boolean;
   hasProducts: boolean;
   hasMessagingConfigured: boolean;
   hasOrders: boolean;
+  hasThemeEmbed: boolean;
   productCount: number;
   completedCount: number;
   totalSteps: number;
@@ -33,6 +34,7 @@ function hasSavedMessagingConfiguration(settings?: PersonaSettings | null, notif
 export function getSetupProgress(
   overview: ShopifyMerchantOverview,
   billingApproved?: boolean,
+  themeEmbedEnabled?: boolean,
 ): SetupProgress {
   const productCount = Math.max(overview.metrics.totalProducts || 0, overview.products?.length || 0);
   const hasBilling = billingApproved ?? isBillingReady(overview.subscription?.status || overview.merchant.subscription_status);
@@ -42,12 +44,14 @@ export function getSetupProgress(
     overview.settings?.notificationPhone,
   );
   const hasOrders = (overview.metrics.totalOrders || 0) > 0;
+  const hasThemeEmbed = themeEmbedEnabled ?? false;
 
   const steps: Array<[SetupStepKey, boolean]> = [
     ["billing", hasBilling],
     ["products", hasProducts],
     ["messaging", hasMessagingConfigured],
     ["orders", hasOrders],
+    ["themeEmbed", hasThemeEmbed],
   ];
 
   return {
@@ -55,6 +59,7 @@ export function getSetupProgress(
     hasProducts,
     hasMessagingConfigured,
     hasOrders,
+    hasThemeEmbed,
     productCount,
     completedCount: steps.filter(([, complete]) => complete).length,
     totalSteps: steps.length,

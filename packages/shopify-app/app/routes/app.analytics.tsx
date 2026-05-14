@@ -5,7 +5,7 @@ import { ChartVerticalIcon, ChatIcon, SettingsIcon } from "@shopify/polaris-icon
 import { BlockStack, Card, InlineGrid, InlineStack, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { getSetupProgress } from "../lib/setupProgress";
-import { fetchMerchantOverviewFromRequest } from "../platform.server";
+import { fetchMerchantOverviewFromRequest, type ShopifyMerchantOverview } from "../platform.server";
 import {
   ActionCard,
   DetailRows,
@@ -23,7 +23,18 @@ import { getAnalyticsLevel, getPlanSnapshotByDomain } from "../services/planServ
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticateEmbeddedAdmin(request);
   const [overview, plan] = await Promise.all([
-    fetchMerchantOverviewFromRequest(request),
+    fetchMerchantOverviewFromRequest(request).catch((): ShopifyMerchantOverview => ({
+      merchant: { id: '', name: '' },
+      shop: '',
+      integration: { id: '', provider: 'shopify', status: 'unknown' },
+      subscription: null,
+      metrics: { totalOrders: 0, activeUsers: 0, totalProducts: 0, responseRate: 0 },
+      analytics: { avgSentiment: 0, returnRate: 0, preventedReturns: 0, totalConversations: 0, resolvedConversations: 0 },
+      settings: {},
+      integrations: [],
+      products: [],
+      recentOrders: [],
+    })),
     getPlanSnapshotByDomain(session.shop),
   ]);
 

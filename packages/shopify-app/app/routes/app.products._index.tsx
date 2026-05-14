@@ -682,9 +682,9 @@ async function persistProductSetup({
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
   const [catalog, merchantProducts, instructionPayload, multiLang] = await Promise.all([
-    fetchShopifyCatalog(request, { first: 100 }),
-    fetchMerchantProducts(request),
-    fetchMerchantProductInstructions(request),
+    fetchShopifyCatalog(request, { first: 100 }).catch(() => ({ shopDomain: '', products: [] as never[] })),
+    fetchMerchantProducts(request).catch(() => ({ products: [] as never[] })),
+    fetchMerchantProductInstructions(request).catch(() => ({ instructions: [] as never[] })),
     fetchMerchantMultiLangSettings(request).catch(() => ({
       settings: {
         shop_id: "",

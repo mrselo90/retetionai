@@ -42,7 +42,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     throw new Response("Conversation not found", { status: 404 });
   }
 
-  return fetchMerchantConversationDetail(request, conversationId);
+  try {
+    return await fetchMerchantConversationDetail(request, conversationId);
+  } catch (error) {
+    const status = error instanceof Response ? error.status : 500;
+    const message = status === 404 ? "Conversation not found" : "Failed to load conversation";
+    throw new Response(message, { status });
+  }
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
