@@ -10,7 +10,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   console.log(`Received ${topic} webhook for ${shop}`);
   await syncShopUninstalled(shop);
-  await forwardWebhookToPlatform(forwardRequest, "/webhooks/commerce/shopify");
+  await forwardWebhookToPlatform(forwardRequest, "/webhooks/commerce/shopify").catch((err: unknown) => {
+    // 404/410 means the platform already removed this integration — not an error on uninstall.
+    console.warn(`[app-uninstalled] platform forward non-fatal for ${shop}:`, err instanceof Error ? err.message : err);
+  });
 
   // Webhook requests can trigger multiple times and after an app has already been uninstalled.
   // If this webhook already ran, the session may have been deleted previously.
