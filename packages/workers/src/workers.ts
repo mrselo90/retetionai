@@ -5,6 +5,7 @@
 
 import { Worker, WorkerOptions } from 'bullmq';
 import { getRedisClient, getSupabaseServiceClient, logger } from '@recete/shared';
+import { trackWorkerJob } from './lib/nrEvents.js';
 import {
   buildShopifyProductFallbackContent,
   QUEUE_NAMES,
@@ -963,48 +964,60 @@ export async function closeAllWorkers() {
 // Error handling
 scheduledMessagesWorker.on('completed', (job) => {
   logger.info({ jobId: job.id }, '[Scheduled Message] Job completed');
+  trackWorkerJob({ queue: 'scheduled-messages', jobId: job.id ?? '', status: 'completed' });
 });
 
 scheduledMessagesWorker.on('failed', (job, err) => {
   logger.error(err instanceof Error ? err : new Error(String(err)), `[Scheduled Message] Job ${job?.id} failed`);
+  trackWorkerJob({ queue: 'scheduled-messages', jobId: job?.id ?? '', status: 'failed' });
 });
 
 scrapeJobsWorker.on('completed', (job) => {
   logger.info({ jobId: job.id }, '[Scrape] Job completed');
+  trackWorkerJob({ queue: 'scrape-jobs', jobId: job.id ?? '', status: 'completed' });
 });
 
 scrapeJobsWorker.on('failed', (job, err) => {
   logger.error(err instanceof Error ? err : new Error(String(err)), `[Scrape] Job ${job?.id} failed`);
+  trackWorkerJob({ queue: 'scrape-jobs', jobId: job?.id ?? '', status: 'failed' });
 });
 
 analyticsWorker.on('completed', (job) => {
   logger.info({ jobId: job.id }, '[Analytics] Job completed');
+  trackWorkerJob({ queue: 'analytics', jobId: job.id ?? '', status: 'completed' });
 });
 
 analyticsWorker.on('failed', (job, err) => {
   logger.error(err instanceof Error ? err : new Error(String(err)), `[Analytics] Job ${job?.id} failed`);
+  trackWorkerJob({ queue: 'analytics', jobId: job?.id ?? '', status: 'failed' });
 });
 
 commerceEventsWorker.on('completed', (job) => {
   logger.info({ jobId: job.id }, '[Commerce Event] Job completed');
+  trackWorkerJob({ queue: 'commerce-events', jobId: job.id ?? '', status: 'completed' });
 });
 
 commerceEventsWorker.on('failed', (job, err) => {
   logger.error(err instanceof Error ? err : new Error(String(err)), `[Commerce Event] Job ${job?.id} failed`);
+  trackWorkerJob({ queue: 'commerce-events', jobId: job?.id ?? '', status: 'failed' });
 });
 
 gdprJobsWorker.on('completed', (job) => {
   logger.info({ jobId: job.id }, '[GDPR Job] Job completed');
+  trackWorkerJob({ queue: 'gdpr-jobs', jobId: job.id ?? '', status: 'completed' });
 });
 
 gdprJobsWorker.on('failed', (job, err) => {
   logger.error(err instanceof Error ? err : new Error(String(err)), `[GDPR Job] Job ${job?.id} failed`);
+  trackWorkerJob({ queue: 'gdpr-jobs', jobId: job?.id ?? '', status: 'failed' });
 });
 
 whatsappInboundWorker.on('completed', (job) => {
   logger.info({ jobId: job.id }, '[WhatsApp Inbound] Job completed');
+  trackWorkerJob({ queue: 'whatsapp-inbound', jobId: job.id ?? '', status: 'completed' });
 });
 
 whatsappInboundWorker.on('failed', (job, err) => {
   logger.error(err instanceof Error ? err : new Error(String(err)), `[WhatsApp Inbound] Job ${job?.id} failed`);
+  trackWorkerJob({ queue: 'whatsapp-inbound', jobId: job?.id ?? '', status: 'failed' });
 });

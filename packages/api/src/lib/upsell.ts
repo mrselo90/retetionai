@@ -7,6 +7,7 @@ import { getSupabaseServiceClient } from '@recete/shared';
 import { getOpenAIClient } from './openaiClient.js';
 import { getMerchantUpsellStrategy } from './merchantPlanFeatures.js';
 import { getDefaultLlmModel } from './runtimeModelSettings.js';
+import { trackUpsell } from './nrEvents.js';
 
 export interface SatisfactionResult {
   satisfied: boolean;
@@ -269,6 +270,7 @@ export async function generateUpsell(
   if (recommendations.length === 0) {
     return { message: '', recommendations: [] };
   }
+  trackUpsell({ merchantId, strategy, triggered: true });
 
   const { data: merchant } = await getSupabaseServiceClient()
     .from('merchants')
@@ -366,6 +368,7 @@ export async function processSatisfactionCheck(
   // Schedule upsell message (or send immediately)
   // For MVP, we'll return the message to be sent
   // In production, you might schedule it or send immediately
+  trackUpsell({ merchantId, strategy, triggered: true });
 
   return {
     satisfied: true,

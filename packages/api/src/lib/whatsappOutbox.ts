@@ -1,6 +1,7 @@
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { recordMerchantBillableChat } from './merchantPlanFeatures.js';
 import { sendWhatsAppMessage, type WhatsAppCredentials } from './whatsapp.js';
+import { trackWhatsAppSent } from './nrEvents.js';
 
 export type WhatsAppOutboxMessageKind =
   | 'unknown_user_default'
@@ -181,6 +182,7 @@ export async function sendTrackedWhatsAppMessage(
     if (updateFailedError && !isSchemaMissingError(updateFailedError)) {
       logger.warn({ updateFailedError, outboxId }, 'Failed to update whatsapp outbox failure state');
     }
+    trackWhatsAppSent({ merchantId: input.merchantId, messageKind: input.messageKind, provider, success: false, userId: input.userId });
     return {
       success: false,
       outboxId,
@@ -212,6 +214,7 @@ export async function sendTrackedWhatsAppMessage(
     },
     'whatsapp_outbox_sent'
   );
+  trackWhatsAppSent({ merchantId: input.merchantId, messageKind: input.messageKind, provider, success: true, userId: input.userId });
 
   if (isBillableAiMessageKind(input.messageKind)) {
     const usageEventId = outboxId;

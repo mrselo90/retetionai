@@ -5,6 +5,7 @@ import {
   reportShellUsageEvent,
   type ShopifyShellPlanSnapshot,
 } from './shopifyShell.js';
+import { trackAIVision, trackRecipeLimitHit } from './nrEvents.js';
 
 export type MerchantPlanType = 'STARTER' | 'GROWTH' | 'PRO';
 export type MerchantAnalyticsLevel = 'BASIC' | 'ADVANCED';
@@ -139,6 +140,7 @@ export async function getMerchantPlanFeatures(merchantId: string): Promise<Merch
 
 export async function canMerchantUseAiVision(merchantId: string) {
   const plan = await getMerchantPlanFeatures(merchantId);
+  trackAIVision({ merchantId, success: plan.aiVision, planAllowed: plan.aiVision });
   return plan.aiVision;
 }
 
@@ -163,8 +165,12 @@ export async function checkMerchantRecipeCapacity(merchantId: string, currentCou
     return { allowed: true, limit: null, current: currentCount };
   }
 
+  const allowed = currentCount < plan.recipeLimit;
+  if (!allowed) {
+    trackRecipeLimitHit({ merchantId, current: currentCount, limit: plan.recipeLimit });
+  }
   return {
-    allowed: currentCount < plan.recipeLimit,
+    allowed,
     limit: plan.recipeLimit,
     current: currentCount,
   };
