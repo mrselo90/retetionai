@@ -52,7 +52,7 @@ function NavBar({ theme, onToggleTheme }: { theme: string; onToggleTheme: () => 
           {NAV_LINKS.map(l => <a key={l.href} href={l.href}>{l.label}</a>)}
         </nav>
         <div className="lnav-cta">
-          <button className="lbtn lbtn-ghost" onClick={onToggleTheme} aria-label="Toggle theme" style={{ width: 36 }}>
+          <button className="lbtn lbtn-ghost lnav-theme-toggle" onClick={onToggleTheme} aria-label="Toggle theme" style={{ width: 36 }}>
             <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={15} />
           </button>
           <Link href="/login" className="lbtn lbtn-ghost lnav-login">Login</Link>
@@ -177,7 +177,7 @@ function HeroPhone() {
 
 function Hero() {
   return (
-    <section className="lsection" style={{ paddingTop: 80, paddingBottom: 80, borderBottom: 'none', overflow: 'visible' }}>
+    <section className="lsection lhero-section" style={{ borderBottom: 'none', overflow: 'visible' }}>
       <div className="lcontainer lhero-grid">
         <div>
           <div className="leyebrow">
@@ -229,7 +229,7 @@ function ProofBar() {
   return (
     <section style={{ padding: '40px 0', borderBottom: '1px solid var(--lline)', borderTop: '1px solid var(--lline)' }}>
       <div className="lcontainer lproof-inner">
-        <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--link-3)', maxWidth: 180, lineHeight: 1.4 }}>
+        <div className="lproof-label" style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--link-3)', maxWidth: 180, lineHeight: 1.4 }}>
           Trusted by Shopify stores across the UK & EU
         </div>
         <div className="lproof-logos">
@@ -261,7 +261,7 @@ function Features() {
   return (
     <section id="features" className="lsection">
       <div className="lcontainer">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 64, marginBottom: 56, flexWrap: 'wrap' }}>
+        <div className="lsection-head">
           <div>
             <SectionMeta>Features</SectionMeta>
             <h2 className="lh-section">Everything you need to turn one-time buyers into <span className="em">repeat customers.</span></h2>
@@ -413,7 +413,7 @@ function HowItWorks() {
   return (
     <section id="how-it-works" className="lsection">
       <div className="lcontainer">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 64, flexWrap: 'wrap' }}>
+        <div className="lsection-head lsection-head-nb">
           <div>
             <SectionMeta>How it works</SectionMeta>
             <h2 className="lh-section">Live in fifteen minutes. <span className="em">No agency, no engineer.</span></h2>
@@ -473,7 +473,7 @@ function Testimonials() {
       <div className="lcontainer">
         <SectionMeta>Trusted by growth teams</SectionMeta>
         <h2 className="lh-section">Merchants use Recete to protect margin <span className="em">after checkout.</span></h2>
-        <div className="ltest-grid" style={{ marginTop: 56 }}>
+        <div className="ltest-grid ltest-grid-mt" style={{ marginTop: 56 }}>
           {TESTIMONIALS.map((t, i) => (
             <div key={i} className="ltest">
               <div style={{ fontSize: 16.5, lineHeight: 1.5, color: 'var(--link)', letterSpacing: '-0.005em', flex: 1 }}>"{t.quote}"</div>
@@ -504,7 +504,7 @@ function Pricing() {
   return (
     <section id="pricing" className="lsection">
       <div className="lcontainer">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 64, flexWrap: 'wrap' }}>
+        <div className="lsection-head lsection-head-nb">
           <div>
             <SectionMeta>Pricing</SectionMeta>
             <h2 className="lh-section">Simple, transparent pricing. <span className="em">No hidden fees.</span></h2>
@@ -566,7 +566,7 @@ function ROICalc() {
   return (
     <section id="roi" className="lsection">
       <div className="lcontainer">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 64, flexWrap: 'wrap' }}>
+        <div className="lsection-head lsection-head-nb">
           <div>
             <SectionMeta>ROI calculator</SectionMeta>
             <h2 className="lh-section">Run your numbers. <span className="em">It's not a leap of faith.</span></h2>

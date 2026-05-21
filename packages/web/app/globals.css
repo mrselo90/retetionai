@@ -655,6 +655,16 @@
 .lfooter-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .lfooter-col a { font-size: 13.5px; color: var(--link-2); text-decoration: none; }
 .lfooter-col a:hover { color: var(--link); }
+/* Hero section padding (controlled via class so media queries can override) */
+.lhero-section { padding-top: 80px; padding-bottom: 80px; }
+
+/* Section header flex rows */
+.lsection-head {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  gap: 64px; margin-bottom: 56px; flex-wrap: wrap;
+}
+.lsection-head-nb { margin-bottom: 0; }
+
 /* Hamburger button */
 .lnav-hamburger {
   display: none;
@@ -738,6 +748,10 @@
 
   /* Pricing CTA full-width */
   .lprice-col .lbtn { width: 100%; justify-content: center; }
+
+  /* Section headers at tablet */
+  .lsection-head { gap: 32px; margin-bottom: 40px; }
+  .lsection-head-nb { margin-bottom: 0; }
 }
 
 /* ── Mobile ≤768px ── */
@@ -745,13 +759,29 @@
   .lsection { padding: 48px 0; }
   .lcontainer { padding: 0 18px; }
 
-  /* Nav — solid background on mobile so it's always visible */
+  /* Nav */
   .lnav { background: var(--lbg); backdrop-filter: none; border-bottom: 1px solid var(--lline); }
   .lnav-links { display: none; }
   .lnav-logo-tag { display: none; }
   .lnav-login { display: none; }
   .lnav-cta-signup { display: none; }
+  .lnav-theme-toggle { display: none; }
   .lnav-hamburger { display: flex; }
+
+  /* Hero — reduce padding */
+  .lhero-section { padding-top: 36px; padding-bottom: 36px; }
+
+  /* Section headers — stack vertically, reduce spacing */
+  .lsection-head { flex-direction: column; align-items: flex-start; gap: 16px; margin-bottom: 28px; }
+  .lsection-head-nb { margin-bottom: 0; }
+
+  /* Proof bar */
+  .lproof-inner { padding: 8px 0; }
+  .lproof-label { display: none; }
+
+  /* Testimonials grid gap */
+  .ltest-grid { gap: 12px; }
+  .ltest-grid-mt { margin-top: 28px !important; }
 
   /* Typography scale down */
   .lh-display { font-size: clamp(26px, 7.5vw, 38px) !important; }
