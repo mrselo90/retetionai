@@ -28,6 +28,21 @@ const internalServiceSecret =
   rootEnv.PLATFORM_INTERNAL_SECRET ||
   '';
 
+const nrLicenseKey =
+  process.env.NEW_RELIC_LICENSE_KEY ||
+  rootEnv.NEW_RELIC_LICENSE_KEY ||
+  '';
+const nrEnabled =
+  process.env.NEW_RELIC_ENABLED ||
+  rootEnv.NEW_RELIC_ENABLED ||
+  'false';
+const nrEnv = {
+  NEW_RELIC_LICENSE_KEY: nrLicenseKey,
+  NEW_RELIC_ENABLED: nrEnabled,
+  NEW_RELIC_LOG_LEVEL: 'info',
+  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: 'true',
+};
+
 /**
  * PM2 ecosystem config for production.
  * Run from repo root: pm2 start ecosystem.config.cjs
@@ -43,6 +58,7 @@ module.exports = {
       cwd: './packages/api',
       script: 'dist/index.js',
       interpreter: 'node',
+      node_args: '-r newrelic',
       env: {
         PORT: 3002,
         NODE_ENV: 'production',
@@ -50,6 +66,8 @@ module.exports = {
         API_URL: 'https://api.recete.co.uk',
         FRONTEND_URL: 'https://recete.co.uk',
         ALLOWED_ORIGINS: 'https://recete.co.uk,https://shop.recete.co.uk,https://admin.shopify.com',
+        NEW_RELIC_APP_NAME: 'recete-api',
+        ...nrEnv,
       },
       instances: 1,
       exec_mode: 'fork',
@@ -98,7 +116,12 @@ module.exports = {
       cwd: './packages/workers',
       script: 'dist/index.js',
       interpreter: 'node',
-      env: { NODE_ENV: 'production' },
+      node_args: '-r newrelic',
+      env: {
+        NODE_ENV: 'production',
+        NEW_RELIC_APP_NAME: 'recete-workers',
+        ...nrEnv,
+      },
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
