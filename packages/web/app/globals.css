@@ -654,7 +654,7 @@
 .lfooter-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .lfooter-col a { font-size: 13.5px; color: var(--link-2); text-decoration: none; }
 .lfooter-col a:hover { color: var(--link); }
-/* Responsive layout classes — defaults defined here, overridden in media queries */
+/* ── Responsive layout classes — desktop defaults ── */
 .lhero-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 64px; align-items: center; }
 .lproof-inner { display: grid; grid-template-columns: auto 1fr; gap: 48px; align-items: center; }
 .lproof-logos { display: grid; grid-template-columns: repeat(6, 1fr); gap: 24px; align-items: center; }
@@ -662,33 +662,86 @@
 .lroi-grid { display: grid; grid-template-columns: 1.1fr 1fr; }
 .lfaq-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 64px; margin-top: 16px; }
 
+/* ── Tablet ≤1000px ── */
 @media (max-width: 1000px) {
-  .lfeatures-grid, .lprice-grid, .ltest-grid, .lhowit { grid-template-columns: 1fr; }
+  /* Grids collapse to 1 column */
+  .lfeatures-grid, .lprice-grid, .ltest-grid { grid-template-columns: 1fr; }
   .lfeature, .lprice-col { border-right: 0; }
-  .lfooter-grid { grid-template-columns: 1fr 1fr; }
+  .lfooter-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
   .lhero-grid { grid-template-columns: 1fr; gap: 40px; }
   .lproof-inner { grid-template-columns: 1fr; gap: 20px; }
-  .lproof-logos { grid-template-columns: repeat(3, 1fr); }
-  .ldemo-grid { grid-template-columns: 1fr; }
+  .lproof-logos { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .ldemo-grid { grid-template-columns: 1fr; gap: 32px; }
   .lroi-grid { grid-template-columns: 1fr; }
   .lroi-grid > *:first-child { border-right: 0 !important; border-bottom: 1px solid var(--lline); }
   .lfaq-grid { grid-template-columns: 1fr; gap: 32px; }
   .lphone-tag { display: none; }
+
+  /* HowItWorks — fix border-right when stacked */
+  .lhowit { grid-template-columns: 1fr; border-top: none; margin-top: 32px; }
+  .lhow-step { border-right: 0; padding: 28px 0; border-bottom: 1px dashed var(--lline); }
+  .lhow-step:last-child { border-bottom: 0; padding-bottom: 0; }
+  .lhow-step:not(:first-child) { padding-left: 0; }
+
+  /* Pricing CTA full-width */
+  .lprice-col .lbtn { width: 100%; justify-content: center; }
 }
+
+/* ── Mobile ≤768px ── */
 @media (max-width: 768px) {
-  .lsection { padding: 56px 0; }
-  .lcontainer { padding: 0 16px; }
+  .lsection { padding: 48px 0; }
+  .lcontainer { padding: 0 18px; }
+
+  /* Nav */
   .lnav-links { display: none; }
   .lnav-logo-tag { display: none; }
-  .lphone { width: 280px; height: 520px; }
+  .lnav-login { display: none; }
+
+  /* Typography scale down */
+  .lh-display { font-size: clamp(26px, 7.5vw, 38px) !important; }
+  .lh-section { font-size: clamp(22px, 5.5vw, 28px) !important; }
+  .llead { font-size: 15px; max-width: 100%; }
+
+  /* Hero */
   .lhero-phone { display: flex; justify-content: center; }
+  .lphone { width: 100%; max-width: 300px; height: 520px; }
+  .lhero-cta { flex-wrap: wrap; }
+  .lhero-cta .lbtn { flex: 1; min-width: 120px; justify-content: center; }
+
+  /* Features */
+  .lfeature { padding: 20px; min-height: auto; }
+
+  /* Demo phone centered */
+  .ldemo-phone { display: flex; justify-content: center; }
+
+  /* Proof */
+  .lproof-logos { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+  /* Testimonials */
+  .ltest { padding: 20px; }
+
+  /* Pricing */
+  .lprice-col { padding: 24px 20px; }
+
+  /* ROI panels */
+  .lroi-panel { padding: 24px 20px !important; }
+
+  /* FAQ */
+  .lfaq-q { font-size: 14px; padding: 18px 0; }
+
+  /* Footer */
+  .lfooter-bottom { flex-direction: column !important; align-items: flex-start !important; gap: 16px !important; }
+  .lfooter-badges { flex-wrap: wrap; gap: 8px !important; }
 }
+
+/* ── Small mobile ≤480px ── */
 @media (max-width: 480px) {
-  .lfooter-grid { grid-template-columns: 1fr; }
+  .lsection { padding: 40px 0; }
+  .lcontainer { padding: 0 14px; }
+  .lfooter-grid { grid-template-columns: 1fr; gap: 28px; }
   .lnav-cta { gap: 6px; }
-  .lbtn-ghost:not([aria-label]) { display: none; }
   .lproof-logos { grid-template-columns: repeat(2, 1fr); }
-  .lsection { padding: 48px 0; }
+  .lhero-cta .lbtn { flex: none; width: 100%; }
 }
 
 /* Loading Skeleton */

@@ -48,7 +48,7 @@ function NavBar({ theme, onToggleTheme }: { theme: string; onToggleTheme: () => 
           <button className="lbtn lbtn-ghost" onClick={onToggleTheme} aria-label="Toggle theme" style={{ width: 36 }}>
             <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={15} />
           </button>
-          <Link href="/login" className="lbtn lbtn-ghost">Login</Link>
+          <Link href="/login" className="lbtn lbtn-ghost lnav-login">Login</Link>
           <Link href="/signup" className="lbtn lbtn-primary">
             Start free <Icon name="arrow" size={13} />
           </Link>
@@ -159,7 +159,7 @@ function Hero() {
             Recete is an AI assistant that lives on WhatsApp. It uses your product knowledge to answer
             questions, send guides, and resolve issues — automatically, before they become support tickets or refunds.
           </p>
-          <div style={{ marginTop: 32, display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div className="lhero-cta" style={{ marginTop: 32, display: 'flex', gap: 10, alignItems: 'center' }}>
             <Link href="/signup" className="lbtn lbtn-primary lbtn-lg">
               Start free <Icon name="arrow" size={13} />
             </Link>
@@ -367,7 +367,7 @@ function Demo() {
               ))}
             </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div className="ldemo-phone" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <DemoPhone scenario={SCENARIOS[active]} />
           </div>
         </div>
@@ -542,7 +542,7 @@ function ROICalc() {
           <p className="llead">Estimates use averages from active merchants. Most stores recover cost in week one.</p>
         </div>
         <div className="lroi-grid" style={{ border: '1px solid var(--lline)', borderRadius: 14, background: 'var(--lbg)', marginTop: 48, overflow: 'hidden' }}>
-          <div style={{ padding: 36, borderRight: '1px solid var(--lline)', display: 'flex', flexDirection: 'column', gap: 22 }}>
+          <div className="lroi-panel" style={{ padding: 36, borderRight: '1px solid var(--lline)', display: 'flex', flexDirection: 'column', gap: 22 }}>
             {[
               { label: 'Monthly orders', val: fmt(orders), min: 100, max: 10000, step: 50, value: orders, set: setOrders, unit: '' },
               { label: 'Average order value', val: `£${aov}`, min: 15, max: 400, step: 5, value: aov, set: setAov, unit: '' },
@@ -560,7 +560,7 @@ function ROICalc() {
               Assumptions: 32% return reduction · 14% repeat lift on 35% margin · 65% of post-purchase tickets handled automatically at 7min each.
             </div>
           </div>
-          <div style={{ padding: 36, background: 'var(--lbg-elev)', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div className="lroi-panel" style={{ padding: 36, background: 'var(--lbg-elev)', display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, color: 'var(--link-3)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Estimated monthly recovery</div>
             <div style={{ fontSize: 56, fontWeight: 500, letterSpacing: '-0.04em', lineHeight: 1, color: 'var(--link)' }}>
               <span style={{ fontSize: 28, color: 'var(--link-3)', marginRight: 2, fontWeight: 400 }}>£</span>{fmt(total)}
@@ -701,9 +701,9 @@ function LandingFooter() {
             </ul>
           </div>
         </div>
-        <div style={{ marginTop: 64, paddingTop: 24, borderTop: '1px solid var(--lline)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, fontFamily: 'var(--font-mono, monospace)', fontSize: 11, color: 'var(--link-3)' }}>
+        <div className="lfooter-bottom" style={{ marginTop: 64, paddingTop: 24, borderTop: '1px solid var(--lline)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, fontFamily: 'var(--font-mono, monospace)', fontSize: 11, color: 'var(--link-3)' }}>
           <div>© 2026 Recete Ltd — built for e-commerce in London.</div>
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div className="lfooter-badges" style={{ display: 'flex', gap: 12 }}>
             {['GDPR', 'Shopify Partner', 'Status · all systems'].map(b => (
               <span key={b} style={{ border: '1px solid var(--lline)', padding: '4px 8px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ width: 6, height: 6, background: 'var(--laccent)', borderRadius: 999, display: 'inline-block' }} />
