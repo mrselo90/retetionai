@@ -534,6 +534,7 @@
 .lnav-links { display: flex; align-items: center; gap: 28px; font-size: 14px; color: var(--link-2); }
 .lnav-links a:hover { color: var(--link); }
 .lnav-cta { display: flex; align-items: center; gap: 12px; }
+.lnav-hamburger { display: none; } /* hidden on desktop */
 /* Buttons */
 .lbtn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -654,6 +655,58 @@
 .lfooter-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .lfooter-col a { font-size: 13.5px; color: var(--link-2); text-decoration: none; }
 .lfooter-col a:hover { color: var(--link); }
+/* Hamburger button */
+.lnav-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  color: var(--link);
+}
+.lnav-hamburger:hover { background: var(--lbg-elev); }
+.lnav-hamburger span {
+  display: block;
+  height: 1.5px;
+  width: 100%;
+  background: currentColor;
+  border-radius: 2px;
+  transition: opacity 140ms;
+}
+
+/* Mobile dropdown menu */
+.lnav-mobile-menu {
+  border-top: 1px solid var(--lline);
+  background: var(--lbg);
+  padding: 12px 0 16px;
+}
+.lnav-mobile-links {
+  display: flex;
+  flex-direction: column;
+}
+.lnav-mobile-links a {
+  padding: 13px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--link-2);
+  text-decoration: none;
+  border-bottom: 1px solid var(--lline);
+  transition: background 120ms;
+}
+.lnav-mobile-links a:hover { background: var(--lbg-elev); color: var(--link); }
+.lnav-mobile-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px 0;
+}
+
 /* ── Responsive layout classes — desktop defaults ── */
 .lhero-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 64px; align-items: center; }
 .lproof-inner { display: grid; grid-template-columns: auto 1fr; gap: 48px; align-items: center; }
@@ -697,6 +750,8 @@
   .lnav-links { display: none; }
   .lnav-logo-tag { display: none; }
   .lnav-login { display: none; }
+  .lnav-cta-signup { display: none; }
+  .lnav-hamburger { display: flex; }
 
   /* Typography scale down */
   .lh-display { font-size: clamp(26px, 7.5vw, 38px) !important; }

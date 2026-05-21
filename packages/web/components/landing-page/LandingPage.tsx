@@ -28,7 +28,18 @@ const SectionMeta = ({ children }: { children: React.ReactNode }) => (
 );
 
 // ─── NavBar ─────────────────────────────────────────────
+const NAV_LINKS = [
+  { href: '#features', label: 'Features' },
+  { href: '#demo', label: 'Demo' },
+  { href: '#pricing', label: 'Pricing' },
+  { href: '#roi', label: 'ROI' },
+  { href: '#faq', label: 'FAQ' },
+];
+
 function NavBar({ theme, onToggleTheme }: { theme: string; onToggleTheme: () => void }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const close = () => setMenuOpen(false);
+
   return (
     <div className="lnav">
       <div className="lcontainer lnav-inner">
@@ -38,22 +49,43 @@ function NavBar({ theme, onToggleTheme }: { theme: string; onToggleTheme: () => 
           <span className="lnav-logo-tag">retention agent</span>
         </div>
         <nav className="lnav-links">
-          <a href="#features">Features</a>
-          <a href="#demo">Demo</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#roi">ROI</a>
-          <a href="#faq">FAQ</a>
+          {NAV_LINKS.map(l => <a key={l.href} href={l.href}>{l.label}</a>)}
         </nav>
         <div className="lnav-cta">
           <button className="lbtn lbtn-ghost" onClick={onToggleTheme} aria-label="Toggle theme" style={{ width: 36 }}>
             <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={15} />
           </button>
           <Link href="/login" className="lbtn lbtn-ghost lnav-login">Login</Link>
-          <Link href="/signup" className="lbtn lbtn-primary">
+          <Link href="/signup" className="lbtn lbtn-primary lnav-cta-signup">
             Start free <Icon name="arrow" size={13} />
           </Link>
+          {/* Hamburger — mobile only */}
+          <button
+            className="lnav-hamburger"
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label="Open menu"
+            aria-expanded={menuOpen}
+          >
+            <span /><span /><span />
+          </button>
         </div>
       </div>
+      {/* Mobile dropdown menu */}
+      {menuOpen && (
+        <div className="lnav-mobile-menu">
+          <div className="lnav-mobile-links">
+            {NAV_LINKS.map(l => (
+              <a key={l.href} href={l.href} onClick={close}>{l.label}</a>
+            ))}
+          </div>
+          <div className="lnav-mobile-actions">
+            <Link href="/login" className="lbtn lbtn-outline" style={{ width: '100%', justifyContent: 'center' }} onClick={close}>Login</Link>
+            <Link href="/signup" className="lbtn lbtn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={close}>
+              Start free <Icon name="arrow" size={13} />
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
