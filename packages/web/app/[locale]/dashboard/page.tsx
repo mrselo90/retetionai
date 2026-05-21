@@ -132,22 +132,17 @@ function MetricCard({
   title,
   value,
   hint,
-  detail,
   icon,
 }: {
   title: string;
   value: string | number;
   hint: string;
-  detail: string;
   icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
 }) {
   return (
     <PolarisCard>
-      <BlockStack gap="300">
+      <BlockStack gap="200">
         <InlineStack align="space-between" blockAlign="start" gap="200">
-          <Text as="p" variant="bodySm" tone="subdued">
-            {title}
-          </Text>
           <Box
             background="bg-surface-secondary"
             borderRadius="200"
@@ -156,15 +151,15 @@ function MetricCard({
             <Icon source={icon} tone="subdued" />
           </Box>
         </InlineStack>
-        <BlockStack gap="100">
-          <Text as="p" variant="headingLg" fontWeight="semibold">
+        <BlockStack gap="050">
+          <Text as="p" variant="headingXl" fontWeight="semibold">
             {String(value)}
           </Text>
           <Text as="p" variant="bodySm" tone="subdued">
-            {hint}
+            {title}
           </Text>
           <Text as="p" variant="bodyXs" tone="subdued">
-            {detail}
+            {hint}
           </Text>
         </BlockStack>
       </BlockStack>
@@ -467,63 +462,73 @@ export default function DashboardPage() {
 
         <Layout.Section>
           <PolarisCard>
-            <BlockStack gap="300">
-              <InlineStack align="space-between" blockAlign="start" gap="300">
-                <BlockStack gap="100">
-                  <Text as="h2" variant="headingSm">
-                    {t('setup.title')}
-                  </Text>
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    {t('setup.subtitle')}
-                  </Text>
-                </BlockStack>
+            <BlockStack gap="400">
+              <InlineStack align="space-between" blockAlign="center" gap="300">
+                <Text as="h2" variant="headingSm">
+                  {t('setup.title')}
+                </Text>
                 <PolarisBadge tone={nextStep ? 'attention' : 'success'}>
                   {t('setup.progress', { completed: completedSteps, total: setupSteps.length })}
                 </PolarisBadge>
               </InlineStack>
 
-              <BlockStack gap="200">
+              {/* Horizontal stepper */}
+              <div className="flex items-start gap-0">
                 {setupSteps.map((step, index) => {
                   const isCurrent = !step.completed && nextStep?.id === step.id;
                   return (
-                    <Box
-                      key={step.id}
-                      borderWidth="025"
-                      borderColor={step.completed ? 'border-success' : isCurrent ? 'border-info' : 'border'}
-                      borderRadius="300"
-                      padding="300"
-                      background={step.completed ? 'bg-fill-success-secondary' : 'bg-surface'}
-                    >
-                      <InlineStack align="space-between" blockAlign="start" gap="300">
-                        <InlineStack blockAlign="start" gap="300">
-                          {step.completed ? (
-                            <Icon source={CheckCircleIcon} tone="success" />
-                          ) : (
-                            <Icon source={AlertCircleIcon} tone="subdued" />
-                          )}
-                          <BlockStack gap="050">
-                            <Text as="p" variant="bodyMd" fontWeight="semibold">
-                              {index + 1}. {step.title}
-                            </Text>
-                            <Text as="p" variant="bodySm" tone="subdued">
-                              {step.description}
-                            </Text>
-                          </BlockStack>
-                        </InlineStack>
+                    <div key={step.id} className="flex-1 flex flex-col items-center relative">
+                      {/* Connector line (not for last item) */}
+                      {index < setupSteps.length - 1 && (
+                        <div className={`absolute top-4 left-1/2 w-full h-0.5 ${step.completed ? 'bg-[var(--p-color-border-success)]' : 'bg-[var(--p-color-border-secondary)]'}`} aria-hidden="true" />
+                      )}
+                      {/* Step circle */}
+                      <div className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full border-2 text-xs font-bold ${
+                        step.completed
+                          ? 'bg-[var(--p-color-bg-fill-success)] border-[var(--p-color-border-success)] text-[var(--p-color-text-success)]'
+                          : isCurrent
+                            ? 'bg-[var(--p-color-bg-fill-info-secondary)] border-[var(--p-color-border-info)] text-[var(--p-color-text-info)]'
+                            : 'bg-[var(--p-color-bg-surface-secondary)] border-[var(--p-color-border-secondary)] text-[var(--p-color-text-secondary)]'
+                      }`}>
                         {step.completed ? (
-                          <PolarisBadge tone="success">{t('setup.done')}</PolarisBadge>
-                        ) : isCurrent ? (
-                          <PolarisButton url={step.actionUrl} variant="primary" size="slim">
-                            {step.actionLabel}
-                          </PolarisButton>
+                          <Icon source={CheckCircleIcon} tone="success" />
                         ) : (
-                          <PolarisBadge tone="info">{t('setup.pending')}</PolarisBadge>
+                          <span>{index + 1}</span>
                         )}
-                      </InlineStack>
-                    </Box>
+                      </div>
+                      {/* Step title */}
+                      <Text as="p" variant="bodyXs" alignment="center" fontWeight={isCurrent ? 'semibold' : 'regular'}>
+                        {step.title}
+                      </Text>
+                    </div>
                   );
                 })}
-              </BlockStack>
+              </div>
+
+              {/* Active step detail */}
+              {nextStep && (
+                <Box
+                  borderWidth="025"
+                  borderColor="border-info"
+                  borderRadius="300"
+                  padding="300"
+                  background="bg-fill-info-secondary"
+                >
+                  <InlineStack align="space-between" blockAlign="center" gap="300">
+                    <BlockStack gap="050">
+                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                        {nextStep.title}
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        {nextStep.description}
+                      </Text>
+                    </BlockStack>
+                    <PolarisButton url={nextStep.actionUrl} variant="primary" size="slim">
+                      {nextStep.actionLabel}
+                    </PolarisButton>
+                  </InlineStack>
+                </Box>
+              )}
             </BlockStack>
           </PolarisCard>
         </Layout.Section>
@@ -531,8 +536,8 @@ export default function DashboardPage() {
         <Layout.Section>
           <PolarisCard>
             <BlockStack gap="300">
-              <InlineStack align="space-between" blockAlign="start" gap="300">
-                <BlockStack gap="100">
+              <InlineStack align="space-between" blockAlign="center" gap="300">
+                <BlockStack gap="050">
                   <Text as="h2" variant="headingSm">
                     {t('knowledge.title')}
                   </Text>
@@ -540,9 +545,14 @@ export default function DashboardPage() {
                     {t('knowledge.subtitle')}
                   </Text>
                 </BlockStack>
-                <PolarisBadge tone={healthTone(displayStats.knowledgeHealth.averageScore)}>
-                  {t('knowledge.averageBadge', { score: displayStats.knowledgeHealth.averageScore })}
-                </PolarisBadge>
+                <InlineStack gap="200" blockAlign="center">
+                  <Text as="p" variant="headingXl" fontWeight="bold">
+                    {displayStats.knowledgeHealth.averageScore}
+                  </Text>
+                  <PolarisBadge tone={healthTone(displayStats.knowledgeHealth.averageScore)}>
+                    {t('knowledge.averageBadge', { score: displayStats.knowledgeHealth.averageScore })}
+                  </PolarisBadge>
+                </InlineStack>
               </InlineStack>
 
               <InlineGrid columns={{ xs: 1, md: 3 }} gap="300">
@@ -613,28 +623,24 @@ export default function DashboardPage() {
               title={t('kpi.ordersReceived')}
               value={displayStats.kpis.totalOrders ?? 0}
               hint={t('kpi.ordersReceivedHint')}
-              detail={t('kpi.ordersReceivedDetail')}
               icon={OrderFilledIcon}
             />
             <MetricCard
               title={t('kpi.activeCustomers')}
               value={displayStats.kpis.activeUsers ?? 0}
               hint={t('kpi.activeCustomersHint')}
-              detail={t('kpi.activeCustomersDetail')}
               icon={PersonIcon}
             />
             <MetricCard
               title={t('kpi.whatsappMessages')}
               value={displayStats.kpis.messagesSent ?? 0}
               hint={t('kpi.whatsappMessagesHint')}
-              detail={t('kpi.whatsappMessagesDetail')}
               icon={ChatIcon}
             />
             <MetricCard
               title={t('kpi.replyRate')}
               value={`${displayStats.kpis.responseRate ?? 0}%`}
               hint={t('kpi.replyRateHint')}
-              detail={t('kpi.replyRateDetail')}
               icon={ChartVerticalIcon}
             />
           </InlineGrid>

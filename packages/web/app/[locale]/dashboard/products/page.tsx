@@ -454,6 +454,14 @@ export default function ProductsPage() {
     }
   };
 
+  // Returns a Tailwind border-color class for the colored left border on grid cards
+  const healthBorderColor = (score: number | undefined): string => {
+    const s = score ?? 0;
+    if (s >= 80) return 'border-l-4 border-l-green-500';
+    if (s >= 55) return 'border-l-4 border-l-amber-400';
+    return 'border-l-4 border-l-red-500';
+  };
+
   const renderProductStatusBadges = (product: ProductWithChunks) => (
     <InlineStack gap="200" wrap>
       {product.knowledgeHealth && (
@@ -461,19 +469,14 @@ export default function ProductsPage() {
           {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
         </PolarisBadge>
       )}
-      <PolarisBadge>
-        {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
-      </PolarisBadge>
       {product.raw_text && (
         <PolarisBadge tone="success">
           {t('card.scraped')}
         </PolarisBadge>
       )}
-      {product.raw_text && !product.chunkCountUnavailable && (product.chunkCount || 0) > 0 && (
-        <PolarisBadge tone="success">
-          {t('card.ragReady')}
-        </PolarisBadge>
-      )}
+      <PolarisBadge>
+        {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
+      </PolarisBadge>
     </InlineStack>
   );
 
@@ -754,39 +757,35 @@ export default function ProductsPage() {
                 onDismiss={() => setPageFeedback(null)}
               />
             ) : null}
-            {/* Header */}
-            <PolarisCard>
-              <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div className="space-y-1.5">
-                  <Text as="h2" variant="headingMd">{t('title')}</Text>
-                  <Text as="p" tone="subdued">{t('description')}</Text>
-                </div>
-                <div className="grid w-full gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-none xl:auto-cols-max xl:grid-flow-col xl:items-center">
-                  <PolarisButtonGroup variant="segmented">
-                    <PolarisButton
-                      onClick={() => handleViewModeChange('grid')}
-                      icon={AppsIcon}
-                      pressed={viewMode === 'grid'}
-                    >
-                      {t('view.grid')}
-                    </PolarisButton>
-                    <PolarisButton
-                      onClick={() => handleViewModeChange('list')}
-                      icon={ListBulletedIcon}
-                      pressed={viewMode === 'list'}
-                    >
-                      {t('view.list')}
-                    </PolarisButton>
-                  </PolarisButtonGroup>
-                  <PolarisButton url={`/${locale}/dashboard/products/shopify-map`} icon={RefreshIcon}>
-                    {t('shopifyMapButton')}
-                  </PolarisButton>
-                  <PolarisButton variant="primary" onClick={() => setShowAddModal(true)} icon={PlusIcon}>
-                    {t('addProductButton')}
-                  </PolarisButton>
-                </div>
+            {/* Header — Row 1: page actions (right-aligned) */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="space-y-0.5">
+                <Text as="h2" variant="headingMd">{t('title')}</Text>
+                <Text as="p" tone="subdued">{t('description')}</Text>
               </div>
-            </PolarisCard>
+              <div className="flex items-center gap-2 flex-wrap">
+                <PolarisButtonGroup variant="segmented">
+                  <PolarisButton
+                    onClick={() => handleViewModeChange('grid')}
+                    icon={AppsIcon}
+                    pressed={viewMode === 'grid'}
+                    accessibilityLabel={t('view.grid')}
+                  />
+                  <PolarisButton
+                    onClick={() => handleViewModeChange('list')}
+                    icon={ListBulletedIcon}
+                    pressed={viewMode === 'list'}
+                    accessibilityLabel={t('view.list')}
+                  />
+                </PolarisButtonGroup>
+                <PolarisButton url={`/${locale}/dashboard/products/shopify-map`} icon={RefreshIcon}>
+                  {t('shopifyMapButton')}
+                </PolarisButton>
+                <PolarisButton variant="primary" onClick={() => setShowAddModal(true)} icon={PlusIcon}>
+                  {t('addProductButton')}
+                </PolarisButton>
+              </div>
+            </div>
 
             {products.length > 0 && (
               <div id="products-catalog">
@@ -1021,24 +1020,20 @@ export default function ProductsPage() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {paginatedProducts.map((product) => (
-                      <PolarisCard key={product.id}>
-                        <div className="p-4 sm:p-5 flex flex-col h-full space-y-4">
+                      <div
+                        key={product.id}
+                        className={`rounded-lg bg-[var(--p-color-bg-surface)] border border-[var(--p-color-border)] overflow-hidden flex flex-col ${healthBorderColor(product.knowledgeHealth?.score)}`}
+                      >
+                        <div className="p-4 sm:p-5 flex flex-col h-full space-y-3">
+                          {/* Score badge at the very top */}
                           <InlineStack align="space-between" blockAlign="start">
-                            <InlineStack gap="200" blockAlign="start">
-                              <Box paddingBlockStart="100">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedIdSet.has(product.id)}
-                                  onChange={() => toggleProductSelection(product.id)}
-                                  onClick={(e) => e.stopPropagation()}
-                                  aria-label={t('bulk.selectProduct', { name: product.name })}
-                                  className="rounded border-zinc-300"
-                                />
-                              </Box>
-                              <div className="min-w-0">
-                                <Text as="h3" variant="headingMd" breakWord>{product.name}</Text>
-                              </div>
-                            </InlineStack>
+                            <div>
+                              {product.knowledgeHealth && (
+                                <PolarisBadge tone={knowledgeTone(product.knowledgeHealth.score)}>
+                                  {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
+                                </PolarisBadge>
+                              )}
+                            </div>
                             <PolarisButton
                               icon={DeleteIcon}
                               tone="critical"
@@ -1050,7 +1045,25 @@ export default function ProductsPage() {
                               accessibilityLabel={t('card.deleteConfirm')}
                             />
                           </InlineStack>
-                          <div className="space-y-4 flex flex-col flex-1">
+
+                          {/* Product name + checkbox */}
+                          <InlineStack gap="200" blockAlign="start">
+                            <Box paddingBlockStart="050">
+                              <input
+                                type="checkbox"
+                                checked={selectedIdSet.has(product.id)}
+                                onChange={() => toggleProductSelection(product.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                aria-label={t('bulk.selectProduct', { name: product.name })}
+                                className="rounded border-zinc-300"
+                              />
+                            </Box>
+                            <div className="min-w-0 flex-1">
+                              <Text as="h3" variant="headingMd" breakWord>{product.name}</Text>
+                            </div>
+                          </InlineStack>
+
+                          <div className="space-y-3 flex flex-col flex-1">
                             <InlineStack gap="100" blockAlign="center">
                               <Icon source={ExternalIcon} tone="primary" />
                               <a
@@ -1064,9 +1077,17 @@ export default function ProductsPage() {
                             </InlineStack>
 
                             <div className="mb-auto">
-                              {renderProductStatusBadges(product)}
+                              {/* Show scraped + chunk count only (score already shown above) */}
+                              <InlineStack gap="200" wrap>
+                                {product.raw_text && (
+                                  <PolarisBadge tone="success">{t('card.scraped')}</PolarisBadge>
+                                )}
+                                <PolarisBadge>
+                                  {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
+                                </PolarisBadge>
+                              </InlineStack>
                               {product.knowledgeHealth && (
-                                <Box paddingBlockStart="300">
+                                <Box paddingBlockStart="200">
                                   <Text as="p" variant="bodySm" tone="subdued">
                                     {t('knowledge.cardHint', {
                                       coverage: knowledgeCoverageLabel(product.knowledgeHealth.coverage),
@@ -1084,7 +1105,7 @@ export default function ProductsPage() {
                             </div>
                           </div>
                         </div>
-                      </PolarisCard>
+                      </div>
                     ))}
                   </div>
                   {totalPages > 1 && (
@@ -1196,12 +1217,19 @@ export default function ProductsPage() {
                               </IndexTable.Cell>
                               <IndexTable.Cell>
                                 <div className="min-w-0 max-w-[320px]">
-                                  <Link
-                                    href={`/dashboard/products/${product.id}`}
-                                    className="block font-semibold text-foreground hover:text-primary break-words"
-                                  >
-                                    {product.name}
-                                  </Link>
+                                  <InlineStack gap="200" blockAlign="center" wrap={false}>
+                                    {product.knowledgeHealth && (
+                                      <PolarisBadge tone={knowledgeTone(product.knowledgeHealth.score)}>
+                                        {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
+                                      </PolarisBadge>
+                                    )}
+                                    <Link
+                                      href={`/dashboard/products/${product.id}`}
+                                      className="block font-semibold text-foreground hover:text-primary break-words"
+                                    >
+                                      {product.name}
+                                    </Link>
+                                  </InlineStack>
                                   <Text as="p" variant="bodyXs" tone="subdued" truncate>{product.id}</Text>
                                 </div>
                               </IndexTable.Cell>

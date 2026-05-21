@@ -17,25 +17,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Overview',
-  '/dashboard/products': 'Products',
-  '/dashboard/customers': 'Customers',
-  '/dashboard/conversations': 'Conversations',
-  '/dashboard/analytics': 'Analytics',
-  '/dashboard/integrations': 'Integrations',
-  '/dashboard/settings': 'Settings',
-};
-
-function getPageTitle(pathname: string): string {
-  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
-  // Match prefix for sub-routes (e.g. /dashboard/settings/notifications)
-  const match = Object.keys(PAGE_TITLES)
-    .filter((key) => key !== '/dashboard' && pathname.startsWith(key))
-    .sort((a, b) => b.length - a.length)[0];
-  return match ? PAGE_TITLES[match] : '';
-}
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTranslations } from 'next-intl';
 import { useDashboardAuth } from '@/hooks/useDashboardAuth';
@@ -137,12 +118,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               })}
             </nav>
 
-            {/* User Profile */}
-            <div className="p-4 border-t border-border">
-              <div className="flex items-center gap-3 mb-3 p-3 rounded-lg bg-[hsl(var(--surface))] border border-border">
-                <Avatar className="ring-1 ring-border">
+            {/* User Profile — compact, no card wrapper */}
+            <div className="px-3 py-3 border-t border-border">
+              <div className="flex items-center gap-3 min-w-0">
+                <Avatar className="w-8 h-8 shrink-0 ring-1 ring-border">
                   <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${userEmail || 'User'}&backgroundColor=0A3D2E`} />
-                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold">U</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">U</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground truncate">
@@ -153,14 +134,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   </p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={handleSignOut}
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                {t('signOut')}
-              </Button>
             </div>
           </div>
         </aside>
@@ -191,10 +164,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Logo iconOnly className="w-7 h-7 rounded-md shrink-0" />
                 <span className="-ml-1 text-lg font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', 'Times New Roman', serif" }}>recete</span>
               </Link>
-              {/* Page title — desktop only */}
-              <h1 className="hidden lg:block text-sm font-semibold text-foreground truncate">
-                {getPageTitle(pathname ?? '')}
-              </h1>
             </div>
 
             {/* Right side — all sizes */}
