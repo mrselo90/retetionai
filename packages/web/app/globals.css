@@ -654,18 +654,25 @@
 .lfooter-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .lfooter-col a { font-size: 13.5px; color: var(--link-2); text-decoration: none; }
 .lfooter-col a:hover { color: var(--link); }
-/* Responsive */
+/* Responsive layout classes — defaults defined here, overridden in media queries */
+.lhero-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 64px; align-items: center; }
+.lproof-inner { display: grid; grid-template-columns: auto 1fr; gap: 48px; align-items: center; }
+.lproof-logos { display: grid; grid-template-columns: repeat(6, 1fr); gap: 24px; align-items: center; }
+.ldemo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+.lroi-grid { display: grid; grid-template-columns: 1.1fr 1fr; }
+.lfaq-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 64px; margin-top: 16px; }
+
 @media (max-width: 1000px) {
   .lfeatures-grid, .lprice-grid, .ltest-grid, .lhowit { grid-template-columns: 1fr; }
   .lfeature, .lprice-col { border-right: 0; }
   .lfooter-grid { grid-template-columns: 1fr 1fr; }
-  .lhero-grid { grid-template-columns: 1fr; gap: 48px; }
+  .lhero-grid { grid-template-columns: 1fr; gap: 40px; }
   .lproof-inner { grid-template-columns: 1fr; gap: 20px; }
-  .lproof-logos { grid-template-columns: repeat(3, 1fr) !important; }
+  .lproof-logos { grid-template-columns: repeat(3, 1fr); }
   .ldemo-grid { grid-template-columns: 1fr; }
-  .lroi-grid { grid-template-columns: 1fr !important; }
+  .lroi-grid { grid-template-columns: 1fr; }
   .lroi-grid > *:first-child { border-right: 0 !important; border-bottom: 1px solid var(--lline); }
-  .lfaq-grid { grid-template-columns: 1fr; }
+  .lfaq-grid { grid-template-columns: 1fr; gap: 32px; }
   .lphone-tag { display: none; }
 }
 @media (max-width: 768px) {
@@ -680,7 +687,7 @@
   .lfooter-grid { grid-template-columns: 1fr; }
   .lnav-cta { gap: 6px; }
   .lbtn-ghost:not([aria-label]) { display: none; }
-  .lproof-logos { grid-template-columns: repeat(2, 1fr) !important; }
+  .lproof-logos { grid-template-columns: repeat(2, 1fr); }
   .lsection { padding: 48px 0; }
 }
 

@@ -146,7 +146,7 @@ function HeroPhone() {
 function Hero() {
   return (
     <section className="lsection" style={{ paddingTop: 80, paddingBottom: 80, borderBottom: 'none', overflow: 'visible' }}>
-      <div className="lcontainer lhero-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 64, alignItems: 'center' }}>
+      <div className="lcontainer lhero-grid">
         <div>
           <div className="leyebrow">
             <span className="ldot" />
@@ -196,11 +196,11 @@ const PROOF_LOGOS = [
 function ProofBar() {
   return (
     <section style={{ padding: '40px 0', borderBottom: '1px solid var(--lline)', borderTop: '1px solid var(--lline)' }}>
-      <div className="lcontainer lproof-inner" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 48, alignItems: 'center' }}>
+      <div className="lcontainer lproof-inner">
         <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--link-3)', maxWidth: 180, lineHeight: 1.4 }}>
           Trusted by Shopify stores across the UK & EU
         </div>
-        <div className="lproof-logos" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 24, alignItems: 'center' }}>
+        <div className="lproof-logos">
           {PROOF_LOGOS.map(name => (
             <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 22, color: 'var(--link-3)', fontWeight: 600, fontSize: 15, opacity: 0.7, whiteSpace: 'nowrap', letterSpacing: '-0.01em', cursor: 'default', transition: 'opacity 140ms' }}
               onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
@@ -349,7 +349,7 @@ function Demo() {
     <section id="demo" className="lsection">
       <div className="lcontainer">
         <SectionMeta>Live demo</SectionMeta>
-        <div className="ldemo-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
+        <div className="ldemo-grid">
           <div style={{ maxWidth: 480, paddingTop: 24 }}>
             <h2 className="lh-section">Three conversations <span className="em">your team doesn't have to have.</span></h2>
             <p className="llead" style={{ marginTop: 16 }}>
@@ -541,7 +541,7 @@ function ROICalc() {
           </div>
           <p className="llead">Estimates use averages from active merchants. Most stores recover cost in week one.</p>
         </div>
-        <div className="lroi-grid" style={{ border: '1px solid var(--lline)', borderRadius: 14, background: 'var(--lbg)', display: 'grid', gridTemplateColumns: '1.1fr 1fr', marginTop: 48, overflow: 'hidden' }}>
+        <div className="lroi-grid" style={{ border: '1px solid var(--lline)', borderRadius: 14, background: 'var(--lbg)', marginTop: 48, overflow: 'hidden' }}>
           <div style={{ padding: 36, borderRight: '1px solid var(--lline)', display: 'flex', flexDirection: 'column', gap: 22 }}>
             {[
               { label: 'Monthly orders', val: fmt(orders), min: 100, max: 10000, step: 50, value: orders, set: setOrders, unit: '' },
@@ -604,7 +604,7 @@ function FAQ() {
     <section id="faq" className="lsection">
       <div className="lcontainer">
         <SectionMeta>FAQ</SectionMeta>
-        <div className="lfaq-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 64, marginTop: 16 }}>
+        <div className="lfaq-grid">
           <div>
             <h2 className="lh-section" style={{ fontSize: 'clamp(24px, 3vw, 32px)' }}>Common questions from merchants.</h2>
             <p style={{ fontSize: 14, color: 'var(--link-3)', marginTop: 16, maxWidth: 320 }}>
