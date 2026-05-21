@@ -1,6 +1,8 @@
 'use client';
 
-import { useDeferredValue, useEffect, useState } from 'react';
+import { useDeferredValue, useEffect, useState, useCallback } from 'react';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
+import { usePrompt } from '@/components/ui/PromptDialog';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
@@ -113,6 +115,8 @@ export default function ProductsPage() {
   const [scrapeProgress, setScrapeProgress] = useState('');
   const [pageFeedback, setPageFeedback] = useState<PageFeedbackState | null>(null);
   const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
+  const { confirm, ConfirmDialogNode } = useConfirm();
+  const { prompt, PromptDialogNode } = usePrompt();
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
@@ -672,8 +676,8 @@ export default function ProductsPage() {
     setSortBy(view.sortBy);
   };
 
-  const saveCurrentView = () => {
-    const name = window.prompt(t('savedViews.promptName'));
+  const saveCurrentView = async () => {
+    const name = await prompt({ title: t('savedViews.promptName'), confirmLabel: 'Save' });
     if (!name?.trim()) return;
     const id = `view-${Date.now()}`;
     const next: ProductsSavedView = {
@@ -717,6 +721,9 @@ export default function ProductsPage() {
   }
 
   return (
+    <>
+    {ConfirmDialogNode}
+    {PromptDialogNode}
     <Page title={t('title')} subtitle={t('description')} fullWidth>
       <Layout>
         <Layout.Section>
@@ -1029,10 +1036,9 @@ export default function ProductsPage() {
                               icon={DeleteIcon}
                               tone="critical"
                               variant="tertiary"
-                              onClick={() => {
-                                if (confirm(t('card.deleteConfirm'))) {
-                                  handleDeleteProduct(product.id);
-                                }
+                              onClick={async () => {
+                                const ok = await confirm({ title: t('card.deleteConfirm'), message: '', destructive: true, confirmLabel: 'Delete', cancelLabel: 'Cancel' });
+                                if (ok) handleDeleteProduct(product.id);
                               }}
                               accessibilityLabel={t('card.deleteConfirm')}
                             />
@@ -1119,8 +1125,9 @@ export default function ProductsPage() {
                               icon={DeleteIcon}
                               tone="critical"
                               variant="tertiary"
-                              onClick={() => {
-                                if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
+                              onClick={async () => {
+                                const ok = await confirm({ title: t('card.deleteConfirm'), message: '', destructive: true, confirmLabel: 'Delete', cancelLabel: 'Cancel' });
+                                if (ok) handleDeleteProduct(product.id);
                               }}
                               accessibilityLabel={t('card.deleteConfirm')}
                             />
@@ -1229,8 +1236,9 @@ export default function ProductsPage() {
                                     icon={DeleteIcon}
                                     tone="critical"
                                     variant="tertiary"
-                                    onClick={() => {
-                                      if (confirm(t('card.deleteConfirm'))) handleDeleteProduct(product.id);
+                                    onClick={async () => {
+                                      const ok = await confirm({ title: t('card.deleteConfirm'), message: '', destructive: true, confirmLabel: 'Delete', cancelLabel: 'Cancel' });
+                                      if (ok) handleDeleteProduct(product.id);
                                     }}
                                     accessibilityLabel={t('card.deleteConfirm')}
                                   />
@@ -1322,5 +1330,6 @@ export default function ProductsPage() {
         </Layout.Section>
       </Layout>
     </Page>
+    </>
   );
 }

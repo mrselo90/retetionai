@@ -99,16 +99,37 @@ export default function ConversationDetailPage() {
   const [pageFeedback, setPageFeedback] = useState<PageFeedbackState | null>(null);
 
   useEffect(() => {
-    if (conversationId) {
-      loadConversation();
+    if (!conversationId) return;
 
-      // Real-time updates: Poll every 5 seconds for conversation detail
-      const interval = setInterval(() => {
+    loadConversation();
+
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (interval) return;
+      interval = setInterval(() => { loadConversation(); }, 5000);
+    };
+
+    const stopPolling = () => {
+      if (interval) { clearInterval(interval); interval = null; }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        stopPolling();
+      } else {
         loadConversation();
-      }, 5000);
+        startPolling();
+      }
+    };
 
-      return () => clearInterval(interval);
-    }
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [conversationId]);
 
   useEffect(() => {

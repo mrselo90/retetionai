@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest, getApiUrl, getApiBaseUrlForDisplay } from '@/lib/api';
 import { toast } from '@/lib/toast';
@@ -37,6 +38,7 @@ const ENABLE_MANUAL_INTEGRATION = false;
 
 export default function IntegrationsPage() {
   const t = useTranslations('Integrations');
+  const { confirm, ConfirmDialogNode } = useConfirm();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [showShopifyModal, setShowShopifyModal] = useState(false);
@@ -489,6 +491,8 @@ export default function IntegrationsPage() {
   }
 
   return (
+    <>
+    {ConfirmDialogNode}
     <Page title={t('title')} subtitle={t('description')} fullWidth>
       <Layout>
         <Layout.Section>
@@ -726,10 +730,9 @@ export default function IntegrationsPage() {
                               )}
                               <button
                                 className="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                                onClick={() => {
-                                  if (confirm(t('active.deleteConfirm'))) {
-                                    handleDeleteIntegration(integration.id);
-                                  }
+                                onClick={async () => {
+                                  const ok = await confirm({ title: t('active.deleteConfirm'), message: '', destructive: true, confirmLabel: 'Delete', cancelLabel: 'Cancel' });
+                                  if (ok) handleDeleteIntegration(integration.id);
                                 }}
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -1013,5 +1016,6 @@ export default function IntegrationsPage() {
         </Layout.Section>
       </Layout>
     </Page>
+    </>
   );
 }

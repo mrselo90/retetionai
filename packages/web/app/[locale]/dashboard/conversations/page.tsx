@@ -126,11 +126,39 @@ export default function ConversationsPage() {
   useEffect(() => {
     void loadConversations();
 
-    const interval = setInterval(() => {
-      void loadConversations();
-    }, 10000);
+    let interval: ReturnType<typeof setInterval> | null = null;
 
-    return () => clearInterval(interval);
+    const startPolling = () => {
+      if (interval) return;
+      interval = setInterval(() => {
+        void loadConversations();
+      }, 10000);
+    };
+
+    const stopPolling = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    // Pause polling when tab is hidden, resume when visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        stopPolling();
+      } else {
+        void loadConversations(); // immediate refresh on tab focus
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [loadConversations]);
 
   const formatDateTime = (dateString: string | null | undefined) => {

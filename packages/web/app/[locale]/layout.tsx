@@ -4,13 +4,25 @@ import BackendHealthBanner from '@/components/BackendHealthBanner';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { routing } from '@/i18n/routing';
 
 export const metadata: Metadata = {
-  title: "RECETE LTD — AI WhatsApp Support for Shopify Merchants",
-  description: "RECETE LTD provides AI-powered WhatsApp customer support and post-purchase retention software for Shopify merchants.",
+  title: "Recete — AI-Powered WhatsApp Retention for E-Commerce",
+  description: "Recete helps e-commerce merchants reduce returns and increase LTV with AI-driven WhatsApp messages. Post-purchase automation that actually works.",
   icons: {
     icon: "/icon.png?v=2",
     apple: "/apple-icon.png?v=2",
+  },
+  openGraph: {
+    title: "Recete — AI WhatsApp Retention",
+    description: "Reduce returns. Increase LTV. AI-powered post-purchase WhatsApp automation for e-commerce merchants.",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Recete — AI WhatsApp Retention",
+    description: "Reduce returns. Increase LTV. AI-powered post-purchase WhatsApp automation for e-commerce merchants.",
   },
 };
 
@@ -19,6 +31,11 @@ export const viewport = {
   initialScale: 1,
   viewportFit: "cover" as const,
 };
+
+// Pre-generate locale routes at build time
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
 
 export default async function LocaleLayout({
   children,
@@ -30,7 +47,7 @@ export default async function LocaleLayout({
   const { locale } = await params;
 
   // Validate that the incoming `locale` is valid
-  if (!['en', 'tr'].includes(locale)) {
+  if (!routing.locales.includes(locale as typeof routing.locales[number])) {
     notFound();
   }
 
@@ -38,7 +55,7 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <NextIntlClientProvider messages={messages}>
+    <NextIntlClientProvider messages={messages} locale={locale}>
       <BackendHealthBanner />
       <ShopifyProvider>
         {children}

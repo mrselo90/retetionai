@@ -58,6 +58,7 @@ export default function AnalyticsPage() {
   const [roi, setRoi] = useState<ROIData | null>(null);
   const [prevention, setPrevention] = useState<PreventionData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
@@ -68,6 +69,7 @@ export default function AnalyticsPage() {
   }, [dateRange]);
 
   const loadAnalytics = async () => {
+    setLoadError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -90,7 +92,9 @@ export default function AnalyticsPage() {
       console.error('Failed to load analytics:', err);
       if (err.status === 401) {
         window.location.href = '/login';
+        return;
       }
+      setLoadError('Failed to load analytics data. Please try refreshing the page.');
     } finally {
       setLoading(false);
     }
@@ -147,6 +151,28 @@ export default function AnalyticsPage() {
           </Layout.Section>
         </Layout>
       </SkeletonPage>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Page title={t('title')} subtitle={t('description')} fullWidth>
+        <Layout>
+          <Layout.Section>
+            <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8">
+              <div className="text-4xl mb-4">📊</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Could not load analytics</h3>
+              <p className="text-sm text-gray-500 mb-6 max-w-sm">{loadError}</p>
+              <button
+                onClick={() => { setLoading(true); loadAnalytics(); }}
+                className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Try again
+              </button>
+            </div>
+          </Layout.Section>
+        </Layout>
+      </Page>
     );
   }
 
