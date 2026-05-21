@@ -618,7 +618,7 @@
 .ltest-metric { font-family: var(--font-mono, monospace); font-size: 11.5px; color: var(--laccent-ink); background: var(--laccent-soft); padding: 4px 8px; border-radius: 4px; }
 .landing[data-theme="dark"] .ltest-metric { color: var(--laccent); }
 /* Pricing */
-.lprice-grid { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--lline); border-radius: 14px; overflow: hidden; }
+.lprice-grid { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--lline); border-radius: 14px; overflow: hidden; margin-top: 56px; }
 .lprice-col { padding: 32px; border-right: 1px solid var(--lline); display: flex; flex-direction: column; gap: 20px; background: var(--lbg); }
 .lprice-col:last-child { border-right: 0; }
 .lprice-col.featured { background: var(--lbg-elev); position: relative; }
@@ -729,8 +729,18 @@
 .lproof-inner { display: grid; grid-template-columns: auto 1fr; gap: 48px; align-items: center; }
 .lproof-logos { display: grid; grid-template-columns: repeat(6, 1fr); gap: 24px; align-items: center; }
 .ldemo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
-.lroi-grid { display: grid; grid-template-columns: 1.1fr 1fr; }
+.lroi-grid { display: grid; grid-template-columns: 1.1fr 1fr; margin-top: 48px; }
 .lfaq-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 64px; margin-top: 16px; }
+/* Proof section padding */
+.lproof-section { padding: 40px 0; }
+/* Demo left panel */
+.ldemo-left { max-width: 480px; padding-top: 24px; }
+/* ROI large result number */
+.lroi-result { font-size: 56px; font-weight: 500; letter-spacing: -0.04em; line-height: 1; color: var(--link); }
+/* FinalCTA button row */
+.lfinalcta-btns { display: flex; gap: 10px; }
+/* Testimonials top-margin */
+.ltest-grid-mt { margin-top: 56px; }
 
 /* ── Tablet ≤1000px ── */
 @media (max-width: 1000px) {
@@ -786,9 +796,26 @@
   .lproof-inner { padding: 8px 0; }
   .lproof-label { display: none; }
 
+  /* Proof section */
+  .lproof-section { padding: 24px 0; }
+
+  /* Demo left panel */
+  .ldemo-left { max-width: 100%; padding-top: 0; }
+
   /* Testimonials grid gap */
   .ltest-grid { gap: 12px; }
   .ltest-grid-mt { margin-top: 28px !important; }
+
+  /* Pricing & ROI top margins */
+  .lprice-grid { margin-top: 32px; }
+  .lroi-grid { margin-top: 28px; }
+
+  /* ROI result number scale */
+  .lroi-result { font-size: 36px; }
+
+  /* FinalCTA buttons stack */
+  .lfinalcta-btns { flex-direction: column; }
+  .lfinalcta-btns .lbtn { width: 100%; justify-content: center; }
 
   /* Typography scale down */
   .lh-display { font-size: clamp(26px, 7.5vw, 38px) !important; }

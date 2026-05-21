@@ -227,7 +227,7 @@ const PROOF_LOGOS = [
 
 function ProofBar() {
   return (
-    <section style={{ padding: '40px 0', borderBottom: '1px solid var(--lline)', borderTop: '1px solid var(--lline)' }}>
+    <section className="lproof-section" style={{ borderBottom: '1px solid var(--lline)', borderTop: '1px solid var(--lline)' }}>
       <div className="lcontainer lproof-inner">
         <div className="lproof-label" style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--link-3)', maxWidth: 180, lineHeight: 1.4 }}>
           Trusted by Shopify stores across the UK & EU
@@ -382,7 +382,7 @@ function Demo() {
       <div className="lcontainer">
         <SectionMeta>Live demo</SectionMeta>
         <div className="ldemo-grid">
-          <div style={{ maxWidth: 480, paddingTop: 24 }}>
+          <div className="ldemo-left">
             <h2 className="lh-section">Three conversations <span className="em">your team doesn't have to have.</span></h2>
             <p className="llead" style={{ marginTop: 16 }}>
               Each one represents a real moment in the post-purchase journey — and a real margin point that Recete is protecting.
@@ -473,7 +473,7 @@ function Testimonials() {
       <div className="lcontainer">
         <SectionMeta>Trusted by growth teams</SectionMeta>
         <h2 className="lh-section">Merchants use Recete to protect margin <span className="em">after checkout.</span></h2>
-        <div className="ltest-grid ltest-grid-mt" style={{ marginTop: 56 }}>
+        <div className="ltest-grid ltest-grid-mt">
           {TESTIMONIALS.map((t, i) => (
             <div key={i} className="ltest">
               <div style={{ fontSize: 16.5, lineHeight: 1.5, color: 'var(--link)', letterSpacing: '-0.005em', flex: 1 }}>"{t.quote}"</div>
@@ -518,7 +518,7 @@ function Pricing() {
             </div>
           </div>
         </div>
-        <div className="lprice-grid" style={{ marginTop: 56 }}>
+        <div className="lprice-grid">
           {PLANS.map(p => (
             <div key={p.name} className={`lprice-col${p.featured ? ' featured' : ''}`} style={p.featured ? { position: 'relative' } : undefined}>
               {p.featured && (
@@ -573,7 +573,7 @@ function ROICalc() {
           </div>
           <p className="llead">Estimates use averages from active merchants. Most stores recover cost in week one.</p>
         </div>
-        <div className="lroi-grid" style={{ border: '1px solid var(--lline)', borderRadius: 14, background: 'var(--lbg)', marginTop: 48, overflow: 'hidden' }}>
+        <div className="lroi-grid" style={{ border: '1px solid var(--lline)', borderRadius: 14, background: 'var(--lbg)', overflow: 'hidden' }}>
           <div className="lroi-panel" style={{ padding: 36, borderRight: '1px solid var(--lline)', display: 'flex', flexDirection: 'column', gap: 22 }}>
             {[
               { label: 'Monthly orders', val: fmt(orders), min: 100, max: 10000, step: 50, value: orders, set: setOrders, unit: '' },
@@ -594,7 +594,7 @@ function ROICalc() {
           </div>
           <div className="lroi-panel" style={{ padding: 36, background: 'var(--lbg-elev)', display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11, color: 'var(--link-3)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Estimated monthly recovery</div>
-            <div style={{ fontSize: 56, fontWeight: 500, letterSpacing: '-0.04em', lineHeight: 1, color: 'var(--link)' }}>
+            <div className="lroi-result">
               <span style={{ fontSize: 28, color: 'var(--link-3)', marginRight: 2, fontWeight: 400 }}>£</span>{fmt(total)}
             </div>
             <div style={{ fontSize: 13.5, color: 'var(--link-2)', lineHeight: 1.5 }}>
@@ -673,7 +673,7 @@ function FinalCTA() {
         <p className="llead" style={{ textAlign: 'center' }}>
           Install Recete in fifteen minutes and start protecting every order you've worked so hard to win. Cancel any time — fair-use first.
         </p>
-        <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+        <div className="lfinalcta-btns" style={{ marginTop: 8 }}>
           <Link href="/signup" className="lbtn lbtn-primary lbtn-lg">
             Start free <Icon name="arrow" size={13} />
           </Link>
