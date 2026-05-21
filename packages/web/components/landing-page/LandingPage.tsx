@@ -664,7 +664,7 @@ function FAQ() {
 // ─── Final CTA ───────────────────────────────────────────
 function FinalCTA() {
   return (
-    <section style={{ textAlign: 'center', padding: '120px 0', position: 'relative' }}>
+    <section className="lfinalcta" style={{ textAlign: 'center', position: 'relative' }}>
       <div className="lcontainer" style={{ maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
         <div className="leyebrow"><span className="ldot" /><span>Post-purchase AI · WhatsApp</span></div>
         <h2 className="lcta-title" style={{ fontSize: 'clamp(36px, 5vw, 52px)', letterSpacing: '-0.035em', lineHeight: 1.05, fontWeight: 500, margin: 0 }}>
@@ -688,7 +688,7 @@ function FinalCTA() {
 // ─── Footer ──────────────────────────────────────────────
 function LandingFooter() {
   return (
-    <footer style={{ padding: '64px 0 32px', borderTop: '1px solid var(--lline)', background: 'var(--lbg)' }}>
+    <footer className="lfooter-wrap" style={{ borderTop: '1px solid var(--lline)', background: 'var(--lbg)' }}>
       <div className="lcontainer">
         <div className="lfooter-grid">
           <div>
@@ -733,7 +733,7 @@ function LandingFooter() {
             </ul>
           </div>
         </div>
-        <div className="lfooter-bottom" style={{ marginTop: 64, paddingTop: 24, borderTop: '1px solid var(--lline)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, fontFamily: 'var(--font-mono, monospace)', fontSize: 11, color: 'var(--link-3)' }}>
+        <div className="lfooter-bottom" style={{ paddingTop: 24, borderTop: '1px solid var(--lline)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, fontFamily: 'var(--font-mono, monospace)', fontSize: 11, color: 'var(--link-3)' }}>
           <div>© 2026 Recete Ltd — built for e-commerce in London.</div>
           <div className="lfooter-badges" style={{ display: 'flex', gap: 12 }}>
             {['GDPR', 'Shopify Partner', 'Status · all systems'].map(b => (

@@ -655,8 +655,15 @@
 .lfooter-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .lfooter-col a { font-size: 13.5px; color: var(--link-2); text-decoration: none; }
 .lfooter-col a:hover { color: var(--link); }
-/* Hero section padding (controlled via class so media queries can override) */
+/* Hero section padding */
 .lhero-section { padding-top: 80px; padding-bottom: 80px; }
+
+/* Final CTA section */
+.lfinalcta { padding: 120px 0; }
+
+/* Footer */
+.lfooter-wrap { padding: 64px 0 32px; }
+.lfooter-bottom { margin-top: 64px; }
 
 /* Section header flex rows */
 .lsection-head {
@@ -815,16 +822,25 @@
   /* FAQ */
   .lfaq-q { font-size: 14px; padding: 18px 0; }
 
+  /* Final CTA */
+  .lfinalcta { padding: 56px 0; }
+
   /* Footer */
-  .lfooter-bottom { flex-direction: column !important; align-items: flex-start !important; gap: 16px !important; }
-  .lfooter-badges { flex-wrap: wrap; gap: 8px !important; }
+  .lfooter-wrap { padding: 40px 0 24px; }
+  .lfooter-grid { grid-template-columns: 1fr 1fr 1fr !important; }
+  .lfooter-grid > *:first-child { grid-column: 1 / -1; }
+  .lfooter-col h4 { margin-bottom: 10px; }
+  .lfooter-col ul { gap: 8px; }
+  .lfooter-col a { font-size: 13px; }
+  .lfooter-bottom { margin-top: 32px; flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+  .lfooter-badges { flex-wrap: wrap; gap: 6px !important; }
 }
 
 /* ── Small mobile ≤480px ── */
 @media (max-width: 480px) {
   .lsection { padding: 40px 0; }
   .lcontainer { padding: 0 14px; }
-  .lfooter-grid { grid-template-columns: 1fr; gap: 28px; }
+  .lfooter-grid { grid-template-columns: 1fr 1fr !important; gap: 20px; }
   .lnav-cta { gap: 6px; }
   .lproof-logos { grid-template-columns: repeat(2, 1fr); }
   .lhero-cta .lbtn { flex: none; width: 100%; }
