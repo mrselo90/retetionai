@@ -3,16 +3,16 @@
 import { useTranslations } from 'next-intl';
 
 const statAccents = ['#0a3d2e', '#059669', '#0a3d2e', '#b45309'];
-const statIcons = ['🏪', '↓', '💬', '⭐'];
+const statIcons = ['📉', '⚡', '🔄', '🕐'];
 
 export function Stats() {
     const t = useTranslations('Landing.stats');
 
     const stats = [
-        { value: t('merchants'), label: t('merchantsLabel') },
-        { value: t('returns'), label: t('returnsLabel') },
-        { value: t('messages'), label: t('messagesLabel') },
-        { value: t('satisfaction'), label: t('satisfactionLabel') },
+        { value: t('merchants'), label: t('merchantsLabel'), sub: t('merchantsSub') },
+        { value: t('returns'), label: t('returnsLabel'), sub: t('returnsSub') },
+        { value: t('messages'), label: t('messagesLabel'), sub: t('messagesSub') },
+        { value: t('satisfaction'), label: t('satisfactionLabel'), sub: t('satisfactionSub') },
     ];
 
     return (
@@ -35,6 +35,7 @@ export function Stats() {
                                 <div className="mt-2.5 text-2xl sm:text-3xl lg:text-[2.2rem] font-extrabold tracking-tight" style={{ color: statAccents[i] }}>
                                     {stat.value}
                                 </div>
+                                <p className="mt-1 text-[11px] text-zinc-400 leading-snug">{stat.sub}</p>
                             </div>
                         ))}
                     </div>

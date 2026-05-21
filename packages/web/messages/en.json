@@ -4,9 +4,9 @@
         "brandTagline": "Retention Agent",
         "title": "Recete — Retention Agent",
         "heroLine": "AI-powered WhatsApp customer support for e-commerce businesses",
-        "subtitle": "We help Shopify merchants automate post-purchase support, reduce returns, and drive repeat purchases.",
+        "subtitle": "We help e-commerce merchants automate post-purchase support, reduce returns, and drive repeat purchases.",
         "description": "The AI assistant that uses your product knowledge base to answer questions, send product guides, and resolve issues before they become returns.",
-        "forShopify": "For Shopify merchants",
+        "forShopify": "For e-commerce merchants",
         "login": "Login",
         "signup": "Get Started Free",
         "signupSmall": "No credit card required",
@@ -14,14 +14,18 @@
         "terms": "Terms of Service",
         "dashboardAlt": "Recete dashboard showing engagement metrics",
         "stats": {
-            "merchants": "500+",
-            "merchantsLabel": "Merchants",
-            "returns": "32%",
-            "returnsLabel": "Fewer Returns",
-            "messages": "50K+",
-            "messagesLabel": "Messages Sent",
-            "satisfaction": "94%",
-            "satisfactionLabel": "Satisfaction"
+            "merchants": "~30%",
+            "merchantsLabel": "Fewer Returns",
+            "merchantsSub": "industry avg. with guided post-purchase",
+            "returns": "2×",
+            "returnsLabel": "Faster Support",
+            "returnsSub": "with AI-assisted responses",
+            "messages": "+15%",
+            "messagesLabel": "Repeat Purchases",
+            "messagesSub": "from automated follow-ups",
+            "satisfaction": "24/7",
+            "satisfactionLabel": "AI Availability",
+            "satisfactionSub": "no extra team required"
         },
         "features": {
             "title": "Everything you need to retain customers",
@@ -36,17 +40,17 @@
             "analyticsDesc": "Track saved returns, repeat purchases, customer sentiment, and engagement rates. See exactly how much revenue your retention efforts generate.",
             "analyticsBullets": "ROI tracking · Sentiment analysis · RFM segments",
             "realTime": "Real-time Sync",
-            "realTimeDesc": "Syncs with Shopify in real-time. Orders utilize webhooks to trigger instant messages.",
+            "realTimeDesc": "Syncs with your store in real-time. Orders trigger the right messages instantly via webhooks.",
             "realTimeBullets": "Webhooks · Instant triggers · Data sync",
             "realtimeSync": "Real-time Order Sync",
-            "realtimeSyncDesc": "Syncs with Shopify in real-time via webhooks. Every order instantly triggers the right message at the right moment.",
+            "realtimeSyncDesc": "Syncs with your store in real-time via webhooks. Every order instantly triggers the right message at the right moment.",
             "realtimeSyncBullets": "Webhooks · Instant triggers · Data sync",
             "integration": "Easy Integration",
             "integrationDesc": "Connect your store in seconds. No coding required. Works with your existing tech stack.",
             "integrationBullets": "1-click setup · No code · API access",
-            "easyIntegration": "One-Click Shopify Setup",
-            "easyIntegrationDesc": "Install our app from the Shopify App Store and connect your store in under 2 minutes. Zero coding required.",
-            "easyIntegrationBullets": "1-click install · No code · API access",
+            "easyIntegration": "Quick Platform Setup",
+            "easyIntegrationDesc": "Connect your store in under 2 minutes. Works with Shopify, WooCommerce, and custom platforms via API. Zero coding required.",
+            "easyIntegrationBullets": "Quick setup · No code · API access",
             "secure": "Enterprise Security",
             "secureDesc": "Your data is safe with us. We use bank-grade encryption and follow GDPR compliance.",
             "secureBullets": "GDPR compliant · Encrypted · Secure",
@@ -58,7 +62,7 @@
             "title": "How it works",
             "subtitle": "Get started in 3 simple steps",
             "step1Title": "Connect your store",
-            "step1Desc": "One-click Shopify integration. We sync your products and orders automatically.",
+            "step1Desc": "Connect your e-commerce platform in minutes. We sync your products and orders automatically.",
             "step2Title": "AI engages customers",
             "step2Desc": "After each purchase, our AI sends personalized WhatsApp messages with product guidance.",
             "step3Title": "Track your results",
@@ -69,41 +73,41 @@
             "subtitle": "Join merchants who are transforming their post-purchase experience.",
             "button": "Start Free Trial",
             "primaryCta": "Get Started Free",
-            "secondaryButton": "Book a Demo",
-            "secondaryCta": "Book a Demo",
+            "secondaryButton": "See How It Works",
+            "secondaryCta": "See How It Works",
             "meta": "14-day free trial · No credit card required",
             "footnote": "14-day free trial · No credit card required · Cancel anytime"
         },
         "socialProof": {
-            "eyebrow": "Trusted by growth teams",
-            "title": "Merchants use Recete to protect margin after checkout",
-            "subtitle": "Built for Shopify stores that want fewer returns, faster answers, and higher repeat purchase rates without hiring a bigger support team.",
-            "proof1": "Shopify-native onboarding",
+            "eyebrow": "Why it works",
+            "title": "Reduce returns. Scale support. Grow LTV.",
+            "subtitle": "Built for e-commerce merchants who want fewer returns, faster answers, and higher repeat purchase rates — without hiring a bigger support team.",
+            "proof1": "Fast merchant onboarding",
             "proof2": "WhatsApp-first engagement",
-            "proof3": "Secure merchant controls",
-            "testimonial1": {
-                "quote": "We reduced avoidable returns by sending usage guidance before customers got frustrated. Setup took less than one afternoon.",
-                "name": "Ece Demir",
-                "role": "Founder, skincare brand",
-                "metric": "-28% returns"
+            "proof3": "GDPR-ready & secure",
+            "outcome1": {
+                "icon": "returns",
+                "metric": "Fewer returns",
+                "title": "Stop returns before they happen",
+                "desc": "Most returns come from confusion, not defects. Proactive usage guidance — sent at exactly the right moment — answers questions before frustration builds."
             },
-            "testimonial2": {
-                "quote": "Our support team now spends time on real escalations. Recete handles repetitive post-purchase questions automatically.",
-                "name": "Mark Jensen",
-                "role": "Operations lead, DTC home goods",
-                "metric": "2.1x faster replies"
+            "outcome2": {
+                "icon": "support",
+                "metric": "Always-on AI support",
+                "title": "Handle support without hiring",
+                "desc": "Your AI assistant answers product questions instantly using your knowledge base. Human handoff only triggers when it truly matters."
             },
-            "testimonial3": {
-                "quote": "The analytics view made it easy to justify the spend. We could see saved returns and repeat conversations turning into revenue.",
-                "name": "Selin Kaya",
-                "role": "E-commerce manager, wellness store",
-                "metric": "+14% repeat sales"
+            "outcome3": {
+                "icon": "ltv",
+                "metric": "Higher repeat purchases",
+                "title": "Turn buyers into loyal customers",
+                "desc": "Automated follow-ups at the right time — T+3, T+14 — keep customers engaged and convert single purchases into repeat revenue."
             }
         },
         "pricing": {
             "eyebrow": "Pricing",
-            "title": "Clear pricing for Shopify and standalone merchants.",
-            "subtitle": "The standalone Recete platform now mirrors the final Starter, Growth, and Pro strategy with monthly and annual billing.",
+            "title": "Simple, transparent pricing.",
+            "subtitle": "Start free. Upgrade as you grow. No hidden fees.",
             "mostPopular": "Most popular",
             "perMonth": "/month",
             "perYear": "/year",
@@ -152,11 +156,11 @@
         },
         "faq": {
             "eyebrow": "FAQ",
-            "title": "Common questions from Shopify merchants",
-            "subtitle": "Everything you need to evaluate Recete before installing.",
+            "title": "Common questions",
+            "subtitle": "Everything you need to know before getting started.",
             "q1": {
                 "question": "How long does setup take?",
-                "answer": "Most merchants connect Shopify and configure their first flows in under 15 minutes. You can start with default templates and refine later."
+                "answer": "Most merchants connect their store and configure their first message flows in under 15 minutes. You can start with built-in templates and refine as you go."
             },
             "q2": {
                 "question": "Do I need a support team to use it?",
@@ -173,13 +177,13 @@
         },
         "footer": {
             "description": "Recete helps brands reduce returns and increase LTV through proactive AI-driven WhatsApp conversations.",
-            "tagline": "Post-purchase AI that helps Shopify merchants reduce returns and boost customer loyalty.",
+            "tagline": "Post-purchase AI that helps e-commerce merchants reduce returns and boost customer loyalty.",
             "product": "Product",
             "features": "Features",
             "howItWorks": "How it Works",
             "pricing": "Pricing",
-            "demo": "Book a Demo",
-            "bookDemo": "Book a Demo",
+            "demo": "Contact Us",
+            "bookDemo": "Contact Us",
             "company": "Company",
             "about": "About Us",
             "aboutUs": "About Us",
@@ -195,7 +199,7 @@
             "cookiePolicy": "Cookie Policy",
             "dataProcessingAddendum": "Data Processing Addendum",
             "security": "Security",
-            "copyright": "© 2026 Recete Ltd. All rights reserved. Built for Shopify."
+            "copyright": "© 2026 Recete Ltd. All rights reserved."
         }
     },
     "Signup": {

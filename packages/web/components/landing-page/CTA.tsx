@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { ArrowRight, Calendar } from 'lucide-react';
+import { ArrowRight, ChevronDown } from 'lucide-react';
 import { SButton, SCard, SSection } from './PolarisWc';
 
 export function CTA() {
@@ -49,11 +49,11 @@ export function CTA() {
                                 {t('primaryCta')} <ArrowRight size={18} aria-hidden />
                             </SButton>
                         </Link>
-                        <Link href="/signup" className="inline-block w-full sm:w-auto">
+                        <a href="#how-it-works" className="inline-block w-full sm:w-auto">
                             <SButton className="inline-flex items-center justify-center gap-2 py-3.5 px-6 sm:py-4 sm:px-8 rounded-xl font-semibold text-sm sm:text-base no-underline border border-[#F8F5E6]/30 bg-white/5 backdrop-blur-sm transition-colors hover:bg-white/10 min-h-[44px] sm:min-h-0 text-[#F8F5E6]">
-                                <Calendar size={18} aria-hidden /> {t('secondaryCta')}
+                                <ChevronDown size={18} aria-hidden /> {t('secondaryCta')}
                             </SButton>
-                        </Link>
+                        </a>
                     </div>
 
                     <p className="relative mt-4 sm:mt-6 text-xs sm:text-[13px] opacity-75 text-[#F8F5E6] px-2">{t('footnote')}</p>

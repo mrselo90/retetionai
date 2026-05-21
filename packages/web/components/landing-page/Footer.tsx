@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Link } from '@/i18n/routing';
 import { CompanyIdentityBlock } from '@/components/site/CompanyIdentityBlock';
 
-const productLinks = ['features', 'howItWorks', 'pricing', 'bookDemo'] as const;
+const productLinks = ['features', 'howItWorks', 'pricing'] as const;
 const companyLinks = ['aboutUs', 'contact'] as const;
 const companyHrefs = ['/about', '/contact'];
 const legalLinks = ['privacyPolicy', 'termsOfService', 'cookiePolicy', 'dataProcessingAddendum', 'security'] as const;
@@ -42,7 +42,7 @@ export function Footer() {
                                 {productLinks.map((key, i) => (
                                     <li key={key}>
                                         <Link
-                                            href={i === 0 ? '/#features' : i === 1 ? '/#how-it-works' : '/signup'}
+                                            href={i === 0 ? '/#features' : i === 1 ? '/#how-it-works' : '/#pricing'}
                                             className="block text-xs sm:text-sm leading-snug text-zinc-600 hover:text-zinc-900 transition-colors py-1"
                                         >
                                             {t(key)}
