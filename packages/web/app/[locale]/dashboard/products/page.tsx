@@ -113,6 +113,7 @@ export default function ProductsPage() {
   const [newProductName, setNewProductName] = useState('');
   const [scraping, setScraping] = useState(false);
   const [scrapeProgress, setScrapeProgress] = useState('');
+  const [scrapeStep, setScrapeStep] = useState(0);
   const [pageFeedback, setPageFeedback] = useState<PageFeedbackState | null>(null);
   const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
   const { confirm, ConfirmDialogNode } = useConfirm();
@@ -341,6 +342,7 @@ export default function ProductsPage() {
       if (!session) return;
 
       setScraping(true);
+      setScrapeStep(1);
       setScrapeProgress(t('addModal.scraping.creating'));
 
       const createResponse = await authenticatedRequest<{ product: Product }>(
@@ -355,6 +357,7 @@ export default function ProductsPage() {
         }
       );
 
+      setScrapeStep(2);
       setScrapeProgress(t('addModal.scraping.scraping'));
 
       await authenticatedRequest<{
@@ -366,6 +369,7 @@ export default function ProductsPage() {
         { method: 'POST' }
       );
 
+      setScrapeStep(3);
       setScrapeProgress(t('addModal.scraping.embeddings'));
 
       try {
@@ -382,6 +386,7 @@ export default function ProductsPage() {
         );
       }
 
+      setScrapeStep(4);
       setScrapeProgress(t('addModal.scraping.completed'));
       toast.success(t('toasts.addSuccess.title'), t('toasts.addSuccess.message'));
       setPageFeedback({
@@ -399,6 +404,7 @@ export default function ProductsPage() {
       setShowAddModal(false);
       setScraping(false);
       setScrapeProgress('');
+      setScrapeStep(0);
     } catch (err: unknown) {
       console.error('Failed to add product:', err);
       const message = (err instanceof Error ? err.message : '') || t('toasts.addError.message');
@@ -411,6 +417,7 @@ export default function ProductsPage() {
       toast.error(t('toasts.addError.title'), message);
       setScraping(false);
       setScrapeProgress('');
+      setScrapeStep(0);
     }
   };
 
@@ -1300,7 +1307,7 @@ export default function ProductsPage() {
                       <Text as="p" variant="headingLg">{scrapeProgress}</Text>
                       <Text as="p" tone="subdued">{t('addModal.scraping.wait')}</Text>
                       <div className="w-full max-w-[320px]">
-                        <ProgressBar progress={60} animated />
+                        <ProgressBar progress={scrapeStep === 1 ? 25 : scrapeStep === 2 ? 60 : scrapeStep === 3 ? 85 : scrapeStep === 4 ? 100 : 0} animated />
                       </div>
                     </BlockStack>
                   </Box>

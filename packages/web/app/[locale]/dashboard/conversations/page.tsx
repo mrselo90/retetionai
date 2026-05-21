@@ -12,6 +12,7 @@ import {
   Box,
   Button as PolarisButton,
   Card as PolarisCard,
+  Divider,
   IndexTable,
   InlineStack,
   Layout,
@@ -227,7 +228,6 @@ export default function ConversationsPage() {
     { id: 'status-resolved', content: t('filters.resolved') },
   ];
   const statusTabKeys: Array<typeof statusFilter> = ['all', 'human', 'ai', 'resolved'];
-  const selectedStatusTabIndex = statusTabKeys.indexOf(statusFilter);
 
   if (loading) {
     return (
@@ -268,21 +268,40 @@ export default function ConversationsPage() {
               );
             })()}
 
-            {/* Filters (Polaris Tabs) */}
+            {/* Filters */}
             <PolarisCard>
               <Box padding="300">
-                <BlockStack gap="300">
-                  <Tabs
-                    tabs={sentimentTabs}
-                    selected={selectedSentimentTabIndex >= 0 ? selectedSentimentTabIndex : 0}
-                    onSelect={(index) => setFilter(sentimentTabKeys[index] || 'all')}
-                    fitted
-                  />
-                  <Tabs
-                    tabs={statusTabs}
-                    selected={selectedStatusTabIndex >= 0 ? selectedStatusTabIndex : 0}
-                    onSelect={(index) => setStatusFilter(statusTabKeys[index] || 'all')}
-                  />
+                <BlockStack gap="400">
+                  {/* Sentiment filter */}
+                  <BlockStack gap="150">
+                    <Text as="p" variant="bodyXs" tone="subdued">Filter by sentiment</Text>
+                    <Tabs
+                      tabs={sentimentTabs}
+                      selected={selectedSentimentTabIndex >= 0 ? selectedSentimentTabIndex : 0}
+                      onSelect={(index) => setFilter(sentimentTabKeys[index] || 'all')}
+                      fitted
+                    />
+                  </BlockStack>
+
+                  <Divider />
+
+                  {/* Status filter as pill buttons */}
+                  <BlockStack gap="150">
+                    <Text as="p" variant="bodyXs" tone="subdued">Filter by status</Text>
+                    <InlineStack gap="200" wrap>
+                      {statusTabKeys.map((key, index) => (
+                        <PolarisButton
+                          key={key}
+                          size="slim"
+                          variant={statusFilter === key ? 'primary' : 'tertiary'}
+                          tone={statusFilter === key && key === 'human' ? 'critical' : statusFilter === key && key === 'resolved' ? 'success' : undefined}
+                          onClick={() => setStatusFilter(key)}
+                        >
+                          {statusTabs[index]?.content ?? key}
+                        </PolarisButton>
+                      ))}
+                    </InlineStack>
+                  </BlockStack>
                 </BlockStack>
               </Box>
             </PolarisCard>

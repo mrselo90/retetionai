@@ -265,7 +265,7 @@ export default function CustomersPage() {
           <PolarisButton variant="secondary" size="slim" disabled={page <= 1} onClick={() => setPage(page - 1)}>
             {t('previous')}
           </PolarisButton>
-          <Text as="span" variant="bodySm" tone="subdued">Sayfa {page} / {totalPages}</Text>
+          <Text as="span" variant="bodySm" tone="subdued">{t('pagination.page', { page, totalPages })}</Text>
           <PolarisButton variant="secondary" size="slim" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
             {t('next')}
           </PolarisButton>

@@ -1239,6 +1239,10 @@
         "conversations": "conversations",
         "previous": "Previous",
         "next": "Next",
+        "pagination": {
+            "page": "Page {page} of {totalPages}"
+        },
+        "search": "Search",
         "toasts": {
             "loadError": {
                 "title": "Error",

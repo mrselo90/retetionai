@@ -5,9 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { Link } from '@/i18n/routing';
 import { Badge as PolarisBadge, Banner, BlockStack, Box, Card as PolarisCard, InlineGrid, InlineStack, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { BarChart3, TrendingUp, TrendingDown, Users, Package, Calendar, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useTranslations } from 'next-intl';
@@ -156,20 +154,16 @@ export default function AnalyticsPage() {
 
   if (loadError) {
     return (
-      <Page title={t('title')} subtitle={t('description')} fullWidth>
+      <Page title={t('title')}>
         <Layout>
           <Layout.Section>
-            <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8">
-              <div className="text-4xl mb-4">📊</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Could not load analytics</h3>
-              <p className="text-sm text-gray-500 mb-6 max-w-sm">{loadError}</p>
-              <button
-                onClick={() => { setLoading(true); loadAnalytics(); }}
-                className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Try again
-              </button>
-            </div>
+            <Banner
+              title="Could not load analytics"
+              tone="critical"
+              action={{ content: 'Try again', onAction: () => { setLoading(true); loadAnalytics(); } }}
+            >
+              <p>{loadError}</p>
+            </Banner>
           </Layout.Section>
         </Layout>
       </Page>

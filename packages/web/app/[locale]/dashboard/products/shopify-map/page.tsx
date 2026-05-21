@@ -235,9 +235,6 @@ export default function ShopifyMapPage() {
             <Link2 className="w-6 h-6" />
           </div>
           <div className="space-y-1.5 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              {t('title')}
-            </h1>
             <p className="text-sm sm:text-base text-muted-foreground font-medium max-w-xl">
               {t('description')}
             </p>

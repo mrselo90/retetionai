@@ -648,7 +648,7 @@ export default function DashboardPage() {
                   <Text as="h2" variant="headingSm">
                     {t('recentOrders.title')}
                   </Text>
-                  <PolarisButton url="/dashboard/products" variant="plain" size="slim">
+                  <PolarisButton url="/dashboard/conversations" variant="plain" size="slim">
                     {t('recentOrders.viewAll')}
                   </PolarisButton>
                 </InlineStack>

@@ -17,6 +17,25 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+const PAGE_TITLES: Record<string, string> = {
+  '/dashboard': 'Overview',
+  '/dashboard/products': 'Products',
+  '/dashboard/customers': 'Customers',
+  '/dashboard/conversations': 'Conversations',
+  '/dashboard/analytics': 'Analytics',
+  '/dashboard/integrations': 'Integrations',
+  '/dashboard/settings': 'Settings',
+};
+
+function getPageTitle(pathname: string): string {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  // Match prefix for sub-routes (e.g. /dashboard/settings/notifications)
+  const match = Object.keys(PAGE_TITLES)
+    .filter((key) => key !== '/dashboard' && pathname.startsWith(key))
+    .sort((a, b) => b.length - a.length)[0];
+  return match ? PAGE_TITLES[match] : '';
+}
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTranslations } from 'next-intl';
 import { useDashboardAuth } from '@/hooks/useDashboardAuth';
@@ -149,16 +168,52 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* ── Main Content ──────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile Header - Hidden in Shopify Embedded Mode */}
+        {/* Universal Top Header - Hidden in Shopify Embedded Mode */}
         {!isEmbedded && (
-          <header className="lg:hidden h-14 bg-card border-b border-border flex items-center px-4 justify-between sticky top-0 z-30">
-            <Link href="/dashboard" className="font-semibold text-sm text-foreground flex items-center gap-2">
-              <Logo iconOnly className="w-7 h-7 rounded-md shrink-0" />
-              <span className="-ml-1 text-lg font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', 'Times New Roman', serif" }}>recete</span>
-            </Link>
-            <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} aria-label="Open navigation menu">
-              <Menu className="w-6 h-6" />
-            </Button>
+          <header className="h-[52px] bg-card border-b border-border flex items-center px-4 justify-between sticky top-0 z-30">
+            {/* Left side */}
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Hamburger — mobile only */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden shrink-0"
+                onClick={() => setIsSidebarOpen(true)}
+                aria-label="Open navigation menu"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+              {/* Logo — mobile only */}
+              <Link
+                href="/dashboard"
+                className="lg:hidden font-semibold text-sm text-foreground flex items-center gap-1.5"
+              >
+                <Logo iconOnly className="w-7 h-7 rounded-md shrink-0" />
+                <span className="-ml-1 text-lg font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', 'Times New Roman', serif" }}>recete</span>
+              </Link>
+              {/* Page title — desktop only */}
+              <h1 className="hidden lg:block text-sm font-semibold text-foreground truncate">
+                {getPageTitle(pathname ?? '')}
+              </h1>
+            </div>
+
+            {/* Right side — all sizes */}
+            <div className="flex items-center gap-2 shrink-0">
+              {userEmail && (
+                <span className="hidden sm:block text-xs text-muted-foreground truncate max-w-[180px]">
+                  {userEmail}
+                </span>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleSignOut}
+                aria-label="Sign out"
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </header>
         )}
 
