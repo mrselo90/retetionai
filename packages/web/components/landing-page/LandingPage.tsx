@@ -499,7 +499,7 @@ function Pricing() {
               <ul className="lprice-features">
                 {p.features.map(f => <li key={f}>{f}</li>)}
               </ul>
-              <Link href="/signup" className={`lbtn ${p.featured ? 'lbtn-primary' : 'lbtn-outline'}`} style={{ marginTop: 8 }}>
+              <Link href={p.cta === 'Talk to sales' ? '/contact' : '/signup'} className={`lbtn ${p.featured ? 'lbtn-primary' : 'lbtn-outline'}`} style={{ marginTop: 8 }}>
                 {p.cta} <Icon name="arrow" size={13} />
               </Link>
             </div>
