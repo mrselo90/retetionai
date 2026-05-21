@@ -28,6 +28,13 @@ const nextConfig = {
         minimumCacheTTL: 60,
     },
 
+    async redirects() {
+        return [
+            { source: '/privacy-policy', destination: '/privacy', permanent: true },
+            { source: '/terms-of-service', destination: '/terms', permanent: true },
+        ];
+    },
+
     async rewrites() {
         // Prefer INTERNAL_API_URL in production (e.g. http://127.0.0.1:3002) so /api-backend/* proxies to the API. See docs/deployment/PORTS_AND_ROUTING.md.
         const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
