@@ -692,7 +692,8 @@
   .lsection { padding: 48px 0; }
   .lcontainer { padding: 0 18px; }
 
-  /* Nav */
+  /* Nav — solid background on mobile so it's always visible */
+  .lnav { background: var(--lbg); backdrop-filter: none; border-bottom: 1px solid var(--lline); }
   .lnav-links { display: none; }
   .lnav-logo-tag { display: none; }
   .lnav-login { display: none; }

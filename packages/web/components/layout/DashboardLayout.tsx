@@ -156,10 +156,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               >
                 <Menu className="w-5 h-5" />
               </Button>
-              {/* Logo — mobile only */}
+              {/* Logo */}
               <Link
                 href="/dashboard"
-                className="lg:hidden font-semibold text-sm text-foreground flex items-center gap-1.5"
+                className="font-semibold text-sm text-foreground flex items-center gap-1.5"
               >
                 <Logo iconOnly className="w-7 h-7 rounded-md shrink-0" />
                 <span className="-ml-1 text-lg font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', 'Times New Roman', serif" }}>recete</span>
