@@ -52,8 +52,9 @@ function NavBar({ theme, onToggleTheme }: { theme: string; onToggleTheme: () => 
           {NAV_LINKS.map(l => <a key={l.href} href={l.href}>{l.label}</a>)}
         </nav>
         <div className="lnav-cta">
-          <button className="lbtn lbtn-ghost lnav-theme-toggle" onClick={onToggleTheme} aria-label="Toggle theme" style={{ width: 36 }}>
-            <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={15} />
+          <button className="lbtn lbtn-outline lnav-theme-toggle" onClick={onToggleTheme} aria-label="Toggle theme" style={{ gap: 6, paddingLeft: 10, paddingRight: 12 }}>
+            <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={14} />
+            <span style={{ fontSize: 13 }}>{theme === 'dark' ? 'Light' : 'Dark'}</span>
           </button>
           <Link href="/login" className="lbtn lbtn-ghost lnav-login">Login</Link>
           <Link href="/signup" className="lbtn lbtn-primary lnav-cta-signup">
