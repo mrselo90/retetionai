@@ -84,6 +84,7 @@ type CoreSettingsFormState = {
   enabled_langs: string;
   emoji: boolean;
   ai_vision_enabled: boolean;
+  message_send_mode: "always" | "all_products_required";
 };
 
 const SERVICE_LANGUAGE_OPTIONS = [
@@ -170,6 +171,7 @@ function normalizeCoreFormState(
     whatsapp_welcome_template: state.whatsapp_welcome_template.trim(),
     enabled_langs: serializeLanguageList(enabledLangs.length > 0 ? enabledLangs : ["en"]),
     ai_vision_enabled: planType === "STARTER" ? false : state.ai_vision_enabled,
+    message_send_mode: state.message_send_mode || "always",
   };
 }
 
@@ -282,6 +284,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       } else {
         delete nextPersonaSettings.whatsapp_welcome_template;
       }
+
+      const messageSendMode = String(formData.get("message_send_mode") || "always").trim();
+      nextPersonaSettings.message_send_mode =
+        messageSendMode === "all_products_required" ? "all_products_required" : "always";
 
       const [, multiLangResponse] = await Promise.all([
         updateMerchantSettings(request, {
@@ -427,6 +433,7 @@ export default function SettingsPage() {
     enabled_langs: serializeLanguageList(data.multiLang.enabled_langs || ["en"]),
     emoji: persona.emoji !== false,
     ai_vision_enabled: Boolean(persona.ai_vision_enabled),
+    message_send_mode: (persona.message_send_mode as "always" | "all_products_required") || "always",
   });
   const [guardrailDraft, setGuardrailDraft] = useState<GuardrailDraft>({
     name: "",
@@ -451,10 +458,11 @@ export default function SettingsPage() {
           enabled_langs: serializeLanguageList(data.multiLang.enabled_langs || ["en"]),
           emoji: persona.emoji !== false,
           ai_vision_enabled: Boolean(persona.ai_vision_enabled),
+          message_send_mode: (persona.message_send_mode as "always" | "all_products_required") || "always",
         },
         data.plan.planType,
       ),
-    [data.merchant.notification_phone, data.multiLang.enabled_langs, data.plan.planType, persona.ai_vision_enabled, persona.bot_name, persona.emoji, persona.response_length, persona.tone, persona.whatsapp_welcome_template],
+    [data.merchant.notification_phone, data.multiLang.enabled_langs, data.plan.planType, persona.ai_vision_enabled, persona.bot_name, persona.emoji, persona.message_send_mode, persona.response_length, persona.tone, persona.whatsapp_welcome_template],
   );
   const loaderStateJson = useMemo(() => JSON.stringify(loaderState), [loaderState]);
   const [savedCoreStateJson, setSavedCoreStateJson] = useState(loaderStateJson);
@@ -758,6 +766,22 @@ export default function SettingsPage() {
                         Recete uses this as the default post-delivery message. Customer and order details are inserted automatically.
                       </Text>
                     </BlockStack>
+                    <Select
+                      label="WhatsApp message send rule"
+                      name="message_send_mode"
+                      value={formState.message_send_mode}
+                      options={[
+                        { label: "Always send", value: "always" },
+                        { label: "Send only if all products are defined in Recete", value: "all_products_required" },
+                      ]}
+                      onChange={(value) =>
+                        setFormState((current) => ({
+                          ...current,
+                          message_send_mode: value as CoreSettingsFormState["message_send_mode"],
+                        }))
+                      }
+                      helpText="Always send: a welcome message is sent for every delivery, even if some products are not defined in Recete. All products defined: the message is only sent when every product in the order has usage instructions in Recete."
+                    />
                     <Banner tone="info">
                       Recete sends this text as a normal WhatsApp message inside the 24-hour window. Outside that window, the platform handles template delivery automatically.
                     </Banner>
