@@ -17,17 +17,13 @@ import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import {
   AppProvider as PolarisAppProvider,
-  Badge,
   BlockStack,
   Box,
-  Button,
   Card,
-  Collapsible,
   Frame,
   InlineGrid,
   InlineStack,
   Icon,
-  Link,
   SkeletonBodyText,
   SkeletonDisplayText,
   Spinner,
@@ -46,7 +42,6 @@ const AppLink = forwardRef<
   return <RemixLink ref={ref} to={to} {...rest}>{children}</RemixLink>;
 });
 import {
-  CartIcon,
   CatalogIcon,
   ChartVerticalIcon,
   ChatIcon,
@@ -140,14 +135,6 @@ export type AppBootstrapContext = {
   shellLoading: boolean;
 };
 
-type SetupStep = {
-  label: string;
-  status: "complete" | "pending";
-  detail: string;
-  to: string;
-  actionLabel?: string;
-};
-
 export function useAppBootstrapData() {
   return useOutletContext<AppBootstrapContext>();
 }
@@ -214,93 +201,17 @@ function AppShell({ initialShop }: { initialShop: string }) {
       ? "primary"
       : "tertiary";
 
-  const merchantName = bootstrapData?.merchantName || "Loading merchant";
-  const shop = bootstrapData?.shop || initialShop || "Embedded Shopify store";
   const subscriptionStatus = bootstrapData?.subscriptionStatus || "loading";
-  const normalizedSubscriptionStatus = normalizeSubscriptionStatus(subscriptionStatus);
+  // Subscription status is informational — keep computation but no longer rendered in sidebar.
+  void normalizeSubscriptionStatus(subscriptionStatus);
   const hasBillingApproved = bootstrapData?.billingApproved ?? isBillingReady(subscriptionStatus);
-  const subscriptionTone = hasBillingApproved ? "success" : "attention";
-  const subscriptionLabel = hasBillingApproved
-    ? "Subscription active"
-    : `Subscription ${normalizedSubscriptionStatus || "loading"}`;
   const shellLoading = !bootstrapData && !bootstrapError;
-  const isProductSetupDetailView =
-    location.pathname.startsWith("/app/products") &&
-    new URLSearchParams(location.search).has("product");
   const overview = bootstrapData?.overview;
-  const setupSteps: SetupStep[] = overview
-    ? (() => {
-        const themeEmbedEnabled = bootstrapData?.themeEmbedEnabled ?? false;
-        const storeHandle = (bootstrapData?.shop || "").replace(/\.myshopify\.com$/i, "");
-        const extensionUuid = typeof process !== "undefined" ? process.env?.SHOPIFY_APP_EXTENSION_UUID?.trim() || "" : "";
-        const themeEditorUrl = extensionUuid
-          ? `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?context=apps&activateAppId=${extensionUuid}/app-embed`
-          : `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?context=apps`;
-        const progress = getSetupProgress(overview, hasBillingApproved, themeEmbedEnabled);
-        return [
-        {
-          label: "Billing approved",
-          status: progress.hasBilling ? "complete" : "pending",
-          detail:
-            progress.hasBilling
-              ? "Plan is active."
-              : "Approve the app plan in Shopify.",
-          to: "/app/billing",
-        },
-        {
-          label: "Catalog ready",
-          status: progress.hasProducts ? "complete" : "pending",
-          detail:
-            progress.hasProducts
-              ? `${progress.productCount} products available.`
-              : "Open Products, select at least one item, and save setup.",
-          to: "/app/products",
-        },
-        {
-          label: "Messaging configured",
-          status: progress.hasMessagingConfigured ? "complete" : "pending",
-          detail:
-            progress.hasMessagingConfigured
-              ? "Bot settings saved."
-              : "Review bot and WhatsApp settings.",
-          to: "/app/settings",
-        },
-        {
-          label: "Orders flowing",
-          status: progress.hasOrders ? "complete" : "pending",
-          detail:
-            progress.hasOrders
-              ? `${overview.metrics.totalOrders} orders visible.`
-              : "Create and fulfill a Shopify test order, then refresh integration status.",
-          to: "/app/integrations#orders-flow",
-          actionLabel: "Open order flow setup",
-        },
-        {
-          label: "Theme embed enabled",
-          status: progress.hasThemeEmbed ? "complete" : "pending",
-          detail: progress.hasThemeEmbed
-            ? "Theme embed is active."
-            : "Activate the Recete embed block in your theme editor.",
-          to: themeEditorUrl,
-          actionLabel: "Open theme editor",
-        },
-      ];
-      })()
-    : [];
-  const nextStep = setupSteps.find((step) => step.status === "pending") ?? null;
-  const setupIncomplete = Boolean(nextStep);
-  const [showLaunchChecklist, setShowLaunchChecklist] = useState(false);
-
-  useEffect(() => {
-    if (setupIncomplete) {
-      setShowLaunchChecklist(true);
-    }
-  }, [setupIncomplete]);
-  const simplifiedNavItems = [
-    { to: "/app", label: "Setup", hint: "Getting started", icon: HomeIcon, disabled: false },
-    { to: "/app/dashboard", label: "Dashboard", hint: "Available after setup", icon: ViewIcon, disabled: setupIncomplete },
-    { to: "/app/settings", label: "Settings", hint: "Available after setup", icon: SettingsIcon, disabled: setupIncomplete },
-  ];
+  const themeEmbedEnabled = bootstrapData?.themeEmbedEnabled ?? false;
+  const setupProgress = overview ? getSetupProgress(overview, hasBillingApproved, themeEmbedEnabled) : null;
+  // setupIncomplete drives sidebar simplification: when true we hide ops nav and
+  // show a single "Back to setup" link instead of disabled stubs.
+  const setupIncomplete = setupProgress ? !setupProgress.setupComplete : true;
 
   return (
     <Frame>
@@ -314,143 +225,51 @@ function AppShell({ initialShop }: { initialShop: string }) {
               </InlineStack>
             ) : null}
 
-            <InlineGrid columns={{ xs: 1, lg: "280px 1fr" }} gap="400">
+            <InlineGrid columns={{ xs: 1, lg: "240px 1fr" }} gap="400">
               <Card padding="300" roundedAbove="sm">
-                <BlockStack gap="400">
-                  <BlockStack gap="200">
-                    <Text as="h2" variant="headingMd">
-                      Merchant workspace
-                    </Text>
-                  </BlockStack>
-
-                  {setupSteps.length > 0 && !isProductSetupDetailView && location.pathname !== "/app" ? (
-                    <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                      <BlockStack gap="200">
-                        <InlineStack align="space-between" blockAlign="center">
-                          <Text as="h3" variant="headingSm">
-                            Launch progress
-                          </Text>
-                          <Badge tone={nextStep ? "attention" : "success"}>
-                            {nextStep
-                              ? `${setupSteps.filter((step) => step.status === "complete").length}/${setupSteps.length}`
-                              : "Done"}
-                          </Badge>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {nextStep
-                            ? `Next: ${nextStep.label}`
-                            : "All launch checks are complete."}
-                        </Text>
-                        <InlineStack align="space-between" blockAlign="center">
-                          {setupIncomplete ? null : (
-                            <Button
-                              variant="plain"
-                              size="slim"
-                              onClick={() => setShowLaunchChecklist((current) => !current)}
-                              ariaExpanded={showLaunchChecklist}
-                              ariaControls="launch-checklist"
-                            >
-                              {showLaunchChecklist ? "Hide checklist" : "View checklist"}
-                            </Button>
-                          )}
-                        </InlineStack>
-                        <Collapsible
-                          open={setupIncomplete ? true : showLaunchChecklist}
-                          id="launch-checklist"
-                          transition={{ duration: "150ms", timingFunction: "ease-in-out" }}
-                        >
-                          <BlockStack gap="150">
-                            {setupSteps.map((step) => (
-                              <InlineStack key={step.label} align="space-between" blockAlign="start" gap="200">
-                                <BlockStack gap="050">
-                                  <Text as="p" variant="bodySm" fontWeight="semibold">
-                                    {step.label}
-                                  </Text>
-                                  <Text as="p" variant="bodyXs" tone="subdued">
-                                    {step.detail}
-                                  </Text>
-                                </BlockStack>
-                                <Text
-                                  as="p"
-                                  variant="bodyXs"
-                                  tone={step.status === "complete" ? "success" : "subdued"}
-                                  fontWeight="semibold"
-                                >
-                                  {step.status === "complete" ? "Done" : "Pending"}
-                                </Text>
-                              </InlineStack>
-                            ))}
-                          </BlockStack>
-                        </Collapsible>
-                        {nextStep ? (
-                          <Button url={nextStep.to} variant="primary" fullWidth>
-                            {nextStep.actionLabel || "Continue setup"}
-                          </Button>
-                        ) : null}
-                      </BlockStack>
-                    </Box>
-                  ) : null}
-
+                <BlockStack gap="300">
                   {setupIncomplete ? (
-                    <BlockStack gap="150">
-                      <Text as="p" variant="bodyXs" tone="subdued">
-                        Navigation
-                      </Text>
-                      <BlockStack gap="100">
-                        {simplifiedNavItems.map((item) => {
-                          const active = navButtonVariant(item.to) === "primary";
-                          const navCard = (
-                            <Box
-                              padding="200"
-                              borderWidth={active ? "025" : undefined}
-                              borderColor={active ? "border-brand" : undefined}
-                              borderRadius="200"
-                              background={active ? "bg-surface-secondary" : "bg-surface"}
-                              opacity={item.disabled ? "0.6" : undefined}
-                            >
-                              <InlineStack blockAlign="start" gap="200">
-                                <InlineStack gap="150" blockAlign="start">
-                                  <Icon source={item.icon} tone={item.disabled ? "subdued" : active ? "base" : "subdued"} />
-                                  {active ? (
-                                    <Box
-                                      minWidth="4px"
-                                      minHeight="2rem"
-                                      borderRadius="full"
-                                      background="bg-fill-brand"
-                                    />
-                                  ) : null}
-                                  <BlockStack gap="050">
-                                    <Text as="p" variant="bodySm" fontWeight="semibold">
-                                      {item.label}
-                                    </Text>
-                                    <Text as="p" variant="bodyXs" tone="subdued">
-                                      {item.hint}
-                                    </Text>
-                                  </BlockStack>
-                                </InlineStack>
-                              </InlineStack>
-                            </Box>
-                          );
-                          if (item.disabled) {
-                            return <div key={item.to}>{navCard}</div>;
-                          }
-                          return (
-                            <AppLink
-                              key={item.to}
-                              url={item.to}
-                              style={{
-                                textDecoration: "none",
-                                color: "inherit",
-                                display: "block",
-                              }}
-                            >
-                              {navCard}
-                            </AppLink>
-                          );
-                        })}
-                      </BlockStack>
-                    </BlockStack>
+                    /* During setup: only show a single "Back to setup" link.
+                       No disabled nav stubs, no duplicate progress, no extra headings. */
+                    location.pathname !== "/app" ? (
+                      <AppLink
+                        url="/app"
+                        style={{ textDecoration: "none", color: "inherit", display: "block" }}
+                      >
+                        <Box
+                          padding="200"
+                          borderWidth="025"
+                          borderColor="border-brand"
+                          borderRadius="200"
+                          background="bg-surface-secondary"
+                        >
+                          <InlineStack gap="200" blockAlign="center">
+                            <Icon source={HomeIcon} tone="base" />
+                            <BlockStack gap="050">
+                              <Text as="p" variant="bodySm" fontWeight="semibold">
+                                Back to setup
+                              </Text>
+                              <Text as="p" variant="bodyXs" tone="subdued">
+                                Finish the 3 required steps to unlock everything.
+                              </Text>
+                            </BlockStack>
+                          </InlineStack>
+                        </Box>
+                      </AppLink>
+                    ) : (
+                      <Box padding="200">
+                        <BlockStack gap="100">
+                          <Text as="p" variant="bodySm" fontWeight="semibold">
+                            Setup
+                          </Text>
+                          <Text as="p" variant="bodyXs" tone="subdued">
+                            Finish setup to unlock Dashboard, Conversations, and more.
+                          </Text>
+                        </BlockStack>
+                      </Box>
+                    )
                   ) : (
+                    /* Setup complete: full navigation sections */
                     navigationSections.map((section) => (
                       <BlockStack key={section.title} gap="150">
                         <Text as="p" variant="bodyXs" tone="subdued">
@@ -527,14 +346,6 @@ function AppShell({ initialShop }: { initialShop: string }) {
                 )}
               </Box>
             </InlineGrid>
-            {location.pathname !== "/app" ? (
-              <Box paddingInlineStart="200">
-                <Text as="p" variant="bodySm">
-                  Need a deeper setup pass? Use <Link url="/app/settings">Settings</Link> for bot behavior and{" "}
-                  <Link url="/app/products">Products</Link> for catalog readiness.
-                </Text>
-              </Box>
-            ) : null}
           </BlockStack>
         </div>
       </Box>

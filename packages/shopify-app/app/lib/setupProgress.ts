@@ -5,6 +5,12 @@ type PersonaSettings = NonNullable<ShopifyMerchantOverview["settings"]["personaS
 
 export type SetupStepKey = "billing" | "products" | "messaging" | "orders" | "themeEmbed";
 
+// Required steps: gate the activation metric. Setup is "complete" once all of these are done.
+export const REQUIRED_SETUP_STEPS: ReadonlyArray<SetupStepKey> = ["billing", "products", "messaging"] as const;
+
+// Optional steps: shown in a separate "Polish your setup" section. Don't gate dashboard access.
+export const OPTIONAL_SETUP_STEPS: ReadonlyArray<SetupStepKey> = ["orders", "themeEmbed"] as const;
+
 export type SetupProgress = {
   hasBilling: boolean;
   hasProducts: boolean;
@@ -12,10 +18,12 @@ export type SetupProgress = {
   hasOrders: boolean;
   hasThemeEmbed: boolean;
   productCount: number;
-  completedCount: number;
-  totalSteps: number;
-  setupComplete: boolean;
-  nextStep: SetupStepKey | null;
+  completedCount: number;       // completed REQUIRED steps only
+  totalSteps: number;            // total REQUIRED steps only
+  setupComplete: boolean;        // all REQUIRED steps complete
+  postLaunchComplete: boolean;   // all OPTIONAL steps complete (informational)
+  nextStep: SetupStepKey | null; // next REQUIRED step that's not done
+  nextOptionalStep: SetupStepKey | null; // next OPTIONAL step that's not done
 };
 
 function hasNonEmptyString(value: unknown): value is string {
@@ -46,13 +54,16 @@ export function getSetupProgress(
   const hasOrders = (overview.metrics.totalOrders || 0) > 0;
   const hasThemeEmbed = themeEmbedEnabled ?? false;
 
-  const steps: Array<[SetupStepKey, boolean]> = [
-    ["billing", hasBilling],
-    ["products", hasProducts],
-    ["messaging", hasMessagingConfigured],
-    ["orders", hasOrders],
-    ["themeEmbed", hasThemeEmbed],
-  ];
+  const statusByKey: Record<SetupStepKey, boolean> = {
+    billing: hasBilling,
+    products: hasProducts,
+    messaging: hasMessagingConfigured,
+    orders: hasOrders,
+    themeEmbed: hasThemeEmbed,
+  };
+
+  const requiredPairs = REQUIRED_SETUP_STEPS.map((key) => [key, statusByKey[key]] as const);
+  const optionalPairs = OPTIONAL_SETUP_STEPS.map((key) => [key, statusByKey[key]] as const);
 
   return {
     hasBilling,
@@ -61,9 +72,11 @@ export function getSetupProgress(
     hasOrders,
     hasThemeEmbed,
     productCount,
-    completedCount: steps.filter(([, complete]) => complete).length,
-    totalSteps: steps.length,
-    setupComplete: steps.every(([, complete]) => complete),
-    nextStep: steps.find(([, complete]) => !complete)?.[0] ?? null,
+    completedCount: requiredPairs.filter(([, complete]) => complete).length,
+    totalSteps: requiredPairs.length,
+    setupComplete: requiredPairs.every(([, complete]) => complete),
+    postLaunchComplete: optionalPairs.every(([, complete]) => complete),
+    nextStep: requiredPairs.find(([, complete]) => !complete)?.[0] ?? null,
+    nextOptionalStep: optionalPairs.find(([, complete]) => !complete)?.[0] ?? null,
   };
 }
