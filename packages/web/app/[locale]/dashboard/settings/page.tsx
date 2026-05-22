@@ -39,6 +39,7 @@ interface Merchant {
     response_length?: 'short' | 'medium' | 'long';
     temperature?: number;
     whatsapp_welcome_template?: string;
+    message_send_mode?: 'always' | 'all_products_required';
   };
   created_at: string;
 }
@@ -103,6 +104,7 @@ export default function SettingsPage() {
   const [responseLength, setResponseLength] = useState<'short' | 'medium' | 'long'>('medium');
   const [temperature, setTemperature] = useState(0.7);
   const [whatsappWelcomeTemplate, setWhatsappWelcomeTemplate] = useState('');
+  const [messageSendMode, setMessageSendMode] = useState<'always' | 'all_products_required'>('always');
 
   const welcomeTemplatePreview = buildWelcomeTemplatePreview(whatsappWelcomeTemplate, botName);
 
@@ -149,6 +151,7 @@ export default function SettingsPage() {
           ? persona.whatsapp_welcome_template
           : ''
       );
+      setMessageSendMode(persona.message_send_mode || 'always');
     } catch (err: unknown) {
       console.error('Failed to load settings:', err);
       if (getErrorStatus(err) === 401) {
@@ -180,6 +183,7 @@ export default function SettingsPage() {
             response_length: responseLength,
             temperature,
             whatsapp_welcome_template: whatsappWelcomeTemplate.trim() || undefined,
+            message_send_mode: messageSendMode,
           },
         }),
       });
@@ -338,6 +342,33 @@ export default function SettingsPage() {
                       </Text>
                     </InlineStack>
                   </BlockStack>
+
+                  <Divider />
+
+                  {/* Message Send Mode */}
+                  <ChoiceList
+                    title="WhatsApp mesaj gönderme kuralı"
+                    choices={[
+                      {
+                        label: 'Her zaman gönder',
+                        value: 'always',
+                        helpText: 'Müşteri sipariş verdiğinde ürün Recete\'de tanımlı olsun olmasın WhatsApp mesajı gönderilir. Tanımlı ürünler için kullanım talimatları eklenir, tanımsız ürünler için genel karşılama mesajı gönderilir.',
+                      },
+                      {
+                        label: 'Tüm ürünler tanımlıysa gönder',
+                        value: 'all_products_required',
+                        helpText: 'Siparişteki tüm ürünlerin Recete\'de kullanım talimatı tanımlı olması gerekir. Herhangi bir ürün tanımsızsa WhatsApp mesajı hiç gönderilmez.',
+                      },
+                    ]}
+                    selected={[messageSendMode]}
+                    onChange={(selected) => {
+                      const next = selected[0] as typeof messageSendMode | undefined;
+                      if (next) {
+                        setMessageSendMode(next);
+                        setIsDirty(true);
+                      }
+                    }}
+                  />
 
                   <Divider />
 

@@ -381,6 +381,19 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
         // T+0 welcome: build beauty-consultant message from product usage instructions
         if (type === 'welcome' && productIds && productIds.length > 0) {
           const instructions = await getUsageInstructionsForProductIds(merchantId, productIds);
+
+          // message_send_mode: 'always' (default) or 'all_products_required'
+          // When set to 'all_products_required', skip the message if any ordered product
+          // is missing from Recete's knowledge base.
+          const messageSendMode = (personaSettings as any)?.message_send_mode || 'always';
+          if (messageSendMode === 'all_products_required' && instructions.length < productIds.length) {
+            logger.info(
+              { merchantId, jobId: job.id, productIds, instructionCount: instructions.length },
+              '[Scheduled Message] Skipping: not all products have knowledge defined (message_send_mode=all_products_required)'
+            );
+            return { skipped: true, reason: 'product_knowledge_required' };
+          }
+
           const instructionProductNames = uniqueNonEmpty(
             instructions.map((row: ProductInstructionRow) => row.product_name)
           );
