@@ -4,25 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Link } from '@/i18n/routing';
-import {
-  Badge as PolarisBadge,
-  BlockStack,
-  Box,
-  Button as PolarisButton,
-  Card as PolarisCard,
-  IndexTable,
-  InlineStack,
-  Layout,
-  Page,
-  SkeletonBodyText,
-  SkeletonDisplayText,
-  SkeletonPage,
-  Text,
-  TextField,
-  useBreakpoints,
-} from '@shopify/polaris';
-import { Users, Search, ShoppingBag, MessageSquare } from 'lucide-react';
+import { Search, Users, ShoppingBag, MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface Customer {
@@ -38,20 +20,19 @@ interface Customer {
   createdAt: string;
 }
 
-const SEGMENT_TONES: Record<string, Parameters<typeof PolarisBadge>[0]['tone']> = {
-  champions: 'success',
-  loyal: 'info',
-  promising: 'attention',
-  at_risk: 'warning',
-  lost: 'critical',
-  new: 'enabled',
+const SEGMENT_BADGE: Record<string, string> = {
+  champions: 'd-badge-success',
+  loyal: 'd-badge-info',
+  promising: 'd-badge-attention',
+  at_risk: 'd-badge-warning',
+  lost: 'd-badge-error',
+  new: 'd-badge-neutral',
 };
 
 const SEGMENTS = ['all', 'champions', 'loyal', 'promising', 'at_risk', 'lost', 'new'] as const;
 
 export default function CustomersPage() {
   const t = useTranslations('Customers');
-  const { mdUp } = useBreakpoints();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -95,225 +76,110 @@ export default function CustomersPage() {
 
   const totalPages = Math.ceil(total / 20);
 
-  if (loading) {
-    return (
-      <SkeletonPage title={t('title')}>
-        <Layout>
-          <Layout.Section>
-            <PolarisCard>
-              <BlockStack gap="300">
-                <SkeletonDisplayText size="small" maxWidth="18ch" />
-                <SkeletonBodyText lines={2} />
-              </BlockStack>
-            </PolarisCard>
-          </Layout.Section>
-        </Layout>
-      </SkeletonPage>
-    );
-  }
-
-  const emptyContent = customers.length === 0 ? (
-    <PolarisCard>
-      <Box padding="600">
-        <BlockStack gap="300" inlineAlign="center">
-          <Users className="w-12 h-12 text-zinc-500" />
-          {segment !== 'all' ? (
-            <>
-              <Text as="h2" variant="headingSm">
-                {t('empty.noSegmentTitle', { segment: t(`segment.${segment}`) })}
-              </Text>
-              <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
-                {t('empty.noSegmentDescription')}
-              </Text>
-              <Link href="/dashboard/conversations" className="text-primary text-sm font-medium hover:text-primary/80">
-                {t('empty.viewConversations')}
-              </Link>
-            </>
-          ) : (
-            <>
-              <Text as="h2" variant="headingSm">{t('empty.title')}</Text>
-              <Text as="p" variant="bodyMd" tone="subdued" alignment="center">{t('empty.description')}</Text>
-            </>
-          )}
-        </BlockStack>
-      </Box>
-    </PolarisCard>
-  ) : null;
-
   return (
-    <Page title={t('title')} subtitle={t('subtitle', { total })}>
-      <Layout>
-        <Layout.Section>
-          <BlockStack gap="400">
+    <div className="d-page">
+      <div className="d-page-header">
+        <h1 className="d-page-title">{t('title')}</h1>
+        <p className="d-page-subtitle">{t('subtitle', { total })}</p>
+      </div>
 
-            {/* Search field — triggers on Enter or onChange (loadCustomers re-runs via useCallback dep on search) */}
-            <div
-              className="w-full sm:max-w-sm"
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === 'Enter') handleSearch();
-              }}
-            >
-              <TextField
-                label={t('searchPlaceholder')}
-                labelHidden
-                autoComplete="off"
-                value={search}
-                onChange={(value) => {
-                  setSearch(value);
-                  setPage(1);
-                }}
-                placeholder={t('searchPlaceholder')}
-                prefix={<Search className="w-4 h-4" aria-hidden />}
-              />
-            </div>
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div className="d-search-wrap" style={{ flex: '1 1 220px', minWidth: 180 }}>
+          <Search size={14} className="d-search-icon" />
+          <input
+            className="d-input"
+            placeholder={t('searchPlaceholder')}
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') handleSearch(); }}
+          />
+        </div>
+        <select
+          className="d-select"
+          value={segment}
+          onChange={e => { handleSegmentChange(e.target.value); }}
+        >
+          {SEGMENTS.map(s => (
+            <option key={s} value={s}>
+              {s === 'all' ? t('filterAll') : t(`segment.${s}`)}
+            </option>
+          ))}
+        </select>
+      </div>
 
-            {/* Segment pill filters */}
-            <InlineStack gap="200" wrap>
-              {SEGMENTS.map((s) => (
-                <PolarisButton
-                  key={s}
-                  variant={segment === s ? 'primary' : 'tertiary'}
-                  size="slim"
-                  onClick={() => handleSegmentChange(s)}
-                >
-                  {s === 'all' ? t('filterAll') : t(`segment.${s}`)}
-                </PolarisButton>
-              ))}
-            </InlineStack>
-
-            {/* Customer List */}
-            {customers.length === 0 ? (
-              emptyContent
-            ) : mdUp ? (
-              <PolarisCard padding="0">
-                <IndexTable
-                  resourceName={{ singular: 'customer', plural: 'customers' }}
-                  itemCount={customers.length}
-                  selectable={false}
-                  headings={[
-                    { title: t('title') },
-                    { title: 'RFM' },
-                    { title: t('orders') },
-                    { title: t('conversations') },
-                    { title: 'Churn' },
-                  ]}
-                >
-                  {customers.map((customer, index) => (
-                    <IndexTable.Row
-                      id={customer.id}
-                      key={customer.id}
-                      position={index}
-                      onClick={() => { window.location.href = `/dashboard/customers/${customer.id}`; }}
-                    >
-                      <IndexTable.Cell>
-                        <InlineStack gap="300" blockAlign="center">
-                          <Box background="bg-surface-secondary" borderRadius="full" padding="200">
-                            <Users className="w-4 h-4 text-zinc-700" />
-                          </Box>
-                          <BlockStack gap="100">
-                            <InlineStack gap="200" blockAlign="center">
-                              <Text as="span" variant="bodyMd" fontWeight="semibold">{customer.name}</Text>
-                              <PolarisBadge tone={SEGMENT_TONES[customer.segment] || 'enabled'}>
-                                {t(`segment.${customer.segment}`) || customer.segment}
-                              </PolarisBadge>
-                              {customer.churnProbability > 0.6 && (
-                                <PolarisBadge tone="critical">{`Risk ${Math.round(customer.churnProbability * 100)}%`}</PolarisBadge>
-                              )}
-                            </InlineStack>
-                            <Text as="span" variant="bodySm" tone="subdued">{customer.phone}</Text>
-                          </BlockStack>
-                        </InlineStack>
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>
-                        <Text as="span" variant="bodySm">
-                          <span className="font-mono text-xs text-muted-foreground">
-                            {`R:${customer.rfmScore.recency} F:${customer.rfmScore.frequency} M:${customer.rfmScore.monetary}`}
-                          </span>
-                        </Text>
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>
-                        <InlineStack gap="100" blockAlign="center">
-                          <ShoppingBag className="w-4 h-4 text-zinc-500" />
-                          <Text as="span" variant="bodySm">{String(customer.orderCount)}</Text>
-                        </InlineStack>
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>
-                        <InlineStack gap="100" blockAlign="center">
-                          <MessageSquare className="w-4 h-4 text-zinc-500" />
-                          <Text as="span" variant="bodySm">{String(customer.conversationCount)}</Text>
-                        </InlineStack>
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>
-                        <Text as="span" variant="bodySm">
-                          {`${Math.round(customer.churnProbability * 100)}%`}
-                        </Text>
-                      </IndexTable.Cell>
-                    </IndexTable.Row>
+      {/* Table */}
+      <div className="d-table-wrap">
+        <table className="d-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Segment</th>
+              <th>{t('orders')}</th>
+              <th>{t('conversations')}</th>
+              <th>Churn Risk</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              [...Array(8)].map((_, i) => (
+                <tr key={i}>
+                  {[...Array(6)].map((_, j) => (
+                    <td key={j}><div style={{ height: 14, background: '#E8E6DF', borderRadius: 4, width: j === 0 ? 120 : 60 }} /></td>
                   ))}
-                </IndexTable>
-              </PolarisCard>
-            ) : (
-              <PolarisCard>
-                <div className="divide-y">
-                  {customers.map((customer) => (
-                    <Link
-                      key={customer.id}
-                      href={`/dashboard/customers/${customer.id}`}
-                      className="block p-5 hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Users className="w-5 h-5 text-primary" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <Text as="p" variant="bodyMd" fontWeight="semibold">{customer.name}</Text>
-                              <PolarisBadge tone={SEGMENT_TONES[customer.segment] || 'enabled'}>
-                                {t(`segment.${customer.segment}`) || customer.segment}
-                              </PolarisBadge>
-                              {customer.churnProbability > 0.6 && (
-                                <PolarisBadge tone="critical">{`Risk ${Math.round(customer.churnProbability * 100)}%`}</PolarisBadge>
-                              )}
-                            </div>
-                            <Text as="p" variant="bodySm" tone="subdued">{customer.phone}</Text>
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {`R:${customer.rfmScore.recency} F:${customer.rfmScore.frequency} M:${customer.rfmScore.monetary}`}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <ShoppingBag className="w-4 h-4" />
-                            <span>{customer.orderCount} {t('orders')}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <MessageSquare className="w-4 h-4" />
-                            <span>{customer.conversationCount} {t('conversations')}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
+                </tr>
+              ))
+            ) : customers.length === 0 ? (
+              <tr><td colSpan={6}>
+                <div className="d-empty">
+                  <div className="d-empty-icon"><Users size={18} /></div>
+                  <p className="d-empty-title">{t('empty.title')}</p>
+                  <p className="d-empty-desc">{t('empty.description')}</p>
                 </div>
-              </PolarisCard>
-            )}
+              </td></tr>
+            ) : customers.map(customer => (
+              <tr key={customer.id} style={{ cursor: 'pointer' }} onClick={() => { window.location.href = `/dashboard/customers/${customer.id}`; }}>
+                <td style={{ fontWeight: 500 }}>{customer.name || '—'}</td>
+                <td style={{ fontFamily: 'monospace', fontSize: 12.5 }}>{customer.phone}</td>
+                <td><span className={`d-badge ${SEGMENT_BADGE[customer.segment] || 'd-badge-neutral'}`}>{t(`segment.${customer.segment}`) || customer.segment}</span></td>
+                <td>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <ShoppingBag size={12} style={{ color: '#8E918C' }} /> {customer.orderCount}
+                  </span>
+                </td>
+                <td>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <MessageSquare size={12} style={{ color: '#8E918C' }} /> {customer.conversationCount}
+                  </span>
+                </td>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className="d-progress-bar" style={{ width: 60 }}>
+                      <div
+                        className={`d-progress-bar-fill ${customer.churnProbability > 0.6 ? 'danger' : customer.churnProbability > 0.3 ? 'warning' : ''}`}
+                        style={{ width: `${Math.round(customer.churnProbability * 100)}%` }}
+                      />
+                    </div>
+                    <span style={{ fontSize: 12, color: '#5A5D58' }}>{Math.round(customer.churnProbability * 100)}%</span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <InlineStack align="center" gap="200">
-                <PolarisButton variant="secondary" size="slim" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-                  {t('previous')}
-                </PolarisButton>
-                <Text as="span" variant="bodySm" tone="subdued">{t('pagination.page', { page, totalPages })}</Text>
-                <PolarisButton variant="secondary" size="slim" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-                  {t('next')}
-                </PolarisButton>
-              </InlineStack>
-            )}
-          </BlockStack>
-        </Layout.Section>
-      </Layout>
-    </Page>
+      {/* Pagination */}
+      {total > 20 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '0 4px' }}>
+          <span style={{ fontSize: 13, color: '#5A5D58' }}>{(page - 1) * 20 + 1}–{Math.min(page * 20, total)} / {total}</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="d-btn d-btn-outline d-btn-sm" onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ opacity: page === 1 ? 0.4 : 1 }}>{t('previous')}</button>
+            <button className="d-btn d-btn-outline d-btn-sm" onClick={() => setPage(p => p + 1)} disabled={page * 20 >= total} style={{ opacity: page * 20 >= total ? 0.4 : 1 }}>{t('next')}</button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

@@ -7,41 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { Link } from '@/i18n/routing';
-import {
-  ButtonGroup as PolarisButtonGroup,
-  Card as PolarisCard,
-  IndexTable,
-  Layout,
-  Page,
-  Select as PolarisSelect,
-  SkeletonPage,
-  Text,
-  EmptyState,
-  Button as PolarisButton,
-  Pagination,
-  TextField,
-  Badge as PolarisBadge,
-  Icon,
-  InlineStack,
-  BlockStack,
-  Box,
-  Modal,
-  ProgressBar,
-  Spinner,
-} from '@shopify/polaris';
-import {
-  PlusIcon,
-  DeleteIcon,
-  ExternalIcon,
-  NoteIcon,
-  CheckCircleIcon,
-  AppsIcon,
-  ListBulletedIcon,
-  SearchIcon,
-  RefreshIcon,
-  AlertBubbleIcon,
-  AlertCircleIcon,
-} from '@shopify/polaris-icons';
+import { Search, Plus, Trash2, RefreshCw, Grid3X3, List, ExternalLink, AlertCircle, CheckCircle2, Package } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { SESSION_RECHECK_MS } from '@/lib/constants';
 import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
@@ -136,10 +102,10 @@ export default function ProductsPage() {
     return mapping[reasonCode] || reasonCode;
   };
 
-  const knowledgeTone = (score: number | undefined): Parameters<typeof PolarisBadge>[0]['tone'] => {
-    if ((score || 0) >= 80) return 'success';
-    if ((score || 0) >= 55) return 'attention';
-    return 'critical';
+  const knowledgeToneBadge = (score: number | undefined): string => {
+    if ((score || 0) >= 80) return 'd-badge-success';
+    if ((score || 0) >= 55) return 'd-badge-attention';
+    return 'd-badge-error';
   };
 
   const knowledgeCoverageLabel = (coverage: 'strong' | 'moderate' | 'weak') => {
@@ -454,115 +420,12 @@ export default function ProductsPage() {
     }
   };
 
-  // Returns a Tailwind border-color class for the colored left border on grid cards
-  const healthBorderColor = (score: number | undefined): string => {
+  // Returns left-border color style for grid cards based on knowledge health score
+  const healthBorderStyle = (score: number | undefined): React.CSSProperties => {
     const s = score ?? 0;
-    if (s >= 80) return 'border-l-4 border-l-green-500';
-    if (s >= 55) return 'border-l-4 border-l-amber-400';
-    return 'border-l-4 border-l-red-500';
-  };
-
-  const renderProductStatusBadges = (product: ProductWithChunks) => (
-    <InlineStack gap="200" wrap>
-      {product.knowledgeHealth && (
-        <PolarisBadge tone={knowledgeTone(product.knowledgeHealth.score)}>
-          {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
-        </PolarisBadge>
-      )}
-      {product.raw_text && (
-        <PolarisBadge tone="success">
-          {t('card.scraped')}
-        </PolarisBadge>
-      )}
-      <PolarisBadge>
-        {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
-      </PolarisBadge>
-    </InlineStack>
-  );
-
-  const renderProductStatusCompact = (product: ProductWithChunks) => {
-    const hasRaw = Boolean(product.raw_text);
-    const ragReady = hasRaw && !product.chunkCountUnavailable && (product.chunkCount || 0) > 0;
-    const ragUnknown = hasRaw && product.chunkCountUnavailable;
-    const ragNotReady = hasRaw && !product.chunkCountUnavailable && (product.chunkCount || 0) === 0;
-
-    return (
-      <BlockStack gap="150">
-        <InlineStack gap="200" wrap>
-          {product.knowledgeHealth && (
-            <PolarisBadge tone={knowledgeTone(product.knowledgeHealth.score)}>
-              {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
-            </PolarisBadge>
-          )}
-          <PolarisBadge>
-            {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
-          </PolarisBadge>
-          {hasRaw && (
-            <PolarisBadge tone="success">
-              {t('card.scraped')}
-            </PolarisBadge>
-          )}
-        </InlineStack>
-        <InlineStack gap="200" wrap>
-          {ragReady && (
-            <PolarisBadge tone="success">
-              {t('card.ragReady')}
-            </PolarisBadge>
-          )}
-          {ragUnknown && (
-            <PolarisBadge>
-              {t('card.ragStatusUnknown')}
-            </PolarisBadge>
-          )}
-          {ragNotReady && (
-            <PolarisBadge>
-              {t('card.ragNotReady')}
-            </PolarisBadge>
-          )}
-          {!hasRaw && (
-            <Text as="span" variant="bodySm" tone="subdued">
-              {t('filters.statusOptions.notScraped')}
-            </Text>
-          )}
-        </InlineStack>
-      </BlockStack>
-    );
-  };
-
-  const getStatusFilterLabel = (value: ProductStatusFilter) => {
-    switch (value) {
-      case 'rag_ready':
-        return t('filters.statusOptions.ragReady');
-      case 'rag_not_ready':
-        return t('filters.statusOptions.ragNotReady');
-      case 'rag_unknown':
-        return t('filters.statusOptions.ragUnknown');
-      case 'scraped':
-        return t('filters.statusOptions.scraped');
-      case 'not_scraped':
-        return t('filters.statusOptions.notScraped');
-      case 'all':
-      default:
-        return t('filters.statusOptions.all');
-    }
-  };
-
-  const getSortLabel = (value: ProductSortOption) => {
-    switch (value) {
-      case 'updated_asc':
-        return t('filters.sortOptions.updatedAsc');
-      case 'name_asc':
-        return t('filters.sortOptions.nameAsc');
-      case 'name_desc':
-        return t('filters.sortOptions.nameDesc');
-      case 'chunks_desc':
-        return t('filters.sortOptions.chunksDesc');
-      case 'chunks_asc':
-        return t('filters.sortOptions.chunksAsc');
-      case 'updated_desc':
-      default:
-        return t('filters.sortOptions.updatedDesc');
-    }
+    if (s >= 80) return { borderLeft: '4px solid #22c55e' };
+    if (s >= 55) return { borderLeft: '4px solid #f59e0b' };
+    return { borderLeft: '4px solid #ef4444' };
   };
 
   const toggleProductSelection = (productId: string) => {
@@ -710,661 +573,538 @@ export default function ProductsPage() {
 
   if (loading) {
     return (
-      <SkeletonPage title={t('title')}>
-        <Layout>
-          <Layout.Section>
-            <div className="space-y-6 animate-fade-in">
-              <div className="space-y-3">
-                <div className="h-10 w-40 bg-zinc-200 rounded-xl animate-pulse" />
-                <div className="h-5 w-72 bg-zinc-100 rounded-lg animate-pulse" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-56 bg-card border border-border rounded-lg animate-pulse" />
-                ))}
-              </div>
-            </div>
-          </Layout.Section>
-        </Layout>
-      </SkeletonPage>
+      <div className="d-page">
+        <div className="d-page-header">
+          <div style={{ height: 26, width: 200, background: '#E8E6DF', borderRadius: 6, marginBottom: 8 }} />
+          <div style={{ height: 16, width: 300, background: '#E8E6DF', borderRadius: 4 }} />
+        </div>
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="d-card" style={{ marginBottom: 16, height: 120, background: '#F2F0E9', animation: 'pulse 1.5s ease-in-out infinite' }} />
+        ))}
+      </div>
     );
   }
 
+  const scrapeProgressPct = scrapeStep === 1 ? 25 : scrapeStep === 2 ? 60 : scrapeStep === 3 ? 85 : scrapeStep === 4 ? 100 : 0;
+
   return (
     <>
-    {ConfirmDialogNode}
-    {PromptDialogNode}
-    <Page title={t('title')} subtitle={t('description')} fullWidth>
-      <Layout>
-        <Layout.Section>
-          <div className="space-y-6 animate-fade-in pb-8">
-            {pageFeedback ? (
-              <PageFeedbackCard
-                tone={pageFeedback.tone}
-                title={pageFeedback.title}
-                message={pageFeedback.message}
-                actionLabel={pageFeedback.actionLabel}
-                onAction={
-                  pageFeedback.targetId
-                    ? () => {
-                        document
-                          .getElementById(pageFeedback.targetId!)
-                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }
-                    : undefined
-                }
-                dismissLabel={t('feedback.dismiss')}
-                onDismiss={() => setPageFeedback(null)}
-              />
-            ) : null}
-            {/* Header — Row 1: page actions (right-aligned) */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="space-y-0.5">
-                <Text as="h2" variant="headingMd">{t('title')}</Text>
-                <Text as="p" tone="subdued">{t('description')}</Text>
+      {ConfirmDialogNode}
+      {PromptDialogNode}
+
+      <div className="d-page">
+        {/* Page header */}
+        <div className="d-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h1 className="d-page-title">{t('title')}</h1>
+            <p className="d-page-subtitle">{t('description')}</p>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* View mode toggle */}
+            <div style={{ display: 'flex', border: '1px solid #E8E6DF', borderRadius: 8, overflow: 'hidden' }}>
+              <button
+                className={`d-btn d-btn-sm ${viewMode === 'grid' ? 'd-btn-primary' : 'd-btn-ghost'}`}
+                style={{ border: 'none', borderRadius: 0 }}
+                onClick={() => handleViewModeChange('grid')}
+                title={t('view.grid')}
+              >
+                <Grid3X3 size={14} />
+              </button>
+              <button
+                className={`d-btn d-btn-sm ${viewMode === 'list' ? 'd-btn-primary' : 'd-btn-ghost'}`}
+                style={{ border: 'none', borderRadius: 0 }}
+                onClick={() => handleViewModeChange('list')}
+                title={t('view.list')}
+              >
+                <List size={14} />
+              </button>
+            </div>
+            <a href={`/${locale}/dashboard/products/shopify-map`} className="d-btn d-btn-outline">
+              <RefreshCw size={14} /> {t('shopifyMapButton')}
+            </a>
+            <button className="d-btn d-btn-primary" onClick={() => setShowAddModal(true)}>
+              <Plus size={14} /> {t('addProductButton')}
+            </button>
+          </div>
+        </div>
+
+        {/* Page feedback */}
+        {pageFeedback ? (
+          <div style={{ marginBottom: 16 }}>
+            <PageFeedbackCard
+              tone={pageFeedback.tone}
+              title={pageFeedback.title}
+              message={pageFeedback.message}
+              actionLabel={pageFeedback.actionLabel}
+              onAction={
+                pageFeedback.targetId
+                  ? () => {
+                      document
+                        .getElementById(pageFeedback.targetId!)
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  : undefined
+              }
+              dismissLabel={t('feedback.dismiss')}
+              onDismiss={() => setPageFeedback(null)}
+            />
+          </div>
+        ) : null}
+
+        {/* Saved views + filters */}
+        {products.length > 0 && (
+          <div id="products-catalog" className="d-card" style={{ marginBottom: 16 }}>
+            {/* Saved views tabs */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: 2 }}>
+                <button
+                  type="button"
+                  onClick={() => applySavedView('all')}
+                  className={`d-btn d-btn-sm ${activeSavedViewId === 'all' ? 'd-btn-primary' : 'd-btn-outline'}`}
+                >
+                  {t('savedViews.all')}
+                </button>
+                {savedViews.map((view) => (
+                  <span key={view.id} style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid #E8E6DF', borderRadius: 8, overflow: 'hidden' }}>
+                    <button
+                      type="button"
+                      onClick={() => applySavedView(view.id)}
+                      className={`d-btn d-btn-sm ${activeSavedViewId === view.id ? 'd-btn-primary' : 'd-btn-ghost'}`}
+                      style={{ borderRadius: 0, border: 'none' }}
+                      title={view.name}
+                    >
+                      {view.name}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteSavedView(view.id)}
+                      style={{ padding: '0 6px', background: 'none', border: 'none', cursor: 'pointer', color: '#8E918C', display: 'flex', alignItems: 'center' }}
+                      aria-label={t('savedViews.deleteAria', { name: view.name })}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </span>
+                ))}
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <PolarisButtonGroup variant="segmented">
-                  <PolarisButton
-                    onClick={() => handleViewModeChange('grid')}
-                    icon={AppsIcon}
-                    pressed={viewMode === 'grid'}
-                    accessibilityLabel={t('view.grid')}
-                  />
-                  <PolarisButton
-                    onClick={() => handleViewModeChange('list')}
-                    icon={ListBulletedIcon}
-                    pressed={viewMode === 'list'}
-                    accessibilityLabel={t('view.list')}
-                  />
-                </PolarisButtonGroup>
-                <PolarisButton url={`/${locale}/dashboard/products/shopify-map`} icon={RefreshIcon}>
-                  {t('shopifyMapButton')}
-                </PolarisButton>
-                <PolarisButton variant="primary" onClick={() => setShowAddModal(true)} icon={PlusIcon}>
-                  {t('addProductButton')}
-                </PolarisButton>
+              <button type="button" className="d-btn d-btn-outline d-btn-sm" onClick={saveCurrentView}>
+                {t('savedViews.saveCurrent')}
+              </button>
+            </div>
+
+            {/* Search + filters */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div className="d-search-wrap" style={{ flex: '1 1 200px', minWidth: 180 }}>
+                <Search size={14} className="d-search-icon" />
+                <input
+                  className="d-input"
+                  placeholder={t('filters.searchPlaceholder')}
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 11.5, color: '#8E918C', display: 'block', marginBottom: 4 }}>{t('filters.status')}</label>
+                <select className="d-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as ProductStatusFilter)}>
+                  <option value="all">{t('filters.statusOptions.all')}</option>
+                  <option value="rag_ready">{t('filters.statusOptions.ragReady')}</option>
+                  <option value="rag_not_ready">{t('filters.statusOptions.ragNotReady')}</option>
+                  <option value="rag_unknown">{t('filters.statusOptions.ragUnknown')}</option>
+                  <option value="scraped">{t('filters.statusOptions.scraped')}</option>
+                  <option value="not_scraped">{t('filters.statusOptions.notScraped')}</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 11.5, color: '#8E918C', display: 'block', marginBottom: 4 }}>{t('filters.sort')}</label>
+                <select className="d-select" value={sortBy} onChange={e => setSortBy(e.target.value as ProductSortOption)}>
+                  <option value="updated_desc">{t('filters.sortOptions.updatedDesc')}</option>
+                  <option value="updated_asc">{t('filters.sortOptions.updatedAsc')}</option>
+                  <option value="name_asc">{t('filters.sortOptions.nameAsc')}</option>
+                  <option value="name_desc">{t('filters.sortOptions.nameDesc')}</option>
+                  <option value="chunks_desc">{t('filters.sortOptions.chunksDesc')}</option>
+                  <option value="chunks_asc">{t('filters.sortOptions.chunksAsc')}</option>
+                </select>
               </div>
             </div>
 
-            {products.length > 0 && (
-              <div id="products-catalog">
-              <PolarisCard>
-                <div className="p-4 sm:p-5 space-y-4">
-                  <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:items-start">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        <button
-                          type="button"
-                          onClick={() => applySavedView('all')}
-                          className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${activeSavedViewId === 'all'
-                            ? 'border-[var(--p-color-border-emphasis)] bg-[var(--p-color-bg-fill-secondary)] text-[var(--p-color-text)]'
-                            : 'border-border bg-background text-muted-foreground hover:text-foreground'
-                            }`}
-                        >
-                          {t('savedViews.all')}
-                        </button>
-                        {savedViews.map((view) => (
-                          <span key={view.id} className="inline-flex shrink-0 items-center rounded-full border border-border bg-background text-xs max-w-[220px]">
-                            <button
-                              type="button"
-                              onClick={() => applySavedView(view.id)}
-                              className={`px-3 py-1.5 rounded-full transition-colors truncate ${activeSavedViewId === view.id
-                                ? 'bg-[var(--p-color-bg-fill-secondary)] text-[var(--p-color-text)]'
-                                : 'text-muted-foreground hover:text-foreground'
-                                }`}
-                              title={view.name}
-                            >
-                              {view.name}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => deleteSavedView(view.id)}
-                              className="pr-2 pl-1 text-muted-foreground hover:text-destructive"
-                              aria-label={t('savedViews.deleteAria', { name: view.name })}
-                            >
-                              <Icon source={DeleteIcon} tone="subdued" />
-                            </button>
+            {/* Results count + reset */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: '#5A5D58' }}>
+              <span>{t('filters.resultsCount', { shown: filteredAndSortedProducts.length, total: products.length })}</span>
+              {(searchQuery || statusFilter !== 'all' || sortBy !== 'updated_desc') && (
+                <button
+                  type="button"
+                  className="d-btn d-btn-ghost d-btn-sm"
+                  onClick={() => { setSearchQuery(''); setStatusFilter('all'); setSortBy('updated_desc'); setActiveSavedViewId('all'); }}
+                >
+                  {t('filters.reset')}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Bulk actions */}
+        {products.length > 0 && (
+          <div className="d-card" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                type="button"
+                className="d-btn d-btn-outline d-btn-sm"
+                onClick={toggleSelectAllVisibleProducts}
+                disabled={visibleProductIds.length === 0}
+              >
+                {allVisibleSelected ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
+                {allVisibleSelected ? t('bulk.unselectVisible') : t('bulk.selectVisible')}
+              </button>
+              <span style={{ fontSize: 13, color: '#5A5D58' }}>
+                {t('bulk.selectedCount', { count: selectedProductIds.length, visible: selectedVisibleCount })}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                type="button"
+                className="d-btn d-btn-outline d-btn-sm"
+                disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
+                onClick={clearSelectedProducts}
+              >
+                {t('bulk.clearSelection')}
+              </button>
+              <button
+                type="button"
+                className="d-btn d-btn-outline d-btn-sm"
+                disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
+                onClick={() => runBulkProductAction('scrape')}
+              >
+                {bulkActionLoading === 'scrape' ? t('bulk.scraping') : t('bulk.rescrape')}
+              </button>
+              <button
+                type="button"
+                className="d-btn d-btn-primary d-btn-sm"
+                disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
+                onClick={() => runBulkProductAction('embeddings')}
+              >
+                {bulkActionLoading === 'embeddings' ? t('bulk.generatingEmbeddings') : t('bulk.generateEmbeddings')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {products.length === 0 && !loading ? (
+          <div className="d-card">
+            <div className="d-empty">
+              <div className="d-empty-icon"><Package size={18} /></div>
+              <p className="d-empty-title">{t('empty.title')}</p>
+              <p className="d-empty-desc">{t('empty.description')}</p>
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <button className="d-btn d-btn-primary" onClick={() => setShowAddModal(true)}>{t('empty.button')}</button>
+                <button className="d-btn d-btn-outline" onClick={() => { setLoading(true); loadProducts(); }}>{t('empty.refresh')}</button>
+              </div>
+            </div>
+          </div>
+        ) : filteredAndSortedProducts.length === 0 ? (
+          <div className="d-card">
+            <div className="d-empty">
+              <div className="d-empty-icon"><Search size={18} /></div>
+              <p className="d-empty-title">{t('filters.noMatches')}</p>
+              <p className="d-empty-desc">{`No products found matching "${searchQuery}"`}</p>
+              <button className="d-btn d-btn-outline" onClick={() => setSearchQuery('')}>{t('bulk.clearSelection') || 'Clear search'}</button>
+            </div>
+          </div>
+        ) : viewMode === 'grid' ? (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+              {paginatedProducts.map((product) => (
+                <div
+                  key={product.id}
+                  style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column', ...healthBorderStyle(product.knowledgeHealth?.score) }}
+                >
+                  <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', flex: 1, gap: 12 }}>
+                    {/* Top row: score badge + delete */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        {product.knowledgeHealth && (
+                          <span className={`d-badge ${knowledgeToneBadge(product.knowledgeHealth.score)}`}>
+                            {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
                           </span>
-                        ))}
+                        )}
                       </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 xl:justify-end xl:self-start">
-                      <PolarisButton onClick={saveCurrentView}>
-                        {t('savedViews.saveCurrent')}
-                      </PolarisButton>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-[var(--p-color-border-secondary)] bg-[var(--p-color-bg-surface-secondary)]/35 p-3 sm:p-4">
-                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_260px_260px] 2xl:items-end">
-                      <div className="min-w-0 lg:col-span-2 2xl:col-span-1">
-                        <TextField
-                          label={t('filters.searchLabel')}
-                          value={searchQuery}
-                          onChange={(value) => setSearchQuery(value)}
-                          placeholder={t('filters.searchPlaceholder')}
-                          autoComplete="off"
-                          prefix={<Icon source={SearchIcon} tone="subdued" />}
-                        />
-                      </div>
-
-                      <div className="min-w-0">
-                        <PolarisSelect
-                          label={t('filters.status')}
-                          options={[
-                            { label: t('filters.statusOptions.all'), value: 'all' },
-                            { label: t('filters.statusOptions.ragReady'), value: 'rag_ready' },
-                            { label: t('filters.statusOptions.ragNotReady'), value: 'rag_not_ready' },
-                            { label: t('filters.statusOptions.ragUnknown'), value: 'rag_unknown' },
-                            { label: t('filters.statusOptions.scraped'), value: 'scraped' },
-                            { label: t('filters.statusOptions.notScraped'), value: 'not_scraped' },
-                          ]}
-                          value={statusFilter}
-                          onChange={(value) => setStatusFilter(value as ProductStatusFilter)}
-                        />
-                      </div>
-
-                      <div className="min-w-0">
-                        <PolarisSelect
-                          label={t('filters.sort')}
-                          options={[
-                            { label: t('filters.sortOptions.updatedDesc'), value: 'updated_desc' },
-                            { label: t('filters.sortOptions.updatedAsc'), value: 'updated_asc' },
-                            { label: t('filters.sortOptions.nameAsc'), value: 'name_asc' },
-                            { label: t('filters.sortOptions.nameDesc'), value: 'name_desc' },
-                            { label: t('filters.sortOptions.chunksDesc'), value: 'chunks_desc' },
-                            { label: t('filters.sortOptions.chunksAsc'), value: 'chunks_asc' },
-                          ]}
-                          value={sortBy}
-                          onChange={(value) => setSortBy(value as ProductSortOption)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
-                    <Text as="p" tone="subdued">
-                      {t('filters.resultsCount', { shown: filteredAndSortedProducts.length, total: products.length })}
-                    </Text>
-                    {(searchQuery || statusFilter !== 'all' || sortBy !== 'updated_desc') && (
                       <button
                         type="button"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setStatusFilter('all');
-                          setSortBy('updated_desc');
-                          setActiveSavedViewId('all');
+                        className="d-btn d-btn-danger d-btn-sm"
+                        style={{ padding: '0 8px' }}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const ok = await confirm({ title: t('card.deleteConfirm'), message: '', destructive: true, confirmLabel: 'Delete', cancelLabel: 'Cancel' });
+                          if (ok) handleDeleteProduct(product.id);
                         }}
-                        className="text-primary hover:text-primary/80 font-medium text-left sm:text-right"
+                        aria-label={t('card.deleteConfirm')}
                       >
-                        {t('filters.reset')}
+                        <Trash2 size={13} />
                       </button>
-                    )}
-                  </div>
-
-                  {(searchQuery || statusFilter !== 'all' || sortBy !== 'updated_desc') && (
-                    <div className="flex flex-col sm:flex-row sm:items-start gap-2">
-                      <span className="text-xs text-muted-foreground font-medium leading-7 shrink-0">{t('filters.applied')}:</span>
-                      <div className="flex flex-wrap items-center gap-2 min-w-0">
-                        {searchQuery && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
-                            {t('filters.searchChip', { value: searchQuery })}
-                            <button type="button" onClick={() => setSearchQuery('')} className="text-muted-foreground hover:text-foreground">
-                              <Icon source={DeleteIcon} tone="subdued" />
-                            </button>
-                          </span>
-                        )}
-                        {statusFilter !== 'all' && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
-                            {t('filters.statusChip', { value: getStatusFilterLabel(statusFilter) })}
-                            <button type="button" onClick={() => setStatusFilter('all')} className="text-muted-foreground hover:text-foreground">
-                              <Icon source={DeleteIcon} tone="subdued" />
-                            </button>
-                          </span>
-                        )}
-                        {sortBy !== 'updated_desc' && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs">
-                            {t('filters.sortChip', { value: getSortLabel(sortBy) })}
-                            <button type="button" onClick={() => setSortBy('updated_desc')} className="text-muted-foreground hover:text-foreground">
-                              <Icon source={DeleteIcon} tone="subdued" />
-                            </button>
-                          </span>
-                        )}
-                      </div>
                     </div>
-                  )}
+
+                    {/* Name + checkbox */}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIdSet.has(product.id)}
+                        onChange={() => toggleProductSelection(product.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={t('bulk.selectProduct', { name: product.name })}
+                        style={{ marginTop: 3, flexShrink: 0 }}
+                      />
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#0A0B0A', wordBreak: 'break-word' }}>{product.name}</p>
+                    </div>
+
+                    {/* URL */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <ExternalLink size={12} style={{ color: '#8E918C', flexShrink: 0 }} />
+                      <a
+                        href={product.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ fontSize: 12.5, color: '#2A6647', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}
+                      >
+                        {product.url}
+                      </a>
+                    </div>
+
+                    {/* Status badges */}
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {product.raw_text && <span className="d-badge d-badge-success">{t('card.scraped')}</span>}
+                      <span className="d-badge d-badge-neutral">
+                        {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
+                      </span>
+                    </div>
+
+                    {/* Knowledge hint */}
+                    {product.knowledgeHealth && (
+                      <p style={{ margin: 0, fontSize: 12, color: '#8E918C', flex: 1 }}>
+                        {t('knowledge.cardHint', {
+                          coverage: knowledgeCoverageLabel(product.knowledgeHealth.coverage),
+                          gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
+                        })}
+                      </p>
+                    )}
+
+                    {/* Edit button */}
+                    <a
+                      href={`/${locale}/dashboard/products/${product.id}`}
+                      className="d-btn d-btn-outline"
+                      style={{ width: '100%', justifyContent: 'center', marginTop: 'auto' }}
+                    >
+                      {t('card.edit')}
+                    </a>
+                  </div>
                 </div>
-              </PolarisCard>
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13, color: '#5A5D58' }}>
+                  {t('list.pagination.showing', {
+                    from: (currentPage - 1) * itemsPerPage + 1,
+                    to: Math.min(currentPage * itemsPerPage, filteredAndSortedProducts.length),
+                    total: filteredAndSortedProducts.length,
+                  })}
+                </span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="d-btn d-btn-outline d-btn-sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)} style={{ opacity: currentPage <= 1 ? 0.4 : 1 }}>
+                    {t('list.pagination.page', { current: currentPage, total: totalPages })} &larr;
+                  </button>
+                  <button className="d-btn d-btn-outline d-btn-sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} style={{ opacity: currentPage >= totalPages ? 0.4 : 1 }}>
+                    &rarr;
+                  </button>
+                </div>
               </div>
             )}
-
-            {products.length > 0 && (
-              <PolarisCard>
-                <div className="p-4 sm:p-5 grid gap-3 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-center">
-                  <InlineStack gap="300" blockAlign="center">
-                    <PolarisButton
-                      onClick={toggleSelectAllVisibleProducts}
-                      disabled={visibleProductIds.length === 0}
-                      icon={allVisibleSelected ? CheckCircleIcon : AlertCircleIcon}
-                    >
-                      {allVisibleSelected ? t('bulk.unselectVisible') : t('bulk.selectVisible')}
-                    </PolarisButton>
-                    <Text as="p" tone="subdued">
-                      {t('bulk.selectedCount', { count: selectedProductIds.length, visible: selectedVisibleCount })}
-                    </Text>
-                  </InlineStack>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 2xl:min-w-[420px]">
-                    <PolarisButton
-                      disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
-                      onClick={clearSelectedProducts}
-                    >
-                      {t('bulk.clearSelection')}
-                    </PolarisButton>
-                    <PolarisButton
-                      disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
-                      onClick={() => runBulkProductAction('scrape')}
-                    >
-                      {bulkActionLoading === 'scrape' ? t('bulk.scraping') : t('bulk.rescrape')}
-                    </PolarisButton>
-                    <PolarisButton
-                      variant="primary"
-                      disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
-                      onClick={() => runBulkProductAction('embeddings')}
-                    >
-                      {bulkActionLoading === 'embeddings' ? t('bulk.generatingEmbeddings') : t('bulk.generateEmbeddings')}
-                    </PolarisButton>
-                  </div>
-                </div>
-              </PolarisCard>
-            )}
-
-            {/* Products Grid/List */}
-            {products.length === 0 && !loading ? (
-              <PolarisCard>
-                <EmptyState
-                  heading={t('empty.title')}
-                  action={{
-                    content: t('empty.button'),
-                    onAction: () => setShowAddModal(true),
-                  }}
-                  secondaryAction={{
-                    content: t('empty.refresh'),
-                    onAction: () => {
-                      setLoading(true);
-                      loadProducts();
-                    },
-                  }}
-                  image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                >
-                  <p>{t('empty.description')}</p>
-                </EmptyState>
-              </PolarisCard>
-            ) : (
-              filteredAndSortedProducts.length === 0 ? (
-                <PolarisCard>
-                  <EmptyState
-                    heading={t('filters.noMatches')}
-                    action={{
-                      content: t('bulk.clearSelection') || 'Clear search',
-                      onAction: () => setSearchQuery(''),
-                    }}
-                    image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                  >
-                    <p>{`No products found matching "${searchQuery}"`}</p>
-                  </EmptyState>
-                </PolarisCard>
-              ) : viewMode === 'grid' ? (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {paginatedProducts.map((product) => (
-                      <div
-                        key={product.id}
-                        className={`rounded-lg bg-[var(--p-color-bg-surface)] border border-[var(--p-color-border)] overflow-hidden flex flex-col ${healthBorderColor(product.knowledgeHealth?.score)}`}
-                      >
-                        <div className="p-4 sm:p-5 flex flex-col h-full space-y-3">
-                          {/* Score badge at the very top */}
-                          <InlineStack align="space-between" blockAlign="start">
-                            <div>
-                              {product.knowledgeHealth && (
-                                <PolarisBadge tone={knowledgeTone(product.knowledgeHealth.score)}>
-                                  {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
-                                </PolarisBadge>
-                              )}
-                            </div>
-                            <PolarisButton
-                              icon={DeleteIcon}
-                              tone="critical"
-                              variant="tertiary"
-                              onClick={async () => {
-                                const ok = await confirm({ title: t('card.deleteConfirm'), message: '', destructive: true, confirmLabel: 'Delete', cancelLabel: 'Cancel' });
-                                if (ok) handleDeleteProduct(product.id);
-                              }}
-                              accessibilityLabel={t('card.deleteConfirm')}
-                            />
-                          </InlineStack>
-
-                          {/* Product name + checkbox */}
-                          <InlineStack gap="200" blockAlign="start">
-                            <Box paddingBlockStart="050">
-                              <input
-                                type="checkbox"
-                                checked={selectedIdSet.has(product.id)}
-                                onChange={() => toggleProductSelection(product.id)}
-                                onClick={(e) => e.stopPropagation()}
-                                aria-label={t('bulk.selectProduct', { name: product.name })}
-                                className="rounded border-zinc-300"
-                              />
-                            </Box>
-                            <div className="min-w-0 flex-1">
-                              <Text as="h3" variant="headingMd" breakWord>{product.name}</Text>
-                            </div>
-                          </InlineStack>
-
-                          <div className="space-y-3 flex flex-col flex-1">
-                            <InlineStack gap="100" blockAlign="center">
-                              <Icon source={ExternalIcon} tone="primary" />
-                              <a
-                                href={product.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-primary hover:text-primary/80 truncate max-w-[240px] font-medium"
-                              >
-                                {product.url}
-                              </a>
-                            </InlineStack>
-
-                            <div className="mb-auto">
-                              {/* Show scraped + chunk count only (score already shown above) */}
-                              <InlineStack gap="200" wrap>
-                                {product.raw_text && (
-                                  <PolarisBadge tone="success">{t('card.scraped')}</PolarisBadge>
-                                )}
-                                <PolarisBadge>
-                                  {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
-                                </PolarisBadge>
-                              </InlineStack>
-                              {product.knowledgeHealth && (
-                                <Box paddingBlockStart="200">
-                                  <Text as="p" variant="bodySm" tone="subdued">
-                                    {t('knowledge.cardHint', {
-                                      coverage: knowledgeCoverageLabel(product.knowledgeHealth.coverage),
-                                      gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
-                                    })}
-                                  </Text>
-                                </Box>
-                              )}
-                            </div>
-
-                            <div className="mt-4">
-                              <PolarisButton fullWidth url={`/${locale}/dashboard/products/${product.id}`}>
-                                {t('card.edit')}
-                              </PolarisButton>
-                            </div>
+          </>
+        ) : (
+          <>
+            <div className="d-table-wrap">
+              <table className="d-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 32 }}></th>
+                    <th>{t('list.columns.product')}</th>
+                    <th>{t('list.columns.source')}</th>
+                    <th>{t('list.columns.status')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('list.columns.actions')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedProducts.map((product) => (
+                    <tr key={product.id}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedIdSet.has(product.id)}
+                          onChange={() => toggleProductSelection(product.id)}
+                          aria-label={t('bulk.selectProduct', { name: product.name })}
+                        />
+                      </td>
+                      <td>
+                        <div style={{ maxWidth: 300 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            {product.knowledgeHealth && (
+                              <span className={`d-badge ${knowledgeToneBadge(product.knowledgeHealth.score)}`}>
+                                {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
+                              </span>
+                            )}
+                            <Link
+                              href={`/dashboard/products/${product.id}` as Parameters<typeof Link>[0]['href']}
+                              style={{ fontWeight: 600, color: '#0A0B0A', textDecoration: 'none', wordBreak: 'break-word' }}
+                            >
+                              {product.name}
+                            </Link>
                           </div>
+                          <p style={{ margin: '2px 0 0', fontSize: 11.5, color: '#8E918C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.id}</p>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                  {totalPages > 1 && (
-                    <div className="mt-6 border-t border-subdued pt-4 flex flex-col items-center gap-2">
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        {t('list.pagination.showing', {
-                          from: (currentPage - 1) * itemsPerPage + 1,
-                          to: Math.min(currentPage * itemsPerPage, filteredAndSortedProducts.length),
-                          total: filteredAndSortedProducts.length,
-                        })}
-                      </Text>
-                      <Pagination
-                        hasPrevious={currentPage > 1}
-                        onPrevious={() => setCurrentPage((prev) => prev - 1)}
-                        hasNext={currentPage < totalPages}
-                        onNext={() => setCurrentPage((prev) => prev + 1)}
-                        label={t('list.pagination.page', { current: currentPage, total: totalPages })}
-                      />
-                    </div>
-                  )}
-                </>
-              ) : (
-                <PolarisCard>
-                  <div className="divide-y divide-border">
-                    {paginatedProducts.map((product) => (
-                      <div key={`mobile-${product.id}`} className="px-4 sm:px-5 py-4 md:hidden">
-                        <BlockStack gap="300">
-                          <InlineStack align="space-between" blockAlign="start">
-                            <InlineStack gap="200" blockAlign="start">
-                              <Box paddingBlockStart="100">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedIdSet.has(product.id)}
-                                  onChange={() => toggleProductSelection(product.id)}
-                                  aria-label={t('bulk.selectProduct', { name: product.name })}
-                                  className="rounded border-zinc-300"
-                                />
-                              </Box>
-                              <div className="min-w-0">
-                                <Text as="p" fontWeight="semibold" breakWord>{product.name}</Text>
-                                <Text as="p" variant="bodyXs" tone="subdued" breakWord>{product.id}</Text>
-                              </div>
-                            </InlineStack>
-                            <PolarisButton
-                              icon={DeleteIcon}
-                              tone="critical"
-                              variant="tertiary"
-                              onClick={async () => {
-                                const ok = await confirm({ title: t('card.deleteConfirm'), message: '', destructive: true, confirmLabel: 'Delete', cancelLabel: 'Cancel' });
-                                if (ok) handleDeleteProduct(product.id);
-                              }}
-                              accessibilityLabel={t('card.deleteConfirm')}
-                            />
-                          </InlineStack>
-
-                          <InlineStack gap="100" blockAlign="center">
-                            <Icon source={ExternalIcon} tone="primary" />
+                      </td>
+                      <td>
+                        <div style={{ maxWidth: 340 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <ExternalLink size={12} style={{ color: '#8E918C', flexShrink: 0 }} />
                             <a
                               href={product.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-sm text-primary hover:text-primary/80 truncate font-medium"
+                              style={{ fontSize: 12.5, color: '#2A6647', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}
                             >
                               {product.url}
                             </a>
-                          </InlineStack>
-
-                          {renderProductStatusBadges(product)}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
                           {product.knowledgeHealth && (
-                            <Text as="p" variant="bodySm" tone="subdued">
-                              {t('knowledge.cardHint', {
-                                coverage: knowledgeCoverageLabel(product.knowledgeHealth.coverage),
-                                gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
-                              })}
-                            </Text>
+                            <span className={`d-badge ${knowledgeToneBadge(product.knowledgeHealth.score)}`}>
+                              {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
+                            </span>
                           )}
-
-                          <PolarisButton url={`/${locale}/dashboard/products/${product.id}`} fullWidth>
-                            {t('card.edit')}
-                          </PolarisButton>
-                        </BlockStack>
-                      </div>
-                    ))}
-
-                    <div className="hidden md:block overflow-x-auto">
-                      <div className="min-w-[1320px]">
-                        <IndexTable
-                          selectable={false}
-                          itemCount={paginatedProducts.length}
-                          resourceName={{ singular: t('list.columns.product'), plural: t('title') }}
-                          headings={[
-                            { title: '' },
-                            { title: t('list.columns.product') },
-                            { title: t('list.columns.source') },
-                            { title: t('list.columns.status') },
-                            { title: t('list.columns.actions'), alignment: 'end' },
-                          ]}
-                        >
-                          {paginatedProducts.map((product, index) => (
-                            <IndexTable.Row id={product.id} key={product.id} position={index}>
-                              <IndexTable.Cell>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedIdSet.has(product.id)}
-                                  onChange={() => toggleProductSelection(product.id)}
-                                  aria-label={t('bulk.selectProduct', { name: product.name })}
-                                  className="rounded border-zinc-300"
-                                />
-                              </IndexTable.Cell>
-                              <IndexTable.Cell>
-                                <div className="min-w-0 max-w-[320px]">
-                                  <InlineStack gap="200" blockAlign="center" wrap={false}>
-                                    {product.knowledgeHealth && (
-                                      <PolarisBadge tone={knowledgeTone(product.knowledgeHealth.score)}>
-                                        {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
-                                      </PolarisBadge>
-                                    )}
-                                    <Link
-                                      href={`/dashboard/products/${product.id}`}
-                                      className="block font-semibold text-foreground hover:text-primary break-words"
-                                    >
-                                      {product.name}
-                                    </Link>
-                                  </InlineStack>
-                                  <Text as="p" variant="bodyXs" tone="subdued" truncate>{product.id}</Text>
-                                </div>
-                              </IndexTable.Cell>
-                              <IndexTable.Cell>
-                                <div className="min-w-0 max-w-[440px]">
-                                  <InlineStack gap="100" blockAlign="center">
-                                    <Icon source={ExternalIcon} tone="subdued" />
-                                    <a
-                                      href={product.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-sm text-primary hover:text-primary/80 truncate max-w-[390px]"
-                                    >
-                                      {product.url}
-                                    </a>
-                                  </InlineStack>
-                                </div>
-                              </IndexTable.Cell>
-                              <IndexTable.Cell>
-                                <div className="w-[280px]">
-                                  {renderProductStatusCompact(product)}
-                                  {product.knowledgeHealth && (
-                                    <Box paddingBlockStart="200">
-                                      <Text as="p" variant="bodyXs" tone="subdued">
-                                        {t('knowledge.tableHint', {
-                                          gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
-                                        })}
-                                      </Text>
-                                    </Box>
-                                  )}
-                                </div>
-                              </IndexTable.Cell>
-                              <IndexTable.Cell>
-                                <InlineStack align="end" gap="200">
-                                  <PolarisButton url={`/dashboard/products/${product.id}`}>
-                                    {t('card.edit')}
-                                  </PolarisButton>
-                                  <PolarisButton
-                                    icon={DeleteIcon}
-                                    tone="critical"
-                                    variant="tertiary"
-                                    onClick={async () => {
-                                      const ok = await confirm({ title: t('card.deleteConfirm'), message: '', destructive: true, confirmLabel: 'Delete', cancelLabel: 'Cancel' });
-                                      if (ok) handleDeleteProduct(product.id);
-                                    }}
-                                    accessibilityLabel={t('card.deleteConfirm')}
-                                  />
-                                </InlineStack>
-                              </IndexTable.Cell>
-                            </IndexTable.Row>
-                          ))}
-                        </IndexTable>
-                      </div>
-                    </div>
-
-                    {totalPages > 1 && (
-                      <div className="py-4 border-t border-subdued flex flex-col items-center gap-2 bg-zinc-50/50 rounded-b-xl">
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {t('list.pagination.showing', {
-                            from: (currentPage - 1) * itemsPerPage + 1,
-                            to: Math.min(currentPage * itemsPerPage, filteredAndSortedProducts.length),
-                            total: filteredAndSortedProducts.length,
-                          })}
-                        </Text>
-                        <Pagination
-                          hasPrevious={currentPage > 1}
-                          onPrevious={() => setCurrentPage((prev) => prev - 1)}
-                          hasNext={currentPage < totalPages}
-                          onNext={() => setCurrentPage((prev) => prev + 1)}
-                          label={t('list.pagination.page', { current: currentPage, total: totalPages })}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </PolarisCard>
-              )
+                          <span className="d-badge d-badge-neutral">
+                            {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
+                          </span>
+                          {product.raw_text && <span className="d-badge d-badge-success">{t('card.scraped')}</span>}
+                        </div>
+                        {product.knowledgeHealth && (
+                          <p style={{ margin: 0, fontSize: 11.5, color: '#8E918C' }}>
+                            {t('knowledge.tableHint', {
+                              gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
+                            })}
+                          </p>
+                        )}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                          <a href={`/dashboard/products/${product.id}`} className="d-btn d-btn-outline d-btn-sm">{t('card.edit')}</a>
+                          <button
+                            type="button"
+                            className="d-btn d-btn-danger d-btn-sm"
+                            onClick={async () => {
+                              const ok = await confirm({ title: t('card.deleteConfirm'), message: '', destructive: true, confirmLabel: 'Delete', cancelLabel: 'Cancel' });
+                              if (ok) handleDeleteProduct(product.id);
+                            }}
+                            aria-label={t('card.deleteConfirm')}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {totalPages > 1 && (
+              <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, color: '#5A5D58' }}>
+                  {t('list.pagination.showing', {
+                    from: (currentPage - 1) * itemsPerPage + 1,
+                    to: Math.min(currentPage * itemsPerPage, filteredAndSortedProducts.length),
+                    total: filteredAndSortedProducts.length,
+                  })}
+                </span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="d-btn d-btn-outline d-btn-sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)} style={{ opacity: currentPage <= 1 ? 0.4 : 1 }}>
+                    &larr; Prev
+                  </button>
+                  <button className="d-btn d-btn-outline d-btn-sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} style={{ opacity: currentPage >= totalPages ? 0.4 : 1 }}>
+                    Next &rarr;
+                  </button>
+                </div>
+              </div>
             )}
+          </>
+        )}
 
-            {/* Add Product Modal */}
-            <Modal
-              open={showAddModal}
-              onClose={() => { if (!scraping) setShowAddModal(false); }}
-              title={t('addModal.title')}
-              primaryAction={{
-                content: t('addModal.submit'),
-                onAction: handleAddProduct,
-                loading: scraping,
-                disabled: scraping || !newProductName || !newProductUrl,
-              }}
-              secondaryActions={[
-                {
-                  content: t('addModal.cancel'),
-                  onAction: () => setShowAddModal(false),
-                  disabled: scraping,
-                },
-              ]}
-            >
-              <Modal.Section>
-                {scraping ? (
-                  <Box padding="1000">
-                    <BlockStack gap="500" inlineAlign="center">
-                      <Spinner size="large" />
-                      <Text as="p" variant="headingLg">{scrapeProgress}</Text>
-                      <Text as="p" tone="subdued">{t('addModal.scraping.wait')}</Text>
-                      <div className="w-full max-w-[320px]">
-                        <ProgressBar progress={scrapeStep === 1 ? 25 : scrapeStep === 2 ? 60 : scrapeStep === 3 ? 85 : scrapeStep === 4 ? 100 : 0} animated />
-                      </div>
-                    </BlockStack>
-                  </Box>
-                ) : (
-                  <BlockStack gap="400">
-                    <TextField
-                      label={t('addModal.nameLabel')}
-                      value={newProductName}
-                      onChange={(value) => setNewProductName(value)}
-                      placeholder={t('addModal.namePlaceholder')}
-                      autoComplete="off"
-                    />
-                    <TextField
-                      label={t('addModal.urlLabel')}
-                      value={newProductUrl}
-                      onChange={(value) => setNewProductUrl(value)}
-                      placeholder={t('addModal.urlPlaceholder')}
-                      autoComplete="off"
-                      helpText={t('addModal.urlHelper')}
-                      type="url"
-                    />
-                  </BlockStack>
+        {/* Add Product Modal */}
+        {showAddModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div className="d-card" style={{ width: '100%', maxWidth: 480 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <p className="d-card-title" style={{ fontSize: 16 }}>{t('addModal.title')}</p>
+                {!scraping && (
+                  <button type="button" className="d-btn d-btn-ghost d-btn-sm" onClick={() => setShowAddModal(false)}>
+                    &times;
+                  </button>
                 )}
-              </Modal.Section>
-            </Modal>
+              </div>
+
+              {scraping ? (
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                  <div style={{ width: 36, height: 36, border: '3px solid #E8E6DF', borderTopColor: '#0A0B0A', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+                  <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: '#0A0B0A' }}>{scrapeProgress}</p>
+                  <p style={{ margin: '0 0 16px', fontSize: 13, color: '#5A5D58' }}>{t('addModal.scraping.wait')}</p>
+                  <div className="d-progress-bar" style={{ maxWidth: 320, margin: '0 auto' }}>
+                    <div className="d-progress-bar-fill" style={{ width: `${scrapeProgressPct}%` }} />
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0A0B0A', marginBottom: 6 }}>{t('addModal.nameLabel')}</label>
+                    <input
+                      className="d-input"
+                      placeholder={t('addModal.namePlaceholder')}
+                      value={newProductName}
+                      onChange={e => setNewProductName(e.target.value)}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0A0B0A', marginBottom: 6 }}>{t('addModal.urlLabel')}</label>
+                    <input
+                      className="d-input"
+                      type="url"
+                      placeholder={t('addModal.urlPlaceholder')}
+                      value={newProductUrl}
+                      onChange={e => setNewProductUrl(e.target.value)}
+                      autoComplete="off"
+                    />
+                    <p style={{ margin: '6px 0 0', fontSize: 12, color: '#8E918C' }}>{t('addModal.urlHelper')}</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
+                    <button type="button" className="d-btn d-btn-outline" onClick={() => setShowAddModal(false)}>{t('addModal.cancel')}</button>
+                    <button
+                      type="button"
+                      className="d-btn d-btn-primary"
+                      onClick={handleAddProduct}
+                      disabled={!newProductName || !newProductUrl}
+                      style={{ opacity: (!newProductName || !newProductUrl) ? 0.5 : 1 }}
+                    >
+                      {t('addModal.submit')}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </Layout.Section>
-      </Layout>
-    </Page>
+        )}
+      </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
 }

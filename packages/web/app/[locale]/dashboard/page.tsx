@@ -5,35 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { Link } from '@/i18n/routing';
-import {
-  Badge as PolarisBadge,
-  Banner,
-  BlockStack,
-  Box,
-  Button as PolarisButton,
-  Card as PolarisCard,
-  InlineGrid,
-  InlineStack,
-  Layout,
-  Page,
-  SkeletonBodyText,
-  SkeletonDisplayText,
-  SkeletonPage,
-  Text,
-  Icon,
-  EmptyState,
-} from '@shopify/polaris';
-import {
-  OrderFilledIcon,
-  PersonIcon,
-  ChatIcon,
-  ProductIcon,
-  ChartVerticalIcon,
-  ChevronRightIcon,
-  CheckCircleIcon,
-  AlertCircleIcon,
-  SearchIcon,
-} from '@shopify/polaris-icons';
+import { LayoutDashboard, Package, ShoppingBag, MessageSquare, BarChart3, CheckCircle2, AlertTriangle, ArrowRight, Zap, Users } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
 interface Merchant {
@@ -121,91 +93,11 @@ function normalizeDashboardStats(input: Partial<DashboardStats> | null | undefin
   };
 }
 
-function statusTone(status: string): Parameters<typeof PolarisBadge>[0]['tone'] {
+function statusTone(status: string): 'success' | 'critical' | 'attention' | 'info' {
   if (status === 'delivered' || status === 'active') return 'success';
   if (status === 'failed' || status === 'error') return 'critical';
   if (status === 'pending' || status === 'processing') return 'attention';
   return 'info';
-}
-
-function MetricCard({
-  title,
-  value,
-  hint,
-  icon,
-}: {
-  title: string;
-  value: string | number;
-  hint: string;
-  icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
-}) {
-  return (
-    <PolarisCard>
-      <BlockStack gap="200">
-        <InlineStack align="space-between" blockAlign="start" gap="200">
-          <Box
-            background="bg-surface-secondary"
-            borderRadius="200"
-            padding="200"
-          >
-            <Icon source={icon} tone="subdued" />
-          </Box>
-        </InlineStack>
-        <BlockStack gap="050">
-          <Text as="p" variant="headingXl" fontWeight="semibold">
-            {String(value)}
-          </Text>
-          <Text as="p" variant="bodySm" tone="subdued">
-            {title}
-          </Text>
-          <Text as="p" variant="bodyXs" tone="subdued">
-            {hint}
-          </Text>
-        </BlockStack>
-      </BlockStack>
-    </PolarisCard>
-  );
-}
-
-function ListEmptyPolaris({
-  title,
-  description,
-  actionLabel,
-  actionUrl,
-}: {
-  title: string;
-  description: string;
-  actionLabel?: string;
-  actionUrl?: string;
-}) {
-  return (
-    <EmptyState
-      heading={title}
-      action={actionLabel && actionUrl ? { content: actionLabel, url: actionUrl } : undefined}
-      image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-      fullWidth
-    >
-      <p>{description}</p>
-    </EmptyState>
-  );
-}
-
-function DashboardIconTile({
-  icon,
-  background,
-}: {
-  icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
-  background?: string;
-}) {
-  return (
-    <Box
-      background={(background || 'bg-surface-secondary') as any}
-      borderRadius="200"
-      padding="100"
-    >
-      <Icon source={icon} tone="subdued" />
-    </Box>
-  );
 }
 
 function healthTone(score: number): 'success' | 'attention' | 'critical' {
@@ -293,64 +185,31 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <SkeletonPage title={t('title')} primaryAction>
-        <Layout>
-          <Layout.Section>
-            <PolarisCard>
-              <BlockStack gap="300">
-                <SkeletonDisplayText size="small" maxWidth="24ch" />
-                <SkeletonBodyText lines={2} />
-              </BlockStack>
-            </PolarisCard>
-          </Layout.Section>
-          <Layout.Section>
-            <InlineGrid columns={{ xs: 1, sm: 2, xl: 4 }} gap="400">
-              {Array.from({ length: 4 }).map((_, idx) => (
-                <PolarisCard key={idx}>
-                  <BlockStack gap="300">
-                    <SkeletonBodyText lines={1} />
-                    <SkeletonDisplayText size="small" maxWidth="8ch" />
-                    <SkeletonBodyText lines={1} />
-                  </BlockStack>
-                </PolarisCard>
-              ))}
-            </InlineGrid>
-          </Layout.Section>
-          <Layout.Section>
-            <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-              <PolarisCard>
-                <SkeletonBodyText lines={5} />
-              </PolarisCard>
-              <PolarisCard>
-                <SkeletonBodyText lines={5} />
-              </PolarisCard>
-            </InlineGrid>
-          </Layout.Section>
-        </Layout>
-      </SkeletonPage>
+      <div className="d-page">
+        <div className="d-page-header">
+          <div style={{ height: 26, width: 200, background: '#E8E6DF', borderRadius: 6, marginBottom: 8 }} />
+          <div style={{ height: 16, width: 300, background: '#E8E6DF', borderRadius: 4 }} />
+        </div>
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="d-card" style={{ marginBottom: 16, height: 120, background: '#F2F0E9', animation: 'pulse 1.5s ease-in-out infinite' }} />
+        ))}
+      </div>
     );
   }
 
   if (!merchant) {
     return (
-      <Page title={t('title')}>
-        <Layout>
-          <Layout.Section>
-            <PolarisCard>
-              <BlockStack gap="300" inlineAlign="center">
-                <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
-                  {t('loadError')}
-                </Text>
-                <InlineStack align="center">
-                  <PolarisButton onClick={() => { setLoading(true); void loadDashboard(); }} variant="primary">
-                    {t('retry')}
-                  </PolarisButton>
-                </InlineStack>
-              </BlockStack>
-            </PolarisCard>
-          </Layout.Section>
-        </Layout>
-      </Page>
+      <div className="d-page">
+        <div className="d-card" style={{ textAlign: 'center', padding: '48px 24px' }}>
+          <p style={{ color: '#5A5D58', marginBottom: 16 }}>{t('loadError')}</p>
+          <button
+            className="d-btn d-btn-primary"
+            onClick={() => { setLoading(true); void loadDashboard(); }}
+          >
+            {t('retry')}
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -425,397 +284,203 @@ export default function DashboardPage() {
   };
 
   return (
-    <Page
-      title={t('greeting', { name: merchant.name || 'Merchant' })}
-      subtitle={t.markup('summary', {
-        activeUsers: displayStats.kpis.activeUsers ?? 0,
-        responseRate: displayStats.kpis.responseRate ?? 0,
-        bold: (chunks) => chunks,
-      })}
-    >
-      <Layout>
-        {(topAlert || nextStep) && (
-          <Layout.Section>
-            <Banner
-              title={nextStep ? t('setup.bannerTitle') : t('alerts.title')}
-              tone={topAlert?.severity === 'error' ? 'critical' : topAlert?.severity === 'warning' ? 'warning' : 'info'}
-              action={nextStep ? { content: nextStep.actionLabel, url: nextStep.actionUrl } : undefined}
-            >
-              <BlockStack gap="200">
-                {nextStep ? (
-                  <Text as="p" variant="bodySm">
-                    {t('setup.bannerMessage', { step: nextStep.title })}
-                  </Text>
-                ) : null}
-                {topAlert ? (
-                  <Text as="p" variant="bodySm">
-                    <Text as="span" variant="bodySm" fontWeight="semibold">
-                      {alertTypeLabel(topAlert.type)}:
-                    </Text>{' '}
-                    {topAlert.message}
-                  </Text>
-                ) : null}
-              </BlockStack>
-            </Banner>
-          </Layout.Section>
-        )}
+    <div className="d-page">
+      {/* Page header */}
+      <div className="d-page-header">
+        <h1 className="d-page-title">{t('greeting', { name: merchant.name || 'Merchant' })}</h1>
+        <p className="d-page-subtitle">
+          {String(displayStats.kpis.activeUsers ?? 0)} {t('kpi.activeCustomers')} &bull; {displayStats.kpis.responseRate ?? 0}% {t('kpi.replyRate')}
+        </p>
+      </div>
 
-        <Layout.Section>
-          <PolarisCard>
-            <BlockStack gap="400">
-              <InlineStack align="space-between" blockAlign="center" gap="300">
-                <Text as="h2" variant="headingSm">
-                  {t('setup.title')}
-                </Text>
-                <PolarisBadge tone={nextStep ? 'attention' : 'success'}>
-                  {t('setup.progress', { completed: completedSteps, total: setupSteps.length })}
-                </PolarisBadge>
-              </InlineStack>
+      {/* Banner */}
+      {(topAlert || nextStep) && (
+        <div
+          className={`d-banner ${topAlert?.severity === 'error' ? 'd-banner-error' : topAlert?.severity === 'warning' ? 'd-banner-warning' : 'd-banner-info'}`}
+          style={{ marginBottom: 16 }}
+        >
+          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontWeight: 600, fontSize: 13 }}>{nextStep ? t('setup.bannerTitle') : t('alerts.title')}</p>
+            {nextStep && <p style={{ margin: '4px 0 8px', fontSize: 13 }}>{t('setup.bannerMessage', { step: nextStep.title })}</p>}
+            {topAlert && <p style={{ margin: '4px 0 8px', fontSize: 13 }}><strong>{alertTypeLabel(topAlert.type)}:</strong> {topAlert.message}</p>}
+            {nextStep && <a href={nextStep.actionUrl} className="d-btn d-btn-primary d-btn-sm">{nextStep.actionLabel}</a>}
+          </div>
+        </div>
+      )}
 
-              {/* Horizontal stepper */}
-              <div className="flex items-start gap-0">
-                {setupSteps.map((step, index) => {
-                  const isCurrent = !step.completed && nextStep?.id === step.id;
-                  return (
-                    <div key={step.id} className="flex-1 flex flex-col items-center relative">
-                      {/* Connector line (not for last item) */}
-                      {index < setupSteps.length - 1 && (
-                        <div className={`absolute top-4 left-1/2 w-full h-0.5 ${step.completed ? 'bg-[var(--p-color-border-success)]' : 'bg-[var(--p-color-border-secondary)]'}`} aria-hidden="true" />
-                      )}
-                      {/* Step circle */}
-                      <div className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full border-2 text-xs font-bold ${
-                        step.completed
-                          ? 'bg-[var(--p-color-bg-fill-success)] border-[var(--p-color-border-success)] text-[var(--p-color-text-success)]'
-                          : isCurrent
-                            ? 'bg-[var(--p-color-bg-fill-info-secondary)] border-[var(--p-color-border-info)] text-[var(--p-color-text-info)]'
-                            : 'bg-[var(--p-color-bg-surface-secondary)] border-[var(--p-color-border-secondary)] text-[var(--p-color-text-secondary)]'
-                      }`}>
-                        {step.completed ? (
-                          <Icon source={CheckCircleIcon} tone="success" />
-                        ) : (
-                          <span>{index + 1}</span>
-                        )}
-                      </div>
-                      {/* Step title */}
-                      <Text as="p" variant="bodyXs" alignment="center" fontWeight={isCurrent ? 'semibold' : 'regular'}>
-                        {step.title}
-                      </Text>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Active step detail */}
-              {nextStep && (
-                <Box
-                  borderWidth="025"
-                  borderColor="border-info"
-                  borderRadius="300"
-                  padding="300"
-                  background="bg-fill-info-secondary"
-                >
-                  <InlineStack align="space-between" blockAlign="center" gap="300">
-                    <BlockStack gap="050">
-                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                        {nextStep.title}
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        {nextStep.description}
-                      </Text>
-                    </BlockStack>
-                    <PolarisButton url={nextStep.actionUrl} variant="primary" size="slim">
-                      {nextStep.actionLabel}
-                    </PolarisButton>
-                  </InlineStack>
-                </Box>
+      {/* Getting Started */}
+      <div className="d-card" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <p className="d-card-title">{t('setup.title')}</p>
+          <span className={`d-badge ${nextStep ? 'd-badge-attention' : 'd-badge-success'}`}>{t('setup.progress', { completed: completedSteps, total: setupSteps.length })}</span>
+        </div>
+        {/* Stepper */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0, marginBottom: nextStep ? 16 : 0 }}>
+          {setupSteps.map((step, index) => (
+            <div key={step.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+              {index < setupSteps.length - 1 && (
+                <div style={{ position: 'absolute', top: 14, left: '50%', width: '100%', height: 2, background: step.completed ? '#2A6647' : '#E8E6DF' }} />
               )}
-            </BlockStack>
-          </PolarisCard>
-        </Layout.Section>
+              <div className={`d-step-circle ${step.completed ? 'done' : (nextStep?.id === step.id ? 'current' : 'pending')}`} style={{ position: 'relative', zIndex: 1 }}>
+                {step.completed ? <CheckCircle2 size={14} /> : <span>{index + 1}</span>}
+              </div>
+              <p style={{ fontSize: 11.5, color: '#5A5D58', textAlign: 'center', marginTop: 6, padding: '0 4px' }}>{step.title}</p>
+            </div>
+          ))}
+        </div>
+        {nextStep && (
+          <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#1E40AF' }}>{nextStep.title}</p>
+              <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#3B82F6' }}>{nextStep.description}</p>
+            </div>
+            <a href={nextStep.actionUrl} className="d-btn d-btn-primary d-btn-sm" style={{ flexShrink: 0 }}>{nextStep.actionLabel}</a>
+          </div>
+        )}
+      </div>
 
-        <Layout.Section>
-          <PolarisCard>
-            <BlockStack gap="300">
-              <InlineStack align="space-between" blockAlign="center" gap="300">
-                <BlockStack gap="050">
-                  <Text as="h2" variant="headingSm">
-                    {t('knowledge.title')}
-                  </Text>
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    {t('knowledge.subtitle')}
-                  </Text>
-                </BlockStack>
-                <InlineStack gap="200" blockAlign="center">
-                  <Text as="p" variant="headingXl" fontWeight="bold">
-                    {displayStats.knowledgeHealth.averageScore}
-                  </Text>
-                  <PolarisBadge tone={healthTone(displayStats.knowledgeHealth.averageScore)}>
-                    {t('knowledge.averageBadge', { score: displayStats.knowledgeHealth.averageScore })}
-                  </PolarisBadge>
-                </InlineStack>
-              </InlineStack>
+      {/* Knowledge Health */}
+      <div className="d-card" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+          <div>
+            <p className="d-card-title">{t('knowledge.title')}</p>
+            <p className="d-card-subtitle" style={{ marginTop: 2 }}>{t('knowledge.subtitle')}</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.03em', color: '#0A0B0A' }}>{displayStats.knowledgeHealth.averageScore}</span>
+            <span className={`d-badge ${healthTone(displayStats.knowledgeHealth.averageScore) === 'success' ? 'd-badge-success' : healthTone(displayStats.knowledgeHealth.averageScore) === 'attention' ? 'd-badge-attention' : 'd-badge-error'}`}>{t('knowledge.averageBadge', { score: displayStats.knowledgeHealth.averageScore })}</span>
+          </div>
+        </div>
+        <div className="d-grid-3" style={{ marginBottom: displayStats.knowledgeHealth.productsAtRisk > 0 ? 14 : 0 }}>
+          {[
+            { label: t('knowledge.productsAtRisk'), value: displayStats.knowledgeHealth.productsAtRisk, hint: t('knowledge.productsAtRiskHint') },
+            { label: t('knowledge.strongProducts'), value: displayStats.knowledgeHealth.strongProducts, hint: t('knowledge.strongProductsHint') },
+            { label: t('knowledge.primaryGap'), value: knowledgeReasonLabel(displayStats.knowledgeHealth.topMissingReasonCode), hint: displayStats.knowledgeHealth.topMissingReasonCount > 0 ? t('knowledge.primaryGapHint', { count: displayStats.knowledgeHealth.topMissingReasonCount }) : t('knowledge.noPrimaryGap') },
+          ].map((item, i) => (
+            <div key={i} style={{ border: '1px solid #E8E6DF', borderRadius: 8, padding: '12px 14px' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 12, color: '#8E918C' }}>{item.label}</p>
+              <p style={{ margin: '0 0 4px', fontSize: typeof item.value === 'number' ? 22 : 14, fontWeight: 600, color: '#0A0B0A', letterSpacing: typeof item.value === 'number' ? '-0.02em' : 'normal' }}>{item.value}</p>
+              <p style={{ margin: 0, fontSize: 11.5, color: '#8E918C' }}>{item.hint}</p>
+            </div>
+          ))}
+        </div>
+        {displayStats.knowledgeHealth.productsAtRisk > 0 && (
+          <div className="d-banner d-banner-warning" style={{ marginTop: 0 }}>
+            <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+            <div style={{ flex: 1 }}>
+              <strong style={{ fontSize: 13 }}>{t('knowledge.warningTitle')}</strong>
+              <p style={{ margin: '2px 0 8px', fontSize: 12.5 }}>{t('knowledge.warningBody', { count: displayStats.knowledgeHealth.productsAtRisk, gap: knowledgeReasonLabel(displayStats.knowledgeHealth.topMissingReasonCode) })}</p>
+              <a href="/dashboard/products" className="d-btn d-btn-outline d-btn-sm">{t('knowledge.warningAction')}</a>
+            </div>
+          </div>
+        )}
+      </div>
 
-              <InlineGrid columns={{ xs: 1, md: 3 }} gap="300">
-                <Box borderWidth="025" borderColor="border" borderRadius="300" padding="300">
-                  <BlockStack gap="100">
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {t('knowledge.productsAtRisk')}
-                    </Text>
-                    <Text as="p" variant="headingLg">
-                      {displayStats.knowledgeHealth.productsAtRisk}
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {t('knowledge.productsAtRiskHint')}
-                    </Text>
-                  </BlockStack>
-                </Box>
-                <Box borderWidth="025" borderColor="border" borderRadius="300" padding="300">
-                  <BlockStack gap="100">
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {t('knowledge.strongProducts')}
-                    </Text>
-                    <Text as="p" variant="headingLg">
-                      {displayStats.knowledgeHealth.strongProducts}
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {t('knowledge.strongProductsHint')}
-                    </Text>
-                  </BlockStack>
-                </Box>
-                <Box borderWidth="025" borderColor="border" borderRadius="300" padding="300">
-                  <BlockStack gap="100">
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {t('knowledge.primaryGap')}
-                    </Text>
-                    <Text as="p" variant="bodyMd" fontWeight="semibold">
-                      {knowledgeReasonLabel(displayStats.knowledgeHealth.topMissingReasonCode)}
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {displayStats.knowledgeHealth.topMissingReasonCount > 0
-                        ? t('knowledge.primaryGapHint', { count: displayStats.knowledgeHealth.topMissingReasonCount })
-                        : t('knowledge.noPrimaryGap')}
-                    </Text>
-                  </BlockStack>
-                </Box>
-              </InlineGrid>
+      {/* 4 KPI stats */}
+      <div className="d-grid-4" style={{ marginBottom: 16 }}>
+        {[
+          { label: t('kpi.ordersReceived'), value: displayStats.kpis.totalOrders ?? 0, hint: t('kpi.ordersReceivedHint'), icon: <ShoppingBag size={16} /> },
+          { label: t('kpi.activeCustomers'), value: displayStats.kpis.activeUsers ?? 0, hint: t('kpi.activeCustomersHint'), icon: <Users size={16} /> },
+          { label: t('kpi.whatsappMessages'), value: displayStats.kpis.messagesSent ?? 0, hint: t('kpi.whatsappMessagesHint'), icon: <MessageSquare size={16} /> },
+          { label: t('kpi.replyRate'), value: `${displayStats.kpis.responseRate ?? 0}%`, hint: t('kpi.replyRateHint'), icon: <BarChart3 size={16} /> },
+        ].map((item, i) => (
+          <div key={i} className="d-stat">
+            <div className="d-stat-icon">{item.icon}</div>
+            <div>
+              <div className="d-stat-value">{item.value}</div>
+              <div className="d-stat-label">{item.label}</div>
+              <div className="d-stat-hint">{item.hint}</div>
+            </div>
+          </div>
+        ))}
+      </div>
 
-              {displayStats.knowledgeHealth.productsAtRisk > 0 ? (
-                <Banner
-                  tone="warning"
-                  title={t('knowledge.warningTitle')}
-                  action={{ content: t('knowledge.warningAction'), url: '/dashboard/products' }}
-                >
-                  <Text as="p" variant="bodySm">
-                    {t('knowledge.warningBody', {
-                      count: displayStats.knowledgeHealth.productsAtRisk,
-                      gap: knowledgeReasonLabel(displayStats.knowledgeHealth.topMissingReasonCode),
-                    })}
-                  </Text>
-                </Banner>
-              ) : null}
-            </BlockStack>
-          </PolarisCard>
-        </Layout.Section>
+      {/* Recent activity */}
+      <div className="d-grid-2" style={{ marginBottom: 16 }}>
+        {/* Recent Orders */}
+        <div className="d-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <p className="d-card-title">{t('recentOrders.title')}</p>
+            <a href="/dashboard/conversations" className="d-btn d-btn-ghost d-btn-sm">{t('recentOrders.viewAll')} <ArrowRight size={12} /></a>
+          </div>
+          {displayStats.recentActivity.orders.length > 0 ? (
+            <div>
+              {displayStats.recentActivity.orders.map((order) => (
+                <div key={order.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #E8E6DF' }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: '#0A0B0A' }}>#{order.external_order_id}</p>
+                    <p style={{ margin: 0, fontSize: 11.5, color: '#8E918C' }}>{formatDateTime(order.created_at)}</p>
+                  </div>
+                  <span className={`d-badge ${statusTone(order.status) === 'success' ? 'd-badge-success' : statusTone(order.status) === 'critical' ? 'd-badge-error' : statusTone(order.status) === 'attention' ? 'd-badge-attention' : 'd-badge-info'}`}>{order.status}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="d-empty">
+              <div className="d-empty-icon"><ShoppingBag size={18} /></div>
+              <p className="d-empty-title">{t('recentOrders.emptyTitle')}</p>
+              <p className="d-empty-desc">{t('recentOrders.emptyDescription')}</p>
+              <a href={ordersEmptyActionUrl} className="d-btn d-btn-outline d-btn-sm">{ordersEmptyActionLabel}</a>
+            </div>
+          )}
+        </div>
 
-        <Layout.Section>
-          <InlineGrid columns={{ xs: 1, sm: 2, xl: 4 }} gap="400">
-            <MetricCard
-              title={t('kpi.ordersReceived')}
-              value={displayStats.kpis.totalOrders ?? 0}
-              hint={t('kpi.ordersReceivedHint')}
-              icon={OrderFilledIcon}
-            />
-            <MetricCard
-              title={t('kpi.activeCustomers')}
-              value={displayStats.kpis.activeUsers ?? 0}
-              hint={t('kpi.activeCustomersHint')}
-              icon={PersonIcon}
-            />
-            <MetricCard
-              title={t('kpi.whatsappMessages')}
-              value={displayStats.kpis.messagesSent ?? 0}
-              hint={t('kpi.whatsappMessagesHint')}
-              icon={ChatIcon}
-            />
-            <MetricCard
-              title={t('kpi.replyRate')}
-              value={`${displayStats.kpis.responseRate ?? 0}%`}
-              hint={t('kpi.replyRateHint')}
-              icon={ChartVerticalIcon}
-            />
-          </InlineGrid>
-        </Layout.Section>
+        {/* Recent Conversations */}
+        <div className="d-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <p className="d-card-title">{t('recentConversations.title')}</p>
+            <a href="/dashboard/conversations" className="d-btn d-btn-ghost d-btn-sm">{t('recentConversations.viewAll')} <ArrowRight size={12} /></a>
+          </div>
+          {displayStats.recentActivity.conversations.length > 0 ? (
+            <div>
+              {displayStats.recentActivity.conversations.map((conv) => (
+                <Link key={conv.id} href={`/dashboard/conversations/${conv.id}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #E8E6DF', textDecoration: 'none' }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: '#0A0B0A' }}>Conversation #{conv.id.substring(0, 8)}</p>
+                    <p style={{ margin: 0, fontSize: 11.5, color: '#8E918C' }}>{conv.message_count} messages &bull; {formatDateTime(conv.last_message_at)}</p>
+                  </div>
+                  <span className={`d-badge ${statusTone(conv.status) === 'success' ? 'd-badge-success' : statusTone(conv.status) === 'critical' ? 'd-badge-error' : statusTone(conv.status) === 'attention' ? 'd-badge-attention' : 'd-badge-info'}`}>{conv.status}</span>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="d-empty">
+              <div className="d-empty-icon"><MessageSquare size={18} /></div>
+              <p className="d-empty-title">{t('recentConversations.emptyTitle')}</p>
+              <p className="d-empty-desc">{t('recentConversations.emptyDescription')}</p>
+              <a href={conversationsEmptyActionUrl} className="d-btn d-btn-outline d-btn-sm">{conversationsEmptyActionLabel}</a>
+            </div>
+          )}
+        </div>
+      </div>
 
-        <Layout.Section>
-          <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-            <PolarisCard>
-              <BlockStack gap="300">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingSm">
-                    {t('recentOrders.title')}
-                  </Text>
-                  <PolarisButton url="/dashboard/conversations" variant="plain" size="slim">
-                    {t('recentOrders.viewAll')}
-                  </PolarisButton>
-                </InlineStack>
-
-                <BlockStack gap="0">
-                  {displayStats.recentActivity.orders.length > 0 ? (
-                    displayStats.recentActivity.orders.map((order) => (
-                      <Box
-                        key={order.id}
-                        borderBlockStartWidth="025"
-                        borderColor="border"
-                        paddingBlock="300"
-                        paddingInline="0"
-                      >
-                        <InlineStack align="space-between" blockAlign="center" gap="300">
-                          <InlineStack blockAlign="center" gap="300">
-                            <DashboardIconTile icon={OrderFilledIcon} />
-                            <BlockStack gap="050">
-                              <Text as="p" variant="bodySm" fontWeight="semibold">
-                                #{order.external_order_id}
-                              </Text>
-                              <Text as="p" variant="bodyXs" tone="subdued">
-                                {formatDateTime(order.created_at)}
-                              </Text>
-                            </BlockStack>
-                          </InlineStack>
-                          <PolarisBadge tone={statusTone(order.status)}>{order.status}</PolarisBadge>
-                        </InlineStack>
-                      </Box>
-                    ))
-                  ) : (
-                    <ListEmptyPolaris
-                      title={t('recentOrders.emptyTitle')}
-                      description={t('recentOrders.emptyDescription')}
-                      actionLabel={ordersEmptyActionLabel}
-                      actionUrl={ordersEmptyActionUrl}
-                    />
-                  )}
-                </BlockStack>
-              </BlockStack>
-            </PolarisCard>
-
-            <PolarisCard>
-              <BlockStack gap="300">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingSm">
-                    {t('recentConversations.title')}
-                  </Text>
-                  <PolarisButton url="/dashboard/conversations" variant="plain" size="slim">
-                    {t('recentConversations.viewAll')}
-                  </PolarisButton>
-                </InlineStack>
-
-                <BlockStack gap="0">
-                  {displayStats.recentActivity.conversations.length > 0 ? (
-                    displayStats.recentActivity.conversations.map((conv) => (
-                      <Box
-                        key={conv.id}
-                        borderBlockStartWidth="025"
-                        borderColor="border"
-                        paddingBlock="300"
-                        paddingInline="0"
-                      >
-                        <Link href={`/dashboard/conversations/${conv.id}`} className="block no-underline">
-                          <InlineStack align="space-between" blockAlign="center" gap="300">
-                            <InlineStack blockAlign="center" gap="300">
-                              <DashboardIconTile
-                                background="bg-fill-info-secondary"
-                                icon={ChatIcon}
-                              />
-                              <BlockStack gap="050">
-                                <Text as="p" variant="bodySm" fontWeight="semibold">
-                                  Conversation #{conv.id.substring(0, 8)}
-                                </Text>
-                                <Text as="p" variant="bodyXs" tone="subdued">
-                                  {conv.message_count} messages • {formatDateTime(conv.last_message_at)}
-                                </Text>
-                              </BlockStack>
-                            </InlineStack>
-                            <PolarisBadge tone={statusTone(conv.status)}>{conv.status}</PolarisBadge>
-                          </InlineStack>
-                        </Link>
-                      </Box>
-                    ))
-                  ) : (
-                    <ListEmptyPolaris
-                      title={t('recentConversations.emptyTitle')}
-                      description={t('recentConversations.emptyDescription')}
-                      actionLabel={conversationsEmptyActionLabel}
-                      actionUrl={conversationsEmptyActionUrl}
-                    />
-                  )}
-                </BlockStack>
-              </BlockStack>
-            </PolarisCard>
-          </InlineGrid>
-        </Layout.Section>
-
-        <Layout.Section>
-          <BlockStack gap="300">
-            <Text as="h2" variant="headingSm">
-              {t('quickActions.title')}
-            </Text>
-            <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
-              <Link href="/dashboard/products" className="block no-underline">
-                <PolarisCard>
-                  <InlineStack gap="300" blockAlign="start">
-                    <DashboardIconTile icon={ProductIcon} />
-                    <BlockStack gap="100">
-                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                        {t('quickActions.addProduct')}
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        {t('quickActions.addProductDesc')}
-                      </Text>
-                    </BlockStack>
-                  </InlineStack>
-                </PolarisCard>
-              </Link>
-
-              <Link href="/dashboard/integrations" className="block no-underline">
-                <PolarisCard>
-                  <InlineStack gap="300" blockAlign="start">
-                    <DashboardIconTile
-                      background="bg-fill-info-secondary"
-                      icon={ChevronRightIcon}
-                    />
-                    <BlockStack gap="100">
-                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                        {t('quickActions.integration')}
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        {t('quickActions.integrationDesc')}
-                      </Text>
-                    </BlockStack>
-                  </InlineStack>
-                </PolarisCard>
-              </Link>
-
-              <Link href="/dashboard/settings" className="block no-underline">
-                <PolarisCard>
-                  <InlineStack gap="300" blockAlign="start">
-                    <DashboardIconTile
-                      background="bg-fill-caution-secondary"
-                      icon={ChartVerticalIcon}
-                    />
-                    <BlockStack gap="100">
-                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                        {t('quickActions.settings')}
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        {t('quickActions.settingsDesc')}
-                      </Text>
-                    </BlockStack>
-                  </InlineStack>
-                </PolarisCard>
-              </Link>
-            </InlineGrid>
-          </BlockStack>
-        </Layout.Section>
-      </Layout>
-    </Page>
+      {/* Quick Actions */}
+      <div>
+        <p className="d-section-label">{t('quickActions.title')}</p>
+        <div className="d-grid-3">
+          {[
+            { href: '/dashboard/products', icon: <Package size={18} />, title: t('quickActions.addProduct'), desc: t('quickActions.addProductDesc') },
+            { href: '/dashboard/integrations', icon: <Zap size={18} />, title: t('quickActions.integration'), desc: t('quickActions.integrationDesc') },
+            { href: '/dashboard/settings', icon: <BarChart3 size={18} />, title: t('quickActions.settings'), desc: t('quickActions.settingsDesc') },
+          ].map((action, i) => (
+            <Link key={i} href={action.href as Parameters<typeof Link>[0]['href']} style={{ textDecoration: 'none' }}>
+              <div
+                className="d-card"
+                style={{ display: 'flex', gap: 14, cursor: 'pointer', transition: 'background 120ms' }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#F2F0E9')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+              >
+                <div className="d-stat-icon" style={{ flexShrink: 0 }}>{action.icon}</div>
+                <div>
+                  <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 600, color: '#0A0B0A' }}>{action.title}</p>
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#5A5D58' }}>{action.desc}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
