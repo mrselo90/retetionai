@@ -128,7 +128,7 @@ export default function IntegrationsPage() {
                     : "No update timestamp available."
                 }
                 status={integration.status}
-                action={{ content: "Review dashboard", url: "/app/dashboard", icon: ConnectIcon }}
+                action={{ content: "View activity", url: "/app/dashboard", icon: ViewIcon }}
               />
             ))}
           </InlineGrid>

@@ -560,10 +560,10 @@ function buildWorkspaceRows(
         (!linked
           ? "Set up"
           : !hasGuidance
-            ? "Continue setup"
+            ? "Continue"
             : hasKnowledge
               ? "Review"
-              : "Prepare answers"),
+              : "Generate AI"),
       detailHint:
         localProduct?.lifecycle?.message ||
         (!linked
@@ -2250,7 +2250,7 @@ function SetupPanel({
               <BlockStack gap="200">
                 <Text as="h3" variant="headingSm">Danger zone</Text>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Remove the saved Recete setup for this product. The Shopify product will stay untouched.
+                  Clears all Recete setup for this product — instructions, AI knowledge, and language data. Your Shopify product stays untouched. You can set it up again from scratch.
                 </Text>
                 <Checkbox
                   label="I understand this removes the saved setup for this product."
@@ -2262,7 +2262,7 @@ function SetupPanel({
                     productId={row.localProduct.id}
                     shopifyProductId={row.shopify.id}
                     intent="delete"
-                    label="Remove local setup"
+                    label="Reset product setup"
                     icon={DeleteIcon}
                     destructive
                     disabled={!confirmDelete || isSavingSetup || isRunningAiAction}

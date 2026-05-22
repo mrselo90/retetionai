@@ -97,10 +97,10 @@ export default function Index() {
         <Card padding="500">
           <Text as="p" variant="bodyMd" tone="subdued">
             {bootstrapError
-              ? `Shopify bootstrap error: ${bootstrapError}`
+              ? "We couldn't load your store data. Please refresh the page to try again."
               : shellLoading
-                ? "Preparing your setup workspace."
-                : "Setup data is not ready yet."}
+                ? "Preparing your setup workspace…"
+                : "Setup data is not ready yet. Refresh if this persists."}
           </Text>
         </Card>
       </ShellPage>
@@ -438,7 +438,7 @@ function OptionalStepCard({
                 value={phone}
                 onChange={setPhone}
                 placeholder="+90 555 000 0000"
-                helpText="Recete will send the welcome message to this number."
+                helpText="Use international format with country code, e.g. +1 555 000 1234 or +44 7911 123456."
                 autoComplete="tel"
                 type="tel"
               />

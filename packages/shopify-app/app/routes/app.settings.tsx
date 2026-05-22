@@ -783,7 +783,7 @@ export default function SettingsPage() {
                         AI Vision
                       </Text>
                       <Checkbox
-                        label="Enable AI Vision for customer photos"
+                        label="Enable AI Vision for customer photos (Growth or Pro plan required)"
                         name="ai_vision_enabled"
                         checked={formState.ai_vision_enabled}
                         onChange={(checked) =>
@@ -840,7 +840,7 @@ export default function SettingsPage() {
                     error={showGuardrailError && guardrailValueMissing ? "Enter keywords or a phrase to match." : undefined}
                   />
                   <Select label="Apply to" name="guardrail_apply_to" value={guardrailDraft.apply_to} options={[{ label: "Both user and AI", value: "both" }, { label: "User message", value: "user_message" }, { label: "AI response", value: "ai_response" }]} onChange={(value) => setGuardrailDraft((current) => ({ ...current, apply_to: value as GuardrailDraft["apply_to"] }))} />
-                  <Select label="Match type" name="guardrail_match_type" value={guardrailDraft.match_type} options={[{ label: "Keywords", value: "keywords" }, { label: "Exact phrase", value: "phrase" }]} onChange={(value) => setGuardrailDraft((current) => ({ ...current, match_type: value as GuardrailDraft["match_type"] }))} />
+                  <Select label="Match type" name="guardrail_match_type" value={guardrailDraft.match_type} options={[{ label: "Keywords (comma-separated words)", value: "keywords" }, { label: "Exact phrase (full match)", value: "phrase" }]} helpText="Keywords: triggers if any listed word appears. Exact phrase: triggers only on the complete phrase." onChange={(value) => setGuardrailDraft((current) => ({ ...current, match_type: value as GuardrailDraft["match_type"] }))} />
                   <Select label="Action" name="guardrail_action" value={guardrailDraft.action} options={[{ label: "Block answer", value: "block" }, { label: "Escalate to human", value: "escalate" }]} onChange={(value) => setGuardrailDraft((current) => ({ ...current, action: value as GuardrailDraft["action"] }))} />
                 </InlineGrid>
                 <TextField label="Suggested response" name="guardrail_suggested_response" value={guardrailDraft.suggested_response} onChange={(value) => setGuardrailDraft((current) => ({ ...current, suggested_response: value }))} autoComplete="off" multiline={4} />

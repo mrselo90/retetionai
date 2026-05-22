@@ -3,6 +3,7 @@ import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ChartVerticalIcon, ChatIcon, SettingsIcon } from "@shopify/polaris-icons";
 import { BlockStack, Card, InlineGrid, InlineStack, Text } from "@shopify/polaris";
+import { useNavigate } from "react-router";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { getSetupProgress } from "../lib/setupProgress";
 import { fetchMerchantOverviewFromRequest, type ShopifyMerchantOverview } from "../platform.server";
@@ -13,11 +14,11 @@ import {
   SectionCard,
   SetupDependencyList,
   type SetupDependencyItem,
-  ShellPage,
   StatePanel,
   StatusBadge,
   ValuePreview,
 } from "../components/shell-ui";
+import { Layout, Page } from "@shopify/polaris";
 import { getAnalyticsLevel, getPlanSnapshotByDomain } from "../services/planService.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -47,6 +48,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function AnalyticsPage() {
   const data = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
   const progress = getSetupProgress(data);
   const hasBilling = progress.hasBilling;
   const hasProducts = progress.hasProducts;
@@ -149,7 +151,7 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <ShellPage
+    <Page
       title="Analytics"
       subtitle={
         analyticsState === "onboarding_incomplete"
@@ -158,8 +160,19 @@ export default function AnalyticsPage() {
             ? "Setup is complete. Analytics will appear after first interactions."
             : "Performance insights for post-purchase conversations and retention."
       }
-      primaryAction={primaryAction}
+      primaryAction={
+        primaryAction
+          ? {
+              content: primaryAction.content,
+              onAction: primaryAction.url ? () => navigate(primaryAction.url!) : undefined,
+              icon: primaryAction.icon as never,
+            }
+          : undefined
+      }
     >
+    <Layout>
+    <Layout.Section>
+    <BlockStack gap="500">
       <StatePanel
         title={topInsight.title}
         description={topInsight.description}
@@ -322,7 +335,10 @@ export default function AnalyticsPage() {
           </SectionCard>
         )
       ) : null}
-    </ShellPage>
+    </BlockStack>
+    </Layout.Section>
+    </Layout>
+    </Page>
   );
 }
 

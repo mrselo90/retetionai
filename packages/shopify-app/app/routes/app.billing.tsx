@@ -269,7 +269,9 @@ export default function BillingPage() {
                     {plan.ctaLabel}
                   </Button>
                   <Text as="p" variant="bodySm" tone="subdued">
-                    Redirects to Shopify billing approval.
+                    {planSelectionUrl
+                      ? "Redirects to Shopify billing approval."
+                      : "Billing is temporarily unavailable. Refresh the page or contact support if this continues."}
                   </Text>
                 </BlockStack>
               </Card>

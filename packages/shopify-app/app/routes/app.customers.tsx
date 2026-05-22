@@ -88,7 +88,7 @@ export default function CustomersPage() {
         : !hasProducts
           ? { content: "Add products", url: "/app/products", icon: PersonIcon }
           : !hasMessagingConfigured
-            ? { content: "Configure messaging", url: "/app/settings", icon: ChatIcon }
+            ? { content: "Configure messaging", url: "/app/setup/messaging", icon: ChatIcon }
             : { content: "Check order flow", url: "/app/integrations#orders-flow", icon: ChatIcon };
 
   const setupDependencies: SetupDependencyItem[] = [
