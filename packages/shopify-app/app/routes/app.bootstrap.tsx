@@ -85,6 +85,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const billingApproved = billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
     const shopRecord = await prisma.shop.findUnique({ where: { shopDomain: session.shop }, select: { themeEmbedEnabled: true } });
 
+    const activeSubscription = billingState.appSubscriptions.find(
+      (s) => s.status === "ACTIVE" || s.status === "active",
+    );
+    const activePlanName = activeSubscription?.name || overview.merchant.subscription_plan || null;
+
     return Response.json({
       merchantName: overview.merchant.name || shop.replace(".myshopify.com", ""),
       overview,
@@ -94,6 +99,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         : overview.merchant.subscription_status || "inactive",
       billingApproved,
       themeEmbedEnabled: shopRecord?.themeEmbedEnabled ?? false,
+      activePlanName,
     });
   } catch (error) {
     // Attempt install-sync repair when the platform doesn't know about this shop yet.
@@ -116,6 +122,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const billingApproved =
           billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
         const shopRecord2 = await prisma.shop.findUnique({ where: { shopDomain: session.shop }, select: { themeEmbedEnabled: true } });
+        const activeSubscription2 = billingState.appSubscriptions.find(
+          (s) => s.status === "ACTIVE" || s.status === "active",
+        );
+        const activePlanName2 = activeSubscription2?.name || overview.merchant.subscription_plan || null;
 
         return Response.json({
           merchantName: overview.merchant.name || shop.replace(".myshopify.com", ""),
@@ -126,6 +136,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             : overview.merchant.subscription_status || "inactive",
           billingApproved,
           themeEmbedEnabled: shopRecord2?.themeEmbedEnabled ?? false,
+          activePlanName: activePlanName2,
         });
       } catch (repairError) {
         console.error("[app-bootstrap] install sync repair failed", repairError);

@@ -127,6 +127,7 @@ export type AppBootstrapData = {
   subscriptionStatus: string;
   billingApproved?: boolean;
   themeEmbedEnabled?: boolean;
+  activePlanName?: string | null;
 };
 
 export type AppBootstrapContext = {
@@ -205,6 +206,7 @@ function AppShell({ initialShop }: { initialShop: string }) {
   // Subscription status is informational — keep computation but no longer rendered in sidebar.
   void normalizeSubscriptionStatus(subscriptionStatus);
   const hasBillingApproved = bootstrapData?.billingApproved ?? isBillingReady(subscriptionStatus);
+  const activePlanName = bootstrapData?.activePlanName ?? null;
   const shellLoading = !bootstrapData && !bootstrapError;
   const overview = bootstrapData?.overview;
   const themeEmbedEnabled = bootstrapData?.themeEmbedEnabled ?? false;
@@ -270,59 +272,72 @@ function AppShell({ initialShop }: { initialShop: string }) {
                     )
                   ) : (
                     /* Setup complete: full navigation sections */
-                    navigationSections.map((section) => (
-                      <BlockStack key={section.title} gap="150">
-                        <Text as="p" variant="bodyXs" tone="subdued">
-                          {section.title}
-                        </Text>
-                        <BlockStack gap="100">
-                          {section.items.map((item) => {
-                            const active = navButtonVariant(item.to) === "primary";
-                            return (
-                              <AppLink
-                                key={item.to}
-                                url={item.to}
-                                style={{
-                                  textDecoration: "none",
-                                  color: "inherit",
-                                  display: "block",
-                                }}
-                              >
-                                <Box
-                                  padding="200"
-                                  borderWidth={active ? "025" : undefined}
-                                  borderColor={active ? "border-brand" : undefined}
-                                  borderRadius="200"
-                                  background={active ? "bg-surface-secondary" : "bg-surface"}
+                    <>
+                      {navigationSections.map((section) => (
+                        <BlockStack key={section.title} gap="150">
+                          <Text as="p" variant="bodyXs" tone="subdued">
+                            {section.title}
+                          </Text>
+                          <BlockStack gap="100">
+                            {section.items.map((item) => {
+                              const active = navButtonVariant(item.to) === "primary";
+                              return (
+                                <AppLink
+                                  key={item.to}
+                                  url={item.to}
+                                  style={{
+                                    textDecoration: "none",
+                                    color: "inherit",
+                                    display: "block",
+                                  }}
                                 >
-                                  <InlineStack blockAlign="start" gap="200">
-                                    <InlineStack gap="150" blockAlign="start">
-                                      <Icon source={item.icon} tone={active ? "base" : "subdued"} />
-                                      {active ? (
-                                        <Box
-                                          minWidth="4px"
-                                          minHeight="2rem"
-                                          borderRadius="full"
-                                          background="bg-fill-brand"
-                                        />
-                                      ) : null}
-                                      <BlockStack gap="050">
-                                        <Text as="p" variant="bodySm" fontWeight="semibold">
-                                          {item.label}
-                                        </Text>
-                                        <Text as="p" variant="bodyXs" tone="subdued">
-                                          {item.hint}
-                                        </Text>
-                                      </BlockStack>
+                                  <Box
+                                    padding="200"
+                                    borderWidth={active ? "025" : undefined}
+                                    borderColor={active ? "border-brand" : undefined}
+                                    borderRadius="200"
+                                    background={active ? "bg-surface-secondary" : "bg-surface"}
+                                  >
+                                    <InlineStack blockAlign="start" gap="200">
+                                      <InlineStack gap="150" blockAlign="start">
+                                        <Icon source={item.icon} tone={active ? "base" : "subdued"} />
+                                        {active ? (
+                                          <Box
+                                            minWidth="4px"
+                                            minHeight="2rem"
+                                            borderRadius="full"
+                                            background="bg-fill-brand"
+                                          />
+                                        ) : null}
+                                        <BlockStack gap="050">
+                                          <Text as="p" variant="bodySm" fontWeight="semibold">
+                                            {item.label}
+                                          </Text>
+                                          <Text as="p" variant="bodyXs" tone="subdued">
+                                            {item.hint}
+                                          </Text>
+                                        </BlockStack>
+                                      </InlineStack>
                                     </InlineStack>
-                                  </InlineStack>
-                                </Box>
-                              </AppLink>
-                            );
-                          })}
+                                  </Box>
+                                </AppLink>
+                              );
+                            })}
+                          </BlockStack>
                         </BlockStack>
-                      </BlockStack>
-                    ))
+                      ))}
+                      {activePlanName ? (
+                        <Box
+                          paddingBlockStart="200"
+                          borderBlockStartWidth="025"
+                          borderColor="border-secondary"
+                        >
+                          <Text as="p" variant="bodyXs" tone="subdued">
+                            {activePlanName}
+                          </Text>
+                        </Box>
+                      ) : null}
+                    </>
                   )}
                 </BlockStack>
               </Card>

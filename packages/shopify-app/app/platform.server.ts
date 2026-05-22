@@ -806,6 +806,45 @@ export async function deleteMerchantDataFromAdminPanel(shopDomain: string) {
   };
 }
 
+/**
+ * Trigger a simulated order flow (created + delivered) via the test events API.
+ * Used by the setup wizard's "Run a test order" optional step so merchants can
+ * verify the full WhatsApp post-purchase flow without touching Shopify Admin.
+ */
+export async function triggerTestOrderFlow(
+  request: Request,
+  phone: string,
+  products: Array<{ name: string; external_id?: string | null }>,
+): Promise<{ success: boolean; externalOrderId: string }> {
+  const externalOrderId = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const items = products.map((p) => ({
+    name: p.name,
+    ...(p.external_id ? { external_id: p.external_id } : {}),
+  }));
+
+  await internalMerchantRequest(request, "/api/test/events", {
+    method: "POST",
+    body: JSON.stringify({
+      event_type: "order_created",
+      external_order_id: externalOrderId,
+      customer_phone: phone,
+      products: items,
+    }),
+  });
+
+  await internalMerchantRequest(request, "/api/test/events", {
+    method: "POST",
+    body: JSON.stringify({
+      event_type: "order_delivered",
+      external_order_id: externalOrderId,
+      customer_phone: phone,
+      products: items,
+    }),
+  });
+
+  return { success: true, externalOrderId };
+}
+
 export async function fetchMerchantConversations(request: Request) {
   return (await internalMerchantRequest(request, "/api/conversations")) as {
     conversations: MerchantConversation[];
