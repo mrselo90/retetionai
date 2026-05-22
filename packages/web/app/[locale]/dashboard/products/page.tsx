@@ -249,39 +249,14 @@ export default function ProductsPage() {
         return;
       }
 
-      // Render the product list immediately; hydrate chunk counts in background.
-      setProducts(list.map((p) => ({ ...p, chunkCount: undefined, chunkCountUnavailable: true })));
+      // knowledgeHealth.metrics.chunkCount is already included in the /api/products
+      // response — no need for a second /api/products/chunks/batch round-trip.
+      setProducts(list.map((p) => ({
+        ...p,
+        chunkCount: p.knowledgeHealth?.metrics?.chunkCount ?? undefined,
+        chunkCountUnavailable: p.knowledgeHealth === undefined,
+      })));
       setLoading(false);
-
-      try {
-        const productIds = list.map((p) => p.id);
-        const chunksResponse = await authenticatedRequest<{ chunkCounts: Array<{ productId: string; chunkCount: number }> }>(
-          '/api/products/chunks/batch',
-          session.access_token,
-          {
-            method: 'POST',
-            body: JSON.stringify({ productIds }),
-          }
-        );
-
-        const chunkCountMap = new Map(
-          chunksResponse.chunkCounts.map((cc) => [cc.productId, cc.chunkCount])
-        );
-
-        setProducts((prev) =>
-          prev.map((product) => ({
-            ...product,
-            chunkCount: chunkCountMap.get(product.id),
-            chunkCountUnavailable: false,
-          }))
-        );
-      } catch (chunkError) {
-        console.error('Failed to load chunk counts:', chunkError);
-        // Keep list visible; just leave counts unavailable.
-        setProducts((prev) =>
-          prev.map((p) => ({ ...p, chunkCount: undefined, chunkCountUnavailable: true }))
-        );
-      }
     } catch (err: unknown) {
       console.error('Failed to load products:', err);
       const errMsg = err instanceof Error ? err.message : '';
