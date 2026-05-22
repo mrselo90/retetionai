@@ -35,8 +35,6 @@ import {
   fetchMerchantSettings,
   subscribeMerchantAddon,
   updateMerchantGuardrails,
-  updateMerchantMultiLangSettings,
-  updateMerchantSettings,
   type MerchantAddon,
   type MerchantGuardrail,
   type MerchantSettingsRecord,
@@ -45,6 +43,7 @@ import {
 import { SectionCard, StatusBadge } from "../components/shell-ui";
 import { getPlanSnapshotByDomain } from "../services/planService.server";
 import { GROWTH_MONTHLY_PLAN } from "../services/planDefinitions";
+import { persistMessagingSetup } from "../lib/persistMessagingSetup";
 
 function getStoreHandle(shop: string) {
   return shop.replace(/\.myshopify\.com$/i, "");
@@ -246,76 +245,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   try {
     if (intent === "save-core") {
-      const plan = await getPlanSnapshotByDomain(session.shop);
-      const currentSettings = await fetchMerchantSettings(request);
-      const existingPersonaSettings = currentSettings.merchant.persona_settings || {};
       const enabledLangs = parseLanguageList(String(formData.get("enabled_langs") || "")).filter(Boolean);
-      const botName = String(formData.get("bot_name") || "").trim();
-      const welcomeTemplate = String(formData.get("whatsapp_welcome_template") || "").trim();
-      const nextPersonaSettings: Record<string, unknown> = {
-        ...existingPersonaSettings,
-        tone:
-          (String(formData.get("tone") || "").trim() as
-            | "friendly"
-            | "professional"
-            | "casual"
-            | "formal") || "friendly",
+
+      const result = await persistMessagingSetup(request, session.shop, {
+        botName: String(formData.get("bot_name") || "").trim() || null,
+        tone: (String(formData.get("tone") || "").trim() as "friendly" | "professional" | "casual" | "formal") || null,
+        responseLength: (String(formData.get("response_length") || "").trim() as "short" | "medium" | "long") || null,
         emoji: formData.get("emoji") === "on",
-        response_length:
-          (String(formData.get("response_length") || "").trim() as
-            | "short"
-            | "medium"
-            | "long") || "medium",
-        ai_vision_enabled:
-          plan.planType === "STARTER"
-            ? false
-            : formData.get("ai_vision_enabled") === "on",
-        onboarding_settings_configured_at: new Date().toISOString(),
-      };
+        aiVisionEnabled: formData.get("ai_vision_enabled") === "on",
+        notificationPhone: String(formData.get("notification_phone") || "").trim() || null,
+        welcomeTemplate: String(formData.get("whatsapp_welcome_template") || "").trim() || null,
+        messageSendMode:
+          String(formData.get("message_send_mode") || "always").trim() === "all_products_required"
+            ? "all_products_required"
+            : "always",
+        enabledLangs: enabledLangs.length > 0 ? enabledLangs : ["en"],
+      });
 
-      if (botName) {
-        nextPersonaSettings.bot_name = botName;
-      } else {
-        delete nextPersonaSettings.bot_name;
-      }
-
-      if (welcomeTemplate) {
-        nextPersonaSettings.whatsapp_welcome_template = welcomeTemplate;
-      } else {
-        delete nextPersonaSettings.whatsapp_welcome_template;
-      }
-
-      const messageSendMode = String(formData.get("message_send_mode") || "always").trim();
-      nextPersonaSettings.message_send_mode =
-        messageSendMode === "all_products_required" ? "all_products_required" : "always";
-
-      const [, multiLangResponse] = await Promise.all([
-        updateMerchantSettings(request, {
-          notification_phone: String(formData.get("notification_phone") || "").trim() || null,
-          persona_settings: nextPersonaSettings,
-        }),
-        updateMerchantMultiLangSettings(request, {
-          enabled_langs: enabledLangs.length > 0 ? enabledLangs : ["en"],
-        }),
-      ]);
-
-      const languageUpdateMessage = multiLangResponse?.backfillTriggered
-        ? ` Customer reply languages changed, so product knowledge refresh has started for ${[
-            ...(multiLangResponse.addedLangs || []).map((lang) => `+${lang}`),
-            ...(multiLangResponse.removedLangs || []).map((lang) => `-${lang}`),
-          ].join(", ")}.`
-        : " Customer reply languages were updated.";
-
-      return {
-        ok: true,
-        intent,
-        message:
-          plan.planType === "STARTER"
-            ? `Settings saved.${languageUpdateMessage} AI Vision stayed off because it requires Growth, and shared Recete WhatsApp routing was kept because custom branded WhatsApp requires Pro.`
-            : plan.planType === "PRO"
-              ? `Settings saved.${languageUpdateMessage}`
-              : `Settings saved.${languageUpdateMessage} Shared Recete WhatsApp routing was kept because custom branded WhatsApp requires Pro.`,
-      } satisfies ActionResult;
+      return { ok: result.ok, intent, message: result.message } satisfies ActionResult;
     }
 
     if (intent === "save-guardrails") {
