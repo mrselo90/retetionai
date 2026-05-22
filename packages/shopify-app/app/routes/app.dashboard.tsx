@@ -1,10 +1,20 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { CartIcon } from "@shopify/polaris-icons";
-import { BlockStack, Button, InlineGrid, InlineStack, Text } from "@shopify/polaris";
+import { CartIcon, ChatIcon, ViewIcon } from "@shopify/polaris-icons";
+import {
+  Badge,
+  BlockStack,
+  Box,
+  Button,
+  Card,
+  InlineGrid,
+  InlineStack,
+  Text,
+} from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { getSetupProgress } from "../lib/setupProgress";
+import { fetchMerchantConversations } from "../platform.server";
 import { fetchMerchantOverviewFromRequest, type ShopifyMerchantOverview } from "../platform.server";
 import {
   MetricCard,
@@ -14,218 +24,212 @@ import {
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
-  return fetchMerchantOverviewFromRequest(request).catch((): ShopifyMerchantOverview => ({
-    merchant: { id: '', name: '' },
-    shop: '',
-    integration: { id: '', provider: 'shopify', status: 'unknown' },
-    subscription: null,
-    metrics: { totalOrders: 0, activeUsers: 0, totalProducts: 0, responseRate: 0 },
-    analytics: { avgSentiment: 0, returnRate: 0, preventedReturns: 0, totalConversations: 0, resolvedConversations: 0 },
-    settings: {},
-    integrations: [],
-    products: [],
-    recentOrders: [],
-  }));
+  const [overview, conversationsResult] = await Promise.all([
+    fetchMerchantOverviewFromRequest(request).catch((): ShopifyMerchantOverview => ({
+      merchant: { id: "", name: "" },
+      shop: "",
+      integration: { id: "", provider: "shopify", status: "unknown" },
+      subscription: null,
+      metrics: { totalOrders: 0, activeUsers: 0, totalProducts: 0, responseRate: 0 },
+      analytics: { avgSentiment: 0, returnRate: 0, preventedReturns: 0, totalConversations: 0, resolvedConversations: 0 },
+      settings: {},
+      integrations: [],
+      products: [],
+      recentOrders: [],
+    })),
+    fetchMerchantConversations(request).catch(() => ({ conversations: [] })),
+  ]);
+
+  return { overview, conversations: conversationsResult.conversations || [] };
 };
 
 export default function DashboardPage() {
-  const data = useLoaderData<typeof loader>();
+  const { overview: data, conversations } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+
+  // Use the same 3-step definition as /app (Faz 1)
   const progress = getSetupProgress(data);
-  const hasBilling = progress.hasBilling;
-  const hasProducts = progress.hasProducts;
-  const hasOrders = progress.hasOrders;
-  const hasMessagingConfigured = progress.hasMessagingConfigured;
+  const { setupComplete, hasBilling, hasProducts, hasMessagingConfigured } = progress;
 
-  const setupSteps = [
-    {
-      label: "Activate plan",
-      complete: hasBilling,
-      value: hasBilling ? "✅ Completed" : "❌ Required",
-      blockedHint: "Required before setup can continue",
-    },
-    {
-      label: "Add or sync products",
-      complete: hasProducts,
-      value: hasProducts
-        ? "✅ Completed"
-        : hasBilling
-          ? "❌ Required"
-          : "🔒 Available after plan activation",
-      blockedHint: "Unlocks after plan activation",
-    },
-    {
-      label: "Configure messaging",
-      complete: hasMessagingConfigured,
-      value: hasMessagingConfigured
-        ? "✅ Completed"
-        : hasBilling && hasProducts
-          ? "❌ Required"
-          : "🔒 Unlocks after products are added",
-      blockedHint: "Unlocks after products are added",
-    },
-    {
-      label: "Receive first order",
-      complete: hasOrders,
-      value: hasOrders
-        ? "✅ Completed"
-        : hasBilling && hasProducts && hasMessagingConfigured
-          ? "⏳ Pending"
-          : "🔒 Available after setup is complete",
-      blockedHint: "Available after setup is complete",
-    },
-  ];
-  const completedStepCount = setupSteps.filter((step) => step.complete).length;
-  const setupComplete = completedStepCount === setupSteps.length;
-
-  const currentStep = !hasBilling
-    ? {
-        title: "Activate plan",
-        description: "Plan activation is required before Recete can process orders or send messages.",
-        ctaLabel: "Activate plan",
-        ctaUrl: "/app/billing",
-        unlocks: "After activation, product setup will unlock.",
-      }
+  // Derive the next setup step URL — messaging now goes to mini-wizard
+  const nextSetupUrl = !hasBilling
+    ? "/app/billing"
     : !hasProducts
-      ? {
-          title: "Add or sync products",
-          description: "Recete needs product data to generate accurate post-purchase guidance.",
-          ctaLabel: "Add products",
-          ctaUrl: "/app/products",
-          unlocks: "After products are ready, messaging configuration will unlock.",
-        }
-      : !hasMessagingConfigured
-        ? {
-            title: "Configure messaging",
-            description: "Set bot behavior and messaging so Recete can start customer communication.",
-            ctaLabel: "Configure messaging",
-            ctaUrl: "/app/settings",
-            unlocks: "After messaging setup, Recete waits for your first order.",
-          }
-        : !hasOrders
-          ? {
-              title: "Receive first order",
-              description: "Setup is complete. Recete will start conversations automatically after the first order event.",
-              ctaLabel: "Review order flow",
-              ctaUrl: "/app/integrations#orders-flow",
-              unlocks: "After first order, the live dashboard and conversations become active.",
-            }
-          : null;
+      ? "/app/products"
+      : "/app/setup/messaging";
 
-  const ordersHint =
-    data.metrics.totalOrders > 0
-      ? "Orders currently visible to the retention engine."
-      : "No orders yet — this will appear after your first sale";
-  const activeUsersHint =
-    data.metrics.activeUsers > 0
-      ? "Customers ready for compliant messaging."
-      : "No customers with consent yet";
-  const productsHint =
-    data.metrics.totalProducts > 0
-      ? "Products available for automation workflows."
-      : "No products ready — import products to enable automation";
-  const responseHint =
-    data.metrics.responseRate > 0
-      ? "Replies sent vs. total buyer threads."
-      : "Not available yet";
-  const responseValue = data.metrics.responseRate > 0 ? `${data.metrics.responseRate}%` : "—";
+  // Conversation quick metrics
+  const manualQueue = conversations.filter((c) => c.conversationStatus === "human");
+  const humanCount = manualQueue.length;
+  const aiCount = conversations.filter((c) => c.conversationStatus === "ai").length;
+  const resolvedCount = conversations.filter((c) => c.conversationStatus === "resolved").length;
+
+  const responseValue =
+    data.metrics.responseRate > 0 ? `${data.metrics.responseRate}%` : "—";
+
+  if (!setupComplete) {
+    return (
+      <ShellPage
+        title="Dashboard"
+        subtitle="Complete setup to unlock daily operations."
+        primaryAction={{ content: "Continue setup", url: "/app", icon: CartIcon }}
+      >
+        <Card padding="500" roundedAbove="sm">
+          <BlockStack gap="300">
+            <InlineStack align="space-between" blockAlign="center" wrap>
+              <BlockStack gap="100">
+                <Text as="h2" variant="headingMd">Setup is not finished yet</Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Dashboard, Conversations, and Analytics unlock once the 3 required setup steps are done.
+                </Text>
+              </BlockStack>
+              <Badge tone="attention">In progress</Badge>
+            </InlineStack>
+            <Button url="/app" variant="primary" icon={CartIcon}>
+              Back to setup
+            </Button>
+          </BlockStack>
+        </Card>
+      </ShellPage>
+    );
+  }
 
   return (
     <ShellPage
-      title={setupComplete ? "Dashboard" : "Getting started"}
-      subtitle={
-        setupComplete
-          ? "Daily operating view for live Recete activity."
-          : `Setup overview · ${completedStepCount} of ${setupSteps.length} steps completed`
+      title="Dashboard"
+      subtitle="Daily view of Recete activity."
+      primaryAction={
+        humanCount > 0
+          ? { content: `Handle ${humanCount} escalation${humanCount === 1 ? "" : "s"}`, url: `/app/conversations/${manualQueue[0].id}`, icon: ChatIcon }
+          : { content: "View conversations", url: "/app/conversations", icon: ViewIcon }
       }
     >
-      {!setupComplete && currentStep ? (
-        <>
-          <SectionCard
-            title={`Current step: ${currentStep.title}`}
-            subtitle={currentStep.description}
-          >
-            <BlockStack gap="300">
-              <InlineStack>
-                <Button
-                  variant="primary"
-                  icon={CartIcon}
-                  onClick={() => navigate(currentStep.ctaUrl)}
-                >
-                  {currentStep.ctaLabel}
-                </Button>
-              </InlineStack>
-              <Text as="p" variant="bodySm" tone="subdued">
-                {currentStep.unlocks}
-              </Text>
-            </BlockStack>
-          </SectionCard>
-
-          <SectionCard
-            title="Setup steps"
-            subtitle="Complete steps in order. Later steps unlock automatically."
-          >
-            <BlockStack gap="200">
-              {setupSteps.map((step, index) => (
-                <InlineStack key={step.label} align="space-between" blockAlign="center">
-                  <Text as="p" variant="bodyMd">{`${index + 1}. ${step.label}`}</Text>
-                  <Text as="p" variant="bodySm" tone="subdued">{step.value}</Text>
-                </InlineStack>
-              ))}
-            </BlockStack>
-          </SectionCard>
-
-          <SectionCard
-            title="Live dashboard preview"
-            subtitle="These insights appear automatically after setup is complete."
-          >
-            <BlockStack gap="200">
-              <Text as="p" variant="bodyMd" tone="subdued">
-                Orders, customers, and reply performance are hidden until onboarding is completed and first order data arrives.
+      {/* ── Manual queue alert ──────────────────────────────────────────── */}
+      {humanCount > 0 ? (
+        <Card padding="400" roundedAbove="sm" background="bg-surface-caution">
+          <InlineStack align="space-between" blockAlign="center" wrap gap="300">
+            <BlockStack gap="050">
+              <Text as="p" variant="bodyMd" fontWeight="semibold">
+                {`${humanCount} conversation${humanCount === 1 ? "" : "s"} need${humanCount === 1 ? "s" : ""} your attention`}
               </Text>
               <Text as="p" variant="bodySm" tone="subdued">
-                {`Current status: ${completedStepCount} of ${setupSteps.length} setup steps completed.`}
+                These threads have been escalated to human review.
               </Text>
             </BlockStack>
-          </SectionCard>
-        </>
-      ) : (
-        <>
-          <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
-            <MetricCard label="Orders" value={data.metrics.totalOrders} hint={ordersHint} />
-            <MetricCard label="Customers who allowed messages" value={data.metrics.activeUsers} hint={activeUsersHint} />
-            <MetricCard label="Products ready" value={data.metrics.totalProducts} hint={productsHint} />
-            <MetricCard label="Reply performance" value={responseValue} hint={responseHint} />
-          </InlineGrid>
+            <Button url={`/app/conversations/${manualQueue[0].id}`} variant="primary" icon={ChatIcon}>
+              Handle next
+            </Button>
+          </InlineStack>
+        </Card>
+      ) : null}
 
-          <SectionCard
-            title="Recent orders"
-            subtitle="Latest order events seen by Recete."
-          >
-            {data.recentOrders.length > 0 ? (
-              <BlockStack gap="200">
-                {data.recentOrders.slice(0, 6).map((order) => (
-                  <InlineStack key={order.id} align="space-between" blockAlign="center">
-                    <Text as="p" variant="bodyMd">{order.external_order_id || order.id}</Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {`${order.status} • ${new Intl.DateTimeFormat("en", {
-                        month: "short",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }).format(new Date(order.created_at))}`}
-                    </Text>
-                  </InlineStack>
-                ))}
+      {/* ── Key metrics ─────────────────────────────────────────────────── */}
+      <InlineGrid columns={{ xs: 2, sm: 2, lg: 4 }} gap="400">
+        <MetricCard
+          label="Orders"
+          value={data.metrics.totalOrders}
+          hint={data.metrics.totalOrders > 0 ? "Orders tracked by Recete." : "No orders yet."}
+        />
+        <MetricCard
+          label="Opted-in customers"
+          value={data.metrics.activeUsers}
+          hint={data.metrics.activeUsers > 0 ? "Customers ready for messaging." : "No consented customers yet."}
+        />
+        <MetricCard
+          label="Reply rate"
+          value={responseValue}
+          hint={data.metrics.responseRate > 0 ? "Replies vs. total buyer threads." : "Not available yet."}
+        />
+        <MetricCard
+          label="Conversations"
+          value={conversations.length}
+          hint={
+            humanCount > 0
+              ? `${humanCount} need${humanCount === 1 ? "s" : ""} manual attention.`
+              : aiCount > 0
+                ? `${aiCount} AI-owned, ${resolvedCount} resolved.`
+                : "No conversations yet."
+          }
+        />
+      </InlineGrid>
+
+      {/* ── Conversation queue summary ───────────────────────────────────── */}
+      {conversations.length > 0 ? (
+        <SectionCard
+          title="Conversation queue"
+          subtitle="Live status across all buyer threads."
+        >
+          <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
+            <Box
+              padding="300"
+              borderRadius="200"
+              background={humanCount > 0 ? "bg-surface-caution" : "bg-surface-secondary"}
+            >
+              <BlockStack gap="100">
+                <Text as="p" variant="headingLg">{humanCount}</Text>
+                <Text as="p" variant="bodySm" tone="subdued">Manual queue</Text>
               </BlockStack>
-            ) : (
-              <Text as="p" variant="bodyMd" tone="subdued">
-                No orders yet — this will appear after your first sale.
-              </Text>
-            )}
-          </SectionCard>
-        </>
-      )}
+            </Box>
+            <Box padding="300" borderRadius="200" background="bg-surface-secondary">
+              <BlockStack gap="100">
+                <Text as="p" variant="headingLg">{aiCount}</Text>
+                <Text as="p" variant="bodySm" tone="subdued">AI-owned</Text>
+              </BlockStack>
+            </Box>
+            <Box padding="300" borderRadius="200" background="bg-surface-secondary">
+              <BlockStack gap="100">
+                <Text as="p" variant="headingLg">{resolvedCount}</Text>
+                <Text as="p" variant="bodySm" tone="subdued">Resolved</Text>
+              </BlockStack>
+            </Box>
+          </InlineGrid>
+        </SectionCard>
+      ) : null}
+
+      {/* ── Recent orders ────────────────────────────────────────────────── */}
+      <SectionCard
+        title="Recent orders"
+        subtitle="Latest order events seen by Recete."
+      >
+        {data.recentOrders.length > 0 ? (
+          <BlockStack gap="200">
+            {data.recentOrders.slice(0, 8).map((order) => (
+              <InlineStack key={order.id} align="space-between" blockAlign="center" wrap>
+                <BlockStack gap="025">
+                  <Text as="p" variant="bodyMd" fontWeight="medium">
+                    {order.external_order_id || order.id}
+                  </Text>
+                  <Text as="p" variant="bodyXs" tone="subdued">
+                    {new Intl.DateTimeFormat("en", {
+                      month: "short",
+                      day: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }).format(new Date(order.created_at))}
+                  </Text>
+                </BlockStack>
+                <InlineStack gap="200" blockAlign="center">
+                  <Badge
+                    tone={
+                      order.status === "delivered"
+                        ? "success"
+                        : order.status === "created"
+                          ? "info"
+                          : "attention"
+                    }
+                  >
+                    {order.status}
+                  </Badge>
+                </InlineStack>
+              </InlineStack>
+            ))}
+          </BlockStack>
+        ) : (
+          <Text as="p" variant="bodyMd" tone="subdued">
+            No orders visible yet. Once orders flow through Recete, they appear here.
+          </Text>
+        )}
+      </SectionCard>
     </ShellPage>
   );
 }

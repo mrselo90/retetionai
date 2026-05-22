@@ -2,15 +2,13 @@ import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "re
 import { Form, useActionData, useLoaderData, useNavigate, useNavigation } from "react-router";
 import { useEffect, useState } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { ArrowLeftIcon, ChatIcon, PersonIcon } from "@shopify/polaris-icons";
+import { ChatIcon } from "@shopify/polaris-icons";
 import {
   Banner,
   BlockStack,
   Box,
   Button,
   Card,
-  Icon,
-  InlineGrid,
   InlineStack,
   Layout,
   Page,
@@ -27,7 +25,7 @@ import {
   sendMerchantConversationReply,
   updateMerchantConversationStatus,
 } from "../platform.server";
-import { DetailRows, MetricCard, StatusBadge } from "../components/shell-ui";
+import { StatusBadge } from "../components/shell-ui";
 
 type ActionResult = {
   ok: boolean;
@@ -123,15 +121,15 @@ export default function ConversationDetailPage() {
   return (
     <Page
       backAction={{ content: "Conversations", onAction: () => navigate("/app/conversations") }}
-      fullWidth
-      title={conversation.userName}
+      title={conversation.userName || "Buyer"}
       subtitle={conversation.phone}
-      primaryAction={{ content: "Back to queue", onAction: () => navigate("/app/conversations"), icon: ArrowLeftIcon }}
     >
       <Layout>
-        <Layout.Section>
-          {busy ? <Spinner accessibilityLabel="Loading" size="small" /> : null}
-        </Layout.Section>
+        {busy ? (
+          <Layout.Section>
+            <Spinner accessibilityLabel="Loading" size="small" />
+          </Layout.Section>
+        ) : null}
 
         {needsAttention ? (
           <Layout.Section>
@@ -139,20 +137,20 @@ export default function ConversationDetailPage() {
               tone={conversation.conversationStatus === "human" ? "warning" : "info"}
               title={
                 conversation.conversationStatus === "human"
-                  ? "This thread needs manual handling"
-                  : "Review this conversation before leaving the page"
+                  ? "This thread needs your reply"
+                  : "Review before leaving"
               }
             >
               {conversation.conversationStatus === "human"
-                ? "The buyer has been escalated to a human queue. Resolve it or hand it back to AI deliberately."
-                : "Use the controls below to confirm ownership, send the next reply, or mark the thread resolved."}
+                ? "Escalated to human queue. Send a reply or hand back to AI."
+                : "Use the controls below to manage ownership or send a reply."}
             </Banner>
           </Layout.Section>
         ) : null}
 
         {actionData?.error ? (
           <Layout.Section>
-            <Banner tone="critical" title="Conversation action failed">
+            <Banner tone="critical" title="Action failed">
               <Text as="p" variant="bodyMd">{actionData.error}</Text>
             </Banner>
           </Layout.Section>
@@ -160,112 +158,118 @@ export default function ConversationDetailPage() {
 
         {actionData?.message ? (
           <Layout.Section>
-            <Banner tone="success" title="Conversation updated">
+            <Banner tone="success">
               <Text as="p" variant="bodyMd">{actionData.message}</Text>
             </Banner>
           </Layout.Section>
         ) : null}
 
+        {/* ── Summary + Ownership ─────────────────────────────────────────── */}
         <Layout.Section>
-          <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
-            <MetricCard label="Messages" value={conversation.history.length} hint="Full thread length for this buyer conversation." />
-            <MetricCard label="Conversation mode" value={conversation.conversationStatus} hint="Whether AI, human, or resolved owns the thread now." />
-            <MetricCard label="Order" value={conversation.order?.externalOrderId || "No order"} hint="Linked order reference when available." />
-            <MetricCard label="Current state" value={conversation.status} hint="Platform state machine value for the current conversation." />
-          </InlineGrid>
-        </Layout.Section>
-
-        <Layout.Section>
-          <div id="conversation-controls">
-            <Card padding="500">
-            <BlockStack gap="400">
-              <InlineStack align="space-between" gap="300" wrap>
-                <BlockStack gap="100">
-                  <Text as="h2" variant="headingLg">Conversation controls</Text>
-                  <Text as="p" variant="bodyMd" tone="subdued">
-                    Review the thread, switch ownership, and send a manual WhatsApp reply from this panel.
-                  </Text>
-                </BlockStack>
-                <InlineStack gap="200" wrap>
-                  <StatusBadge status={conversation.conversationStatus}>{conversation.conversationStatus}</StatusBadge>
-                  {conversation.returnPreventionAttempt ? (
-                    <StatusBadge status={conversation.returnPreventionAttempt.outcome}>
-                      {conversation.returnPreventionAttempt.outcome}
+          <Card padding="400">
+            <BlockStack gap="300">
+              <InlineStack align="space-between" blockAlign="center" wrap gap="200">
+                <BlockStack gap="050">
+                  <InlineStack gap="200" blockAlign="center">
+                    <Text as="p" variant="bodyMd" fontWeight="semibold">
+                      {conversation.userName || "Unknown buyer"}
+                    </Text>
+                    <StatusBadge status={conversation.conversationStatus}>
+                      {conversation.conversationStatus === "human"
+                        ? "Needs reply"
+                        : conversation.conversationStatus === "resolved"
+                          ? "Resolved"
+                          : "AI handling"}
                     </StatusBadge>
-                  ) : null}
+                    {conversation.returnPreventionAttempt ? (
+                      <StatusBadge status={conversation.returnPreventionAttempt.outcome}>
+                        {conversation.returnPreventionAttempt.outcome}
+                      </StatusBadge>
+                    ) : null}
+                  </InlineStack>
+                  <InlineStack gap="300">
+                    <Text as="p" variant="bodyXs" tone="subdued">{conversation.phone}</Text>
+                    {conversation.order?.externalOrderId ? (
+                      <Text as="p" variant="bodyXs" tone="subdued">
+                        Order: {conversation.order.externalOrderId}
+                      </Text>
+                    ) : null}
+                    <Text as="p" variant="bodyXs" tone="subdued">
+                      {`${conversation.history.length} messages`}
+                    </Text>
+                  </InlineStack>
+                </BlockStack>
+
+                {/* Ownership controls */}
+                <InlineStack gap="200" wrap>
+                  <StatusForm current={conversation.conversationStatus} next="ai" label="AI owns" />
+                  <StatusForm current={conversation.conversationStatus} next="human" label="Escalate" />
+                  <StatusForm current={conversation.conversationStatus} next="resolved" label="Resolve" />
                 </InlineStack>
               </InlineStack>
-
-              <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-                <Card padding="500">
-                  <BlockStack gap="300">
-                    <Text as="h3" variant="headingMd">Buyer summary</Text>
-                    <DetailRows
-                      rows={[
-                        { label: "Buyer", value: conversation.userName },
-                        { label: "Phone", value: conversation.phone },
-                        { label: "Order", value: conversation.order?.externalOrderId || "No linked order" },
-                        { label: "Updated", value: new Date(conversation.updatedAt).toLocaleString("en-GB") },
-                      ]}
-                    />
-                  </BlockStack>
-                </Card>
-
-                <Card padding="500">
-                  <BlockStack gap="300">
-                    <Text as="h3" variant="headingMd">Ownership</Text>
-                    <InlineStack gap="200" wrap>
-                      <StatusForm current={conversation.conversationStatus} next="ai" label="AI owns thread" />
-                      <StatusForm current={conversation.conversationStatus} next="human" label="Escalate to human" />
-                      <StatusForm current={conversation.conversationStatus} next="resolved" label="Mark resolved" />
-                    </InlineStack>
-                  </BlockStack>
-                </Card>
-              </InlineGrid>
             </BlockStack>
-            </Card>
-          </div>
+          </Card>
         </Layout.Section>
 
+        {/* ── Chat history (bubble layout) ───────────────────────────────── */}
         <Layout.Section>
-          <Card padding="500">
-            <BlockStack gap="400">
-              <InlineStack gap="200" blockAlign="center">
-                <Icon source={ChatIcon} />
-                <Text as="h2" variant="headingLg">Message history</Text>
-              </InlineStack>
-
-              <BlockStack gap="300">
+          <Card padding="400">
+            <BlockStack gap="300">
+              <Text as="h2" variant="headingMd">Message history</Text>
+              <BlockStack gap="200">
+                {conversation.history.length === 0 ? (
+                  <Text as="p" variant="bodySm" tone="subdued">No messages yet.</Text>
+                ) : null}
                 {conversation.history.map((message, index) => {
-                  const tone =
-                    message.role === "user"
-                      ? "bg-surface-secondary"
-                      : message.role === "merchant"
-                        ? "bg-fill-success-secondary"
-                        : "bg-fill-info-secondary";
+                  const isBuyer = message.role === "user";
+                  const isMerchant = message.role === "merchant";
+                  const label = isBuyer ? "Buyer" : isMerchant ? "Merchant" : "AI";
+
                   return (
-                    <Card key={`${message.timestamp}-${index}`} background={tone as never} padding="500">
-                      <BlockStack gap="200">
-                        <InlineStack align="space-between" gap="300">
-                          <InlineStack gap="200" blockAlign="center">
-                            <Icon source={PersonIcon} />
-                            <Text as="p" variant="bodyMd" fontWeight="semibold">
-                              {message.role === "user"
-                                ? "Buyer"
-                                : message.role === "merchant"
-                                  ? "Merchant"
-                                  : "AI assistant"}
+                    <div
+                      key={`${message.timestamp}-${index}`}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: isBuyer ? "flex-start" : "flex-end",
+                      }}
+                    >
+                      <div
+                        style={{
+                          maxWidth: "75%",
+                          background: isBuyer
+                            ? "var(--p-color-bg-surface-secondary)"
+                            : isMerchant
+                              ? "var(--p-color-bg-fill-success-secondary)"
+                              : "var(--p-color-bg-fill-info-secondary)",
+                          borderRadius: "12px",
+                          padding: "10px 14px",
+                        }}
+                      >
+                        <BlockStack gap="100">
+                          <InlineStack align="space-between" gap="300">
+                            <Text as="p" variant="bodyXs" fontWeight="semibold" tone="subdued">
+                              {label}
+                            </Text>
+                            <Text as="p" variant="bodyXs" tone="subdued">
+                              {new Date(message.timestamp).toLocaleTimeString("en-GB", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
                             </Text>
                           </InlineStack>
-                          <Text as="p" variant="bodySm" tone="subdued">
-                            {new Date(message.timestamp).toLocaleString("en-GB")}
-                          </Text>
-                        </InlineStack>
-                        <Text as="p" variant="bodyMd">
-                          {message.content}
+                          <Text as="p" variant="bodyMd">{message.content}</Text>
+                        </BlockStack>
+                      </div>
+                      <Box paddingBlockStart="025">
+                        <Text as="p" variant="bodyXs" tone="subdued">
+                          {new Date(message.timestamp).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                          })}
                         </Text>
-                      </BlockStack>
-                    </Card>
+                      </Box>
+                    </div>
                   );
                 })}
               </BlockStack>
@@ -273,25 +277,25 @@ export default function ConversationDetailPage() {
           </Card>
         </Layout.Section>
 
+        {/* ── Manual reply ────────────────────────────────────────────────── */}
         <Layout.Section>
-          <Card padding="500">
+          <Card padding="400">
             <Form method="post">
               <input type="hidden" name="intent" value="reply" />
-              <BlockStack gap="400">
-                <Text as="h2" variant="headingLg">Manual reply</Text>
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  Send a WhatsApp message directly to the buyer from inside the embedded shell.
-                </Text>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingMd">Send a reply</Text>
                 <TextField
-                  label="Reply text"
+                  label="Message"
                   name="text"
-                  multiline={5}
+                  multiline={4}
                   value={replyText}
                   onChange={setReplyText}
                   autoComplete="off"
+                  placeholder="Type your WhatsApp message..."
+                  helpText="Sends directly to the buyer via WhatsApp."
                 />
                 <InlineStack>
-                  <Button submit variant="primary" loading={busy} disabled={!replyText.trim()}>
+                  <Button submit variant="primary" icon={ChatIcon} loading={busy} disabled={!replyText.trim()}>
                     Send reply
                   </Button>
                 </InlineStack>

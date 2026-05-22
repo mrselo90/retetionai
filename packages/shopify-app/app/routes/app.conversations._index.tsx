@@ -1,11 +1,20 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { ChatIcon, PersonIcon, SettingsIcon } from "@shopify/polaris-icons";
-import { InlineGrid } from "@shopify/polaris";
+import { ChatIcon, PersonIcon } from "@shopify/polaris-icons";
+import {
+  Badge,
+  BlockStack,
+  Box,
+  Button,
+  Card,
+  InlineGrid,
+  InlineStack,
+  Text,
+} from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantConversations } from "../platform.server";
-import { ActionCard, EmptyCard, MetricCard, SectionCard, ShellPage, StatePanel } from "../components/shell-ui";
+import { MetricCard, ShellPage } from "../components/shell-ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
@@ -21,193 +30,155 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 };
 
-function formatConversationDateTime(value?: string | null) {
-  if (!value) return "No timestamp";
-
+function formatRelativeTime(value?: string | null) {
+  if (!value) return "";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "No timestamp";
+  if (Number.isNaN(date.getTime())) return "";
 
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60_000);
+  const hours = Math.floor(diff / 3_600_000);
+  const days = Math.floor(diff / 86_400_000);
+
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
 }
 
-function getConversationTimestamp(value?: string | null) {
-  if (!value) return 0;
-  const timestamp = new Date(value).getTime();
-  return Number.isNaN(timestamp) ? 0 : timestamp;
+function statusTone(status?: string | null): "attention" | "success" | "info" | undefined {
+  if (status === "human") return "attention";
+  if (status === "resolved") return "success";
+  return "info";
+}
+
+function statusLabel(status?: string | null) {
+  if (status === "human") return "Needs reply";
+  if (status === "resolved") return "Resolved";
+  return "AI handling";
 }
 
 export default function ConversationsPage() {
   const data = useLoaderData<typeof loader>();
   const conversations = data.conversations || [];
-  const sortedConversations = [...conversations].sort((left, right) => {
-    const statusWeight = (status?: string | null) => {
-      if (status === "human") return 0;
-      if (status === "ai") return 1;
-      if (status === "resolved") return 2;
-      return 3;
-    };
-
-    return statusWeight(left.conversationStatus) - statusWeight(right.conversationStatus)
-      || getConversationTimestamp(right.lastMessageAt) - getConversationTimestamp(left.lastMessageAt)
-      || (right.messageCount || 0) - (left.messageCount || 0);
-  });
-  const manualQueue = sortedConversations.filter((item) => item.conversationStatus === "human");
-  const activeQueue = sortedConversations.filter((item) => item.conversationStatus !== "resolved");
-  const resolvedQueue = sortedConversations.filter((item) => item.conversationStatus === "resolved");
-  const humanCount = conversations.filter((item) => item.conversationStatus === "human").length;
-  const resolvedCount = conversations.filter((item) => item.conversationStatus === "resolved").length;
-  const aiCount = conversations.filter((item) => item.conversationStatus === "ai").length;
   const unavailableReason = "unavailableReason" in data ? data.unavailableReason : null;
-  const primaryState = unavailableReason
-    ? {
-        title: "Conversation queue is temporarily unavailable",
-        body: "The merchant should avoid making decisions from stale data until the queue loads again.",
-        tone: "warning" as const,
-      }
-    : humanCount > 0
-      ? {
-          title: "Human review is required",
-          body: `${humanCount} conversation${humanCount === 1 ? "" : "s"} are waiting for manual attention.`,
-          tone: "warning" as const,
-        }
-      : conversations.length === 0
-        ? {
-            title: "No conversations yet",
-            body: "This is expected before orders and outreach start flowing through the app.",
-            tone: "info" as const,
-          }
-        : {
-            title: "Queue is under control",
-            body: "AI-owned and resolved conversations currently outweigh manual escalations.",
-            tone: "success" as const,
-          };
+
+  // Sort: human first, then by recency
+  const sorted = [...conversations].sort((a, b) => {
+    const weight = (s?: string | null) => (s === "human" ? 0 : s === "ai" ? 1 : 2);
+    const wDiff = weight(a.conversationStatus) - weight(b.conversationStatus);
+    if (wDiff !== 0) return wDiff;
+    return new Date(b.lastMessageAt ?? 0).getTime() - new Date(a.lastMessageAt ?? 0).getTime();
+  });
+
+  const humanCount = conversations.filter((c) => c.conversationStatus === "human").length;
+  const aiCount = conversations.filter((c) => c.conversationStatus === "ai").length;
+  const resolvedCount = conversations.filter((c) => c.conversationStatus === "resolved").length;
+  const firstHuman = sorted.find((c) => c.conversationStatus === "human");
 
   return (
     <ShellPage
       title="Conversations"
-      subtitle="Buyer conversation queue with sentiment and escalation context inside the embedded app."
-      primaryAction={{
-        content: manualQueue.length > 0 ? "Handle next conversation" : "Open customers",
-        url: manualQueue.length > 0 ? `/app/conversations/${manualQueue[0].id}` : "/app/customers",
-        icon: PersonIcon,
-      }}
+      subtitle="Buyer threads and escalations."
+      primaryAction={
+        firstHuman
+          ? { content: `Handle next (${humanCount})`, url: `/app/conversations/${firstHuman.id}`, icon: ChatIcon }
+          : { content: "View customers", url: "/app/customers", icon: PersonIcon }
+      }
     >
-      <StatePanel
-        title={primaryState.title}
-        description={primaryState.body}
-        tone={primaryState.tone === "warning" ? "attention" : primaryState.tone}
-        statusLabel={unavailableReason ? "Needs attention" : humanCount > 0 ? "In progress" : conversations.length === 0 ? "Ready" : "Live"}
-      />
+      {/* ── Alert banner when human queue is non-empty ──────────────────── */}
+      {humanCount > 0 && !unavailableReason ? (
+        <Card padding="400" roundedAbove="sm" background="bg-surface-caution">
+          <InlineStack align="space-between" blockAlign="center" wrap gap="300">
+            <BlockStack gap="050">
+              <Text as="p" variant="bodyMd" fontWeight="semibold">
+                {`${humanCount} thread${humanCount === 1 ? "" : "s"} need${humanCount === 1 ? "s" : ""} your reply`}
+              </Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                Escalated to human — buyer is waiting.
+              </Text>
+            </BlockStack>
+            {firstHuman ? (
+              <Button url={`/app/conversations/${firstHuman.id}`} variant="primary" icon={ChatIcon}>
+                Handle next
+              </Button>
+            ) : null}
+          </InlineStack>
+        </Card>
+      ) : null}
 
-      <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
-        <MetricCard label="Total" value={conversations.length} hint="Recent conversation threads available to the merchant." />
-        <MetricCard label="Human queue" value={humanCount} hint="Threads marked for manual attention." />
-        <MetricCard label="AI handled" value={aiCount} hint="Conversations still handled by the bot." />
-        <MetricCard label="Resolved" value={resolvedCount} hint="Threads closed with sufficient message history." />
+      {unavailableReason ? (
+        <Card padding="400" roundedAbove="sm" background="bg-surface-caution">
+          <Text as="p" variant="bodyMd">{unavailableReason}</Text>
+        </Card>
+      ) : null}
+
+      {/* ── Metrics ─────────────────────────────────────────────────────── */}
+      <InlineGrid columns={{ xs: 2, sm: 4 }} gap="400">
+        <MetricCard label="Total" value={conversations.length} hint="All tracked threads." />
+        <MetricCard label="Needs reply" value={humanCount} hint="Threads in human queue." />
+        <MetricCard label="AI handling" value={aiCount} hint="Conversations still owned by bot." />
+        <MetricCard label="Resolved" value={resolvedCount} hint="Closed threads." />
       </InlineGrid>
 
-      <SectionCard
-        title="Queue actions"
-        subtitle="This screen should help the merchant decide what to handle next, not just list threads."
-      >
-        <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
-          <ActionCard
-            title="Manual queue"
-            description={
-              manualQueue.length > 0
-                ? `${manualQueue.length} thread${manualQueue.length === 1 ? "" : "s"} need a merchant reply or ownership decision.`
-                : "No conversations are waiting for manual ownership right now."
-            }
-            status={humanCount > 0 ? "failed" : "active"}
-            action={{
-              content: manualQueue.length > 0 ? "Handle next" : "Review response rules",
-              url: manualQueue.length > 0 ? `/app/conversations/${manualQueue[0].id}` : "/app/settings",
-              icon: SettingsIcon,
-            }}
-          />
-          <ActionCard
-            title="Active AI queue"
-            description={
-              activeQueue.length > 0
-                ? `${activeQueue.length} active thread${activeQueue.length === 1 ? "" : "s"} are still in progress.`
-                : "No active AI-owned threads are visible right now."
-            }
-            status="info"
-            action={{
-              content: activeQueue.length > 0 ? "Open next active thread" : "Inspect customer health",
-              url: activeQueue.length > 0 ? `/app/conversations/${activeQueue[0].id}` : "/app/customers",
-              icon: PersonIcon,
-            }}
-          />
-          <ActionCard
-            title="Resolved review"
-            description={
-              resolvedQueue.length > 0
-                ? `${resolvedQueue.length} resolved thread${resolvedQueue.length === 1 ? "" : "s"} can be sampled for quality checks.`
-                : "Resolved conversations will appear here once the queue starts closing cleanly."
-            }
-            status={resolvedQueue.length > 0 ? "active" : "pending"}
-            action={{
-              content: resolvedQueue.length > 0 ? "Review resolved thread" : "Open customers",
-              url: resolvedQueue.length > 0 ? `/app/conversations/${resolvedQueue[0].id}` : "/app/customers",
-              icon: ChatIcon,
-            }}
-          />
-        </InlineGrid>
-      </SectionCard>
-
-      <SectionCard
-        title="Manual priority queue"
-        subtitle="Human-owned threads should stay above everything else."
-      >
-        {manualQueue.length > 0 ? (
-          <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-            {manualQueue.map((conversation) => (
-              <ActionCard
-                key={conversation.id}
-                title={conversation.userName || "Guest user"}
-                description={`${conversation.phone || "No phone"} · ${conversation.messageCount} messages · Last message: ${formatConversationDateTime(conversation.lastMessageAt)}`}
-                status={conversation.conversationStatus || conversation.sentiment || "ai"}
-                action={{ content: "Reply now", url: `/app/conversations/${conversation.id}`, icon: ChatIcon }}
-              />
-            ))}
-          </InlineGrid>
+      {/* ── Conversation list ────────────────────────────────────────────── */}
+      <Card padding="0" roundedAbove="sm">
+        {sorted.length === 0 ? (
+          <Box padding="500">
+            <BlockStack gap="200">
+              <Text as="p" variant="bodyMd" fontWeight="semibold">No conversations yet</Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                Threads appear here after orders flow through Recete and buyers start responding.
+              </Text>
+            </BlockStack>
+          </Box>
         ) : (
-          <EmptyCard
-            heading="No manual queue right now"
-            description="That is the ideal state. If the merchant still wants to review quality, sample an active or resolved thread below."
-            action={{ content: activeQueue.length > 0 ? "Open active thread" : "Check order flow", url: activeQueue.length > 0 ? `/app/conversations/${activeQueue[0].id}` : "/app/integrations" }}
-          />
-        )}
-      </SectionCard>
-
-      <SectionCard
-        title="All recent threads"
-        subtitle="Keep the full queue available, but sort it behind the priority decision."
-      >
-        {sortedConversations.length > 0 ? (
-          <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-            {sortedConversations.map((conversation) => (
-              <ActionCard
+          <BlockStack gap="0">
+            {sorted.map((conversation, index) => (
+              <Box
                 key={conversation.id}
-                title={conversation.userName || "Guest user"}
-                description={`${conversation.phone || "No phone"} · ${conversation.messageCount} messages · Last message: ${formatConversationDateTime(conversation.lastMessageAt)}`}
-                status={conversation.conversationStatus || conversation.sentiment || "ai"}
-                action={{ content: conversation.conversationStatus === "human" ? "Reply now" : "Open thread", url: `/app/conversations/${conversation.id}`, icon: ChatIcon }}
-              />
+                padding="400"
+                borderBlockStartWidth={index > 0 ? "025" : undefined}
+                borderColor="border-secondary"
+              >
+                <InlineStack align="space-between" blockAlign="center" wrap gap="300">
+                  <BlockStack gap="100">
+                    <InlineStack gap="200" blockAlign="center">
+                      <Text as="p" variant="bodyMd" fontWeight="semibold">
+                        {conversation.userName || "Unknown buyer"}
+                      </Text>
+                      <Badge tone={statusTone(conversation.conversationStatus)}>
+                        {statusLabel(conversation.conversationStatus)}
+                      </Badge>
+                    </InlineStack>
+                    <InlineStack gap="300">
+                      <Text as="p" variant="bodyXs" tone="subdued">
+                        {conversation.phone || "No phone"}
+                      </Text>
+                      <Text as="p" variant="bodyXs" tone="subdued">
+                        {`${conversation.messageCount ?? 0} messages`}
+                      </Text>
+                      {conversation.lastMessageAt ? (
+                        <Text as="p" variant="bodyXs" tone="subdued">
+                          {formatRelativeTime(conversation.lastMessageAt)}
+                        </Text>
+                      ) : null}
+                    </InlineStack>
+                  </BlockStack>
+                  <Button
+                    url={`/app/conversations/${conversation.id}`}
+                    variant={conversation.conversationStatus === "human" ? "primary" : "tertiary"}
+                    icon={ChatIcon}
+                    size="slim"
+                  >
+                    {conversation.conversationStatus === "human" ? "Reply" : "Open"}
+                  </Button>
+                </InlineStack>
+              </Box>
             ))}
-          </InlineGrid>
-        ) : (
-          <EmptyCard
-            heading="No conversation activity yet"
-            description="Once orders start flowing into the retention engine, buyer threads will appear here."
-            action={{ content: "Check order flow", url: "/app/integrations" }}
-          />
+          </BlockStack>
         )}
-      </SectionCard>
+      </Card>
     </ShellPage>
   );
 }

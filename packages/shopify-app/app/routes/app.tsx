@@ -218,7 +218,11 @@ function AppShell({ initialShop }: { initialShop: string }) {
   return (
     <Frame>
       <EmbeddedSessionTokenBoundary />
-      <Box background="bg-surface" minHeight="100vh" padding="400">
+      {/* Hide sidebar on mobile — it stacks above content on xs/sm/md which hurts usability */}
+      <style>{`
+        @media (max-width: 1039px) { .recete-sidebar { display: none !important; } }
+      `}</style>
+      <Box background="bg-surface" minHeight="100vh" padding={{ xs: "200", sm: "300", md: "400" }}>
         <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
           <BlockStack gap="400">
             {navigation.state === "loading" ? (
@@ -228,6 +232,8 @@ function AppShell({ initialShop }: { initialShop: string }) {
             ) : null}
 
             <InlineGrid columns={{ xs: 1, lg: "240px 1fr" }} gap="400">
+              {/* Sidebar: hidden on mobile (xs/sm/md), visible only on lg+ */}
+              <div className="recete-sidebar">
               <Card padding="300" roundedAbove="sm">
                 <BlockStack gap="300">
                   {setupIncomplete ? (
@@ -341,6 +347,7 @@ function AppShell({ initialShop }: { initialShop: string }) {
                   )}
                 </BlockStack>
               </Card>
+              </div>
 
               <Box>
                 {shellLoading && location.pathname === "/app" ? (

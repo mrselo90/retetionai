@@ -73,7 +73,7 @@ export default function AnalyticsPage() {
     : !hasProducts
       ? { content: "Add products", url: "/app/products", icon: ChatIcon }
       : !hasMessagingConfigured
-        ? { content: "Configure messaging", url: "/app/settings", icon: SettingsIcon }
+        ? { content: "Configure messaging", url: "/app/setup/messaging", icon: SettingsIcon }
         : { content: "Open conversations", url: "/app/conversations", icon: ChatIcon };
 
   const primaryAction = analyticsState === "onboarding_incomplete"
