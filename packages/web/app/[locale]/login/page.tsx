@@ -1,17 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from '@/i18n/routing'; // Updated import
+import { useRouter } from '@/i18n/routing';
 import { Link as I18nLink } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
-
 import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Logo } from '@/components/ui/logo';
 
 export default function LoginPage() {
   const t = useTranslations('Login');
@@ -48,7 +42,6 @@ export default function LoginPage() {
     setError(null);
     setGoogleLoading(true);
     try {
-      // localePrefix: 'never' — no locale in URL, auth/callback is at root level
       const redirectTo =
         typeof window !== 'undefined'
           ? `${window.location.origin}/auth/callback`
@@ -65,7 +58,6 @@ export default function LoginPage() {
           setError(oauthError.message);
         }
       }
-      // Redirect happens via OAuth flow; no need to push here
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('provider is not enabled') || msg.includes('Unsupported provider')) {
@@ -90,9 +82,6 @@ export default function LoginPage() {
       });
 
       if (authError) {
-        console.error('Login error:', authError);
-
-        // Handle email confirmation error (message can be "Email not confirmed" or similar)
         const msg = (authError.message ?? '').toLowerCase();
         const isEmailNotConfirmed =
           msg.includes('email not confirmed') ||
@@ -120,7 +109,7 @@ export default function LoginPage() {
                     setError(t('errors.resendError'));
                   }
                 }}
-                className="underline hover:no-underline font-medium"
+                style={{ textDecoration: 'underline', fontWeight: 500 }}
               >
                 {t('errors.resendVerification')}
               </button>
@@ -138,7 +127,6 @@ export default function LoginPage() {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      // Handle email not confirmed when error is thrown instead of returned
       if (message.toLowerCase().includes('email not confirmed') || message.toLowerCase().includes('not confirmed')) {
         setError(
           <span>
@@ -160,7 +148,7 @@ export default function LoginPage() {
                   setError(t('errors.resendError'));
                 }
               }}
-              className="underline hover:no-underline font-medium"
+              style={{ textDecoration: 'underline', fontWeight: 500 }}
             >
               {t('errors.resendVerification')}
             </button>
@@ -175,121 +163,335 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-50 via-white to-primary/5 px-4 py-12 relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMxNGI4YTYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djItaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bS0yIDJ2LTJoLTJ2Mmgyem0tNCAydi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bTI4IDMydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptMCAydi0yaC0ydjJoMnptLTIgMnYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnptLTQgMHYtMmgtMnYyaDJ6bS00IDB2LTJoLTJ2Mmgyem0tNCAwdi0yaC0ydjJoMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-50"></div>
-
-      <Card className="w-full max-w-md animate-scale-in shadow-2xl border-2 relative z-10 overflow-hidden">
-        {/* Card Header Gradient */}
-        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-primary via-primary/80 to-primary"></div>
-
-        <CardHeader className="space-y-2 text-center pt-8 pb-6">
-          <div className="mx-auto mb-4 flex justify-center">
-            <Logo iconOnly className="w-16 h-16 drop-shadow-md" />
+    <div className="landing" style={{ minHeight: '100vh', display: 'flex' }}>
+      {/* ── Left panel — branding ── */}
+      <div style={{
+        display: 'none',
+        width: '45%',
+        flexShrink: 0,
+        background: 'var(--link)',
+        color: 'var(--lbg)',
+        padding: '48px 52px',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+      }} className="lauth-left">
+        {/* Logo */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="lnav-logo-mark">R</div>
+            <span style={{
+              fontFamily: "'Playfair Display', 'Georgia', serif",
+              fontSize: 22,
+              fontWeight: 700,
+              color: 'var(--lbg)',
+            }}>recete</span>
           </div>
-          <CardTitle className="text-3xl font-extrabold tracking-tight">
-            {t('title')}
-          </CardTitle>
-          <CardDescription className="text-base font-medium">
-            {t('description')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5 px-8 pb-8">
+        </div>
+
+        {/* Middle — tagline */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 32, paddingTop: 64, paddingBottom: 48 }}>
+          <div>
+            <div style={{
+              fontFamily: 'var(--font-mono, monospace)',
+              fontSize: 11,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              opacity: 0.5,
+              marginBottom: 16,
+            }}>Post-purchase AI · WhatsApp</div>
+            <h2 style={{
+              fontSize: 'clamp(28px, 3vw, 40px)',
+              fontWeight: 500,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.1,
+              margin: 0,
+              color: 'var(--lbg)',
+            }}>
+              Turn every order into<br />
+              <span style={{ opacity: 0.55 }}>a loyal customer.</span>
+            </h2>
+          </div>
+
+          {/* Feature list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {[
+              'AI that replies on WhatsApp — in your brand voice',
+              'Reduce returns before customers ask for them',
+              'Reorder reminders that actually convert',
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 999,
+                  background: 'oklch(0.42 0.07 160)',
+                  flexShrink: 0,
+                  marginTop: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M2 5l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <span style={{ fontSize: 14, lineHeight: 1.45, opacity: 0.8 }}>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Testimonial */}
+        <div style={{
+          borderTop: '1px solid',
+          borderColor: 'rgba(255,255,255,0.12)',
+          paddingTop: 28,
+        }}>
+          <p style={{ fontSize: 14, lineHeight: 1.55, opacity: 0.65, margin: '0 0 16px', fontStyle: 'italic' }}>
+            "We reduced avoidable returns by 28% in the first month. Setup took one afternoon."
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 999,
+              background: 'oklch(0.42 0.07 160)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'white',
+            }}>E</div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>Ece Demir</div>
+              <div style={{ fontSize: 12, opacity: 0.5 }}>Founder · skincare brand</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Right panel — form ── */}
+      <div style={{
+        flex: 1,
+        background: 'var(--lbg)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '48px 24px',
+        minHeight: '100vh',
+      }}>
+        <div style={{ width: '100%', maxWidth: 400 }}>
+
+          {/* Mobile logo (only shown when left panel is hidden) */}
+          <div className="lauth-mobile-logo" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 40, justifyContent: 'center' }}>
+            <div className="lnav-logo-mark">R</div>
+            <span style={{
+              fontFamily: "'Playfair Display', 'Georgia', serif",
+              fontSize: 20,
+              fontWeight: 700,
+              color: 'var(--link)',
+            }}>recete</span>
+          </div>
+
+          {/* Heading */}
+          <div style={{ marginBottom: 32 }}>
+            <h1 style={{
+              fontSize: 26,
+              fontWeight: 500,
+              letterSpacing: '-0.025em',
+              color: 'var(--link)',
+              margin: '0 0 6px',
+            }}>Welcome back</h1>
+            <p style={{ fontSize: 14, color: 'var(--link-3)', margin: 0 }}>
+              Sign in to your Recete account
+            </p>
+          </div>
+
+          {/* Error */}
           {error && (
-            <div className="p-4 bg-destructive/10 border-2 border-destructive/30 rounded-xl flex items-start gap-3 text-sm text-destructive animate-slide-down shadow-sm">
-              <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
-              <div className="flex-1 font-medium">{error}</div>
+            <div style={{
+              padding: '12px 16px',
+              background: 'oklch(0.96 0.02 20)',
+              border: '1px solid oklch(0.88 0.05 20)',
+              borderRadius: 10,
+              marginBottom: 20,
+              fontSize: 13.5,
+              color: 'oklch(0.35 0.08 20)',
+              lineHeight: 1.5,
+            }}>
+              {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="form-field">
-              <label htmlFor="email" className="form-label">
-                {t('emailLabel')}
+          {/* Form */}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--link-2)' }} htmlFor="email">
+                Email
               </label>
-              <Input
+              <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder={t('emailPlaceholder')}
-                className="h-12 w-full"
+                placeholder="you@example.com"
+                style={{
+                  height: 44,
+                  padding: '0 14px',
+                  border: '1px solid var(--lline-2)',
+                  borderRadius: 10,
+                  background: 'var(--lbg)',
+                  color: 'var(--link)',
+                  fontSize: 14,
+                  outline: 'none',
+                  transition: 'border-color 140ms',
+                  fontFamily: 'inherit',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--link)'; e.target.style.boxShadow = '0 0 0 3px oklch(0.42 0.07 160 / 0.1)'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--lline-2)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
 
-            <div className="form-field">
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="password" className="form-label mb-0">
-                  {t('passwordLabel')}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--link-2)' }} htmlFor="password">
+                  Password
                 </label>
-                <I18nLink href="/forgot-password" className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors">
-                  {t('forgotPassword')}
+                <I18nLink href="/forgot-password" style={{
+                  fontSize: 13,
+                  color: 'var(--laccent-ink)',
+                  textDecoration: 'none',
+                }}>
+                  Forgot password?
                 </I18nLink>
               </div>
-              <Input
+              <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="h-12 w-full"
+                style={{
+                  height: 44,
+                  padding: '0 14px',
+                  border: '1px solid var(--lline-2)',
+                  borderRadius: 10,
+                  background: 'var(--lbg)',
+                  color: 'var(--link)',
+                  fontSize: 14,
+                  outline: 'none',
+                  transition: 'border-color 140ms',
+                  fontFamily: 'inherit',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--link)'; e.target.style.boxShadow = '0 0 0 3px oklch(0.42 0.07 160 / 0.1)'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--lline-2)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
 
-            <Button
+            <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 text-base font-bold shadow-lg hover:shadow-xl"
-              size="lg"
+              className="lbtn lbtn-primary"
+              style={{
+                width: '100%',
+                height: 44,
+                fontSize: 14,
+                fontWeight: 500,
+                marginTop: 4,
+                justifyContent: 'center',
+                gap: 8,
+                opacity: loading ? 0.65 : 1,
+                cursor: loading ? 'not-allowed' : 'pointer',
+              }}
             >
-              {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-              {loading ? t('submitting') : t('submitButton')}
-            </Button>
+              {loading ? (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 0.8s linear infinite' }}>
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="60" strokeDashoffset="20" strokeLinecap="round"/>
+                  </svg>
+                  Signing in…
+                </>
+              ) : 'Sign in'}
+            </button>
           </form>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t-2 border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-3 text-muted-foreground font-bold">
-                {t('or')}
-              </span>
-            </div>
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--lline)' }} />
+            <span style={{ fontSize: 12, color: 'var(--link-4)', fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.04em' }}>OR</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--lline)' }} />
           </div>
 
-          <Button
-            variant="outline"
+          {/* Google button */}
+          <button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={googleLoading || loading}
-            className="w-full h-12 border-2 font-bold hover:border-primary/30 hover:shadow-md"
-            size="lg"
+            className="lbtn lbtn-outline"
+            style={{
+              width: '100%',
+              height: 44,
+              fontSize: 14,
+              fontWeight: 500,
+              justifyContent: 'center',
+              gap: 10,
+              opacity: (googleLoading || loading) ? 0.65 : 1,
+              cursor: (googleLoading || loading) ? 'not-allowed' : 'pointer',
+            }}
           >
             {googleLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 0.8s linear infinite' }}>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeDasharray="60" strokeDashoffset="20" strokeLinecap="round"/>
+              </svg>
             ) : (
-              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+              <svg width="16" height="16" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
             )}
-            {googleLoading ? t('googleRedirecting') : t('googleLogin')}
-          </Button>
-        </CardContent>
-        <CardFooter className="flex justify-center pb-8 px-8">
-          <p className="text-sm text-muted-foreground font-medium">
-            {t('noAccount')}{' '}
-            <I18nLink href="/signup" className="font-bold text-primary hover:text-primary/80 transition-colors">
-              {t('register')}
+            {googleLoading ? 'Redirecting…' : 'Continue with Google'}
+          </button>
+
+          {/* Footer */}
+          <p style={{ textAlign: 'center', fontSize: 13.5, color: 'var(--link-3)', marginTop: 28 }}>
+            Don't have an account?{' '}
+            <I18nLink href="/signup" style={{ color: 'var(--laccent-ink)', fontWeight: 500, textDecoration: 'none' }}>
+              Sign up free
             </I18nLink>
           </p>
-        </CardFooter>
-      </Card>
+
+          {/* Back to site */}
+          <div style={{ textAlign: 'center', marginTop: 40 }}>
+            <I18nLink href="/" style={{ fontSize: 12, color: 'var(--link-4)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <svg width="12" height="12" viewBox="0 0 20 20" fill="none">
+                <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" transform="scale(-1,1) translate(-20,0)"/>
+              </svg>
+              Back to recete.co.uk
+            </I18nLink>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        /* Show left panel on desktop */
+        @media (min-width: 768px) {
+          .lauth-left { display: flex !important; }
+          .lauth-mobile-logo { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
