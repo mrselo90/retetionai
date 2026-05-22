@@ -1,20 +1,25 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ChatIcon, PersonIcon } from "@shopify/polaris-icons";
 import {
+  Avatar,
   Badge,
+  Banner,
   BlockStack,
-  Box,
   Button,
   Card,
   InlineGrid,
   InlineStack,
+  Layout,
+  Page,
+  ResourceItem,
+  ResourceList,
   Text,
 } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantConversations } from "../platform.server";
-import { MetricCard, ShellPage } from "../components/shell-ui";
+import { MetricCard } from "../components/shell-ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
@@ -60,6 +65,7 @@ function statusLabel(status?: string | null) {
 
 export default function ConversationsPage() {
   const data = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
   const conversations = data.conversations || [];
   const unavailableReason = "unavailableReason" in data ? data.unavailableReason : null;
 
@@ -77,109 +83,129 @@ export default function ConversationsPage() {
   const firstHuman = sorted.find((c) => c.conversationStatus === "human");
 
   return (
-    <ShellPage
+    <Page
       title="Conversations"
       subtitle="Buyer threads and escalations."
       primaryAction={
         firstHuman
-          ? { content: `Handle next (${humanCount})`, url: `/app/conversations/${firstHuman.id}`, icon: ChatIcon }
-          : { content: "View customers", url: "/app/customers", icon: PersonIcon }
+          ? {
+              content: `Handle next (${humanCount})`,
+              onAction: () => navigate(`/app/conversations/${firstHuman.id}`),
+              icon: ChatIcon as never,
+            }
+          : {
+              content: "View customers",
+              onAction: () => navigate("/app/customers"),
+              icon: PersonIcon as never,
+            }
       }
     >
-      {/* ── Alert banner when human queue is non-empty ──────────────────── */}
-      {humanCount > 0 && !unavailableReason ? (
-        <Card padding="400" roundedAbove="sm" background="bg-surface-caution">
-          <InlineStack align="space-between" blockAlign="center" wrap gap="300">
-            <BlockStack gap="050">
-              <Text as="p" variant="bodyMd" fontWeight="semibold">
-                {`${humanCount} thread${humanCount === 1 ? "" : "s"} need${humanCount === 1 ? "s" : ""} your reply`}
-              </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                Escalated to human — buyer is waiting.
-              </Text>
-            </BlockStack>
-            {firstHuman ? (
-              <Button url={`/app/conversations/${firstHuman.id}`} variant="primary" icon={ChatIcon}>
-                Handle next
-              </Button>
-            ) : null}
-          </InlineStack>
-        </Card>
-      ) : null}
+      <Layout>
+        <Layout.Section>
+          <BlockStack gap="400">
 
-      {unavailableReason ? (
-        <Card padding="400" roundedAbove="sm" background="bg-surface-caution">
-          <Text as="p" variant="bodyMd">{unavailableReason}</Text>
-        </Card>
-      ) : null}
-
-      {/* ── Metrics ─────────────────────────────────────────────────────── */}
-      <InlineGrid columns={{ xs: 2, sm: 4 }} gap="400">
-        <MetricCard label="Total" value={conversations.length} hint="All tracked threads." />
-        <MetricCard label="Needs reply" value={humanCount} hint="Threads in human queue." />
-        <MetricCard label="AI handling" value={aiCount} hint="Conversations still owned by bot." />
-        <MetricCard label="Resolved" value={resolvedCount} hint="Closed threads." />
-      </InlineGrid>
-
-      {/* ── Conversation list ────────────────────────────────────────────── */}
-      <Card padding="0" roundedAbove="sm">
-        {sorted.length === 0 ? (
-          <Box padding="500">
-            <BlockStack gap="200">
-              <Text as="p" variant="bodyMd" fontWeight="semibold">No conversations yet</Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                Threads appear here after orders flow through Recete and buyers start responding.
-              </Text>
-            </BlockStack>
-          </Box>
-        ) : (
-          <BlockStack gap="0">
-            {sorted.map((conversation, index) => (
-              <Box
-                key={conversation.id}
-                padding="400"
-                borderBlockStartWidth={index > 0 ? "025" : undefined}
-                borderColor="border-secondary"
+            {/* ── Escalation alert ────────────────────────────────────────── */}
+            {humanCount > 0 && !unavailableReason ? (
+              <Banner
+                title={`${humanCount} thread${humanCount === 1 ? "" : "s"} need${humanCount === 1 ? "s" : ""} your reply`}
+                tone="warning"
+                action={
+                  firstHuman
+                    ? { content: "Handle next", onAction: () => navigate(`/app/conversations/${firstHuman.id}`) }
+                    : undefined
+                }
               >
-                <InlineStack align="space-between" blockAlign="center" wrap gap="300">
-                  <BlockStack gap="100">
-                    <InlineStack gap="200" blockAlign="center">
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">
-                        {conversation.userName || "Unknown buyer"}
-                      </Text>
-                      <Badge tone={statusTone(conversation.conversationStatus)}>
-                        {statusLabel(conversation.conversationStatus)}
-                      </Badge>
-                    </InlineStack>
-                    <InlineStack gap="300">
-                      <Text as="p" variant="bodyXs" tone="subdued">
-                        {conversation.phone || "No phone"}
-                      </Text>
-                      <Text as="p" variant="bodyXs" tone="subdued">
-                        {`${conversation.messageCount ?? 0} messages`}
-                      </Text>
-                      {conversation.lastMessageAt ? (
-                        <Text as="p" variant="bodyXs" tone="subdued">
-                          {formatRelativeTime(conversation.lastMessageAt)}
-                        </Text>
-                      ) : null}
-                    </InlineStack>
+                <Text as="p" variant="bodyMd">Escalated to human — buyer is waiting.</Text>
+              </Banner>
+            ) : null}
+
+            {unavailableReason ? (
+              <Banner title="Conversations unavailable" tone="critical">
+                <Text as="p" variant="bodyMd">{unavailableReason}</Text>
+              </Banner>
+            ) : null}
+
+            {/* ── Metrics ─────────────────────────────────────────────────── */}
+            <InlineGrid columns={{ xs: 2, sm: 4 }} gap="400">
+              <MetricCard label="Total" value={conversations.length} hint="All tracked threads." />
+              <MetricCard label="Needs reply" value={humanCount} hint="Threads in human queue." />
+              <MetricCard label="AI handling" value={aiCount} hint="Conversations owned by bot." />
+              <MetricCard label="Resolved" value={resolvedCount} hint="Closed threads." />
+            </InlineGrid>
+
+            {/* ── Conversation list ────────────────────────────────────────── */}
+            <Card padding="0">
+              <ResourceList
+                resourceName={{ singular: "conversation", plural: "conversations" }}
+                items={sorted}
+                emptyState={
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodyMd" fontWeight="semibold" alignment="center">
+                      No conversations yet
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                      Threads appear here after orders flow through Recete and buyers start responding.
+                    </Text>
                   </BlockStack>
-                  <Button
-                    url={`/app/conversations/${conversation.id}`}
-                    variant={conversation.conversationStatus === "human" ? "primary" : "tertiary"}
-                    icon={ChatIcon}
-                    size="slim"
-                  >
-                    {conversation.conversationStatus === "human" ? "Reply" : "Open"}
-                  </Button>
-                </InlineStack>
-              </Box>
-            ))}
+                }
+                renderItem={(conversation) => {
+                  const isHuman = conversation.conversationStatus === "human";
+                  const relativeTime = formatRelativeTime(conversation.lastMessageAt);
+
+                  return (
+                    <ResourceItem
+                      id={conversation.id}
+                      url={`/app/conversations/${conversation.id}`}
+                      media={
+                        <Avatar
+                          customer
+                          size="md"
+                          name={conversation.userName || "Unknown"}
+                        />
+                      }
+                      accessibilityLabel={`View conversation with ${conversation.userName || "Unknown buyer"}`}
+                      shortcutActions={[
+                        {
+                          content: isHuman ? "Reply" : "Open",
+                          url: `/app/conversations/${conversation.id}`,
+                        },
+                      ]}
+                    >
+                      <BlockStack gap="100">
+                        <InlineStack gap="200" blockAlign="center">
+                          <Text as="p" variant="bodyMd" fontWeight="semibold">
+                            {conversation.userName || "Unknown buyer"}
+                          </Text>
+                          <Badge tone={statusTone(conversation.conversationStatus)}>
+                            {statusLabel(conversation.conversationStatus)}
+                          </Badge>
+                        </InlineStack>
+                        <InlineStack gap="300">
+                          {conversation.phone ? (
+                            <Text as="p" variant="bodyXs" tone="subdued">
+                              {conversation.phone}
+                            </Text>
+                          ) : null}
+                          <Text as="p" variant="bodyXs" tone="subdued">
+                            {`${conversation.messageCount ?? 0} messages`}
+                          </Text>
+                          {relativeTime ? (
+                            <Text as="p" variant="bodyXs" tone="subdued">
+                              {relativeTime}
+                            </Text>
+                          ) : null}
+                        </InlineStack>
+                      </BlockStack>
+                    </ResourceItem>
+                  );
+                }}
+              />
+            </Card>
+
           </BlockStack>
-        )}
-      </Card>
-    </ShellPage>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }
 

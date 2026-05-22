@@ -1,9 +1,11 @@
+import type { ReactNode } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Form, useActionData, useLoaderData, useNavigate, useNavigation } from "react-router";
 import { useEffect, useState } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ChatIcon } from "@shopify/polaris-icons";
 import {
+  Badge,
   Banner,
   BlockStack,
   Box,
@@ -25,7 +27,6 @@ import {
   sendMerchantConversationReply,
   updateMerchantConversationStatus,
 } from "../platform.server";
-import { StatusBadge } from "../components/shell-ui";
 
 type ActionResult = {
   ok: boolean;
@@ -118,212 +119,270 @@ export default function ConversationDetailPage() {
     );
   }
 
+  const statusBadge = (status: string) => {
+    if (status === "human") return <Badge tone="attention">Needs reply</Badge>;
+    if (status === "resolved") return <Badge tone="success">Resolved</Badge>;
+    return <Badge tone="info">AI handling</Badge>;
+  };
+
   return (
     <Page
       backAction={{ content: "Conversations", onAction: () => navigate("/app/conversations") }}
       title={conversation.userName || "Buyer"}
       subtitle={conversation.phone}
+      titleMetadata={statusBadge(conversation.conversationStatus)}
     >
-      <Layout>
-        {busy ? (
-          <Layout.Section>
+      {busy ? (
+        <Box paddingBlockEnd="400">
+          <InlineStack gap="200" blockAlign="center">
             <Spinner accessibilityLabel="Loading" size="small" />
-          </Layout.Section>
-        ) : null}
+            <Text as="p" variant="bodySm" tone="subdued">Saving…</Text>
+          </InlineStack>
+        </Box>
+      ) : null}
 
-        {needsAttention ? (
-          <Layout.Section>
-            <Banner
-              tone={conversation.conversationStatus === "human" ? "warning" : "info"}
-              title={
-                conversation.conversationStatus === "human"
-                  ? "This thread needs your reply"
-                  : "Review before leaving"
-              }
-            >
-              {conversation.conversationStatus === "human"
-                ? "Escalated to human queue. Send a reply or hand back to AI."
-                : "Use the controls below to manage ownership or send a reply."}
-            </Banner>
-          </Layout.Section>
-        ) : null}
-
-        {actionData?.error ? (
-          <Layout.Section>
-            <Banner tone="critical" title="Action failed">
-              <Text as="p" variant="bodyMd">{actionData.error}</Text>
-            </Banner>
-          </Layout.Section>
-        ) : null}
-
-        {actionData?.message ? (
-          <Layout.Section>
-            <Banner tone="success">
-              <Text as="p" variant="bodyMd">{actionData.message}</Text>
-            </Banner>
-          </Layout.Section>
-        ) : null}
-
-        {/* ── Summary + Ownership ─────────────────────────────────────────── */}
+      <Layout>
+        {/* ── Main column: alerts + history + reply ─────────────────────── */}
         <Layout.Section>
-          <Card padding="400">
-            <BlockStack gap="300">
-              <InlineStack align="space-between" blockAlign="center" wrap gap="200">
-                <BlockStack gap="050">
-                  <InlineStack gap="200" blockAlign="center">
-                    <Text as="p" variant="bodyMd" fontWeight="semibold">
-                      {conversation.userName || "Unknown buyer"}
-                    </Text>
-                    <StatusBadge status={conversation.conversationStatus}>
-                      {conversation.conversationStatus === "human"
-                        ? "Needs reply"
-                        : conversation.conversationStatus === "resolved"
-                          ? "Resolved"
-                          : "AI handling"}
-                    </StatusBadge>
-                    {conversation.returnPreventionAttempt ? (
-                      <StatusBadge status={conversation.returnPreventionAttempt.outcome}>
-                        {conversation.returnPreventionAttempt.outcome}
-                      </StatusBadge>
-                    ) : null}
-                  </InlineStack>
-                  <InlineStack gap="300">
-                    <Text as="p" variant="bodyXs" tone="subdued">{conversation.phone}</Text>
-                    {conversation.order?.externalOrderId ? (
-                      <Text as="p" variant="bodyXs" tone="subdued">
-                        Order: {conversation.order.externalOrderId}
-                      </Text>
-                    ) : null}
-                    <Text as="p" variant="bodyXs" tone="subdued">
-                      {`${conversation.history.length} messages`}
-                    </Text>
-                  </InlineStack>
-                </BlockStack>
+          <BlockStack gap="400">
 
-                {/* Ownership controls */}
-                <InlineStack gap="200" wrap>
-                  <StatusForm current={conversation.conversationStatus} next="ai" label="AI owns" />
-                  <StatusForm current={conversation.conversationStatus} next="human" label="Escalate" />
-                  <StatusForm current={conversation.conversationStatus} next="resolved" label="Resolve" />
-                </InlineStack>
-              </InlineStack>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
+            {needsAttention ? (
+              <Banner
+                title={
+                  conversation.conversationStatus === "human"
+                    ? "This thread needs your reply"
+                    : "Review before leaving"
+                }
+                tone={conversation.conversationStatus === "human" ? "warning" : "info"}
+              >
+                <Text as="p" variant="bodyMd">
+                  {conversation.conversationStatus === "human"
+                    ? "Escalated to human queue. Send a reply or hand back to AI."
+                    : "Use the controls on the right to manage ownership or send a reply."}
+                </Text>
+              </Banner>
+            ) : null}
 
-        {/* ── Chat history (bubble layout) ───────────────────────────────── */}
-        <Layout.Section>
-          <Card padding="400">
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">Message history</Text>
-              <BlockStack gap="200">
-                {conversation.history.length === 0 ? (
-                  <Text as="p" variant="bodySm" tone="subdued">No messages yet.</Text>
-                ) : null}
-                {conversation.history.map((message, index) => {
-                  const isBuyer = message.role === "user";
-                  const isMerchant = message.role === "merchant";
-                  const label = isBuyer ? "Buyer" : isMerchant ? "Merchant" : "AI";
+            {actionData?.error ? (
+              <Banner title="Action failed" tone="critical">
+                <Text as="p" variant="bodyMd">{actionData.error}</Text>
+              </Banner>
+            ) : null}
 
-                  return (
-                    <div
-                      key={`${message.timestamp}-${index}`}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: isBuyer ? "flex-start" : "flex-end",
-                      }}
-                    >
+            {actionData?.message ? (
+              <Banner tone="success">
+                <Text as="p" variant="bodyMd">{actionData.message}</Text>
+              </Banner>
+            ) : null}
+
+            {/* ── Chat history ──────────────────────────────────────────── */}
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">Message history</Text>
+                <BlockStack gap="300">
+                  {conversation.history.length === 0 ? (
+                    <Text as="p" variant="bodySm" tone="subdued">No messages yet.</Text>
+                  ) : null}
+                  {conversation.history.map((message, index) => {
+                    const isBuyer = message.role === "user";
+                    const isMerchant = message.role === "merchant";
+                    const label = isBuyer ? "Buyer" : isMerchant ? "You" : "AI";
+
+                    return (
                       <div
+                        key={`${message.timestamp}-${index}`}
                         style={{
-                          maxWidth: "75%",
-                          background: isBuyer
-                            ? "var(--p-color-bg-surface-secondary)"
-                            : isMerchant
-                              ? "var(--p-color-bg-fill-success-secondary)"
-                              : "var(--p-color-bg-fill-info-secondary)",
-                          borderRadius: "12px",
-                          padding: "10px 14px",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: isBuyer ? "flex-start" : "flex-end",
                         }}
                       >
-                        <BlockStack gap="100">
-                          <InlineStack align="space-between" gap="300">
-                            <Text as="p" variant="bodyXs" fontWeight="semibold" tone="subdued">
-                              {label}
-                            </Text>
-                            <Text as="p" variant="bodyXs" tone="subdued">
-                              {new Date(message.timestamp).toLocaleTimeString("en-GB", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </Text>
-                          </InlineStack>
-                          <Text as="p" variant="bodyMd">{message.content}</Text>
-                        </BlockStack>
+                        <div
+                          style={{
+                            maxWidth: "75%",
+                            background: isBuyer
+                              ? "var(--p-color-bg-surface-secondary)"
+                              : isMerchant
+                                ? "var(--p-color-bg-fill-success-secondary)"
+                                : "var(--p-color-bg-fill-info-secondary)",
+                            borderRadius: isBuyer
+                              ? "4px 12px 12px 12px"
+                              : "12px 4px 12px 12px",
+                            padding: "10px 14px",
+                          }}
+                        >
+                          <BlockStack gap="100">
+                            <InlineStack align="space-between" gap="300">
+                              <Text as="p" variant="bodyXs" fontWeight="semibold" tone="subdued">
+                                {label}
+                              </Text>
+                              <Text as="p" variant="bodyXs" tone="subdued">
+                                {new Date(message.timestamp).toLocaleTimeString("en-GB", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </Text>
+                            </InlineStack>
+                            <Text as="p" variant="bodyMd">{message.content}</Text>
+                          </BlockStack>
+                        </div>
+                        <Box paddingBlockStart="050">
+                          <Text as="p" variant="bodyXs" tone="subdued">
+                            {new Date(message.timestamp).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                            })}
+                          </Text>
+                        </Box>
                       </div>
-                      <Box paddingBlockStart="025">
-                        <Text as="p" variant="bodyXs" tone="subdued">
-                          {new Date(message.timestamp).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                          })}
-                        </Text>
-                      </Box>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </BlockStack>
               </BlockStack>
-            </BlockStack>
-          </Card>
+            </Card>
+
+            {/* ── Reply form ────────────────────────────────────────────── */}
+            <Card>
+              <Form method="post">
+                <input type="hidden" name="intent" value="reply" />
+                <BlockStack gap="300">
+                  <Text as="h2" variant="headingMd">Send a reply</Text>
+                  <TextField
+                    label="Message"
+                    name="text"
+                    multiline={4}
+                    value={replyText}
+                    onChange={setReplyText}
+                    autoComplete="off"
+                    placeholder="Type your WhatsApp message…"
+                    helpText="Sends directly to the buyer via WhatsApp."
+                  />
+                  <InlineStack>
+                    <Button
+                      submit
+                      variant="primary"
+                      icon={ChatIcon as never}
+                      loading={busy}
+                      disabled={!replyText.trim()}
+                    >
+                      Send reply
+                    </Button>
+                  </InlineStack>
+                </BlockStack>
+              </Form>
+            </Card>
+
+          </BlockStack>
         </Layout.Section>
 
-        {/* ── Manual reply ────────────────────────────────────────────────── */}
-        <Layout.Section>
-          <Card padding="400">
-            <Form method="post">
-              <input type="hidden" name="intent" value="reply" />
+        {/* ── Sidebar: summary + ownership ──────────────────────────────── */}
+        <Layout.Section variant="oneThird">
+          <BlockStack gap="400">
+
+            {/* Thread summary */}
+            <Card>
               <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">Send a reply</Text>
-                <TextField
-                  label="Message"
-                  name="text"
-                  multiline={4}
-                  value={replyText}
-                  onChange={setReplyText}
-                  autoComplete="off"
-                  placeholder="Type your WhatsApp message..."
-                  helpText="Sends directly to the buyer via WhatsApp."
-                />
-                <InlineStack>
-                  <Button submit variant="primary" icon={ChatIcon} loading={busy} disabled={!replyText.trim()}>
-                    Send reply
-                  </Button>
-                </InlineStack>
+                <Text as="h2" variant="headingMd">Thread details</Text>
+                <BlockStack gap="200">
+                  <SummaryRow label="Buyer" value={conversation.userName || "Unknown"} />
+                  <SummaryRow label="Phone" value={conversation.phone || "—"} />
+                  {conversation.order?.externalOrderId ? (
+                    <SummaryRow label="Order" value={conversation.order.externalOrderId} />
+                  ) : null}
+                  <SummaryRow label="Messages" value={String(conversation.history.length)} />
+                  {conversation.returnPreventionAttempt ? (
+                    <SummaryRow
+                      label="Return outcome"
+                      value={
+                        <Badge
+                          tone={
+                            conversation.returnPreventionAttempt.outcome === "prevented"
+                              ? "success"
+                              : conversation.returnPreventionAttempt.outcome === "escalated"
+                                ? "attention"
+                                : "info"
+                          }
+                        >
+                          {conversation.returnPreventionAttempt.outcome}
+                        </Badge>
+                      }
+                    />
+                  ) : null}
+                </BlockStack>
               </BlockStack>
-            </Form>
-          </Card>
+            </Card>
+
+            {/* Ownership controls */}
+            <Card>
+              <BlockStack gap="300">
+                <BlockStack gap="100">
+                  <Text as="h2" variant="headingMd">Ownership</Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Current: {conversation.conversationStatus === "human" ? "Human" : conversation.conversationStatus === "resolved" ? "Resolved" : "AI"}
+                  </Text>
+                </BlockStack>
+                <BlockStack gap="200">
+                  <OwnershipButton current={conversation.conversationStatus} next="ai" label="Hand to AI" description="Let the bot continue this thread." />
+                  <OwnershipButton current={conversation.conversationStatus} next="human" label="Escalate to you" description="Take over and reply manually." />
+                  <OwnershipButton current={conversation.conversationStatus} next="resolved" label="Mark resolved" description="Close the thread." />
+                </BlockStack>
+              </BlockStack>
+            </Card>
+
+          </BlockStack>
         </Layout.Section>
       </Layout>
     </Page>
   );
 }
 
-function StatusForm({
+function SummaryRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | ReactNode;
+}) {
+  return (
+    <InlineStack align="space-between" blockAlign="start" gap="300" wrap>
+      <Text as="p" variant="bodySm" tone="subdued">{label}</Text>
+      {typeof value === "string" ? (
+        <Text as="p" variant="bodySm" fontWeight="semibold">{value}</Text>
+      ) : (
+        value
+      )}
+    </InlineStack>
+  );
+}
+
+function OwnershipButton({
   current,
   next,
   label,
+  description,
 }: {
   current: "ai" | "human" | "resolved";
   next: "ai" | "human" | "resolved";
   label: string;
+  description: string;
 }) {
+  const isActive = current === next;
   return (
     <Form method="post">
       <input type="hidden" name="intent" value="status" />
       <input type="hidden" name="status" value={next} />
-      <Button submit variant={current === next ? "secondary" : "primary"} disabled={current === next}>
-        {label}
-      </Button>
+      <BlockStack gap="050">
+        <Button
+          submit
+          variant={isActive ? "secondary" : "tertiary"}
+          disabled={isActive}
+          fullWidth
+          textAlign="left"
+        >
+          {label}
+        </Button>
+        <Text as="p" variant="bodyXs" tone="subdued">{description}</Text>
+      </BlockStack>
     </Form>
   );
 }
