@@ -1884,7 +1884,7 @@ function SetupPanel({
           </InlineStack>
 
           <InlineStack align="space-between" blockAlign="center" wrap>
-            <InlineStack gap="400" blockAlign="center" wrap={false}>
+            <InlineStack gap="200" blockAlign="center" wrap>
               {row.shopify.featuredImageUrl ? (
                 <div
                   style={{

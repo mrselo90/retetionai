@@ -172,7 +172,7 @@ export default function ConversationsPage() {
                       ]}
                     >
                       <BlockStack gap="100">
-                        <InlineStack gap="200" blockAlign="center">
+                        <InlineStack gap="200" blockAlign="center" wrap>
                           <Text as="p" variant="bodyMd" fontWeight="semibold">
                             {conversation.userName || "Unknown buyer"}
                           </Text>
@@ -180,7 +180,7 @@ export default function ConversationsPage() {
                             {statusLabel(conversation.conversationStatus)}
                           </Badge>
                         </InlineStack>
-                        <InlineStack gap="300">
+                        <InlineStack gap="300" wrap>
                           {conversation.phone ? (
                             <Text as="p" variant="bodyXs" tone="subdued">
                               {conversation.phone}
