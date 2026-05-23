@@ -2060,7 +2060,7 @@ function SetupPanel({
                     <Text as="p" variant="bodySm" tone="subdued">
                       {hasAiKnowledge
                         ? "AI knowledge exists for this product."
-                        : "AI knowledge is not ready yet. Continue to generate it."}
+                        : "AI knowledge is not ready yet. Fill the fields above, then click 'Save & Update AI' below to generate it."}
                     </Text>
                   </BlockStack>
                 </Box>
@@ -2084,27 +2084,34 @@ function SetupPanel({
                   </Text>
                 ) : null}
 
-                <InlineStack gap="200" wrap>
+                <BlockStack gap="100">
+                  <InlineStack gap="200" wrap>
+                    {canSubmitStep ? (
+                      <>
+                        <Button
+                          variant="primary"
+                          loading={isSavingSetup || isRunningAiAction}
+                          disabled={!canSubmitStep}
+                          onClick={handlePrimarySaveAndUpdate}
+                        >
+                          Save & Update AI
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          disabled={!canSubmitSave}
+                          onClick={submitSaveDraft}
+                        >
+                          Save Draft
+                        </Button>
+                      </>
+                    ) : null}
+                  </InlineStack>
                   {canSubmitStep ? (
-                    <>
-                      <Button
-                        variant="primary"
-                        loading={isSavingSetup || isRunningAiAction}
-                        disabled={!canSubmitStep}
-                        onClick={handlePrimarySaveAndUpdate}
-                      >
-                        Save & Update AI
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        disabled={!canSubmitSave}
-                        onClick={submitSaveDraft}
-                      >
-                        Save Draft
-                      </Button>
-                    </>
+                    <Text as="p" variant="bodyXs" tone="subdued">
+                      <strong>Save &amp; Update AI</strong> saves changes and regenerates AI knowledge. <strong>Save Draft</strong> saves your work without regenerating AI.
+                    </Text>
                   ) : null}
-                </InlineStack>
+                </BlockStack>
           </BlockStack>
         </BlockStack>
       </Card>
@@ -2123,6 +2130,22 @@ function SetupPanel({
               </BlockStack>
             </InlineStack>
             <ProgressBar progress={setupScore} tone={knowledge.missingInfo.length ? "highlight" : "success"} />
+
+            {/* Mini checklist showing what's done vs missing */}
+            <BlockStack gap="100">
+              <ChecklistRow done={hasGuidance} label="Customer instructions added" />
+              <ChecklistRow done={hasAiKnowledge} label="AI knowledge generated" />
+              {row.languageWorkflowEnabled ? (
+                <ChecklistRow
+                  done={languagesDone}
+                  label={
+                    row.languageCoverage >= 100
+                      ? "All reply languages ready"
+                      : `Language coverage (${row.readyLanguageCount}/${row.requiredLanguageCount} ready)`
+                  }
+                />
+              ) : null}
+            </BlockStack>
           </BlockStack>
         </Card>
 
@@ -2339,6 +2362,19 @@ function ProductBrowserItem({
         </InlineStack>
       </InlineGrid>
     </Box>
+  );
+}
+
+function ChecklistRow({ done, label }: { done: boolean; label: string }) {
+  return (
+    <InlineStack gap="200" blockAlign="center">
+      <Text as="span" variant="bodySm" tone={done ? "success" : "subdued"}>
+        {done ? "✓" : "○"}
+      </Text>
+      <Text as="span" variant="bodySm" tone={done ? "subdued" : "base"}>
+        {label}
+      </Text>
+    </InlineStack>
   );
 }
 
