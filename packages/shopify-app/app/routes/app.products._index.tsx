@@ -1390,10 +1390,13 @@ export default function ProductsPage() {
     );
   }
 
+  const needsActionCount = summary.needsSetup + summary.needsAiAnswers;
   const pageTitle = selectedRow ? undefined : "Products";
   const pageSubtitle = selectedRow
     ? undefined
-    : "Set up each Shopify product so Recete can help customers after delivery.";
+    : needsActionCount > 0
+      ? `${needsActionCount} product${needsActionCount === 1 ? "" : "s"} need action · ${summary.ready} of ${summary.total} ready`
+      : `All ${summary.total} products are ready.`;
 
   return (
     <Page
@@ -1438,43 +1441,6 @@ export default function ProductsPage() {
           </Layout.Section>
         ) : null}
 
-        {!selectedRow ? (
-          <Layout.Section>
-            <Box padding="300" borderWidth="025" borderColor="border" borderRadius="200">
-              <BlockStack gap="300">
-                <InlineStack align="space-between" blockAlign="center" gap="200" wrap>
-                  <BlockStack gap="050">
-                    <Text as="h2" variant="headingMd">
-                      Product setup queue
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {summary.needsSetup + summary.needsAiAnswers > 0
-                        ? `${summary.needsSetup + summary.needsAiAnswers} products need action.`
-                        : "All products are ready."}
-                    </Text>
-                  </BlockStack>
-                  {nextIncompleteProduct ? (
-                    <Button
-                      variant="primary"
-                      onClick={() => {
-                        handleSelectProduct(nextIncompleteProduct.shopify.id, true);
-                      }}
-                    >
-                      Continue setup
-                    </Button>
-                  ) : (
-                    <Badge tone="success">All ready</Badge>
-                  )}
-                </InlineStack>
-                {nextIncompleteProduct ? (
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Next product: {nextIncompleteProduct.shopify.title}
-                  </Text>
-                ) : null}
-              </BlockStack>
-            </Box>
-          </Layout.Section>
-        ) : null}
 
         {summary.total > 0 && summary.ready === summary.total ? (
           <Layout.Section>
@@ -1953,11 +1919,6 @@ function SetupPanel({
             </Badge>
           </InlineStack>
 
-          <Banner tone="info">
-            <Text as="p" variant="bodySm">
-              Fill guidance and enhancement fields on this page, then update AI.
-            </Text>
-          </Banner>
         </BlockStack>
       </div>
 
@@ -2051,38 +2012,6 @@ function SetupPanel({
                   placeholder="https://example.com/product-faq"
                   helpText="Optional. Add a page with FAQs or usage details to improve answer quality."
                 />
-
-                <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-                  <BlockStack gap="100">
-                    <Text as="p" variant="bodySm" fontWeight="semibold">
-                      AI knowledge
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {hasAiKnowledge
-                        ? "AI knowledge exists for this product."
-                        : "AI knowledge is not ready yet. Fill the fields above, then click 'Save & Update AI' below to generate it."}
-                    </Text>
-                  </BlockStack>
-                </Box>
-
-                <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-                  <BlockStack gap="100">
-                    <Text as="p" variant="bodySm" fontWeight="semibold">
-                      Current coverage
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {row.languageWorkflowEnabled
-                        ? `${row.readyLanguageCount} of ${row.requiredLanguageCount} languages ready (${row.languageCoverage}%).`
-                        : "Primary language coverage is active."}
-                    </Text>
-                  </BlockStack>
-                </Box>
-
-                {row.languageWorkflowEnabled && row.languageCoverage < 100 ? (
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Language sync may continue in the background. You can continue now and monitor coverage later.
-                  </Text>
-                ) : null}
 
                 <BlockStack gap="100">
                   <InlineStack gap="200" wrap>
@@ -2330,7 +2259,28 @@ function ProductBrowserItem({
       borderRadius="200"
       background={selected ? "bg-surface-secondary" : undefined}
     >
-      <InlineGrid columns={{ xs: 1, md: "2fr auto" }} gap="200">
+      <InlineGrid columns={{ xs: "auto 1fr auto", md: "auto 1fr auto" }} gap="200" alignItems="center">
+        {row.shopify.featuredImageUrl ? (
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 4,
+              overflow: "hidden",
+              border: "1px solid var(--p-color-border)",
+              background: "var(--p-color-bg-surface-secondary)",
+              flexShrink: 0,
+            }}
+          >
+            <img
+              src={row.shopify.featuredImageUrl}
+              alt={row.shopify.title}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+          </div>
+        ) : (
+          <Box minWidth="40px" minHeight="40px" borderRadius="100" background="bg-surface-secondary" />
+        )}
         <BlockStack gap="100">
           <InlineStack gap="150" wrap blockAlign="center">
             <Checkbox
