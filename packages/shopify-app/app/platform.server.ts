@@ -89,6 +89,7 @@ export interface ShopifyMerchantOverview {
       emoji?: boolean;
       ai_vision_enabled?: boolean;
       response_length?: "short" | "medium" | "long";
+      message_send_mode?: "always" | "all_products_required";
       whatsapp_sender_mode?: "merchant_own" | "corporate";
       whatsapp_welcome_template?: string;
       onboarding_settings_configured_at?: string;
@@ -131,6 +132,7 @@ export interface MerchantSettingsRecord {
       ai_vision_enabled?: boolean;
       response_length?: "short" | "medium" | "long";
       temperature?: number;
+      message_send_mode?: "always" | "all_products_required";
       whatsapp_sender_mode?: "merchant_own" | "corporate";
       whatsapp_welcome_template?: string;
       onboarding_settings_configured_at?: string;

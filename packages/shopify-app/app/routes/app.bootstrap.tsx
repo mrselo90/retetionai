@@ -86,7 +86,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const shopRecord = await prisma.shop.findUnique({ where: { shopDomain: session.shop }, select: { themeEmbedEnabled: true } });
 
     const activeSubscription = billingState.appSubscriptions.find(
-      (s) => s.status === "ACTIVE" || s.status === "active",
+      (s) => String(s.status).toUpperCase() === "ACTIVE",
     );
     const activePlanName = activeSubscription?.name || overview.merchant.subscription_plan || null;
 
@@ -123,7 +123,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
         const shopRecord2 = await prisma.shop.findUnique({ where: { shopDomain: session.shop }, select: { themeEmbedEnabled: true } });
         const activeSubscription2 = billingState.appSubscriptions.find(
-          (s) => s.status === "ACTIVE" || s.status === "active",
+          (s) => String(s.status).toUpperCase() === "ACTIVE",
         );
         const activePlanName2 = activeSubscription2?.name || overview.merchant.subscription_plan || null;
 
