@@ -168,6 +168,14 @@ const INTERNAL_MERCHANT_PATHS: Array<string | RegExp> = [
   '/api/customers',
   '/api/products/instructions/list',
   /^\/api\/products\/[^/]+\/instruction$/,
+  // Merchant-initiated from the Shopify app's product detail panel. Both were
+  // unreachable before: the shell drops the bearer token on the internal path,
+  // so any route missing from this allowlist answered 401 every time.
+  // Deliberately here rather than in INTERNAL_PRODUCT_PATHS so internalCall
+  // stays false and requireActiveSubscription still gates them — /api/answer
+  // spends LLM tokens.
+  /^\/api\/products\/[^/]+\/knowledge$/,
+  '/api/answer',
   '/api/integrations/shopify/products',
   '/api/billing/addons',
   /^\/api\/billing\/addons\/[^/]+\/subscribe$/,
