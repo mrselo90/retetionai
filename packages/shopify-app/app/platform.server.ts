@@ -1,3 +1,5 @@
+import { getVerifiedShopDomain, normalizeShopDomain } from "./lib/verifiedShop.server";
+
 function getRequiredEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) {
@@ -348,27 +350,6 @@ function extractBearerToken(request: Request): string | null {
   return null;
 }
 
-function extractShopDomainFromBearerToken(request: Request): string | null {
-  const authorization = extractBearerToken(request);
-  if (!authorization?.startsWith("Bearer ")) return null;
-
-  const token = authorization.slice("Bearer ".length).trim();
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
-
-  try {
-    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")) as {
-      dest?: string;
-    };
-    const rawDest = typeof payload.dest === "string" ? payload.dest.trim() : "";
-    if (!rawDest.startsWith("https://")) return null;
-    const shop = rawDest.replace(/^https:\/\//i, "").replace(/\/.*$/, "").trim().toLowerCase();
-    return /^[a-z0-9-]+\.myshopify\.com$/.test(shop) ? shop : null;
-  } catch {
-    return null;
-  }
-}
-
 function buildPlatformAuthHeaders(request: Request, initHeaders?: HeadersInit) {
   const authorization = extractBearerToken(request);
   if (!authorization) {
@@ -394,23 +375,36 @@ function buildPlatformAuthHeaders(request: Request, initHeaders?: HeadersInit) {
 
 function buildPlatformMerchantHeaders(request: Request, initHeaders?: HeadersInit) {
   const headers = new Headers(initHeaders || {});
-  const url = new URL(request.url);
-  const shopRaw =
-    url.searchParams.get("shop")?.trim() ||
-    extractShopDomainFromBearerToken(request) ||
-    "";
   const internalSecret =
     process.env.INTERNAL_SERVICE_SECRET?.trim() ||
     process.env.PLATFORM_INTERNAL_SECRET?.trim() ||
     "";
 
-  if (shopRaw && internalSecret) {
-    const shop = shopRaw.includes(".myshopify.com") ? shopRaw : `${shopRaw}.myshopify.com`;
+  // Tenant identity must come from the verified session only. The `?shop=`
+  // parameter is caller-controlled: trusting it let any authenticated merchant
+  // read and write another shop's data through the internal-secret path.
+  const verifiedShop = getVerifiedShopDomain(request);
+  const requestedShop = normalizeShopDomain(new URL(request.url).searchParams.get("shop"));
+
+  if (verifiedShop && requestedShop && requestedShop !== verifiedShop) {
+    console.warn("[platform-auth] shop mismatch rejected", {
+      path: new URL(request.url).pathname,
+      verifiedShop,
+      requestedShop,
+    });
+    throw jsonErrorResponse(403, {
+      error: "Shop mismatch between session and request",
+    });
+  }
+
+  if (verifiedShop && internalSecret) {
     headers.set("X-Internal-Secret", internalSecret);
-    headers.set("X-Internal-Shop-Domain", shop);
+    headers.set("X-Internal-Shop-Domain", verifiedShop);
     return headers;
   }
 
+  // No verified shop means the caller never authenticated. Fall back to
+  // forwarding the bearer token so the platform API performs its own checks.
   return buildPlatformAuthHeaders(request, initHeaders);
 }
 
@@ -429,7 +423,12 @@ export async function syncShopInstall(session: {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Internal-Secret": getRequiredEnv("PLATFORM_INTERNAL_SECRET"),
+        // Accept either name: requiring only PLATFORM_INTERNAL_SECRET here made
+        // installs hard-fail on deployments that set INTERNAL_SERVICE_SECRET,
+        // because this runs inside the afterAuth hook.
+        "X-Internal-Secret":
+          process.env.PLATFORM_INTERNAL_SECRET?.trim() ||
+          getRequiredEnv("INTERNAL_SERVICE_SECRET"),
       },
       body: JSON.stringify({
         shop: session.shop,

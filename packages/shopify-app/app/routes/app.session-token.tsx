@@ -1,13 +1,13 @@
 import type { ActionFunctionArgs } from "react-router";
 import { Banner, Page, Layout, Text, BlockStack } from "@shopify/polaris";
 
-import { requireSessionTokenAuthorization } from "../lib/sessionToken.server";
+import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantSettings } from "../platform.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  // Data route: rely on the embedded bearer token and let the platform API
-  // perform the single source of truth verification.
-  requireSessionTokenAuthorization(request);
+  // Verifies the session token signature and records the authenticated shop,
+  // which the outbound platform call needs to identify the tenant.
+  await authenticateEmbeddedAdmin(request);
   try {
     const merchantSettings = await fetchMerchantSettings(request);
 

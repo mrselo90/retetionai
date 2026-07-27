@@ -1,35 +1,26 @@
 import { authenticate } from "../shopify.server";
-import { requireSessionTokenAuthorization } from "./sessionToken.server";
+import { setVerifiedShopDomain } from "./verifiedShop.server";
 
-function isDocumentRequest(request: Request) {
-  if (request.method.toUpperCase() !== "GET") return false;
-
-  const secFetchDest = request.headers.get("Sec-Fetch-Dest")?.toLowerCase();
-  if (secFetchDest === "document" || secFetchDest === "iframe") {
-    return true;
-  }
-
-  const accept = request.headers.get("Accept")?.toLowerCase() || "";
-  return accept.includes("text/html");
-}
-
+/**
+ * Authenticates an embedded admin request and records the verified shop domain.
+ *
+ * `authenticate.admin()` is the only real check here: it validates the session
+ * token signature and derives the shop from the token's `dest` claim. The shop
+ * it returns is recorded via `setVerifiedShopDomain` so that outbound internal
+ * API calls identify the tenant from verified data rather than from the
+ * attacker-controlled `?shop=` query parameter.
+ */
 export async function authenticateEmbeddedAdmin(request: Request) {
-  const documentRequest = isDocumentRequest(request);
+  const result = await authenticate.admin(request);
 
-  if (!documentRequest) {
-    requireSessionTokenAuthorization(request);
-    console.info("[embedded-auth]", {
-      path: new URL(request.url).pathname,
-      hasAuthorization: true,
-      requestType: "data",
-    });
-  } else {
-    console.info("[embedded-auth]", {
-      path: new URL(request.url).pathname,
-      hasAuthorization: Boolean(request.headers.get("Authorization")),
-      requestType: "document",
-    });
+  if (result.session?.shop) {
+    setVerifiedShopDomain(request, result.session.shop);
   }
 
-  return authenticate.admin(request);
+  console.info("[embedded-auth]", {
+    path: new URL(request.url).pathname,
+    shopVerified: Boolean(result.session?.shop),
+  });
+
+  return result;
 }

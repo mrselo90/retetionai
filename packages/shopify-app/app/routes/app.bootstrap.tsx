@@ -2,7 +2,6 @@ import type { LoaderFunctionArgs } from "react-router";
 
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { isBillingReady } from "../lib/billingStatus";
-import { requireSessionTokenAuthorization } from "../lib/sessionToken.server";
 import { fetchMerchantOverviewFromRequest, syncShopInstall } from "../platform.server";
 import prisma from "../db.server";
 import {
@@ -69,9 +68,6 @@ function buildPendingOverview(shop: string) {
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  // Data route: avoid verifying the same Shopify session token twice.
-  // The platform API remains the single verifier for embedded bearer tokens.
-  requireSessionTokenAuthorization(request);
   const requestUrl = new URL(request.url);
   const { billing, session } = await authenticateEmbeddedAdmin(request);
   const billingState = await billing.check({
