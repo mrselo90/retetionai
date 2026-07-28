@@ -7,9 +7,9 @@ import {
   useSearchParams,
   useSubmit,
 } from "react-router";
-import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { DeleteIcon, MagicIcon } from "@shopify/polaris-icons";
+import { DeleteIcon } from "@shopify/polaris-icons";
 import {
   Badge,
   Banner,

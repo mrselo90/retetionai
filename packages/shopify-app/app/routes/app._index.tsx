@@ -414,7 +414,7 @@ function OptionalStepCard({
             <Badge tone="info">Optional</Badge>
           </InlineStack>
           <Text as="p" variant="bodySm" tone="subdued">
-            Enter your WhatsApp number and we'll simulate a real delivery — you'll receive the actual message Recete sends to customers.
+            Enter your WhatsApp number and we&apos;ll simulate a real delivery — you&apos;ll receive the actual message Recete sends to customers.
           </Text>
           {testOrderResult?.ok ? (
             <Banner tone="success">

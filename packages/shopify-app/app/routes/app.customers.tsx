@@ -2,7 +2,7 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { ChatIcon, PersonIcon } from "@shopify/polaris-icons";
-import { Banner, BlockStack, InlineGrid, InlineStack, Text } from "@shopify/polaris";
+import { Banner, BlockStack, InlineGrid, Text } from "@shopify/polaris";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { getSetupProgress } from "../lib/setupProgress";
 import { fetchMerchantCustomers, fetchMerchantOverviewFromRequest, type ShopifyMerchantOverview } from "../platform.server";

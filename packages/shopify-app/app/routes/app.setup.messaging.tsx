@@ -15,7 +15,6 @@ import {
   Text,
   TextField,
 } from "@shopify/polaris";
-import { ChevronLeftIcon } from "@shopify/polaris-icons";
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import {
   fetchMerchantSettings,

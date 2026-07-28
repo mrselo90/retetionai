@@ -1,8 +1,7 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router";
-import type { LoaderFunctionArgs } from "react-router";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
-export const loader = async (_args: LoaderFunctionArgs) => {
+export const loader = async () => {
   return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
   };

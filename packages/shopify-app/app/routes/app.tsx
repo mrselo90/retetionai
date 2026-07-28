@@ -14,7 +14,6 @@ import {
 } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
-import { useAppBridge } from "@shopify/app-bridge-react";
 import {
   AppProvider as PolarisAppProvider,
   BlockStack,
@@ -56,7 +55,6 @@ import {
 import { EmbeddedSessionTokenBoundary } from "../components/EmbeddedSessionTokenBoundary";
 import { isBillingReady, normalizeSubscriptionStatus } from "../lib/billingStatus";
 import { getSetupProgress } from "../lib/setupProgress";
-import type { AppBridgeWithIdToken } from "../lib/sessionToken.client";
 import type { ShopifyMerchantOverview } from "../platform.server";
 
 const navigationSections = [
@@ -143,21 +141,20 @@ export function useAppBootstrapData() {
 const BOOTSTRAP_POLL_MS = 3_000;
 
 export default function App() {
-  const { apiKey, initialShop } = useLoaderData<typeof loader>();
+  const { apiKey } = useLoaderData<typeof loader>();
 
   return (
     <AppProvider embedded apiKey={apiKey}>
       <PolarisAppProvider i18n={enPolarisTranslations} linkComponent={AppLink}>
-        <AppShell initialShop={initialShop} />
+        <AppShell />
       </PolarisAppProvider>
     </AppProvider>
   );
 }
 
-function AppShell({ initialShop }: { initialShop: string }) {
+function AppShell() {
   const location = useLocation();
   const navigation = useNavigation();
-  const shopify = useAppBridge() as AppBridgeWithIdToken;
 
   const fetcher = useFetcher<AppBootstrapData>();
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
