@@ -103,20 +103,32 @@ export async function processProductForRAG(
       chunk_hash: crypto.createHash('sha256').update(chunk.text).digest('hex'),
     }));
 
-    // Insert new chunks FIRST — if this fails, old chunks are still intact (no zero-chunk window)
-    const { error: insertError } = await serviceClient.from('knowledge_chunks').insert(chunksToInsert);
+    // Upsert new chunks FIRST — if this fails, old chunks are still intact (no
+    // zero-chunk window). Must be an upsert, not an insert: migration 042 adds a
+    // unique index on (product_id, chunk_hash), so re-indexing unchanged content
+    // would otherwise raise a duplicate-key error here.
+    const { error: insertError } = await serviceClient
+      .from('knowledge_chunks')
+      .upsert(chunksToInsert, { onConflict: 'product_id,chunk_hash' });
 
     if (insertError) {
       throw new Error(`Failed to insert chunks: ${insertError.message}`);
     }
 
-    // Only delete old chunks after insert succeeded, keeping any that weren't replaced
+    // Only delete old chunks after the upsert succeeded, keeping any that weren't replaced
     const newHashes = chunksToInsert.map((c) => c.chunk_hash);
-    await serviceClient
+    const { error: cleanupError } = await serviceClient
       .from('knowledge_chunks')
       .delete()
       .eq('product_id', productId)
       .not('chunk_hash', 'in', `(${newHashes.map((h) => `"${h}"`).join(',')})`);
+
+    if (cleanupError) {
+      console.warn('[knowledgeBase] stale chunk cleanup failed', {
+        productId,
+        error: cleanupError.message,
+      });
+    }
 
 
     const totalTokens = embeddings.reduce((sum, e) => sum + e.tokenCount, 0);

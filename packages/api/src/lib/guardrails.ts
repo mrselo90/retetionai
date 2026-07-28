@@ -619,11 +619,14 @@ export async function escalateToHuman(
     const supabase = getSupabaseServiceClient();
 
     // 1. Update conversation status → 'human'
+    // escalation_reason is persisted so escalations can be diagnosed by cause
+    // rather than only counted (migration 041).
     await supabase
       .from('conversations')
       .update({
         conversation_status: 'human',
         escalated_at: new Date().toISOString(),
+        escalation_reason: reason || 'custom',
       })
       .eq('id', conversationId);
 

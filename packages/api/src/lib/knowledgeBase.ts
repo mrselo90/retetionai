@@ -133,22 +133,36 @@ export async function processProductForRAG(
       chunk_hash: crypto.createHash('sha256').update(chunk.text).digest('hex'),
     }));
 
-    // Insert new chunks FIRST — if this fails, old chunks are still intact (no zero-chunk window)
+    // Upsert new chunks FIRST — if this fails, old chunks are still intact (no
+    // zero-chunk window). Upserting on (product_id, chunk_hash) makes re-indexing
+    // idempotent: a plain insert duplicated the entire chunk set on every
+    // rescrape of unchanged content, because the cleanup below only removes
+    // hashes that are absent from the new set. Requires the unique index from
+    // migration 042.
     const { error: insertError } = await serviceClient
       .from('knowledge_chunks')
-      .insert(chunksToInsert);
+      .upsert(chunksToInsert, { onConflict: 'product_id,chunk_hash' });
 
     if (insertError) {
       throw new Error(`Failed to insert chunks: ${insertError.message}`);
     }
 
-    // Only delete old chunks after the insert succeeded, keeping any that weren't replaced
+    // Only delete old chunks after the upsert succeeded, keeping any that weren't replaced
     const newHashes = chunksToInsert.map((c) => c.chunk_hash);
-    await serviceClient
+    const { error: cleanupError } = await serviceClient
       .from('knowledge_chunks')
       .delete()
       .eq('product_id', productId)
       .not('chunk_hash', 'in', `(${newHashes.map((h) => `"${h}"`).join(',')})`);
+
+    // A failed cleanup used to be completely silent, leaving stale chunks in the
+    // index with no signal.
+    if (cleanupError) {
+      logger.warn(
+        { err: cleanupError, productId, keptHashes: newHashes.length },
+        'Stale knowledge chunk cleanup failed; product may retain outdated chunks',
+      );
+    }
 
 
     const totalTokens = embeddings.reduce((sum, e) => sum + e.tokenCount, 0);
