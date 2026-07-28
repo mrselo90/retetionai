@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { getProductInstructionsByProductIds } from '@recete/shared';
+import { getProductInstructionsByProductIds, logger } from '@recete/shared';
 import { formatRAGResultsForLLM, getOrderProductContextResolved, type RAGResult } from './rag.js';
 import { getActiveProductFactsContext, getActiveProductFactsSnapshots } from './productFactsQuery.js';
 import { planStructuredFactAnswer } from './productFactsPlanner.js';
@@ -106,6 +106,31 @@ export function buildGroundedEvidenceContext(input: {
   ].filter(Boolean).join('\n\n');
 }
 
+/**
+ * Decides whether the deterministic planner answer should be returned instead of
+ * asking the LLM.
+ *
+ * Every planner branch returns direct: true, including its "I don't have that
+ * information" templates — those are distinguishable only by carrying an empty
+ * usedFactKeys, meaning no fact actually backed the answer.
+ *
+ * Returning those unconditionally discarded real retrieved evidence: a customer
+ * could ask about ingredients, retrieval could surface the full INCI list, and
+ * because product_facts.ingredients happened to be empty they were told the
+ * information does not exist while the answer sat unread in the context.
+ *
+ * A no-info template still beats a generic clarifying question when retrieval
+ * found nothing at all, so it is kept for exactly that case.
+ */
+export function shouldUseDeterministicAnswer(
+  planned: { usedFactKeys: string[] } | null | undefined,
+  retrievedChunkCount: number,
+): boolean {
+  if (!planned) return false;
+  if (planned.usedFactKeys.length > 0) return true;
+  return retrievedChunkCount === 0;
+}
+
 export function buildGroundingCacheKey(input: Record<string, unknown>): string {
   return crypto.createHash('sha256').update(JSON.stringify(input)).digest('hex');
 }
@@ -194,6 +219,19 @@ export async function assembleGroundingEvidence(
       })
     : null;
 
+  const useDeterministicAnswer = shouldUseDeterministicAnswer(planned, ragResult.results.length);
+
+  if (planned && !useDeterministicAnswer) {
+    logger.info(
+      {
+        merchantId: input.merchantId,
+        queryType: planned.queryType,
+        chunkCount: ragResult.results.length,
+      },
+      'deterministic_no_info_answer_superseded_by_retrieved_evidence',
+    );
+  }
+
   const context = buildGroundedEvidenceContext({
     factsText: factsContext.text || '',
     instructions,
@@ -205,8 +243,8 @@ export async function assembleGroundingEvidence(
     citedProducts: factsProductIds.length > 0
       ? factsProductIds
       : [...new Set(ragResult.results.map((r) => r.productId))],
-    usedDeterministicFacts: Boolean(planned),
-    deterministicAnswer: planned?.answer,
+    usedDeterministicFacts: useDeterministicAnswer,
+    deterministicAnswer: useDeterministicAnswer ? planned?.answer : undefined,
     orderScopeSource,
     retrievalLanguage: ragResult.effectiveLanguage,
     retrievalUsedFallback: ragResult.usedFallback,

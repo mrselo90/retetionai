@@ -4,8 +4,32 @@ import {
   buildInstructionEvidenceBlock,
   buildGroundedEvidenceContext,
   buildGroundingCacheKey,
+  shouldUseDeterministicAnswer,
 } from './groundingAssembler';
 import type { RAGResult } from './rag';
+
+describe('shouldUseDeterministicAnswer', () => {
+  it('uses a fact-backed answer even when chunks were retrieved', () => {
+    expect(shouldUseDeterministicAnswer({ usedFactKeys: ['ingredients'] }, 5)).toBe(true);
+  });
+
+  it('does NOT use a no-info answer when retrieval found evidence', () => {
+    // The regression this guards: product_facts.ingredients is empty so the
+    // planner emits "I don't have ingredient information", but retrieval already
+    // surfaced the INCI list. Returning the template would tell the customer the
+    // information does not exist while the answer sits in the context.
+    expect(shouldUseDeterministicAnswer({ usedFactKeys: [] }, 3)).toBe(false);
+  });
+
+  it('falls back to a no-info answer when retrieval found nothing', () => {
+    expect(shouldUseDeterministicAnswer({ usedFactKeys: [] }, 0)).toBe(true);
+  });
+
+  it('returns false when the planner produced nothing', () => {
+    expect(shouldUseDeterministicAnswer(null, 0)).toBe(false);
+    expect(shouldUseDeterministicAnswer(undefined, 4)).toBe(false);
+  });
+});
 
 describe('prioritizeEvidenceResults', () => {
   it('should sort FAQ before general, then by similarity', () => {
