@@ -350,19 +350,33 @@ function buildKnowledgeSummary(row: WorkspaceRow): KnowledgeSummary {
   if (row.hasOptionalDetails) sources.push("Optional details");
   if (row.factsSnapshot?.source_url) sources.push("Structured product facts");
 
+  const hasManualFeatures = Boolean(row.instruction?.recipe_summary?.trim());
+  const languageCoverageIncomplete = row.languageWorkflowEnabled && row.languageCoverage < 100;
+
   const missingInfo: string[] = [];
   if (!row.instruction?.usage_instructions?.trim()) missingInfo.push("How to use the product");
+  // AI knowledge is the precondition for answering anything: without embeddings
+  // retrieval returns nothing regardless of how complete the text fields look.
+  if (!row.hasKnowledge) missingInfo.push("AI knowledge (not generated yet)");
   if (!warnings.length) missingInfo.push("Warnings or important notes");
-  
-  const hasManualFeatures = Boolean(row.instruction?.recipe_summary?.trim());
   if (!benefits.length && !claims.length && !hasManualFeatures) missingInfo.push("Key benefits");
-  if (!ingredients.length && !activeIngredients.length && !hasManualFeatures) missingInfo.push("Ingredients");
+  if (!ingredients.length && !activeIngredients.length) missingInfo.push("Ingredients");
+  if (languageCoverageIncomplete) missingInfo.push("Reply language coverage");
 
+  // Scored against what actually determines answer quality, not just whether
+  // text fields are non-empty. The previous version never looked at embeddings,
+  // so a product with zero AI knowledge could still read "100% complete", and
+  // its floor was 40% because nothing could take it lower.
   let qualityScore = 100;
+  if (!row.hasKnowledge) qualityScore -= 30;
   if (!row.instruction?.usage_instructions?.trim()) qualityScore -= 20;
   if (!warnings.length) qualityScore -= 10;
   if (!benefits.length && !claims.length && !hasManualFeatures) qualityScore -= 10;
-  if (!ingredients.length && !activeIngredients.length && !hasManualFeatures) qualityScore -= 20;
+  // recipe_summary no longer satisfies this: one free-text field used to buy
+  // back 30 points across two checks without any ingredient data existing.
+  if (!ingredients.length && !activeIngredients.length) qualityScore -= 20;
+  if (languageCoverageIncomplete) qualityScore -= 10;
+  qualityScore = Math.max(0, qualityScore);
 
   return {
     howToUse,

@@ -470,9 +470,21 @@ test.post('/rag/answer', async (c) => {
         topProducts: Array.from(new Set(ragResult.results.map((r) => r.productId))),
         factsSnapshotsFound: factsContext.factCount,
         factsProductIds: factsContext.productIds,
-        deterministicFactsAnswer: false,
+        // These were hardcoded literals (false / 0). scripts/score-cosmetics-rag-eval.mjs
+        // reads exactly these fields to compute deterministicFactsAnswerRate and
+        // the byDeterministicFacts breakdown, so both metrics reported a constant
+        // regardless of behaviour — blinding the eval to the deterministic-facts
+        // path, which is a major quality feature.
+        deterministicFactsAnswer: grounded.usedDeterministicFacts,
         deterministicFactsQueryType: null,
-        deterministicEvidenceUsed: 0,
+        deterministicEvidenceUsed: factsContext.factCount,
+        // Real retrieval telemetry, so an eval run can distinguish a grounded
+        // answer from one produced with zero retrieved chunks.
+        retrievedChunkCount: grounded.retrievedChunkCount,
+        retrievalMaxSimilarity: grounded.retrievalMaxSimilarity,
+        retrievalServedFrom: grounded.retrievalServedFrom,
+        evidenceSources: grounded.evidenceSources,
+        generationMs: grounded.latencyMs,
         styleCompliance,
         tokens: completion?.usage || streamUsage || null,
         aiDebug: {

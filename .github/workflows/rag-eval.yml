@@ -1,0 +1,75 @@
+# Cosmetics RAG evaluation.
+#
+# Deliberately NOT part of ci.yml and deliberately not blocking pull requests:
+#   * it needs a real OPENAI_API_KEY and spends money on every run
+#   * it needs a reachable API instance with a seeded merchant, so it is not
+#     hermetic and would be flaky as a required check
+#   * ci.yml already runs `pnpm -r test`, which currently has 8 failing tests;
+#     stacking a paid, non-hermetic gate on top of a red suite would not tell
+#     anyone anything new
+#
+# So it runs on demand (and weekly, to catch drift), and its result is a report
+# to read rather than a gate to satisfy. Promote it to a required check once the
+# golden set has expected answers and the existing suite is green.
+name: RAG Eval
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: API base URL to evaluate against
+        required: true
+        default: https://api.recete.co.uk
+      merchant_id:
+        description: Merchant (shop) id to evaluate
+        required: true
+  schedule:
+    # Mondays 06:00 UTC — drift check, not a gate.
+    - cron: '0 6 * * 1'
+
+jobs:
+  eval:
+    name: Cosmetics RAG eval
+    runs-on: ubuntu-latest
+    # The scheduled run needs these configured as repository variables/secrets;
+    # without them the job is skipped rather than failing noisily every week.
+    if: github.event_name == 'workflow_dispatch' || vars.RAG_EVAL_MERCHANT_ID != ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run eval
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          API_BASE_URL: ${{ github.event.inputs.api_base_url || vars.RAG_EVAL_API_BASE_URL }}
+          MERCHANT_ID: ${{ github.event.inputs.merchant_id || vars.RAG_EVAL_MERCHANT_ID }}
+          INTERNAL_SERVICE_SECRET: ${{ secrets.INTERNAL_SERVICE_SECRET }}
+        run: node scripts/run-cosmetics-rag-eval.mjs
+
+      - name: Score
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          node scripts/score-cosmetics-rag-eval.mjs
+          node scripts/judge-cosmetics-rag-eval.mjs
+          node scripts/summarize-cosmetics-rag-eval.mjs
+
+      - name: Upload eval artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rag-eval-results
+          path: tmp/
+          if-no-files-found: warn
+          retention-days: 30
