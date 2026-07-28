@@ -25,6 +25,7 @@ import {
     TextField,
 } from '@shopify/polaris';
 import { FlaskConical, ListChecks, MessageSquareReply, PackageCheck, Store } from 'lucide-react';
+import { getErrorMessage } from '@/lib/errors';
 
 interface MerchantOption {
     id: string;
@@ -184,8 +185,8 @@ export default function AdminTestingPage() {
             if (!selectedMerchantId && response.merchants?.length) {
                 setSelectedMerchantId(response.merchants[0].id);
             }
-        } catch (err: any) {
-            setError(err.message || 'Failed to load merchants');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Failed to load merchants'));
         } finally {
             setLoading(false);
         }
@@ -204,8 +205,8 @@ export default function AdminTestingPage() {
             const scenarios = response.scenarios || [];
             setScenarioCatalog(scenarios);
             setSelectedScenarioIds(scenarios.map((scenario) => scenario.id));
-        } catch (err: any) {
-            setError(err.message || 'Failed to load Shopify scenarios');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Failed to load Shopify scenarios'));
         } finally {
             setScenariosLoading(false);
         }
@@ -232,8 +233,8 @@ export default function AdminTestingPage() {
             );
             setMerchantData(response);
             setSelectedProductIds(response.products.slice(0, 2).map((product) => product.id));
-        } catch (err: any) {
-            setError(err.message || 'Failed to load merchant test data');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Failed to load merchant test data'));
         } finally {
             setMerchantLoading(false);
         }
@@ -294,8 +295,8 @@ export default function AdminTestingPage() {
             );
             setOrderResult(response);
             setCustomerPhone(response.user.phone);
-        } catch (err: any) {
-            setError(err.message || 'Failed to create test order');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Failed to create test order'));
         } finally {
             setCreatingOrder(false);
         }
@@ -323,8 +324,8 @@ export default function AdminTestingPage() {
                 },
             );
             setReplyResult(response);
-        } catch (err: any) {
-            setError(err.message || 'Failed to simulate customer reply');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Failed to simulate customer reply'));
         } finally {
             setSimulatingReply(false);
         }
@@ -356,8 +357,8 @@ export default function AdminTestingPage() {
             );
             setScenarioRunResult(response);
             setCustomerPhone(response.user.phone);
-        } catch (err: any) {
-            setError(err.message || 'Failed to run Shopify scenario suite');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Failed to run Shopify scenario suite'));
         } finally {
             setRunningScenarios(false);
         }

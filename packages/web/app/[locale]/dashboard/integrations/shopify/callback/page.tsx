@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Banner, Box, Button, Card, Layout, Page, Spinner, Text } from '@shopify/polaris';
 import { useTranslations } from 'next-intl';
@@ -9,36 +9,32 @@ function ShopifyCallbackContent() {
   const t = useTranslations('ShopifyCallback');
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('');
+  // The backend redirects here with success/error in the query string, so both
+  // of these are pure functions of searchParams. They used to be useState that
+  // an effect wrote to synchronously, which triggers cascading renders — React
+  // recommends deriving instead of storing (react.dev/learn/you-might-not-need-an-effect).
+  const success = searchParams.get('success');
+  const error = searchParams.get('error');
+  const messageParam = searchParams.get('message');
 
-  const handleCallback = () => {
-    // Check URL parameters (backend redirects here with success/error)
-    const success = searchParams.get('success');
-    const error = searchParams.get('error');
-    const message = searchParams.get('message');
+  const status: 'success' | 'error' = success === 'true' ? 'success' : 'error';
+  const message = success === 'true'
+    ? (messageParam || t('successMessage'))
+    : error
+      ? decodeURIComponent(error)
+      : t('invalidCallback');
 
-    if (success === 'true') {
-      setStatus('success');
-      setMessage(message || t('successMessage'));
-      
-      // Redirect to integrations page after 2 seconds
-      setTimeout(() => {
-        router.push('/dashboard/integrations');
-      }, 2000);
-    } else if (error) {
-      setStatus('error');
-      setMessage(decodeURIComponent(error));
-    } else {
-      // No parameters - might be direct access
-      setStatus('error');
-      setMessage(t('invalidCallback'));
-    }
-  };
-
+  // The redirect is the only real side effect left. The timeout is now cleared
+  // on unmount; previously it could fire after the user had navigated away.
   useEffect(() => {
-    handleCallback();
-  }, [searchParams, router, t]);
+    if (status !== 'success') return;
+
+    const timer = setTimeout(() => {
+      router.push('/dashboard/integrations');
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [status, router]);
 
   return (
     <Page title={t('connecting')}>
@@ -49,18 +45,6 @@ function ShopifyCallbackContent() {
         <div className="max-w-md w-full mx-4">
           <Card>
             <div className="p-8">
-          {status === 'loading' && (
-            <div className="text-center">
-              <div className="flex justify-center mb-4">
-                <Spinner accessibilityLabel={t('connecting')} size="large" />
-              </div>
-              <Text as="h2" variant="headingLg">{t('connecting')}</Text>
-              <div className="mt-2">
-                <Text as="p" tone="subdued">{t('pleaseWait')}</Text>
-              </div>
-            </div>
-          )}
-
           {status === 'success' && (
             <div className="text-center">
               <Banner tone="success">

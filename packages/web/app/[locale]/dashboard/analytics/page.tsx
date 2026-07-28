@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { BarChart3, TrendingUp, TrendingDown, Users, Package, Calendar, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useTranslations } from 'next-intl';
+import { getErrorStatus } from '@/lib/errors';
 
 interface AnalyticsData {
   period: {
@@ -86,9 +87,9 @@ export default function AnalyticsPage() {
       setAnalytics(analyticsRes);
       if (roiRes) setRoi(roiRes.roi);
       if (preventionRes) setPrevention(preventionRes);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load analytics:', err);
-      if (err.status === 401) {
+      if (getErrorStatus(err) === 401) {
         window.location.href = '/login';
         return;
       }

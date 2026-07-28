@@ -48,6 +48,12 @@ export default [
             'no-console': 'off',
             'prefer-const': 'error',
             'no-var': 'error',
+
+            // The base rule does not understand TypeScript function overloads and
+            // reports each signature as a redeclaration. The TS-aware version
+            // handles them, so swap rather than rewrite valid overloads.
+            'no-redeclare': 'off',
+            '@typescript-eslint/no-redeclare': 'error',
         },
     },
 

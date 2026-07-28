@@ -10,6 +10,7 @@ import { Badge as PolarisBadge, Banner, BlockStack, Box, Button as PolarisButton
 import { Loader2, X, Trash2, Pencil, Plug, Upload, Code, MessageSquare, ShoppingBag, MessageCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useTranslations } from 'next-intl';
+import { getErrorMessage, getErrorStatus } from '@/lib/errors';
 
 interface Integration {
   id: string;
@@ -99,9 +100,9 @@ export default function IntegrationsPage() {
         session.access_token
       );
       setIntegrations(response.integrations);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load integrations:', err);
-      if (err.status === 401) {
+      if (getErrorStatus(err) === 401) {
         toast.error(t('toasts.sessionExpired.title'), t('toasts.sessionExpired.message'));
         window.location.href = '/login';
       } else {
@@ -135,9 +136,9 @@ export default function IntegrationsPage() {
 
       // Redirect to Shopify OAuth
       window.location.href = response.authUrl;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to connect Shopify:', err);
-      toast.error(t('toasts.shopifyError.title'), err.message || t('toasts.shopifyError.message'));
+      toast.error(t('toasts.shopifyError.title'), getErrorMessage(err, t('toasts.shopifyError.message')));
       setConnectingShopify(false);
     }
   };
@@ -190,16 +191,16 @@ export default function IntegrationsPage() {
       setShowCsvModal(false);
       setCsvFile(null);
       await loadIntegrations();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to import CSV:', err);
       setPageFeedback({
         tone: 'critical',
         title: t('feedback.importErrorTitle'),
-        message: err.message || t('toasts.importError.message'),
+        message: getErrorMessage(err, t('toasts.importError.message')),
         actionLabel: t('feedback.reviewDiscover'),
         targetId: 'discover-integrations',
       });
-      toast.error(t('toasts.importError.title'), err.message || t('toasts.importError.message'));
+      toast.error(t('toasts.importError.title'), getErrorMessage(err, t('toasts.importError.message')));
     } finally {
       setImporting(false);
     }
@@ -233,16 +234,16 @@ export default function IntegrationsPage() {
       });
       setShowManualModal(false);
       await loadIntegrations();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to create manual integration:', err);
       setPageFeedback({
         tone: 'critical',
         title: t('feedback.manualErrorTitle'),
-        message: err.message || t('toasts.manualError.message'),
+        message: getErrorMessage(err, t('toasts.manualError.message')),
         actionLabel: t('feedback.reviewDiscover'),
         targetId: 'discover-integrations',
       });
-      toast.error(t('toasts.manualError.title'), err.message || t('toasts.manualError.message'));
+      toast.error(t('toasts.manualError.title'), getErrorMessage(err, t('toasts.manualError.message')));
     }
   };
 
@@ -346,15 +347,15 @@ export default function IntegrationsPage() {
       setWhatsappTwilioAuthToken('');
       setWhatsappTwilioFromNumber('');
       await loadIntegrations();
-    } catch (err: any) {
+    } catch (err) {
       setPageFeedback({
         tone: 'critical',
         title: t('feedback.whatsappErrorTitle'),
-        message: err.message || t('toasts.whatsappError.message'),
+        message: getErrorMessage(err, t('toasts.whatsappError.message')),
         actionLabel: t('feedback.reviewDiscover'),
         targetId: 'discover-integrations',
       });
-      toast.error(t('toasts.whatsappError.title'), err.message || t('toasts.whatsappError.message'));
+      toast.error(t('toasts.whatsappError.title'), getErrorMessage(err, t('toasts.whatsappError.message')));
     } finally {
       setConnectingWhatsApp(false);
     }
@@ -382,16 +383,16 @@ export default function IntegrationsPage() {
         targetId: 'discover-integrations',
       });
       await loadIntegrations();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to delete integration:', err);
       setPageFeedback({
         tone: 'critical',
         title: t('feedback.deleteErrorTitle'),
-        message: err.message || t('toasts.deleteError.message'),
+        message: getErrorMessage(err, t('toasts.deleteError.message')),
         actionLabel: t('feedback.reviewActive'),
         targetId: 'active-integrations',
       });
-      toast.error(t('toasts.deleteError.title'), err.message || t('toasts.deleteError.message'));
+      toast.error(t('toasts.deleteError.title'), getErrorMessage(err, t('toasts.deleteError.message')));
     }
   };
 

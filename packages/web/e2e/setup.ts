@@ -24,6 +24,9 @@ export const test = base.extend<{
     // Wait for redirect to dashboard
     await page.waitForURL(`${baseURL}/dashboard`);
     
+    // `use` here is Playwright's fixture callback, not React's `use` hook. The
+    // rule matches on the name and cannot tell the difference.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(page);
   },
 });

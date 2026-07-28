@@ -248,7 +248,7 @@ export default function LoginPage() {
           paddingTop: 28,
         }}>
           <p style={{ fontSize: 14, lineHeight: 1.55, opacity: 0.65, margin: '0 0 16px', fontStyle: 'italic' }}>
-            "We reduced avoidable returns by 28% in the first month. Setup took one afternoon."
+            &ldquo;We reduced avoidable returns by 28% in the first month. Setup took one afternoon.&rdquo;
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
@@ -464,7 +464,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <p style={{ textAlign: 'center', fontSize: 13.5, color: 'var(--link-3)', marginTop: 28 }}>
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <I18nLink href="/signup" style={{ color: 'var(--laccent-ink)', fontWeight: 500, textDecoration: 'none' }}>
               Sign up free
             </I18nLink>

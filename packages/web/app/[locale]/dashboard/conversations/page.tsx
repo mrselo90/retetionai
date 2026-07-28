@@ -24,6 +24,7 @@ import {
   Text,
   EmptyState,
   Icon,
+  type BoxProps,
 } from '@shopify/polaris';
 import { PersonIcon, OrderFilledIcon, ClockIcon } from '@shopify/polaris-icons';
 import { useTranslations } from 'next-intl';
@@ -56,11 +57,11 @@ function ConversationIconSurface({
   background = 'bg-surface-secondary',
 }: {
   icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
-  background?: string;
+  background?: BoxProps['background'];
 }) {
   return (
     <Box
-      background={background as any}
+      background={background}
       borderRadius="200"
       padding="200"
     >

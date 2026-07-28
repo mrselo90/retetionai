@@ -117,23 +117,21 @@ function Bubble({ b }: { b: typeof HERO_SCRIPT[number] }) {
 
 function HeroPhone() {
   const [shown, setShown] = useState(0);
-  const [typing, setTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // `typing` used to be state that the effect set synchronously, which cascades
+  // renders. It is simply "the current step is an outgoing message", so it is
+  // derived — the dots show for exactly the same 1100ms window as before.
+  const typing = shown < HERO_SCRIPT.length && HERO_SCRIPT[shown].side === 'out';
 
   useEffect(() => {
     if (shown >= HERO_SCRIPT.length) {
       const t = setTimeout(() => setShown(0), 3500);
       return () => clearTimeout(t);
     }
-    const next = HERO_SCRIPT[shown];
-    if (next.side === 'out') {
-      setTyping(true);
-      const t = setTimeout(() => { setTyping(false); setShown(s => s + 1); }, 1100);
-      return () => clearTimeout(t);
-    } else {
-      const t = setTimeout(() => setShown(s => s + 1), 900);
-      return () => clearTimeout(t);
-    }
+    const delay = HERO_SCRIPT[shown].side === 'out' ? 1100 : 900;
+    const t = setTimeout(() => setShown((s) => s + 1), delay);
+    return () => clearTimeout(t);
   }, [shown]);
 
   useEffect(() => {
@@ -332,13 +330,14 @@ function DemoPhone({ scenario }: { scenario: typeof SCENARIOS[number] }) {
   const [shown, setShown] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setShown(0); }, [scenario.id]);
-
+  // No reset effect here: the call site passes key={scenario.id}, so switching
+  // scenario remounts this component and `shown` starts at 0 naturally. The
+  // previous effect set state synchronously, which cascaded an extra render.
   useEffect(() => {
     if (shown >= scenario.script.length) return;
-    const t = setTimeout(() => setShown(s => s + 1), 750);
+    const t = setTimeout(() => setShown((s) => s + 1), 750);
     return () => clearTimeout(t);
-  }, [shown, scenario.id]);
+  }, [shown, scenario.script.length]);
 
   useEffect(() => {
     if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
@@ -384,7 +383,7 @@ function Demo() {
         <SectionMeta>Live demo</SectionMeta>
         <div className="ldemo-grid">
           <div className="ldemo-left">
-            <h2 className="lh-section">Three conversations <span className="em">your team doesn't have to have.</span></h2>
+            <h2 className="lh-section">Three conversations <span className="em">your team doesn&apos;t have to have.</span></h2>
             <p className="llead" style={{ marginTop: 16 }}>
               Each one represents a real moment in the post-purchase journey — and a real margin point that Recete is protecting.
             </p>
@@ -401,7 +400,7 @@ function Demo() {
             </div>
           </div>
           <div className="ldemo-phone" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <DemoPhone scenario={SCENARIOS[active]} />
+            <DemoPhone key={SCENARIOS[active].id} scenario={SCENARIOS[active]} />
           </div>
         </div>
       </div>
@@ -477,7 +476,7 @@ function Testimonials() {
         <div className="ltest-grid ltest-grid-mt">
           {TESTIMONIALS.map((t, i) => (
             <div key={i} className="ltest">
-              <div style={{ fontSize: 16.5, lineHeight: 1.5, color: 'var(--link)', letterSpacing: '-0.005em', flex: 1 }}>"{t.quote}"</div>
+              <div style={{ fontSize: 16.5, lineHeight: 1.5, color: 'var(--link)', letterSpacing: '-0.005em', flex: 1 }}>&ldquo;{t.quote}&rdquo;</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: 16, borderTop: '1px solid var(--lline)' }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 500 }}>{t.author}</div>
@@ -570,7 +569,7 @@ function ROICalc() {
         <div className="lsection-head lsection-head-nb">
           <div>
             <SectionMeta>ROI calculator</SectionMeta>
-            <h2 className="lh-section">Run your numbers. <span className="em">It's not a leap of faith.</span></h2>
+            <h2 className="lh-section">Run your numbers. <span className="em">It&apos;s not a leap of faith.</span></h2>
           </div>
           <p className="llead">Estimates use averages from active merchants. Most stores recover cost in week one.</p>
         </div>
@@ -599,7 +598,7 @@ function ROICalc() {
               <span style={{ fontSize: 28, color: 'var(--link-3)', marginRight: 2, fontWeight: 400 }}>£</span>{fmt(total)}
             </div>
             <div style={{ fontSize: 13.5, color: 'var(--link-2)', lineHeight: 1.5 }}>
-              That's a <strong style={{ color: 'var(--link)' }}>{roi.toFixed(1)}× return</strong> on the Growth plan at £69/mo, before counting brand equity or NPS lift.
+              That&apos;s a <strong style={{ color: 'var(--link)' }}>{roi.toFixed(1)}× return</strong> on the Growth plan at £69/mo, before counting brand equity or NPS lift.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6, borderTop: '1px solid var(--lline)', paddingTop: 18 }}>
               {[
@@ -641,7 +640,7 @@ function FAQ() {
           <div>
             <h2 className="lh-section" style={{ fontSize: 'clamp(24px, 3vw, 32px)' }}>Common questions from merchants.</h2>
             <p style={{ fontSize: 14, color: 'var(--link-3)', marginTop: 16, maxWidth: 320 }}>
-              Can't find what you're looking for?{' '}
+              Can&apos;t find what you&apos;re looking for?{' '}
               <a href="mailto:hello@recete.co.uk" style={{ color: 'var(--link)', textDecoration: 'underline', textUnderlineOffset: 3 }}>hello@recete.co.uk</a>
             </p>
           </div>
@@ -672,7 +671,7 @@ function FinalCTA() {
           Stop losing margin <span className="em">after checkout.</span>
         </h2>
         <p className="llead" style={{ textAlign: 'center' }}>
-          Install Recete in fifteen minutes and start protecting every order you've worked so hard to win. Cancel any time — fair-use first.
+          Install Recete in fifteen minutes and start protecting every order you&apos;ve worked so hard to win. Cancel any time — fair-use first.
         </p>
         <div className="lfinalcta-btns" style={{ marginTop: 8 }}>
           <Link href="/signup" className="lbtn lbtn-primary lbtn-lg">

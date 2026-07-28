@@ -26,24 +26,25 @@ interface ShopifyProviderProps {
 
 function ShopifyProviderContent({ children }: ShopifyProviderProps) {
   const searchParams = useSearchParams();
-  const [isEmbedded, setIsEmbedded] = useState(false);
-  const [host, setHost] = useState<string | null>(null);
-  const [shop, setShop] = useState<string | null>(null);
 
+  // host/shop are pure functions of the query string, so they are derived rather
+  // than copied into state by an effect (which set state synchronously and
+  // cascaded renders).
+  const host = searchParams.get('host');
+  const shop = host ? searchParams.get('shop') : null;
+
+  // The iframe fallback is the one part that cannot be derived: window is not
+  // available during SSR, and reading it in a useState initialiser would render
+  // false on the server and true on the client, producing a hydration mismatch.
+  // Detecting after mount is the correct pattern here, so the rule is suppressed
+  // rather than worked around.
+  const [isIframe, setIsIframe] = useState(false);
   useEffect(() => {
-    const hostParam = searchParams.get('host');
-    const shopParam = searchParams.get('shop');
-    
-    // If host is present, we are likely in Shopify embedded mode
-    if (hostParam) {
-      setIsEmbedded(true);
-      setHost(hostParam);
-      setShop(shopParam);
-    } else if (typeof window !== 'undefined' && window.top !== window.self) {
-      // Fallback check for iframe
-      setIsEmbedded(true);
-    }
-  }, [searchParams]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (typeof window !== 'undefined' && window.top !== window.self) setIsIframe(true);
+  }, []);
+
+  const isEmbedded = Boolean(host) || isIframe;
 
   return (
     <ShopifyContext.Provider value={{ isEmbedded, host, shop }}>

@@ -32,12 +32,21 @@ export function PromptDialog({
   const [value, setValue] = useState(defaultValue);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Resetting the field when the dialog opens is a prop change, not a side
+  // effect. React documents adjusting state during render for this; doing it in
+  // an effect set state synchronously and cascaded an extra render.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setValue(defaultValue);
+  }
+
+  // Focusing the input is a genuine DOM side effect, so it stays in an effect.
   useEffect(() => {
-    if (open) {
-      setValue(defaultValue);
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
-  }, [open, defaultValue]);
+    if (!open) return;
+    const timer = setTimeout(() => inputRef.current?.focus(), 50);
+    return () => clearTimeout(timer);
+  }, [open]);
 
   if (!open) return null;
 

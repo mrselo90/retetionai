@@ -16,8 +16,11 @@ export interface StyleComplianceResult {
   };
 }
 
+// U+FE0F (variation selector-16) must not sit inside the character class: it is a
+// combining mark, so "❤️" (U+2764 U+FE0F) matched twice and inflated emojiCount.
+// Treating it as an optional suffix counts each emoji once, selector included.
 const EMOJI_REGEX =
-  /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu;
+  /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]\u{FE0F}?/gu;
 
 export function evaluateStyleCompliance(
   text: string,

@@ -371,7 +371,7 @@ export default function DashboardPage() {
             <div style={{ flex: 1 }}>
               <strong style={{ fontSize: 13 }}>{t('knowledge.warningTitle')}</strong>
               <p style={{ margin: '2px 0 8px', fontSize: 12.5 }}>{t('knowledge.warningBody', { count: displayStats.knowledgeHealth.productsAtRisk, gap: knowledgeReasonLabel(displayStats.knowledgeHealth.topMissingReasonCode) })}</p>
-              <a href="/dashboard/products" className="d-btn d-btn-outline d-btn-sm">{t('knowledge.warningAction')}</a>
+              <Link href="/dashboard/products" className="d-btn d-btn-outline d-btn-sm">{t('knowledge.warningAction')}</Link>
             </div>
           </div>
         )}
@@ -402,7 +402,7 @@ export default function DashboardPage() {
         <div className="d-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <p className="d-card-title">{t('recentOrders.title')}</p>
-            <a href="/dashboard/conversations" className="d-btn d-btn-ghost d-btn-sm">{t('recentOrders.viewAll')} <ArrowRight size={12} /></a>
+            <Link href="/dashboard/conversations" className="d-btn d-btn-ghost d-btn-sm">{t('recentOrders.viewAll')} <ArrowRight size={12} /></Link>
           </div>
           {displayStats.recentActivity.orders.length > 0 ? (
             <div>
@@ -430,7 +430,7 @@ export default function DashboardPage() {
         <div className="d-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <p className="d-card-title">{t('recentConversations.title')}</p>
-            <a href="/dashboard/conversations" className="d-btn d-btn-ghost d-btn-sm">{t('recentConversations.viewAll')} <ArrowRight size={12} /></a>
+            <Link href="/dashboard/conversations" className="d-btn d-btn-ghost d-btn-sm">{t('recentConversations.viewAll')} <ArrowRight size={12} /></Link>
           </div>
           {displayStats.recentActivity.conversations.length > 0 ? (
             <div>

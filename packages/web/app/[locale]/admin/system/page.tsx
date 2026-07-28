@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { Badge, Banner, BlockStack, Box, Button, Card, Checkbox, InlineGrid, InlineStack, Layout, Page, Select, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text, TextField } from '@shopify/polaris';
-import { Database, Server, Activity, AlertCircle } from 'lucide-react';
+import { Database, Server, Activity, AlertCircle, type LucideIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { getErrorMessage } from '@/lib/errors';
 
 interface QueueStats {
     waiting: number;
@@ -127,8 +128,8 @@ export default function SystemHealthPage() {
             setProductsCacheTtlSeconds(String(ai.settings.products_cache_ttl_seconds ?? 300));
             setLastUpdated(new Date());
             setError('');
-        } catch (err: any) {
-            setError(err.message || 'Failed to fetch system health');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Failed to fetch system health'));
         } finally {
             setLoading(false);
             setIsRefreshing(false);
@@ -188,8 +189,8 @@ export default function SystemHealthPage() {
             setConversationMemoryMode(next.settings.conversation_memory_mode === 'full' ? 'full' : 'last_n');
             setConversationMemoryCount(String(next.settings.conversation_memory_count ?? 10));
             setProductsCacheTtlSeconds(String(next.settings.products_cache_ttl_seconds ?? 300));
-        } catch (err: any) {
-            setError(err.message || 'Failed to save AI settings');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Failed to save AI settings'));
         } finally {
             setSavingAiSettings(false);
         }
@@ -441,7 +442,7 @@ export default function SystemHealthPage() {
         );
     }
 
-    const QueueCard = ({ title, stats, icon: Icon, colorClass }: { title: string, stats: QueueStats | undefined, icon: any, colorClass: string }) => {
+    const QueueCard = ({ title, stats, icon: Icon, colorClass }: { title: string, stats: QueueStats | undefined, icon: LucideIcon, colorClass: string }) => {
         if (!stats) return null;
 
         const hasFailed = stats.failed > 0;

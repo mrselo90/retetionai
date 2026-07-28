@@ -7,13 +7,14 @@ import { Badge, BlockStack, Box, Button, Card, IndexTable, InlineStack, Layout, 
 import { Store, Calendar, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '@/lib/toast';
+import { getErrorMessage } from '@/lib/errors';
 
 interface Merchant {
     id: string;
     name: string;
     created_at: string;
     is_super_admin: boolean;
-    settings?: { capped_amount?: number;[key: string]: any };
+    settings?: { capped_amount?: number;[key: string]: unknown };
     integrations: Array<{ provider: string; status: string }>;
     ai_usage_mtd?: {
         total_tokens: number;
@@ -63,8 +64,8 @@ export default function AdminMerchantsPage() {
 
             const data = await authenticatedRequest<{ merchants: Merchant[]; ai_window?: string }>(`/api/admin/merchants?ai_window=${aiWindow}`, session.access_token);
             setMerchants(data.merchants || []);
-        } catch (err: any) {
-            setError(err.message || 'Failed to fetch merchants');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Failed to fetch merchants'));
         } finally {
             setLoading(false);
         }
@@ -89,8 +90,8 @@ export default function AdminMerchantsPage() {
             });
             toast.success(`Capped amount requested to $${amount}`);
             await fetchMerchants();
-        } catch (err: any) {
-            toast.error(err.message || 'Failed to update limit');
+        } catch (err) {
+            toast.error(getErrorMessage(err, 'Failed to update limit'));
         }
     };
 
@@ -109,8 +110,8 @@ export default function AdminMerchantsPage() {
                 // This swaps the session in localStorage and logs the admin into the merchant dashboard
                 window.location.href = res.impersonationUrl;
             }
-        } catch (err: any) {
-            toast.error('Impersonation failed', err.message);
+        } catch (err) {
+            toast.error('Impersonation failed', getErrorMessage(err, 'Impersonation failed'));
         } finally {
             setImpersonatingMap(prev => ({ ...prev, [merchantId]: false }));
         }
@@ -128,8 +129,8 @@ export default function AdminMerchantsPage() {
                 session.access_token
             );
             setAiUsageDetail(data);
-        } catch (err: any) {
-            toast.error('Failed to load AI usage detail', err.message || 'Unknown error');
+        } catch (err) {
+            toast.error('Failed to load AI usage detail', getErrorMessage(err, 'Unknown error'));
         } finally {
             setAiUsageDetailLoading(false);
         }

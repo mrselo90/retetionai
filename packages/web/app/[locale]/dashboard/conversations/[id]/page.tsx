@@ -21,6 +21,7 @@ import {
   SkeletonPage,
   Text,
   TextField,
+  type BoxProps,
 } from '@shopify/polaris';
 import { MessageSquare, Clock, User, ShoppingBag, Bot } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -74,10 +75,10 @@ function DetailIconSurface({
   background = 'bg-surface-secondary',
 }: {
   icon: React.ReactNode;
-  background?: string;
+  background?: BoxProps['background'];
 }) {
   return (
-    <Box background={background as any} borderRadius="200" padding="300" minWidth="44px" minHeight="44px">
+    <Box background={background} borderRadius="200" padding="300" minWidth="44px" minHeight="44px">
       {icon}
     </Box>
   );
