@@ -176,14 +176,18 @@ export class MultiLangChunkShadowWriteService {
       ...serviceLangs,
     ])];
 
-    await svc
-      .from('knowledge_chunks_i18n')
-      .delete()
-      .eq('shop_id', shopId)
-      .eq('product_id', productId)
-      .eq('embedding_model', await this.embeddingService.getModel());
-
     const embeddingModel = await this.embeddingService.getModel();
+
+    // Build every language's records BEFORE touching the index.
+    //
+    // This used to delete all of the product's chunks first and then embed and
+    // insert one language at a time, throwing on the first failure. A mid-loop
+    // failure therefore left the product indexed in some languages and missing
+    // in others, and the window between the delete and the first insert was a
+    // period where the product had no retrievable knowledge at all. Embedding
+    // is the slow, failure-prone part, so it now happens while the previous
+    // index is still intact.
+    const allRecords: Record<string, unknown>[] = [];
     for (const lang of langs) {
       const row = await this.i18nService.getProductI18n(shopId, productId, lang);
       if (!row) continue;
@@ -193,30 +197,49 @@ export class MultiLangChunkShadowWriteService {
       if (chunked.length === 0) continue;
 
       const embeddings = await generateEmbeddingsBatch(chunked.map((item) => item.chunk));
-      const records = chunked.map((item, index) => ({
-        shop_id: shopId,
-        product_id: productId,
-        lang,
-        language_code: lang,
-        embedding_model: embeddingModel,
-        chunk_text: item.chunk.text,
-        embedding: JSON.stringify(embeddings[index].embedding),
-        chunk_index: index,
-        chunk_type: item.sectionType,
-        section_type: item.sectionType,
-        source_type: item.sourceKind,
-        source_kind: item.sourceKind,
-        source_ref: item.sourceRef,
-        content_hash: crypto.createHash('sha256').update(item.chunk.text).digest('hex'),
-        content_version: 1,
-        indexed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }));
-
-      const { error: insertError } = await svc.from('knowledge_chunks_i18n').insert(records);
-      if (insertError) {
-        throw new Error(`knowledge_chunks_i18n insert failed for ${lang}: ${insertError.message}`);
+      for (const [index, item] of chunked.entries()) {
+        allRecords.push({
+          shop_id: shopId,
+          product_id: productId,
+          lang,
+          language_code: lang,
+          embedding_model: embeddingModel,
+          chunk_text: item.chunk.text,
+          embedding: JSON.stringify(embeddings[index].embedding),
+          chunk_index: index,
+          chunk_type: item.sectionType,
+          section_type: item.sectionType,
+          source_type: item.sourceKind,
+          source_kind: item.sourceKind,
+          source_ref: item.sourceRef,
+          content_hash: crypto.createHash('sha256').update(item.chunk.text).digest('hex'),
+          content_version: 1,
+          indexed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
       }
+    }
+
+    // Nothing to write means nothing to replace. Deleting here would have
+    // wiped a product's existing chunks and left it unindexed.
+    if (allRecords.length === 0) {
+      logger.warn(
+        { shopId, productId, langs },
+        'Shadow chunk sync produced no records; leaving existing index untouched',
+      );
+      return;
+    }
+
+    await svc
+      .from('knowledge_chunks_i18n')
+      .delete()
+      .eq('shop_id', shopId)
+      .eq('product_id', productId)
+      .eq('embedding_model', embeddingModel);
+
+    const { error: insertError } = await svc.from('knowledge_chunks_i18n').insert(allRecords);
+    if (insertError) {
+      throw new Error(`knowledge_chunks_i18n insert failed: ${insertError.message}`);
     }
 
     logger.info(

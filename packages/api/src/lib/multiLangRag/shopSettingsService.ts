@@ -37,10 +37,22 @@ export class ShopSettingsService {
   private buildFallbackSettings(shopId: string, seedTextForLanguage?: string): ShopSettingsRecord {
     const inferred = seedTextForLanguage ? detectLanguage(seedTextForLanguage) : 'en';
     const defaultLang = normalizeLangCode(inferred);
+    // enabled_langs must contain the shop's own language. It was hardcoded to
+    // ['en'], so a Turkish shop that never touched language settings resolved
+    // primaryLanguage to 'en': every customer message was LLM-translated into
+    // English, retrieval hit the English partition, and the customer was
+    // answered in English with an "unsupported language" notice.
+    //
+    // English is kept alongside it so an English-speaking customer of a
+    // non-English shop is still served directly, and so the low-similarity
+    // fallback retrieval pass — which needs a second enabled language — is not
+    // dead for single-language shops. When defaultLang is already 'en' this is
+    // exactly the previous behaviour.
+    const enabledLangs = [...new Set([defaultLang, 'en'].filter(Boolean))];
     return {
       shop_id: shopId,
       default_source_lang: defaultLang,
-      enabled_langs: ['en'],
+      enabled_langs: enabledLangs,
       multi_lang_rag_enabled: true,
     };
   }
