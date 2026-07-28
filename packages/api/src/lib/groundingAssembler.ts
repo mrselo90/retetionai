@@ -34,6 +34,23 @@ export interface GroundingAssemblyOutput {
   retrievalLanguage: string;
   retrievalUsedFallback: boolean;
   retrievalFallbackLanguage: string | null;
+  /**
+   * Retrieval telemetry, reported separately per evidence type.
+   *
+   * `context` being non-empty was previously used as the "RAG worked" signal,
+   * but it is also non-empty when zero chunks were retrieved and only the
+   * order's usage instructions were available — so a completely failed vector
+   * search was indistinguishable from a good one.
+   */
+  retrievedChunkCount: number;
+  retrievalMaxSimilarity: number;
+  retrievalMeanSimilarity: number;
+  retrievalServedFrom: 'i18n' | 'legacy' | 'none' | 'suppressed';
+  evidenceSources: {
+    facts: boolean;
+    instructions: boolean;
+    chunks: boolean;
+  };
 }
 
 function buildRecipeBlock(row: any): string {
@@ -124,12 +141,15 @@ export async function assembleGroundingEvidence(
   const ragResult = shouldSuppressBroadRetrieval
     ? {
         query: retrievalQuery,
-        results: [],
+        results: [] as RAGResult[],
         totalResults: 0,
         executionTime: 0,
         effectiveLanguage: input.userLang,
         usedFallback: false,
         fallbackLanguage: null,
+        maxSimilarity: 0,
+        meanSimilarity: 0,
+        servedFrom: 'suppressed' as const,
       }
     : await new UnifiedRetrievalService().retrieve({
         merchantId: input.merchantId,
@@ -191,5 +211,14 @@ export async function assembleGroundingEvidence(
     retrievalLanguage: ragResult.effectiveLanguage,
     retrievalUsedFallback: ragResult.usedFallback,
     retrievalFallbackLanguage: ragResult.fallbackLanguage,
+    retrievedChunkCount: ragResult.results.length,
+    retrievalMaxSimilarity: ragResult.maxSimilarity,
+    retrievalMeanSimilarity: ragResult.meanSimilarity,
+    retrievalServedFrom: ragResult.servedFrom,
+    evidenceSources: {
+      facts: Boolean(factsContext.text),
+      instructions: instructions.length > 0,
+      chunks: ragResult.results.length > 0,
+    },
   };
 }

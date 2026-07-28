@@ -13,7 +13,7 @@ import { getMerchantBotInfo } from './botInfo.js';
 import { getOpenAIClient } from './openaiClient.js';
 import { getConversationMemorySettings, getDefaultLlmModel } from './runtimeModelSettings.js';
 import { trackAiUsageEvent } from './aiUsageEvents.js';
-import { assembleGroundingEvidence } from './groundingAssembler.js';
+import { assembleGroundingEvidence, type GroundingAssemblyOutput } from './groundingAssembler.js';
 import { estimateTokenCount } from './embeddings.js';
 import { ShopSettingsService } from './multiLangRag/shopSettingsService.js';
 import {
@@ -58,6 +58,21 @@ export interface GroundedAnswerOutput {
   retrievalLanguage: string;
   retrievalUsedFallback: boolean;
   retrievalFallbackLanguage: string | null;
+  /** Retrieval telemetry, surfaced so callers can log real evidence signals. */
+  retrievedChunkCount: number;
+  retrievalMaxSimilarity: number;
+  retrievalServedFrom: 'i18n' | 'legacy' | 'none' | 'suppressed';
+  evidenceSources: { facts: boolean; instructions: boolean; chunks: boolean };
+}
+
+/** Retrieval telemetry passed through to callers on every answer path. */
+function groundingTelemetry(grounding: GroundingAssemblyOutput) {
+  return {
+    retrievedChunkCount: grounding.retrievedChunkCount,
+    retrievalMaxSimilarity: grounding.retrievalMaxSimilarity,
+    retrievalServedFrom: grounding.retrievalServedFrom,
+    evidenceSources: grounding.evidenceSources,
+  };
 }
 
 function buildClarifyingAnswer(lang: SupportedLanguage): string {
@@ -170,6 +185,7 @@ export async function generateGroundedProductAnswer(
       retrievalLanguage: grounding.retrievalLanguage,
       retrievalUsedFallback: grounding.retrievalUsedFallback,
       retrievalFallbackLanguage: grounding.retrievalFallbackLanguage,
+      ...groundingTelemetry(grounding),
     };
   }
 
@@ -191,6 +207,8 @@ export async function generateGroundedProductAnswer(
         retrievalLanguage: grounding.retrievalLanguage,
         retrievalUsedFallback: grounding.retrievalUsedFallback,
         retrievalFallbackLanguage: grounding.retrievalFallbackLanguage,
+        ...groundingTelemetry(grounding),
+      ...groundingTelemetry(grounding),
       },
       'grounded_answer_clarification_due_to_insufficient_evidence',
     );
@@ -206,6 +224,7 @@ export async function generateGroundedProductAnswer(
       retrievalLanguage: grounding.retrievalLanguage,
       retrievalUsedFallback: grounding.retrievalUsedFallback,
       retrievalFallbackLanguage: grounding.retrievalFallbackLanguage,
+      ...groundingTelemetry(grounding),
     };
   }
 
@@ -311,6 +330,7 @@ export async function generateGroundedProductAnswer(
       retrievalLanguage: grounding.retrievalLanguage,
       retrievalUsedFallback: grounding.retrievalUsedFallback,
       retrievalFallbackLanguage: grounding.retrievalFallbackLanguage,
+      ...groundingTelemetry(grounding),
     },
   });
 
@@ -340,6 +360,7 @@ export async function generateGroundedProductAnswer(
       retrievalLanguage: grounding.retrievalLanguage,
       retrievalUsedFallback: grounding.retrievalUsedFallback,
       retrievalFallbackLanguage: grounding.retrievalFallbackLanguage,
+      ...groundingTelemetry(grounding),
     },
     'grounded_answer_generated',
   );
@@ -355,5 +376,6 @@ export async function generateGroundedProductAnswer(
     retrievalLanguage: grounding.retrievalLanguage,
     retrievalUsedFallback: grounding.retrievalUsedFallback,
     retrievalFallbackLanguage: grounding.retrievalFallbackLanguage,
+    ...groundingTelemetry(grounding),
   };
 }

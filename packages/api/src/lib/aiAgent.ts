@@ -1953,7 +1953,15 @@ export async function generateAIResponse(
           postDeliveryFollowUp: postDeliveryFollowUp.detected ? postDeliveryFollowUp.type : null,
           responseLang: detectLanguage(finalAnswer),
           guardrailBlocked: !responseGuardrail.safe,
-          ragUsed: Boolean(grounded.ragContext),
+          // `ragUsed` now means "vector search actually returned chunks".
+          // It used to be Boolean(ragContext), which is also true when zero
+          // chunks were retrieved and only usage instructions were present.
+          ragUsed: grounded.retrievedChunkCount > 0,
+          retrievedChunkCount: grounded.retrievedChunkCount,
+          retrievalMaxSimilarity: grounded.retrievalMaxSimilarity,
+          retrievalServedFrom: grounded.retrievalServedFrom,
+          evidenceSources: grounded.evidenceSources,
+          generationMs: grounded.latencyMs,
           citedProducts: grounded.citedProducts,
           usedDeterministicFacts: grounded.usedDeterministicFacts,
           orderScopeSource: grounded.orderScopeSource || (effectiveOrderId ? 'none' : 'not_applicable'),
