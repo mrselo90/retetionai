@@ -82,6 +82,13 @@ describe('UnifiedRetrievalService', () => {
         };
       }
 
+      // Lexical retrieval runs concurrently with the dense query. When the i18n
+      // index itself is failing its keyword counterpart is not trusted either,
+      // so the legacy fallback should win regardless of what this returns.
+      if (fn === 'match_knowledge_chunks_i18n_lexical') {
+        return { data: [], error: null };
+      }
+
       return {
         data: [
           {
@@ -120,6 +127,11 @@ describe('UnifiedRetrievalService', () => {
     expect(result.results[0]?.productName).toBe('Legacy Product');
     expect(result.effectiveLanguage).toBe('en');
     expect(result.usedFallback).toBe(false);
-    expect(rpc).toHaveBeenCalledTimes(2);
+    // Assert which RPCs ran rather than a raw count, so adding a retrieval
+    // channel does not break this test for the wrong reason.
+    const calledFns = rpc.mock.calls.map(([fn]) => fn);
+    expect(calledFns).toContain('match_knowledge_chunks_i18n');
+    expect(calledFns).toContain('match_knowledge_chunks');
+    expect(result.servedFrom).toBe('legacy');
   });
 });
