@@ -94,13 +94,20 @@ describe('POST /api/auth/signup', () => {
   it('should reject duplicate email', async () => {
     const merchant = createTestMerchant();
 
-    (getAuthClient as any).mockReturnValue({ auth: { signUp: vi.fn() } });
-    mockSupabaseClient.auth.admin.listUsers.mockResolvedValue({
-      data: { users: [{ id: merchant.id, email: 'test@example.com' }] },
-      error: null,
+    // Duplicate detection does not scan all users. Supabase returns a user with
+    // an empty identities array when the email is already registered, and the
+    // route treats that as the duplicate signal.
+    (getAuthClient as any).mockReturnValue({
+      auth: {
+        signUp: vi.fn().mockResolvedValue({
+          data: { user: { id: merchant.id, email: 'test@example.com', identities: [] } },
+          error: null,
+        }),
+      },
     });
 
-    // Mock: merchant exists
+    // Merchant record also exists, so the route reports a conflict rather than
+    // backfilling the missing merchant row.
     const queryBuilder = mockSupabaseClient.from('merchants');
     queryBuilder.maybeSingle.mockResolvedValue({
       data: merchant,

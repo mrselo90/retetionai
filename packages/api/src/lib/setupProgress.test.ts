@@ -50,7 +50,7 @@ function createOverview(overrides: Partial<ShopifyMerchantOverview> = {}): Shopi
 }
 
 describe("getSetupProgress", () => {
-  it("returns 1/4 when billing is approved but products are not ready yet", () => {
+  it("returns 1/3 when billing is approved but products are not ready yet", () => {
     const progress = getSetupProgress(
       createOverview({
         merchant: {
@@ -68,13 +68,15 @@ describe("getSetupProgress", () => {
     );
 
     expect(progress.completedCount).toBe(1);
-    expect(progress.totalSteps).toBe(4);
+    // Setup gates on three required steps (billing, products, messaging);
+    // orders and themeEmbed are optional and tracked separately.
+    expect(progress.totalSteps).toBe(3);
     expect(progress.hasBilling).toBe(true);
     expect(progress.hasProducts).toBe(false);
     expect(progress.nextStep).toBe("products");
   });
 
-  it("returns 2/4 when billing is approved and at least one product exists", () => {
+  it("returns 2/3 when billing is approved and at least one product exists", () => {
     const progress = getSetupProgress(
       createOverview({
         merchant: {
@@ -110,7 +112,7 @@ describe("getSetupProgress", () => {
     expect(progress.nextStep).toBe("messaging");
   });
 
-  it("returns 3/4 after settings are explicitly saved even if bot name is empty", () => {
+  it("completes setup at 3/3 once messaging is explicitly saved, even if bot name is empty", () => {
     const progress = getSetupProgress(
       createOverview({
         merchant: {
@@ -147,7 +149,11 @@ describe("getSetupProgress", () => {
 
     expect(progress.completedCount).toBe(3);
     expect(progress.hasMessagingConfigured).toBe(true);
-    expect(progress.nextStep).toBe("orders");
+    expect(progress.setupComplete).toBe(true);
+    // All required steps are done, so there is no next required step. Orders is
+    // now surfaced as the next optional step instead.
+    expect(progress.nextStep).toBeNull();
+    expect(progress.nextOptionalStep).toBe("orders");
   });
 
   it("keeps legacy settings detection for existing bot configuration", () => {
@@ -183,7 +189,7 @@ describe("getSetupProgress", () => {
     expect(progress.completedCount).toBe(3);
   });
 
-  it("returns 4/4 after the first order is visible", () => {
+  it("stays complete once the first order is visible, and clears the optional orders step", () => {
     const progress = getSetupProgress(
       createOverview({
         merchant: {
@@ -226,8 +232,12 @@ describe("getSetupProgress", () => {
       }),
     );
 
-    expect(progress.completedCount).toBe(4);
+    // Orders is optional, so completing it does not raise the required count
+    // past 3 — it clears the optional queue down to the theme embed step.
+    expect(progress.completedCount).toBe(3);
     expect(progress.setupComplete).toBe(true);
     expect(progress.nextStep).toBeNull();
+    expect(progress.hasOrders).toBe(true);
+    expect(progress.nextOptionalStep).toBe("themeEmbed");
   });
 });

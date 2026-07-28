@@ -35,8 +35,12 @@ describe('Knowledge Base Module', () => {
             select: vi.fn().mockReturnThis(),
             delete: vi.fn().mockReturnThis(),
             insert: vi.fn().mockReturnThis(),
+            // Chunk writes upsert on (product_id, chunk_hash) so that re-indexing
+            // unchanged content is idempotent rather than duplicating the set.
+            upsert: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             in: vi.fn().mockReturnThis(),
+            not: vi.fn().mockResolvedValue({ data: null, error: null }),
             single: vi.fn().mockResolvedValue({ data: { name: 'Test Product' }, error: null }),
         };
 
@@ -68,7 +72,7 @@ describe('Knowledge Base Module', () => {
             });
 
             expect(mockSupabase.delete).toHaveBeenCalled();
-            expect(mockSupabase.insert).toHaveBeenCalledWith([
+            expect(mockSupabase.upsert).toHaveBeenCalledWith([
                 expect.objectContaining({
                     product_id: mockProductId,
                     chunk_text: `[Test Product] ${mockChunks[0].text}`,
@@ -81,7 +85,7 @@ describe('Knowledge Base Module', () => {
                     embedding: JSON.stringify(mockEmbeddings[1].embedding),
                     chunk_index: 1,
                 }),
-            ]);
+            ], { onConflict: 'product_id,chunk_hash' });
         });
 
         it('should return error for empty content', async () => {
