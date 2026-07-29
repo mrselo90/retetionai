@@ -37,6 +37,7 @@ export default function ModulesPage() {
   const [addons, setAddons] = useState<Addon[]>([]);
   const [showAddonConfirm, setShowAddonConfirm] = useState<string | null>(null);
   const [addonAction, setAddonAction] = useState<'enable' | 'disable'>('enable');
+  const [addonSubmitting, setAddonSubmitting] = useState(false);
 
   const getErrorMessage = (err: unknown, fallback: string) => {
     if (err instanceof Error && err.message) return err.message;
@@ -89,7 +90,9 @@ export default function ModulesPage() {
 
   const handleAddonConfirm = async () => {
     const addonKey = showAddonConfirm;
-    if (!addonKey) return;
+    // This subscribes to a paid add-on, so a double fire would bill twice.
+    if (!addonKey || addonSubmitting) return;
+    setAddonSubmitting(true);
     setShowAddonConfirm(null);
 
     try {
@@ -118,6 +121,10 @@ export default function ModulesPage() {
     } catch (err: unknown) {
       console.error('Addon action failed:', err);
       toast.error(t('toasts.saveError.title'), getErrorMessage(err, t('toasts.saveError.message')));
+    } finally {
+      // Must reset or the action stays locked after a failure. On the success
+      // path we have already navigated away, so this is harmless there.
+      setAddonSubmitting(false);
     }
   };
 
@@ -198,6 +205,8 @@ export default function ModulesPage() {
         primaryAction={{
           content: addonAction === 'enable' ? rp('enableConfirmButton') : rp('disableConfirmButton'),
           onAction: handleAddonConfirm,
+          loading: addonSubmitting,
+          disabled: addonSubmitting,
           destructive: addonAction !== 'enable',
         }}
         secondaryActions={[

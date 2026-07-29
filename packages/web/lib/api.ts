@@ -123,7 +123,6 @@ export async function authenticatedRequest<T>(
 ): Promise<T> {
   return apiRequest<T>(endpoint, {
     ...options,
-    credentials: 'include',
     headers: {
       Authorization: `Bearer ${token}`,
       ...options?.headers,

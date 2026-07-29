@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ShopifyProvider } from '@/components/ShopifyProvider';
 import BackendHealthBanner from '@/components/BackendHealthBanner';
+import ToastContainer from '@/components/ui/Toast';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -60,6 +61,13 @@ export default async function LocaleLayout({
       <ShopifyProvider>
         {children}
       </ShopifyProvider>
+      {/*
+        lib/toast.ts dispatches a `show-toast` event on window; this is the only
+        listener for it. Without it mounted, all 80 toast.*() call sites across
+        17 pages were silent no-ops — including "session expired" before a
+        redirect, every load failure, and every save confirmation.
+      */}
+      <ToastContainer />
     </NextIntlClientProvider>
   );
 }

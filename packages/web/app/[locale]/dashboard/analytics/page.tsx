@@ -105,6 +105,22 @@ export default function AnalyticsPage() {
     return 'text-red-500';
   };
 
+  // An all-zero payload is still a truthy object, so presence of `analytics` is
+  // not evidence of data. Gate the charts on actual activity instead.
+  const hasData = Boolean(
+    analytics && (
+      analytics.metrics.totalUsers > 0 ||
+      analytics.metrics.totalOrders > 0 ||
+      analytics.metrics.interactionRate > 0
+    ),
+  );
+
+  // avgSentiment is sourced from analytics_events, which currently has no
+  // writer (the worker is a stub), so the value is always 0 — which
+  // getSentimentLabel/Tone render as a red "Negative" badge for every merchant.
+  // Show the tile only once the source actually produces values.
+  const hasSentimentData = Boolean(analytics && analytics.metrics.avgSentiment > 0);
+
   const getSentimentLabel = (score: number) => {
     if (score >= 4) return t('sentiment.positive');
     if (score >= 3) return t('sentiment.neutral');
@@ -211,27 +227,29 @@ export default function AnalyticsPage() {
       </PolarisCard>
 
       {/* Key Metrics */}
-      {analytics ? (
+      {analytics && hasData ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            <PolarisCard>
-              <Box padding="400">
-                <BlockStack gap="300">
-                  <InlineStack align="space-between" blockAlign="center">
-                    <Text as="p" variant="bodySm" tone="subdued">{t('metrics.avgSentiment')}</Text>
-                    <Box background="bg-fill-success-secondary" borderRadius="300" padding="200">
-                      <TrendingUp className="h-5 w-5 text-emerald-700" />
-                    </Box>
-                  </InlineStack>
-                  <Text as="p" variant="headingLg">{analytics.metrics.avgSentiment.toFixed(2)}</Text>
-                  <InlineStack>
-                    <PolarisBadge tone={getSentimentBadgeTone(analytics.metrics.avgSentiment)}>
-                      {getSentimentLabel(analytics.metrics.avgSentiment)}
-                    </PolarisBadge>
-                  </InlineStack>
-                </BlockStack>
-              </Box>
-            </PolarisCard>
+            {hasSentimentData ? (
+              <PolarisCard>
+                <Box padding="400">
+                  <BlockStack gap="300">
+                    <InlineStack align="space-between" blockAlign="center">
+                      <Text as="p" variant="bodySm" tone="subdued">{t('metrics.avgSentiment')}</Text>
+                      <Box background="bg-fill-success-secondary" borderRadius="300" padding="200">
+                        <TrendingUp className="h-5 w-5 text-emerald-700" />
+                      </Box>
+                    </InlineStack>
+                    <Text as="p" variant="headingLg">{analytics.metrics.avgSentiment.toFixed(2)}</Text>
+                    <InlineStack>
+                      <PolarisBadge tone={getSentimentBadgeTone(analytics.metrics.avgSentiment)}>
+                        {getSentimentLabel(analytics.metrics.avgSentiment)}
+                      </PolarisBadge>
+                    </InlineStack>
+                  </BlockStack>
+                </Box>
+              </PolarisCard>
+            ) : null}
 
             <PolarisCard>
               <Box padding="400">

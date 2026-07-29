@@ -467,6 +467,7 @@ export default function SettingsPage() {
                       <ShopifySaveBar
                         id="settings-persona-csb"
                         isDirty={isDirty}
+                        saving={saving}
                         onSave={handleSavePersona}
                         onDiscard={() => {
                           setIsDirty(false);

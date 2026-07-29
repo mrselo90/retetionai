@@ -17,6 +17,8 @@ interface ShopifySaveBarProps {
     onDiscard: () => void;
     saveLabel?: string;
     discardLabel?: string;
+    /** Disables both actions while a save is in flight. */
+    saving?: boolean;
 }
 
 type SaveBarElement = HTMLElement & {
@@ -31,6 +33,7 @@ export function ShopifySaveBar({
     onDiscard,
     saveLabel = 'Save',
     discardLabel = 'Discard',
+    saving = false,
 }: ShopifySaveBarProps) {
     const ref = useRef<SaveBarElement>(null);
 
@@ -53,10 +56,11 @@ export function ShopifySaveBar({
                 variant="primary"
                 slot="primary-action"
                 onClick={onSave}
+                disabled={saving}
             >
                 {saveLabel}
             </button>
-            <button slot="secondary-action" onClick={onDiscard}>
+            <button slot="secondary-action" onClick={onDiscard} disabled={saving}>
                 {discardLabel}
             </button>
             {/* @ts-expect-error - App Bridge web component */}

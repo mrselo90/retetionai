@@ -138,6 +138,7 @@ export default function BotInfoPage() {
       <ShopifySaveBar
         id="bot-info-csb"
         isDirty={isDirty}
+        saving={saving}
         onSave={handleSave}
         onDiscard={handleDiscard}
       />
