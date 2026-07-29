@@ -23,8 +23,8 @@ export default function ContactPage() {
               <div className="mt-6 space-y-5 text-sm leading-7 text-zinc-700 sm:text-[15px]">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">General</p>
-                  <a href="mailto:hello@recete.co.uk" className="mt-2 block font-medium text-[#0A3D2E] hover:underline">
-                    hello@recete.co.uk
+                  <a href="mailto:recete@recete.co.uk" className="mt-2 block font-medium text-[#0A3D2E] hover:underline">
+                    recete@recete.co.uk
                   </a>
                 </div>
                 <div>

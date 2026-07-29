@@ -12,7 +12,7 @@ const companyFacts = {
   address: '71-75 Shelton Street, Covent Garden, London, WC2H 9JQ',
   companyNumber: '17082027',
   phone: '+44 7915 922506',
-  email: 'hello@recete.co.uk',
+  email: 'recete@recete.co.uk',
 };
 
 export function CompanyIdentityBlock({
