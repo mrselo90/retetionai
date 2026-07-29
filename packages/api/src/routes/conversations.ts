@@ -372,30 +372,21 @@ conversations.post('/:id/reply', async (c) => {
       return c.json({ error: 'Unauthorized' }, 403);
     }
 
-    // Set conversation_status to 'human' if not already
-    if (conversation.conversation_status !== 'human') {
-      await serviceClient
-        .from('conversations')
-        .update({
-          conversation_status: 'human',
-          escalated_at: new Date().toISOString(),
-        })
-        .eq('id', conversationId);
-    }
-
-    // Add message to history as merchant
-    await addMessageToConversation(conversationId, 'merchant', text);
-
-    // Get user's phone (decrypt it)
+    // Nothing is mutated until the send succeeds.
+    //
+    // Previously the message was appended to history and the thread was flipped
+    // to 'human' BEFORE the WhatsApp call. On a send failure — or when WhatsApp
+    // was not configured at all — the reply was already in the transcript, so the
+    // next poll rendered it exactly like a delivered message and the merchant
+    // believed the customer had received it. The AI was also suppressed on that
+    // thread from then on.
     const userPhone = decryptPhone(user.phone);
 
-    // Get WhatsApp credentials for merchant
     const credentials = await getEffectiveWhatsAppCredentials(merchantId);
     if (!credentials) {
       return c.json({ error: 'WhatsApp not configured' }, 400);
     }
 
-    // Send message via WhatsApp
     const result = await sendWhatsAppMessage(
       { to: userPhone, text },
       credentials
@@ -403,6 +394,20 @@ conversations.post('/:id/reply', async (c) => {
 
     if (!result.success) {
       return c.json({ error: 'Failed to send message', details: result.error }, 500);
+    }
+
+    // Delivered — now record it and hand the thread to the human.
+    await addMessageToConversation(conversationId, 'merchant', text);
+
+    if (conversation.conversation_status !== 'human') {
+      await serviceClient
+        .from('conversations')
+        .update({
+          conversation_status: 'human',
+          escalated_at: new Date().toISOString(),
+          escalation_reason: 'merchant_reply',
+        })
+        .eq('id', conversationId);
     }
 
     await invalidateApiCache(`conversations:${merchantId}`);

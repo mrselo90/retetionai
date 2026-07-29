@@ -11,6 +11,7 @@ import { Search, Plus, Trash2, RefreshCw, Grid3X3, List, ExternalLink, AlertCirc
 import { useTranslations, useLocale } from 'next-intl';
 import { SESSION_RECHECK_MS } from '@/lib/constants';
 import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
+import { getErrorStatus } from '@/lib/errors';
 
 interface Product {
   id: string;
@@ -259,8 +260,9 @@ export default function ProductsPage() {
       setLoading(false);
     } catch (err: unknown) {
       console.error('Failed to load products:', err);
-      const errMsg = err instanceof Error ? err.message : '';
-      if (errMsg.includes('Unauthorized') || errMsg.includes('401')) {
+      // Check the status the client already attaches rather than string-matching
+      // the API's error copy, which breaks the moment that wording changes.
+      if (getErrorStatus(err) === 401) {
         toast.error(t('toasts.sessionExpired.title'), t('toasts.sessionExpired.message'));
         window.location.href = '/login';
       } else {
@@ -307,7 +309,8 @@ export default function ProductsPage() {
       }>(
         `/api/products/${createResponse.product.id}/scrape`,
         session.access_token,
-        { method: 'POST' }
+        // Live page fetch + LLM enrichment: needs more than the client default.
+        { method: 'POST', signal: AbortSignal.timeout(120_000) }
       );
 
       setScrapeStep(3);
@@ -317,7 +320,7 @@ export default function ProductsPage() {
         await authenticatedRequest(
           `/api/products/${createResponse.product.id}/generate-embeddings`,
           session.access_token,
-          { method: 'POST' }
+          { method: 'POST', signal: AbortSignal.timeout(120_000) }
         );
       } catch (err: unknown) {
         console.error('Embedding generation failed:', err);
@@ -349,6 +352,10 @@ export default function ProductsPage() {
     } catch (err: unknown) {
       console.error('Failed to add product:', err);
       const message = (err instanceof Error ? err.message : '') || t('toasts.addError.message');
+      // The product may already have been created before a later step (scrape /
+      // embeddings) failed. Without this refresh that row stayed invisible and the
+      // merchant retried, creating a duplicate.
+      await loadProducts().catch(() => undefined);
       setPageFeedback({
         tone: 'critical',
         title: t('feedback.addErrorTitle'),

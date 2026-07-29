@@ -36,6 +36,9 @@ export interface ApiError {
 /**
  * API client with error handling
  */
+/** Default client-side request timeout. */
+const REQUEST_TIMEOUT_MS = 30_000;
+
 export async function apiRequest<T>(
   endpoint: string,
   options?: RequestInit
@@ -46,12 +49,22 @@ export async function apiRequest<T>(
   try {
     response = await fetch(url, {
       ...options,
+      // Without a timeout a hung API left every dashboard page pinned on its
+      // skeleton forever with no way out. Callers that legitimately take longer
+      // (scrape + LLM enrichment) pass their own signal, which wins.
+      signal: options?.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       headers: {
         'Content-Type': 'application/json',
         ...options?.headers,
       },
     });
   } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new Error(
+        `The request took longer than ${Math.round(REQUEST_TIMEOUT_MS / 1000)}s and was cancelled. Please try again.`,
+      );
+    }
+
     // Network error: API unreachable, CORS, or connection refused
     const message =
       err instanceof TypeError && err.message === 'Failed to fetch'

@@ -6,6 +6,7 @@ import type { KeyboardEvent } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { getErrorMessage, getErrorStatus } from '@/lib/errors';
 import {
   Badge as PolarisBadge,
   BlockStack,
@@ -98,11 +99,13 @@ export default function ConversationDetailPage() {
   const [sending, setSending] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [pageFeedback, setPageFeedback] = useState<PageFeedbackState | null>(null);
+  // Only set by the initial load; background poll failures stay silent.
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!conversationId) return;
 
-    loadConversation();
+    loadConversation({ isInitial: true });
 
     let interval: ReturnType<typeof setInterval> | null = null;
 
@@ -138,10 +141,24 @@ export default function ConversationDetailPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversation?.history]);
 
-  const loadConversation = async () => {
+  /**
+   * Also runs as the 5-second poll body, which is why it must not navigate.
+   *
+   * It used to router.push back to the list on ANY error — so one 502, one
+   * timeout or one Wi-Fi hiccup ejected the merchant from the conversation they
+   * were reading and destroyed a half-typed reply. A failed background refresh
+   * now leaves the last good state on screen; only the very first load, which has
+   * nothing to show, surfaces an error.
+   */
+  const loadConversation = async (options?: { isInitial?: boolean }) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        if (options?.isInitial) {
+          window.location.href = '/login';
+        }
+        return;
+      }
 
       const response = await authenticatedRequest<{ conversation: ConversationDetail }>(
         `/api/conversations/${conversationId}`,
@@ -149,10 +166,20 @@ export default function ConversationDetailPage() {
       );
 
       setConversation(response.conversation);
+      setLoadError(null);
     } catch (err) {
       console.error('Failed to load conversation:', err);
-      toast.error(t('toasts.loadError.title'), t('toasts.loadError.message'));
-      router.push('/dashboard/conversations');
+
+      if (getErrorStatus(err) === 401) {
+        window.location.href = '/login';
+        return;
+      }
+
+      if (options?.isInitial) {
+        setLoadError(getErrorMessage(err, t('toasts.loadError.message')));
+        toast.error(t('toasts.loadError.title'), getErrorMessage(err, t('toasts.loadError.message')));
+      }
+      // Background poll failures are intentionally silent — retrying in 5s.
     } finally {
       setLoading(false);
     }
@@ -275,8 +302,20 @@ export default function ConversationDetailPage() {
             <Card>
               <Box padding="600">
                 <BlockStack gap="300" inlineAlign="center">
-                  <Text as="p" tone="subdued">{t('notFound')}</Text>
-                  <Button onClick={() => router.push('/dashboard/conversations')}>{t('backToConversations')}</Button>
+                  {/* Distinguish "could not load" from "does not exist" — the poll
+                      no longer navigates away, so this is where a first-load
+                      failure surfaces. */}
+                  <Text as="p" tone={loadError ? 'critical' : 'subdued'}>
+                    {loadError || t('notFound')}
+                  </Text>
+                  <InlineStack gap="200">
+                    {loadError ? (
+                      <Button variant="primary" onClick={() => { setLoading(true); loadConversation({ isInitial: true }); }}>
+                        {t('retry')}
+                      </Button>
+                    ) : null}
+                    <Button onClick={() => router.push('/dashboard/conversations')}>{t('backToConversations')}</Button>
+                  </InlineStack>
                 </BlockStack>
               </Box>
             </Card>

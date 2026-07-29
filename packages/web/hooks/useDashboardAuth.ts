@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
-import { getSessionExpiryMs, isSessionExpired } from '@/lib/sessionExpiry';
+import { isSessionExpired } from '@/lib/sessionExpiry';
 
 export interface UseDashboardAuthResult {
   userEmail: string | null;
@@ -13,25 +13,29 @@ export interface UseDashboardAuthResult {
 /**
  * Handles standalone dashboard auth via Supabase only.
  * Redirects to /login when unauthenticated. Keeps layout logic thin and testable.
+ *
+ * Deliberately has no local expiry timer. There used to be a setTimeout firing at
+ * token expiry + 250ms that called signOut({scope:'local'}) and pushed to /login.
+ * Supabase already has autoRefreshToken enabled, but it pauses auto-refresh while
+ * the tab is hidden and resumes on focus — so if the timer fired before the
+ * resumed refresh landed, or a single refresh request failed on a flaky network,
+ * the app destroyed a still-valid session and dumped the merchant at /login. That
+ * is the classic "it logs me out whenever I come back to the tab" bug, and it was
+ * self-inflicted: Supabase would have recovered on its own.
+ *
+ * The remaining guards are enough: an already-expired stored session is caught at
+ * mount and on every auth state change, SIGNED_OUT is handled, and a genuinely
+ * dead token surfaces as a 401 from the API, which the pages redirect on.
  */
 export function useDashboardAuth(): UseDashboardAuthResult {
   const router = useRouter();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const expiryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    const clearExpiryTimeout = () => {
-      if (expiryTimeoutRef.current) {
-        clearTimeout(expiryTimeoutRef.current);
-        expiryTimeoutRef.current = null;
-      }
-    };
-
     const closeAuthForExpiredToken = async () => {
-      clearExpiryTimeout();
       try {
         await supabase.auth.signOut({ scope: 'local' });
       } catch (err) {
@@ -40,20 +44,6 @@ export function useDashboardAuth(): UseDashboardAuthResult {
       if (!cancelled) {
         router.push('/login');
       }
-    };
-
-    const scheduleExpiryClose = (expiresAt?: number | null) => {
-      clearExpiryTimeout();
-      if (!expiresAt) return;
-      const msUntilExpiry = getSessionExpiryMs({ expires_at: expiresAt });
-      if (msUntilExpiry === null) return;
-      if (msUntilExpiry <= 0) {
-        void closeAuthForExpiredToken();
-        return;
-      }
-      expiryTimeoutRef.current = setTimeout(() => {
-        void closeAuthForExpiredToken();
-      }, msUntilExpiry + 250);
     };
 
     async function initAuth() {
@@ -66,7 +56,6 @@ export function useDashboardAuth(): UseDashboardAuthResult {
             return;
           }
           setUserEmail(session.user.email ?? null);
-          scheduleExpiryClose(session.expires_at);
         } else {
           router.push('/login');
         }
@@ -78,7 +67,7 @@ export function useDashboardAuth(): UseDashboardAuthResult {
       }
     }
 
-    initAuth();
+    void initAuth();
 
     const {
       data: { subscription },
@@ -86,7 +75,6 @@ export function useDashboardAuth(): UseDashboardAuthResult {
       if (cancelled) return;
 
       if (event === 'SIGNED_OUT') {
-        clearExpiryTimeout();
         setUserEmail(null);
         router.push('/login');
         return;
@@ -100,12 +88,10 @@ export function useDashboardAuth(): UseDashboardAuthResult {
       }
 
       setUserEmail(session.user.email ?? null);
-      scheduleExpiryClose(session.expires_at);
     });
 
     return () => {
       cancelled = true;
-      clearExpiryTimeout();
       subscription.unsubscribe();
     };
   }, [router]);

@@ -11,11 +11,13 @@ import {
   Box,
   Button as PolarisButton,
   Card as PolarisCard,
+  Divider,
   InlineStack,
   Modal,
   Page,
   SkeletonPage,
   Text,
+  TextField,
 } from '@shopify/polaris';
 import { AlertTriangle, Database, ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -28,6 +30,11 @@ export default function GdprPage() {
   const [exportingData, setExportingData] = useState(false);
   const [deletingData, setDeletingData] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // Hard delete is irreversible, so it requires an exact typed phrase — the same
+  // friction the Shopify app already applies to its data wipe.
+  const [hardConfirmText, setHardConfirmText] = useState('');
+  const HARD_DELETE_PHRASE = 'DELETE';
+  const hardDeleteArmed = hardConfirmText.trim().toUpperCase() === HARD_DELETE_PHRASE;
 
   const getErrorMessage = (err: unknown, fallback: string) => {
     if (err instanceof Error && err.message) return err.message;
@@ -254,7 +261,10 @@ export default function GdprPage() {
         <Modal
           open={showDeleteConfirm}
           onClose={() => {
-            if (!deletingData) setShowDeleteConfirm(false);
+            if (!deletingData) {
+              setShowDeleteConfirm(false);
+              setHardConfirmText('');
+            }
           }}
           title={t('gdpr.modal.title')}
           primaryAction={{
@@ -265,14 +275,8 @@ export default function GdprPage() {
           }}
           secondaryActions={[
             {
-              content: deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.hardDelete'),
-              onAction: () => handleDeleteData(true),
-              destructive: true,
-              disabled: deletingData,
-            },
-            {
               content: t('gdpr.modal.cancel'),
-              onAction: () => setShowDeleteConfirm(false),
+              onAction: () => { setShowDeleteConfirm(false); setHardConfirmText(''); },
               disabled: deletingData,
             },
           ]}
@@ -287,6 +291,34 @@ export default function GdprPage() {
                   <li>{t('gdpr.modal.list.cancel')}</li>
                 </ul>
               </Banner>
+
+              {/*
+                Hard delete used to be the modal's secondary action, sitting right
+                next to soft delete — one misclick permanently destroyed the
+                merchant's entire dataset. It now lives here, gated behind an
+                exact typed phrase.
+              */}
+              <Divider />
+              <BlockStack gap="200">
+                <TextField
+                  label={t('gdpr.modal.hardConfirmLabel')}
+                  value={hardConfirmText}
+                  onChange={setHardConfirmText}
+                  autoComplete="off"
+                  disabled={deletingData}
+                  helpText={t('gdpr.modal.hardConfirmHelp')}
+                  placeholder={HARD_DELETE_PHRASE}
+                />
+                <PolarisButton
+                  variant="primary"
+                  tone="critical"
+                  disabled={!hardDeleteArmed || deletingData}
+                  loading={deletingData}
+                  onClick={() => handleDeleteData(true)}
+                >
+                  {t('gdpr.modal.hardDeleteAction')}
+                </PolarisButton>
+              </BlockStack>
             </BlockStack>
           </Modal.Section>
         </Modal>
