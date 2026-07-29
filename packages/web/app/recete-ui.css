@@ -523,3 +523,99 @@
 @media (prefers-reduced-motion: reduce) {
     .r-sidebar { transition: none; }
 }
+
+/* ============================ Filter tabs ============================ */
+
+.r-tabs {
+    display: flex;
+    align-items: center;
+    gap: var(--r-space-3);
+    flex-wrap: wrap;
+}
+
+.r-tab {
+    font-family: inherit;
+    font-size: var(--r-text-sm);
+    font-weight: var(--r-weight-semibold);
+    padding: var(--r-space-2) var(--r-space-6);
+    border-radius: var(--r-radius-pill);
+    border: 1px solid var(--r-border);
+    background: var(--r-surface);
+    color: var(--r-text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* Semantic chips keep their colour when inactive — "At risk" stays orange, which
+   is how the prototype signals it without needing the chip to be selected. */
+.r-tab-warning { color: var(--r-warning); }
+.r-tab-success { color: var(--r-success); }
+
+/* Selected state hangs off aria-pressed: these are single-select filter chips,
+   not ARIA tabs (see components/recete/FilterTabs.tsx). */
+.r-tab[aria-pressed='true'] {
+    background: var(--r-brand-tint);
+    color: var(--r-brand);
+    border-color: transparent;
+}
+
+.r-tab:hover:not([aria-pressed='true']) { background: var(--r-bg); }
+
+.r-tab-count { opacity: 0.75; }
+
+/* ============================ Toolbar / bulk bar ============================ */
+
+.r-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--r-space-5);
+    flex-wrap: wrap;
+}
+
+.r-bulkbar {
+    display: flex;
+    align-items: center;
+    gap: var(--r-space-5);
+    flex-wrap: wrap;
+    background: var(--r-surface-subtle);
+    border: 1px solid var(--r-border);
+    border-radius: var(--r-radius-lg);
+    padding: var(--r-space-5) var(--r-space-7);
+}
+
+.r-bulkbar-count {
+    font-size: var(--r-text-base);
+    font-weight: var(--r-weight-semibold);
+    color: var(--r-brand);
+}
+
+/* ============================ Search field ============================ */
+
+.r-search-wrap { position: relative; display: flex; align-items: center; }
+
+.r-search-icon {
+    position: absolute;
+    left: var(--r-space-6);
+    color: var(--r-text-subtle);
+    pointer-events: none;
+}
+
+.r-search-wrap .r-input { padding-left: 34px; }
+
+/* ============================== Focus visibility ============================== */
+
+/* globals.css has a global `*:focus-visible` rule that drops the outline and
+   substitutes a Tailwind ring. Its offset colour comes from --background, which
+   still holds the legacy cream theme (#F8F6E7), so on this canvas the ring gets a
+   warm halo. The r-* layer rings itself from its own tokens instead. Class
+   specificity beats the universal selector, so no !important is needed. */
+.r-btn:focus-visible,
+.r-tab:focus-visible,
+.r-nav-item:focus-visible,
+.r-setup-card:focus-visible,
+.r-table a:focus-visible,
+.r-table input[type='checkbox']:focus-visible {
+    outline: 2px solid var(--r-brand);
+    outline-offset: 2px;
+    box-shadow: none;
+}

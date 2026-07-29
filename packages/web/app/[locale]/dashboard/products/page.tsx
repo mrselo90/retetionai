@@ -1,18 +1,18 @@
 'use client';
 
-import { useDeferredValue, useEffect, useState, useCallback } from 'react';
+import { useDeferredValue, useEffect, useState } from 'react';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { usePrompt } from '@/components/ui/PromptDialog';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Link } from '@/i18n/routing';
 import { Search, Plus, Trash2, RefreshCw, Grid3X3, List, ExternalLink, AlertCircle, CheckCircle2, Package } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { SESSION_RECHECK_MS } from '@/lib/constants';
 import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
 import { getErrorStatus } from '@/lib/errors';
 import { ProductsTable } from '@/components/recete/ProductsTable';
+import { FilterTabs } from '@/components/recete/FilterTabs';
 
 interface Product {
   id: string;
@@ -46,6 +46,19 @@ interface ProductWithChunks extends Product {
 
 type ProductsViewMode = 'grid' | 'list';
 type ProductStatusFilter = 'all' | 'rag_ready' | 'rag_not_ready' | 'rag_unknown' | 'scraped' | 'not_scraped';
+/**
+ * Knowledge-quality filter from the design. A different axis from
+ * ProductStatusFilter, which describes pipeline state (scraped, embedded) — both
+ * are useful, so the design's score chips are primary and the pipeline filter
+ * stays as a secondary dropdown.
+ *
+ * The design labelled the third chip "At risk", but everything below 80 lands in
+ * it — including products with no score at all. An unscored product is not at
+ * risk, it is unknown, so the chip is worded as the umbrella it actually is.
+ * "at_risk" is also already taken by the customer RFM segments, which mean
+ * something else entirely.
+ */
+type ProductScoreFilter = 'all' | 'strong' | 'needs_attention';
 type ProductSortOption = 'updated_desc' | 'updated_asc' | 'name_asc' | 'name_desc' | 'chunks_desc' | 'chunks_asc';
 type ProductsSavedView = {
   id: string;
@@ -71,6 +84,7 @@ export default function ProductsPage() {
   const [viewMode, setViewMode] = useState<ProductsViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>('all');
+  const [scoreFilter, setScoreFilter] = useState<ProductScoreFilter>('all');
   const [sortBy, setSortBy] = useState<ProductSortOption>('updated_desc');
   const [savedViews, setSavedViews] = useState<ProductsSavedView[]>([]);
   const [activeSavedViewId, setActiveSavedViewId] = useState<string>('all');
@@ -112,10 +126,13 @@ export default function ProductsPage() {
     return t('knowledge.statusWeak');
   };
 
+  // Same 80/50 cut-offs as knowledgeStatusLabel and the table's score bar, so a
+  // score of 52 cannot read "At risk" in words and danger-red as a badge.
   const knowledgeToneBadge = (score: number | undefined): string => {
-    if ((score || 0) >= 80) return 'd-badge-success';
-    if ((score || 0) >= 55) return 'd-badge-attention';
-    return 'd-badge-error';
+    if (score === undefined) return 'r-badge-neutral';
+    if (score >= 80) return 'r-badge-success';
+    if (score >= 50) return 'r-badge-caution';
+    return 'r-badge-danger';
   };
 
   const knowledgeCoverageLabel = (coverage: 'strong' | 'moderate' | 'weak') => {
@@ -124,9 +141,11 @@ export default function ProductsPage() {
     return t('knowledge.coverage.weak');
   };
 
+  // scoreFilter belongs here too: without it, switching chips while on page 3
+  // leaves you on page 3 of a list that may now be one page long.
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, sortBy]);
+  }, [searchQuery, statusFilter, scoreFilter, sortBy]);
 
   useEffect(() => {
     loadProducts();
@@ -184,6 +203,14 @@ export default function ProductsPage() {
     return 'rag_not_ready';
   };
 
+  // Counts for the design's score tabs, computed before filtering so each tab
+  // shows the size of its own bucket rather than the current view.
+  const scoreCounts = {
+    all: products.length,
+    strong: products.filter((p) => (p.knowledgeHealth?.score ?? -1) >= 80).length,
+    needs_attention: products.filter((p) => (p.knowledgeHealth?.score ?? -1) < 80).length,
+  };
+
   const filteredAndSortedProducts = [...products]
     .filter((product) => {
       const status = getProductStatus(product);
@@ -194,9 +221,17 @@ export default function ProductsPage() {
             ? Boolean(product.raw_text)
             : status === statusFilter;
 
+      const score = product.knowledgeHealth?.score;
+      const matchesScore =
+        scoreFilter === 'all'
+          ? true
+          : scoreFilter === 'strong'
+            ? score !== undefined && score >= 80
+            : score === undefined || score < 80;
+
       const haystack = `${product.name} ${product.url} ${product.id}`.toLowerCase();
       const matchesSearch = !deferredSearchQuery || haystack.includes(deferredSearchQuery);
-      return matchesStatus && matchesSearch;
+      return matchesStatus && matchesScore && matchesSearch;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -570,7 +605,7 @@ export default function ProductsPage() {
           <div style={{ height: 16, width: 300, background: '#E8E6DF', borderRadius: 4 }} />
         </div>
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="d-card" style={{ marginBottom: 16, height: 120, background: '#F2F0E9', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <div key={i} className="r-card" style={{ marginBottom: 16, height: 120, background: '#F2F0E9', animation: 'pulse 1.5s ease-in-out infinite' }} />
         ))}
       </div>
     );
@@ -587,14 +622,14 @@ export default function ProductsPage() {
         {/* Page header */}
         <div className="d-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 className="d-page-title">{t('title')}</h1>
-            <p className="d-page-subtitle">{t('description')}</p>
+            <h1 className="r-page-title">{t('title')}</h1>
+            <p className="r-page-sub">{t('description')}</p>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* View mode toggle */}
             <div style={{ display: 'flex', border: '1px solid #E8E6DF', borderRadius: 8, overflow: 'hidden' }}>
               <button
-                className={`d-btn d-btn-sm ${viewMode === 'grid' ? 'd-btn-primary' : 'd-btn-ghost'}`}
+                className={`r-btn r-btn-sm ${viewMode === 'grid' ? 'r-btn-primary' : 'r-btn-ghost'}`}
                 style={{ border: 'none', borderRadius: 0 }}
                 onClick={() => handleViewModeChange('grid')}
                 title={t('view.grid')}
@@ -602,7 +637,7 @@ export default function ProductsPage() {
                 <Grid3X3 size={14} />
               </button>
               <button
-                className={`d-btn d-btn-sm ${viewMode === 'list' ? 'd-btn-primary' : 'd-btn-ghost'}`}
+                className={`r-btn r-btn-sm ${viewMode === 'list' ? 'r-btn-primary' : 'r-btn-ghost'}`}
                 style={{ border: 'none', borderRadius: 0 }}
                 onClick={() => handleViewModeChange('list')}
                 title={t('view.list')}
@@ -610,10 +645,10 @@ export default function ProductsPage() {
                 <List size={14} />
               </button>
             </div>
-            <a href={`/${locale}/dashboard/products/shopify-map`} className="d-btn d-btn-outline">
+            <a href={`/${locale}/dashboard/products/shopify-map`} className="r-btn r-btn-secondary">
               <RefreshCw size={14} /> {t('shopifyMapButton')}
             </a>
-            <button className="d-btn d-btn-primary" onClick={() => setShowAddModal(true)}>
+            <button className="r-btn r-btn-primary" onClick={() => setShowAddModal(true)}>
               <Plus size={14} /> {t('addProductButton')}
             </button>
           </div>
@@ -642,16 +677,35 @@ export default function ProductsPage() {
           </div>
         ) : null}
 
+        {/* Knowledge-quality tabs (design primary filter) */}
+        <div style={{ marginBottom: 14 }}>
+          <FilterTabs
+            label={t('filters.scoreTabsLabel')}
+            value={scoreFilter}
+            onChange={setScoreFilter}
+            tabs={[
+              { value: 'all', label: t('filters.scoreTabs.all'), count: scoreCounts.all },
+              { value: 'strong', label: t('filters.scoreTabs.strong'), count: scoreCounts.strong, tone: 'success' },
+              {
+                value: 'needs_attention',
+                label: t('filters.scoreTabs.needsAttention'),
+                count: scoreCounts.needs_attention,
+                tone: 'warning',
+              },
+            ]}
+          />
+        </div>
+
         {/* Saved views + filters */}
         {products.length > 0 && (
-          <div id="products-catalog" className="d-card" style={{ marginBottom: 16 }}>
+          <div id="products-catalog" className="r-card" style={{ marginBottom: 16 }}>
             {/* Saved views tabs */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: 2 }}>
                 <button
                   type="button"
                   onClick={() => applySavedView('all')}
-                  className={`d-btn d-btn-sm ${activeSavedViewId === 'all' ? 'd-btn-primary' : 'd-btn-outline'}`}
+                  className={`r-btn r-btn-sm ${activeSavedViewId === 'all' ? 'r-btn-primary' : 'r-btn-secondary'}`}
                 >
                   {t('savedViews.all')}
                 </button>
@@ -660,7 +714,7 @@ export default function ProductsPage() {
                     <button
                       type="button"
                       onClick={() => applySavedView(view.id)}
-                      className={`d-btn d-btn-sm ${activeSavedViewId === view.id ? 'd-btn-primary' : 'd-btn-ghost'}`}
+                      className={`r-btn r-btn-sm ${activeSavedViewId === view.id ? 'r-btn-primary' : 'r-btn-ghost'}`}
                       style={{ borderRadius: 0, border: 'none' }}
                       title={view.name}
                     >
@@ -677,17 +731,17 @@ export default function ProductsPage() {
                   </span>
                 ))}
               </div>
-              <button type="button" className="d-btn d-btn-outline d-btn-sm" onClick={saveCurrentView}>
+              <button type="button" className="r-btn r-btn-secondary r-btn-sm" onClick={saveCurrentView}>
                 {t('savedViews.saveCurrent')}
               </button>
             </div>
 
             {/* Search + filters */}
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-              <div className="d-search-wrap" style={{ flex: '1 1 200px', minWidth: 180 }}>
-                <Search size={14} className="d-search-icon" />
+              <div className="r-search-wrap" style={{ flex: '1 1 200px', minWidth: 180 }}>
+                <Search size={14} className="r-search-icon" />
                 <input
-                  className="d-input"
+                  className="r-input"
                   placeholder={t('filters.searchPlaceholder')}
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
@@ -695,7 +749,7 @@ export default function ProductsPage() {
               </div>
               <div>
                 <label style={{ fontSize: 11.5, color: '#8E918C', display: 'block', marginBottom: 4 }}>{t('filters.status')}</label>
-                <select className="d-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as ProductStatusFilter)}>
+                <select className="r-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as ProductStatusFilter)}>
                   <option value="all">{t('filters.statusOptions.all')}</option>
                   <option value="rag_ready">{t('filters.statusOptions.ragReady')}</option>
                   <option value="rag_not_ready">{t('filters.statusOptions.ragNotReady')}</option>
@@ -706,7 +760,7 @@ export default function ProductsPage() {
               </div>
               <div>
                 <label style={{ fontSize: 11.5, color: '#8E918C', display: 'block', marginBottom: 4 }}>{t('filters.sort')}</label>
-                <select className="d-select" value={sortBy} onChange={e => setSortBy(e.target.value as ProductSortOption)}>
+                <select className="r-select" value={sortBy} onChange={e => setSortBy(e.target.value as ProductSortOption)}>
                   <option value="updated_desc">{t('filters.sortOptions.updatedDesc')}</option>
                   <option value="updated_asc">{t('filters.sortOptions.updatedAsc')}</option>
                   <option value="name_asc">{t('filters.sortOptions.nameAsc')}</option>
@@ -723,7 +777,7 @@ export default function ProductsPage() {
               {(searchQuery || statusFilter !== 'all' || sortBy !== 'updated_desc') && (
                 <button
                   type="button"
-                  className="d-btn d-btn-ghost d-btn-sm"
+                  className="r-btn r-btn-ghost r-btn-sm"
                   onClick={() => { setSearchQuery(''); setStatusFilter('all'); setSortBy('updated_desc'); setActiveSavedViewId('all'); }}
                 >
                   {t('filters.reset')}
@@ -735,11 +789,11 @@ export default function ProductsPage() {
 
         {/* Bulk actions */}
         {products.length > 0 && (
-          <div className="d-card" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <div className="r-bulkbar" style={{ marginBottom: 16, justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button
                 type="button"
-                className="d-btn d-btn-outline d-btn-sm"
+                className="r-btn r-btn-secondary r-btn-sm"
                 onClick={toggleSelectAllVisibleProducts}
                 disabled={visibleProductIds.length === 0}
               >
@@ -753,7 +807,7 @@ export default function ProductsPage() {
             <div style={{ display: 'flex', gap: 6 }}>
               <button
                 type="button"
-                className="d-btn d-btn-outline d-btn-sm"
+                className="r-btn r-btn-secondary r-btn-sm"
                 disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
                 onClick={clearSelectedProducts}
               >
@@ -761,7 +815,7 @@ export default function ProductsPage() {
               </button>
               <button
                 type="button"
-                className="d-btn d-btn-outline d-btn-sm"
+                className="r-btn r-btn-secondary r-btn-sm"
                 disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
                 onClick={() => runBulkProductAction('scrape')}
               >
@@ -769,7 +823,7 @@ export default function ProductsPage() {
               </button>
               <button
                 type="button"
-                className="d-btn d-btn-primary d-btn-sm"
+                className="r-btn r-btn-primary r-btn-sm"
                 disabled={selectedProductIds.length === 0 || bulkActionLoading !== null}
                 onClick={() => runBulkProductAction('embeddings')}
               >
@@ -781,24 +835,24 @@ export default function ProductsPage() {
 
         {/* Empty state */}
         {products.length === 0 && !loading ? (
-          <div className="d-card">
-            <div className="d-empty">
-              <div className="d-empty-icon"><Package size={18} /></div>
-              <p className="d-empty-title">{t('empty.title')}</p>
-              <p className="d-empty-desc">{t('empty.description')}</p>
+          <div className="r-card">
+            <div className="r-empty">
+              <div className="r-empty-icon"><Package size={18} /></div>
+              <p className="r-empty-title">{t('empty.title')}</p>
+              <p className="r-empty-body">{t('empty.description')}</p>
               <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                <button className="d-btn d-btn-primary" onClick={() => setShowAddModal(true)}>{t('empty.button')}</button>
-                <button className="d-btn d-btn-outline" onClick={() => { setLoading(true); loadProducts(); }}>{t('empty.refresh')}</button>
+                <button className="r-btn r-btn-primary" onClick={() => setShowAddModal(true)}>{t('empty.button')}</button>
+                <button className="r-btn r-btn-secondary" onClick={() => { setLoading(true); loadProducts(); }}>{t('empty.refresh')}</button>
               </div>
             </div>
           </div>
         ) : filteredAndSortedProducts.length === 0 ? (
-          <div className="d-card">
-            <div className="d-empty">
-              <div className="d-empty-icon"><Search size={18} /></div>
-              <p className="d-empty-title">{t('filters.noMatches')}</p>
-              <p className="d-empty-desc">{`No products found matching "${searchQuery}"`}</p>
-              <button className="d-btn d-btn-outline" onClick={() => setSearchQuery('')}>{t('bulk.clearSelection') || 'Clear search'}</button>
+          <div className="r-card">
+            <div className="r-empty">
+              <div className="r-empty-icon"><Search size={18} /></div>
+              <p className="r-empty-title">{t('filters.noMatches')}</p>
+              <p className="r-empty-body">{`No products found matching "${searchQuery}"`}</p>
+              <button className="r-btn r-btn-secondary" onClick={() => setSearchQuery('')}>{t('bulk.clearSelection') || 'Clear search'}</button>
             </div>
           </div>
         ) : viewMode === 'grid' ? (
@@ -814,14 +868,14 @@ export default function ProductsPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
                         {product.knowledgeHealth && (
-                          <span className={`d-badge ${knowledgeToneBadge(product.knowledgeHealth.score)}`}>
+                          <span className={`r-badge ${knowledgeToneBadge(product.knowledgeHealth.score)}`}>
                             {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
                           </span>
                         )}
                       </div>
                       <button
                         type="button"
-                        className="d-btn d-btn-danger d-btn-sm"
+                        className="r-btn r-btn-danger r-btn-sm"
                         style={{ padding: '0 8px' }}
                         onClick={async (e) => {
                           e.stopPropagation();
@@ -862,8 +916,8 @@ export default function ProductsPage() {
 
                     {/* Status badges */}
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {product.raw_text && <span className="d-badge d-badge-success">{t('card.scraped')}</span>}
-                      <span className="d-badge d-badge-neutral">
+                      {product.raw_text && <span className="r-badge r-badge-success">{t('card.scraped')}</span>}
+                      <span className="r-badge r-badge-neutral">
                         {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
                       </span>
                     </div>
@@ -881,7 +935,7 @@ export default function ProductsPage() {
                     {/* Edit button */}
                     <a
                       href={`/${locale}/dashboard/products/${product.id}`}
-                      className="d-btn d-btn-outline"
+                      className="r-btn r-btn-secondary"
                       style={{ width: '100%', justifyContent: 'center', marginTop: 'auto' }}
                     >
                       {t('card.edit')}
@@ -900,10 +954,10 @@ export default function ProductsPage() {
                   })}
                 </span>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button className="d-btn d-btn-outline d-btn-sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)} style={{ opacity: currentPage <= 1 ? 0.4 : 1 }}>
+                  <button className="r-btn r-btn-secondary r-btn-sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)} style={{ opacity: currentPage <= 1 ? 0.4 : 1 }}>
                     {t('list.pagination.page', { current: currentPage, total: totalPages })} &larr;
                   </button>
-                  <button className="d-btn d-btn-outline d-btn-sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} style={{ opacity: currentPage >= totalPages ? 0.4 : 1 }}>
+                  <button className="r-btn r-btn-secondary r-btn-sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} style={{ opacity: currentPage >= totalPages ? 0.4 : 1 }}>
                     &rarr;
                   </button>
                 </div>
@@ -941,10 +995,10 @@ export default function ProductsPage() {
                   })}
                 </span>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button className="d-btn d-btn-outline d-btn-sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)} style={{ opacity: currentPage <= 1 ? 0.4 : 1 }}>
+                  <button className="r-btn r-btn-secondary r-btn-sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)} style={{ opacity: currentPage <= 1 ? 0.4 : 1 }}>
                     &larr; Prev
                   </button>
-                  <button className="d-btn d-btn-outline d-btn-sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} style={{ opacity: currentPage >= totalPages ? 0.4 : 1 }}>
+                  <button className="r-btn r-btn-secondary r-btn-sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} style={{ opacity: currentPage >= totalPages ? 0.4 : 1 }}>
                     Next &rarr;
                   </button>
                 </div>
@@ -956,11 +1010,11 @@ export default function ProductsPage() {
         {/* Add Product Modal */}
         {showAddModal && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-            <div className="d-card" style={{ width: '100%', maxWidth: 480 }}>
+            <div className="r-card" style={{ width: '100%', maxWidth: 480 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <p className="d-card-title" style={{ fontSize: 16 }}>{t('addModal.title')}</p>
+                <p className="r-card-title" style={{ fontSize: 16 }}>{t('addModal.title')}</p>
                 {!scraping && (
-                  <button type="button" className="d-btn d-btn-ghost d-btn-sm" onClick={() => setShowAddModal(false)}>
+                  <button type="button" className="r-btn r-btn-ghost r-btn-sm" onClick={() => setShowAddModal(false)}>
                     &times;
                   </button>
                 )}
@@ -971,8 +1025,8 @@ export default function ProductsPage() {
                   <div style={{ width: 36, height: 36, border: '3px solid #E8E6DF', borderTopColor: '#0A0B0A', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
                   <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: '#0A0B0A' }}>{scrapeProgress}</p>
                   <p style={{ margin: '0 0 16px', fontSize: 13, color: '#5A5D58' }}>{t('addModal.scraping.wait')}</p>
-                  <div className="d-progress-bar" style={{ maxWidth: 320, margin: '0 auto' }}>
-                    <div className="d-progress-bar-fill" style={{ width: `${scrapeProgressPct}%` }} />
+                  <div className="r-progress" style={{ maxWidth: 320, margin: '0 auto' }}>
+                    <div className="r-progress-fill" style={{ width: `${scrapeProgressPct}%` }} />
                   </div>
                 </div>
               ) : (
@@ -980,7 +1034,7 @@ export default function ProductsPage() {
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0A0B0A', marginBottom: 6 }}>{t('addModal.nameLabel')}</label>
                     <input
-                      className="d-input"
+                      className="r-input"
                       placeholder={t('addModal.namePlaceholder')}
                       value={newProductName}
                       onChange={e => setNewProductName(e.target.value)}
@@ -990,7 +1044,7 @@ export default function ProductsPage() {
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0A0B0A', marginBottom: 6 }}>{t('addModal.urlLabel')}</label>
                     <input
-                      className="d-input"
+                      className="r-input"
                       type="url"
                       placeholder={t('addModal.urlPlaceholder')}
                       value={newProductUrl}
@@ -1000,10 +1054,10 @@ export default function ProductsPage() {
                     <p style={{ margin: '6px 0 0', fontSize: 12, color: '#8E918C' }}>{t('addModal.urlHelper')}</p>
                   </div>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
-                    <button type="button" className="d-btn d-btn-outline" onClick={() => setShowAddModal(false)}>{t('addModal.cancel')}</button>
+                    <button type="button" className="r-btn r-btn-secondary" onClick={() => setShowAddModal(false)}>{t('addModal.cancel')}</button>
                     <button
                       type="button"
-                      className="d-btn d-btn-primary"
+                      className="r-btn r-btn-primary"
                       onClick={handleAddProduct}
                       disabled={!newProductName || !newProductUrl}
                       style={{ opacity: (!newProductName || !newProductUrl) ? 0.5 : 1 }}

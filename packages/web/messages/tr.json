@@ -479,6 +479,12 @@
                 "nameDesc": "Ad (Z-A)",
                 "chunksDesc": "Parça sayısı (yüksekten düşüğe)",
                 "chunksAsc": "Parça sayısı (düşükten yükseğe)"
+            },
+            "scoreTabsLabel": "Ürünleri bilgi kalitesine göre filtrele",
+            "scoreTabs": {
+                "all": "Tümü",
+                "strong": "Güçlü",
+                "needsAttention": "İlgi bekliyor"
             }
         },
         "bulk": {

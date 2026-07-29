@@ -484,6 +484,12 @@
                 "nameDesc": "Name (Z-A)",
                 "chunksDesc": "Chunks (high to low)",
                 "chunksAsc": "Chunks (low to high)"
+            },
+            "scoreTabsLabel": "Filter products by knowledge quality",
+            "scoreTabs": {
+                "all": "All",
+                "strong": "Strong",
+                "needsAttention": "Needs attention"
             }
         },
         "bulk": {
