@@ -1,0 +1,115 @@
+/*
+ * Recete design tokens — direction 1b ("Net & Kurumsal") from the Claude Design
+ * project "Recete Panel Prototip".
+ *
+ * Every value here was extracted from the prototype rather than invented, so the
+ * implementation and the design stay in step. Fractional sizes (12.5, 13.5,
+ * 14.5px) are deliberate: the design runs a dense, data-first hierarchy and
+ * rounding them flattens it.
+ *
+ * This file is the single source of truth for the standalone dashboard's visual
+ * language. The legacy `d-*` rules in globals.css hardcode 181 raw values and
+ * reference none of them; they are being migrated onto these tokens screen by
+ * screen. Do not add new raw hex/px values to component styles — add a token.
+ */
+
+:root {
+    /* ---- Brand ------------------------------------------------------------ */
+    --r-brand: #123D2C;            /* primary actions, active nav, headings on tint */
+    --r-brand-strong: #1B5E43;     /* hover, progress fills, emphasis */
+    --r-brand-tint: #EEF2EF;       /* active nav background, subtle brand surface */
+    --r-brand-on: #FFFFFF;         /* text on --r-brand */
+
+    /* ---- Surfaces --------------------------------------------------------- */
+    --r-bg: #F6F7F6;               /* app background */
+    --r-surface: #FFFFFF;          /* cards, sidebar, table body */
+    --r-surface-subtle: #F3F6F3;   /* selected row, inset panels */
+    --r-surface-muted: #F0F2F0;    /* neutral badge background */
+
+    /* ---- Borders ---------------------------------------------------------- */
+    --r-border: #E4E7E4;           /* default hairline */
+    --r-border-strong: #DDE4DE;    /* track backgrounds, dividers under emphasis */
+    --r-border-input: #C9D2CC;     /* form controls, unchecked boxes */
+
+    /* ---- Text ------------------------------------------------------------- */
+    --r-text: #0E1512;             /* primary */
+    --r-text-secondary: #414B45;   /* body in dense rows */
+    --r-text-muted: #5C6B62;       /* labels, captions */
+    --r-text-subtle: #93A099;      /* placeholders, axis labels, uppercase eyebrows */
+
+    /* ---- Status ----------------------------------------------------------- */
+    --r-success: #16A34A;
+    --r-success-bg: #EAF6EE;
+    --r-warning: #C2410C;          /* "needs you", at risk */
+    --r-warning-bg: #FDF0E7;
+    --r-caution: #8A6A1F;          /* mid-range scores, reorder window */
+    --r-caution-bg: #FBF3DE;
+    --r-danger: #B3261E;
+    --r-danger-bg: #FBE9E7;
+    --r-neutral: var(--r-text-muted);
+    --r-neutral-bg: var(--r-surface-muted);
+
+    /* ---- Typography ------------------------------------------------------- */
+    /* --font-plex is provided by next/font in app/layout.tsx. Referencing the
+       variable (rather than the family name) keeps the self-hosted font and its
+       generated fallback metrics, which is what avoids the swap-in shift. */
+    --r-font: var(--font-plex), ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+    --r-text-xs: 11px;             /* uppercase eyebrows, table head */
+    --r-text-2xs: 11.5px;          /* pill badges */
+    --r-text-sm: 12px;
+    --r-text-sm-plus: 12.5px;      /* captions, hints — most common small size */
+    --r-text-base: 13px;           /* dense table cells, nav */
+    --r-text-base-plus: 13.5px;    /* nav items, table rows */
+    --r-text-md: 14px;
+    --r-text-md-plus: 14.5px;      /* card titles */
+    --r-text-lg: 16px;             /* section headings */
+    --r-text-xl: 18px;
+    --r-text-2xl: 20px;
+    --r-text-3xl: 22px;            /* page title */
+    --r-text-4xl: 26px;
+    --r-text-5xl: 28px;            /* KPI figures */
+
+    --r-weight-regular: 400;
+    --r-weight-medium: 500;
+    --r-weight-semibold: 600;      /* dominant weight in this design */
+    --r-weight-bold: 700;
+
+    --r-tracking-tight: -0.02em;   /* KPI figures, page titles */
+    --r-tracking-snug: -0.01em;
+    --r-tracking-wide: 0.07em;     /* uppercase table heads */
+    --r-tracking-wider: 0.08em;    /* uppercase sidebar section labels */
+
+    --r-leading-snug: 1.45;
+    --r-leading-normal: 1.5;
+    --r-leading-relaxed: 1.55;
+
+    /* ---- Radii ------------------------------------------------------------ */
+    --r-radius-xs: 3px;            /* chart bars */
+    --r-radius-sm: 5px;            /* plan chip */
+    --r-radius: 7px;               /* buttons, inputs, nav items */
+    --r-radius-md: 9px;
+    --r-radius-lg: 10px;           /* cards */
+    --r-radius-xl: 12px;
+    --r-radius-pill: 99px;         /* badges, avatars, progress tracks */
+
+    /* ---- Spacing ---------------------------------------------------------- */
+    --r-space-1: 2px;
+    --r-space-2: 3px;
+    --r-space-3: 6px;
+    --r-space-4: 8px;
+    --r-space-5: 10px;             /* densest common gap */
+    --r-space-6: 12px;
+    --r-space-7: 14px;
+    --r-space-8: 16px;
+    --r-space-9: 20px;
+    --r-space-10: 22px;
+    --r-space-11: 26px;
+    --r-space-12: 36px;            /* main column horizontal padding */
+
+    /* ---- Layout ----------------------------------------------------------- */
+    --r-sidebar-width: 228px;
+
+    /* ---- Elevation -------------------------------------------------------- */
+    --r-shadow-popover: 0 12px 40px rgba(20, 25, 18, 0.14);
+}
