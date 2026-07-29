@@ -286,13 +286,21 @@ export function EmptyState({
   title,
   body,
   action,
+  icon,
 }: {
   title: string;
   body?: string;
   action?: ReactNode;
+  /** Decorative glyph shown above the title; hidden from screen readers. */
+  icon?: ReactNode;
 }) {
   return (
     <div className="r-empty">
+      {icon ? (
+        <span className="r-empty-icon" aria-hidden="true">
+          {icon}
+        </span>
+      ) : null}
       <p className="r-empty-title">{title}</p>
       {body ? <p className="r-empty-body">{body}</p> : null}
       {action}

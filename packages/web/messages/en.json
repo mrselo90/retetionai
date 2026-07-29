@@ -469,6 +469,9 @@
             "sortChip": "Sort: {value}",
             "reset": "Reset filters",
             "resultsCount": "{shown} of {total} products",
+            "noMatchesFor": "No product matches “{query}”.",
+            "noMatchesHint": "Try a different filter combination.",
+            "clearFilters": "Clear filters",
             "noMatches": "No products match the current filters.",
             "statusOptions": {
                 "all": "All products",
@@ -1239,6 +1242,23 @@
         }
     },
     "Customers": {
+        "noResults": {
+            "title": "No matches",
+            "description": "No customer matches this search or segment. Try a different name or phone number.",
+            "clear": "Clear filters"
+        },
+        "loading": "Loading customers…",
+        "segmentFilterLabel": "Segment",
+        "segmentChipsLabel": "Filter customers by segment",
+        "noOrders": "No orders yet",
+        "unnamed": "Unnamed",
+        "columns": {
+            "name": "Name",
+            "phone": "Phone",
+            "segment": "Segment",
+            "lastOrder": "Last order",
+            "churnRisk": "Churn risk"
+        },
         "title": "Customers",
         "subtitle": "All your customers and details ({total} customers)",
         "searchPlaceholder": "Search by name...",

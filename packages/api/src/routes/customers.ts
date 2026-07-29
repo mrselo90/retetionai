@@ -12,6 +12,14 @@ import { getCachedApiResponse, setCachedApiResponse } from '../lib/cache.js';
 
 const customers = new Hono();
 const CUSTOMERS_CACHE_TTL_SECONDS = 15;
+
+/**
+ * Segments the list endpoint returns totals for, so the dashboard can label its
+ * filter chips without a second round-trip. Kept in sync with the `segment`
+ * values written by the RFM job.
+ */
+const CHIP_SEGMENTS = ['champions', 'loyal', 'promising', 'at_risk', 'lost', 'new'] as const;
+
 customers.use('/*', authMiddleware);
 
 /**
@@ -39,6 +47,7 @@ customers.get('/', async (c) => {
       total: number;
       page: number;
       limit: number;
+      segmentCounts?: Record<string, number>;
     } | null;
 
     if (cached) {
@@ -78,15 +87,36 @@ customers.get('/', async (c) => {
 
     const userIds = (users || []).map((u: any) => u.id);
 
-    // Get order counts and conversation counts in batch
-    const [orderCounts, convCounts] = await Promise.all([
-      serviceClient.from('orders').select('user_id').in('user_id', userIds.length ? userIds : ['']),
+    // Order counts, conversation counts, and the segment totals behind the
+    // filter chips. created_at rides along on a query that already runs, so the
+    // last-order column costs nothing extra. The segment totals are head-only
+    // counts — no rows cross the wire, which matters because a merchant's
+    // customer table is unbounded.
+    const [orderRows, convCounts, ...segmentTotals] = await Promise.all([
+      serviceClient.from('orders').select('user_id, created_at').in('user_id', userIds.length ? userIds : ['']),
       serviceClient.from('conversations').select('user_id').in('user_id', userIds.length ? userIds : ['']),
+      ...CHIP_SEGMENTS.map((seg) =>
+        serviceClient
+          .from('users')
+          .select('id', { count: 'exact', head: true })
+          .eq('merchant_id', merchantId)
+          .eq('segment', seg)
+      ),
     ]);
 
     const orderCountMap = new Map<string, number>();
-    (orderCounts.data || []).forEach((o: any) => {
+    const lastOrderMap = new Map<string, string>();
+    (orderRows.data || []).forEach((o: any) => {
       orderCountMap.set(o.user_id, (orderCountMap.get(o.user_id) || 0) + 1);
+      const current = lastOrderMap.get(o.user_id);
+      if (o.created_at && (!current || o.created_at > current)) {
+        lastOrderMap.set(o.user_id, o.created_at);
+      }
+    });
+
+    const segmentCounts: Record<string, number> = { all: count || 0 };
+    CHIP_SEGMENTS.forEach((seg, i) => {
+      segmentCounts[seg] = segmentTotals[i]?.count || 0;
     });
 
     const convCountMap = new Map<string, number>();
@@ -107,6 +137,7 @@ customers.get('/', async (c) => {
         churnProbability: u.churn_probability || 0,
         orderCount: orderCountMap.get(u.id) || 0,
         conversationCount: convCountMap.get(u.id) || 0,
+        lastOrderDate: lastOrderMap.get(u.id) || null,
         createdAt: u.created_at,
       };
     });
@@ -116,6 +147,7 @@ customers.get('/', async (c) => {
       total: count || 0,
       page,
       limit,
+      segmentCounts,
     };
 
     logPersonalDataAccess({

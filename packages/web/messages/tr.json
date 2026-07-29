@@ -464,6 +464,9 @@
             "sortChip": "Sıralama: {value}",
             "reset": "Filtreleri sıfırla",
             "resultsCount": "{total} üründen {shown} tanesi",
+            "noMatchesFor": "“{query}” ile eşleşen ürün yok.",
+            "noMatchesHint": "Farklı bir filtre kombinasyonu deneyin.",
+            "clearFilters": "Filtreleri temizle",
             "noMatches": "Mevcut filtrelere uyan ürün yok.",
             "statusOptions": {
                 "all": "Tüm ürünler",
@@ -1234,6 +1237,23 @@
         }
     },
     "Customers": {
+        "noResults": {
+            "title": "Sonuç yok",
+            "description": "Bu arama veya segmentle eşleşen müşteri yok. Farklı bir isim ya da telefon numarası deneyin.",
+            "clear": "Filtreleri temizle"
+        },
+        "loading": "Müşteriler yükleniyor…",
+        "segmentFilterLabel": "Segment",
+        "segmentChipsLabel": "Müşterileri segmente göre filtrele",
+        "noOrders": "Henüz sipariş yok",
+        "unnamed": "İsimsiz",
+        "columns": {
+            "name": "Ad",
+            "phone": "Telefon",
+            "segment": "Segment",
+            "lastOrder": "Son sipariş",
+            "churnRisk": "Kayıp riski"
+        },
         "title": "Müşteriler",
         "subtitle": "Tüm müşterileriniz ve ayrıntılar ({total} müşteri)",
         "searchPlaceholder": "Ada göre ara...",

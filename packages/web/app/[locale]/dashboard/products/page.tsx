@@ -858,10 +858,26 @@ export default function ProductsPage() {
         ) : filteredAndSortedProducts.length === 0 ? (
           <div className="r-card">
             <div className="r-empty">
-              <div className="r-empty-icon"><Search size={18} /></div>
+              <div className="r-empty-icon"><Search size={18} aria-hidden="true" /></div>
               <p className="r-empty-title">{t('filters.noMatches')}</p>
-              <p className="r-empty-body">{`No products found matching "${searchQuery}"`}</p>
-              <button className="r-btn r-btn-secondary" onClick={() => setSearchQuery('')}>{t('bulk.clearSelection') || 'Clear search'}</button>
+              {/* The body used to be a hardcoded English string, and the button
+                  was labelled "Clear selection" — a bulk-action label — while
+                  only resetting the search, leaving a status or score filter to
+                  keep the list empty. */}
+              <p className="r-empty-body">
+                {searchQuery ? t('filters.noMatchesFor', { query: searchQuery }) : t('filters.noMatchesHint')}
+              </p>
+              <button
+                className="r-btn r-btn-secondary"
+                onClick={() => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                  setScoreFilter('all');
+                  setCurrentPage(1);
+                }}
+              >
+                {t('filters.clearFilters')}
+              </button>
             </div>
           </div>
         ) : viewMode === 'grid' ? (
