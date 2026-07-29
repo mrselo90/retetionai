@@ -27,8 +27,8 @@ export function Footer() {
                             <p className="text-xs sm:text-sm leading-relaxed max-w-[240px] text-zinc-600">{t('tagline')}</p>
                             <div className="mt-4 sm:mt-5 space-y-1">
                                 <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">RECETE LTD</p>
-                                <a href="mailto:hello@recete.co.uk" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
-                                    hello@recete.co.uk
+                                <a href="mailto:recete@recete.co.uk" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                                    recete@recete.co.uk
                                 </a>
                                 <a href="tel:+447915922506" className="block text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
                                     +44 7915 922506

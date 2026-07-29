@@ -641,7 +641,7 @@ function FAQ() {
             <h2 className="lh-section" style={{ fontSize: 'clamp(24px, 3vw, 32px)' }}>Common questions from merchants.</h2>
             <p style={{ fontSize: 14, color: 'var(--link-3)', marginTop: 16, maxWidth: 320 }}>
               Can&apos;t find what you&apos;re looking for?{' '}
-              <a href="mailto:hello@recete.co.uk" style={{ color: 'var(--link)', textDecoration: 'underline', textUnderlineOffset: 3 }}>hello@recete.co.uk</a>
+              <a href="mailto:recete@recete.co.uk" style={{ color: 'var(--link)', textDecoration: 'underline', textUnderlineOffset: 3 }}>recete@recete.co.uk</a>
             </p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--lline)' }}>
@@ -702,7 +702,7 @@ function LandingFooter() {
             <div style={{ marginTop: 20, fontSize: 12, color: 'var(--link-3)', fontFamily: 'var(--font-mono, monospace)', lineHeight: 1.6 }}>
               RECETE LTD · Co. № 17082027<br />
               71-75 Shelton Street, London WC2H 9JQ<br />
-              <a href="mailto:hello@recete.co.uk" style={{ color: 'inherit' }}>hello@recete.co.uk</a> · +44 7915 922506
+              <a href="mailto:recete@recete.co.uk" style={{ color: 'inherit' }}>recete@recete.co.uk</a> · +44 7915 922506
             </div>
           </div>
           <div className="lfooter-col">
