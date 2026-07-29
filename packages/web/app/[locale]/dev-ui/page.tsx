@@ -2,6 +2,7 @@
 
 import { notFound } from 'next/navigation';
 import { Shell } from '@/components/recete/Shell';
+import { ProductsTable } from '@/components/recete/ProductsTable';
 import { Avatar, Badge, Button, Card, CountBadge, EmptyState, Input, ProgressBar, Select, Skeleton, TableWrap, Textarea } from '@/components/recete';
 
 /** Internal component gallery — verifies the primitives render as designed. */
@@ -99,6 +100,26 @@ export default function DevUiPage() {
             </div>
           </Card>
 
+
+          <div>
+            <p className="r-eyebrow" style={{ marginBottom: 10 }}>Products table (prototype data)</p>
+            <ProductsTable
+              products={[
+                { id: 'p1', name: 'MINERAL 89 Nemlendirici Serum 50 ML', url: 'vichy.com.tr/yuz-bakimi/nemlendirici-serum', updated_at: '2026-05-21T10:00:00Z', raw_text: 'x', chunkCount: 9, knowledgeHealth: { score: 73 } },
+                { id: 'p2', name: 'Hyaluronic Cleansing Gel 200 ML', url: 'oliveandoak.com/products/cleansing-gel', updated_at: '2026-07-12T10:00:00Z', raw_text: 'x', chunkCount: 14, knowledgeHealth: { score: 91 } },
+                { id: 'p3', name: 'Vitamin C Booster 15 ML', url: 'oliveandoak.com/products/vit-c-booster', updated_at: '2026-07-29T10:00:00Z', chunkCount: 0, knowledgeHealth: { score: 12 } },
+              ]}
+              columns={{ product: 'Product', score: 'Knowledge score', status: 'Status', chunks: 'Chunks', lastScraped: 'Last scraped', actions: 'Actions' }}
+              selectedIds={new Set(['p1'])}
+              onToggleSelect={() => {}}
+              selectLabel={(n) => `Select ${n}`}
+              editLabel="Edit"
+              unknownLabel="—"
+              neverScrapedLabel="Not scraped"
+              statusLabel={(r) => { const s = r.knowledgeHealth?.score; return s === undefined ? 'Not scored' : s >= 80 ? 'Strong' : s >= 50 ? 'At risk' : 'Needs work'; }}
+              formatDate={(iso) => new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+            />
+          </div>
           <TableWrap>
             <table className="r-table">
               <thead>

@@ -445,12 +445,17 @@
                 "product": "Product",
                 "source": "Source URL",
                 "status": "AI Sync Status",
-                "actions": "Actions"
+                "actions": "Actions",
+                "score": "Knowledge score",
+                "chunks": "Chunks",
+                "lastScraped": "Last scraped"
             },
             "pagination": {
                 "showing": "Showing {from}–{to} of {total} products",
                 "page": "Page {current} of {total}"
-            }
+            },
+            "neverScraped": "Not scraped",
+            "edit": "Edit"
         },
         "filters": {
             "searchLabel": "Search products",
@@ -541,7 +546,11 @@
                 "missingReturnTips": "Missing return-prevention tips",
                 "missingFacts": "Missing structured product facts",
                 "missingEmbeddings": "Embeddings not generated"
-            }
+            },
+            "statusStrong": "Strong",
+            "statusAtRisk": "At risk",
+            "statusWeak": "Needs work",
+            "statusUnknown": "Not scored"
         },
         "addModal": {
             "title": "Add New Product",

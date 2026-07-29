@@ -12,6 +12,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { SESSION_RECHECK_MS } from '@/lib/constants';
 import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
 import { getErrorStatus } from '@/lib/errors';
+import { ProductsTable } from '@/components/recete/ProductsTable';
 
 interface Product {
   id: string;
@@ -101,6 +102,14 @@ export default function ProductsPage() {
     };
     if (!reasonCode) return t('knowledge.noGap');
     return mapping[reasonCode] || reasonCode;
+  };
+
+  // Mirrors the prototype's Strong / At risk / Scrape failed treatment.
+  const knowledgeStatusLabel = (score: number | undefined): string => {
+    if (score === undefined) return t('knowledge.statusUnknown');
+    if (score >= 80) return t('knowledge.statusStrong');
+    if (score >= 50) return t('knowledge.statusAtRisk');
+    return t('knowledge.statusWeak');
   };
 
   const knowledgeToneBadge = (score: number | undefined): string => {
@@ -903,102 +912,25 @@ export default function ProductsPage() {
           </>
         ) : (
           <>
-            <div className="d-table-wrap">
-              <table className="d-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: 32 }}></th>
-                    <th>{t('list.columns.product')}</th>
-                    <th>{t('list.columns.source')}</th>
-                    <th>{t('list.columns.status')}</th>
-                    <th style={{ textAlign: 'right' }}>{t('list.columns.actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedProducts.map((product) => (
-                    <tr key={product.id}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedIdSet.has(product.id)}
-                          onChange={() => toggleProductSelection(product.id)}
-                          aria-label={t('bulk.selectProduct', { name: product.name })}
-                        />
-                      </td>
-                      <td>
-                        <div style={{ maxWidth: 300 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            {product.knowledgeHealth && (
-                              <span className={`d-badge ${knowledgeToneBadge(product.knowledgeHealth.score)}`}>
-                                {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
-                              </span>
-                            )}
-                            <Link
-                              href={`/dashboard/products/${product.id}` as Parameters<typeof Link>[0]['href']}
-                              style={{ fontWeight: 600, color: '#0A0B0A', textDecoration: 'none', wordBreak: 'break-word' }}
-                            >
-                              {product.name}
-                            </Link>
-                          </div>
-                          <p style={{ margin: '2px 0 0', fontSize: 11.5, color: '#8E918C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.id}</p>
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ maxWidth: 340 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <ExternalLink size={12} style={{ color: '#8E918C', flexShrink: 0 }} />
-                            <a
-                              href={product.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ fontSize: 12.5, color: '#2A6647', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}
-                            >
-                              {product.url}
-                            </a>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
-                          {product.knowledgeHealth && (
-                            <span className={`d-badge ${knowledgeToneBadge(product.knowledgeHealth.score)}`}>
-                              {t('knowledge.scoreBadge', { score: product.knowledgeHealth.score })}
-                            </span>
-                          )}
-                          <span className="d-badge d-badge-neutral">
-                            {product.chunkCountUnavailable ? t('card.chunksUnknown') : `${product.chunkCount || 0} ${t('card.chunks')}`}
-                          </span>
-                          {product.raw_text && <span className="d-badge d-badge-success">{t('card.scraped')}</span>}
-                        </div>
-                        {product.knowledgeHealth && (
-                          <p style={{ margin: 0, fontSize: 11.5, color: '#8E918C' }}>
-                            {t('knowledge.tableHint', {
-                              gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
-                            })}
-                          </p>
-                        )}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                          <a href={`/dashboard/products/${product.id}`} className="d-btn d-btn-outline d-btn-sm">{t('card.edit')}</a>
-                          <button
-                            type="button"
-                            className="d-btn d-btn-danger d-btn-sm"
-                            onClick={async () => {
-                              const ok = await confirm({ title: t('card.deleteConfirm'), message: '', destructive: true, confirmLabel: 'Delete', cancelLabel: 'Cancel' });
-                              if (ok) handleDeleteProduct(product.id);
-                            }}
-                            aria-label={t('card.deleteConfirm')}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ProductsTable
+              products={paginatedProducts}
+              columns={{
+                product: t('list.columns.product'),
+                score: t('list.columns.score'),
+                status: t('list.columns.status'),
+                chunks: t('list.columns.chunks'),
+                lastScraped: t('list.columns.lastScraped'),
+                actions: t('list.columns.actions'),
+              }}
+              selectedIds={selectedIdSet}
+              onToggleSelect={toggleProductSelection}
+              selectLabel={(name) => t('bulk.selectProduct', { name })}
+              editLabel={t('list.edit')}
+              unknownLabel={t('card.chunksUnknown')}
+              neverScrapedLabel={t('list.neverScraped')}
+              statusLabel={(row) => knowledgeStatusLabel(row.knowledgeHealth?.score)}
+              formatDate={(iso) => new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}
+            />
             {totalPages > 1 && (
               <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 13, color: '#5A5D58' }}>

@@ -440,12 +440,17 @@
                 "product": "Ürün",
                 "source": "Kaynak URL",
                 "status": "Yapay zekâ senkron durumu",
-                "actions": "İşlemler"
+                "actions": "İşlemler",
+                "score": "Bilgi puanı",
+                "chunks": "Parça",
+                "lastScraped": "Son tarama"
             },
             "pagination": {
                 "showing": "Toplam {total} üründen {from}–{to} arası gösteriliyor",
                 "page": "Sayfa {current} / {total}"
-            }
+            },
+            "neverScraped": "Taranmadı",
+            "edit": "Düzenle"
         },
         "filters": {
             "searchLabel": "Ürün ara",
@@ -536,7 +541,11 @@
                 "missingReturnTips": "İade önleme ipuçları eksik",
                 "missingFacts": "Yapılandırılmış ürün bilgileri eksik",
                 "missingEmbeddings": "Embedding oluşturulmamış"
-            }
+            },
+            "statusStrong": "Güçlü",
+            "statusAtRisk": "Riskli",
+            "statusWeak": "Geliştirilmeli",
+            "statusUnknown": "Puanlanmadı"
         },
         "addModal": {
             "title": "Yeni ürün ekleyin",
