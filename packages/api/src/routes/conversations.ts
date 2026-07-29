@@ -80,6 +80,23 @@ conversations.get('/', async (c) => {
 
     const usersMap = new Map((usersData || []).map((u: any) => [u.id, u]));
 
+    // Orders were never fetched, so the response only ever carried the order UUID
+    // and the dashboard's order column rendered "-" even for order-linked
+    // conversations. Batch-load them the same way users are loaded above.
+    const uniqueOrderIds = [
+      ...new Set((conversationsData || []).map((c: any) => c.order_id).filter(Boolean)),
+    ];
+    const ordersMap = new Map<string, any>();
+    if (uniqueOrderIds.length > 0) {
+      const { data: ordersData } = await serviceClient
+        .from('orders')
+        .select('id, external_order_id, status')
+        .in('id', uniqueOrderIds);
+      for (const order of ordersData || []) {
+        ordersMap.set(order.id, order);
+      }
+    }
+
     // Format conversations with decrypted phone and last message
     const formattedConversations = (conversationsData || []).map((conv: any) => {
       const history = (conv.history as any[]) || [];
@@ -123,6 +140,13 @@ conversations.get('/', async (c) => {
           : null,
         messageCount: history.length,
         lastMessageAt: conv.updated_at,
+        order: conv.order_id && ordersMap.has(conv.order_id)
+          ? {
+            id: conv.order_id,
+            external_order_id: ordersMap.get(conv.order_id)?.external_order_id ?? null,
+            status: ordersMap.get(conv.order_id)?.status ?? null,
+          }
+          : null,
         status: conv.current_state || 'active',
         conversationStatus: conv.conversation_status || 'ai',
         sentiment,

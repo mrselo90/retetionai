@@ -184,26 +184,29 @@ export default function ProductDetailPage() {
         }
       );
 
-      // Save instruction fields if usage_instructions has content
-      if (usageInstructions.trim()) {
-        try {
-          await authenticatedRequest(
-            `/api/products/${productId}/instruction`,
-            session.access_token,
-            {
-              method: 'PUT',
-              body: JSON.stringify({
-                usage_instructions: usageInstructions,
-                recipe_summary: recipeSummary || undefined,
-                video_url: videoUrl || undefined,
-                prevention_tips: preventionTips || undefined,
-              }),
-            }
-          );
-        } catch (instrErr) {
-          console.error('Failed to save instructions:', instrErr);
+      // Always send the instruction PUT — it used to be skipped whenever
+      // usage_instructions was empty, which meant a merchant could never clear
+      // instructions (loadProduct just repopulated the old text under a green
+      // "Saved" card) and could not save recipe_summary / video_url /
+      // prevention_tips at all without also writing usage instructions.
+      // The API upserts with `?? null`, so clearing works once the request is sent.
+      //
+      // The error is no longer swallowed either. These instructions are what the
+      // AI answers customers with, so a failed save must not be reported as
+      // success — that was the worst case in this file.
+      await authenticatedRequest(
+        `/api/products/${productId}/instruction`,
+        session.access_token,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            usage_instructions: usageInstructions,
+            recipe_summary: recipeSummary || undefined,
+            video_url: videoUrl || undefined,
+            prevention_tips: preventionTips || undefined,
+          }),
         }
-      }
+      );
 
       await loadProduct();
       toast.success(t('toasts.saved.title'), t('toasts.saved.message'));

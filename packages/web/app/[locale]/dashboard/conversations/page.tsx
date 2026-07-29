@@ -38,11 +38,18 @@ interface Conversation {
   };
   order?: {
     id: string;
-    external_order_id: string;
-    status: string;
-  };
-  message_count: number;
-  last_message_at: string;
+    external_order_id: string | null;
+    status: string | null;
+  } | null;
+  /**
+   * The API returns camelCase (messageCount / lastMessageAt). These were read as
+   * snake_case, so the message-count badge rendered blank and last-activity
+   * rendered "-" on every row. Legacy names kept optional for safety.
+   */
+  messageCount?: number;
+  lastMessageAt?: string;
+  message_count?: number;
+  last_message_at?: string;
   created_at: string;
   sentiment: 'positive' | 'neutral' | 'negative';
   conversationStatus?: 'ai' | 'human' | 'resolved';
@@ -357,10 +364,10 @@ export default function ConversationsPage() {
                                 <InlineStack gap="150" blockAlign="center" wrap>
                                   <Icon source={OrderFilledIcon} tone="subdued" />
                                   <Text as="p" variant="bodyXs" tone="subdued">
-                                    {t('list.order')}: #{conversation.order.external_order_id}
+                                    {t('list.order')}: #{conversation.order.external_order_id ?? '—'}
                                   </Text>
                                   <PolarisBadge tone={conversation.order.status === 'delivered' ? 'success' : 'enabled'}>
-                                    {conversation.order.status}
+                                    {conversation.order.status ?? '—'}
                                   </PolarisBadge>
                                 </InlineStack>
                               )}
@@ -370,9 +377,9 @@ export default function ConversationsPage() {
                             <InlineStack align="space-between" blockAlign="center" gap="200">
                               <InlineStack gap="150" blockAlign="center">
                                 <Icon source={ClockIcon} tone="subdued" />
-                                <Text as="p" variant="bodyXs" tone="subdued">{formatDateTime(conversation.last_message_at)}</Text>
+                                <Text as="p" variant="bodyXs" tone="subdued">{formatDateTime(conversation.lastMessageAt ?? conversation.last_message_at)}</Text>
                               </InlineStack>
-                              <PolarisBadge>{`${conversation.message_count} ${t('list.messages')}`}</PolarisBadge>
+                              <PolarisBadge>{`${conversation.messageCount ?? conversation.message_count ?? 0} ${t('list.messages')}`}</PolarisBadge>
                             </InlineStack>
                           </Box>
                         </BlockStack>
@@ -413,9 +420,9 @@ export default function ConversationsPage() {
                           <IndexTable.Cell>
                             {conversation.order ? (
                               <BlockStack gap="050">
-                                <Text as="p" variant="bodySm">#{conversation.order.external_order_id}</Text>
+                                <Text as="p" variant="bodySm">#{conversation.order.external_order_id ?? '—'}</Text>
                                 <PolarisBadge tone={conversation.order.status === 'delivered' ? 'success' : 'enabled'}>
-                                  {conversation.order.status}
+                                  {conversation.order.status ?? '—'}
                                 </PolarisBadge>
                               </BlockStack>
                             ) : (
@@ -436,12 +443,12 @@ export default function ConversationsPage() {
                             </InlineStack>
                           </IndexTable.Cell>
                           <IndexTable.Cell>
-                            <Text as="p" variant="bodySm">{conversation.message_count}</Text>
+                            <Text as="p" variant="bodySm">{conversation.messageCount ?? conversation.message_count ?? 0}</Text>
                           </IndexTable.Cell>
                           <IndexTable.Cell>
                             <InlineStack align="end" gap="200" blockAlign="center">
                               <Icon source={ClockIcon} tone="subdued" />
-                              <Text as="p" variant="bodySm" tone="subdued">{formatDateTime(conversation.last_message_at)}</Text>
+                              <Text as="p" variant="bodySm" tone="subdued">{formatDateTime(conversation.lastMessageAt ?? conversation.last_message_at)}</Text>
                             </InlineStack>
                           </IndexTable.Cell>
                         </IndexTable.Row>

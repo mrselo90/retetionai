@@ -163,27 +163,58 @@ export default function IntegrationsPage() {
 
       setImporting(true);
 
+      // The import endpoint is scoped to an integration and verifies it belongs
+      // to the caller. Reuse the merchant's manual integration, creating one on
+      // first import — without this there is no non-Shopify path to get orders in.
+      let targetIntegrationId = integrations.find((item) => item.provider === 'manual')?.id;
+
+      if (!targetIntegrationId) {
+        const created = await authenticatedRequest<{ integration?: { id?: string } }>(
+          '/api/integrations',
+          session.access_token,
+          {
+            method: 'POST',
+            body: JSON.stringify({ provider: 'manual', auth_type: 'api_key', auth_data: {} }),
+          },
+        );
+        targetIntegrationId = created?.integration?.id;
+      }
+
+      if (!targetIntegrationId) {
+        throw new Error('Could not resolve an integration to import into.');
+      }
+
       const formData = new FormData();
       formData.append('file', csvFile);
 
-      const response = await fetch(getApiUrl('/api/csv/import'), {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
+      const response = await fetch(
+        getApiUrl(`/api/integrations/${targetIntegrationId}/import/csv`),
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: formData,
         },
-        body: formData,
-      });
+      );
 
       if (!response.ok) {
-        throw new Error('CSV import failed');
+        const detail = await response.json().catch(() => null);
+        throw new Error(detail?.error || `CSV import failed (${response.status})`);
       }
 
+      // Response shape is { parse: {...}, import: { inserted, duplicates, failed } }.
+      // The previous code read result.imported, which does not exist.
       const result = await response.json();
-      toast.success(t('toasts.importSuccess.title'), t('toasts.importSuccess.message', { count: result.imported }));
+      const inserted = Number(result?.import?.inserted ?? 0);
+      const duplicates = Number(result?.import?.duplicates ?? 0);
+      const invalidRows = Number(result?.parse?.invalidRows ?? 0);
+
+      toast.success(t('toasts.importSuccess.title'), t('toasts.importSuccess.message', { count: inserted }));
       setPageFeedback({
-        tone: 'success',
+        tone: invalidRows > 0 || duplicates > 0 ? 'info' : 'success',
         title: t('feedback.importSavedTitle'),
-        message: t('feedback.importSavedMessage', { count: result.imported }),
+        message: t('feedback.importSavedMessage', { count: inserted }),
         actionLabel: t('feedback.reviewActive'),
         targetId: 'active-integrations',
       });

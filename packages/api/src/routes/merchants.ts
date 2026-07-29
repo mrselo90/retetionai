@@ -110,7 +110,28 @@ merchants.put('/me', async (c) => {
       if (typeof body.persona_settings !== 'object' || Array.isArray(body.persona_settings)) {
         return c.json({ error: 'persona_settings must be an object' }, 400);
       }
-      updates.persona_settings = body.persona_settings;
+
+      // Merge, do not replace. Callers send only the keys they own — the web
+      // settings page sends seven — and a wholesale replace silently wiped
+      // everything else in the blob: ai_vision_enabled (a paid add-on),
+      // whatsapp_sender_mode, default_language, contact_phone and
+      // onboarding_settings_configured_at. The Shopify app already merges
+      // (persistMessagingSetup); this brings the standalone path in line.
+      const { data: existing } = await getSupabaseServiceClient()
+        .from('merchants')
+        .select('persona_settings')
+        .eq('id', merchantId)
+        .maybeSingle();
+
+      const currentPersona =
+        existing?.persona_settings && typeof existing.persona_settings === 'object' && !Array.isArray(existing.persona_settings)
+          ? existing.persona_settings as Record<string, unknown>
+          : {};
+
+      updates.persona_settings = {
+        ...currentPersona,
+        ...body.persona_settings,
+      };
     }
 
     if (body.notification_phone !== undefined) {
