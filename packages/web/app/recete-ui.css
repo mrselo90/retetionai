@@ -1,0 +1,340 @@
+/*
+ * Recete component layer — built entirely on the tokens in design-tokens.css.
+ *
+ * Anatomies (padding, radius, size, weight) are taken verbatim from the design
+ * prototype so components match it without per-instance style objects. The
+ * prototype writes inline styles because it is a prototype; here they become
+ * classes so they are cacheable and the bundle does not carry a style object per
+ * element.
+ *
+ * Rule for this file: no raw hex or px that isn't a token. If a value is missing,
+ * add a token — don't hardcode.
+ */
+
+/* ============================ Layout ============================ */
+
+.r-app {
+    display: flex;
+    min-height: 100vh;
+    background: var(--r-bg);
+    font-family: var(--r-font);
+    color: var(--r-text);
+}
+
+.r-main {
+    flex: 1;
+    min-width: 0; /* lets dense tables shrink instead of forcing the page wide */
+    display: flex;
+    flex-direction: column;
+}
+
+.r-main-inner {
+    padding: 0 var(--r-space-12) var(--r-space-12);
+}
+
+/* ============================ Typography ============================ */
+
+.r-page-title {
+    font-size: var(--r-text-3xl);
+    font-weight: var(--r-weight-bold);
+    letter-spacing: var(--r-tracking-tight);
+    color: var(--r-text);
+    margin: 0;
+}
+
+.r-page-sub {
+    font-size: var(--r-text-base-plus);
+    color: var(--r-text-muted);
+    margin: var(--r-space-2) 0 0;
+}
+
+.r-card-title {
+    font-size: var(--r-text-md-plus);
+    font-weight: var(--r-weight-semibold);
+    color: var(--r-text);
+}
+
+.r-eyebrow {
+    font-size: var(--r-text-xs);
+    font-weight: var(--r-weight-semibold);
+    letter-spacing: var(--r-tracking-wider);
+    text-transform: uppercase;
+    color: var(--r-text-subtle);
+}
+
+.r-hint {
+    font-size: var(--r-text-sm-plus);
+    color: var(--r-text-muted);
+    line-height: var(--r-leading-normal);
+}
+
+/* ============================ Card ============================ */
+
+.r-card {
+    background: var(--r-surface);
+    border: 1px solid var(--r-border);
+    border-radius: var(--r-radius-lg);
+    padding: 18px var(--r-space-9);
+}
+
+.r-card-tight { padding: var(--r-space-8) 18px; }
+.r-card-flush { padding: 0; overflow: hidden; }
+
+/* The dashboard hero metric is inverted in the design. */
+.r-card-invert {
+    background: var(--r-brand);
+    border-color: var(--r-brand);
+    color: var(--r-brand-on);
+}
+
+/* ============================ Button ============================ */
+
+.r-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--r-space-3);
+    font-family: inherit;
+    font-size: var(--r-text-base);
+    font-weight: var(--r-weight-semibold);
+    padding: 7px var(--r-space-7);
+    border-radius: var(--r-radius);
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.r-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.r-btn-primary { background: var(--r-brand); color: var(--r-brand-on); }
+.r-btn-primary:hover:not(:disabled) { background: var(--r-brand-strong); }
+
+.r-btn-secondary {
+    background: var(--r-surface);
+    border-color: var(--r-border);
+    color: var(--r-text-secondary);
+}
+.r-btn-secondary:hover:not(:disabled) { background: var(--r-bg); color: var(--r-text); }
+
+.r-btn-ghost { background: transparent; color: var(--r-brand); }
+.r-btn-ghost:hover:not(:disabled) { background: var(--r-brand-tint); }
+
+.r-btn-danger { background: var(--r-danger); color: var(--r-brand-on); }
+
+.r-btn-sm { font-size: var(--r-text-sm-plus); padding: var(--r-space-3) var(--r-space-5); }
+
+/* ============================ Badge ============================ */
+
+.r-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--r-space-2);
+    font-size: var(--r-text-2xs);
+    font-weight: var(--r-weight-semibold);
+    padding: var(--r-space-2) var(--r-space-4);
+    border-radius: var(--r-radius-pill);
+    white-space: nowrap;
+}
+
+.r-badge-success { color: var(--r-success); background: var(--r-success-bg); }
+.r-badge-warning { color: var(--r-warning); background: var(--r-warning-bg); }
+.r-badge-caution { color: var(--r-caution); background: var(--r-caution-bg); }
+.r-badge-danger  { color: var(--r-danger);  background: var(--r-danger-bg); }
+.r-badge-neutral { color: var(--r-neutral); background: var(--r-neutral-bg); }
+.r-badge-brand   { color: var(--r-brand);   background: var(--r-brand-tint); }
+
+/* Filled count badge (unread inbox), deliberately louder than the status set. */
+.r-badge-count {
+    font-size: var(--r-text-xs);
+    font-weight: var(--r-weight-bold);
+    color: var(--r-brand-on);
+    background: var(--r-warning);
+    padding: 1px 7px;
+    border-radius: var(--r-radius-pill);
+}
+
+/* ============================ Form controls ============================ */
+
+.r-input,
+.r-select,
+.r-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: var(--r-text-base-plus);
+    color: var(--r-text);
+    background: var(--r-surface);
+    border: 1px solid var(--r-border);
+    border-radius: var(--r-radius);
+    padding: var(--r-space-5) var(--r-space-6);
+}
+
+.r-input::placeholder,
+.r-textarea::placeholder { color: var(--r-text-subtle); }
+
+.r-input:focus-visible,
+.r-select:focus-visible,
+.r-textarea:focus-visible {
+    outline: 2px solid var(--r-brand);
+    outline-offset: 1px;
+    border-color: var(--r-brand);
+}
+
+.r-input-invalid { border-color: var(--r-danger); }
+
+.r-label {
+    display: block;
+    font-size: var(--r-text-sm-plus);
+    font-weight: var(--r-weight-semibold);
+    color: var(--r-text-secondary);
+    margin-bottom: var(--r-space-3);
+}
+
+.r-field-error {
+    font-size: var(--r-text-sm-plus);
+    color: var(--r-danger);
+    margin-top: var(--r-space-2);
+}
+
+.r-field-help {
+    font-size: var(--r-text-sm-plus);
+    color: var(--r-text-muted);
+    margin-top: var(--r-space-2);
+}
+
+/* ============================ Table ============================ */
+
+/*
+ * Horizontal scroll lives here on purpose. The legacy .d-table-wrap used
+ * `overflow: hidden` under two more `overflow-x: hidden` ancestors, which made
+ * the rightmost columns unreachable by any gesture at 390px.
+ */
+.r-table-wrap {
+    background: var(--r-surface);
+    border: 1px solid var(--r-border);
+    border-radius: var(--r-radius-lg);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+}
+
+.r-table {
+    width: 100%;
+    min-width: max-content;
+    border-collapse: collapse;
+}
+
+.r-table th {
+    text-align: left;
+    font-size: var(--r-text-xs);
+    font-weight: var(--r-weight-semibold);
+    letter-spacing: var(--r-tracking-wide);
+    text-transform: uppercase;
+    color: var(--r-text-subtle);
+    padding: var(--r-space-5) var(--r-space-10);
+    border-bottom: 1px solid var(--r-brand-tint);
+    white-space: nowrap;
+}
+
+.r-table td {
+    font-size: var(--r-text-base-plus);
+    color: var(--r-text-secondary);
+    padding: var(--r-space-6) var(--r-space-10);
+    border-bottom: 1px solid var(--r-brand-tint);
+    vertical-align: middle;
+}
+
+.r-table tbody tr:last-child td { border-bottom: 0; }
+.r-table tbody tr:hover { background: var(--r-surface-subtle); }
+
+.r-table-strong { font-weight: var(--r-weight-semibold); color: var(--r-text); }
+
+/* ============================ Progress ============================ */
+
+.r-progress {
+    height: 5px;
+    background: var(--r-brand-tint);
+    border-radius: var(--r-radius-pill);
+    overflow: hidden;
+}
+
+.r-progress-fill {
+    height: 100%;
+    background: var(--r-brand-strong);
+    border-radius: var(--r-radius-pill);
+}
+
+.r-progress-fill-caution { background: var(--r-caution); }
+.r-progress-fill-warning { background: var(--r-warning); }
+
+/* ============================ Avatar ============================ */
+
+.r-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: var(--r-radius-pill);
+    background: var(--r-brand-tint);
+    color: var(--r-brand);
+    font-size: var(--r-text-xs);
+    font-weight: var(--r-weight-semibold);
+}
+
+.r-avatar-lg { width: 34px; height: 34px; font-size: var(--r-text-base); }
+.r-avatar-solid { background: var(--r-brand); color: var(--r-brand-on); }
+
+/* ============================ Empty state ============================ */
+
+.r-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--r-space-6);
+    padding: 48px var(--r-space-10);
+    text-align: center;
+}
+
+.r-empty-title {
+    font-size: var(--r-text-md);
+    font-weight: var(--r-weight-semibold);
+    color: var(--r-text);
+}
+
+.r-empty-body {
+    font-size: var(--r-text-base-plus);
+    color: var(--r-text-muted);
+    max-width: 42ch;
+    line-height: var(--r-leading-normal);
+}
+
+/* ============================ Skeleton ============================ */
+
+.r-skeleton {
+    background: var(--r-brand-tint);
+    border-radius: var(--r-radius);
+    animation: r-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes r-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .r-skeleton { animation: none; }
+}
+
+/* ============================ Responsive ============================ */
+
+@media (max-width: 900px) {
+    .r-main-inner { padding: 0 var(--r-space-8) var(--r-space-9); }
+}
+
+@media (max-width: 600px) {
+    .r-main-inner { padding: 0 var(--r-space-6) var(--r-space-8); }
+    .r-card { padding: var(--r-space-8); }
+}

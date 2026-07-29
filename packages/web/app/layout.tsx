@@ -1,5 +1,6 @@
 import "../app/globals.css";
 import "./design-tokens.css";
+import "./recete-ui.css";
 import { Geist, Geist_Mono, IBM_Plex_Sans, Instrument_Serif } from 'next/font/google';
 
 const geistSans = Geist({
