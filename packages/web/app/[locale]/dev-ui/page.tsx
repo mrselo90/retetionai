@@ -1,6 +1,7 @@
 'use client';
 
 import { notFound } from 'next/navigation';
+import { Shell } from '@/components/recete/Shell';
 import { Avatar, Badge, Button, Card, CountBadge, EmptyState, Input, ProgressBar, Select, Skeleton, TableWrap, Textarea } from '@/components/recete';
 
 /** Internal component gallery — verifies the primitives render as designed. */
@@ -10,9 +11,29 @@ export default function DevUiPage() {
   if (process.env.NODE_ENV === 'production') notFound();
 
   return (
-    <div className="r-app">
-      <div className="r-main">
-        <div className="r-main-inner" style={{ paddingTop: 28, display: 'flex', flexDirection: 'column', gap: 22 }}>
+    <Shell
+      brandPlan="Growth"
+      user={{ name: 'Selim Boyuk', org: 'Olive & Oak' }}
+      status={{ label: 'WhatsApp connected · all systems normal' }}
+      setup={{ done: 2, total: 3, nextLabel: 'Next: connect Shopify →', href: '/dashboard/integrations' }}
+      actions={<><Button variant="secondary">Last 30 days</Button><Button variant="primary">+ Add Product</Button></>}
+      sections={[
+        { label: 'Workspace', items: [
+          { href: '/dashboard', label: 'Dashboard', icon: '◳' },
+          { href: '/dashboard/conversations', label: 'Inbox', icon: '💬', count: 1, countLabel: 'threads need a reply' },
+          { href: '/dashboard/flows', label: 'Flows', icon: '↝' },
+          { href: '/dashboard/products', label: 'Products', icon: '◇' },
+          { href: '/dashboard/customers', label: 'Customers', icon: '◔' },
+          { href: '/dashboard/analytics', label: 'Analytics', icon: '◫' },
+        ]},
+        { label: 'Configure', items: [
+          { href: '/dashboard/integrations', label: 'Integrations', icon: '⟐' },
+          { href: '/dashboard/playground', label: 'Playground', icon: '▶' },
+          { href: '/dashboard/settings', label: 'Settings', icon: '⚙' },
+        ]},
+      ]}
+    >
+        <div style={{ paddingTop: 22, display: 'flex', flexDirection: 'column', gap: 22 }}>
           <div>
             <h1 className="r-page-title">Component gallery</h1>
             <p className="r-page-sub">Recete UI primitives · design direction 1b</p>
@@ -118,7 +139,6 @@ export default function DevUiPage() {
             </Card>
           </div>
         </div>
-      </div>
-    </div>
+    </Shell>
   );
 }
