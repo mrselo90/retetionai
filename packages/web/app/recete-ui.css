@@ -619,3 +619,32 @@
     outline-offset: 2px;
     box-shadow: none;
 }
+
+/* ============================ Segmented control ============================ */
+
+/* Two or three buttons sharing one bordered shell: the products view toggle and
+   the saved-view chip with its remove button. */
+.r-segmented {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--r-border);
+    border-radius: var(--r-radius);
+    overflow: hidden;
+    background: var(--r-surface);
+}
+
+.r-segmented-btn {
+    border: none;
+    border-radius: 0;
+}
+
+/* Compact label for secondary filters, where the full .r-label is too heavy.
+   Muted rather than subtle on purpose: --r-text-subtle measures 2.72:1 on white,
+   well under the 4.5:1 AA needs for text this size, and a form label is not
+   decoration. --r-text-muted is 5.62:1 and reads almost identically. */
+.r-label-sm {
+    display: block;
+    font-size: var(--r-text-2xs);
+    color: var(--r-text-muted);
+    margin-bottom: var(--r-space-2);
+}

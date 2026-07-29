@@ -432,6 +432,7 @@
             "bulkEmbeddingsErrorTitle": "Toplu embedding başarısız oldu"
         },
         "view": {
+            "groupLabel": "Ürün görünümü",
             "grid": "Izgara",
             "list": "Liste"
         },
@@ -512,6 +513,7 @@
             "deleteAria": "Kayıtlı görünümü sil: {name}"
         },
         "shopifyMapButton": "Shopify ürün eşlemesi",
+        "loading": "Ürünler yükleniyor…",
         "addProductButton": "Yeni ürün ekleyin",
         "empty": {
             "title": "Henüz ürün yok",

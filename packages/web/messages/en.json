@@ -437,6 +437,7 @@
             "bulkEmbeddingsErrorTitle": "Bulk embeddings failed"
         },
         "view": {
+            "groupLabel": "Product view",
             "grid": "Grid",
             "list": "List"
         },
@@ -517,6 +518,7 @@
             "deleteAria": "Delete saved view {name}"
         },
         "shopifyMapButton": "Shopify Product Mapping",
+        "loading": "Loading products…",
         "addProductButton": "Add New Product",
         "empty": {
             "title": "No products yet",

@@ -6,6 +6,7 @@ import { usePrompt } from '@/components/ui/PromptDialog';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { Link } from '@/i18n/routing';
 import { Search, Plus, Trash2, RefreshCw, Grid3X3, List, ExternalLink, AlertCircle, CheckCircle2, Package } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { SESSION_RECHECK_MS } from '@/lib/constants';
@@ -446,12 +447,14 @@ export default function ProductsPage() {
     }
   };
 
-  // Returns left-border color style for grid cards based on knowledge health score
+  // Left-border accent for grid cards. Shares the 80/50 cut-offs and the palette
+  // with the badge and the table's score bar, so the same product cannot be green
+  // here and amber there.
   const healthBorderStyle = (score: number | undefined): React.CSSProperties => {
-    const s = score ?? 0;
-    if (s >= 80) return { borderLeft: '4px solid #22c55e' };
-    if (s >= 55) return { borderLeft: '4px solid #f59e0b' };
-    return { borderLeft: '4px solid #ef4444' };
+    if (score === undefined) return { borderLeft: '4px solid var(--r-border)' };
+    if (score >= 80) return { borderLeft: '4px solid var(--r-success)' };
+    if (score >= 50) return { borderLeft: '4px solid var(--r-caution)' };
+    return { borderLeft: '4px solid var(--r-danger)' };
   };
 
   const toggleProductSelection = (productId: string) => {
@@ -600,12 +603,14 @@ export default function ProductsPage() {
   if (loading) {
     return (
       <div className="d-page">
-        <div className="d-page-header">
-          <div style={{ height: 26, width: 200, background: '#E8E6DF', borderRadius: 6, marginBottom: 8 }} />
-          <div style={{ height: 16, width: 300, background: '#E8E6DF', borderRadius: 4 }} />
+        {/* One live region for the whole skeleton, so a screen reader hears
+            "loading products" once instead of four times. */}
+        <div className="d-page-header" role="status" aria-live="polite" aria-label={t('loading')}>
+          <div className="r-skeleton" style={{ height: 26, width: 200, marginBottom: 8 }} />
+          <div className="r-skeleton" style={{ height: 16, width: 300 }} />
         </div>
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="r-card" style={{ marginBottom: 16, height: 120, background: '#F2F0E9', animation: 'pulse 1.5s ease-in-out infinite' }} />
+        {[0, 1, 2].map((row) => (
+          <div key={row} className="r-skeleton" style={{ height: 120, marginBottom: 16 }} aria-hidden="true" />
         ))}
       </div>
     );
@@ -627,27 +632,31 @@ export default function ProductsPage() {
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* View mode toggle */}
-            <div style={{ display: 'flex', border: '1px solid #E8E6DF', borderRadius: 8, overflow: 'hidden' }}>
+            {/* Icon-only, so each needs a real label: title alone is not an
+                accessible name and never reaches touch users. */}
+            <div className="r-segmented" role="group" aria-label={t('view.groupLabel')}>
               <button
-                className={`r-btn r-btn-sm ${viewMode === 'grid' ? 'r-btn-primary' : 'r-btn-ghost'}`}
-                style={{ border: 'none', borderRadius: 0 }}
+                className={`r-btn r-btn-sm r-segmented-btn ${viewMode === 'grid' ? 'r-btn-primary' : 'r-btn-ghost'}`}
                 onClick={() => handleViewModeChange('grid')}
+                aria-pressed={viewMode === 'grid'}
+                aria-label={t('view.grid')}
                 title={t('view.grid')}
               >
-                <Grid3X3 size={14} />
+                <Grid3X3 size={14} aria-hidden="true" />
               </button>
               <button
-                className={`r-btn r-btn-sm ${viewMode === 'list' ? 'r-btn-primary' : 'r-btn-ghost'}`}
-                style={{ border: 'none', borderRadius: 0 }}
+                className={`r-btn r-btn-sm r-segmented-btn ${viewMode === 'list' ? 'r-btn-primary' : 'r-btn-ghost'}`}
                 onClick={() => handleViewModeChange('list')}
+                aria-pressed={viewMode === 'list'}
+                aria-label={t('view.list')}
                 title={t('view.list')}
               >
-                <List size={14} />
+                <List size={14} aria-hidden="true" />
               </button>
             </div>
-            <a href={`/${locale}/dashboard/products/shopify-map`} className="r-btn r-btn-secondary">
-              <RefreshCw size={14} /> {t('shopifyMapButton')}
-            </a>
+            <Link href="/dashboard/products/shopify-map" className="r-btn r-btn-secondary">
+              <RefreshCw size={14} aria-hidden="true" /> {t('shopifyMapButton')}
+            </Link>
             <button className="r-btn r-btn-primary" onClick={() => setShowAddModal(true)}>
               <Plus size={14} /> {t('addProductButton')}
             </button>
@@ -710,7 +719,7 @@ export default function ProductsPage() {
                   {t('savedViews.all')}
                 </button>
                 {savedViews.map((view) => (
-                  <span key={view.id} style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid #E8E6DF', borderRadius: 8, overflow: 'hidden' }}>
+                  <span key={view.id} className="r-segmented">
                     <button
                       type="button"
                       onClick={() => applySavedView(view.id)}
@@ -723,7 +732,7 @@ export default function ProductsPage() {
                     <button
                       type="button"
                       onClick={() => deleteSavedView(view.id)}
-                      style={{ padding: '0 6px', background: 'none', border: 'none', cursor: 'pointer', color: '#8E918C', display: 'flex', alignItems: 'center' }}
+                      style={{ padding: '0 6px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--r-text-subtle)', display: 'flex', alignItems: 'center' }}
                       aria-label={t('savedViews.deleteAria', { name: view.name })}
                     >
                       <Trash2 size={12} />
@@ -748,8 +757,8 @@ export default function ProductsPage() {
                 />
               </div>
               <div>
-                <label style={{ fontSize: 11.5, color: '#8E918C', display: 'block', marginBottom: 4 }}>{t('filters.status')}</label>
-                <select className="r-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as ProductStatusFilter)}>
+                <label className="r-label-sm" htmlFor="products-status-filter">{t('filters.status')}</label>
+                <select id="products-status-filter" className="r-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as ProductStatusFilter)}>
                   <option value="all">{t('filters.statusOptions.all')}</option>
                   <option value="rag_ready">{t('filters.statusOptions.ragReady')}</option>
                   <option value="rag_not_ready">{t('filters.statusOptions.ragNotReady')}</option>
@@ -759,8 +768,8 @@ export default function ProductsPage() {
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 11.5, color: '#8E918C', display: 'block', marginBottom: 4 }}>{t('filters.sort')}</label>
-                <select className="r-select" value={sortBy} onChange={e => setSortBy(e.target.value as ProductSortOption)}>
+                <label className="r-label-sm" htmlFor="products-sort">{t('filters.sort')}</label>
+                <select id="products-sort" className="r-select" value={sortBy} onChange={e => setSortBy(e.target.value as ProductSortOption)}>
                   <option value="updated_desc">{t('filters.sortOptions.updatedDesc')}</option>
                   <option value="updated_asc">{t('filters.sortOptions.updatedAsc')}</option>
                   <option value="name_asc">{t('filters.sortOptions.nameAsc')}</option>
@@ -772,7 +781,7 @@ export default function ProductsPage() {
             </div>
 
             {/* Results count + reset */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: '#5A5D58' }}>
+            <div className="r-hint" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>{t('filters.resultsCount', { shown: filteredAndSortedProducts.length, total: products.length })}</span>
               {(searchQuery || statusFilter !== 'all' || sortBy !== 'updated_desc') && (
                 <button
@@ -800,7 +809,7 @@ export default function ProductsPage() {
                 {allVisibleSelected ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
                 {allVisibleSelected ? t('bulk.unselectVisible') : t('bulk.selectVisible')}
               </button>
-              <span style={{ fontSize: 13, color: '#5A5D58' }}>
+              <span className="r-hint">
                 {t('bulk.selectedCount', { count: selectedProductIds.length, visible: selectedVisibleCount })}
               </span>
             </div>
@@ -861,7 +870,7 @@ export default function ProductsPage() {
               {paginatedProducts.map((product) => (
                 <div
                   key={product.id}
-                  style={{ background: '#fff', border: '1px solid #E8E6DF', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column', ...healthBorderStyle(product.knowledgeHealth?.score) }}
+                  style={{ background: 'var(--r-surface)', border: '1px solid var(--r-border)', borderRadius: 'var(--r-radius-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column', ...healthBorderStyle(product.knowledgeHealth?.score) }}
                 >
                   <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', flex: 1, gap: 12 }}>
                     {/* Top row: score badge + delete */}
@@ -898,17 +907,17 @@ export default function ProductsPage() {
                         aria-label={t('bulk.selectProduct', { name: product.name })}
                         style={{ marginTop: 3, flexShrink: 0 }}
                       />
-                      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#0A0B0A', wordBreak: 'break-word' }}>{product.name}</p>
+                      <p className="r-table-strong" style={{ margin: 0, fontSize: 'var(--r-text-base-plus)', wordBreak: 'break-word' }}>{product.name}</p>
                     </div>
 
                     {/* URL */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <ExternalLink size={12} style={{ color: '#8E918C', flexShrink: 0 }} />
+                      <ExternalLink size={12} aria-hidden="true" style={{ color: 'var(--r-text-subtle)', flexShrink: 0 }} />
                       <a
                         href={product.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ fontSize: 12.5, color: '#2A6647', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}
+                        style={{ fontSize: 'var(--r-text-sm-plus)', color: 'var(--r-brand-strong)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}
                       >
                         {product.url}
                       </a>
@@ -924,7 +933,7 @@ export default function ProductsPage() {
 
                     {/* Knowledge hint */}
                     {product.knowledgeHealth && (
-                      <p style={{ margin: 0, fontSize: 12, color: '#8E918C', flex: 1 }}>
+                      <p style={{ margin: 0, fontSize: 'var(--r-text-xs)', color: 'var(--r-text-subtle)', flex: 1 }}>
                         {t('knowledge.cardHint', {
                           coverage: knowledgeCoverageLabel(product.knowledgeHealth.coverage),
                           gap: knowledgeReasonLabel(product.knowledgeHealth.missingReasonCodes[0]),
@@ -933,20 +942,20 @@ export default function ProductsPage() {
                     )}
 
                     {/* Edit button */}
-                    <a
-                      href={`/${locale}/dashboard/products/${product.id}`}
+                    <Link
+                      href={`/dashboard/products/${product.id}`}
                       className="r-btn r-btn-secondary"
                       style={{ width: '100%', justifyContent: 'center', marginTop: 'auto' }}
                     >
                       {t('card.edit')}
-                    </a>
+                    </Link>
                   </div>
                 </div>
               ))}
             </div>
             {totalPages > 1 && (
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, color: '#5A5D58' }}>
+                <span className="r-hint">
                   {t('list.pagination.showing', {
                     from: (currentPage - 1) * itemsPerPage + 1,
                     to: Math.min(currentPage * itemsPerPage, filteredAndSortedProducts.length),
@@ -987,7 +996,7 @@ export default function ProductsPage() {
             />
             {totalPages > 1 && (
               <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, color: '#5A5D58' }}>
+                <span className="r-hint">
                   {t('list.pagination.showing', {
                     from: (currentPage - 1) * itemsPerPage + 1,
                     to: Math.min(currentPage * itemsPerPage, filteredAndSortedProducts.length),
@@ -1022,9 +1031,9 @@ export default function ProductsPage() {
 
               {scraping ? (
                 <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                  <div style={{ width: 36, height: 36, border: '3px solid #E8E6DF', borderTopColor: '#0A0B0A', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-                  <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: '#0A0B0A' }}>{scrapeProgress}</p>
-                  <p style={{ margin: '0 0 16px', fontSize: 13, color: '#5A5D58' }}>{t('addModal.scraping.wait')}</p>
+                  <div style={{ width: 36, height: 36, border: '3px solid var(--r-border)', borderTopColor: 'var(--r-brand)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} aria-hidden="true" />
+                  <p className="r-table-strong" style={{ margin: '0 0 4px', fontSize: 'var(--r-text-base-plus)' }}>{scrapeProgress}</p>
+                  <p className="r-hint" style={{ margin: '0 0 16px' }}>{t('addModal.scraping.wait')}</p>
                   <div className="r-progress" style={{ maxWidth: 320, margin: '0 auto' }}>
                     <div className="r-progress-fill" style={{ width: `${scrapeProgressPct}%` }} />
                   </div>
@@ -1032,8 +1041,9 @@ export default function ProductsPage() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0A0B0A', marginBottom: 6 }}>{t('addModal.nameLabel')}</label>
+                    <label className="r-label" htmlFor="new-product-name">{t('addModal.nameLabel')}</label>
                     <input
+                      id="new-product-name"
                       className="r-input"
                       placeholder={t('addModal.namePlaceholder')}
                       value={newProductName}
@@ -1042,8 +1052,10 @@ export default function ProductsPage() {
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0A0B0A', marginBottom: 6 }}>{t('addModal.urlLabel')}</label>
+                    <label className="r-label" htmlFor="new-product-url">{t('addModal.urlLabel')}</label>
                     <input
+                      id="new-product-url"
+                      aria-describedby="new-product-url-help"
                       className="r-input"
                       type="url"
                       placeholder={t('addModal.urlPlaceholder')}
@@ -1051,7 +1063,7 @@ export default function ProductsPage() {
                       onChange={e => setNewProductUrl(e.target.value)}
                       autoComplete="off"
                     />
-                    <p style={{ margin: '6px 0 0', fontSize: 12, color: '#8E918C' }}>{t('addModal.urlHelper')}</p>
+                    <p className="r-field-help" id="new-product-url-help">{t('addModal.urlHelper')}</p>
                   </div>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
                     <button type="button" className="r-btn r-btn-secondary" onClick={() => setShowAddModal(false)}>{t('addModal.cancel')}</button>
