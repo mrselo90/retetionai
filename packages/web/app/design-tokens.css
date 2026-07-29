@@ -35,7 +35,14 @@
     --r-text: #0E1512;             /* primary */
     --r-text-secondary: #414B45;   /* body in dense rows */
     --r-text-muted: #5C6B62;       /* labels, captions */
-    --r-text-subtle: #93A099;      /* placeholders, axis labels, uppercase eyebrows */
+    /* The prototype's subtle grey is #93A099, which measures 2.72:1 on white —
+       under the 4.5:1 AA asks for text this size, and this token carries real
+       content (table headers, sidebar section labels, product URLs, card hints),
+       not just decoration. Darkened one step: 4.99:1 on white, 4.65:1 on the
+       canvas. Same grey-green family, so the prototype's airy feel survives.
+       #67756D also clears AA but only by 0.003 on the canvas, which any future
+       tweak to --r-bg would erase, so this sits a shade darker for headroom. */
+    --r-text-subtle: #657369;      /* placeholders, axis labels, uppercase eyebrows */
 
     /* ---- Status ----------------------------------------------------------- */
     --r-success: #16A34A;
