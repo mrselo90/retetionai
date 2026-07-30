@@ -743,6 +743,7 @@
     "title": "Entegrasyonlar",
     "description": "E-ticaret platformlarınızı bağlayın ve sipariş takibini otomatikleştirin",
     "discoverTitle": "Entegrasyonları keşfedin",
+    "loading": "Entegrasyonlar yükleniyor…",
     "feedback": {
       "dismiss": "Kapatın",
       "reviewActive": "Aktif entegrasyonları inceleyin",

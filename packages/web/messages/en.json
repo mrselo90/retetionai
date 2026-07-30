@@ -747,6 +747,7 @@
     "title": "Integrations",
     "description": "Connect your e-commerce platforms and automate order tracking",
     "discoverTitle": "Discover integrations",
+    "loading": "Loading integrations…",
     "feedback": {
       "dismiss": "Dismiss",
       "reviewActive": "Review active integrations",
