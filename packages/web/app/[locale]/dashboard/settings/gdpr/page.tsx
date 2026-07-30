@@ -1,104 +1,115 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { authenticatedRequest } from '@/lib/api';
+import { authenticatedRequest, triggerBrowserDownload } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { useConfirm } from '@/components/ui/ConfirmDialog';
-import {
-  Banner,
-  BlockStack,
-  Box,
-  Button as PolarisButton,
-  Card as PolarisCard,
-  Divider,
-  InlineStack,
-  Modal,
-  Page,
-  SkeletonPage,
-  Text,
-  TextField,
-} from '@shopify/polaris';
-import { AlertTriangle, Database, ExternalLink } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { getErrorMessage } from '@/lib/errors';
+import { AlertTriangle, ExternalLink } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { Button } from '@/components/recete';
+
+/**
+ * Deliberately not translated. It is a literal the merchant must reproduce
+ * exactly, it is shown to them as the field's placeholder, and varying it by
+ * interface language would mean the phrase guarding an irreversible wipe changes
+ * out from under anyone who switches locale mid-flow.
+ */
+const HARD_DELETE_PHRASE = 'DELETE';
+
+/**
+ * Same-origin legal pages. Canonical paths: next.config.mjs permanently redirects
+ * /privacy-policy and /terms-of-service here, and linking through a redirect from
+ * inside the app is just a wasted hop.
+ */
+const LEGAL_LINKS = [
+  { href: '/privacy', key: 'privacy' },
+  { href: '/terms', key: 'terms' },
+  { href: '/cookie-policy', key: 'cookie' },
+  { href: '/data-processing-addendum', key: 'dpa' },
+  { href: '/security', key: 'security' },
+] as const;
 
 export default function GdprPage() {
   const t = useTranslations('Settings');
-  const { confirm, ConfirmDialogNode } = useConfirm();
+  const locale = useLocale();
+  const fieldId = useId();
+  const titleId = useId();
 
   const [loading, setLoading] = useState(true);
-  const [exportingData, setExportingData] = useState(false);
-  const [deletingData, setDeletingData] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  // Hard delete is irreversible, so it requires an exact typed phrase — the same
-  // friction the Shopify app already applies to its data wipe.
+  const [exporting, setExporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [hardConfirmText, setHardConfirmText] = useState('');
-  const HARD_DELETE_PHRASE = 'DELETE';
+  const openerRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
   const hardDeleteArmed = hardConfirmText.trim().toUpperCase() === HARD_DELETE_PHRASE;
 
-  const getErrorMessage = (err: unknown, fallback: string) => {
-    if (err instanceof Error && err.message) return err.message;
-    return fallback;
-  };
-
   useEffect(() => {
-    // Just check auth, no data to load specifically for GDPR page
-    (async () => {
+    void (async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          window.location.href = '/login';
-          return;
-        }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) window.location.href = '/login';
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  const handleExportData = async () => {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) return;
+  const closeDialog = () => {
+    if (deleting) return;
+    setDialogOpen(false);
+    setHardConfirmText('');
+    openerRef.current?.focus();
+  };
 
-      setExportingData(true);
+  /*
+   * Escape closes it and focus moves into it on open — neither of which a
+   * hand-rolled overlay gets for free, and both of which the Polaris Modal this
+   * replaces did provide.
+   */
+  useEffect(() => {
+    if (!dialogOpen) return;
+    dialogRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !deleting) {
+        setDialogOpen(false);
+        setHardConfirmText('');
+        openerRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [dialogOpen, deleting]);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
       const response = await authenticatedRequest<{ data: unknown; exported_at: string }>(
         '/api/gdpr/export',
         session.access_token,
-        { method: 'GET' }
       );
-
-      const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `recete-data-export-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
+      triggerBrowserDownload(
+        JSON.stringify(response.data, null, 2),
+        `recete-data-export-${new Date().toISOString().split('T')[0]}.json`,
+        'application/json',
+      );
       toast.success(t('toasts.exportSuccess.title'), t('toasts.exportSuccess.message'));
-    } catch (err: unknown) {
-      console.error('Failed to export data:', err);
+    } catch (err) {
       toast.error(t('toasts.saveError.title'), getErrorMessage(err, t('toasts.saveError.message')));
     } finally {
-      setExportingData(false);
+      setExporting(false);
     }
   };
 
-  const handleDeleteData = async (permanent: boolean = false) => {
+  const handleDelete = async (permanent: boolean) => {
+    setDeleting(true);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-
-      setDeletingData(true);
       const response = await authenticatedRequest<{
         message: string;
         permanent_deletion_at?: string;
@@ -109,220 +120,222 @@ export default function GdprPage() {
 
       if (permanent) {
         toast.warning(t('toasts.deletePermanent.title'), t('toasts.deletePermanent.message'));
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 2000);
+        setTimeout(() => { window.location.href = '/'; }, 2000);
       } else {
         toast.error(
           t('toasts.deleteScheduled.title'),
           t('toasts.deleteScheduled.message', {
-            date: new Date(response.permanent_deletion_at || '').toLocaleDateString(),
-          })
+            date: new Date(response.permanent_deletion_at || '').toLocaleDateString(locale),
+          }),
         );
       }
-      setShowDeleteConfirm(false);
-    } catch (err: unknown) {
-      console.error('Failed to delete data:', err);
+      setDialogOpen(false);
+      setHardConfirmText('');
+    } catch (err) {
       toast.error(t('toasts.saveError.title'), getErrorMessage(err, t('toasts.saveError.message')));
     } finally {
-      setDeletingData(false);
+      setDeleting(false);
     }
   };
 
   if (loading) {
     return (
-      <SkeletonPage title={t('gdpr.title')}>
-        <div className="h-48 bg-zinc-100 rounded-lg animate-pulse" />
-      </SkeletonPage>
+      <div className="r-card" style={{ maxWidth: 760 }} role="status" aria-label={t('loading')}>
+        <div className="r-skeleton" style={{ height: 18, width: 200 }} />
+        <div className="r-skeleton" style={{ height: 120, marginTop: 18 }} />
+      </div>
     );
   }
 
   return (
-    <>
-      {ConfirmDialogNode}
-      <Page title={t('gdpr.title')} subtitle={t('gdpr.description')} fullWidth>
-        <PolarisCard>
-          <Box id="gdpr" padding="400">
-            <BlockStack gap="400">
-              <InlineStack gap="300" blockAlign="start">
-                <Box background="bg-fill-info" borderRadius="300" padding="300">
-                  <Database className="w-5 h-5 text-white" />
-                </Box>
-                <BlockStack gap="100">
-                  <Text as="h2" variant="headingMd">
-                    {t('gdpr.title')}
-                  </Text>
-                  <Text as="p" tone="subdued">
-                    {t('gdpr.description')}
-                  </Text>
-                </BlockStack>
-              </InlineStack>
+    <div className="r-card" id="gdpr" style={{ maxWidth: 760 }}>
+      <div className="r-card-title">{t('gdpr.title')}</div>
+      <p className="r-hint" style={{ marginTop: 3 }}>{t('gdpr.description')}</p>
 
-              {/* Data Export */}
-              <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300">
-                <InlineStack align="space-between" blockAlign="start" gap="300">
-                  <BlockStack gap="100">
-                    <Text as="h3" variant="headingSm">
-                      {t('gdpr.exportTitle')}
-                    </Text>
-                    <Text as="p" tone="subdued">
-                      {t('gdpr.exportDesc')}
-                    </Text>
-                  </BlockStack>
-                  <PolarisButton
-                    variant="secondary"
-                    onClick={handleExportData}
-                    disabled={exportingData}
-                    loading={exportingData}
-                  >
-                    {exportingData ? t('gdpr.exporting') : t('gdpr.exportButton')}
-                  </PolarisButton>
-                </InlineStack>
-              </Box>
+      {/* Export */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: 16,
+          flexWrap: 'wrap',
+          marginTop: 18,
+          padding: 'var(--r-space-7)',
+          border: '1px solid var(--r-border)',
+          borderRadius: 'var(--r-radius-md)',
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontSize: 'var(--r-text-md)', fontWeight: 'var(--r-weight-semibold)' }}>
+            {t('gdpr.exportTitle')}
+          </div>
+          <p className="r-hint" style={{ marginTop: 3 }}>{t('gdpr.exportDesc')}</p>
+        </div>
+        <Button variant="secondary" onClick={handleExport} loading={exporting}>
+          {exporting ? t('gdpr.exporting') : t('gdpr.exportButton')}
+        </Button>
+      </div>
 
-              {/* Data Deletion */}
-              <Box
-                padding="300"
-                borderWidth="025"
-                borderColor="border-critical"
-                borderRadius="300"
-                background="bg-surface-critical"
-              >
-                <InlineStack align="space-between" blockAlign="start" gap="300">
-                  <BlockStack gap="100">
-                    <Text as="h3" variant="headingSm" tone="critical">
-                      {t('gdpr.deleteTitle')}
-                    </Text>
-                    <Text as="p" tone="critical">
-                      {t('gdpr.deleteDesc')}
-                    </Text>
-                    <InlineStack gap="100" blockAlign="center">
-                      <AlertTriangle className="w-3 h-3 text-red-700" />
-                      <Text as="span" variant="bodySm" tone="critical">
-                        {t('gdpr.deleteWarning')}
-                      </Text>
-                    </InlineStack>
-                  </BlockStack>
-                  <PolarisButton
-                    tone="critical"
-                    onClick={() => setShowDeleteConfirm(true)}
-                    disabled={deletingData}
-                  >
-                    {t('gdpr.deleteButton')}
-                  </PolarisButton>
-                </InlineStack>
-              </Box>
-
-              {/* Links */}
-              <Box paddingBlockStart="300" borderBlockStartWidth="025" borderColor="border">
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <a
-                    href="/privacy-policy"
-                    target="_blank"
-                    className="text-primary hover:underline flex items-center gap-1"
-                  >
-                    <ExternalLink className="w-3 h-3" /> {t('gdpr.links.privacy')}
-                  </a>
-                  <a
-                    href="/terms-of-service"
-                    target="_blank"
-                    className="text-primary hover:underline flex items-center gap-1"
-                  >
-                    <ExternalLink className="w-3 h-3" /> {t('gdpr.links.terms')}
-                  </a>
-                  <a
-                    href="/cookie-policy"
-                    target="_blank"
-                    className="text-primary hover:underline flex items-center gap-1"
-                  >
-                    <ExternalLink className="w-3 h-3" /> {t('gdpr.links.cookie')}
-                  </a>
-                  <a
-                    href="/data-processing-addendum"
-                    target="_blank"
-                    className="text-primary hover:underline flex items-center gap-1"
-                  >
-                    <ExternalLink className="w-3 h-3" /> Data Processing Addendum
-                  </a>
-                  <a
-                    href="/security"
-                    target="_blank"
-                    className="text-primary hover:underline flex items-center gap-1"
-                  >
-                    <ExternalLink className="w-3 h-3" /> Security Overview
-                  </a>
-                </div>
-              </Box>
-            </BlockStack>
-          </Box>
-        </PolarisCard>
-
-        {/* Delete Confirmation Modal */}
-        <Modal
-          open={showDeleteConfirm}
-          onClose={() => {
-            if (!deletingData) {
-              setShowDeleteConfirm(false);
-              setHardConfirmText('');
-            }
-          }}
-          title={t('gdpr.modal.title')}
-          primaryAction={{
-            content: deletingData ? t('gdpr.modal.deleting') : t('gdpr.modal.softDelete'),
-            onAction: () => handleDeleteData(false),
-            loading: deletingData,
-            destructive: true,
-          }}
-          secondaryActions={[
-            {
-              content: t('gdpr.modal.cancel'),
-              onAction: () => { setShowDeleteConfirm(false); setHardConfirmText(''); },
-              disabled: deletingData,
-            },
-          ]}
+      {/* Deletion */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: 16,
+          flexWrap: 'wrap',
+          marginTop: 12,
+          padding: 'var(--r-space-7)',
+          border: '1px solid var(--r-danger)',
+          borderRadius: 'var(--r-radius-md)',
+          background: 'var(--r-danger-bg)',
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div
+            style={{
+              fontSize: 'var(--r-text-md)',
+              fontWeight: 'var(--r-weight-semibold)',
+              color: 'var(--r-danger)',
+            }}
+          >
+            {t('gdpr.deleteTitle')}
+          </div>
+          <p style={{ fontSize: 'var(--r-text-sm-plus)', color: 'var(--r-danger)', marginTop: 3 }}>
+            {t('gdpr.deleteDesc')}
+          </p>
+          <p
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 'var(--r-text-sm)',
+              color: 'var(--r-danger)',
+              marginTop: 6,
+            }}
+          >
+            <AlertTriangle size={12} aria-hidden="true" />
+            {t('gdpr.deleteWarning')}
+          </p>
+        </div>
+        <Button
+          ref={openerRef}
+          variant="danger"
+          onClick={() => setDialogOpen(true)}
+          disabled={deleting}
         >
-          <Modal.Section>
-            <BlockStack gap="300">
-              <Banner tone="critical">
-                <p>{t('gdpr.modal.warning')}</p>
-                <ul className="list-disc pl-5 mt-2">
+          {t('gdpr.deleteButton')}
+        </Button>
+      </div>
+
+      {/* Legal links */}
+      <div
+        style={{
+          marginTop: 18,
+          paddingTop: 'var(--r-space-7)',
+          borderTop: '1px solid var(--r-border)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 16,
+        }}
+      >
+        {LEGAL_LINKS.map((link) => (
+          <a
+            key={link.href}
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 'var(--r-text-sm-plus)',
+              color: 'var(--r-brand)',
+              textDecoration: 'none',
+            }}
+          >
+            <ExternalLink size={12} aria-hidden="true" />
+            {/* "Data Processing Addendum" and "Security Overview" were hardcoded
+                English while the three beside them were translated. */}
+            {t(`gdpr.links.${link.key}`)}
+            <span className="sr-only">{t('gdpr.links.newTab')}</span>
+          </a>
+        ))}
+      </div>
+
+      {dialogOpen ? (
+        <div
+          className="r-modal-backdrop"
+          onClick={(event) => { if (event.target === event.currentTarget) closeDialog(); }}
+        >
+          {/* tabIndex so focus can land on the dialog itself when it opens. */}
+          <div
+            ref={dialogRef}
+            tabIndex={-1}
+            className="r-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+          >
+            <div className="r-modal-head">
+              <h2 className="r-modal-title" id={titleId}>{t('gdpr.modal.title')}</h2>
+            </div>
+
+            <div className="r-modal-body">
+              <div className="r-callout-danger">
+                <p style={{ margin: 0 }}>{t('gdpr.modal.warning')}</p>
+                <ul style={{ margin: '8px 0 0', paddingLeft: 20 }}>
                   <li>{t('gdpr.modal.list.all')}</li>
                   <li>{t('gdpr.modal.list.permanent')}</li>
                   <li>{t('gdpr.modal.list.cancel')}</li>
                 </ul>
-              </Banner>
+              </div>
 
               {/*
                 Hard delete used to be the modal's secondary action, sitting right
-                next to soft delete — one misclick permanently destroyed the
-                merchant's entire dataset. It now lives here, gated behind an
+                beside soft delete — one misclick permanently destroyed the
+                merchant's entire dataset. It stays down here, separated, behind an
                 exact typed phrase.
               */}
-              <Divider />
-              <BlockStack gap="200">
-                <TextField
-                  label={t('gdpr.modal.hardConfirmLabel')}
-                  value={hardConfirmText}
-                  onChange={setHardConfirmText}
-                  autoComplete="off"
-                  disabled={deletingData}
-                  helpText={t('gdpr.modal.hardConfirmHelp')}
-                  placeholder={HARD_DELETE_PHRASE}
-                />
-                <PolarisButton
-                  variant="primary"
-                  tone="critical"
-                  disabled={!hardDeleteArmed || deletingData}
-                  loading={deletingData}
-                  onClick={() => handleDeleteData(true)}
+              <hr style={{ border: 0, borderTop: '1px solid var(--r-border)', margin: '18px 0' }} />
+
+              <label className="r-label" htmlFor={fieldId}>{t('gdpr.modal.hardConfirmLabel')}</label>
+              <input
+                id={fieldId}
+                className="r-input"
+                value={hardConfirmText}
+                onChange={(event) => setHardConfirmText(event.target.value)}
+                placeholder={HARD_DELETE_PHRASE}
+                autoComplete="off"
+                disabled={deleting}
+                aria-describedby={`${fieldId}-help`}
+              />
+              <p className="r-field-help" id={`${fieldId}-help`}>{t('gdpr.modal.hardConfirmHelp')}</p>
+
+              <div style={{ marginTop: 12 }}>
+                <Button
+                  variant="danger"
+                  disabled={!hardDeleteArmed}
+                  loading={deleting}
+                  onClick={() => handleDelete(true)}
                 >
                   {t('gdpr.modal.hardDeleteAction')}
-                </PolarisButton>
-              </BlockStack>
-            </BlockStack>
-          </Modal.Section>
-        </Modal>
-      </Page>
-    </>
+                </Button>
+              </div>
+            </div>
+
+            <div className="r-modal-foot">
+              <Button variant="secondary" onClick={closeDialog} disabled={deleting}>
+                {t('gdpr.modal.cancel')}
+              </Button>
+              <Button variant="danger" onClick={() => handleDelete(false)} loading={deleting}>
+                {deleting ? t('gdpr.modal.deleting') : t('gdpr.modal.softDelete')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

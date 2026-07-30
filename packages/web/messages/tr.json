@@ -1016,6 +1016,10 @@
             "saveButton": "Dil ayarlarını kaydedin"
         },
         "modules": {
+            "loadError": "Modüller yüklenemedi.",
+            "loadErrorTitle": "Modüller görüntülenemiyor",
+            "retry": "Tekrar dene",
+            "pricePerMonth": "+{price} / ay",
             "title": "Modüller",
             "description": "Yapay zekâ yeteneklerinizi artırmak için isteğe bağlı ücretli modüller.",
             "empty": "Kullanılabilir modül yok"
@@ -1097,6 +1101,9 @@
             "deleteWarning": "Veriler kalıcı olarak 30 gün içinde silinecektir.",
             "deleteButton": "Silin",
             "links": {
+                "dpa": "Veri İşleme Eki",
+                "security": "Güvenlik Özeti",
+                "newTab": "(yeni sekmede açılır)",
                 "privacy": "Gizlilik politikası",
                 "terms": "Hizmet şartları",
                 "cookie": "Çerez politikası"

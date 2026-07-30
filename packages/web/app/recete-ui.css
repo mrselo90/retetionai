@@ -1012,3 +1012,71 @@
     font-weight: var(--r-weight-semibold);
     border-bottom-color: var(--r-brand);
 }
+
+/* ============================== Dialog ============================== */
+
+/*
+ * Modal shell. Rendered as a real <dialog>-shaped element with role="dialog" and
+ * aria-modal, rather than an absolutely positioned div, so screen readers treat
+ * the page behind it as inert and Escape has somewhere obvious to hang.
+ */
+.r-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgb(14 21 18 / 0.42);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--r-space-9);
+    overflow-y: auto;
+}
+
+.r-modal {
+    background: var(--r-surface);
+    border-radius: var(--r-radius-xl);
+    box-shadow: var(--r-shadow-popover);
+    width: 100%;
+    max-width: 520px;
+    /* Its own scroll, so a long body cannot push the actions off the screen. */
+    max-height: calc(100dvh - 2 * var(--r-space-9));
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.r-modal-head {
+    padding: var(--r-space-9) var(--r-space-10) var(--r-space-6);
+}
+
+.r-modal-title {
+    font-size: var(--r-text-lg);
+    font-weight: var(--r-weight-bold);
+    letter-spacing: var(--r-tracking-snug);
+    margin: 0;
+}
+
+.r-modal-body {
+    padding: 0 var(--r-space-10);
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.r-modal-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--r-space-4);
+    padding: var(--r-space-8) var(--r-space-10) var(--r-space-9);
+    flex-wrap: wrap;
+}
+
+/* Inline callout inside a dialog or card — the destructive warning list. */
+.r-callout-danger {
+    border: 1px solid var(--r-danger);
+    background: var(--r-danger-bg);
+    color: var(--r-danger);
+    border-radius: var(--r-radius-md);
+    padding: var(--r-space-6) var(--r-space-7);
+    font-size: var(--r-text-sm-plus);
+    line-height: var(--r-leading-normal);
+}

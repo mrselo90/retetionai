@@ -1021,6 +1021,10 @@
             "saveButton": "Save Language Settings"
         },
         "modules": {
+            "loadError": "Could not load your modules.",
+            "loadErrorTitle": "Modules unavailable",
+            "retry": "Try again",
+            "pricePerMonth": "+{price} / month",
             "title": "Modules",
             "description": "Optional paid modules to enhance your AI capabilities.",
             "empty": "No modules available"
@@ -1102,6 +1106,9 @@
             "deleteWarning": "Data will be permanently deleted in 30 days.",
             "deleteButton": "Delete",
             "links": {
+                "dpa": "Data Processing Addendum",
+                "security": "Security Overview",
+                "newTab": "(opens in a new tab)",
                 "privacy": "Privacy Policy",
                 "terms": "Terms of Service",
                 "cookie": "Cookie Policy"
