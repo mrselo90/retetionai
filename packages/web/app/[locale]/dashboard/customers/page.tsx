@@ -2,9 +2,11 @@
 
 import { useCallback, useDeferredValue, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { authenticatedRequest } from '@/lib/api';
+import { authenticatedFileRequest, authenticatedRequest, triggerBrowserDownload } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Search, Users } from 'lucide-react';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
+import { getErrorMessage } from '@/lib/errors';
+import { Download, Search, Users } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { CustomersTable } from '@/components/recete/CustomersTable';
 import { FilterTabs } from '@/components/recete/FilterTabs';
@@ -55,6 +57,8 @@ export default function CustomersPage() {
   const [page, setPage] = useState(1);
   const [segment, setSegment] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const { confirm, ConfirmDialogNode } = useConfirm();
 
   // The request keys off the deferred value, so typing "ahmet" is one fetch once
   // the field settles instead of one per keystroke.
@@ -115,16 +119,72 @@ export default function CustomersPage() {
     setPage(1);
   };
 
+  /**
+   * Export the view the merchant is looking at, not the whole table — pulling the
+   * at-risk list is the reason to have this at all.
+   *
+   * Confirmed first because the file contains decrypted phone numbers: they are
+   * encrypted at rest precisely because they are sensitive, and this puts them in
+   * plaintext in someone's Downloads folder.
+   */
+  const handleExport = async () => {
+    const ok = await confirm({
+      title: t('export.confirmTitle'),
+      message: t('export.confirmMessage'),
+      confirmLabel: t('export.confirmAction'),
+    });
+    if (!ok) return;
+
+    setExporting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      let url = '/api/customers/export.csv';
+      const params = new URLSearchParams();
+      if (segment !== 'all') params.set('segment', segment);
+      if (deferredSearch) params.set('search', deferredSearch);
+      if (params.toString()) url += `?${params.toString()}`;
+
+      const { text, filename, headers } = await authenticatedFileRequest(url, session.access_token);
+      triggerBrowserDownload(text, filename);
+
+      const rowCount = Number(headers.get('X-Export-Row-Count') || 0);
+      // A silently capped export reads as a complete one, so say so.
+      if (headers.get('X-Export-Truncated') === '1') {
+        toast.warning(t('export.truncatedTitle'), t('export.truncatedMessage', { count: rowCount }));
+      } else {
+        toast.success(t('export.doneTitle'), t('export.doneMessage', { count: rowCount }));
+      }
+    } catch (err) {
+      toast.error(t('export.errorTitle'), getErrorMessage(err, t('export.errorMessage')));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const hasPrev = page > 1;
   const hasNext = page * PAGE_SIZE < total;
 
   return (
     <div className="d-page">
+      {ConfirmDialogNode}
+
       <div className="d-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 className="r-page-title">{t('title')}</h1>
           <p className="r-page-sub">{t('subtitle', { total })}</p>
         </div>
+        <button
+          type="button"
+          className="r-btn r-btn-secondary"
+          onClick={handleExport}
+          disabled={exporting || total === 0}
+          aria-busy={exporting}
+        >
+          <Download size={14} aria-hidden="true" />
+          {exporting ? t('export.busy') : t('export.button')}
+        </button>
       </div>
 
       {/* Filters */}

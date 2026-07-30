@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -19,6 +20,9 @@ interface ToastProps {
 }
 
 function Toast({ toast, onClose }: ToastProps) {
+  // The dismiss button was an icon with no accessible name.
+  const tCommon = useTranslations('Common');
+  const closeLabel = tCommon('close');
   const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
@@ -108,9 +112,10 @@ function Toast({ toast, onClose }: ToastProps) {
       </div>
       <button
         onClick={handleClose}
+        aria-label={closeLabel}
         className="flex-shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
       >
-        <X className="w-5 h-5" />
+        <X className="w-5 h-5" aria-hidden="true" />
       </button>
     </div>
   );
@@ -139,7 +144,22 @@ export default function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-50 w-full max-w-md space-y-2">
+    /*
+     * A live region, because this is the app's only feedback channel — every save
+     * confirmation, export result and failure across the dashboard arrives here,
+     * and without it none of them reach a screen reader.
+     *
+     * Polite rather than assertive, and the region sits on the container rather
+     * than on each toast: nesting live regions inside a live region makes
+     * announcements unreliable, and one calm announcement per toast is better
+     * than an interruption plus a duplicate.
+     */
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="false"
+      className="fixed top-4 right-4 z-50 w-full max-w-md space-y-2"
+    >
       {toasts.map((toast) => (
         <Toast key={toast.id} toast={toast} onClose={removeToast} />
       ))}

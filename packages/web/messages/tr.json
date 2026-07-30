@@ -1,4 +1,7 @@
 {
+    "Common": {
+        "close": "Kapat"
+    },
     "Landing": {
         "brandName": "Recete",
         "brandTagline": "Retention Agent",
@@ -1237,6 +1240,19 @@
         }
     },
     "Customers": {
+        "export": {
+            "button": "CSV indir",
+            "busy": "Hazırlanıyor…",
+            "confirmTitle": "Müşteriler CSV olarak indirilsin mi?",
+            "confirmMessage": "Dosyada müşterilerinizin telefon numaraları düz metin olarak, segment ve kayıp riski bilgileriyle birlikte yer alır. Filtrelediğiniz görünümü kapsar. Güvenli bir yerde tutun ve işiniz bitince silin.",
+            "confirmAction": "İndir",
+            "doneTitle": "İndirme hazır",
+            "doneMessage": "{count} müşteri indirildi.",
+            "truncatedTitle": "İndirme sınırlandı",
+            "truncatedMessage": "İlk {count} müşteri indirildi. Kalanı indirmek için filtreyi daraltın.",
+            "errorTitle": "İndirme başarısız",
+            "errorMessage": "Müşteriler indirilemedi. Lütfen tekrar deneyin."
+        },
         "noResults": {
             "title": "Sonuç yok",
             "description": "Bu arama veya segmentle eşleşen müşteri yok. Farklı bir isim ya da telefon numarası deneyin.",

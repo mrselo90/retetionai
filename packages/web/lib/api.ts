@@ -142,3 +142,71 @@ export async function authenticatedRequest<T>(
     },
   });
 }
+
+/**
+ * Authenticated request for a file download (CSV export and anything like it).
+ *
+ * Separate from apiRequest because that one always JSON-parses the body, so a
+ * text/csv response would fail with "Invalid JSON response from server". Errors
+ * still arrive as JSON, so those are surfaced the same way.
+ *
+ * Exports can take longer than an ordinary read, hence the wider timeout.
+ */
+const DOWNLOAD_TIMEOUT_MS = 120_000;
+
+export async function authenticatedFileRequest(
+  endpoint: string,
+  token: string,
+): Promise<{ text: string; filename: string; headers: Headers }> {
+  const url = getApiUrl(endpoint);
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new Error(
+        `The download took longer than ${Math.round(DOWNLOAD_TIMEOUT_MS / 1000)}s and was cancelled. Please try again.`,
+      );
+    }
+    throw new Error(err instanceof Error ? err.message : 'Network error');
+  }
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    let message = `Request failed (${response.status})`;
+    try {
+      const parsed = JSON.parse(text) as ApiError;
+      message = parsed.message || parsed.error || message;
+    } catch {
+      // Non-JSON error body (proxy page, gateway error) — keep the status message.
+    }
+    throw Object.assign(new Error(message), { status: response.status });
+  }
+
+  // filename="…" from Content-Disposition, so the saved file keeps the server's
+  // name rather than the endpoint path.
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = /filename="([^"]+)"/.exec(disposition);
+
+  return { text, filename: match?.[1] || 'download.csv', headers: response.headers };
+}
+
+/**
+ * Hand a fetched file to the browser's download flow.
+ * Revokes the object URL so repeated exports do not leak blobs.
+ */
+export function triggerBrowserDownload(text: string, filename: string, mimeType = 'text/csv;charset=utf-8') {
+  const url = URL.createObjectURL(new Blob([text], { type: mimeType }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}

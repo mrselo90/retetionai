@@ -1,4 +1,7 @@
 {
+    "Common": {
+        "close": "Close"
+    },
     "Landing": {
         "brandName": "Recete",
         "brandTagline": "Retention Agent",
@@ -1242,6 +1245,19 @@
         }
     },
     "Customers": {
+        "export": {
+            "button": "Export CSV",
+            "busy": "Preparing…",
+            "confirmTitle": "Export customers as CSV?",
+            "confirmMessage": "The file includes your customers' phone numbers in plain text, alongside their segment and churn risk. It covers the view you have filtered to. Store it somewhere safe and delete it when you are done.",
+            "confirmAction": "Export",
+            "doneTitle": "Export ready",
+            "doneMessage": "{count} customers exported.",
+            "truncatedTitle": "Export capped",
+            "truncatedMessage": "The first {count} customers were exported. Narrow the filter to export the rest.",
+            "errorTitle": "Export failed",
+            "errorMessage": "Could not export customers. Please try again."
+        },
         "noResults": {
             "title": "No matches",
             "description": "No customer matches this search or segment. Try a different name or phone number.",

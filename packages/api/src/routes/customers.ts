@@ -9,6 +9,7 @@ import { getSupabaseServiceClient } from '@recete/shared';
 import { decryptPhone } from '../lib/encryption.js';
 import { logPersonalDataAccess } from '../lib/personalDataAudit.js';
 import { getCachedApiResponse, setCachedApiResponse } from '../lib/cache.js';
+import { buildCsv } from '../lib/csvExport.js';
 
 const customers = new Hono();
 const CUSTOMERS_CACHE_TTL_SECONDS = 15;
@@ -19,6 +20,11 @@ const CUSTOMERS_CACHE_TTL_SECONDS = 15;
  * values written by the RFM job.
  */
 const CHIP_SEGMENTS = ['champions', 'loyal', 'promising', 'at_risk', 'lost', 'new'] as const;
+
+/** Export caps. Supabase returns at most 1000 rows per request, so the page size
+ *  matches that and the ceiling keeps one click from reading an entire tenant. */
+const EXPORT_PAGE_SIZE = 1000;
+const EXPORT_MAX_ROWS = 5000;
 
 customers.use('/*', authMiddleware);
 
@@ -162,6 +168,132 @@ customers.get('/', async (c) => {
     await setCachedApiResponse(cacheKey, payload, CUSTOMERS_CACHE_TTL_SECONDS, cacheParams);
     return c.json(payload);
   } catch (error) {
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+/**
+ * Export the current customer view as CSV.
+ * GET /api/customers/export.csv?segment=&search=
+ *
+ * Registered before '/:id' on purpose — Hono matches in registration order, so
+ * the reverse would make this path resolve as a customer whose id is
+ * "export.csv".
+ *
+ * The value here is the segment and churn columns: a merchant can already pull
+ * names and phones out of Shopify, but at_risk / 72% is Recete's own output, and
+ * the point of the export is pushing that list into an ad audience or handing it
+ * to a colleague. It honours the screen's active filters for the same reason.
+ *
+ * This writes decrypted phone numbers into a plaintext file, so it is bounded,
+ * audited, and never cached.
+ */
+customers.get('/export.csv', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const authMethod = c.get('authMethod') as 'jwt' | 'shopify' | 'internal' | undefined;
+    const segment = c.req.query('segment');
+    const search = c.req.query('search');
+
+    const serviceClient = getSupabaseServiceClient();
+    const rows: string[][] = [];
+    let truncated = false;
+
+    // Paged rather than one open-ended query: a merchant's customer table has no
+    // upper bound, and Supabase caps a single response at 1000 rows anyway, so an
+    // unpaged read would silently export only the first page.
+    for (let offset = 0; offset < EXPORT_MAX_ROWS; offset += EXPORT_PAGE_SIZE) {
+      let query = serviceClient
+        .from('users')
+        .select('id, name, phone, consent_status, segment, churn_probability, created_at')
+        .eq('merchant_id', merchantId);
+
+      if (segment && segment !== 'all') query = query.eq('segment', segment);
+      if (search) query = query.ilike('name', `%${search}%`);
+
+      const { data: users, error } = await query
+        .order('created_at', { ascending: false })
+        .range(offset, offset + EXPORT_PAGE_SIZE - 1);
+
+      if (error) return c.json({ error: 'Failed to export customers' }, 500);
+      if (!users?.length) break;
+
+      const userIds = users.map((u: any) => u.id);
+      const [orderRows, convRows] = await Promise.all([
+        serviceClient.from('orders').select('user_id, created_at').in('user_id', userIds),
+        serviceClient.from('conversations').select('user_id').in('user_id', userIds),
+      ]);
+
+      const orderCount = new Map<string, number>();
+      const lastOrder = new Map<string, string>();
+      (orderRows.data || []).forEach((o: any) => {
+        orderCount.set(o.user_id, (orderCount.get(o.user_id) || 0) + 1);
+        const current = lastOrder.get(o.user_id);
+        if (o.created_at && (!current || o.created_at > current)) lastOrder.set(o.user_id, o.created_at);
+      });
+
+      const convCount = new Map<string, number>();
+      (convRows.data || []).forEach((cv: any) => {
+        convCount.set(cv.user_id, (convCount.get(cv.user_id) || 0) + 1);
+      });
+
+      users.forEach((u: any) => {
+        let phone = '';
+        try { if (u.phone) phone = decryptPhone(u.phone); } catch { /* leave blank rather than leak ciphertext */ }
+        rows.push([
+          u.name || '',
+          phone,
+          u.consent_status || '',
+          u.segment || 'new',
+          String(orderCount.get(u.id) || 0),
+          String(convCount.get(u.id) || 0),
+          lastOrder.get(u.id) || '',
+          String(Math.round((u.churn_probability || 0) * 100)),
+          u.created_at || '',
+        ]);
+      });
+
+      if (users.length < EXPORT_PAGE_SIZE) break;
+      if (rows.length >= EXPORT_MAX_ROWS) {
+        // Hitting the cap is not the same as there being more to fetch: a tenant
+        // with exactly EXPORT_MAX_ROWS customers is a complete export, and
+        // telling them it was capped would send them filtering for rows that do
+        // not exist. One head-count settles it, and only in the capped case.
+        let probe = serviceClient
+          .from('users')
+          .select('id', { count: 'exact', head: true })
+          .eq('merchant_id', merchantId);
+        if (segment && segment !== 'all') probe = probe.eq('segment', segment);
+        if (search) probe = probe.ilike('name', `%${search}%`);
+        const { count: matching } = await probe;
+        truncated = (matching || 0) > rows.length;
+        break;
+      }
+    }
+
+    const header = [
+      'name', 'phone', 'consent', 'segment', 'orders',
+      'conversations', 'last_order_at', 'churn_risk_percent', 'created_at',
+    ];
+    const csvText = buildCsv(header, rows);
+
+    logPersonalDataAccess({
+      merchantId,
+      authMethod,
+      route: '/api/customers/export.csv',
+      action: 'export',
+      resource: 'customer',
+      recordCount: rows.length,
+    });
+
+    return c.body(csvText, 200, {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="recete-customers-${new Date().toISOString().slice(0, 10)}.csv"`,
+      'Cache-Control': 'no-store',
+      'X-Export-Row-Count': String(rows.length),
+      'X-Export-Truncated': truncated ? '1' : '0',
+    });
+  } catch {
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
