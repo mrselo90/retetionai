@@ -1,32 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import {
-  BlockStack,
-  Box,
-  Banner,
-  Button as PolarisButton,
-  Card as PolarisCard,
-  Checkbox,
-  ChoiceList,
-  Divider,
-  InlineStack,
-  Layout,
-  Page,
-  RangeSlider,
-  SkeletonPage,
-  Text,
-  TextField,
-} from '@shopify/polaris';
-import { Bot } from 'lucide-react';
+import { getErrorMessage, getErrorStatus } from '@/lib/errors';
 import { useTranslations } from 'next-intl';
 import { ShopifySaveBar } from '@/components/ui/ShopifySaveBar';
 import { InlineError } from '@/components/ui/InlineError';
 import { isShopifyEmbedded } from '@/lib/shopifyEmbedded';
+import { Button } from '@/components/recete';
+import { Switch } from '@/components/recete/Switch';
 
 interface Merchant {
   id: string;
@@ -44,140 +29,157 @@ interface Merchant {
   created_at: string;
 }
 
+const TONES = ['friendly', 'professional', 'casual', 'formal'] as const;
+const LENGTHS = ['short', 'medium', 'long'] as const;
 const WELCOME_TEMPLATE_TOKENS = [
-  {
-    label: 'First name',
-    token: '{{customer_first_name}}',
-    help: "Adds the buyer's first name.",
-  },
-  {
-    label: 'Order number',
-    token: '{{order_number}}',
-    help: 'Adds the order number from Shopify.',
-  },
-  {
-    label: 'Product names',
-    token: '{{product_names}}',
-    help: 'Adds product names in a natural sentence.',
-  },
-  {
-    label: 'Product count',
-    token: '{{product_count}}',
-    help: 'Adds how many products were in the order.',
-  },
-  {
-    label: 'Bot name',
-    token: '{{bot_name}}',
-    help: 'Adds the configured bot name.',
-  },
+  'firstName',
+  'orderNumber',
+  'productNames',
+  'productCount',
+  'botName',
 ] as const;
 
-function appendWelcomeTemplateToken(template: string, token: string) {
+const TOKEN_VALUE: Record<(typeof WELCOME_TEMPLATE_TOKENS)[number], string> = {
+  firstName: '{{customer_first_name}}',
+  orderNumber: '{{order_number}}',
+  productNames: '{{product_names}}',
+  productCount: '{{product_count}}',
+  botName: '{{bot_name}}',
+};
+
+function appendToken(template: string, token: string) {
   if (!template.trim()) return token;
   return /[\s\n]$/.test(template) ? `${template}${token}` : `${template} ${token}`;
 }
 
-function buildWelcomeTemplatePreview(template: string, botName: string) {
-  const baseTemplate =
-    template.trim() ||
-    'Tekrar selamlar {{customer_first_name}}, "1212" nolu siparişinize ait {{product_names}} elinize ulaşmış olmalı. Nasıl kullanacağınızı biliyor musunuz? Destek olmamızı ister misiniz?';
-
-  return baseTemplate
-    .replace(/\{\{\s*customer_first_name\s*\}\}/gi, 'Ayse')
+function buildPreview(template: string, botName: string, fallbackSample: string) {
+  const base = template.trim() || fallbackSample;
+  return base
+    .replace(/\{\{\s*customer_first_name\s*\}\}/gi, 'Ayşe')
     .replace(/\{\{\s*order_number\s*\}\}/gi, '1212')
-    .replace(/\{\{\s*product_names\s*\}\}/gi, 'A serumu ve B kremi')
+    .replace(/\{\{\s*product_names\s*\}\}/gi, 'A Serumu ve B Kremi')
     .replace(/\{\{\s*product_count\s*\}\}/gi, '2')
     .replace(/\{\{\s*bot_name\s*\}\}/gi, botName.trim() || 'Recete');
 }
 
 export default function SettingsPage() {
   const t = useTranslations('Settings');
+  const fieldPrefix = useId();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
 
-  // Bot persona form state
   const [botName, setBotName] = useState('');
-  const [tone, setTone] = useState<'friendly' | 'professional' | 'casual' | 'formal'>('friendly');
+  const [original, setOriginal] = useState<{
+    botName: string; tone: (typeof TONES)[number]; emoji: boolean;
+    responseLength: (typeof LENGTHS)[number]; temperature: number;
+    whatsappWelcomeTemplate: string; messageSendMode: 'always' | 'all_products_required';
+  } | null>(null);
+  const [tone, setTone] = useState<(typeof TONES)[number]>('friendly');
   const [emoji, setEmoji] = useState(true);
-  const [responseLength, setResponseLength] = useState<'short' | 'medium' | 'long'>('medium');
+  const [responseLength, setResponseLength] = useState<(typeof LENGTHS)[number]>('medium');
   const [temperature, setTemperature] = useState(0.7);
   const [whatsappWelcomeTemplate, setWhatsappWelcomeTemplate] = useState('');
   const [messageSendMode, setMessageSendMode] = useState<'always' | 'all_products_required'>('always');
 
-  const welcomeTemplatePreview = buildWelcomeTemplatePreview(whatsappWelcomeTemplate, botName);
+  const preview = buildPreview(whatsappWelcomeTemplate, botName, t('botPersona.welcomeTemplatePlaceholder'));
 
-  const getErrorMessage = (err: unknown, fallback: string) => {
-    if (err instanceof Error && err.message) return err.message;
-    return fallback;
-  };
+  /**
+   * Derived from a comparison, not tracked as a side-channel boolean. The old
+   * isDirty flag was set to true by every onChange handler and never reset except
+   * on save/discard — editing a field then typing back the original value still
+   * counted as dirty, and a bug in any one handler could leave it stuck either way.
+   */
+  const isDirty = original !== null && (
+    botName !== original.botName ||
+    tone !== original.tone ||
+    emoji !== original.emoji ||
+    responseLength !== original.responseLength ||
+    temperature !== original.temperature ||
+    whatsappWelcomeTemplate !== original.whatsappWelcomeTemplate ||
+    messageSendMode !== original.messageSendMode
+  );
 
-  const getErrorStatus = (err: unknown): number | undefined => {
-    if (typeof err === 'object' && err !== null && 'status' in err) {
-      const status = (err as { status?: unknown }).status;
-      if (typeof status === 'number') return status;
-    }
-    return undefined;
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         window.location.href = '/login';
         return;
       }
-
-      const merchantResponse = await authenticatedRequest<{ merchant: Merchant }>(
-        '/api/merchants/me',
-        session.access_token
-      );
-
-      const persona = merchantResponse.merchant.persona_settings || {};
-      setBotName(persona.bot_name || t('botPersona.namePlaceholder'));
-      setTone(persona.tone || 'friendly');
-      setEmoji(persona.emoji !== false);
-      setResponseLength(persona.response_length || 'medium');
-      setTemperature(persona.temperature || 0.7);
-      setWhatsappWelcomeTemplate(
-        typeof persona.whatsapp_welcome_template === 'string'
-          ? persona.whatsapp_welcome_template
-          : ''
-      );
-      setMessageSendMode(persona.message_send_mode || 'always');
-    } catch (err: unknown) {
-      console.error('Failed to load settings:', err);
+      const response = await authenticatedRequest<{ merchant: Merchant }>('/api/merchants/me', session.access_token);
+      const persona = response.merchant.persona_settings || {};
+      /*
+       * This used to fall back to the *translated placeholder text* as the actual
+       * field value: setBotName(persona.bot_name || t('...namePlaceholder')). The
+       * moment a merchant with no bot name saved anything else on this page, "Assistant"
+       * (or "Asistan", whichever locale loaded first) was written to the database as
+       * a real, permanent bot name — not shown as a placeholder at all, since the
+       * input already had non-empty content. An unset name now stays empty and the
+       * <input placeholder> attribute does the placeholder's actual job.
+       */
+      const loaded = {
+        botName: persona.bot_name || '',
+        tone: persona.tone || 'friendly',
+        emoji: persona.emoji !== false,
+        responseLength: persona.response_length || 'medium',
+        temperature: persona.temperature ?? 0.7,
+        whatsappWelcomeTemplate: typeof persona.whatsapp_welcome_template === 'string' ? persona.whatsapp_welcome_template : '',
+        messageSendMode: persona.message_send_mode || 'always',
+      } as const;
+      setBotName(loaded.botName);
+      setTone(loaded.tone);
+      setEmoji(loaded.emoji);
+      setResponseLength(loaded.responseLength);
+      setTemperature(loaded.temperature);
+      setWhatsappWelcomeTemplate(loaded.whatsappWelcomeTemplate);
+      setMessageSendMode(loaded.messageSendMode);
+      setOriginal(loaded);
+    } catch (err) {
       if (getErrorStatus(err) === 401) {
         window.location.href = '/login';
-      } else {
-        toast.error(t('toasts.saveError.title'), t('toasts.saveError.message'));
+        return;
       }
+      toast.error(t('toasts.saveError.title'), t('toasts.saveError.message'));
     } finally {
       setLoading(false);
     }
+  }, [t]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [isDirty]);
+
+  const discard = () => {
+    if (original) {
+      setBotName(original.botName);
+      setTone(original.tone);
+      setEmoji(original.emoji);
+      setResponseLength(original.responseLength);
+      setTemperature(original.temperature);
+      setWhatsappWelcomeTemplate(original.whatsappWelcomeTemplate);
+      setMessageSendMode(original.messageSendMode);
+    }
+    setSaveError(null);
   };
 
-  const handleSavePersona = async () => {
+  const handleSave = async () => {
+    setSaving(true);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-
-      setSaving(true);
-
       await authenticatedRequest('/api/merchants/me', session.access_token, {
         method: 'PUT',
         body: JSON.stringify({
           persona_settings: {
-            bot_name: botName,
+            bot_name: botName.trim() || undefined,
             tone,
             emoji,
             response_length: responseLength,
@@ -187,15 +189,11 @@ export default function SettingsPage() {
           },
         }),
       });
-
       toast.success(t('toasts.saveSuccess.title'), t('toasts.saveSuccess.message'));
       setSaveError(null);
-      setIsDirty(false);
       await loadData();
-    } catch (err: unknown) {
-      console.error('Failed to save persona:', err);
-      const message = getErrorMessage(err, t('toasts.saveError.message'));
-      setSaveError(message);
+    } catch (err) {
+      setSaveError(getErrorMessage(err, t('toasts.saveError.message')));
     } finally {
       setSaving(false);
     }
@@ -203,299 +201,234 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <SkeletonPage title={t('title')}>
-        <Layout>
-          <Layout.Section>
-            <BlockStack gap="500">
-              <PolarisCard>
-                <Box padding="400">
-                  <div className="h-20 bg-zinc-100 rounded-lg animate-pulse" />
-                </Box>
-              </PolarisCard>
-              <PolarisCard>
-                <Box padding="400">
-                  <div className="h-80 bg-zinc-100 rounded-lg animate-pulse" />
-                </Box>
-              </PolarisCard>
-            </BlockStack>
-          </Layout.Section>
-        </Layout>
-      </SkeletonPage>
+      <div className="r-card" style={{ maxWidth: 760 }} role="status" aria-label={t('loading')}>
+        <div className="r-skeleton" style={{ height: 18, width: 200 }} />
+        <div className="r-skeleton" style={{ height: 320, marginTop: 18 }} />
+      </div>
     );
   }
 
   return (
-    <Page title={t('title')} subtitle={t('description')} fullWidth>
-      <Layout>
-        <Layout.Section>
-          <div className="space-y-6 animate-fade-in pb-8">
-            {/* Bot Persona Settings */}
-            <PolarisCard>
-              <Box id="settings-bot-persona" padding="400">
-                <BlockStack gap="400">
-                  <InlineStack gap="300" blockAlign="start">
-                    <Box background="bg-fill-brand" borderRadius="300" padding="300">
-                      <Bot className="w-5 h-5 text-white" />
-                    </Box>
-                    <BlockStack gap="100">
-                      <Text as="h2" variant="headingMd">
-                        {t('botPersona.title')}
-                      </Text>
-                      <Text as="p" tone="subdued">
-                        {t('botPersona.description')}{' '}
-                        <Link
-                          href="/dashboard/settings/bot-info"
-                          className="text-primary hover:text-primary/80 font-semibold transition-colors"
-                        >
-                          {t('botPersona.botInfoLink')}
-                        </Link>
-                      </Text>
-                    </BlockStack>
-                  </InlineStack>
+    <div className="r-card" id="settings-bot-persona" style={{ maxWidth: 760, display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div>
+        <div className="r-card-title">{t('botPersona.title')}</div>
+        <p className="r-hint" style={{ marginTop: 3 }}>
+          {t('botPersona.description')}{' '}
+          <Link href="/dashboard/settings/bot-info" style={{ color: 'var(--r-brand)', fontWeight: 'var(--r-weight-semibold)' }}>
+            {t('botPersona.botInfoLink')}
+          </Link>
+        </p>
+      </div>
 
-                  {/* Bot Name */}
-                  <TextField
-                    label={t('botPersona.nameLabel')}
-                    type="text"
-                    value={botName}
-                    onChange={(value) => {
-                      setBotName(value);
-                      setIsDirty(true);
-                    }}
-                    placeholder={t('botPersona.namePlaceholder')}
-                    autoComplete="off"
-                  />
+      <div>
+        <label className="r-label" htmlFor={`${fieldPrefix}-name`}>{t('botPersona.nameLabel')}</label>
+        <input
+          id={`${fieldPrefix}-name`}
+          className="r-input"
+          style={{ maxWidth: 320 }}
+          value={botName}
+          onChange={(e) => setBotName(e.target.value)}
+          placeholder={t('botPersona.namePlaceholder')}
+          autoComplete="off"
+        />
+      </div>
 
-                  {/* Tone */}
-                  <ChoiceList
-                    title={t('botPersona.toneLabel')}
-                    choices={(['friendly', 'professional', 'casual', 'formal'] as const).map(
-                      (tKey) => ({
-                        label: t(`botPersona.tones.${tKey}`),
-                        value: tKey,
-                      })
-                    )}
-                    selected={[tone]}
-                    onChange={(selected) => {
-                      const next = selected[0] as typeof tone | undefined;
-                      if (next) {
-                        setTone(next);
-                        setIsDirty(true);
-                      }
-                    }}
-                  />
+      <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+        <legend className="r-label" style={{ padding: 0, marginBottom: 8 }}>{t('botPersona.toneLabel')}</legend>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {TONES.map((value) => (
+            <label key={value} style={{ cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name={`${fieldPrefix}-tone`}
+                value={value}
+                checked={tone === value}
+                onChange={() => setTone(value)}
+                className="sr-only"
+              />
+              <span
+                className="r-tab"
+                style={tone === value ? { background: 'var(--r-brand-tint)', color: 'var(--r-brand)' } : undefined}
+              >
+                {t(`botPersona.tones.${value}`)}
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
-                  {/* Emoji */}
-                  <Checkbox
-                    label={t('botPersona.emojiLabel')}
-                    helpText={t('botPersona.emojiDesc')}
-                    checked={emoji}
-                    onChange={(checked) => {
-                      setEmoji(checked);
-                      setIsDirty(true);
-                    }}
-                  />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <Switch label={t('botPersona.emojiLabel')} checked={emoji} onChange={setEmoji} />
+        <p className="r-field-help">{t('botPersona.emojiDesc')}</p>
+      </div>
 
-                  {/* Response Length */}
-                  <ChoiceList
-                    title={t('botPersona.responseLengthLabel')}
-                    choices={(['short', 'medium', 'long'] as const).map((length) => ({
-                      label: t(`botPersona.lengths.${length}`),
-                      value: length,
-                    }))}
-                    selected={[responseLength]}
-                    onChange={(selected) => {
-                      const next = selected[0] as typeof responseLength | undefined;
-                      if (next) {
-                        setResponseLength(next);
-                        setIsDirty(true);
-                      }
-                    }}
-                  />
+      <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+        <legend className="r-label" style={{ padding: 0, marginBottom: 8 }}>{t('botPersona.responseLengthLabel')}</legend>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {LENGTHS.map((value) => (
+            <label key={value} style={{ cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name={`${fieldPrefix}-length`}
+                value={value}
+                checked={responseLength === value}
+                onChange={() => setResponseLength(value)}
+                className="sr-only"
+              />
+              <span
+                className="r-tab"
+                style={responseLength === value ? { background: 'var(--r-brand-tint)', color: 'var(--r-brand)' } : undefined}
+              >
+                {t(`botPersona.lengths.${value}`)}
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
-                  {/* Temperature */}
-                  <BlockStack gap="200">
-                    <Text as="p" variant="bodyMd" fontWeight="medium">
-                      {t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
-                    </Text>
-                    <RangeSlider
-                      label={t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
-                      labelHidden
-                      min={0}
-                      max={1}
-                      step={0.1}
-                      value={temperature}
-                      onChange={(value) => {
-                        setTemperature(Number(value));
-                        setIsDirty(true);
-                      }}
-                    />
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodySm" tone="subdued">
-                        {t('botPersona.tempLabels.consistent')}
-                      </Text>
-                      <Text as="span" variant="bodySm" tone="subdued">
-                        {t('botPersona.tempLabels.balanced')}
-                      </Text>
-                      <Text as="span" variant="bodySm" tone="subdued">
-                        {t('botPersona.tempLabels.creative')}
-                      </Text>
-                    </InlineStack>
-                  </BlockStack>
+      <div>
+        <label className="r-label" htmlFor={`${fieldPrefix}-temp`}>
+          {t('botPersona.temperatureLabel', { value: temperature.toFixed(1) })}
+        </label>
+        <input
+          id={`${fieldPrefix}-temp`}
+          type="range"
+          min={0}
+          max={1}
+          step={0.1}
+          value={temperature}
+          onChange={(e) => setTemperature(Number(e.target.value))}
+          style={{ width: '100%', maxWidth: 480, accentColor: 'var(--r-brand)' }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', maxWidth: 480 }}>
+          <span className="r-hint">{t('botPersona.tempLabels.consistent')}</span>
+          <span className="r-hint">{t('botPersona.tempLabels.balanced')}</span>
+          <span className="r-hint">{t('botPersona.tempLabels.creative')}</span>
+        </div>
+      </div>
 
-                  <Divider />
+      <hr style={{ border: 0, borderTop: '1px solid var(--r-border)', margin: 0 }} />
 
-                  {/* Message Send Mode */}
-                  <ChoiceList
-                    title="WhatsApp mesaj gönderme kuralı"
-                    choices={[
-                      {
-                        label: 'Her zaman gönder',
-                        value: 'always',
-                        helpText: 'Müşteri sipariş verdiğinde ürün Recete\'de tanımlı olsun olmasın WhatsApp mesajı gönderilir. Tanımlı ürünler için kullanım talimatları eklenir, tanımsız ürünler için genel karşılama mesajı gönderilir.',
-                      },
-                      {
-                        label: 'Tüm ürünler tanımlıysa gönder',
-                        value: 'all_products_required',
-                        helpText: 'Siparişteki tüm ürünlerin Recete\'de kullanım talimatı tanımlı olması gerekir. Herhangi bir ürün tanımsızsa WhatsApp mesajı hiç gönderilmez.',
-                      },
-                    ]}
-                    selected={[messageSendMode]}
-                    onChange={(selected) => {
-                      const next = selected[0] as typeof messageSendMode | undefined;
-                      if (next) {
-                        setMessageSendMode(next);
-                        setIsDirty(true);
-                      }
-                    }}
-                  />
+      {/*
+        This whole section was hardcoded Turkish — title, both option labels, and
+        both option descriptions — on a page whose every other line is translated.
+        A merchant with the interface set to English still read this section in
+        Turkish, and the design had no way of adapting it to any other language.
+      */}
+      <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+        <legend className="r-label" style={{ padding: 0, marginBottom: 8 }}>{t('botPersona.sendMode.title')}</legend>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {(['always', 'all_products_required'] as const).map((value) => (
+            <label key={value} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name={`${fieldPrefix}-sendmode`}
+                value={value}
+                checked={messageSendMode === value}
+                onChange={() => setMessageSendMode(value)}
+                style={{ marginTop: 3 }}
+              />
+              <span>
+                <span style={{ display: 'block', fontSize: 'var(--r-text-base-plus)', fontWeight: 'var(--r-weight-semibold)' }}>
+                  {t(`botPersona.sendMode.${value}.label`)}
+                </span>
+                <span className="r-hint">{t(`botPersona.sendMode.${value}.help`)}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
-                  <Divider />
+      <hr style={{ border: 0, borderTop: '1px solid var(--r-border)', margin: 0 }} />
 
-                  {/* Welcome Template */}
-                  <BlockStack gap="200">
-                    <Banner tone="info">
-                      <p>
-                        Welcome messaging follows the 24-hour WhatsApp rule. If the customer already has an open conversation window, Recete sends the rendered welcome text below as a normal message. If the window is closed and Twilio is the sender, Recete uses a platform-managed approved WhatsApp template and injects the rendered message automatically.
-                      </p>
-                    </Banner>
-                    <TextField
-                      label={t('botPersona.welcomeTemplateLabel')}
-                      value={whatsappWelcomeTemplate}
-                      onChange={(value) => {
-                        setWhatsappWelcomeTemplate(value);
-                        setIsDirty(true);
-                      }}
-                      placeholder={t('botPersona.welcomeTemplatePlaceholder')}
-                      multiline={6}
-                      autoComplete="off"
-                    />
-                    <Text as="p" tone="subdued">
-                      Build the welcome message once. Recete fills in customer and order details automatically.
-                    </Text>
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodyMd" fontWeight="medium">
-                        Insert order variables
-                      </Text>
-                      <InlineStack gap="200" wrap>
-                        {WELCOME_TEMPLATE_TOKENS.map((item) => (
-                          <PolarisButton
-                            key={item.token}
-                            onClick={() => {
-                              setWhatsappWelcomeTemplate((current) =>
-                                appendWelcomeTemplateToken(current, item.token)
-                              );
-                              setIsDirty(true);
-                            }}
-                          >
-                            {item.label}
-                          </PolarisButton>
-                        ))}
-                      </InlineStack>
-                      <BlockStack gap="100">
-                        {WELCOME_TEMPLATE_TOKENS.map((item) => (
-                          <Text key={item.token} as="p" variant="bodySm" tone="subdued">
-                            <strong>{item.token}</strong> {item.help}
-                          </Text>
-                        ))}
-                      </BlockStack>
-                    </BlockStack>
-                    <Box
-                      padding="300"
-                      borderWidth="025"
-                      borderColor="border"
-                      borderRadius="300"
-                      background="bg-surface-secondary"
-                    >
-                      <BlockStack gap="150">
-                        <Text as="p" variant="bodySm" fontWeight="medium">
-                          Preview
-                        </Text>
-                        <Text as="p" variant="bodySm">
-                          {welcomeTemplatePreview}
-                        </Text>
-                      </BlockStack>
-                    </Box>
-                    <Box
-                      padding="300"
-                      borderWidth="025"
-                      borderColor="border"
-                      borderRadius="300"
-                      background="bg-surface-secondary"
-                    >
-                      <BlockStack gap="150">
-                        <Text as="p" variant="bodySm" fontWeight="medium">
-                          {t('botPersona.welcomeTemplatePlaceholdersTitle')}
-                        </Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {t('botPersona.welcomeTemplatePlaceholderOrder')}
-                        </Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {t('botPersona.welcomeTemplatePlaceholderProducts')}
-                        </Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          Additional placeholders: {'{{customer_first_name}}'}, {'{{product_count}}'}, {'{{bot_name}}'}
-                        </Text>
-                      </BlockStack>
-                    </Box>
-                  </BlockStack>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            padding: 'var(--r-space-6) var(--r-space-7)',
+            background: 'var(--r-brand-tint)',
+            borderRadius: 'var(--r-radius-md)',
+            fontSize: 'var(--r-text-sm-plus)',
+            color: 'var(--r-text-secondary)',
+          }}
+        >
+          {t('botPersona.welcomeTemplateWindowNotice')}
+        </div>
 
-                  <Box paddingBlockStart="300" borderBlockStartWidth="025" borderColor="border">
-                    <BlockStack gap="300">
-                      <InlineError message={saveError} onDismiss={() => setSaveError(null)} />
+        <label className="r-label" htmlFor={`${fieldPrefix}-welcome`}>{t('botPersona.welcomeTemplateLabel')}</label>
+        <textarea
+          id={`${fieldPrefix}-welcome`}
+          className="r-textarea"
+          rows={6}
+          value={whatsappWelcomeTemplate}
+          onChange={(e) => setWhatsappWelcomeTemplate(e.target.value)}
+          placeholder={t('botPersona.welcomeTemplatePlaceholder')}
+        />
+        <p className="r-field-help">{t('botPersona.welcomeTemplateDesc')}</p>
 
-                      <ShopifySaveBar
-                        id="settings-persona-csb"
-                        isDirty={isDirty}
-                        saving={saving}
-                        onSave={handleSavePersona}
-                        onDiscard={() => {
-                          setIsDirty(false);
-                          setSaveError(null);
-                          loadData();
-                        }}
-                      />
-
-                      {!isShopifyEmbedded() && (
-                        <InlineStack>
-                          <PolarisButton
-                            onClick={handleSavePersona}
-                            disabled={saving}
-                            loading={saving}
-                            variant="primary"
-                          >
-                            {saving ? t('botPersona.saving') : t('botPersona.saveButton')}
-                          </PolarisButton>
-                        </InlineStack>
-                      )}
-                    </BlockStack>
-                  </Box>
-                </BlockStack>
-              </Box>
-            </PolarisCard>
+        <div>
+          <p style={{ fontSize: 'var(--r-text-base-plus)', fontWeight: 'var(--r-weight-semibold)', margin: '4px 0 8px' }}>
+            {t('botPersona.insertVariables')}
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+            {WELCOME_TEMPLATE_TOKENS.map((key) => (
+              <Button
+                key={key}
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setWhatsappWelcomeTemplate((current) => appendToken(current, TOKEN_VALUE[key]))}
+              >
+                {t(`botPersona.welcomeTokens.${key}.label`)}
+              </Button>
+            ))}
           </div>
-        </Layout.Section>
-      </Layout>
-    </Page>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {WELCOME_TEMPLATE_TOKENS.map((key) => (
+              <p key={key} className="r-hint">
+                <strong>{TOKEN_VALUE[key]}</strong> {t(`botPersona.welcomeTokens.${key}.help`)}
+              </p>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ padding: 'var(--r-space-6) var(--r-space-7)', background: 'var(--r-bg)', borderRadius: 'var(--r-radius-md)', border: '1px solid var(--r-border)' }}>
+          <p style={{ fontSize: 'var(--r-text-sm-plus)', fontWeight: 'var(--r-weight-semibold)', margin: '0 0 4px' }}>
+            {t('botPersona.previewLabel')}
+          </p>
+          <p style={{ fontSize: 'var(--r-text-sm-plus)', margin: 0, whiteSpace: 'pre-wrap' }}>{preview}</p>
+        </div>
+
+        <div style={{ padding: 'var(--r-space-6) var(--r-space-7)', background: 'var(--r-bg)', borderRadius: 'var(--r-radius-md)', border: '1px solid var(--r-border)' }}>
+          <p style={{ fontSize: 'var(--r-text-sm-plus)', fontWeight: 'var(--r-weight-semibold)', margin: '0 0 4px' }}>
+            {t('botPersona.welcomeTemplatePlaceholdersTitle')}
+          </p>
+          <p className="r-hint">{t('botPersona.welcomeTemplatePlaceholderOrder')}</p>
+          <p className="r-hint">{t('botPersona.welcomeTemplatePlaceholderProducts')}</p>
+          <p className="r-hint">
+            {t('botPersona.additionalPlaceholders')}: {WELCOME_TEMPLATE_TOKENS.filter((k) => k !== 'orderNumber' && k !== 'productNames').map((k) => TOKEN_VALUE[k]).join(', ')}
+          </p>
+        </div>
+      </div>
+
+      <div style={{ paddingTop: 12, borderTop: '1px solid var(--r-border)' }}>
+        <InlineError message={saveError} onDismiss={() => setSaveError(null)} />
+
+        <ShopifySaveBar id="settings-persona-csb" isDirty={isDirty} saving={saving} onSave={handleSave} onDiscard={discard} />
+
+        {!isShopifyEmbedded() && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12, marginTop: saveError ? 12 : 0 }}>
+            {isDirty ? <span className="r-hint">{t('unsavedChanges')}</span> : null}
+            {isDirty ? (
+              <Button variant="secondary" onClick={discard} disabled={saving}>{t('discard')}</Button>
+            ) : null}
+            <Button variant="primary" onClick={handleSave} loading={saving} disabled={!isDirty}>
+              {saving ? t('botPersona.saving') : t('botPersona.saveButton')}
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

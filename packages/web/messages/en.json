@@ -926,6 +926,8 @@
         }
     },
     "Settings": {
+        "unsavedChanges": "Unsaved changes",
+        "discard": "Discard",
         "loading": "Loading settings…",
         "nav": {
             "label": "Settings sections",
@@ -965,6 +967,43 @@
         },
         "guardrailsLink": "Guardrails →",
         "botPersona": {
+            "sendMode": {
+                "title": "WhatsApp sending rule",
+                "always": {
+                    "label": "Always send",
+                    "help": "A WhatsApp message is sent for every order, whether or not the products in it are set up in Recete. Products with usage instructions get them; products without get a general welcome message."
+                },
+                "all_products_required": {
+                    "label": "Only send if every product is set up",
+                    "help": "Every product in the order must have usage instructions in Recete. If any product is missing them, no WhatsApp message is sent for that order at all."
+                }
+            },
+            "welcomeTemplateWindowNotice": "Welcome messaging follows the 24-hour WhatsApp rule. If the customer already has an open conversation window, Recete sends the rendered text below as a normal message. If the window is closed and Twilio is the sender, Recete uses a platform-managed approved WhatsApp template and injects the rendered message automatically.",
+            "insertVariables": "Insert order variables",
+            "previewLabel": "Preview",
+            "additionalPlaceholders": "Additional placeholders",
+            "welcomeTokens": {
+                "firstName": {
+                    "label": "First name",
+                    "help": "Adds the buyer's first name."
+                },
+                "orderNumber": {
+                    "label": "Order number",
+                    "help": "Adds the order number from Shopify."
+                },
+                "productNames": {
+                    "label": "Product names",
+                    "help": "Adds product names in a natural sentence."
+                },
+                "productCount": {
+                    "label": "Product count",
+                    "help": "Adds how many products were in the order."
+                },
+                "botName": {
+                    "label": "Bot name",
+                    "help": "Adds the configured bot name."
+                }
+            },
             "title": "Bot Persona",
             "description": "Define how your AI bot speaks to customers.",
             "botInfoLink": "Bot Info (AI Guidelines) →",

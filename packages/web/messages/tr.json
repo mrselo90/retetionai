@@ -922,6 +922,8 @@
         }
     },
     "Settings": {
+        "unsavedChanges": "Kaydedilmemiş değişiklik",
+        "discard": "Vazgeç",
         "loading": "Ayarlar yükleniyor…",
         "nav": {
             "label": "Ayar bölümleri",
@@ -961,6 +963,43 @@
         },
         "guardrailsLink": "Kurallar →",
         "botPersona": {
+            "sendMode": {
+                "title": "WhatsApp mesaj gönderme kuralı",
+                "always": {
+                    "label": "Her zaman gönder",
+                    "help": "Müşteri sipariş verdiğinde ürün Recete'de tanımlı olsun olmasın WhatsApp mesajı gönderilir. Tanımlı ürünler için kullanım talimatları eklenir, tanımsız ürünler için genel karşılama mesajı gönderilir."
+                },
+                "all_products_required": {
+                    "label": "Tüm ürünler tanımlıysa gönder",
+                    "help": "Siparişteki tüm ürünlerin Recete'de kullanım talimatı tanımlı olması gerekir. Herhangi bir ürün tanımsızsa WhatsApp mesajı hiç gönderilmez."
+                }
+            },
+            "welcomeTemplateWindowNotice": "Karşılama mesajı 24 saatlik WhatsApp kuralına tabidir. Müşterinin açık bir konuşma penceresi varsa Recete aşağıdaki metni normal mesaj olarak gönderir. Pencere kapalıysa ve gönderen Twilio ise Recete, platform tarafından onaylı bir WhatsApp şablonu kullanır ve metni otomatik olarak yerleştirir.",
+            "insertVariables": "Sipariş değişkeni ekle",
+            "previewLabel": "Önizleme",
+            "additionalPlaceholders": "Diğer değişkenler",
+            "welcomeTokens": {
+                "firstName": {
+                    "label": "Ad",
+                    "help": "Alıcının adını ekler."
+                },
+                "orderNumber": {
+                    "label": "Sipariş numarası",
+                    "help": "Shopify sipariş numarasını ekler."
+                },
+                "productNames": {
+                    "label": "Ürün adları",
+                    "help": "Ürün adlarını doğal bir cümle içinde ekler."
+                },
+                "productCount": {
+                    "label": "Ürün sayısı",
+                    "help": "Siparişteki ürün sayısını ekler."
+                },
+                "botName": {
+                    "label": "Bot adı",
+                    "help": "Yapılandırılmış bot adını ekler."
+                }
+            },
             "title": "Bot kişiliği",
             "description": "Yapay zekâ botunuzun müşterilerle nasıl konuşacağını tanımlayın.",
             "botInfoLink": "Bot bilgisi (yapay zekâ yönergeleri) →",
