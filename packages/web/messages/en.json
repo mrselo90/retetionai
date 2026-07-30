@@ -1236,6 +1236,16 @@
         }
     },
     "Analytics": {
+        "loading": "Loading analytics…",
+        "loadError": {
+            "title": "Could not load analytics",
+            "message": "Please try refreshing the page.",
+            "retry": "Try again"
+        },
+        "dateRange": {
+            "start": "Start date",
+            "end": "End date"
+        },
         "title": "Analytics",
         "description": "System performance and metrics",
         "metrics": {

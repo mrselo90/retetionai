@@ -1232,6 +1232,16 @@
         }
     },
     "Analytics": {
+        "loading": "Analiz yükleniyor…",
+        "loadError": {
+            "title": "Analiz yüklenemedi",
+            "message": "Lütfen sayfayı yenilemeyi deneyin.",
+            "retry": "Tekrar dene"
+        },
+        "dateRange": {
+            "start": "Başlangıç tarihi",
+            "end": "Bitiş tarihi"
+        },
         "title": "Analitik",
         "description": "Sistem performansı ve metrikler",
         "metrics": {

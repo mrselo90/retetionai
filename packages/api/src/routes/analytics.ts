@@ -40,39 +40,56 @@ analytics.get('/dashboard', async (c) => {
 
     const userIds = merchantUsers?.map((u) => u.id) || [];
 
-    // Get 30 days ago date
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    thirtyDaysAgo.setHours(0, 0, 0, 0);
+    /*
+     * The DAU and message-volume charts used to ignore startDate/endDate
+     * entirely and always compute "the 30 days ending today", no matter what
+     * range the merchant picked with the date inputs on screen. Changing the
+     * range visibly moved nothing except one hidden metric (avgSentiment,
+     * gated off below because analytics_events has no writer yet) — the date
+     * picker looked interactive and did nothing. Both charts, plus the return
+     * rate below, now use the requested range.
+     *
+     * Capped at 366 days so a merchant selecting a multi-year span can't make
+     * this build a bucket per day into the tens of thousands.
+     */
+    const rangeStart = new Date(startDate);
+    const rangeEndInclusive = new Date(endDate);
+    rangeEndInclusive.setHours(0, 0, 0, 0);
+    const rangeEndExclusive = new Date(rangeEndInclusive);
+    rangeEndExclusive.setDate(rangeEndExclusive.getDate() + 1);
 
-    // Optimize: Fetch all conversations from last 30 days at once
-    const { data: recentConversations } = userIds.length > 0 
+    const rawDayCount = Math.round((rangeEndInclusive.getTime() - rangeStart.getTime()) / 86_400_000) + 1;
+    const dayCount = Number.isFinite(rawDayCount) ? Math.min(Math.max(rawDayCount, 1), 366) : 30;
+
+    // Optimize: Fetch all conversations in the selected range at once
+    const { data: recentConversations } = userIds.length > 0
       ? await serviceClient
           .from('conversations')
           .select('user_id, updated_at, history')
           .in('user_id', userIds)
-          .gte('updated_at', thirtyDaysAgo.toISOString())
+          .gte('updated_at', rangeStart.toISOString())
+          .lt('updated_at', rangeEndExclusive.toISOString())
       : { data: [] };
 
-    // Optimize: Fetch all scheduled tasks from last 30 days at once
+    // Optimize: Fetch all scheduled tasks in the selected range at once
     const { data: recentTasks } = userIds.length > 0
       ? await serviceClient
           .from('scheduled_tasks')
           .select('user_id, executed_at')
           .in('user_id', userIds)
           .eq('status', 'completed')
-          .gte('executed_at', thirtyDaysAgo.toISOString())
+          .gte('executed_at', rangeStart.toISOString())
+          .lt('executed_at', rangeEndExclusive.toISOString())
       : { data: [] };
 
     // Build DAU and Message Volume data in memory
     const dauMap = new Map<string, Set<string>>();
     const messageMap = new Map<string, { sent: number; received: number }>();
 
-    // Initialize all 30 days
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date();
+    // Initialize every day in the selected range
+    for (let i = dayCount - 1; i >= 0; i--) {
+      const date = new Date(rangeEndInclusive);
       date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
       const dateStr = date.toISOString().split('T')[0];
       dauMap.set(dateStr, new Set());
       messageMap.set(dateStr, { sent: 0, received: 0 });
@@ -107,16 +124,15 @@ analytics.get('/dashboard', async (c) => {
       }
     });
 
-    // Convert maps to arrays
+    // Convert maps to arrays, walking the same date range used to fetch the data above.
     const dauData: Array<{ date: string; count: number }> = [];
     const messageVolume: Array<{ date: string; sent: number; received: number }> = [];
 
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date();
+    for (let i = dayCount - 1; i >= 0; i--) {
+      const date = new Date(rangeEndInclusive);
       date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
       const dateStr = date.toISOString().split('T')[0];
-      
+
       dauData.push({
         date: dateStr,
         count: dauMap.get(dateStr)?.size || 0,
@@ -129,20 +145,29 @@ analytics.get('/dashboard', async (c) => {
       });
     }
 
-    // Average Sentiment - last 30 days
+    // Average sentiment within the selected range.
     const { data: analyticsEvents } = await serviceClient
       .from('analytics_events')
       .select('sentiment_score, created_at')
       .eq('merchant_id', merchantId)
-      .gte('created_at', startDate)
-      .lte('created_at', endDate)
+      .gte('created_at', rangeStart.toISOString())
+      .lt('created_at', rangeEndExclusive.toISOString())
       .not('sentiment_score', 'is', null);
 
     const avgSentiment = analyticsEvents && analyticsEvents.length > 0
       ? analyticsEvents.reduce((sum, e) => sum + (Number(e.sentiment_score) || 0), 0) / analyticsEvents.length
       : 0;
 
-    // Interaction Rate (users with at least 1 conversation / total users)
+    /*
+     * Total users and interaction rate stay all-time rather than scoped to the
+     * range: "total users" means the merchant's whole customer book, and
+     * "interaction rate" is how much of that book has ever engaged. Scoping
+     * either to a date window would require picking a different, unasked-for
+     * definition (signed up in range? active in range?) with no single obvious
+     * answer, so this is left as the one metric on the page that the date
+     * picker does not affect — unlike DAU/message volume/return rate above and
+     * below, which had a single unambiguous fix.
+     */
     const { count: totalUsers } = await serviceClient
       .from('users')
       .select('*', { count: 'exact', head: true })
@@ -157,17 +182,21 @@ analytics.get('/dashboard', async (c) => {
       ? Math.round((usersWithConversations || 0) / totalUsers * 100)
       : 0;
 
-    // Return Rate (orders with status 'returned' / total orders)
+    // Return rate (orders with status 'returned' / total orders) within the selected range.
     const { count: totalOrders } = await serviceClient
       .from('orders')
       .select('*', { count: 'exact', head: true })
-      .eq('merchant_id', merchantId);
+      .eq('merchant_id', merchantId)
+      .gte('created_at', rangeStart.toISOString())
+      .lt('created_at', rangeEndExclusive.toISOString());
 
     const { count: returnedOrders } = await serviceClient
       .from('orders')
       .select('*', { count: 'exact', head: true })
       .eq('merchant_id', merchantId)
-      .eq('status', 'returned');
+      .eq('status', 'returned')
+      .gte('created_at', rangeStart.toISOString())
+      .lt('created_at', rangeEndExclusive.toISOString());
 
     const returnRate = totalOrders && totalOrders > 0
       ? Math.round((returnedOrders || 0) / totalOrders * 100)
