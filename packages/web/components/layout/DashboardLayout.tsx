@@ -36,7 +36,7 @@ import {
   Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useDashboardAuth } from '@/hooks/useDashboardAuth';
 import { useShopify } from '@/components/ShopifyProvider';
 import { Avatar } from '@/components/recete';
@@ -45,12 +45,31 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+const SUPPORTED_LOCALES = ['en', 'tr'] as const;
+
+/**
+ * With localePrefix: 'never' the URL never carries a locale, so switching is
+ * just re-pointing the NEXT_LOCALE cookie the proxy reads on every request,
+ * then reloading. Kept as a plain top-level function, not inline in the
+ * component, so the React Compiler doesn't read the cookie/reload as a
+ * render-time mutation.
+ */
+function setLocaleCookie(next: string) {
+  document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=31536000`;
+  window.location.reload();
+}
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const t = useTranslations('Dashboard.sidebar');
+  const locale = useLocale();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { userEmail, loading } = useDashboardAuth();
   const { isEmbedded } = useShopify();
+
+  const switchLocale = (next: (typeof SUPPORTED_LOCALES)[number]) => {
+    if (next !== locale) setLocaleCookie(next);
+  };
 
   /**
    * The inbox is a three-pane surface that scrolls its own panes and pins a
@@ -188,6 +207,28 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         ))}
 
         <div className="r-sidebar-foot">
+          <div
+            className="r-segmented"
+            role="group"
+            aria-label={t('switchLanguage')}
+            style={{ marginBottom: 10 }}
+          >
+            {SUPPORTED_LOCALES.map((code) => (
+              <button
+                key={code}
+                type="button"
+                className={cn(
+                  'r-btn r-btn-sm r-segmented-btn',
+                  locale === code ? 'r-btn-primary' : 'r-btn-ghost'
+                )}
+                style={{ flex: 1 }}
+                onClick={() => switchLocale(code)}
+                aria-pressed={locale === code}
+              >
+                {code.toUpperCase()}
+              </button>
+            ))}
+          </div>
           <div className="r-user-row">
             <Avatar name={userEmail || 'U'} solid />
             <span style={{ minWidth: 0, flex: 1 }}>
