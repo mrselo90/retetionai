@@ -51,7 +51,13 @@ export default function CustomersPage() {
   const t = useTranslations('Customers');
   const locale = useLocale();
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [total, setTotal] = useState(0);
+  /**
+   * Null until the first response lands. It used to start at 0, so for the ~2s
+   * before data arrived the header stated "0 customers" and then jumped to the
+   * real number — a merchant with three customers was told they had none. Found by
+   * an independent pass over the live dashboard.
+   */
+  const [total, setTotal] = useState<number | null>(null);
   const [segmentCounts, setSegmentCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -164,7 +170,7 @@ export default function CustomersPage() {
   };
 
   const hasPrev = page > 1;
-  const hasNext = page * PAGE_SIZE < total;
+  const hasNext = total !== null && page * PAGE_SIZE < total;
 
   return (
     <div className="d-page">
@@ -173,13 +179,15 @@ export default function CustomersPage() {
       <div className="d-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 className="r-page-title">{t('title')}</h1>
-          <p className="r-page-sub">{t('subtitle', { total })}</p>
+          <p className="r-page-sub">
+            {total === null ? t('subtitleLoading') : t('subtitle', { total })}
+          </p>
         </div>
         <button
           type="button"
           className="r-btn r-btn-secondary"
           onClick={handleExport}
-          disabled={exporting || total === 0}
+          disabled={exporting || total === null || total === 0}
           aria-busy={exporting}
         >
           <Download size={14} aria-hidden="true" />
@@ -272,7 +280,7 @@ export default function CustomersPage() {
       )}
 
       {/* Pagination */}
-      {total > PAGE_SIZE && (
+      {total !== null && total > PAGE_SIZE && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, padding: '0 4px', gap: 12, flexWrap: 'wrap' }}>
           <span className="r-hint">
             {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} / {total}

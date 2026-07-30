@@ -1276,6 +1276,7 @@
         }
     },
     "Customers": {
+        "subtitleLoading": "All your customers and details",
         "export": {
             "button": "Export CSV",
             "busy": "Preparing…",

@@ -1271,6 +1271,7 @@
         }
     },
     "Customers": {
+        "subtitleLoading": "Tüm müşterileriniz ve ayrıntılar",
         "export": {
             "button": "CSV indir",
             "busy": "Hazırlanıyor…",

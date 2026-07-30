@@ -476,12 +476,20 @@ merchants.get('/me/stats', async (c) => {
       .eq('merchant_id', merchantId)
       .gte('created_at', monthStart);
 
-    // Active Users (users with consent_status = 'active')
+    /*
+     * Consented users — the dashboard's "Active Customers" KPI.
+     *
+     * This filtered on consent_status = 'active', a value nothing in the codebase
+     * ever writes: the schema documents 'pending' | 'opt_in' | 'opt_out', and
+     * 'opt_in' is what the ingest path writes and what deliveryTemplateService
+     * requires before sending. So the headline KPI on the merchant's first screen
+     * was permanently 0 while the customers list showed real people.
+     */
     const { count: activeUsersCount } = await serviceClient
       .from('users')
       .select('*', { count: 'exact', head: true })
       .eq('merchant_id', merchantId)
-      .eq('consent_status', 'active');
+      .eq('consent_status', 'opt_in');
 
     // Messages Sent (this month) - count scheduled_tasks via users with merchant_id
     const { count: messagesCount } = await serviceClient
