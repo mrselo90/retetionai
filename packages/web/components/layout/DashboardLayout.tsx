@@ -1,5 +1,25 @@
 'use client';
 
+/**
+ * Dashboard shell, design direction 1b.
+ *
+ * The screens were migrated onto the token layer bottom-up — tables, cards,
+ * badges — while this file kept the old chrome, so the app still read as the old
+ * design: a cream #FCFAF3 topbar, a #F3F4F6 Tailwind-grey canvas instead of the
+ * brand's #F6F7F6, and a translucent primary/10 active nav state rather than the
+ * brand tint. The chrome carries most of the visual identity, so none of the body
+ * work showed until this changed.
+ *
+ * Every behaviour is kept: the auth guard, embedded mode (Shopify admin supplies
+ * its own chrome, so ours is hidden), the mobile drawer, sign-out, and the
+ * full-bleed inbox exception.
+ *
+ * `shopify-dashboard-theme` deliberately stays on the content wrapper rather than
+ * the root. It scopes the legacy d-* rules that several screens still depend on
+ * (Dashboard, Analytics, Integrations, and two Settings tabs); dropping it here
+ * would restyle the chrome and unstyle those pages in the same commit.
+ */
+
 import { useState } from 'react';
 import { Link, usePathname } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
@@ -15,12 +35,11 @@ import {
   Puzzle,
   Users,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { useDashboardAuth } from '@/hooks/useDashboardAuth';
-import { Logo } from '@/components/ui/logo';
 import { useShopify } from '@/components/ShopifyProvider';
+import { Avatar } from '@/components/recete';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -35,20 +54,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   /**
    * The inbox is a three-pane surface that scrolls its own panes and pins a
-   * composer to the bottom, so the centred max-w-6xl column with page padding
-   * would both squeeze it and let the composer fall off the end of the document.
-   * Full-bleed pages get the whole width and a definite height instead.
+   * composer to the bottom, so the padded content column would both squeeze it
+   * and let the composer fall off the end of the document.
    *
-   * Definite is the operative word: with min-h-screen the shell has no ceiling,
-   * so a long thread simply grew the document and took the composer off-screen
-   * with it. h-dvh (not h-screen) because 100vh on mobile browsers is the
-   * viewport *behind* the URL bar.
-   *
-   * Scoped to this one route on purpose. Adding min-h-0 to <main> app-wide would
-   * finally let its overflow-y-auto fire, which is arguably how it was always
-   * meant to work — today the document scrolls and that scroll container is
-   * effectively dead — but that changes the scroll container on 16 other screens
-   * and is not this change's job.
+   * Definite height is the operative part: with min-h-screen the shell has no
+   * ceiling, so a long thread simply grew the document and took the composer
+   * off-screen with it. h-dvh, not h-screen, because 100vh on mobile browsers is
+   * the viewport *behind* the URL bar.
    */
   const isFullBleed = /\/dashboard\/conversations(\/|$)/.test(pathname);
 
@@ -57,202 +69,205 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     window.location.href = '/login';
   };
 
-  const navItems = [
-    { name: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
-    { name: t('products'), href: '/dashboard/products', icon: Package },
-    { name: t('customers'), href: '/dashboard/customers', icon: Users },
-    { name: t('conversations'), href: '/dashboard/conversations', icon: MessageSquare },
-    { name: t('analytics'), href: '/dashboard/analytics', icon: BarChart3 },
-    { name: t('integrations'), href: '/dashboard/integrations', icon: Puzzle },
-    { name: t('settings'), href: '/dashboard/settings', icon: Settings },
+  /**
+   * Grouped as the design groups them: what you work in, then what you configure.
+   * Only routes that exist — the design also shows Flows and Playground, which
+   * this dashboard has no pages for, and a nav item leading nowhere is worse than
+   * an absent one.
+   */
+  const navSections = [
+    {
+      label: t('sectionWorkspace'),
+      items: [
+        { name: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
+        { name: t('conversations'), href: '/dashboard/conversations', icon: MessageSquare },
+        { name: t('products'), href: '/dashboard/products', icon: Package },
+        { name: t('customers'), href: '/dashboard/customers', icon: Users },
+        { name: t('analytics'), href: '/dashboard/analytics', icon: BarChart3 },
+      ],
+    },
+    {
+      label: t('sectionConfigure'),
+      items: [
+        { name: t('integrations'), href: '/dashboard/integrations', icon: Puzzle },
+        { name: t('settings'), href: '/dashboard/settings', icon: Settings },
+      ],
+    },
   ];
+
+  const isActive = (href: string) =>
+    pathname === href || (href !== '/dashboard' && (pathname?.startsWith(`${href}/`) ?? false));
 
   if (loading) {
     return (
-      <div className="shopify-dashboard-theme min-h-screen flex items-center justify-center bg-[hsl(var(--surface))]">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+      <div
+        className="r-app"
+        style={{ alignItems: 'center', justifyContent: 'center' }}
+        role="status"
+        aria-label={t('loading')}
+      >
+        <span
+          style={{
+            width: 32,
+            height: 32,
+            border: '2px solid var(--r-border)',
+            borderTopColor: 'var(--r-brand)',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }}
+        />
       </div>
     );
   }
 
+  /* Embedded in Shopify admin: Polaris supplies the frame, so ours would double up. */
+  if (isEmbedded) {
+    return <div className="shopify-dashboard-theme">{children}</div>;
+  }
+
   return (
-    <div className={cn("shopify-dashboard-theme bg-[hsl(var(--surface))] flex", isFullBleed ? "h-dvh" : "min-h-screen")}>
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && !isEmbedded && (
-        <div
-          className="fixed inset-0 bg-black/25 backdrop-blur-[2px] z-40 lg:hidden animate-fade-in"
-          onClick={() => setIsSidebarOpen(false)}
-          aria-hidden="true"
-        />
+    <div className="r-app" style={isFullBleed ? { height: '100dvh' } : undefined}>
+      {isSidebarOpen && (
+        <div className="r-scrim" onClick={() => setIsSidebarOpen(false)} aria-hidden="true" />
       )}
 
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      {!isEmbedded && (
-        <aside
-          className={cn(
-            "shopify-app-sidebar fixed inset-y-0 left-0 z-50 w-[220px] border-r transition-transform duration-200 ease-out lg:translate-x-0 lg:static lg:block",
-            isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-          )}
-          role="navigation"
-          aria-label="Dashboard navigation"
-        >
-          <div className="h-full flex flex-col">
+      <nav className="r-sidebar" data-open={isSidebarOpen} aria-label={t('navLabel')}>
+        <div className="r-brand-row">
+          <Link
+            href="/dashboard"
+            onClick={() => setIsSidebarOpen(false)}
+            style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', minWidth: 0 }}
+          >
+            <span className="r-brand-mark" aria-hidden="true">R</span>
+            <span className="r-brand-name">Recete</span>
+          </Link>
+          {/* Mobile only — the drawer needs a way out that is not the scrim. */}
+          <button
+            type="button"
+            className="r-nav-close"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-label={t('closeNav')}
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
 
-            {/* ── Logo row ── */}
-            <div className="h-14 flex items-center px-4 border-b border-border shrink-0">
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 font-semibold text-foreground min-w-0"
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                <Logo iconOnly className="w-7 h-7 rounded-md shrink-0" />
-                <span
-                  className="text-foreground text-[17px] font-bold tracking-tight"
-                  style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                >
-                  recete
-                </span>
-              </Link>
-              {/* Close button — mobile only */}
-              <button
-                className="ml-auto lg:hidden text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted transition-colors"
-                onClick={() => setIsSidebarOpen(false)}
-                aria-label="Close navigation menu"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* ── Nav Items ── */}
-            <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto scrollbar-thin">
-              {navItems.map((item) => {
-                const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
+        {navSections.map((section) => (
+          <div key={section.label}>
+            <div className="r-nav-section">{section.label}</div>
+            <div className="r-nav-list">
+              {section.items.map((item) => {
                 const Icon = item.icon;
+                const active = isActive(item.href);
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={cn(
-                      "shopify-nav-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-100",
-                      isActive
-                        ? "is-active bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
+                    className="r-nav-item"
+                    /* The state is a fact for assistive tech, not just a colour. */
+                    aria-current={active ? 'page' : undefined}
                     onClick={() => setIsSidebarOpen(false)}
                   >
-                    <Icon
-                      className={cn("w-[18px] h-[18px] shrink-0", isActive ? "text-primary" : "text-muted-foreground")}
-                      strokeWidth={1.8}
-                    />
-                    {item.name}
+                    <span className="r-nav-icon" aria-hidden="true">
+                      <Icon size={17} strokeWidth={1.8} />
+                    </span>
+                    <span>{item.name}</span>
                   </Link>
                 );
               })}
-            </nav>
-
-            {/* ── User + sign-out footer ── */}
-            <div className="px-2 py-3 border-t border-border shrink-0">
-              <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg min-w-0">
-                {/* Avatar initials */}
-                <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[11px] font-bold shrink-0 ring-1 ring-border uppercase">
-                  {userEmail ? userEmail[0] : 'U'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-semibold text-foreground truncate leading-tight">
-                    {userEmail?.split('@')[0] || 'User'}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground truncate leading-tight">
-                    {userEmail || ''}
-                  </p>
-                </div>
-                <button
-                  onClick={handleSignOut}
-                  className="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                  title="Sign out"
-                  aria-label="Sign out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
             </div>
           </div>
-        </aside>
-      )}
+        ))}
 
-      {/* ── Main content ──────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-        {/* ── Top header — mobile only burger + slim desktop topbar ── */}
-        {!isEmbedded && (
-          <header className="h-12 bg-card border-b border-border flex items-center px-4 justify-between sticky top-0 z-30">
-            {/* Mobile: hamburger + logo */}
-            <div className="flex items-center gap-2.5 lg:hidden min-w-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={() => setIsSidebarOpen(true)}
-                aria-label="Open navigation menu"
+        <div className="r-sidebar-foot">
+          <div className="r-user-row">
+            <Avatar name={userEmail || 'U'} solid />
+            <span style={{ minWidth: 0, flex: 1 }}>
+              <span
+                style={{
+                  display: 'block',
+                  fontSize: 'var(--r-text-sm-plus)',
+                  fontWeight: 'var(--r-weight-semibold)',
+                  color: 'var(--r-text)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
               >
-                <Menu className="w-4 h-4" />
-              </Button>
-              <Link href="/dashboard" className="flex items-center gap-1.5 font-semibold text-foreground">
-                <Logo iconOnly className="w-6 h-6 rounded shrink-0" />
-                <span className="text-[16px] font-bold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>recete</span>
-              </Link>
-            </div>
+                {userEmail?.split('@')[0] || 'User'}
+              </span>
+              <span
+                style={{
+                  display: 'block',
+                  fontSize: 'var(--r-text-xs)',
+                  color: 'var(--r-text-muted)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {userEmail || ''}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              aria-label={t('signOut')}
+              title={t('signOut')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--r-text-muted)',
+                display: 'flex',
+                padding: 4,
+                flexShrink: 0,
+              }}
+            >
+              <LogOut size={15} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      </nav>
 
-            {/* Desktop: empty left, user info right */}
-            <div className="hidden lg:flex items-center" />
-
-            {/* Right: email + sign out — desktop only (mobile has it in sidebar) */}
-            <div className="hidden lg:flex items-center gap-3 shrink-0">
-              {userEmail && (
-                <span className="text-[12px] text-muted-foreground truncate max-w-[200px]">
-                  {userEmail}
-                </span>
-              )}
+      <div className="r-main">
+        <div className="r-topbar">
+          <div className="r-status-line">
+            <button
+              type="button"
+              className="r-btn r-btn-secondary r-btn-sm r-nav-toggle"
+              onClick={() => setIsSidebarOpen(true)}
+              aria-expanded={isSidebarOpen}
+              aria-label={t('openNav')}
+            >
+              <Menu size={15} aria-hidden="true" />
+            </button>
+          </div>
+          {userEmail ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span className="r-hint" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {userEmail}
+              </span>
               <button
+                type="button"
                 onClick={handleSignOut}
-                className="flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-muted"
-                title="Sign out"
+                className="r-btn r-btn-secondary r-btn-sm"
               >
-                <LogOut className="w-3.5 h-3.5" />
-                Sign out
+                <LogOut size={13} aria-hidden="true" /> {t('signOut')}
               </button>
             </div>
+          ) : null}
+        </div>
 
-            {/* Mobile right: sign out */}
-            <div className="flex lg:hidden items-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={handleSignOut}
-                aria-label="Sign out"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
-          </header>
-        )}
-
-        {/* ── Page Content ── */}
-        {/* min-h-0 only in full-bleed mode: without it a flex item will not go
-            below its content height, so the panes' h-full chain would have
-            nothing definite to resolve against. Leaving it off elsewhere keeps
-            every other screen scrolling exactly as it does today. */}
-        <main className={cn(
-          "flex-1",
-          isFullBleed ? "min-h-0 overflow-hidden" : "overflow-y-auto scrollbar-thin",
-          isEmbedded || isFullBleed ? "p-0" : "p-4 sm:p-6 lg:p-8"
-        )}>
-          <div className={cn(
-            isFullBleed ? "h-full" : "max-w-6xl mx-auto",
-            isEmbedded ? "p-0" : ""
-          )}>
-            {children}
-          </div>
+        {/*
+          The legacy theme class lives here, not on the root: it scopes the d-*
+          rules the un-migrated screens still need, without reaching the chrome.
+        */}
+        <main
+          className={cn('shopify-dashboard-theme', isFullBleed ? 'r-main-full' : 'r-main-inner')}
+          style={isFullBleed ? undefined : { paddingTop: 24 }}
+        >
+          {children}
         </main>
       </div>
     </div>

@@ -240,6 +240,12 @@
     },
     "Dashboard": {
         "sidebar": {
+            "sectionWorkspace": "Workspace",
+            "sectionConfigure": "Configure",
+            "navLabel": "Dashboard navigation",
+            "openNav": "Open navigation",
+            "closeNav": "Close navigation",
+            "loading": "Loading…",
             "dashboard": "Dashboard",
             "products": "Products",
             "customers": "Customers",

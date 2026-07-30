@@ -1080,3 +1080,35 @@
     font-size: var(--r-text-sm-plus);
     line-height: var(--r-leading-normal);
 }
+
+/* ---- Shell additions used by DashboardLayout ---- */
+
+/* Full-bleed content slot (the inbox). Needs a definite height so the panes can
+   size themselves and the composer stays pinned. */
+.r-main-full {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* The content column scrolls, the chrome does not. */
+.r-main-inner {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* Drawer close button — only reachable while the sidebar is a drawer. */
+.r-nav-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--r-text-muted);
+    display: none;
+    padding: 4px;
+}
+
+@media (max-width: 1039px) {
+    .r-nav-close { display: flex; }
+}

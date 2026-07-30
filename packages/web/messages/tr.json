@@ -236,6 +236,13 @@
     },
     "Dashboard": {
         "sidebar": {
+            "sectionWorkspace": "Çalışma alanı",
+            "sectionConfigure": "Yapılandırma",
+            "navLabel": "Panel navigasyonu",
+            "openNav": "Navigasyonu aç",
+            "closeNav": "Navigasyonu kapat",
+            "loading": "Yükleniyor…",
+            "customers": "Müşteriler",
             "dashboard": "Kontrol paneli",
             "products": "Ürünler",
             "conversations": "Konuşmalar",
