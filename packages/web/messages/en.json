@@ -1351,6 +1351,15 @@
         "feedbackReview": "Review Request"
     },
     "ConversationDetail": {
+        "context": {
+            "orders": "Orders",
+            "conversations": "Conversations",
+            "currentOrder": "Current order",
+            "noOrders": "No orders yet",
+            "fullProfile": "Full profile",
+            "churn": "churn",
+            "optedIn": "opt-in ✓"
+        },
         "suggest": {
             "button": "Suggest reply",
             "busy": "Drafting…",

@@ -284,6 +284,7 @@
 }
 
 .r-avatar-lg { width: 34px; height: 34px; font-size: var(--r-text-base); }
+.r-avatar-xl { width: 52px; height: 52px; font-size: 17px; }
 .r-avatar-solid { background: var(--r-brand); color: var(--r-brand-on); }
 
 /* ============================ Empty state ============================ */
@@ -915,4 +916,63 @@
 
 @media (max-width: 899px) {
     .r-thread-back { display: inline-flex; }
+}
+
+/* ---- Inbox context pane (third column) ---- */
+
+.r-context {
+    width: 272px;
+    flex-shrink: 0;
+    border-left: 1px solid var(--r-border);
+    background: var(--r-surface);
+    padding: var(--r-space-9) 18px;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.r-context-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-bottom: var(--r-space-8);
+    border-bottom: 1px solid var(--r-brand-tint);
+}
+
+.r-context-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--r-space-4);
+    margin-top: var(--r-space-7);
+}
+
+.r-context-stat {
+    background: var(--r-bg);
+    border-radius: var(--r-radius-md);
+    padding: var(--r-space-5) var(--r-space-6);
+}
+
+.r-context-stat-label { font-size: var(--r-text-xs); color: var(--r-text-subtle); }
+
+.r-context-stat-value {
+    font-size: var(--r-text-lg);
+    font-weight: var(--r-weight-bold);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.r-context-card {
+    border: 1px solid var(--r-brand-tint);
+    border-radius: var(--r-radius-md);
+    padding: var(--r-space-6) var(--r-space-7);
+    margin-top: var(--r-space-4);
+}
+
+/*
+ * Below the inbox breakpoint there is no room for a third column, and the same
+ * facts are a tap away on the customer profile, so it drops out entirely rather
+ * than stacking under a thread the merchant is trying to read.
+ */
+@media (max-width: 1199px) {
+    .r-context { display: none; }
 }

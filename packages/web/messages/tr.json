@@ -1342,6 +1342,15 @@
         "feedbackReview": "Değerlendirme isteği"
     },
     "ConversationDetail": {
+        "context": {
+            "orders": "Sipariş",
+            "conversations": "Konuşma",
+            "currentOrder": "Güncel sipariş",
+            "noOrders": "Henüz sipariş yok",
+            "fullProfile": "Tüm profil",
+            "churn": "kayıp riski",
+            "optedIn": "izin ✓"
+        },
         "suggest": {
             "button": "Yanıt öner",
             "busy": "Hazırlanıyor…",

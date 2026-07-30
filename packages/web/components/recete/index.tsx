@@ -259,7 +259,7 @@ export function Avatar({
   solid = false,
 }: {
   name: string;
-  size?: 'md' | 'lg';
+  size?: 'md' | 'lg' | 'xl';
   solid?: boolean;
 }) {
   const initials = name
@@ -272,7 +272,12 @@ export function Avatar({
 
   return (
     <span
-      className={cx('r-avatar', size === 'lg' && 'r-avatar-lg', solid && 'r-avatar-solid')}
+      className={cx(
+        'r-avatar',
+        size === 'lg' && 'r-avatar-lg',
+        size === 'xl' && 'r-avatar-xl',
+        solid && 'r-avatar-solid',
+      )}
       aria-hidden="true"
     >
       {initials}

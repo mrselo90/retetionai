@@ -32,6 +32,7 @@ import type { BadgeTone } from '@/components/recete';
 import { MessageThread } from '@/components/recete/MessageThread';
 import type { MessageRole, ThreadMessage } from '@/components/recete/MessageThread';
 import { Switch } from '@/components/recete/Switch';
+import { CustomerContext } from '@/components/recete/CustomerContext';
 
 interface ReturnPreventionAttempt {
   id: string;
@@ -58,9 +59,22 @@ interface ConversationDetail {
 
 const POLL_MS = 5_000;
 
+/** Same segment palette the customers table uses, so one customer reads the same on both screens. */
+const SEGMENT_TONE: Record<string, BadgeTone> = {
+  champions: 'success',
+  loyal: 'brand',
+  promising: 'caution',
+  at_risk: 'warning',
+  lost: 'danger',
+  new: 'neutral',
+};
+
 export default function ConversationThreadPage() {
   const t = useTranslations('ConversationDetail');
   const rp = useTranslations('ReturnPrevention');
+  // Segment names live with the customers screen; the context pane reuses them
+  // rather than translating the same six words twice.
+  const tc = useTranslations('Customers');
   const locale = useLocale();
   const params = useParams();
   const conversationId = params.id as string;
@@ -324,7 +338,8 @@ export default function ConversationThreadPage() {
   };
 
   return (
-    <div className="r-thread">
+    <>
+      <div className="r-thread">
       <div className="r-thread-head">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
           {/* Only shown on narrow screens, where the list is hidden behind the thread. */}
@@ -451,6 +466,23 @@ export default function ConversationThreadPage() {
           <p className="r-field-help" style={{ marginTop: 8 }}>{t('humanModeNote')}</p>
         ) : null}
       </div>
-    </div>
+      </div>
+
+      <CustomerContext
+        userId={conversation.userId}
+        labels={{
+          orders: t('context.orders'),
+          conversations: t('context.conversations'),
+          currentOrder: t('context.currentOrder'),
+          noOrders: t('context.noOrders'),
+          fullProfile: t('context.fullProfile'),
+          churn: t('context.churn'),
+        }}
+        segmentTone={(segment) => SEGMENT_TONE[segment] ?? 'neutral'}
+        segmentLabel={(segment) => (SEGMENT_TONE[segment] ? tc(`segment.${segment}`) : segment)}
+        consentLabel={(consent) => (consent === 'opted_in' ? t('context.optedIn') : null)}
+        formatDate={(iso) => new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+      />
+    </>
   );
 }
