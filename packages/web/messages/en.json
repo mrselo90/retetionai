@@ -1058,6 +1058,10 @@
             "edit": "Edit",
             "delete": "Delete",
             "modal": {
+            "nameRequired": "Enter a name for this guardrail.",
+            "valueRequired": "Enter at least one keyword or a phrase to match.",
+            "deleteConfirmTitle": "Delete \"{name}\"?",
+            "deleteConfirmMessage": "This action cannot be undone.",
                 "titleAdd": "New Guardrail",
                 "titleEdit": "Edit Guardrail",
                 "nameLabel": "Rule Name *",

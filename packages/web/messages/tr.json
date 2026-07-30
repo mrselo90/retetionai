@@ -1054,6 +1054,10 @@
             "edit": "Düzenleyin",
             "delete": "Silin",
             "modal": {
+            "nameRequired": "Bu kural için bir ad girin.",
+            "valueRequired": "Eşleştirilecek en az bir anahtar kelime veya ifade girin.",
+            "deleteConfirmTitle": "\"{name}\" silinsin mi?",
+            "deleteConfirmMessage": "Bu işlem geri alınamaz.",
                 "titleAdd": "Yeni kural",
                 "titleEdit": "Kuralı düzenle",
                 "nameLabel": "Kural adı *",
