@@ -67,7 +67,6 @@ function healthTone(score: number): BadgeTone {
 
 export default function ProductDetailPage() {
   const t = useTranslations('ProductDetail');
-  const rp = useTranslations('ReturnPrevention');
   const params = useParams();
   const router = useRouter();
   const fieldPrefix = useId();
@@ -717,54 +716,6 @@ export default function ProductDetailPage() {
               }
             />
           )}
-        </div>
-
-        {/*
-          Same videoUrl/preventionTips fields as the Bot Instructions card above,
-          sharing the same state — editing one updates the other immediately.
-          Kept as-is (not a data bug, both write the same fields), but this
-          duplication reads like two features were merged without deciding which
-          card owns these fields. Worth a product call on whether to drop one.
-        */}
-        <div className="r-card">
-          <p className="r-card-title">{rp('analyticsTitle')}</p>
-          <p className="r-hint" style={{ marginTop: 2, marginBottom: 16 }}>
-            {rp('moduleDescription')}
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <label className="r-label" htmlFor={`${fieldPrefix}-rp-video`}>
-                {rp('videoUrl')}
-              </label>
-              <input
-                id={`${fieldPrefix}-rp-video`}
-                type="url"
-                className="r-input"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder={rp('videoUrlPlaceholder')}
-                autoComplete="off"
-              />
-              <p className="r-field-help">{rp('videoUrlDescription')}</p>
-            </div>
-
-            <div>
-              <label className="r-label" htmlFor={`${fieldPrefix}-rp-prevention`}>
-                {rp('preventionTips')}
-              </label>
-              <textarea
-                id={`${fieldPrefix}-rp-prevention`}
-                className="r-textarea"
-                rows={4}
-                value={preventionTips}
-                onChange={(e) => setPreventionTips(e.target.value)}
-                placeholder={rp('preventionTipsPlaceholder')}
-                autoComplete="off"
-              />
-              <p className="r-field-help">{rp('preventionTipsDescription')}</p>
-            </div>
-          </div>
         </div>
 
         <div className="r-card">
