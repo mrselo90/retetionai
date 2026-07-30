@@ -913,6 +913,7 @@
         }
     },
     "Settings": {
+        "loading": "Ayarlar yükleniyor…",
         "nav": {
             "label": "Ayar bölümleri",
             "persona": "Bot kişiliği",
@@ -1159,7 +1160,8 @@
             "description": "Bir müşteri insan temsilcisi istediğinde uyarıları nerede alacağınızı ayarlayın.",
             "phoneLabel": "WhatsApp bildirim numarası",
             "phonePlaceholder": "+905XXXXXXXXX",
-            "phoneHint": "Bir müşteri bir insanla konuşmak istediğinde bu numaraya WhatsApp uyarısı gönderilir. WhatsApp bildirimlerini kapatmak için boş bırakın."
+            "phoneHint": "Bir müşteri bir insanla konuşmak istediğinde bu numaraya WhatsApp uyarısı gönderilir. WhatsApp bildirimlerini kapatmak için boş bırakın.",
+            "phoneInvalid": "Ülke kodu dahil 8 ile 15 haneli bir telefon numarası girin."
         }
     },
     "Analytics": {

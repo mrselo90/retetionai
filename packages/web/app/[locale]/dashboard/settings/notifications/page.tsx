@@ -1,87 +1,84 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import {
-  BlockStack,
-  Box,
-  Button as PolarisButton,
-  Card as PolarisCard,
-  InlineStack,
-  Page,
-  SkeletonPage,
-  Text,
-  TextField,
-} from '@shopify/polaris';
-import { AlertTriangle } from 'lucide-react';
+import { getErrorMessage, getErrorStatus } from '@/lib/errors';
 import { useTranslations } from 'next-intl';
+import { Button } from '@/components/recete';
 
 interface Merchant {
   id: string;
   notification_phone?: string | null;
 }
 
+/**
+ * A typo here is silent: the merchant simply never receives the escalation
+ * alerts this setting exists to deliver, and nothing on screen says so. Validated
+ * loosely — enough digits to be a real number, no attempt to police which country
+ * it belongs to.
+ */
+function isPlausiblePhone(value: string): boolean {
+  const digits = value.replace(/\D/g, '');
+  return digits.length >= 8 && digits.length <= 15;
+}
+
 export default function NotificationsPage() {
   const t = useTranslations('Settings');
+  const fieldId = useId();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notificationPhone, setNotificationPhone] = useState('');
+  const [showError, setShowError] = useState(false);
 
-  const getErrorMessage = (err: unknown, fallback: string) => {
-    if (err instanceof Error && err.message) return err.message;
-    return fallback;
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         window.location.href = '/login';
         return;
       }
-
-      const merchantResponse = await authenticatedRequest<{ merchant: Merchant }>(
+      const response = await authenticatedRequest<{ merchant: Merchant }>(
         '/api/merchants/me',
-        session.access_token
+        session.access_token,
       );
-      setNotificationPhone(merchantResponse.merchant.notification_phone || '');
-    } catch (err: unknown) {
-      const status =
-        typeof err === 'object' && err !== null && 'status' in err
-          ? (err as { status?: number }).status
-          : undefined;
-      if (status === 401) {
+      setNotificationPhone(response.merchant.notification_phone || '');
+    } catch (err) {
+      if (getErrorStatus(err) === 401) {
         window.location.href = '/login';
-      } else {
-        toast.error(t('toasts.saveError.title'), t('toasts.saveError.message'));
+        return;
       }
+      toast.error(t('toasts.saveError.title'), t('toasts.saveError.message'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
-  const handleSave = async () => {
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  // Clearing the field is how a merchant turns alerts off, so empty is valid.
+  const trimmed = notificationPhone.trim();
+  const invalid = trimmed.length > 0 && !isPlausiblePhone(trimmed);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (invalid) {
+      setShowError(true);
+      return;
+    }
+    setSaving(true);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-
-      setSaving(true);
       await authenticatedRequest('/api/merchants/me', session.access_token, {
         method: 'PUT',
-        body: JSON.stringify({ notification_phone: notificationPhone }),
+        body: JSON.stringify({ notification_phone: trimmed }),
       });
       toast.success(t('toasts.saveSuccess.title'), t('toasts.saveSuccess.message'));
-    } catch (err: unknown) {
+    } catch (err) {
       toast.error(t('toasts.saveError.title'), getErrorMessage(err, t('toasts.saveError.message')));
     } finally {
       setSaving(false);
@@ -90,54 +87,46 @@ export default function NotificationsPage() {
 
   if (loading) {
     return (
-      <SkeletonPage title="Notifications">
-        <div className="h-40 bg-zinc-100 rounded-lg animate-pulse" />
-      </SkeletonPage>
+      <div className="r-card" style={{ maxWidth: 760 }} role="status" aria-label={t('loading')}>
+        <div className="r-skeleton" style={{ height: 18, width: 180 }} />
+        <div className="r-skeleton" style={{ height: 40, marginTop: 18, maxWidth: 320 }} />
+      </div>
     );
   }
 
   return (
-    <Page title={t('notifications.title')} subtitle={t('notifications.description')} fullWidth>
-      <PolarisCard>
-        <Box padding="400">
-          <BlockStack gap="400">
-            <InlineStack gap="300" blockAlign="start">
-              <Box background="bg-fill-warning" borderRadius="300" padding="300">
-                <AlertTriangle className="w-5 h-5 text-white" />
-              </Box>
-              <BlockStack gap="100">
-                <Text as="h2" variant="headingMd">
-                  {t('notifications.title')}
-                </Text>
-                <Text as="p" tone="subdued">
-                  {t('notifications.description')}
-                </Text>
-              </BlockStack>
-            </InlineStack>
+    /* A real form, so Enter saves — the field and its button used to be unrelated
+       elements and the keyboard did nothing. */
+    <form className="r-card" style={{ maxWidth: 760 }} onSubmit={handleSubmit} noValidate>
+      <div className="r-card-title">{t('notifications.title')}</div>
+      <p className="r-hint" style={{ marginTop: 3 }}>{t('notifications.description')}</p>
 
-            <TextField
-              label={t('notifications.phoneLabel')}
-              type="tel"
-              value={notificationPhone}
-              onChange={setNotificationPhone}
-              placeholder={t('notifications.phonePlaceholder')}
-              autoComplete="off"
-              helpText={t('notifications.phoneHint')}
-            />
+      <label className="r-label" htmlFor={fieldId} style={{ marginTop: 18 }}>
+        {t('notifications.phoneLabel')}
+      </label>
+      <input
+        id={fieldId}
+        type="tel"
+        className={`r-input${showError && invalid ? ' r-input-invalid' : ''}`}
+        style={{ maxWidth: 320 }}
+        value={notificationPhone}
+        onChange={(event) => setNotificationPhone(event.target.value)}
+        onBlur={() => setShowError(true)}
+        placeholder={t('notifications.phonePlaceholder')}
+        autoComplete="off"
+        aria-invalid={showError && invalid}
+        aria-describedby={`${fieldId}-hint${showError && invalid ? ` ${fieldId}-error` : ''}`}
+      />
+      {showError && invalid ? (
+        <p className="r-field-error" id={`${fieldId}-error`}>{t('notifications.phoneInvalid')}</p>
+      ) : null}
+      <p className="r-field-help" id={`${fieldId}-hint`}>{t('notifications.phoneHint')}</p>
 
-            <InlineStack align="end">
-              <PolarisButton
-                variant="primary"
-                onClick={handleSave}
-                loading={saving}
-                disabled={saving}
-              >
-                {saving ? t('botPersona.saving') : t('botPersona.saveButton')}
-              </PolarisButton>
-            </InlineStack>
-          </BlockStack>
-        </Box>
-      </PolarisCard>
-    </Page>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
+        <Button type="submit" variant="primary" loading={saving} disabled={invalid && showError}>
+          {saving ? t('botPersona.saving') : t('botPersona.saveButton')}
+        </Button>
+      </div>
+    </form>
   );
 }
