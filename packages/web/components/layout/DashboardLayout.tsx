@@ -136,9 +136,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <Link
             href="/dashboard"
             onClick={() => setIsSidebarOpen(false)}
-            style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', minWidth: 0 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 9,
+              textDecoration: 'none',
+              minWidth: 0,
+            }}
           >
-            <span className="r-brand-mark" aria-hidden="true">R</span>
+            <span className="r-brand-mark" aria-hidden="true">
+              R
+            </span>
             <span className="r-brand-name">Recete</span>
           </Link>
           {/* Mobile only — the drawer needs a way out that is not the scrim. */}
@@ -231,6 +239,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </nav>
 
       <div className="r-main">
+        {/*
+          Identity and sign-out live once, in the sidebar footer below — this bar
+          used to repeat both next to a second sign-out button, so the topbar is
+          just the mobile nav toggle now.
+        */}
         <div className="r-topbar">
           <div className="r-status-line">
             <button
@@ -243,20 +256,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <Menu size={15} aria-hidden="true" />
             </button>
           </div>
-          {userEmail ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span className="r-hint" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {userEmail}
-              </span>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="r-btn r-btn-secondary r-btn-sm"
-              >
-                <LogOut size={13} aria-hidden="true" /> {t('signOut')}
-              </button>
-            </div>
-          ) : null}
         </div>
 
         {/*
