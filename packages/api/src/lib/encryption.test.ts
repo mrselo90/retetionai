@@ -3,7 +3,7 @@
  * Tests for phone number encryption/decryption
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { encryptPhone, decryptPhone, __resetEncryptionKeyCacheForTests } from './encryption';
 
 describe('encryptPhone', () => {
@@ -97,6 +97,47 @@ describe('decryptPhone', () => {
     expect(() => {
       decryptPhone('');
     }).toThrow();
+  });
+});
+
+describe('production key safety', () => {
+  const originalKey = process.env.ENCRYPTION_KEY;
+  const originalEnv = process.env.NODE_ENV;
+
+  afterEach(() => {
+    process.env.ENCRYPTION_KEY = originalKey;
+    process.env.NODE_ENV = originalEnv;
+    __resetEncryptionKeyCacheForTests();
+  });
+
+  /*
+   * This is the exact incident, reproduced: an invalid ENCRYPTION_KEY reached a
+   * production process and it used to keep running on a random throwaway key,
+   * silently corrupting every phone number written from then on. It must now
+   * refuse outright instead of degrading.
+   */
+  it('throws rather than minting a random key when ENCRYPTION_KEY is invalid in production', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.ENCRYPTION_KEY = 'not-64-hex-chars';
+    __resetEncryptionKeyCacheForTests();
+
+    expect(() => encryptPhone('+905551112233')).toThrow(/ENCRYPTION_KEY/);
+  });
+
+  it('throws rather than minting a random key when ENCRYPTION_KEY is unset in production', () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.ENCRYPTION_KEY;
+    __resetEncryptionKeyCacheForTests();
+
+    expect(() => encryptPhone('+905551112233')).toThrow(/ENCRYPTION_KEY/);
+  });
+
+  it('still falls back outside production, for local/test convenience', () => {
+    process.env.NODE_ENV = 'test';
+    process.env.ENCRYPTION_KEY = 'not-64-hex-chars';
+    __resetEncryptionKeyCacheForTests();
+
+    expect(() => encryptPhone('+905551112233')).not.toThrow();
   });
 });
 

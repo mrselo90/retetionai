@@ -18,6 +18,28 @@ function getEncryptionKeyHex(): string {
     return cachedEncryptionKeyHex;
   }
 
+  /*
+   * This used to fall back to a random per-process key in every environment,
+   * including production — silently, with only a one-line console.warn easy to
+   * miss in a log stream. That is exactly what happened: a stray invalid
+   * ENCRYPTION_KEY in the root .env shadowed the valid one in packages/api/.env,
+   * every restart minted a new throwaway key, and every phone number written in
+   * between became unrecoverable the moment the process restarted. Four
+   * customer records were lost this way before anyone noticed the customers
+   * screen was showing "***" instead of a number.
+   *
+   * Production now fails loudly at the point of use instead of degrading
+   * silently — a merchant losing phone numbers is worse than the API refusing
+   * to start. Local/dev/test convenience is unchanged: encryption.test.ts
+   * deliberately sets a non-hex key and relies on the fallback for its
+   * wrong-key test case.
+   */
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'ENCRYPTION_KEY is missing or invalid (must be 64 hex characters). Refusing to encrypt or decrypt phone numbers with a throwaway key — set a valid ENCRYPTION_KEY before starting this process.'
+    );
+  }
+
   if (key && !warnedInvalidEncryptionKey) {
     warnedInvalidEncryptionKey = true;
     console.warn(

@@ -39,13 +39,22 @@ import { register } from './lib/metrics.js';
 import { getPlatformCorporateWhatsAppSettings } from './lib/runtimeModelSettings.js';
 
 if (process.env.NODE_ENV === 'production') {
-  const warnSecrets = [
-    ['ENCRYPTION_KEY', process.env.ENCRYPTION_KEY, /^[0-9a-fA-F]{64}$/],
-  ] as const;
-  for (const [name, value, pattern] of warnSecrets) {
-    if (!value?.trim() || (pattern && !pattern.test(value))) {
-      console.warn(`⚠️  ${name} is missing or invalid — falling back to defaults. Set it for production safety.`);
-    }
+  /*
+   * ENCRYPTION_KEY used to only warn here and let the process start anyway.
+   * lib/encryption.ts would then mint a random per-process key the first time a
+   * phone number was actually encrypted or decrypted — silently, hours or days
+   * into the process's life, well after anyone was watching the boot log. That
+   * gap is exactly how four customers' phone numbers ended up unrecoverable:
+   * a stray invalid key in one .env file shadowed the valid one in another, the
+   * process kept running, and every restart threw away whatever key the
+   * previous one had picked. Failing at boot means ops finds out from a crashed
+   * deploy, not from a merchant asking why the customers screen shows "***".
+   */
+  if (!process.env.ENCRYPTION_KEY?.trim() || !/^[0-9a-fA-F]{64}$/.test(process.env.ENCRYPTION_KEY)) {
+    console.error(
+      '✖ ENCRYPTION_KEY is missing or invalid (must be 64 hex characters). Refusing to start: this key protects customer phone numbers, and running without it risks writing data that can never be decrypted again.'
+    );
+    process.exit(1);
   }
 }
 
