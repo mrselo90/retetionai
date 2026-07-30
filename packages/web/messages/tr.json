@@ -19,12 +19,16 @@
     "stats": {
       "merchants": "500+",
       "merchantsLabel": "Satıcı",
+      "merchantsSub": "büyüyen e-ticaret markaları",
       "returns": "32%",
       "returnsLabel": "Daha az iade",
+      "returnsSub": "rehberli satış sonrası akışlarla",
       "messages": "50K+",
       "messagesLabel": "Gönderilen mesaj",
+      "messagesSub": "otomatik takip mesajlarından",
       "satisfaction": "94%",
-      "satisfactionLabel": "Memnuniyet"
+      "satisfactionLabel": "Memnuniyet",
+      "satisfactionSub": "yapay zekâ destekli yanıtlarla"
     },
     "features": {
       "title": "Müşterileri elinizde tutmak için ihtiyacınız olan her şey",
@@ -84,23 +88,20 @@
       "proof1": "Shopify yerel onboarding",
       "proof2": "Önce WhatsApp etkileşimi",
       "proof3": "Güvenli satıcı kontrolleri",
-      "testimonial1": {
-        "quote": "Müşteriler hayal kırıklığına uğramadan önce kullanım rehberi göndererek önlenebilir iadeleri azalttık. Kurulum bir öğleden sonradan az sürdü.",
-        "name": "Ece Demir",
-        "role": "Kurucu, cilt bakım markası",
-        "metric": "%28 daha az iade"
+      "outcome1": {
+        "metric": "Daha az iade",
+        "title": "İadeleri gerçekleşmeden önce durdurun",
+        "desc": "İadelerin çoğu kusurdan değil, kafa karışıklığından kaynaklanır. Doğru zamanda gönderilen proaktif kullanım rehberliği, hayal kırıklığı oluşmadan soruları yanıtlar."
       },
-      "testimonial2": {
-        "quote": "Destek ekibimiz artık gerçek eskalasyonlara odaklanıyor. Recete tekrarlayan satış sonrası soruları otomatik yanıtlıyor.",
-        "name": "Mark Jensen",
-        "role": "Operasyon lideri, DTC ev ürünleri",
-        "metric": "2,1 kat daha hızlı yanıt"
+      "outcome2": {
+        "metric": "7/24 yapay zekâ desteği",
+        "title": "Ekip büyütmeden desteği yönetin",
+        "desc": "Yapay zekâ asistanınız, bilgi tabanınızı kullanarak ürün sorularını anında yanıtlar. İnsana aktarım yalnızca gerçekten gerektiğinde devreye girer."
       },
-      "testimonial3": {
-        "quote": "Analitik görünüm harcamayı haklı çıkarmayı kolaylaştırdı. Kurtarılan iadeleri ve tekrar eden konuşmaların gelire dönüştüğünü görebildik.",
-        "name": "Selin Kaya",
-        "role": "E-ticaret müdürü, wellness mağazası",
-        "metric": "%14 daha fazla tekrar satış"
+      "outcome3": {
+        "metric": "Daha yüksek tekrar satın alım",
+        "title": "Alıcıları sadık müşterilere dönüştürün",
+        "desc": "Doğru zamanda gönderilen otomatik takipler — T+3, T+14 — müşterileri etkileşimde tutar ve tekil alışverişleri tekrarlayan gelire dönüştürür."
       }
     },
     "pricing": {
@@ -1767,7 +1768,8 @@
     "successMessage": "Shopify entegrasyonu başarıyla tamamlandı!",
     "redirecting": "Entegrasyonlara yönlendiriliyor...",
     "invalidCallback": "Geçersiz geri çağrı. Lütfen Entegrasyonlar sayfasından tekrar deneyin.",
-    "backToIntegrations": "Entegrasyonlara dönün"
+    "backToIntegrations": "Entegrasyonlara dönün",
+    "error": "Hata"
   },
   "ReturnPrevention": {
     "moduleTitle": "İade önleme modülü",
