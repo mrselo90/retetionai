@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest, getApiUrl, getApiBaseUrlForDisplay } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
-import { Badge as PolarisBadge, Banner, BlockStack, Box, Button as PolarisButton, Card as PolarisCard, InlineStack, Layout, Page, Select, SkeletonPage, Text, TextField, EmptyState } from '@shopify/polaris';
-import { Loader2, X, Trash2, Pencil, Plug, Upload, Code, MessageSquare, ShoppingBag, MessageCircle } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Badge, EmptyState } from '@/components/recete';
+import type { BadgeTone } from '@/components/recete';
+import { Trash2, Pencil, Plug, Upload, Code, ShoppingBag, MessageCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { getErrorMessage, getErrorStatus } from '@/lib/errors';
 
@@ -39,6 +39,11 @@ const ENABLE_MANUAL_INTEGRATION = false;
 
 export default function IntegrationsPage() {
   const t = useTranslations('Integrations');
+  const fieldPrefix = useId();
+  const shopifyTitleId = useId();
+  const csvTitleId = useId();
+  const manualTitleId = useId();
+  const whatsappTitleId = useId();
   const { confirm, ConfirmDialogNode } = useConfirm();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +94,9 @@ export default function IntegrationsPage() {
 
   const loadIntegrations = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         window.location.href = '/login';
         return;
@@ -120,7 +127,9 @@ export default function IntegrationsPage() {
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       setConnectingShopify(true);
@@ -138,7 +147,10 @@ export default function IntegrationsPage() {
       window.location.href = response.authUrl;
     } catch (err) {
       console.error('Failed to connect Shopify:', err);
-      toast.error(t('toasts.shopifyError.title'), getErrorMessage(err, t('toasts.shopifyError.message')));
+      toast.error(
+        t('toasts.shopifyError.title'),
+        getErrorMessage(err, t('toasts.shopifyError.message'))
+      );
       setConnectingShopify(false);
     }
   };
@@ -148,7 +160,10 @@ export default function IntegrationsPage() {
     if (!file) return;
 
     setCsvFile(file);
-    toast.info(t('toasts.fileSelected.title'), t('toasts.fileSelected.message', { name: file.name }));
+    toast.info(
+      t('toasts.fileSelected.title'),
+      t('toasts.fileSelected.message', { name: file.name })
+    );
   };
 
   const handleImportCsv = async () => {
@@ -158,7 +173,9 @@ export default function IntegrationsPage() {
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       setImporting(true);
@@ -175,7 +192,7 @@ export default function IntegrationsPage() {
           {
             method: 'POST',
             body: JSON.stringify({ provider: 'manual', auth_type: 'api_key', auth_data: {} }),
-          },
+          }
         );
         targetIntegrationId = created?.integration?.id;
       }
@@ -195,7 +212,7 @@ export default function IntegrationsPage() {
             Authorization: `Bearer ${session.access_token}`,
           },
           body: formData,
-        },
+        }
       );
 
       if (!response.ok) {
@@ -210,7 +227,10 @@ export default function IntegrationsPage() {
       const duplicates = Number(result?.import?.duplicates ?? 0);
       const invalidRows = Number(result?.parse?.invalidRows ?? 0);
 
-      toast.success(t('toasts.importSuccess.title'), t('toasts.importSuccess.message', { count: inserted }));
+      toast.success(
+        t('toasts.importSuccess.title'),
+        t('toasts.importSuccess.message', { count: inserted })
+      );
       setPageFeedback({
         tone: invalidRows > 0 || duplicates > 0 ? 'info' : 'success',
         title: t('feedback.importSavedTitle'),
@@ -231,7 +251,10 @@ export default function IntegrationsPage() {
         actionLabel: t('feedback.reviewDiscover'),
         targetId: 'discover-integrations',
       });
-      toast.error(t('toasts.importError.title'), getErrorMessage(err, t('toasts.importError.message')));
+      toast.error(
+        t('toasts.importError.title'),
+        getErrorMessage(err, t('toasts.importError.message'))
+      );
     } finally {
       setImporting(false);
     }
@@ -239,21 +262,19 @@ export default function IntegrationsPage() {
 
   const handleCreateManualIntegration = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
-      await authenticatedRequest(
-        '/api/integrations',
-        session.access_token,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            provider: 'manual',
-            auth_type: 'api_key',
-            auth_data: {},
-          }),
-        }
-      );
+      await authenticatedRequest('/api/integrations', session.access_token, {
+        method: 'POST',
+        body: JSON.stringify({
+          provider: 'manual',
+          auth_type: 'api_key',
+          auth_data: {},
+        }),
+      });
 
       toast.success(t('toasts.manualSuccess.title'), t('toasts.manualSuccess.message'));
       setPageFeedback({
@@ -274,7 +295,10 @@ export default function IntegrationsPage() {
         actionLabel: t('feedback.reviewDiscover'),
         targetId: 'discover-integrations',
       });
-      toast.error(t('toasts.manualError.title'), getErrorMessage(err, t('toasts.manualError.message')));
+      toast.error(
+        t('toasts.manualError.title'),
+        getErrorMessage(err, t('toasts.manualError.message'))
+      );
     }
   };
 
@@ -306,38 +330,48 @@ export default function IntegrationsPage() {
   const handleSaveWhatsApp = async () => {
     const isTwilio = whatsappProviderType === 'twilio';
     if (
-      (isTwilio && (!whatsappTwilioAccountSid.trim() || !whatsappTwilioAuthToken.trim() || !whatsappTwilioFromNumber.trim())) ||
-      (!isTwilio && (!whatsappPhoneNumberId.trim() || !whatsappAccessToken.trim() || !whatsappVerifyToken.trim()))
+      (isTwilio &&
+        (!whatsappTwilioAccountSid.trim() ||
+          !whatsappTwilioAuthToken.trim() ||
+          !whatsappTwilioFromNumber.trim())) ||
+      (!isTwilio &&
+        (!whatsappPhoneNumberId.trim() ||
+          !whatsappAccessToken.trim() ||
+          !whatsappVerifyToken.trim()))
     ) {
       toast.warning(t('toasts.missingWhatsapp.title'), t('toasts.missingWhatsapp.message'));
       return;
     }
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
       setConnectingWhatsApp(true);
       const auth_data = isTwilio
         ? {
-          wa_provider: 'twilio' as const,
-          account_sid: whatsappTwilioAccountSid.trim(),
-          auth_token: whatsappTwilioAuthToken.trim(),
-          from_number: whatsappTwilioFromNumber.trim(),
-          phone_number_display: whatsappPhoneDisplay.trim() || undefined,
-        }
+            wa_provider: 'twilio' as const,
+            account_sid: whatsappTwilioAccountSid.trim(),
+            auth_token: whatsappTwilioAuthToken.trim(),
+            from_number: whatsappTwilioFromNumber.trim(),
+            phone_number_display: whatsappPhoneDisplay.trim() || undefined,
+          }
         : {
-          wa_provider: 'meta' as const,
-          phone_number_id: whatsappPhoneNumberId.trim(),
-          access_token: whatsappAccessToken.trim(),
-          verify_token: whatsappVerifyToken.trim(),
-          phone_number_display: whatsappPhoneDisplay.trim() || undefined,
-        };
+            wa_provider: 'meta' as const,
+            phone_number_id: whatsappPhoneNumberId.trim(),
+            access_token: whatsappAccessToken.trim(),
+            verify_token: whatsappVerifyToken.trim(),
+            phone_number_display: whatsappPhoneDisplay.trim() || undefined,
+          };
       if (editingWhatsAppId) {
-        await authenticatedRequest(
-          `/api/integrations/${editingWhatsAppId}`,
-          session.access_token,
-          { method: 'PUT', body: JSON.stringify({ auth_data, status: 'active' }) }
+        await authenticatedRequest(`/api/integrations/${editingWhatsAppId}`, session.access_token, {
+          method: 'PUT',
+          body: JSON.stringify({ auth_data, status: 'active' }),
+        });
+        toast.success(
+          t('toasts.whatsappUpdateSuccess.title'),
+          t('toasts.whatsappUpdateSuccess.message')
         );
-        toast.success(t('toasts.whatsappUpdateSuccess.title'), t('toasts.whatsappUpdateSuccess.message'));
         setPageFeedback({
           tone: 'success',
           title: t('feedback.whatsappUpdatedTitle'),
@@ -346,18 +380,14 @@ export default function IntegrationsPage() {
           targetId: 'active-integrations',
         });
       } else {
-        await authenticatedRequest(
-          '/api/integrations',
-          session.access_token,
-          {
-            method: 'POST',
-            body: JSON.stringify({
-              provider: 'whatsapp',
-              auth_type: 'token',
-              auth_data,
-            }),
-          }
-        );
+        await authenticatedRequest('/api/integrations', session.access_token, {
+          method: 'POST',
+          body: JSON.stringify({
+            provider: 'whatsapp',
+            auth_type: 'token',
+            auth_data,
+          }),
+        });
         toast.success(t('toasts.whatsappSuccess.title'), t('toasts.whatsappSuccess.message'));
         setPageFeedback({
           tone: 'success',
@@ -386,7 +416,10 @@ export default function IntegrationsPage() {
         actionLabel: t('feedback.reviewDiscover'),
         targetId: 'discover-integrations',
       });
-      toast.error(t('toasts.whatsappError.title'), getErrorMessage(err, t('toasts.whatsappError.message')));
+      toast.error(
+        t('toasts.whatsappError.title'),
+        getErrorMessage(err, t('toasts.whatsappError.message'))
+      );
     } finally {
       setConnectingWhatsApp(false);
     }
@@ -394,16 +427,14 @@ export default function IntegrationsPage() {
 
   const handleDeleteIntegration = async (integrationId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
-      await authenticatedRequest(
-        `/api/integrations/${integrationId}`,
-        session.access_token,
-        {
-          method: 'DELETE',
-        }
-      );
+      await authenticatedRequest(`/api/integrations/${integrationId}`, session.access_token, {
+        method: 'DELETE',
+      });
 
       toast.success(t('toasts.deleteSuccess.title'), t('toasts.deleteSuccess.message'));
       setPageFeedback({
@@ -423,24 +454,10 @@ export default function IntegrationsPage() {
         actionLabel: t('feedback.reviewActive'),
         targetId: 'active-integrations',
       });
-      toast.error(t('toasts.deleteError.title'), getErrorMessage(err, t('toasts.deleteError.message')));
-    }
-  };
-
-  const getProviderIcon = (provider: string) => {
-    switch (provider) {
-      case 'shopify':
-        return '🛍️';
-      case 'woocommerce':
-        return '🛒';
-      case 'ticimax':
-        return '🏪';
-      case 'manual':
-        return '📝';
-      case 'whatsapp':
-        return '💬';
-      default:
-        return '🔌';
+      toast.error(
+        t('toasts.deleteError.title'),
+        getErrorMessage(err, t('toasts.deleteError.message'))
+      );
     }
   };
 
@@ -465,19 +482,11 @@ export default function IntegrationsPage() {
   const hasShopify = integrations.some((i) => i.provider === 'shopify');
   const hasManual = integrations.some((i) => i.provider === 'manual');
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'error':
-        return 'bg-red-100 text-red-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'disabled':
-        return 'bg-zinc-100 text-zinc-800';
-      default:
-        return 'bg-zinc-100 text-zinc-800';
-    }
+  const STATUS_TONE: Record<Integration['status'], BadgeTone> = {
+    active: 'success',
+    error: 'danger',
+    pending: 'warning',
+    disabled: 'neutral',
   };
 
   const getStatusText = (status: string) => {
@@ -497,557 +506,808 @@ export default function IntegrationsPage() {
 
   if (loading) {
     return (
-      <SkeletonPage title={t('title')}>
-        <Layout>
-          <Layout.Section>
-            <div className="space-y-6 animate-fade-in pb-8">
-              <div className="space-y-1.5">
-                <div className="h-8 w-48 bg-zinc-200 rounded-md animate-pulse" />
-                <div className="h-4 w-96 bg-zinc-100 rounded animate-pulse" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-white shadow-sm ring-1 ring-black/5 rounded-xl p-5 animate-pulse" style={{ animationDelay: `${i * 100}ms` }}>
-                    <div className="h-12 w-12 bg-zinc-100 rounded-lg mb-4" />
-                    <div className="h-5 w-24 bg-zinc-200 rounded mb-2" />
-                    <div className="h-10 w-full bg-zinc-100 rounded" />
-                    <div className="mt-4 h-8 w-full bg-zinc-200 rounded-lg" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Layout.Section>
-        </Layout>
-      </SkeletonPage>
+      <div className="d-page">
+        <div className="d-page-header" role="status" aria-live="polite" aria-label={t('loading')}>
+          <div className="r-skeleton" style={{ height: 26, width: 200, marginBottom: 8 }} />
+          <div className="r-skeleton" style={{ height: 16, width: 340 }} />
+        </div>
+        {[0, 1, 2].map((row) => (
+          <div
+            key={row}
+            className="r-skeleton"
+            style={{ height: 100, marginBottom: 16 }}
+            aria-hidden="true"
+          />
+        ))}
+      </div>
     );
   }
 
   return (
-    <>
-    {ConfirmDialogNode}
-    <Page title={t('title')} subtitle={t('description')} fullWidth>
-      <Layout>
-        <Layout.Section>
-          <div className="space-y-6 animate-fade-in pb-8 font-sans text-[#303030]">
-            {pageFeedback ? (
-              <PageFeedbackCard
-                tone={pageFeedback.tone}
-                title={pageFeedback.title}
-                message={pageFeedback.message}
-                actionLabel={pageFeedback.actionLabel}
-                onAction={
-                  pageFeedback.targetId
-                    ? () => {
-                        document
-                          .getElementById(pageFeedback.targetId!)
-                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }
-                    : undefined
-                }
-                dismissLabel={t('feedback.dismiss')}
-                onDismiss={() => setPageFeedback(null)}
-              />
-            ) : null}
-            <PolarisCard>
-              <Box padding="400">
-                <BlockStack gap="100">
-                  <Text as="h2" variant="headingMd">{t('title')}</Text>
-                  <Text as="p" tone="subdued">{t('description')}</Text>
-                </BlockStack>
-              </Box>
-            </PolarisCard>
+    <div className="d-page">
+      {ConfirmDialogNode}
 
-            {/* Platform support number as an Alert Banner */}
-            {platformWhatsApp && (
-              <PolarisCard>
-                <Box padding="300">
-                  <Banner tone="info" title={t('platformSupport.title')}>
-                    <p>{t('platformSupport.subtitle')}</p>
-                    <div className="mt-3">
-                      <a
-                        href={`https://wa.me/${platformWhatsApp.replace(/^\+/, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-[hsl(var(--recete-cream-muted))] border border-zinc-200 rounded-lg text-sm font-medium"
-                      >
-                        {platformWhatsApp}
-                      </a>
-                    </div>
-                  </Banner>
-                </Box>
-              </PolarisCard>
-            )}
+      <div className="d-page-header">
+        <h1 className="r-page-title">{t('title')}</h1>
+        <p className="r-page-sub">{t('description')}</p>
+      </div>
 
-            {/* Discover Integrations (Polaris List Style) */}
-            <div id="discover-integrations" className="mt-8">
-              <h2 className="text-lg font-semibold text-[#1a1a1a] mb-3">Discover integrations</h2>
-              <PolarisCard padding="0">
-                <div className="divide-y divide-zinc-100">
-                  {/* Shopify */}
-                  <div className="p-4 hover:bg-[hsl(var(--recete-cream-muted))]/50 transition-colors flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-[#95BF47]/10 flex items-center justify-center flex-shrink-0">
-                        <ShoppingBag className="w-5 h-5 text-[#95BF47]" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-semibold text-[#1a1a1a]">{t('providers.shopify.title')}</h3>
-                          {hasShopify && <PolarisBadge tone="success">Connected</PolarisBadge>}
-                        </div>
-                        <p className="text-sm text-[#616161] mt-0.5 max-w-[400px]">
-                          {hasShopify
-                            ? (integrations.find((i) => i.provider === 'shopify')?.shop_domain
-                              ? `${t('active.storeLabel')}: ${integrations.find((i) => i.provider === 'shopify')?.shop_domain}`
-                              : t('providers.shopify.connected'))
-                            : t('providers.shopify.description')}
-                        </p>
-                      </div>
-                    </div>
-                    <div>
-                      <PolarisButton
-                        onClick={() => setShowShopifyModal(true)}
-                        variant={hasShopify ? 'secondary' : 'primary'}
-                        size="slim"
-                      >
-                        {hasShopify ? t('providers.shopify.action.connected') : t('providers.shopify.action.connect')}
-                      </PolarisButton>
-                    </div>
+      {pageFeedback ? (
+        <div style={{ marginBottom: 16 }}>
+          <PageFeedbackCard
+            tone={pageFeedback.tone}
+            title={pageFeedback.title}
+            message={pageFeedback.message}
+            actionLabel={pageFeedback.actionLabel}
+            onAction={
+              pageFeedback.targetId
+                ? () => {
+                    document
+                      .getElementById(pageFeedback.targetId!)
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                : undefined
+            }
+            dismissLabel={t('feedback.dismiss')}
+            onDismiss={() => setPageFeedback(null)}
+          />
+        </div>
+      ) : null}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+        {platformWhatsApp ? (
+          <div className="r-alert r-alert-info">
+            <div style={{ minWidth: 0 }}>
+              <p className="r-alert-title">{t('platformSupport.title')}</p>
+              <p className="r-alert-body">{t('platformSupport.subtitle')}</p>
+              <a
+                href={`https://wa.me/${platformWhatsApp.replace(/^\+/, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="r-btn r-btn-secondary r-btn-sm"
+              >
+                {platformWhatsApp}
+              </a>
+            </div>
+          </div>
+        ) : null}
+
+        <div id="discover-integrations">
+          <p className="r-eyebrow" style={{ display: 'block', marginBottom: 10 }}>
+            {t('discoverTitle')}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Shopify */}
+            <div
+              className="r-card"
+              style={{
+                padding: 'var(--r-space-7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 16,
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 'var(--r-radius-md)',
+                    background: '#95BF4720',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <ShoppingBag size={18} color="#5C8A2A" />
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span className="r-table-strong">{t('providers.shopify.title')}</span>
+                    {hasShopify ? <Badge tone="success">{t('active.connected')}</Badge> : null}
                   </div>
-
-                  {/* WhatsApp Business */}
-                  <div className="p-4 hover:bg-[hsl(var(--recete-cream-muted))]/50 transition-colors flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
-                        <MessageCircle className="w-5 h-5 text-[#25D366]" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-semibold text-[#1a1a1a]">{t('providers.whatsapp.title')}</h3>
-                          {hasWhatsApp && <PolarisBadge tone="success">Connected</PolarisBadge>}
-                        </div>
-                        <p className="text-sm text-[#616161] mt-0.5 max-w-[400px]">
-                          {hasWhatsApp ? t('providers.whatsapp.connected') : t('providers.whatsapp.description')}
-                        </p>
-                      </div>
-                    </div>
-                    <div>
-                      <PolarisButton
-                        onClick={() => openWhatsAppModal(integrations.find((i) => i.provider === 'whatsapp'))}
-                        variant={hasWhatsApp ? 'secondary' : 'primary'}
-                        size="slim"
-                      >
-                        {hasWhatsApp ? t('providers.whatsapp.action.update') : t('providers.whatsapp.action.connect')}
-                      </PolarisButton>
-                    </div>
-                  </div>
-
-                  {/* CSV Import */}
-                  <div className="p-4 hover:bg-[hsl(var(--recete-cream-muted))]/50 transition-colors flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-zinc-100 flex items-center justify-center flex-shrink-0">
-                        <Upload className="w-5 h-5 text-zinc-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-semibold text-[#1a1a1a]">{t('providers.csv.title')}</h3>
-                        <p className="text-sm text-[#616161] mt-0.5 max-w-[400px]">
-                          {t('providers.csv.description')}
-                        </p>
-                      </div>
-                    </div>
-                    <div>
-                      <PolarisButton
-                        onClick={() => setShowCsvModal(true)}
-                        variant="secondary"
-                        size="slim"
-                      >
-                        {t('providers.csv.action')}
-                      </PolarisButton>
-                    </div>
-                  </div>
-
-                  {ENABLE_MANUAL_INTEGRATION && (
-                    /* Manual / API */
-                    <div className="p-4 hover:bg-[hsl(var(--recete-cream-muted))]/50 transition-colors flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-blue-50 flex items-center justify-center flex-shrink-0">
-                          <Code className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-semibold text-[#1a1a1a]">{t('providers.manual.title')}</h3>
-                            {hasManual && <PolarisBadge tone="info">Connected</PolarisBadge>}
-                          </div>
-                          <p className="text-sm text-[#616161] mt-0.5 max-w-[400px]">
-                            {hasManual ? t('providers.manual.connected') : t('providers.manual.description')}
-                          </p>
-                        </div>
-                      </div>
-                      <div>
-                        <PolarisButton
-                          onClick={() => setShowManualModal(true)}
-                          variant="secondary"
-                          size="slim"
-                        >
-                          {hasManual ? t('providers.manual.action.connected') : t('providers.manual.action.setup')}
-                        </PolarisButton>
-                      </div>
-                    </div>
-                  )}
+                  <p className="r-hint" style={{ marginTop: 3 }}>
+                    {hasShopify
+                      ? integrations.find((i) => i.provider === 'shopify')?.shop_domain
+                        ? `${t('active.storeLabel')}: ${integrations.find((i) => i.provider === 'shopify')?.shop_domain}`
+                        : t('providers.shopify.connected')
+                      : t('providers.shopify.description')}
+                  </p>
                 </div>
-              </PolarisCard>
+              </div>
+              <button
+                className={
+                  hasShopify ? 'r-btn r-btn-secondary r-btn-sm' : 'r-btn r-btn-primary r-btn-sm'
+                }
+                onClick={() => setShowShopifyModal(true)}
+              >
+                {hasShopify
+                  ? t('providers.shopify.action.connected')
+                  : t('providers.shopify.action.connect')}
+              </button>
             </div>
 
-            {/* Active Integrations */}
-            <div id="active-integrations" className="pt-8">
-              <h2 className="text-lg font-semibold text-[#1a1a1a] mb-3">{t('active.title')}</h2>
-              {integrations.length > 0 ? (
-                <PolarisCard padding="0">
-                  <div className="divide-y divide-zinc-100">
-                    {integrations.map((integration, idx) => (
-                      <div key={integration.id} className="p-4 hover:bg-[hsl(var(--recete-cream-muted))]/50 transition-all group" style={{ animationDelay: `${idx * 50}ms` }}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            {integration.provider === 'shopify' && (
-                              <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-[#95BF47]/10 flex items-center justify-center flex-shrink-0">
-                                <ShoppingBag className="w-5 h-5 text-[#95BF47]" />
-                              </div>
-                            )}
-                            {integration.provider === 'whatsapp' && (
-                              <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
-                                <MessageCircle className="w-5 h-5 text-[#25D366]" />
-                              </div>
-                            )}
-                            {integration.provider === 'manual' && (
-                              <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-blue-50 flex items-center justify-center flex-shrink-0">
-                                <Code className="w-5 h-5 text-blue-600" />
-                              </div>
-                            )}
-                            {integration.provider !== 'shopify' && integration.provider !== 'whatsapp' && integration.provider !== 'manual' && (
-                              <div className="w-10 h-10 rounded-lg shadow-sm border border-black/5 bg-zinc-100 flex items-center justify-center flex-shrink-0">
-                                <Plug className="w-5 h-5 text-zinc-600" />
-                              </div>
-                            )}
-                            <div>
-                              <h3 className="text-sm font-semibold text-[#1a1a1a]">
-                                {getProviderName(integration.provider)}
-                                {integration.provider === 'whatsapp' && integration.phone_number_display && (
-                                  <span className="ml-2 font-normal text-[#616161]">
-                                    • {integration.phone_number_display}
-                                  </span>
-                                )}
-                                {integration.provider === 'shopify' && integration.shop_domain && (
-                                  <span className="ml-2 font-normal text-[#616161]">
-                                    • {integration.shop_domain}
-                                  </span>
-                                )}
-                              </h3>
-                              <p className="text-xs text-[#616161] mt-0.5">
-                                {t('createdLabel')} {new Date(integration.created_at).toLocaleDateString('en-GB')}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <PolarisBadge tone={integration.status === 'active' ? 'success' : integration.status === 'error' ? 'critical' : 'attention'}>
-                              {getStatusText(integration.status)}
-                            </PolarisBadge>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              {integration.provider === 'whatsapp' && (
-                                <button
-                                  onClick={() => openWhatsAppModal(integration)}
-                                  title={t('providers.whatsapp.action.update')}
-                                  className="p-1.5 text-[#616161] hover:text-[#1a1a1a] hover:bg-zinc-100 rounded transition-colors"
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                </button>
-                              )}
-                              <button
-                                className="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                                onClick={async () => {
-                                  const ok = await confirm({ title: t('active.deleteConfirm'), message: '', destructive: true, confirmLabel: 'Delete', cancelLabel: 'Cancel' });
-                                  if (ok) handleDeleteIntegration(integration.id);
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+            {/* WhatsApp Business */}
+            <div
+              className="r-card"
+              style={{
+                padding: 'var(--r-space-7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 16,
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 'var(--r-radius-md)',
+                    background: '#25D36620',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <MessageCircle size={18} color="#128C53" />
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span className="r-table-strong">{t('providers.whatsapp.title')}</span>
+                    {hasWhatsApp ? <Badge tone="success">{t('active.connected')}</Badge> : null}
                   </div>
-                </PolarisCard>
-              ) : (
-                <PolarisCard>
-                  <EmptyState
-                    heading={t('active.empty.title')}
-                    image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                  <p className="r-hint" style={{ marginTop: 3 }}>
+                    {hasWhatsApp
+                      ? t('providers.whatsapp.connected')
+                      : t('providers.whatsapp.description')}
+                  </p>
+                </div>
+              </div>
+              <button
+                className={
+                  hasWhatsApp ? 'r-btn r-btn-secondary r-btn-sm' : 'r-btn r-btn-primary r-btn-sm'
+                }
+                onClick={() =>
+                  openWhatsAppModal(integrations.find((i) => i.provider === 'whatsapp'))
+                }
+              >
+                {hasWhatsApp
+                  ? t('providers.whatsapp.action.update')
+                  : t('providers.whatsapp.action.connect')}
+              </button>
+            </div>
+
+            {/* CSV Import */}
+            <div
+              className="r-card"
+              style={{
+                padding: 'var(--r-space-7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 16,
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 'var(--r-radius-md)',
+                    background: 'var(--r-surface-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Upload size={18} color="var(--r-text-muted)" />
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <span className="r-table-strong">{t('providers.csv.title')}</span>
+                  <p className="r-hint" style={{ marginTop: 3 }}>
+                    {t('providers.csv.description')}
+                  </p>
+                </div>
+              </div>
+              <button
+                className="r-btn r-btn-secondary r-btn-sm"
+                onClick={() => setShowCsvModal(true)}
+              >
+                {t('providers.csv.action')}
+              </button>
+            </div>
+
+            {ENABLE_MANUAL_INTEGRATION && (
+              <div
+                className="r-card"
+                style={{
+                  padding: 'var(--r-space-7)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 'var(--r-radius-md)',
+                      background: 'var(--r-brand-tint)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
                   >
-                    <p>No integrations are currently active. Discover apps above to automate your workflows.</p>
-                  </EmptyState>
-                </PolarisCard>
+                    <Code size={18} color="var(--r-brand)" />
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}
+                    >
+                      <span className="r-table-strong">{t('providers.manual.title')}</span>
+                      {hasManual ? <Badge tone="brand">{t('active.connected')}</Badge> : null}
+                    </div>
+                    <p className="r-hint" style={{ marginTop: 3 }}>
+                      {hasManual
+                        ? t('providers.manual.connected')
+                        : t('providers.manual.description')}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  className="r-btn r-btn-secondary r-btn-sm"
+                  onClick={() => setShowManualModal(true)}
+                >
+                  {hasManual
+                    ? t('providers.manual.action.connected')
+                    : t('providers.manual.action.setup')}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div id="active-integrations">
+          <p className="r-eyebrow" style={{ display: 'block', marginBottom: 10 }}>
+            {t('active.title')}
+          </p>
+          {integrations.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {integrations.map((integration) => (
+                <div
+                  key={integration.id}
+                  className="r-card"
+                  style={{ padding: 'var(--r-space-7)' }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 16,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+                      {integration.provider === 'shopify' && (
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 'var(--r-radius-md)',
+                            background: '#95BF4720',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <ShoppingBag size={18} color="#5C8A2A" />
+                        </span>
+                      )}
+                      {integration.provider === 'whatsapp' && (
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 'var(--r-radius-md)',
+                            background: '#25D36620',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <MessageCircle size={18} color="#128C53" />
+                        </span>
+                      )}
+                      {integration.provider === 'manual' && (
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 'var(--r-radius-md)',
+                            background: 'var(--r-brand-tint)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Code size={18} color="var(--r-brand)" />
+                        </span>
+                      )}
+                      {integration.provider !== 'shopify' &&
+                        integration.provider !== 'whatsapp' &&
+                        integration.provider !== 'manual' && (
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 'var(--r-radius-md)',
+                              background: 'var(--r-surface-muted)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Plug size={18} color="var(--r-text-muted)" />
+                          </span>
+                        )}
+                      <div style={{ minWidth: 0 }}>
+                        <h3 className="r-table-strong" style={{ margin: 0 }}>
+                          {getProviderName(integration.provider)}
+                          {integration.provider === 'whatsapp' &&
+                            integration.phone_number_display && (
+                              <span className="r-hint" style={{ fontWeight: 400 }}>
+                                {' '}
+                                • {integration.phone_number_display}
+                              </span>
+                            )}
+                          {integration.provider === 'shopify' && integration.shop_domain && (
+                            <span className="r-hint" style={{ fontWeight: 400 }}>
+                              {' '}
+                              • {integration.shop_domain}
+                            </span>
+                          )}
+                        </h3>
+                        <p className="r-hint" style={{ marginTop: 3 }}>
+                          {t('createdLabel')}{' '}
+                          {new Date(integration.created_at).toLocaleDateString('en-GB')}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      <Badge tone={STATUS_TONE[integration.status]}>
+                        {getStatusText(integration.status)}
+                      </Badge>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {integration.provider === 'whatsapp' && (
+                          <button
+                            onClick={() => openWhatsAppModal(integration)}
+                            title={t('providers.whatsapp.action.update')}
+                            aria-label={t('providers.whatsapp.action.update')}
+                            className="r-btn r-btn-ghost r-btn-sm"
+                          >
+                            <Pencil size={14} aria-hidden="true" />
+                          </button>
+                        )}
+                        <button
+                          className="r-btn r-btn-ghost r-btn-sm"
+                          title={t('active.delete')}
+                          aria-label={t('active.delete')}
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: t('active.deleteConfirmTitle'),
+                              message: t('active.deleteConfirm'),
+                              confirmLabel: t('active.delete'),
+                              destructive: true,
+                            });
+                            if (ok) handleDeleteIntegration(integration.id);
+                          }}
+                        >
+                          <Trash2 size={14} aria-hidden="true" color="var(--r-danger)" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="r-card">
+              <EmptyState title={t('active.empty.title')} body={t('active.empty.description')} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Shopify Modal */}
+      {showShopifyModal ? (
+        <div
+          className="r-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !connectingShopify) setShowShopifyModal(false);
+          }}
+        >
+          <div className="r-modal" role="dialog" aria-modal="true" aria-labelledby={shopifyTitleId}>
+            <div className="r-modal-head">
+              <h2 className="r-modal-title" id={shopifyTitleId}>
+                {t('modals.shopify.title')}
+              </h2>
+            </div>
+            <div
+              className="r-modal-body"
+              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+            >
+              <div>
+                <label className="r-label" htmlFor={`${fieldPrefix}-shop`}>
+                  {t('modals.shopify.shopLabel')}
+                </label>
+                <input
+                  id={`${fieldPrefix}-shop`}
+                  className="r-input"
+                  value={shopifyShop}
+                  onChange={(e) => setShopifyShop(e.target.value)}
+                  placeholder={t('modals.shopify.shopPlaceholder')}
+                  disabled={connectingShopify}
+                  autoComplete="off"
+                />
+                <p className="r-field-help">{t('modals.shopify.helper')}</p>
+              </div>
+            </div>
+            <div className="r-modal-foot">
+              <button
+                className="r-btn r-btn-secondary"
+                onClick={() => setShowShopifyModal(false)}
+                disabled={connectingShopify}
+              >
+                {t('modals.shopify.cancel')}
+              </button>
+              <button
+                className="r-btn r-btn-primary"
+                onClick={handleConnectShopify}
+                disabled={connectingShopify}
+                aria-busy={connectingShopify || undefined}
+              >
+                {connectingShopify ? t('modals.shopify.connecting') : t('modals.shopify.connect')}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* CSV Modal */}
+      {showCsvModal ? (
+        <div
+          className="r-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !importing) setShowCsvModal(false);
+          }}
+        >
+          <div className="r-modal" role="dialog" aria-modal="true" aria-labelledby={csvTitleId}>
+            <div className="r-modal-head">
+              <h2 className="r-modal-title" id={csvTitleId}>
+                {t('modals.csv.title')}
+              </h2>
+            </div>
+            <div
+              className="r-modal-body"
+              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+            >
+              <div>
+                <label className="r-label" htmlFor="csv-file-input">
+                  {t('modals.csv.fileLabel')}
+                </label>
+                <input
+                  id="csv-file-input"
+                  type="file"
+                  accept=".csv"
+                  onChange={handleCsvUpload}
+                  disabled={importing}
+                  className="r-input"
+                />
+                {csvFile ? (
+                  <p className="r-field-help">
+                    {t('modals.csv.fileSelected', { name: csvFile.name })}
+                  </p>
+                ) : null}
+              </div>
+              <div
+                className="r-card"
+                style={{ background: 'var(--r-surface-muted)', padding: 'var(--r-space-6)' }}
+              >
+                <p className="r-hint" style={{ margin: 0 }}>
+                  {t('modals.csv.format')}
+                </p>
+              </div>
+            </div>
+            <div className="r-modal-foot">
+              <button
+                className="r-btn r-btn-secondary"
+                onClick={() => setShowCsvModal(false)}
+                disabled={importing}
+              >
+                {t('modals.csv.cancel')}
+              </button>
+              <button
+                className="r-btn r-btn-primary"
+                onClick={handleImportCsv}
+                disabled={importing || !csvFile}
+                aria-busy={importing || undefined}
+              >
+                {importing ? t('modals.csv.importing') : t('modals.csv.import')}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Manual Integration Modal */}
+      {showManualModal ? (
+        <div
+          className="r-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowManualModal(false);
+          }}
+        >
+          <div className="r-modal" role="dialog" aria-modal="true" aria-labelledby={manualTitleId}>
+            <div className="r-modal-head">
+              <h2 className="r-modal-title" id={manualTitleId}>
+                {t('modals.manual.title')}
+              </h2>
+            </div>
+            <div
+              className="r-modal-body"
+              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+            >
+              <div
+                className="r-card"
+                style={{
+                  background: 'var(--r-surface-muted)',
+                  padding: 'var(--r-space-6)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                }}
+              >
+                <p className="r-label" style={{ margin: 0 }}>
+                  {t('modals.manual.webhookLabel')}
+                </p>
+                <code
+                  className="r-hint"
+                  style={{
+                    display: 'block',
+                    background: 'var(--r-surface)',
+                    padding: 'var(--r-space-5)',
+                    borderRadius: 'var(--r-radius-sm)',
+                    border: '1px solid var(--r-border)',
+                  }}
+                >
+                  {getApiBaseUrlForDisplay()}/api/webhooks/manual
+                </code>
+                <p className="r-field-help">{t('modals.manual.webhookHelper')}</p>
+              </div>
+            </div>
+            <div className="r-modal-foot">
+              <button className="r-btn r-btn-secondary" onClick={() => setShowManualModal(false)}>
+                {t('modals.manual.cancel')}
+              </button>
+              <button className="r-btn r-btn-primary" onClick={handleCreateManualIntegration}>
+                {t('modals.manual.create')}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* WhatsApp Business Modal */}
+      {showWhatsAppModal ? (
+        <div
+          className="r-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !connectingWhatsApp) setShowWhatsAppModal(false);
+          }}
+        >
+          <div
+            className="r-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={whatsappTitleId}
+            style={{ maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            <div className="r-modal-head">
+              <h2 className="r-modal-title" id={whatsappTitleId}>
+                {editingWhatsAppId ? t('modals.whatsapp.updateTitle') : t('modals.whatsapp.title')}
+              </h2>
+              <p className="r-hint" style={{ marginTop: 4 }}>
+                {t('modals.whatsapp.description')}
+              </p>
+            </div>
+            <div
+              className="r-modal-body"
+              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+            >
+              <div>
+                <label className="r-label" htmlFor={`${fieldPrefix}-wa-display`}>
+                  {t('modals.whatsapp.displayLabel')}
+                </label>
+                <input
+                  id={`${fieldPrefix}-wa-display`}
+                  className="r-input"
+                  value={whatsappPhoneDisplay}
+                  onChange={(e) => setWhatsappPhoneDisplay(e.target.value)}
+                  placeholder={t('modals.whatsapp.displayPlaceholder')}
+                  disabled={connectingWhatsApp}
+                  autoComplete="off"
+                />
+              </div>
+
+              <div>
+                <label className="r-label" htmlFor={`${fieldPrefix}-wa-provider`}>
+                  {t('modals.whatsapp.providerLabel')}
+                </label>
+                <select
+                  id={`${fieldPrefix}-wa-provider`}
+                  className="r-select"
+                  value={whatsappProviderType}
+                  onChange={(e) => setWhatsappProviderType(e.target.value as 'meta' | 'twilio')}
+                  disabled={connectingWhatsApp}
+                >
+                  <option value="twilio">{t('modals.whatsapp.providerOptions.twilio')}</option>
+                  <option value="meta">{t('modals.whatsapp.providerOptions.meta')}</option>
+                </select>
+              </div>
+
+              {whatsappProviderType === 'twilio' ? (
+                <>
+                  <div>
+                    <label className="r-label" htmlFor={`${fieldPrefix}-wa-sid`}>
+                      {t('modals.whatsapp.twilioSidLabel')}
+                    </label>
+                    <input
+                      id={`${fieldPrefix}-wa-sid`}
+                      className="r-input"
+                      value={whatsappTwilioAccountSid}
+                      onChange={(e) => setWhatsappTwilioAccountSid(e.target.value)}
+                      placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      disabled={connectingWhatsApp}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div>
+                    <label className="r-label" htmlFor={`${fieldPrefix}-wa-token`}>
+                      {t('modals.whatsapp.twilioTokenLabel')}
+                    </label>
+                    <input
+                      id={`${fieldPrefix}-wa-token`}
+                      type="password"
+                      className="r-input"
+                      value={whatsappTwilioAuthToken}
+                      onChange={(e) => setWhatsappTwilioAuthToken(e.target.value)}
+                      placeholder={t('modals.whatsapp.twilioTokenLabel')}
+                      disabled={connectingWhatsApp}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div>
+                    <label className="r-label" htmlFor={`${fieldPrefix}-wa-from`}>
+                      {t('modals.whatsapp.twilioFromLabel')}
+                    </label>
+                    <input
+                      id={`${fieldPrefix}-wa-from`}
+                      className="r-input"
+                      value={whatsappTwilioFromNumber}
+                      onChange={(e) => setWhatsappTwilioFromNumber(e.target.value)}
+                      placeholder="+14155238886"
+                      disabled={connectingWhatsApp}
+                      autoComplete="off"
+                    />
+                    <p className="r-field-help">{t('modals.whatsapp.twilioFromHelper')}</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="r-label" htmlFor={`${fieldPrefix}-wa-phoneid`}>
+                      {t('modals.whatsapp.phoneIdLabel')}
+                    </label>
+                    <input
+                      id={`${fieldPrefix}-wa-phoneid`}
+                      className="r-input"
+                      value={whatsappPhoneNumberId}
+                      onChange={(e) => setWhatsappPhoneNumberId(e.target.value)}
+                      placeholder={t('modals.whatsapp.phoneIdPlaceholder')}
+                      disabled={connectingWhatsApp}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div>
+                    <label className="r-label" htmlFor={`${fieldPrefix}-wa-access`}>
+                      {t('modals.whatsapp.tokenLabel')}
+                    </label>
+                    <input
+                      id={`${fieldPrefix}-wa-access`}
+                      type="password"
+                      className="r-input"
+                      value={whatsappAccessToken}
+                      onChange={(e) => setWhatsappAccessToken(e.target.value)}
+                      placeholder={t('modals.whatsapp.tokenPlaceholder')}
+                      disabled={connectingWhatsApp}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div>
+                    <label className="r-label" htmlFor={`${fieldPrefix}-wa-verify`}>
+                      {t('modals.whatsapp.verifyLabel')}
+                    </label>
+                    <input
+                      id={`${fieldPrefix}-wa-verify`}
+                      className="r-input"
+                      value={whatsappVerifyToken}
+                      onChange={(e) => setWhatsappVerifyToken(e.target.value)}
+                      placeholder={t('modals.whatsapp.verifyPlaceholder')}
+                      disabled={connectingWhatsApp}
+                      autoComplete="off"
+                    />
+                  </div>
+                </>
               )}
             </div>
-
-            {/* Shopify Modal */}
-            <Dialog open={showShopifyModal} onOpenChange={(open) => {
-              if (!connectingShopify) setShowShopifyModal(open);
-            }}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>{t('modals.shopify.title')}</DialogTitle>
-                </DialogHeader>
-                <Box paddingBlockStart="200">
-                  <BlockStack gap="400">
-                    <TextField
-                      label={t('modals.shopify.shopLabel')}
-                      value={shopifyShop}
-                      onChange={setShopifyShop}
-                      placeholder={t('modals.shopify.shopPlaceholder')}
-                      disabled={connectingShopify}
-                      autoComplete="off"
-                      helpText={t('modals.shopify.helper')}
-                    />
-
-                    <DialogFooter className="gap-3 sm:gap-3">
-                      <PolarisButton
-                        onClick={() => setShowShopifyModal(false)}
-                        disabled={connectingShopify}
-                        variant="secondary"
-                      >
-                        {t('modals.shopify.cancel')}
-                      </PolarisButton>
-                      <PolarisButton
-                        onClick={handleConnectShopify}
-                        disabled={connectingShopify}
-                        variant="primary"
-                        loading={connectingShopify}
-                      >
-                        {connectingShopify ? t('modals.shopify.connecting') : t('modals.shopify.connect')}
-                      </PolarisButton>
-                    </DialogFooter>
-                  </BlockStack>
-                </Box>
-              </DialogContent>
-            </Dialog>
-
-            {/* CSV Modal */}
-            <Dialog open={showCsvModal} onOpenChange={(open) => {
-              if (!importing) setShowCsvModal(open);
-            }}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>{t('modals.csv.title')}</DialogTitle>
-                </DialogHeader>
-                <Box paddingBlockStart="200">
-                  <BlockStack gap="400">
-                    <BlockStack gap="200">
-                      <label htmlFor="csv-file-input">
-                        <Text as="p" variant="bodyMd" fontWeight="medium">
-                          {t('modals.csv.fileLabel')}
-                        </Text>
-                      </label>
-                      <input
-                        id="csv-file-input"
-                        type="file"
-                        accept=".csv"
-                        onChange={handleCsvUpload}
-                        disabled={importing}
-                        className="w-full px-3 py-2 rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 text-sm"
-                      />
-                      {csvFile && (
-                        <Text as="p" variant="bodySm" tone="success">
-                          {t('modals.csv.fileSelected', { name: csvFile.name })}
-                        </Text>
-                      )}
-                    </BlockStack>
-
-                    <Box background="bg-surface-secondary" borderWidth="025" borderColor="border" borderRadius="300" padding="300">
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        <strong>{t('modals.csv.format')}</strong>
-                      </Text>
-                    </Box>
-
-                    <DialogFooter className="gap-3 sm:gap-3">
-                      <PolarisButton
-                        onClick={() => setShowCsvModal(false)}
-                        disabled={importing}
-                        variant="secondary"
-                      >
-                        {t('modals.csv.cancel')}
-                      </PolarisButton>
-                      <PolarisButton
-                        onClick={handleImportCsv}
-                        disabled={importing || !csvFile}
-                        variant="primary"
-                        loading={importing}
-                      >
-                        {importing ? t('modals.csv.importing') : t('modals.csv.import')}
-                      </PolarisButton>
-                    </DialogFooter>
-                  </BlockStack>
-                </Box>
-              </DialogContent>
-            </Dialog>
-
-            {/* Manual Integration Modal */}
-            <Dialog open={showManualModal} onOpenChange={setShowManualModal}>
-              <DialogContent className="sm:max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>{t('modals.manual.title')}</DialogTitle>
-                </DialogHeader>
-                <Box paddingBlockStart="200">
-                  <BlockStack gap="400">
-                    <Box padding="300" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
-                      <BlockStack gap="200">
-                        <Text as="p" variant="bodyMd" fontWeight="medium">{t('modals.manual.webhookLabel')}</Text>
-                        <Box padding="200" borderWidth="025" borderColor="border" borderRadius="200" background="bg-surface">
-                          <code className="text-sm">{getApiBaseUrlForDisplay()}/api/webhooks/manual</code>
-                        </Box>
-                        <Text as="p" variant="bodySm" tone="subdued">{t('modals.manual.webhookHelper')}</Text>
-                      </BlockStack>
-                    </Box>
-
-                    <DialogFooter className="gap-3 sm:gap-3">
-                      <PolarisButton
-                        onClick={() => setShowManualModal(false)}
-                        variant="secondary"
-                      >
-                        {t('modals.manual.cancel')}
-                      </PolarisButton>
-                      <PolarisButton
-                        onClick={handleCreateManualIntegration}
-                        variant="primary"
-                      >
-                        {t('modals.manual.create')}
-                      </PolarisButton>
-                    </DialogFooter>
-                  </BlockStack>
-                </Box>
-              </DialogContent>
-            </Dialog>
-
-            {/* WhatsApp Business Modal */}
-            <Dialog open={showWhatsAppModal} onOpenChange={(open) => {
-              if (!connectingWhatsApp) setShowWhatsAppModal(open);
-            }}>
-              <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingWhatsAppId ? t('modals.whatsapp.updateTitle') : t('modals.whatsapp.title')}
-                  </DialogTitle>
-                  <DialogDescription>
-                    {t('modals.whatsapp.description')}
-                  </DialogDescription>
-                </DialogHeader>
-                <Box paddingBlockStart="200">
-                  <BlockStack gap="400">
-                    <TextField
-                      label={t('modals.whatsapp.displayLabel')}
-                      value={whatsappPhoneDisplay}
-                      onChange={setWhatsappPhoneDisplay}
-                      placeholder={t('modals.whatsapp.displayPlaceholder')}
-                      disabled={connectingWhatsApp}
-                      autoComplete="off"
-                    />
-                    <Select
-                      label="WhatsApp Provider"
-                      options={[
-                        { label: 'Twilio (Recommended)', value: 'twilio' },
-                        { label: 'Meta Cloud API', value: 'meta' },
-                      ]}
-                      value={whatsappProviderType}
-                      onChange={(value) => setWhatsappProviderType(value as 'meta' | 'twilio')}
-                      disabled={connectingWhatsApp}
-                    />
-                    {whatsappProviderType === 'twilio' ? (
-                      <>
-                        <TextField
-                          label="Twilio Account SID"
-                          value={whatsappTwilioAccountSid}
-                          onChange={setWhatsappTwilioAccountSid}
-                          placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                          disabled={connectingWhatsApp}
-                          autoComplete="off"
-                        />
-                        <TextField
-                          label="Twilio Auth Token"
-                          type="password"
-                          value={whatsappTwilioAuthToken}
-                          onChange={setWhatsappTwilioAuthToken}
-                          placeholder="Twilio Auth Token"
-                          disabled={connectingWhatsApp}
-                          autoComplete="off"
-                        />
-                        <TextField
-                          label="Twilio WhatsApp From Number"
-                          value={whatsappTwilioFromNumber}
-                          onChange={setWhatsappTwilioFromNumber}
-                          placeholder="+14155238886"
-                          helpText="Use the sandbox number during testing, then switch to your approved Twilio WhatsApp sender."
-                          disabled={connectingWhatsApp}
-                          autoComplete="off"
-                        />
-                      </>
-                    ) : (
-                      <>
-                        <TextField
-                          label={t('modals.whatsapp.phoneIdLabel')}
-                          value={whatsappPhoneNumberId}
-                          onChange={setWhatsappPhoneNumberId}
-                          placeholder={t('modals.whatsapp.phoneIdPlaceholder')}
-                          disabled={connectingWhatsApp}
-                          autoComplete="off"
-                        />
-                        <TextField
-                          label={t('modals.whatsapp.tokenLabel')}
-                          type="password"
-                          value={whatsappAccessToken}
-                          onChange={setWhatsappAccessToken}
-                          placeholder={t('modals.whatsapp.tokenPlaceholder')}
-                          disabled={connectingWhatsApp}
-                          autoComplete="off"
-                        />
-                        <TextField
-                          label={t('modals.whatsapp.verifyLabel')}
-                          value={whatsappVerifyToken}
-                          onChange={setWhatsappVerifyToken}
-                          placeholder={t('modals.whatsapp.verifyPlaceholder')}
-                          disabled={connectingWhatsApp}
-                          autoComplete="off"
-                        />
-                      </>
-                    )}
-
-                    <DialogFooter className="gap-3 sm:gap-3">
-                      <PolarisButton
-                        onClick={() => setShowWhatsAppModal(false)}
-                        disabled={connectingWhatsApp}
-                        variant="secondary"
-                      >
-                        {t('modals.whatsapp.cancel')}
-                      </PolarisButton>
-                      <PolarisButton
-                        onClick={handleSaveWhatsApp}
-                        disabled={
-                          connectingWhatsApp ||
-                          (whatsappProviderType === 'twilio'
-                            ? !whatsappTwilioAccountSid.trim() || !whatsappTwilioAuthToken.trim() || !whatsappTwilioFromNumber.trim()
-                            : !whatsappPhoneNumberId.trim() || !whatsappAccessToken.trim() || !whatsappVerifyToken.trim())
-                        }
-                        variant="primary"
-                        loading={connectingWhatsApp}
-                      >
-                        {connectingWhatsApp ? t('modals.whatsapp.saving') : editingWhatsAppId ? t('modals.whatsapp.update') : t('modals.whatsapp.save')}
-                      </PolarisButton>
-                    </DialogFooter>
-                  </BlockStack>
-                </Box>
-              </DialogContent>
-            </Dialog>
+            <div className="r-modal-foot">
+              <button
+                className="r-btn r-btn-secondary"
+                onClick={() => setShowWhatsAppModal(false)}
+                disabled={connectingWhatsApp}
+              >
+                {t('modals.whatsapp.cancel')}
+              </button>
+              <button
+                className="r-btn r-btn-primary"
+                onClick={handleSaveWhatsApp}
+                disabled={
+                  connectingWhatsApp ||
+                  (whatsappProviderType === 'twilio'
+                    ? !whatsappTwilioAccountSid.trim() ||
+                      !whatsappTwilioAuthToken.trim() ||
+                      !whatsappTwilioFromNumber.trim()
+                    : !whatsappPhoneNumberId.trim() ||
+                      !whatsappAccessToken.trim() ||
+                      !whatsappVerifyToken.trim())
+                }
+                aria-busy={connectingWhatsApp || undefined}
+              >
+                {connectingWhatsApp
+                  ? t('modals.whatsapp.saving')
+                  : editingWhatsAppId
+                    ? t('modals.whatsapp.update')
+                    : t('modals.whatsapp.save')}
+              </button>
+            </div>
           </div>
-        </Layout.Section>
-      </Layout>
-    </Page>
-    </>
+        </div>
+      ) : null}
+    </div>
   );
 }

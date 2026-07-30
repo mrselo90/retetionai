@@ -1,1807 +1,1819 @@
 {
-    "Common": {
-        "close": "Close"
+  "Common": {
+    "close": "Close"
+  },
+  "Landing": {
+    "brandName": "Recete",
+    "brandTagline": "Retention Agent",
+    "title": "Recete — Retention Agent",
+    "heroLine": "AI-powered WhatsApp customer support for e-commerce businesses",
+    "subtitle": "We help e-commerce merchants automate post-purchase support, reduce returns, and drive repeat purchases.",
+    "description": "The AI assistant that uses your product knowledge base to answer questions, send product guides, and resolve issues before they become returns.",
+    "forShopify": "For e-commerce merchants",
+    "login": "Login",
+    "signup": "Get Started Free",
+    "signupSmall": "No credit card required",
+    "privacy": "Privacy",
+    "terms": "Terms of Service",
+    "dashboardAlt": "Recete dashboard showing engagement metrics",
+    "stats": {
+      "merchants": "~30%",
+      "merchantsLabel": "Fewer Returns",
+      "merchantsSub": "industry avg. with guided post-purchase",
+      "returns": "2×",
+      "returnsLabel": "Faster Support",
+      "returnsSub": "with AI-assisted responses",
+      "messages": "+15%",
+      "messagesLabel": "Repeat Purchases",
+      "messagesSub": "from automated follow-ups",
+      "satisfaction": "24/7",
+      "satisfactionLabel": "AI Availability",
+      "satisfactionSub": "no extra team required"
     },
-    "Landing": {
-        "brandName": "Recete",
-        "brandTagline": "Retention Agent",
-        "title": "Recete — Retention Agent",
-        "heroLine": "AI-powered WhatsApp customer support for e-commerce businesses",
-        "subtitle": "We help e-commerce merchants automate post-purchase support, reduce returns, and drive repeat purchases.",
-        "description": "The AI assistant that uses your product knowledge base to answer questions, send product guides, and resolve issues before they become returns.",
-        "forShopify": "For e-commerce merchants",
-        "login": "Login",
-        "signup": "Get Started Free",
-        "signupSmall": "No credit card required",
-        "privacy": "Privacy",
-        "terms": "Terms of Service",
-        "dashboardAlt": "Recete dashboard showing engagement metrics",
-        "stats": {
-            "merchants": "~30%",
-            "merchantsLabel": "Fewer Returns",
-            "merchantsSub": "industry avg. with guided post-purchase",
-            "returns": "2×",
-            "returnsLabel": "Faster Support",
-            "returnsSub": "with AI-assisted responses",
-            "messages": "+15%",
-            "messagesLabel": "Repeat Purchases",
-            "messagesSub": "from automated follow-ups",
-            "satisfaction": "24/7",
-            "satisfactionLabel": "AI Availability",
-            "satisfactionSub": "no extra team required"
-        },
-        "features": {
-            "title": "Everything you need to retain customers",
-            "subtitle": "Powerful features designed to increase LTV and reduce support workload.",
-            "automated": "Automated WhatsApp Engagement",
-            "automatedDesc": "Send personalized post-purchase messages automatically. Product guides, usage tips, and check-ins — all via WhatsApp at the perfect time.",
-            "automatedBullets": "T+0 welcome · T+3 tips · T+14 feedback",
-            "aiPowered": "AI-Powered Conversations",
-            "aiPoweredDesc": "GPT-4 powered assistant answers customer questions using your product knowledge base. Handles complaints, guides usage, and prevents returns.",
-            "aiPoweredBullets": "RAG pipeline · Intent detection · Human handoff",
-            "analytics": "Analytics & ROI Dashboard",
-            "analyticsDesc": "Track saved returns, repeat purchases, customer sentiment, and engagement rates. See exactly how much revenue your retention efforts generate.",
-            "analyticsBullets": "ROI tracking · Sentiment analysis · RFM segments",
-            "realTime": "Real-time Sync",
-            "realTimeDesc": "Syncs with your store in real-time. Orders trigger the right messages instantly via webhooks.",
-            "realTimeBullets": "Webhooks · Instant triggers · Data sync",
-            "realtimeSync": "Real-time Order Sync",
-            "realtimeSyncDesc": "Syncs with your store in real-time via webhooks. Every order instantly triggers the right message at the right moment.",
-            "realtimeSyncBullets": "Webhooks · Instant triggers · Data sync",
-            "integration": "Easy Integration",
-            "integrationDesc": "Connect your store in seconds. No coding required. Works with your existing tech stack.",
-            "integrationBullets": "1-click setup · No code · API access",
-            "easyIntegration": "Quick Platform Setup",
-            "easyIntegrationDesc": "Connect your store in under 2 minutes. Works with Shopify, WooCommerce, and custom platforms via API. Zero coding required.",
-            "easyIntegrationBullets": "Quick setup · No code · API access",
-            "secure": "Enterprise Security",
-            "secureDesc": "Your data is safe with us. We use bank-grade encryption and follow GDPR compliance.",
-            "secureBullets": "GDPR compliant · Encrypted · Secure",
-            "security": "Enterprise-Grade Security",
-            "securityDesc": "We use encryption, merchant-level access controls, and GDPR-oriented workflows to protect your data and your customers.",
-            "securityBullets": "GDPR workflows · Encrypted data · Access controls"
-        },
-        "howItWorks": {
-            "title": "How it works",
-            "subtitle": "Get started in 3 simple steps",
-            "step1Title": "Connect your store",
-            "step1Desc": "Connect your e-commerce platform in minutes. We sync your products and orders automatically.",
-            "step2Title": "AI engages customers",
-            "step2Desc": "After each purchase, our AI sends personalized WhatsApp messages with product guidance.",
-            "step3Title": "Track your results",
-            "step3Desc": "Monitor return rates, customer satisfaction, and ROI in your analytics dashboard."
-        },
-        "cta": {
-            "title": "Ready to reduce returns and boost LTV?",
-            "subtitle": "Join merchants who are transforming their post-purchase experience.",
-            "button": "Start Free Trial",
-            "primaryCta": "Get Started Free",
-            "secondaryButton": "See How It Works",
-            "secondaryCta": "See How It Works",
-            "meta": "14-day free trial · No credit card required",
-            "footnote": "14-day free trial · No credit card required · Cancel anytime"
-        },
-        "socialProof": {
-            "eyebrow": "Why it works",
-            "title": "Reduce returns. Scale support. Grow LTV.",
-            "subtitle": "Built for e-commerce merchants who want fewer returns, faster answers, and higher repeat purchase rates — without hiring a bigger support team.",
-            "proof1": "Fast merchant onboarding",
-            "proof2": "WhatsApp-first engagement",
-            "proof3": "GDPR-ready & secure",
-            "outcome1": {
-                "icon": "returns",
-                "metric": "Fewer returns",
-                "title": "Stop returns before they happen",
-                "desc": "Most returns come from confusion, not defects. Proactive usage guidance — sent at exactly the right moment — answers questions before frustration builds."
-            },
-            "outcome2": {
-                "icon": "support",
-                "metric": "Always-on AI support",
-                "title": "Handle support without hiring",
-                "desc": "Your AI assistant answers product questions instantly using your knowledge base. Human handoff only triggers when it truly matters."
-            },
-            "outcome3": {
-                "icon": "ltv",
-                "metric": "Higher repeat purchases",
-                "title": "Turn buyers into loyal customers",
-                "desc": "Automated follow-ups at the right time — T+3, T+14 — keep customers engaged and convert single purchases into repeat revenue."
-            }
-        },
-        "pricing": {
-            "eyebrow": "Pricing",
-            "title": "Simple, transparent pricing.",
-            "subtitle": "Start free. Upgrade as you grow. No hidden fees.",
-            "mostPopular": "Most popular",
-            "perMonth": "/month",
-            "perYear": "/year",
-            "annualTitle": "Annual plans",
-            "annualSubtitle": "Save 2 months when billed annually.",
-            "monthlyIncludedChats": "Included chats / month",
-            "overage": "Overage",
-            "recipes": "Recipe capacity",
-            "vision": "AI vision",
-            "whatsapp": "WhatsApp",
-            "analytics": "Analytics",
-            "upsell": "Upsell strategy",
-            "cta": "Start with this plan",
-            "secondaryCta": "Talk to sales",
-            "roiNote": "Most merchants recover plan cost by preventing just a few returns or support escalations each month.",
-            "starter": {
-                "name": "Starter",
-                "desc": "For lean teams validating post-purchase support and retention.",
-                "price": "$29",
-                "annualPrice": "$290",
-                "note": "Best for low-volume stores and first rollout",
-                "bullets": "150 included chats / month · 20 recipes · $0.18 per overage chat · Shared Recete WhatsApp number · Basic analytics",
-                "vision": "Not available",
-                "upsell": "Basic support flows"
-            },
-            "growth": {
-                "name": "Growth",
-                "desc": "For growing merchants that need AI vision and stronger retention workflows.",
-                "price": "$69",
-                "annualPrice": "$690",
-                "note": "Most popular for scaling support and retention operations",
-                "bullets": "1,000 included chats / month · 500 recipes · $0.12 per overage chat · Customer photo analysis · Shared Recete WhatsApp number",
-                "vision": "Customers can send photos",
-                "upsell": "Upsell product links"
-            },
-            "pro": {
-                "name": "Pro",
-                "desc": "For higher-volume brands that want custom WhatsApp and deeper analytics.",
-                "price": "$169",
-                "annualPrice": "$1690",
-                "note": "Best for mature teams running branded buyer operations",
-                "bullets": "3,000 included chats / month · Unlimited recipes · $0.08 per overage chat · Smart Re-order · Advanced analytics",
-                "vision": "Customers can send photos",
-                "upsell": "Upsell + Smart Re-order"
-            }
-        },
-        "faq": {
-            "eyebrow": "FAQ",
-            "title": "Common questions",
-            "subtitle": "Everything you need to know before getting started.",
-            "q1": {
-                "question": "How long does setup take?",
-                "answer": "Most merchants connect their store and configure their first message flows in under 15 minutes. You can start with built-in templates and refine as you go."
-            },
-            "q2": {
-                "question": "Do I need a support team to use it?",
-                "answer": "No. Recete is designed to reduce manual support workload. You can still enable human handoff for escalations or sensitive conversations."
-            },
-            "q3": {
-                "question": "How does Recete reduce returns?",
-                "answer": "It sends proactive post-purchase messages, usage guidance, and timely follow-ups that answer common questions before they become return requests."
-            },
-            "q4": {
-                "question": "Is customer data secure?",
-                "answer": "Yes. We use encrypted data handling and merchant-level controls to protect customer information and operational access."
-            }
-        },
-        "footer": {
-            "description": "Recete helps brands reduce returns and increase LTV through proactive AI-driven WhatsApp conversations.",
-            "tagline": "Post-purchase AI that helps e-commerce merchants reduce returns and boost customer loyalty.",
-            "product": "Product",
-            "features": "Features",
-            "howItWorks": "How it Works",
-            "pricing": "Pricing",
-            "demo": "Contact Us",
-            "bookDemo": "Contact Us",
-            "company": "Company",
-            "about": "About Us",
-            "aboutUs": "About Us",
-            "blog": "Blog",
-            "careers": "Careers",
-            "contact": "Contact",
-            "legal": "Legal",
-            "privacy": "Privacy Policy",
-            "privacyPolicy": "Privacy Policy",
-            "terms": "Terms of Service",
-            "termsOfService": "Terms of Service",
-            "cookies": "Cookie Policy",
-            "cookiePolicy": "Cookie Policy",
-            "dataProcessingAddendum": "Data Processing Addendum",
-            "security": "Security",
-            "copyright": "© 2026 Recete Ltd. All rights reserved."
-        }
+    "features": {
+      "title": "Everything you need to retain customers",
+      "subtitle": "Powerful features designed to increase LTV and reduce support workload.",
+      "automated": "Automated WhatsApp Engagement",
+      "automatedDesc": "Send personalized post-purchase messages automatically. Product guides, usage tips, and check-ins — all via WhatsApp at the perfect time.",
+      "automatedBullets": "T+0 welcome · T+3 tips · T+14 feedback",
+      "aiPowered": "AI-Powered Conversations",
+      "aiPoweredDesc": "GPT-4 powered assistant answers customer questions using your product knowledge base. Handles complaints, guides usage, and prevents returns.",
+      "aiPoweredBullets": "RAG pipeline · Intent detection · Human handoff",
+      "analytics": "Analytics & ROI Dashboard",
+      "analyticsDesc": "Track saved returns, repeat purchases, customer sentiment, and engagement rates. See exactly how much revenue your retention efforts generate.",
+      "analyticsBullets": "ROI tracking · Sentiment analysis · RFM segments",
+      "realTime": "Real-time Sync",
+      "realTimeDesc": "Syncs with your store in real-time. Orders trigger the right messages instantly via webhooks.",
+      "realTimeBullets": "Webhooks · Instant triggers · Data sync",
+      "realtimeSync": "Real-time Order Sync",
+      "realtimeSyncDesc": "Syncs with your store in real-time via webhooks. Every order instantly triggers the right message at the right moment.",
+      "realtimeSyncBullets": "Webhooks · Instant triggers · Data sync",
+      "integration": "Easy Integration",
+      "integrationDesc": "Connect your store in seconds. No coding required. Works with your existing tech stack.",
+      "integrationBullets": "1-click setup · No code · API access",
+      "easyIntegration": "Quick Platform Setup",
+      "easyIntegrationDesc": "Connect your store in under 2 minutes. Works with Shopify, WooCommerce, and custom platforms via API. Zero coding required.",
+      "easyIntegrationBullets": "Quick setup · No code · API access",
+      "secure": "Enterprise Security",
+      "secureDesc": "Your data is safe with us. We use bank-grade encryption and follow GDPR compliance.",
+      "secureBullets": "GDPR compliant · Encrypted · Secure",
+      "security": "Enterprise-Grade Security",
+      "securityDesc": "We use encryption, merchant-level access controls, and GDPR-oriented workflows to protect your data and your customers.",
+      "securityBullets": "GDPR workflows · Encrypted data · Access controls"
     },
-    "Signup": {
-        "title": "Create Account",
-        "description": "Create a new account for your business",
-        "businessName": "Business Name",
-        "email": "Email",
-        "password": "Password",
-        "confirmPassword": "Confirm Password",
-        "passwordMinLength": "At least 8 characters with upper, lower, and number",
-        "submit": "Sign Up",
-        "submitting": "Creating account...",
-        "or": "or",
-        "googleSignup": "Sign up with Google",
-        "googleRedirecting": "Redirecting...",
-        "alreadyHaveAccount": "Already have an account?",
-        "login": "Login",
-        "backToHome": "← Back to Home",
-        "successTitle": "Account Created!",
-        "successMessage": "Account created! Please check your email ({email}) and click the confirmation link to activate your account.",
-        "apiKeyModal": {
-            "title": "🎉 Account Created!",
-            "important": "Important:",
-            "warning": "Save your API key in a safe place. It is shown only once and cannot be viewed again.",
-            "label": "API Key",
-            "savedCheckbox": "I have saved the API key",
-            "goToDashboard": "Go to Dashboard"
-        },
-        "errors": {
-            "passwordMismatch": "Passwords do not match",
-            "passwordLength": "Password must be at least 8 characters",
-            "googleDisabled": "Google signup is currently disabled. Please sign up with email.",
-            "default": "Signup failed."
-        }
+    "howItWorks": {
+      "title": "How it works",
+      "subtitle": "Get started in 3 simple steps",
+      "step1Title": "Connect your store",
+      "step1Desc": "Connect your e-commerce platform in minutes. We sync your products and orders automatically.",
+      "step2Title": "AI engages customers",
+      "step2Desc": "After each purchase, our AI sends personalized WhatsApp messages with product guidance.",
+      "step3Title": "Track your results",
+      "step3Desc": "Monitor return rates, customer satisfaction, and ROI in your analytics dashboard."
     },
-    "Dashboard": {
-        "sidebar": {
-            "sectionWorkspace": "Workspace",
-            "sectionConfigure": "Configure",
-            "navLabel": "Dashboard navigation",
-            "openNav": "Open navigation",
-            "closeNav": "Close navigation",
-            "loading": "Loading…",
-            "dashboard": "Dashboard",
-            "products": "Products",
-            "customers": "Customers",
-            "conversations": "Conversations",
-            "analytics": "Analytics",
-            "integrations": "Integrations",
-            "settings": "Settings",
-            "signOut": "Sign Out"
-        },
-        "home": {
-            "title": "Dashboard",
-            "greeting": "Good morning, {name}! 👋",
-            "summary": "You have <bold>{activeUsers}</bold> active customers today · Reply rate: <bold>{responseRate}%</bold>",
-            "setup": {
-                "title": "Getting Started",
-                "subtitle": "Complete these steps to make your retention flow live.",
-                "progress": "{completed}/{total} completed",
-                "bannerTitle": "Setup Required",
-                "bannerMessage": "Next step: {step}. Complete onboarding to start WhatsApp conversations.",
-                "done": "Done",
-                "pending": "Pending",
-                "steps": {
-                    "connectShopify": {
-                        "title": "Connect Shopify",
-                        "description": "Connect your store so orders and customer data can sync automatically.",
-                        "action": "Connect Now"
-                    },
-                    "addProduct": {
-                        "title": "Add your first product",
-                        "description": "Add product instructions so the AI can answer customer questions correctly.",
-                        "action": "Add Product"
-                    },
-                    "sendFirstWhatsApp": {
-                        "title": "Send your first WhatsApp flow",
-                        "description": "Set sender and welcome message to start customer conversations.",
-                        "action": "Open WhatsApp Settings"
-                    }
-                }
-            },
-            "alerts": {
-            "messages": {
-                "noIntegration": "No integrations have been connected yet.",
-                "noProducts": "No products have been added yet.",
-                "integrationError": "There was a problem connecting to {provider}."
-            },
-                "title": "System Notice",
-                "types": {
-                    "noIntegration": "Integration Missing",
-                    "integrationError": "Integration Error",
-                    "noProducts": "Products Missing"
-                }
-            },
-            "knowledge": {
-                "title": "Knowledge Health",
-                "subtitle": "Show merchants how well Recete understands their product catalog and where answer quality may drop.",
-                "averageBadge": "Avg. score {score}",
-                "productsAtRisk": "Products at risk",
-                "productsAtRiskHint": "These products may produce weaker customer answers.",
-                "strongProducts": "Strong products",
-                "strongProductsHint": "Products with strong coverage and lower answer risk.",
-                "primaryGap": "Primary knowledge gap",
-                "primaryGapHint": "Appears on {count} product(s).",
-                "noPrimaryGap": "No major gap detected.",
-                "warningTitle": "Customer answer quality may drop on some products",
-                "warningBody": "{count} products are currently at risk. The main issue is: {gap}.",
-                "warningAction": "Review products",
-                "reasonLabels": {
-                    "missingScrapedContent": "Missing scraped product content",
-                    "missingEnrichedContent": "Missing enriched product summary",
-                    "missingUsageInstructions": "Missing usage instructions",
-                    "thinUsageInstructions": "Usage instructions are too thin",
-                    "missingReturnTips": "Missing return-prevention tips",
-                    "missingFacts": "Missing structured product facts",
-                    "missingEmbeddings": "Embeddings not generated"
-                }
-            },
-            "kpi": {
-                "ordersReceived": "Orders Received",
-                "ordersReceivedHint": "Total synced orders",
-                "ordersReceivedDetail": "Orders pulled from Shopify into Recete.",
-                "activeCustomers": "Active Customers",
-                "activeCustomersHint": "Last 30 days",
-                "activeCustomersDetail": "Customers who interacted recently.",
-                "whatsappMessages": "WhatsApp Messages Sent",
-                "whatsappMessagesHint": "Automated + manual",
-                "whatsappMessagesDetail": "Total outbound messages from your bot/team.",
-                "replyRate": "Customer Reply Rate",
-                "replyRateHint": "Conversation engagement",
-                "replyRateDetail": "Share of customers who replied to messages."
-            },
-            "recentOrders": {
-                "title": "Recent Orders",
-                "viewAll": "View All",
-                "emptyTitle": "No orders synced yet",
-                "emptyDescription": "Connect Shopify to start receiving and tracking orders here.",
-                "emptyAction": "Open Integrations"
-            },
-            "recentConversations": {
-                "rowTitle": "Conversation #{id}",
-                "rowMeta": "{count} messages · {time}",
-                "title": "Recent Conversations",
-                "viewAll": "View All",
-                "emptyTitle": "No conversations yet",
-                "emptyDescription": "Finish setup and send your first WhatsApp flow to start conversations."
-            },
-            "quickActions": {
-                "title": "Quick Actions",
-                "addProduct": "Add Product",
-                "addProductDesc": "Add product guidance for AI replies",
-                "integration": "Connect Shopify",
-                "integrationDesc": "Sync orders and customers automatically",
-                "settings": "Settings",
-                "settingsDesc": "WhatsApp sender and bot behavior"
-            },
-            "toasts": {
-                "sessionExpired": {
-                    "title": "Session expired",
-                    "message": "Please login again."
-                },
-                "statsLoadFailed": {
-                    "title": "Stats unavailable",
-                    "message": "Dashboard loaded with default values."
-                },
-                "dashboardLoadFailed": {
-                    "title": "Dashboard failed to load",
-                    "message": "Please refresh the page."
-                }
-            },
-            "loading": "Loading dashboard...",
-            "loadError": "Error loading dashboard.",
-            "retry": "Try again"
-        }
+    "cta": {
+      "title": "Ready to reduce returns and boost LTV?",
+      "subtitle": "Join merchants who are transforming their post-purchase experience.",
+      "button": "Start Free Trial",
+      "primaryCta": "Get Started Free",
+      "secondaryButton": "See How It Works",
+      "secondaryCta": "See How It Works",
+      "meta": "14-day free trial · No credit card required",
+      "footnote": "14-day free trial · No credit card required · Cancel anytime"
     },
-    "AuthCallback": {
-        "loggingIn": "Logging in...",
-        "error": "Login error"
+    "socialProof": {
+      "eyebrow": "Why it works",
+      "title": "Reduce returns. Scale support. Grow LTV.",
+      "subtitle": "Built for e-commerce merchants who want fewer returns, faster answers, and higher repeat purchase rates — without hiring a bigger support team.",
+      "proof1": "Fast merchant onboarding",
+      "proof2": "WhatsApp-first engagement",
+      "proof3": "GDPR-ready & secure",
+      "outcome1": {
+        "icon": "returns",
+        "metric": "Fewer returns",
+        "title": "Stop returns before they happen",
+        "desc": "Most returns come from confusion, not defects. Proactive usage guidance — sent at exactly the right moment — answers questions before frustration builds."
+      },
+      "outcome2": {
+        "icon": "support",
+        "metric": "Always-on AI support",
+        "title": "Handle support without hiring",
+        "desc": "Your AI assistant answers product questions instantly using your knowledge base. Human handoff only triggers when it truly matters."
+      },
+      "outcome3": {
+        "icon": "ltv",
+        "metric": "Higher repeat purchases",
+        "title": "Turn buyers into loyal customers",
+        "desc": "Automated follow-ups at the right time — T+3, T+14 — keep customers engaged and convert single purchases into repeat revenue."
+      }
     },
-    "Login": {
-        "title": "Login to Recete",
-        "description": "Continue by logging in to your account",
-        "emailLabel": "Email",
-        "passwordLabel": "Password",
-        "forgotPassword": "Forgot password?",
-        "emailPlaceholder": "example@company.com",
-        "submitButton": "Login",
-        "submitting": "Logging in...",
-        "or": "or",
-        "googleLogin": "Login with Google",
-        "googleRedirecting": "Redirecting...",
-        "noAccount": "Don't have an account?",
-        "register": "Sign up",
-        "errors": {
-            "default": "Login failed.",
-            "googleDisabled": "Google login is currently disabled. Please use email and password.",
-            "emailNotConfirmed": "You haven't confirmed your email address yet. Please check your inbox (and spam folder) for the verification link.",
-            "resendVerification": "Resend verification email",
-            "resendSuccess": "Verification email resent. Check your inbox.",
-            "resendError": "Could not send email.",
-            "invalidCredentials": "Invalid login credentials."
-        }
+    "pricing": {
+      "eyebrow": "Pricing",
+      "title": "Simple, transparent pricing.",
+      "subtitle": "Start free. Upgrade as you grow. No hidden fees.",
+      "mostPopular": "Most popular",
+      "perMonth": "/month",
+      "perYear": "/year",
+      "annualTitle": "Annual plans",
+      "annualSubtitle": "Save 2 months when billed annually.",
+      "monthlyIncludedChats": "Included chats / month",
+      "overage": "Overage",
+      "recipes": "Recipe capacity",
+      "vision": "AI vision",
+      "whatsapp": "WhatsApp",
+      "analytics": "Analytics",
+      "upsell": "Upsell strategy",
+      "cta": "Start with this plan",
+      "secondaryCta": "Talk to sales",
+      "roiNote": "Most merchants recover plan cost by preventing just a few returns or support escalations each month.",
+      "starter": {
+        "name": "Starter",
+        "desc": "For lean teams validating post-purchase support and retention.",
+        "price": "$29",
+        "annualPrice": "$290",
+        "note": "Best for low-volume stores and first rollout",
+        "bullets": "150 included chats / month · 20 recipes · $0.18 per overage chat · Shared Recete WhatsApp number · Basic analytics",
+        "vision": "Not available",
+        "upsell": "Basic support flows"
+      },
+      "growth": {
+        "name": "Growth",
+        "desc": "For growing merchants that need AI vision and stronger retention workflows.",
+        "price": "$69",
+        "annualPrice": "$690",
+        "note": "Most popular for scaling support and retention operations",
+        "bullets": "1,000 included chats / month · 500 recipes · $0.12 per overage chat · Customer photo analysis · Shared Recete WhatsApp number",
+        "vision": "Customers can send photos",
+        "upsell": "Upsell product links"
+      },
+      "pro": {
+        "name": "Pro",
+        "desc": "For higher-volume brands that want custom WhatsApp and deeper analytics.",
+        "price": "$169",
+        "annualPrice": "$1690",
+        "note": "Best for mature teams running branded buyer operations",
+        "bullets": "3,000 included chats / month · Unlimited recipes · $0.08 per overage chat · Smart Re-order · Advanced analytics",
+        "vision": "Customers can send photos",
+        "upsell": "Upsell + Smart Re-order"
+      }
     },
-    "ForgotPassword": {
-        "title": "Reset your password",
-        "description": "Enter your email address and we'll send you a link to reset your password.",
-        "emailLabel": "Email",
-        "submitButton": "Send reset link",
-        "submitting": "Sending...",
-        "backToLogin": "Back to Login",
-        "successTitle": "Check your email",
-        "successMessage": "We've sent a password reset link to {email}",
-        "error": "An error occurred."
+    "faq": {
+      "eyebrow": "FAQ",
+      "title": "Common questions",
+      "subtitle": "Everything you need to know before getting started.",
+      "q1": {
+        "question": "How long does setup take?",
+        "answer": "Most merchants connect their store and configure their first message flows in under 15 minutes. You can start with built-in templates and refine as you go."
+      },
+      "q2": {
+        "question": "Do I need a support team to use it?",
+        "answer": "No. Recete is designed to reduce manual support workload. You can still enable human handoff for escalations or sensitive conversations."
+      },
+      "q3": {
+        "question": "How does Recete reduce returns?",
+        "answer": "It sends proactive post-purchase messages, usage guidance, and timely follow-ups that answer common questions before they become return requests."
+      },
+      "q4": {
+        "question": "Is customer data secure?",
+        "answer": "Yes. We use encrypted data handling and merchant-level controls to protect customer information and operational access."
+      }
     },
-    "ResetPassword": {
-        "title": "Set new password",
-        "description": "Enter your new password below.",
-        "passwordLabel": "New Password",
-        "confirmPasswordLabel": "Confirm New Password",
-        "submitButton": "Update password",
-        "submitting": "Updating...",
-        "successTitle": "Password Updated",
-        "successMessage": "Your password has been reset successfully.",
-        "goToLogin": "Go to Login",
-        "errors": {
-            "passwordMismatch": "Passwords do not match",
-            "passwordLength": "Password must be at least 8 characters",
-            "default": "Reset failed."
-        }
-    },
-    "Products": {
-        "title": "Products",
-        "description": "Manage your products and sync them with the AI.",
-        "feedback": {
-            "dismiss": "Dismiss",
-            "reviewCatalog": "Review product list",
-            "reviewAddModal": "Review add product form",
-            "addedTitle": "Product added",
-            "addedMessage": "The product was created, scraped, and queued for AI sync.",
-            "addErrorTitle": "Product creation failed",
-            "deletedTitle": "Product removed",
-            "deletedMessage": "The product was removed and the list has been refreshed.",
-            "deleteErrorTitle": "Product removal failed",
-            "bulkScrapeTitle": "Bulk scrape queued",
-            "bulkEmbeddingsTitle": "Bulk embeddings started",
-            "bulkScrapeErrorTitle": "Bulk scrape failed",
-            "bulkEmbeddingsErrorTitle": "Bulk embeddings failed"
-        },
-        "view": {
-            "groupLabel": "Product view",
-            "grid": "Grid",
-            "list": "List"
-        },
-        "list": {
-            "columns": {
-                "product": "Product",
-                "source": "Source URL",
-                "status": "AI Sync Status",
-                "actions": "Actions",
-                "score": "Knowledge score",
-                "chunks": "Chunks",
-                "lastScraped": "Last scraped"
-            },
-            "pagination": {
-                "showing": "Showing {from}–{to} of {total} products",
-                "page": "Page {current} of {total}"
-            },
-            "neverScraped": "Not scraped",
-            "edit": "Edit"
-        },
-        "filters": {
-            "searchLabel": "Search products",
-            "searchPlaceholder": "Search by product name, URL, or ID",
-            "status": "Status",
-            "sort": "Sort",
-            "applied": "Applied filters",
-            "searchChip": "Search: {value}",
-            "statusChip": "Status: {value}",
-            "sortChip": "Sort: {value}",
-            "reset": "Reset filters",
-            "resultsCount": "{shown} of {total} products",
-            "noMatchesFor": "No product matches “{query}”.",
-            "noMatchesHint": "Try a different filter combination.",
-            "clearFilters": "Clear filters",
-            "noMatches": "No products match the current filters.",
-            "statusOptions": {
-                "all": "All products",
-                "ragReady": "Synced to AI",
-                "ragNotReady": "Not synced",
-                "ragUnknown": "Unknown sync status",
-                "scraped": "Scraped",
-                "notScraped": "Not scraped"
-            },
-            "sortOptions": {
-                "updatedDesc": "Newest updated",
-                "updatedAsc": "Oldest updated",
-                "nameAsc": "Name (A-Z)",
-                "nameDesc": "Name (Z-A)",
-                "chunksDesc": "Chunks (high to low)",
-                "chunksAsc": "Chunks (low to high)"
-            },
-            "scoreTabsLabel": "Filter products by knowledge quality",
-            "scoreTabs": {
-                "all": "All",
-                "strong": "Strong",
-                "needsAttention": "Needs attention"
-            }
-        },
-        "bulk": {
-            "selectedCountSimple": "{count} selected",
-            "selectVisible": "Select visible",
-            "unselectVisible": "Unselect visible",
-            "selectedCount": "{count} selected ({visible} visible)",
-            "clearSelection": "Clear selection",
-            "rescrape": "Re-scrape selected",
-            "generateEmbeddings": "Generate embeddings",
-            "scraping": "Re-scraping...",
-            "generatingEmbeddings": "Generating...",
-            "selectProduct": "Select product {name}",
-            "scrapeSuccessTitle": "Bulk scrape completed",
-            "embeddingsSuccessTitle": "Bulk embeddings completed",
-            "scrapeErrorTitle": "Bulk scrape failed",
-            "embeddingsErrorTitle": "Bulk embeddings failed",
-            "successMessage": "{success} succeeded, {failed} failed",
-            "allFailedMessage": "All requests failed ({failed})",
-            "requestFailedMessage": "Bulk request could not be completed."
-        },
-        "savedViews": {
-            "groupLabel": "Views",
-            "all": "All",
-            "saveCurrent": "Save current view",
-            "promptName": "Name this view",
-            "deleteAria": "Delete saved view {name}"
-        },
-        "shopifyMapButton": "Shopify Product Mapping",
-        "loading": "Loading products…",
-        "addProductButton": "Add New Product",
-        "empty": {
-            "title": "No products yet",
-            "description": "Start by adding your first product.",
-            "button": "Add New Product",
-            "refresh": "Refresh list"
-        },
-        "card": {
-            "scraped": "Scraped",
-            "ragReady": "Synced to AI",
-            "ragNotReady": "Not synced",
-            "ragStatusUnknown": "Unknown sync status",
-            "chunks": "chunks",
-            "chunksUnknown": "Chunk count unavailable",
-            "edit": "Edit",
-            "deleteConfirm": "Are you sure you want to delete this product?"
-        },
-        "knowledge": {
-            "scoreBadge": "Knowledge {score}",
-            "cardHint": "{coverage} coverage. Biggest gap: {gap}.",
-            "tableHint": "Biggest gap: {gap}",
-            "noGap": "No major gap detected",
-            "coverage": {
-                "strong": "Strong",
-                "moderate": "Moderate",
-                "weak": "Weak"
-            },
-            "reasons": {
-                "missingScrapedContent": "Missing scraped product content",
-                "missingEnrichedContent": "Missing enriched product summary",
-                "missingUsageInstructions": "Missing usage instructions",
-                "thinUsageInstructions": "Usage instructions are too thin",
-                "missingReturnTips": "Missing return-prevention tips",
-                "missingFacts": "Missing structured product facts",
-                "missingEmbeddings": "Embeddings not generated"
-            },
-            "statusStrong": "Strong",
-            "statusAtRisk": "At risk",
-            "statusWeak": "Needs work",
-            "statusUnknown": "Not scored"
-        },
-        "addModal": {
-            "title": "Add New Product",
-            "nameLabel": "Product Name",
-            "namePlaceholder": "e.g. Premium Skin Care Cream",
-            "urlLabel": "Product URL",
-            "urlPlaceholder": "https://example.com/product",
-            "urlHelper": "The product page will be automatically scraped and synced with the AI.",
-            "cancel": "Cancel",
-            "submit": "Add and Scrape",
-            "scraping": {
-                "creating": "Creating product...",
-                "scraping": "Scraping product page...",
-                "embeddings": "Generating embeddings...",
-                "completed": "Completed!",
-                "wait": "This process may take a few minutes..."
-            }
-        },
-        "toasts": {
-            "missingInfo": {
-                "title": "Missing Information",
-                "message": "Please enter product name and URL"
-            },
-            "addSuccess": {
-                "title": "Success!",
-                "message": "Product added and scraped successfully"
-            },
-            "addError": {
-                "title": "Error",
-                "message": "Failed to add product"
-            },
-            "deleteSuccess": {
-                "title": "Deleted",
-                "message": "Product deleted successfully"
-            },
-            "deleteError": {
-                "title": "Error",
-                "message": "Failed to delete product"
-            },
-            "loadError": {
-                "title": "Error",
-                "message": "Failed to load products"
-            },
-            "sessionExpired": {
-                "title": "Session Expired",
-                "message": "Please login again"
-            },
-            "embeddingWarning": {
-                "title": "Embedding Warning",
-                "message": "Product was scraped but embedding generation failed. The product may not appear in bot answers. Try re-scraping from the product edit page."
-            }
-        }
-    },
-    "ProductMapping": {
-        "title": "Shopify Product Mapping",
-        "description": "Map your Shopify products to usage instructions and recipes.",
-        "backButton": "Back to Products",
-        "refreshButton": "Refresh Products",
-        "saveButton": "Save All Changes",
-        "table": {
-            "product": "Product",
-            "status": "Status",
-            "instructions": "Usage Instructions & Recipe",
-            "actions": "Actions",
-            "placeholder": "Enter usage instructions and cosmetic recipe here..."
-        },
-        "status": {
-            "active": "Active",
-            "archived": "Archived",
-            "draft": "Draft"
-        },
-        "empty": "No products found. Please ensure your Shopify integration is active.",
-        "loading": "Loading Shopify products...",
-        "saving": "Saving...",
-        "toasts": {
-            "loadError": {
-                "title": "Error",
-                "message": "Failed to load Shopify products"
-            },
-            "saveSuccess": {
-                "title": "Success",
-                "message": "Product instructions saved"
-            },
-            "saveError": {
-                "title": "Error",
-                "message": "Failed to save instructions"
-            }
-        }
-    },
-    "Conversations": {
-        "selectPrompt": {
-            "title": "Pick a conversation",
-            "description": "Choose a thread on the left to read it and reply."
-        },
-        "title": "Conversations",
-        "description": "All WhatsApp conversations with your customers",
-        "empty": {
-            "title": "No conversations yet",
-            "description": "Conversations will appear here when customers message you",
-            "button": "Start a conversation"
-        },
-        "filters": {
-            "sentimentLabel": "Sentiment",
-            "sentimentAll": "Any sentiment",
-            "needsYou": "Needs you",
-            "ai": "AI",
-            "groupLabel": "Filter conversations",
-            "all": "All",
-            "human": "Human",
-            "humanCount": "Human ({count})",
-            "resolved": "Resolved",
-            "positive": "😊 Positive",
-            "neutral": "😐 Neutral",
-            "negative": "😞 Negative"
-        },
-        "statusBadge": {
-            "human": "Human Mode",
-            "resolved": "Resolved"
-        },
-        "list": {
-            "loading": "Loading conversations…",
-            "noMessages": "No messages yet",
-            "empty": {
-                "title": "No conversations yet",
-                "description": "Conversations will appear here when customers message you"
-            },
-            "guest": "Guest",
-            "order": "Order",
-            "messages": "messages",
-            "time": {
-                "now": "Just now",
-                "minutesAgo": "{m} minutes ago",
-                "hoursAgo": "{h} hours ago",
-                "daysAgo": "{d} days ago"
-            }
-        },
-        "table": {
-            "columns": {
-                "customer": "Customer",
-                "order": "Order",
-                "status": "Status",
-                "messages": "Messages",
-                "lastActivity": "Last activity"
-            }
-        },
-        "toasts": {
-            "loadError": {
-                "title": "Error",
-                "message": "Failed to load conversations"
-            },
-            "sessionExpired": {
-                "title": "Session Expired",
-                "message": "Please login again"
-            }
-        },
-        "needsAttention": {
-            "title": "{count, plural, one {# conversation needs your attention} other {# conversations need your attention}}"
-        },
-        "needsAttentionToast": {
-            "title": "🔴 New Escalation",
-            "message": "{count, plural, one {# customer is requesting a human agent} other {# customers are requesting a human agent}}"
-        }
-    },
-    "Integrations": {
-        "title": "Integrations",
-        "description": "Connect your e-commerce platforms and automate order tracking",
-        "feedback": {
-            "dismiss": "Dismiss",
-            "reviewActive": "Review active integrations",
-            "reviewDiscover": "Open discovery list",
-            "importSavedTitle": "CSV import completed",
-            "importSavedMessage": "{count} rows were imported and the integration list has been refreshed.",
-            "importErrorTitle": "CSV import failed",
-            "manualSavedTitle": "Manual integration created",
-            "manualSavedMessage": "The manual/API integration is now available in your active connections.",
-            "manualErrorTitle": "Manual integration failed",
-            "whatsappConnectedTitle": "WhatsApp connected",
-            "whatsappConnectedMessage": "Your WhatsApp connection is live and ready for messaging workflows.",
-            "whatsappUpdatedTitle": "WhatsApp updated",
-            "whatsappUpdatedMessage": "The WhatsApp connection details were updated successfully.",
-            "whatsappErrorTitle": "WhatsApp save failed",
-            "integrationRemovedTitle": "Integration removed",
-            "integrationRemovedMessage": "The connection was removed and the list has been refreshed.",
-            "deleteErrorTitle": "Integration removal failed"
-        },
-        "platformSupport": {
-            "title": "Corporate support (Recete)",
-            "subtitle": "Contact us via WhatsApp"
-        },
-        "providers": {
-            "whatsapp": {
-                "title": "WhatsApp Business",
-                "description": "Connect your own WhatsApp Business number to send messages to customers",
-                "connected": "Your number is connected. Click to update.",
-                "action": {
-                    "connect": "Connect",
-                    "update": "Update"
-                }
-            },
-            "shopify": {
-                "title": "Shopify",
-                "description": "Connect your Shopify store via OAuth",
-                "connected": "Your store is connected. Click to reconnect.",
-                "action": {
-                    "connect": "Connect",
-                    "connected": "Connected"
-                }
-            },
-            "csv": {
-                "title": "Import CSV",
-                "description": "Upload your order data via CSV",
-                "action": "Import"
-            },
-            "manual": {
-                "title": "Manual / API",
-                "description": "Integrate your own system with API webhooks",
-                "connected": "API integration installed.",
-                "action": {
-                    "setup": "Setup",
-                    "connected": "Connected"
-                }
-            }
-        },
-        "createdLabel": "Created:",
-        "active": {
-            "title": "Active Integrations",
-            "empty": {
-                "title": "No integrations yet",
-                "description": "Create your first integration using the options above"
-            },
-            "status": {
-                "active": "Active",
-                "error": "Error",
-                "pending": "Pending",
-                "disabled": "Disabled"
-            },
-            "connected": "Connected",
-            "deleteConfirm": "Are you sure you want to remove this integration? This cannot be undone.",
-            "storeLabel": "Store"
-        },
-        "modals": {
-            "shopify": {
-                "title": "Connect Shopify",
-                "shopLabel": "Shopify Store Address",
-                "shopPlaceholder": "example.myshopify.com",
-                "helper": "Your full Shopify store address (with .myshopify.com)",
-                "cancel": "Cancel",
-                "connect": "Connect",
-                "connecting": "Connecting..."
-            },
-            "csv": {
-                "title": "Import CSV",
-                "fileLabel": "CSV File",
-                "fileSelected": "✓ {name} selected",
-                "format": "Format: Your CSV file must include: order_id, customer_phone, customer_name, status, delivery_date",
-                "cancel": "Cancel",
-                "import": "Import",
-                "importing": "Importing..."
-            },
-            "manual": {
-                "title": "Manual / API Integration",
-                "webhookLabel": "API Webhook URL:",
-                "webhookHelper": "Send POST requests to this URL for order events.",
-                "apiKeyLabel": "API Key (get from Settings):",
-                "cancel": "Cancel",
-                "create": "Create Integration"
-            },
-            "whatsapp": {
-                "title": "Connect WhatsApp Business",
-                "updateTitle": "Update WhatsApp Connection",
-                "description": "Enter Phone Number ID, Access Token, and Verify Token from Meta for Developers.",
-                "displayLabel": "Display Number (optional)",
-                "displayPlaceholder": "+90 555 123 45 67",
-                "phoneIdLabel": "Phone Number ID *",
-                "phoneIdPlaceholder": "From Meta API Setup",
-                "tokenLabel": "Access Token *",
-                "tokenPlaceholder": "Token from Meta",
-                "verifyLabel": "Verify Token (webhook) *",
-                "verifyPlaceholder": "For webhook verification",
-                "cancel": "Cancel",
-                "save": "Connect",
-                "saving": "Saving...",
-                "update": "Update"
-            }
-        },
-        "toasts": {
-            "loadError": {
-                "title": "Error",
-                "message": "Failed to load integrations"
-            },
-            "missingShop": {
-                "title": "Missing Information",
-                "message": "Please enter Shopify store address"
-            },
-            "shopifyError": {
-                "title": "Error",
-                "message": "Shopify connection failed"
-            },
-            "fileSelected": {
-                "title": "File Selected",
-                "message": "{name}"
-            },
-            "missingFile": {
-                "title": "Missing File",
-                "message": "Please select a CSV file"
-            },
-            "importSuccess": {
-                "title": "Success!",
-                "message": "{count} events imported"
-            },
-            "importError": {
-                "title": "Error",
-                "message": "CSV import failed"
-            },
-            "manualSuccess": {
-                "title": "Created",
-                "message": "Manual integration created successfully"
-            },
-            "manualError": {
-                "title": "Error",
-                "message": "Failed to create manual integration"
-            },
-            "missingWhatsapp": {
-                "title": "Missing Information",
-                "message": "Phone Number ID, Access Token, and Verify Token are required"
-            },
-            "whatsappSuccess": {
-                "title": "Connected",
-                "message": "WhatsApp Business connection created"
-            },
-            "whatsappUpdateSuccess": {
-                "title": "Updated",
-                "message": "WhatsApp connection updated"
-            },
-            "whatsappError": {
-                "title": "Error",
-                "message": "Failed to save WhatsApp connection"
-            },
-            "deleteSuccess": {
-                "title": "Deleted",
-                "message": "Integration deleted successfully"
-            },
-            "deleteError": {
-                "title": "Error",
-                "message": "Failed to delete integration"
-            },
-            "sessionExpired": {
-                "title": "Session Expired",
-                "message": "Please login again"
-            }
-        }
-    },
-    "Settings": {
-        "unsavedChanges": "Unsaved changes",
-        "discard": "Discard",
-        "loading": "Loading settings…",
-        "nav": {
-            "label": "Settings sections",
-            "persona": "Bot persona",
-            "knowledge": "Knowledge",
-            "notifications": "Notifications",
-            "languages": "Languages",
-            "safety": "Safety",
-            "modules": "Modules",
-            "privacy": "Data & privacy"
-        },
-        "title": "Settings",
-        "description": "Manage bot behavior and API access.",
-        "feedback": {
-            "dismiss": "Dismiss",
-            "reviewLanguages": "Review language settings",
-            "reviewPersona": "Review bot persona",
-            "reviewGuardrails": "Review guardrails",
-            "reviewModules": "Review modules",
-            "reviewData": "Review data controls",
-            "multiLangSavedTitle": "Language settings saved",
-            "multiLangSavedMessage": "Multilingual AI settings are live as of {time}.",
-            "multiLangErrorTitle": "Language settings failed",
-            "personaSavedTitle": "Bot persona saved",
-            "personaSavedMessage": "Your bot behavior changes are live as of {time}.",
-            "personaErrorTitle": "Bot persona failed to save",
-            "guardrailSavedTitle": "Guardrails updated",
-            "guardrailSavedMessage": "The latest rule changes are now active for future conversations.",
-            "guardrailErrorTitle": "Guardrail update failed",
-            "moduleErrorTitle": "Module change failed",
-            "exportSavedTitle": "Data export started",
-            "exportSavedMessage": "Your export file has started downloading.",
-            "exportErrorTitle": "Data export failed",
-            "deleteScheduledTitle": "Deletion scheduled",
-            "deletePermanentTitle": "Account deletion confirmed",
-            "deleteErrorTitle": "Deletion request failed"
-        },
-        "guardrailsLink": "Guardrails →",
-        "botPersona": {
-            "sendMode": {
-                "title": "WhatsApp sending rule",
-                "always": {
-                    "label": "Always send",
-                    "help": "A WhatsApp message is sent for every order, whether or not the products in it are set up in Recete. Products with usage instructions get them; products without get a general welcome message."
-                },
-                "all_products_required": {
-                    "label": "Only send if every product is set up",
-                    "help": "Every product in the order must have usage instructions in Recete. If any product is missing them, no WhatsApp message is sent for that order at all."
-                }
-            },
-            "welcomeTemplateWindowNotice": "Welcome messaging follows the 24-hour WhatsApp rule. If the customer already has an open conversation window, Recete sends the rendered text below as a normal message. If the window is closed and Twilio is the sender, Recete uses a platform-managed approved WhatsApp template and injects the rendered message automatically.",
-            "insertVariables": "Insert order variables",
-            "previewLabel": "Preview",
-            "additionalPlaceholders": "Additional placeholders",
-            "welcomeTokens": {
-                "firstName": {
-                    "label": "First name",
-                    "help": "Adds the buyer's first name."
-                },
-                "orderNumber": {
-                    "label": "Order number",
-                    "help": "Adds the order number from Shopify."
-                },
-                "productNames": {
-                    "label": "Product names",
-                    "help": "Adds product names in a natural sentence."
-                },
-                "productCount": {
-                    "label": "Product count",
-                    "help": "Adds how many products were in the order."
-                },
-                "botName": {
-                    "label": "Bot name",
-                    "help": "Adds the configured bot name."
-                }
-            },
-            "title": "Bot Persona",
-            "description": "Define how your AI bot speaks to customers.",
-            "botInfoLink": "Bot Info (AI Guidelines) →",
-            "nameLabel": "Bot Name",
-            "namePlaceholder": "Assistant",
-            "toneLabel": "Tone",
-            "tones": {
-                "friendly": "😊 Friendly",
-                "professional": "👔 Professional",
-                "casual": "😎 Casual",
-                "formal": "🎩 Formal"
-            },
-            "emojiLabel": "Use Emojis",
-            "emojiDesc": "Should the bot use emojis in messages?",
-            "responseLengthLabel": "Response Length",
-            "lengths": {
-                "short": "Short",
-                "medium": "Medium",
-                "long": "Long"
-            },
-            "temperatureLabel": "Creativity (Temperature): {value}",
-            "tempLabels": {
-                "consistent": "Consistent (0.0)",
-                "balanced": "Balanced (0.7)",
-                "creative": "Creative (1.0)"
-            },
-            "whatsappSenderLabel": "WhatsApp Sender Number",
-            "whatsappSenderDesc": "Which number should be used for outgoing messages?",
-            "whatsappSenders": {
-                "merchantOwn": {
-                    "label": "My own number (store)",
-                    "desc": "Uses your connected WhatsApp Business number."
-                },
-                "corporate": {
-                    "label": "Corporate number (Recete)",
-                    "desc": "Uses the platform's shared number."
-                }
-            },
-            "whatsappHelpTitle": "Where do I get my own number?",
-            "whatsappHelpText": "You can get a WhatsApp Business API number from Meta for Developers. Once you have a Phone Number ID, connect it in the Integrations page.",
-            "welcomeTemplateLabel": "Initial WhatsApp message template (T+0 welcome)",
-            "welcomeTemplatePlaceholder": "Hello 😊\nYour products should have been delivered. Do you have any questions about how to use them?\n\nOrder No: {{order_number}}\nProducts:\n{{product_list}}\n\nIf you want, I can prepare a personalized care routine for the products you bought.",
-            "welcomeTemplateDesc": "If left empty, the system default welcome message is used. If filled, this template is used for the T+0 message.",
-            "welcomeTemplatePlaceholdersTitle": "Available placeholders",
-            "welcomeTemplatePlaceholderOrder": "{{order_number}} : Order number (external order id)",
-            "welcomeTemplatePlaceholderProducts": "{{product_list}} : Products in the order (one per line)",
-            "saveButton": "Save Settings",
-            "saving": "Saving..."
-        },
-        "multilingual": {
-            "primaryTag": "primary",
-            "title": "Multilingual Smart Answers",
-            "description": "Configure language settings for the AI response system. Set a primary language and enable additional customer-facing languages.",
-            "primaryLanguageLabel": "Primary Store Language",
-            "supportedLanguagesLabel": "Supported Languages",
-            "enableLabel": "Enable Multilingual AI for this shop",
-            "enableHelp": "Allow the AI to automatically respond in the customer's preferred language based on your supported languages.",
-            "currentStateLabel": "Current state:",
-            "stateConfigured": "Configured",
-            "stateNotConfigured": "Not configured yet",
-            "stateHelp": "When enabled, the AI syncs multilingual product data and adapts responses to customer language.",
-            "saveButton": "Save Language Settings"
-        },
-        "modules": {
-            "loadError": "Could not load your modules.",
-            "loadErrorTitle": "Modules unavailable",
-            "retry": "Try again",
-            "pricePerMonth": "+{price} / month",
-            "title": "Modules",
-            "description": "Optional paid modules to enhance your AI capabilities.",
-            "empty": "No modules available"
-        },
-        "guardrails": {
-            "title": "Guardrails",
-            "description": "Define rules for what the bot should not say or how it should react.",
-            "addButton": "New Rule",
-            "systemTitle": "System Rules (Read-only)",
-            "customTitle": "Your Custom Rules",
-            "empty": "No custom rules yet. Add one!",
-            "locked": "Locked",
-            "application": "Applies to: {type} · {action}",
-            "types": {
-                "both": "User + AI",
-                "user_message": "User only",
-                "ai_response": "AI only"
-            },
-            "actions": {
-                "block": "Block",
-                "escalate": "Escalate"
-            },
-            "edit": "Edit",
-            "delete": "Delete",
-            "modal": {
-            "nameRequired": "Enter a name for this guardrail.",
-            "valueRequired": "Enter at least one keyword or a phrase to match.",
-            "deleteConfirmTitle": "Delete \"{name}\"?",
-            "deleteConfirmMessage": "This action cannot be undone.",
-                "titleAdd": "New Guardrail",
-                "titleEdit": "Edit Guardrail",
-                "nameLabel": "Rule Name *",
-                "descLabel": "Description (optional)",
-                "applyToLabel": "Apply To",
-                "matchTypeLabel": "Match Type",
-                "matchTypes": {
-                    "keywords": "Keywords (comma separated)",
-                    "phrase": "Exact Phrase"
-                },
-                "valueLabel": "Keywords / Phrase *",
-                "namePlaceholder": "e.g. Competitor mention",
-                "descPlaceholder": "Brief description of the rule",
-                "keywordsPlaceholder": "competitor, price, discount",
-                "phrasePlaceholder": "This product cures",
-                "actionLabel": "Action",
-                "responseLabel": "Suggested Response (optional)",
-                "responsePlaceholder": "Text to show when this rule is triggered",
-                "cancel": "Cancel",
-                "save": "Save",
-                "saving": "Saving..."
-            }
-        },
-        "apiKeys": {
-            "title": "API Keys",
-            "description": "Manage API keys for integrations (Max 5)",
-            "createButton": "New Key",
-            "creating": "Creating...",
-            "empty": "No API keys yet",
-            "expired": "Expired",
-            "expiresIn": "Expires in {days} days",
-            "created": "Created: {date}",
-            "expires": "Expires: {date}",
-            "lastUsed": "Last used: {date}",
-            "copy": "Copy",
-            "revoke": "Revoke",
-            "modal": {
-                "title": "API Key Created!",
-                "important": "Important:",
-                "warning": "This key is shown only once. Save it securely!",
-                "label": "API Key",
-                "close": "Close"
-            }
-        },
-        "gdpr": {
-            "title": "GDPR & Data Management",
-            "description": "Export or delete your data.",
-            "exportTitle": "Download Data",
-            "exportDesc": "Download all your data in JSON format.",
-            "exportButton": "Download",
-            "exporting": "Downloading...",
-            "deleteTitle": "Delete Account",
-            "deleteDesc": "Delete all your data (Right to Erasure). This cannot be undone!",
-            "deleteWarning": "Data will be permanently deleted in 30 days.",
-            "deleteButton": "Delete",
-            "links": {
-                "dpa": "Data Processing Addendum",
-                "security": "Security Overview",
-                "newTab": "(opens in a new tab)",
-                "privacy": "Privacy Policy",
-                "terms": "Terms of Service",
-                "cookie": "Cookie Policy"
-            },
-            "modal": {
-                "title": "Confirm Account Deletion",
-                "warning": "This action cannot be undone!",
-                "list": {
-                    "all": "All data will be deleted",
-                    "permanent": "Permanently deleted in 30 days",
-                    "cancel": "Can be cancelled within 30 days by support"
-                },
-                "softDelete": "Delete in 30 Days (Recommended)",
-                "hardDelete": "Delete Immediately",
-                "cancel": "Cancel",
-                "deleting": "Deleting...",
-                "hardConfirmLabel": "To permanently delete, type DELETE below",
-                "hardConfirmHelp": "This cannot be undone. Soft delete above is reversible.",
-                "hardDeleteAction": "Permanently delete everything"
-            }
-        },
-        "toasts": {
-            "saveSuccess": {
-                "title": "Success",
-                "message": "Settings saved successfully"
-            },
-            "saveError": {
-                "title": "Error saving",
-                "message": "Could not save your settings. Please try again."
-            },
-            "multiLangSuccess": {
-                "title": "Language settings saved",
-                "message": "Multilingual AI settings were saved successfully."
-            },
-            "multiLangError": {
-                "title": "Error saving language settings",
-                "message": "Could not save multilingual settings. Please try again."
-            },
-            "guardrailSuccess": {
-                "title": "Guardrails updated",
-                "message": "Guardrail settings were saved successfully."
-            },
-            "guardrailError": {
-                "title": "Guardrail error",
-                "message": "Could not update guardrail settings. Please review inputs and try again."
-            },
-            "exportSuccess": {
-                "title": "Data export ready",
-                "message": "Your data export download has started."
-            },
-            "deleteScheduled": {
-                "title": "Deletion scheduled",
-                "message": "Your account is scheduled for deletion on {date}."
-            },
-            "deletePermanent": {
-                "title": "Account deleted",
-                "message": "Your account and data were permanently deleted."
-            }
-        },
-        "notifications": {
-            "title": "Notifications",
-            "description": "Set where you receive alerts when a customer requests a human agent.",
-            "phoneLabel": "WhatsApp Notification Number",
-            "phonePlaceholder": "+905XXXXXXXXX",
-            "phoneHint": "When a customer asks to speak with a human, a WhatsApp alert is sent to this number. Leave empty to disable WhatsApp notifications.",
-            "phoneInvalid": "Enter a phone number with 8 to 15 digits, including the country code."
-        }
-    },
-    "Analytics": {
-        "loading": "Loading analytics…",
-        "loadError": {
-            "title": "Could not load analytics",
-            "message": "Please try refreshing the page.",
-            "retry": "Try again"
-        },
-        "dateRange": {
-            "start": "Start date",
-            "end": "End date"
-        },
-        "title": "Analytics",
-        "description": "System performance and metrics",
-        "metrics": {
-            "avgSentiment": "Avg. Sentiment",
-            "interactionRate": "Interaction Rate",
-            "returnRate": "Return Rate",
-            "totalUsers": "Total Users",
-            "totalOrders": "Total Orders",
-            "activeUsers": "active users",
-            "orders": "total orders"
-        },
-        "roi": {
-            "savedReturns": "Saved Returns",
-            "savedReturnsDesc": "Complaint → positive outcome conversations",
-            "repeatPurchases": "Repeat Purchases",
-            "repeatPurchasesDesc": "Customers with conversations who bought again",
-            "resolvedConversations": "Resolved Conversations",
-            "resolvedDesc": "Conversations marked resolved",
-            "resolvedTotalDesc": "/ {total} total",
-            "messagesTotalLabel": "Total Messages",
-            "interactionRate": "Interaction Rate",
-            "interactionRateDesc": "{withConv}/{total} customers in conversation"
-        },
-        "charts": {
-            "dau": {
-                "title": "Daily Active Users (DAU)",
-                "users": "users"
-            },
-            "volume": {
-                "title": "Message Volume",
-                "sent": "Sent",
-                "received": "Received"
-            }
-        },
-        "empty": {
-            "title": "No analytics data yet",
-            "description": "Metrics will appear here once the system is in use",
-            "addProduct": "Add Product",
-            "setupIntegration": "Setup Integration"
-        },
-        "sentiment": {
-            "positive": "Positive",
-            "neutral": "Neutral",
-            "negative": "Negative"
-        }
-    },
-    "ShopifyMap": {
-        "title": "Shopify → Usage Instructions",
-        "description": "Enter usage instructions and recipe for each Shopify product; the AI assistant uses this in responses.",
-        "productCount": "{count} products listed",
-        "backToProducts": "Back to Products",
-        "empty": {
-            "title": "No products found",
-            "description": "No products have been pulled from your Shopify store yet, or integration is not set up. Connect Shopify from the Integrations page first.",
-            "connectButton": "Connect Shopify"
-        },
-        "table": {
-            "hint": "Enter instructions per row and add to AI context with",
-            "hintSave": "Save",
-            "product": "Product (Shopify)",
-            "instructions": "Usage instructions / Recipe",
-            "action": "Action",
-            "ariaLabel": "Shopify products and usage instructions"
-        },
-        "placeholder": "e.g. Apply a thin layer after cleansing. Can be used 1–2 times daily.",
-        "saved": "Saved",
-        "lastSaved": "Saved at {time}",
-        "save": "Save",
-        "saving": "Saving…",
-        "instructionLabel": "Usage instructions: {title}",
-        "feedback": {
-            "savedTitle": "{title} saved",
-            "savedMessage": "Changes are live and were saved at {time}.",
-            "jumpToSaved": "Jump to row",
-            "dismiss": "Dismiss"
-        },
-        "toasts": {
-            "shopifyNotConnected": {
-                "title": "Shopify not connected",
-                "message": "Connect Shopify from the Integrations page first."
-            },
-            "loadError": {
-                "title": "Error loading data",
-                "message": "An error occurred while loading."
-            },
-            "enterInstruction": "Please enter usage instructions",
-            "saveSuccess": {
-                "title": "Usage instructions saved",
-                "message": "Changes saved successfully."
-            },
-            "saveError": {
-                "title": "Save error",
-                "message": "Failed to save."
-            },
-            "productCreateError": "Product could not be created"
-        }
-    },
-    "Customers": {
-        "subtitleLoading": "All your customers and details",
-        "export": {
-            "button": "Export CSV",
-            "busy": "Preparing…",
-            "confirmTitle": "Export customers as CSV?",
-            "confirmMessage": "The file includes your customers' phone numbers in plain text, alongside their segment and churn risk. It covers the view you have filtered to. Store it somewhere safe and delete it when you are done.",
-            "confirmAction": "Export",
-            "doneTitle": "Export ready",
-            "doneMessage": "{count} customers exported.",
-            "truncatedTitle": "Export capped",
-            "truncatedMessage": "The first {count} customers were exported. Narrow the filter to export the rest.",
-            "errorTitle": "Export failed",
-            "errorMessage": "Could not export customers. Please try again."
-        },
-        "noResults": {
-            "title": "No matches",
-            "description": "No customer matches this search or segment. Try a different name or phone number.",
-            "clear": "Clear filters"
-        },
-        "loading": "Loading customers…",
-        "segmentFilterLabel": "Segment",
-        "segmentChipsLabel": "Filter customers by segment",
-        "noOrders": "No orders yet",
-        "unnamed": "Unnamed",
-        "columns": {
-            "name": "Name",
-            "phone": "Phone",
-            "segment": "Segment",
-            "lastOrder": "Last order",
-            "churnRisk": "Churn risk"
-        },
-        "title": "Customers",
-        "subtitle": "All your customers and details ({total} customers)",
-        "searchPlaceholder": "Search by name...",
-        "filterAll": "All",
-        "segment": {
-            "champions": "Champions",
-            "loyal": "Loyal",
-            "promising": "Promising",
-            "at_risk": "At Risk",
-            "lost": "Lost",
-            "new": "New"
-        },
-        "empty": {
-            "title": "No customers found",
-            "description": "No customer records yet or no results match the filter."
-        },
-        "orders": "orders",
-        "conversations": "conversations",
-        "previous": "Previous",
-        "next": "Next",
-        "pagination": {
-            "page": "Page {page} of {totalPages}"
-        },
-        "search": "Search",
-        "toasts": {
-            "loadError": {
-                "title": "Error",
-                "message": "Failed to load customers."
-            }
-        }
-    },
-    "CustomerDetail": {
-        "segment": {
-            "champions": "Champion",
-            "loyal": "Loyal",
-            "promising": "Promising",
-            "at_risk": "At Risk",
-            "lost": "Lost",
-            "new": "New"
-        },
-        "backToCustomers": "Back to Customers",
-        "notFound": "Customer not found",
-        "toasts": {
-            "loadError": {
-                "title": "Error",
-                "message": "Failed to load customer."
-            }
-        },
-        "churnRisk": "Churn risk",
-        "registered": "Registered",
-        "consent": "Consent",
-        "order": "Order",
-        "conversation": "Conversation",
-        "lastOrder": "Last Order",
-        "ordersCount": "Orders ({count})",
-        "noOrders": "No orders",
-        "conversationsCount": "Conversations ({count})",
-        "noConversations": "No conversations",
-        "statusHuman": "Human",
-        "statusResolved": "Resolved",
-        "statusAi": "AI",
-        "feedbackNps": "NPS",
-        "feedbackReview": "Review Request"
-    },
-    "ConversationDetail": {
-        "context": {
-            "orders": "Orders",
-            "conversations": "Conversations",
-            "currentOrder": "Current order",
-            "noOrders": "No orders yet",
-            "fullProfile": "Full profile",
-            "churn": "churn",
-            "optedIn": "opt-in ✓"
-        },
-        "suggest": {
-            "button": "Suggest reply",
-            "busy": "Drafting…",
-            "readyTitle": "Draft ready",
-            "readyMessage": "Edit it before sending — nothing has gone out yet.",
-            "emptyTitle": "No draft",
-            "emptyMessage": "There was not enough product knowledge to answer this one.",
-            "noQuestionTitle": "Nothing to answer",
-            "noQuestionMessage": "The customer has not asked anything yet.",
-            "errorTitle": "Could not draft a reply",
-            "errorMessage": "Please try again."
-        },
-        "aiPausedNotice": "AI paused — {name} asked for a human. You are replying yourself.",
-        "autopilotPaused": "paused",
-        "autopilotOn": "on",
-        "autopilot": "AI autopilot",
-        "profile": "Profile",
-        "yesterday": "Yesterday",
-        "today": "Today",
-        "loading": "Loading conversation…",
-        "backToConversations": "Back to Conversations",
-        "notFound": "Conversation not found",
-        "feedback": {
-            "dismiss": "Dismiss",
-            "reviewReplyPanel": "Review reply panel",
-            "reviewStatusControls": "Review status controls",
-            "sentTitle": "Reply sent",
-            "sentMessage": "Your WhatsApp reply was added to the conversation thread.",
-            "sendErrorTitle": "Reply failed",
-            "statusUpdatedTitle": "Conversation status updated",
-            "statusUpdatedMessage": "The conversation is now assigned to {status}.",
-            "statusErrorTitle": "Status update failed"
-        },
-        "order": "Order",
-        "messageHistory": "Message History",
-        "messageCount": "{count} messages · Auto-updating",
-        "noMessages": "No messages yet",
-        "customer": "Customer",
-        "you": "You",
-        "aiBot": "AI Bot",
-        "placeholderResolved": "Conversation resolved",
-        "placeholderReply": "Type message to customer...",
-        "send": "Send",
-        "sending": "Sending…",
-        "humanModeNote": "Human mode active. Sending a message will switch to human mode.",
-        "startAi": "Start AI",
-        "stopAi": "Stop AI",
-        "resolved": "Resolved",
-        "reopen": "Reopen",
-        "started": "Started",
-        "lastUpdate": "Last update",
-        "customerMessage": "Customer Message",
-        "botResponse": "Bot Response",
-        "totalMessages": "Total Messages",
-        "toasts": {
-            "loadError": {
-                "title": "Error",
-                "message": "Error loading conversation."
-            },
-            "sent": {
-                "title": "Sent",
-                "message": "Your message was sent via WhatsApp."
-            },
-            "sendError": {
-                "title": "Error",
-                "message": "Failed to send message."
-            },
-            "statusUpdated": "Status updated",
-            "statusError": {
-                "title": "Error",
-                "message": "Failed to update status."
-            }
-        },
-        "statusHuman": "Human Mode",
-        "statusResolved": "Resolved",
-        "statusAi": "AI Mode",
-        "statusHumanLabel": "Human mode",
-        "statusResolvedLabel": "Resolved",
-        "statusAiLabel": "AI mode",
-        "retry": "Try again"
-    },
-    "BotInfo": {
-        "loadError": "Could not load your bot information. Please try again.",
-        "unsavedChanges": "Unsaved changes",
-        "discard": "Discard",
-        "title": "Bot Info (AI Guidelines)",
-        "description": "Brand rules, boundaries, and recipe info the AI assistant uses when answering customer questions.",
-        "backToSettings": "← Back to Settings",
-        "loading": "Loading…",
-        "saveAll": "Save All",
-        "saving": "Saving…",
-        "feedback": {
-            "dismiss": "Dismiss",
-            "savedTitle": "Bot guidelines saved",
-            "savedMessage": "The AI guideline changes are live as of {time}.",
-            "saveErrorTitle": "Bot guidelines failed to save"
-        },
-        "sections": {
-            "brand_guidelines": {
-                "label": "Brand & Guidelines",
-                "placeholder": "Your brand voice, values, how to address customers…"
-            },
-            "bot_boundaries": {
-                "label": "Bot Boundaries",
-                "placeholder": "What the bot should / should not do, no medical advice, human handoff rules…"
-            },
-            "recipe_overview": {
-                "label": "Recipe & Usage Overview",
-                "placeholder": "General cosmetic recipe info, usage summary…"
-            },
-            "custom_instructions": {
-                "label": "Additional Instructions",
-                "placeholder": "Other custom rules or instructions…"
-            }
-        },
-        "toasts": {
-            "loadError": {
-                "title": "Error",
-                "message": "Error loading bot info."
-            },
-            "saveError": {
-                "title": "Save error",
-                "message": "Failed to save."
-            }
-        }
-    },
-    "ProductDetail": {
-        "notFound": "Product not found",
-        "backToProducts": "Back to Products",
-        "editProduct": "Edit Product",
-        "editDescription": "Edit product details",
-        "feedback": {
-            "dismiss": "Dismiss",
-            "reviewInstructions": "Review bot instructions",
-            "reviewScrapedContent": "Review scraped content",
-            "savedTitle": "Product changes saved",
-            "savedMessage": "Product details and instruction content are live as of {time}.",
-            "saveErrorTitle": "Product save failed",
-            "rescanSavedTitle": "Product content refreshed",
-            "rescanSavedMessage": "Scraped content was refreshed and embeddings were queued again.",
-            "rescanErrorTitle": "Product refresh failed"
-        },
-        "save": "Save",
-        "saving": "Saving...",
-        "rescrape": "Rescrape",
-        "rescraping": "Scraping...",
-        "productName": "Product Name",
-        "productUrl": "Product URL",
-        "openPage": "Open page",
-        "scrapedContent": "Scraped Content",
-        "scrapedPlaceholder": "Scraped content will appear here...",
-        "scrapedChars": "{chars} characters",
-        "scrapedLines": "{lines} lines",
-        "notScrapedYet": "Content not scraped yet",
-        "scrapeNow": "Scrape Now",
-        "toasts": {
-            "loadError": {
-                "title": "Error",
-                "message": "Failed to load product details"
-            },
-            "saved": {
-                "title": "Saved",
-                "message": "Product changes saved successfully"
-            },
-            "saveError": {
-                "title": "Error",
-                "message": "Failed to save product changes"
-            },
-            "rescanSuccess": {
-                "title": "Scraped",
-                "message": "Product scraped successfully"
-            },
-            "rescanError": {
-                "title": "Error",
-                "message": "Failed to scrape product"
-            },
-            "embeddingWarning": {
-                "title": "Embedding Warning",
-                "message": "Product was scraped but embedding generation failed. Try re-scraping."
-            }
-        },
-        "ragAlert": {
-            "emptyTitle": "⚠️ Bot Instructions Missing",
-            "emptyDesc": "The bot has no manual instructions for this product. Add usage instructions below so the bot can answer customer questions correctly.",
-            "thinTitle": "ℹ️ Instructions Need More Detail",
-            "thinDesc": "Usage instructions are too short for the bot to answer questions well. Add more detail (50+ characters)."
-        },
-        "botInstructions": {
-            "title": "Bot Instructions",
-            "description": "These are read directly by the AI bot to answer customer questions on WhatsApp. The more detail here, the better the bot answers.",
-            "readyBadge": "Ready ✓",
-            "usageLabel": "Usage Instructions",
-            "usagePlaceholder": "Describe how to use this product step-by-step. Include dosage, application method, frequency, and any important warnings...",
-            "usageHint": "This is the most important field. The bot uses it directly to answer \"How do I use this?\" questions.",
-            "videoLabel": "Tutorial Video URL (optional)",
-            "videoPlaceholder": "https://youtube.com/...",
-            "videoHint": "When a customer struggles with a product, the bot will share this link.",
-            "preventionLabel": "Return Prevention Tips (optional)",
-            "preventionPlaceholder": "Tips the bot uses when a customer wants to return the product — common issues and how to fix them...",
-            "preventionHint": "Used by the bot when a customer says they want to return the product."
-        },
-        "knowledge": {
-            "title": "Knowledge Coverage",
-            "subtitle": "This score shows how much usable product knowledge the bot has for this item.",
-            "scoreBadge": "Knowledge {score}",
-            "coverageLabel": "Coverage",
-            "answerRiskLabel": "Answer risk",
-            "chunkCountLabel": "Knowledge chunks",
-            "bannerTitle": "Customer answer quality depends on product detail",
-            "bannerBody": "Current coverage is {coverage}. The biggest quality gap is: {gap}.",
-            "noGap": "No major gap detected",
-            "coverage": {
-                "strong": "Strong",
-                "moderate": "Moderate",
-                "weak": "Weak"
-            },
-            "risk": {
-                "low": "Low",
-                "medium": "Medium",
-                "high": "High"
-            },
-            "reasons": {
-                "missingScrapedContent": "Missing scraped product content",
-                "missingEnrichedContent": "Missing enriched product summary",
-                "missingUsageInstructions": "Missing usage instructions",
-                "thinUsageInstructions": "Usage instructions are too thin",
-                "missingReturnTips": "Missing return-prevention tips",
-                "missingFacts": "Missing structured product facts",
-                "missingEmbeddings": "Embeddings not generated"
-            }
-        }
-    },
-    "Test": {
-        "customerName": "Test User",
-        "testProduct": "Test Product",
-        "chatMessage": "How do I use this product?",
-        "ragQuery": "How do I use this product?",
-        "toasts": {
-            "orderError": "Order could not be created",
-            "orderSuccess": {
-                "title": "Order created",
-                "message": "You can now trigger the delivery event."
-            },
-            "deliveryError": "Delivery event could not be created",
-            "deliverySuccess": {
-                "title": "Delivery event sent",
-                "message": "You can now chat with the customer."
-            },
-            "messageError": "Message could not be sent",
-            "noResponse": "No response received",
-            "messageSent": "Message sent",
-            "resetSuccess": {
-                "title": "Test reset",
-                "message": "You can start a new test."
-            },
-            "tasksLoadError": "Failed to load tasks",
-            "taskTriggered": {
-                "title": "Task triggered",
-                "message": "Worker will process shortly."
-            },
-            "ragError": "RAG test failed",
-            "ragAiError": "Failed to get RAG + AI response"
-        },
-        "healthLoadError": "Failed to load system health",
-        "subtitle": "Create an order and test the system by chatting with the bot",
-        "createOrder": "Create Order",
-        "step1Title": "Step 1: Create Order",
-        "step1Desc": "Create a test order. It will be saved to the database and a customer profile will be created.",
-        "customerPhone": "Customer Phone",
-        "customerNameLabel": "Customer Name",
-        "orderId": "Order ID",
-        "products": "Products",
-        "addProduct": "Add Product",
-        "productNamePlaceholder": "Product name",
-        "productIdPlaceholder": "Product ID",
-        "productUrlPlaceholder": "Product URL",
-        "creating": "Creating…",
-        "step2Title": "Step 2: Trigger Delivery Event",
-        "step2Desc": "Simulate order delivered. This will trigger the AI agent and send a WhatsApp message to the customer.",
-        "orderDetails": "Order Details",
-        "orderIdLabel": "Order ID",
-        "customerLabel": "Customer",
-        "productCount": "Product count",
-        "sendDelivery": "Send Delivery Event",
-        "sending": "Sending…",
-        "step3Title": "Step 3: Chat with the Bot",
-        "step3Desc": "Chat as the customer. The AI agent will respond with product and order history.",
-        "messagePlaceholder": "Type your message... (Press Enter to send)",
-        "sendMessage": "Send Message",
-        "advancedTools": "Advanced Test Tools",
-        "ragPlaceholder": "Question about product...",
-        "ragEmptyHint": "Leave empty to search all products",
-        "ragOnly": "RAG Only",
-        "ragAndAi": "RAG + AI Response",
-        "processing": "Processing…",
-        "aiResponse": "AI Response",
-        "noResults": "No results found",
-        "refresh": "Refresh",
-        "loading": "Loading…",
-        "loadFailed": "Failed to load",
-        "noScheduledTasks": "No scheduled tasks yet",
-        "resetTest": "Reset test"
-    },
-    "Sidebar": {
-        "mainMenu": "Main Menu"
-    },
-    "ShopifyCallback": {
-        "connecting": "Connecting to Shopify...",
-        "pleaseWait": "Please wait, integration is completing.",
-        "success": "Success!",
-        "successMessage": "Shopify integration completed successfully!",
-        "redirecting": "Redirecting to Integrations...",
-        "invalidCallback": "Invalid callback. Please try again from the Integrations page.",
-        "backToIntegrations": "Back to Integrations",
-        "error": "Error"
-    },
-    "ReturnPrevention": {
-        "moduleTitle": "Return Prevention Module",
-        "moduleDescription": "AI-powered return prevention. Detects return intent and helps customers get value from their products with usage guides and video tutorials.",
-        "priceNote": "+${price}/month",
-        "enableConfirmTitle": "Enable Return Prevention?",
-        "enableConfirmMessage": "This will add ${price}/month to your billing. The AI will proactively help customers before they return products.",
-        "enableConfirmButton": "Enable & Subscribe",
-        "disableConfirmTitle": "Disable Return Prevention?",
-        "disableConfirmMessage": "The module will be deactivated. You can re-enable it at any time.",
-        "disableConfirmButton": "Disable Module",
-        "planGateMessage": "Available on Starter plan and above.",
-        "statusActive": "Active",
-        "statusInactive": "Inactive",
-        "cancel": "Cancel",
-        "videoUrl": "Tutorial Video URL",
-        "videoUrlPlaceholder": "https://youtube.com/watch?v=...",
-        "videoUrlDescription": "Link to a product usage or tutorial video",
-        "preventionTips": "Return Prevention Tips",
-        "preventionTipsPlaceholder": "Tips to help customers when they want to return (e.g. Most customers see results after 2 weeks...)",
-        "preventionTipsDescription": "Tips shown to customers expressing return intent",
-        "analyticsTitle": "Return Prevention",
-        "preventedRevenue": "Prevented Revenue",
-        "returnsPrevented": "Returns Prevented",
-        "preventionRate": "Prevention Rate",
-        "topProducts": "Top At-Risk Products",
-        "totalAttempts": "Total Attempts",
-        "escalated": "Escalated",
-        "returned": "Returned",
-        "pending": "Pending",
-        "prevented": "Prevented",
-        "noData": "No return prevention data yet",
-        "badgeLabel": "Return Prevention",
-        "outcomePrevented": "Prevented",
-        "outcomeReturned": "Returned",
-        "outcomeEscalated": "Escalated",
-        "outcomePending": "Pending",
-        "attempts": "attempts",
-        "product": "Product"
+    "footer": {
+      "description": "Recete helps brands reduce returns and increase LTV through proactive AI-driven WhatsApp conversations.",
+      "tagline": "Post-purchase AI that helps e-commerce merchants reduce returns and boost customer loyalty.",
+      "product": "Product",
+      "features": "Features",
+      "howItWorks": "How it Works",
+      "pricing": "Pricing",
+      "demo": "Contact Us",
+      "bookDemo": "Contact Us",
+      "company": "Company",
+      "about": "About Us",
+      "aboutUs": "About Us",
+      "blog": "Blog",
+      "careers": "Careers",
+      "contact": "Contact",
+      "legal": "Legal",
+      "privacy": "Privacy Policy",
+      "privacyPolicy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "termsOfService": "Terms of Service",
+      "cookies": "Cookie Policy",
+      "cookiePolicy": "Cookie Policy",
+      "dataProcessingAddendum": "Data Processing Addendum",
+      "security": "Security",
+      "copyright": "© 2026 Recete Ltd. All rights reserved."
     }
+  },
+  "Signup": {
+    "title": "Create Account",
+    "description": "Create a new account for your business",
+    "businessName": "Business Name",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "passwordMinLength": "At least 8 characters with upper, lower, and number",
+    "submit": "Sign Up",
+    "submitting": "Creating account...",
+    "or": "or",
+    "googleSignup": "Sign up with Google",
+    "googleRedirecting": "Redirecting...",
+    "alreadyHaveAccount": "Already have an account?",
+    "login": "Login",
+    "backToHome": "← Back to Home",
+    "successTitle": "Account Created!",
+    "successMessage": "Account created! Please check your email ({email}) and click the confirmation link to activate your account.",
+    "apiKeyModal": {
+      "title": "🎉 Account Created!",
+      "important": "Important:",
+      "warning": "Save your API key in a safe place. It is shown only once and cannot be viewed again.",
+      "label": "API Key",
+      "savedCheckbox": "I have saved the API key",
+      "goToDashboard": "Go to Dashboard"
+    },
+    "errors": {
+      "passwordMismatch": "Passwords do not match",
+      "passwordLength": "Password must be at least 8 characters",
+      "googleDisabled": "Google signup is currently disabled. Please sign up with email.",
+      "default": "Signup failed."
+    }
+  },
+  "Dashboard": {
+    "sidebar": {
+      "sectionWorkspace": "Workspace",
+      "sectionConfigure": "Configure",
+      "navLabel": "Dashboard navigation",
+      "openNav": "Open navigation",
+      "closeNav": "Close navigation",
+      "loading": "Loading…",
+      "dashboard": "Dashboard",
+      "products": "Products",
+      "customers": "Customers",
+      "conversations": "Conversations",
+      "analytics": "Analytics",
+      "integrations": "Integrations",
+      "settings": "Settings",
+      "signOut": "Sign Out"
+    },
+    "home": {
+      "title": "Dashboard",
+      "greeting": "Good morning, {name}! 👋",
+      "summary": "You have <bold>{activeUsers}</bold> active customers today · Reply rate: <bold>{responseRate}%</bold>",
+      "setup": {
+        "title": "Getting Started",
+        "subtitle": "Complete these steps to make your retention flow live.",
+        "progress": "{completed}/{total} completed",
+        "bannerTitle": "Setup Required",
+        "bannerMessage": "Next step: {step}. Complete onboarding to start WhatsApp conversations.",
+        "done": "Done",
+        "pending": "Pending",
+        "steps": {
+          "connectShopify": {
+            "title": "Connect Shopify",
+            "description": "Connect your store so orders and customer data can sync automatically.",
+            "action": "Connect Now"
+          },
+          "addProduct": {
+            "title": "Add your first product",
+            "description": "Add product instructions so the AI can answer customer questions correctly.",
+            "action": "Add Product"
+          },
+          "sendFirstWhatsApp": {
+            "title": "Send your first WhatsApp flow",
+            "description": "Set sender and welcome message to start customer conversations.",
+            "action": "Open WhatsApp Settings"
+          }
+        }
+      },
+      "alerts": {
+        "messages": {
+          "noIntegration": "No integrations have been connected yet.",
+          "noProducts": "No products have been added yet.",
+          "integrationError": "There was a problem connecting to {provider}."
+        },
+        "title": "System Notice",
+        "types": {
+          "noIntegration": "Integration Missing",
+          "integrationError": "Integration Error",
+          "noProducts": "Products Missing"
+        }
+      },
+      "knowledge": {
+        "title": "Knowledge Health",
+        "subtitle": "Show merchants how well Recete understands their product catalog and where answer quality may drop.",
+        "averageBadge": "Avg. score {score}",
+        "productsAtRisk": "Products at risk",
+        "productsAtRiskHint": "These products may produce weaker customer answers.",
+        "strongProducts": "Strong products",
+        "strongProductsHint": "Products with strong coverage and lower answer risk.",
+        "primaryGap": "Primary knowledge gap",
+        "primaryGapHint": "Appears on {count} product(s).",
+        "noPrimaryGap": "No major gap detected.",
+        "warningTitle": "Customer answer quality may drop on some products",
+        "warningBody": "{count} products are currently at risk. The main issue is: {gap}.",
+        "warningAction": "Review products",
+        "reasonLabels": {
+          "missingScrapedContent": "Missing scraped product content",
+          "missingEnrichedContent": "Missing enriched product summary",
+          "missingUsageInstructions": "Missing usage instructions",
+          "thinUsageInstructions": "Usage instructions are too thin",
+          "missingReturnTips": "Missing return-prevention tips",
+          "missingFacts": "Missing structured product facts",
+          "missingEmbeddings": "Embeddings not generated"
+        }
+      },
+      "kpi": {
+        "ordersReceived": "Orders Received",
+        "ordersReceivedHint": "Total synced orders",
+        "ordersReceivedDetail": "Orders pulled from Shopify into Recete.",
+        "activeCustomers": "Active Customers",
+        "activeCustomersHint": "Last 30 days",
+        "activeCustomersDetail": "Customers who interacted recently.",
+        "whatsappMessages": "WhatsApp Messages Sent",
+        "whatsappMessagesHint": "Automated + manual",
+        "whatsappMessagesDetail": "Total outbound messages from your bot/team.",
+        "replyRate": "Customer Reply Rate",
+        "replyRateHint": "Conversation engagement",
+        "replyRateDetail": "Share of customers who replied to messages."
+      },
+      "recentOrders": {
+        "title": "Recent Orders",
+        "viewAll": "View All",
+        "emptyTitle": "No orders synced yet",
+        "emptyDescription": "Connect Shopify to start receiving and tracking orders here.",
+        "emptyAction": "Open Integrations"
+      },
+      "recentConversations": {
+        "rowTitle": "Conversation #{id}",
+        "rowMeta": "{count} messages · {time}",
+        "title": "Recent Conversations",
+        "viewAll": "View All",
+        "emptyTitle": "No conversations yet",
+        "emptyDescription": "Finish setup and send your first WhatsApp flow to start conversations."
+      },
+      "quickActions": {
+        "title": "Quick Actions",
+        "addProduct": "Add Product",
+        "addProductDesc": "Add product guidance for AI replies",
+        "integration": "Connect Shopify",
+        "integrationDesc": "Sync orders and customers automatically",
+        "settings": "Settings",
+        "settingsDesc": "WhatsApp sender and bot behavior"
+      },
+      "toasts": {
+        "sessionExpired": {
+          "title": "Session expired",
+          "message": "Please login again."
+        },
+        "statsLoadFailed": {
+          "title": "Stats unavailable",
+          "message": "Dashboard loaded with default values."
+        },
+        "dashboardLoadFailed": {
+          "title": "Dashboard failed to load",
+          "message": "Please refresh the page."
+        }
+      },
+      "loading": "Loading dashboard...",
+      "loadError": "Error loading dashboard.",
+      "retry": "Try again"
+    }
+  },
+  "AuthCallback": {
+    "loggingIn": "Logging in...",
+    "error": "Login error"
+  },
+  "Login": {
+    "title": "Login to Recete",
+    "description": "Continue by logging in to your account",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "forgotPassword": "Forgot password?",
+    "emailPlaceholder": "example@company.com",
+    "submitButton": "Login",
+    "submitting": "Logging in...",
+    "or": "or",
+    "googleLogin": "Login with Google",
+    "googleRedirecting": "Redirecting...",
+    "noAccount": "Don't have an account?",
+    "register": "Sign up",
+    "errors": {
+      "default": "Login failed.",
+      "googleDisabled": "Google login is currently disabled. Please use email and password.",
+      "emailNotConfirmed": "You haven't confirmed your email address yet. Please check your inbox (and spam folder) for the verification link.",
+      "resendVerification": "Resend verification email",
+      "resendSuccess": "Verification email resent. Check your inbox.",
+      "resendError": "Could not send email.",
+      "invalidCredentials": "Invalid login credentials."
+    }
+  },
+  "ForgotPassword": {
+    "title": "Reset your password",
+    "description": "Enter your email address and we'll send you a link to reset your password.",
+    "emailLabel": "Email",
+    "submitButton": "Send reset link",
+    "submitting": "Sending...",
+    "backToLogin": "Back to Login",
+    "successTitle": "Check your email",
+    "successMessage": "We've sent a password reset link to {email}",
+    "error": "An error occurred."
+  },
+  "ResetPassword": {
+    "title": "Set new password",
+    "description": "Enter your new password below.",
+    "passwordLabel": "New Password",
+    "confirmPasswordLabel": "Confirm New Password",
+    "submitButton": "Update password",
+    "submitting": "Updating...",
+    "successTitle": "Password Updated",
+    "successMessage": "Your password has been reset successfully.",
+    "goToLogin": "Go to Login",
+    "errors": {
+      "passwordMismatch": "Passwords do not match",
+      "passwordLength": "Password must be at least 8 characters",
+      "default": "Reset failed."
+    }
+  },
+  "Products": {
+    "title": "Products",
+    "description": "Manage your products and sync them with the AI.",
+    "feedback": {
+      "dismiss": "Dismiss",
+      "reviewCatalog": "Review product list",
+      "reviewAddModal": "Review add product form",
+      "addedTitle": "Product added",
+      "addedMessage": "The product was created, scraped, and queued for AI sync.",
+      "addErrorTitle": "Product creation failed",
+      "deletedTitle": "Product removed",
+      "deletedMessage": "The product was removed and the list has been refreshed.",
+      "deleteErrorTitle": "Product removal failed",
+      "bulkScrapeTitle": "Bulk scrape queued",
+      "bulkEmbeddingsTitle": "Bulk embeddings started",
+      "bulkScrapeErrorTitle": "Bulk scrape failed",
+      "bulkEmbeddingsErrorTitle": "Bulk embeddings failed"
+    },
+    "view": {
+      "groupLabel": "Product view",
+      "grid": "Grid",
+      "list": "List"
+    },
+    "list": {
+      "columns": {
+        "product": "Product",
+        "source": "Source URL",
+        "status": "AI Sync Status",
+        "actions": "Actions",
+        "score": "Knowledge score",
+        "chunks": "Chunks",
+        "lastScraped": "Last scraped"
+      },
+      "pagination": {
+        "showing": "Showing {from}–{to} of {total} products",
+        "page": "Page {current} of {total}"
+      },
+      "neverScraped": "Not scraped",
+      "edit": "Edit"
+    },
+    "filters": {
+      "searchLabel": "Search products",
+      "searchPlaceholder": "Search by product name, URL, or ID",
+      "status": "Status",
+      "sort": "Sort",
+      "applied": "Applied filters",
+      "searchChip": "Search: {value}",
+      "statusChip": "Status: {value}",
+      "sortChip": "Sort: {value}",
+      "reset": "Reset filters",
+      "resultsCount": "{shown} of {total} products",
+      "noMatchesFor": "No product matches “{query}”.",
+      "noMatchesHint": "Try a different filter combination.",
+      "clearFilters": "Clear filters",
+      "noMatches": "No products match the current filters.",
+      "statusOptions": {
+        "all": "All products",
+        "ragReady": "Synced to AI",
+        "ragNotReady": "Not synced",
+        "ragUnknown": "Unknown sync status",
+        "scraped": "Scraped",
+        "notScraped": "Not scraped"
+      },
+      "sortOptions": {
+        "updatedDesc": "Newest updated",
+        "updatedAsc": "Oldest updated",
+        "nameAsc": "Name (A-Z)",
+        "nameDesc": "Name (Z-A)",
+        "chunksDesc": "Chunks (high to low)",
+        "chunksAsc": "Chunks (low to high)"
+      },
+      "scoreTabsLabel": "Filter products by knowledge quality",
+      "scoreTabs": {
+        "all": "All",
+        "strong": "Strong",
+        "needsAttention": "Needs attention"
+      }
+    },
+    "bulk": {
+      "selectedCountSimple": "{count} selected",
+      "selectVisible": "Select visible",
+      "unselectVisible": "Unselect visible",
+      "selectedCount": "{count} selected ({visible} visible)",
+      "clearSelection": "Clear selection",
+      "rescrape": "Re-scrape selected",
+      "generateEmbeddings": "Generate embeddings",
+      "scraping": "Re-scraping...",
+      "generatingEmbeddings": "Generating...",
+      "selectProduct": "Select product {name}",
+      "scrapeSuccessTitle": "Bulk scrape completed",
+      "embeddingsSuccessTitle": "Bulk embeddings completed",
+      "scrapeErrorTitle": "Bulk scrape failed",
+      "embeddingsErrorTitle": "Bulk embeddings failed",
+      "successMessage": "{success} succeeded, {failed} failed",
+      "allFailedMessage": "All requests failed ({failed})",
+      "requestFailedMessage": "Bulk request could not be completed."
+    },
+    "savedViews": {
+      "groupLabel": "Views",
+      "all": "All",
+      "saveCurrent": "Save current view",
+      "promptName": "Name this view",
+      "deleteAria": "Delete saved view {name}"
+    },
+    "shopifyMapButton": "Shopify Product Mapping",
+    "loading": "Loading products…",
+    "addProductButton": "Add New Product",
+    "empty": {
+      "title": "No products yet",
+      "description": "Start by adding your first product.",
+      "button": "Add New Product",
+      "refresh": "Refresh list"
+    },
+    "card": {
+      "scraped": "Scraped",
+      "ragReady": "Synced to AI",
+      "ragNotReady": "Not synced",
+      "ragStatusUnknown": "Unknown sync status",
+      "chunks": "chunks",
+      "chunksUnknown": "Chunk count unavailable",
+      "edit": "Edit",
+      "deleteConfirm": "Are you sure you want to delete this product?"
+    },
+    "knowledge": {
+      "scoreBadge": "Knowledge {score}",
+      "cardHint": "{coverage} coverage. Biggest gap: {gap}.",
+      "tableHint": "Biggest gap: {gap}",
+      "noGap": "No major gap detected",
+      "coverage": {
+        "strong": "Strong",
+        "moderate": "Moderate",
+        "weak": "Weak"
+      },
+      "reasons": {
+        "missingScrapedContent": "Missing scraped product content",
+        "missingEnrichedContent": "Missing enriched product summary",
+        "missingUsageInstructions": "Missing usage instructions",
+        "thinUsageInstructions": "Usage instructions are too thin",
+        "missingReturnTips": "Missing return-prevention tips",
+        "missingFacts": "Missing structured product facts",
+        "missingEmbeddings": "Embeddings not generated"
+      },
+      "statusStrong": "Strong",
+      "statusAtRisk": "At risk",
+      "statusWeak": "Needs work",
+      "statusUnknown": "Not scored"
+    },
+    "addModal": {
+      "title": "Add New Product",
+      "nameLabel": "Product Name",
+      "namePlaceholder": "e.g. Premium Skin Care Cream",
+      "urlLabel": "Product URL",
+      "urlPlaceholder": "https://example.com/product",
+      "urlHelper": "The product page will be automatically scraped and synced with the AI.",
+      "cancel": "Cancel",
+      "submit": "Add and Scrape",
+      "scraping": {
+        "creating": "Creating product...",
+        "scraping": "Scraping product page...",
+        "embeddings": "Generating embeddings...",
+        "completed": "Completed!",
+        "wait": "This process may take a few minutes..."
+      }
+    },
+    "toasts": {
+      "missingInfo": {
+        "title": "Missing Information",
+        "message": "Please enter product name and URL"
+      },
+      "addSuccess": {
+        "title": "Success!",
+        "message": "Product added and scraped successfully"
+      },
+      "addError": {
+        "title": "Error",
+        "message": "Failed to add product"
+      },
+      "deleteSuccess": {
+        "title": "Deleted",
+        "message": "Product deleted successfully"
+      },
+      "deleteError": {
+        "title": "Error",
+        "message": "Failed to delete product"
+      },
+      "loadError": {
+        "title": "Error",
+        "message": "Failed to load products"
+      },
+      "sessionExpired": {
+        "title": "Session Expired",
+        "message": "Please login again"
+      },
+      "embeddingWarning": {
+        "title": "Embedding Warning",
+        "message": "Product was scraped but embedding generation failed. The product may not appear in bot answers. Try re-scraping from the product edit page."
+      }
+    }
+  },
+  "ProductMapping": {
+    "title": "Shopify Product Mapping",
+    "description": "Map your Shopify products to usage instructions and recipes.",
+    "backButton": "Back to Products",
+    "refreshButton": "Refresh Products",
+    "saveButton": "Save All Changes",
+    "table": {
+      "product": "Product",
+      "status": "Status",
+      "instructions": "Usage Instructions & Recipe",
+      "actions": "Actions",
+      "placeholder": "Enter usage instructions and cosmetic recipe here..."
+    },
+    "status": {
+      "active": "Active",
+      "archived": "Archived",
+      "draft": "Draft"
+    },
+    "empty": "No products found. Please ensure your Shopify integration is active.",
+    "loading": "Loading Shopify products...",
+    "saving": "Saving...",
+    "toasts": {
+      "loadError": {
+        "title": "Error",
+        "message": "Failed to load Shopify products"
+      },
+      "saveSuccess": {
+        "title": "Success",
+        "message": "Product instructions saved"
+      },
+      "saveError": {
+        "title": "Error",
+        "message": "Failed to save instructions"
+      }
+    }
+  },
+  "Conversations": {
+    "selectPrompt": {
+      "title": "Pick a conversation",
+      "description": "Choose a thread on the left to read it and reply."
+    },
+    "title": "Conversations",
+    "description": "All WhatsApp conversations with your customers",
+    "empty": {
+      "title": "No conversations yet",
+      "description": "Conversations will appear here when customers message you",
+      "button": "Start a conversation"
+    },
+    "filters": {
+      "sentimentLabel": "Sentiment",
+      "sentimentAll": "Any sentiment",
+      "needsYou": "Needs you",
+      "ai": "AI",
+      "groupLabel": "Filter conversations",
+      "all": "All",
+      "human": "Human",
+      "humanCount": "Human ({count})",
+      "resolved": "Resolved",
+      "positive": "😊 Positive",
+      "neutral": "😐 Neutral",
+      "negative": "😞 Negative"
+    },
+    "statusBadge": {
+      "human": "Human Mode",
+      "resolved": "Resolved"
+    },
+    "list": {
+      "loading": "Loading conversations…",
+      "noMessages": "No messages yet",
+      "empty": {
+        "title": "No conversations yet",
+        "description": "Conversations will appear here when customers message you"
+      },
+      "guest": "Guest",
+      "order": "Order",
+      "messages": "messages",
+      "time": {
+        "now": "Just now",
+        "minutesAgo": "{m} minutes ago",
+        "hoursAgo": "{h} hours ago",
+        "daysAgo": "{d} days ago"
+      }
+    },
+    "table": {
+      "columns": {
+        "customer": "Customer",
+        "order": "Order",
+        "status": "Status",
+        "messages": "Messages",
+        "lastActivity": "Last activity"
+      }
+    },
+    "toasts": {
+      "loadError": {
+        "title": "Error",
+        "message": "Failed to load conversations"
+      },
+      "sessionExpired": {
+        "title": "Session Expired",
+        "message": "Please login again"
+      }
+    },
+    "needsAttention": {
+      "title": "{count, plural, one {# conversation needs your attention} other {# conversations need your attention}}"
+    },
+    "needsAttentionToast": {
+      "title": "🔴 New Escalation",
+      "message": "{count, plural, one {# customer is requesting a human agent} other {# customers are requesting a human agent}}"
+    }
+  },
+  "Integrations": {
+    "title": "Integrations",
+    "description": "Connect your e-commerce platforms and automate order tracking",
+    "discoverTitle": "Discover integrations",
+    "feedback": {
+      "dismiss": "Dismiss",
+      "reviewActive": "Review active integrations",
+      "reviewDiscover": "Open discovery list",
+      "importSavedTitle": "CSV import completed",
+      "importSavedMessage": "{count} rows were imported and the integration list has been refreshed.",
+      "importErrorTitle": "CSV import failed",
+      "manualSavedTitle": "Manual integration created",
+      "manualSavedMessage": "The manual/API integration is now available in your active connections.",
+      "manualErrorTitle": "Manual integration failed",
+      "whatsappConnectedTitle": "WhatsApp connected",
+      "whatsappConnectedMessage": "Your WhatsApp connection is live and ready for messaging workflows.",
+      "whatsappUpdatedTitle": "WhatsApp updated",
+      "whatsappUpdatedMessage": "The WhatsApp connection details were updated successfully.",
+      "whatsappErrorTitle": "WhatsApp save failed",
+      "integrationRemovedTitle": "Integration removed",
+      "integrationRemovedMessage": "The connection was removed and the list has been refreshed.",
+      "deleteErrorTitle": "Integration removal failed"
+    },
+    "platformSupport": {
+      "title": "Corporate support (Recete)",
+      "subtitle": "Contact us via WhatsApp"
+    },
+    "providers": {
+      "whatsapp": {
+        "title": "WhatsApp Business",
+        "description": "Connect your own WhatsApp Business number to send messages to customers",
+        "connected": "Your number is connected. Click to update.",
+        "action": {
+          "connect": "Connect",
+          "update": "Update"
+        }
+      },
+      "shopify": {
+        "title": "Shopify",
+        "description": "Connect your Shopify store via OAuth",
+        "connected": "Your store is connected. Click to reconnect.",
+        "action": {
+          "connect": "Connect",
+          "connected": "Connected"
+        }
+      },
+      "csv": {
+        "title": "Import CSV",
+        "description": "Upload your order data via CSV",
+        "action": "Import"
+      },
+      "manual": {
+        "title": "Manual / API",
+        "description": "Integrate your own system with API webhooks",
+        "connected": "API integration installed.",
+        "action": {
+          "setup": "Setup",
+          "connected": "Connected"
+        }
+      }
+    },
+    "createdLabel": "Created:",
+    "active": {
+      "title": "Active Integrations",
+      "empty": {
+        "title": "No integrations yet",
+        "description": "Create your first integration using the options above"
+      },
+      "status": {
+        "active": "Active",
+        "error": "Error",
+        "pending": "Pending",
+        "disabled": "Disabled"
+      },
+      "connected": "Connected",
+      "deleteConfirm": "Are you sure you want to remove this integration? This cannot be undone.",
+      "deleteConfirmTitle": "Remove this integration?",
+      "delete": "Delete",
+      "storeLabel": "Store"
+    },
+    "modals": {
+      "shopify": {
+        "title": "Connect Shopify",
+        "shopLabel": "Shopify Store Address",
+        "shopPlaceholder": "example.myshopify.com",
+        "helper": "Your full Shopify store address (with .myshopify.com)",
+        "cancel": "Cancel",
+        "connect": "Connect",
+        "connecting": "Connecting..."
+      },
+      "csv": {
+        "title": "Import CSV",
+        "fileLabel": "CSV File",
+        "fileSelected": "✓ {name} selected",
+        "format": "Format: Your CSV file must include: order_id, customer_phone, customer_name, status, delivery_date",
+        "cancel": "Cancel",
+        "import": "Import",
+        "importing": "Importing..."
+      },
+      "manual": {
+        "title": "Manual / API Integration",
+        "webhookLabel": "API Webhook URL:",
+        "webhookHelper": "Send POST requests to this URL for order events.",
+        "apiKeyLabel": "API Key (get from Settings):",
+        "cancel": "Cancel",
+        "create": "Create Integration"
+      },
+      "whatsapp": {
+        "title": "Connect WhatsApp Business",
+        "updateTitle": "Update WhatsApp Connection",
+        "description": "Enter Phone Number ID, Access Token, and Verify Token from Meta for Developers.",
+        "displayLabel": "Display Number (optional)",
+        "displayPlaceholder": "+90 555 123 45 67",
+        "providerLabel": "WhatsApp provider",
+        "providerOptions": {
+          "twilio": "Twilio (Recommended)",
+          "meta": "Meta Cloud API"
+        },
+        "twilioSidLabel": "Twilio Account SID",
+        "twilioTokenLabel": "Twilio Auth Token",
+        "twilioFromLabel": "Twilio WhatsApp From Number",
+        "twilioFromHelper": "Use the sandbox number during testing, then switch to your approved Twilio WhatsApp sender.",
+        "phoneIdLabel": "Phone Number ID *",
+        "phoneIdPlaceholder": "From Meta API Setup",
+        "tokenLabel": "Access Token *",
+        "tokenPlaceholder": "Token from Meta",
+        "verifyLabel": "Verify Token (webhook) *",
+        "verifyPlaceholder": "For webhook verification",
+        "cancel": "Cancel",
+        "save": "Connect",
+        "saving": "Saving...",
+        "update": "Update"
+      }
+    },
+    "toasts": {
+      "loadError": {
+        "title": "Error",
+        "message": "Failed to load integrations"
+      },
+      "missingShop": {
+        "title": "Missing Information",
+        "message": "Please enter Shopify store address"
+      },
+      "shopifyError": {
+        "title": "Error",
+        "message": "Shopify connection failed"
+      },
+      "fileSelected": {
+        "title": "File Selected",
+        "message": "{name}"
+      },
+      "missingFile": {
+        "title": "Missing File",
+        "message": "Please select a CSV file"
+      },
+      "importSuccess": {
+        "title": "Success!",
+        "message": "{count} events imported"
+      },
+      "importError": {
+        "title": "Error",
+        "message": "CSV import failed"
+      },
+      "manualSuccess": {
+        "title": "Created",
+        "message": "Manual integration created successfully"
+      },
+      "manualError": {
+        "title": "Error",
+        "message": "Failed to create manual integration"
+      },
+      "missingWhatsapp": {
+        "title": "Missing Information",
+        "message": "Phone Number ID, Access Token, and Verify Token are required"
+      },
+      "whatsappSuccess": {
+        "title": "Connected",
+        "message": "WhatsApp Business connection created"
+      },
+      "whatsappUpdateSuccess": {
+        "title": "Updated",
+        "message": "WhatsApp connection updated"
+      },
+      "whatsappError": {
+        "title": "Error",
+        "message": "Failed to save WhatsApp connection"
+      },
+      "deleteSuccess": {
+        "title": "Deleted",
+        "message": "Integration deleted successfully"
+      },
+      "deleteError": {
+        "title": "Error",
+        "message": "Failed to delete integration"
+      },
+      "sessionExpired": {
+        "title": "Session Expired",
+        "message": "Please login again"
+      }
+    }
+  },
+  "Settings": {
+    "unsavedChanges": "Unsaved changes",
+    "discard": "Discard",
+    "loading": "Loading settings…",
+    "nav": {
+      "label": "Settings sections",
+      "persona": "Bot persona",
+      "knowledge": "Knowledge",
+      "notifications": "Notifications",
+      "languages": "Languages",
+      "safety": "Safety",
+      "modules": "Modules",
+      "privacy": "Data & privacy"
+    },
+    "title": "Settings",
+    "description": "Manage bot behavior and API access.",
+    "feedback": {
+      "dismiss": "Dismiss",
+      "reviewLanguages": "Review language settings",
+      "reviewPersona": "Review bot persona",
+      "reviewGuardrails": "Review guardrails",
+      "reviewModules": "Review modules",
+      "reviewData": "Review data controls",
+      "multiLangSavedTitle": "Language settings saved",
+      "multiLangSavedMessage": "Multilingual AI settings are live as of {time}.",
+      "multiLangErrorTitle": "Language settings failed",
+      "personaSavedTitle": "Bot persona saved",
+      "personaSavedMessage": "Your bot behavior changes are live as of {time}.",
+      "personaErrorTitle": "Bot persona failed to save",
+      "guardrailSavedTitle": "Guardrails updated",
+      "guardrailSavedMessage": "The latest rule changes are now active for future conversations.",
+      "guardrailErrorTitle": "Guardrail update failed",
+      "moduleErrorTitle": "Module change failed",
+      "exportSavedTitle": "Data export started",
+      "exportSavedMessage": "Your export file has started downloading.",
+      "exportErrorTitle": "Data export failed",
+      "deleteScheduledTitle": "Deletion scheduled",
+      "deletePermanentTitle": "Account deletion confirmed",
+      "deleteErrorTitle": "Deletion request failed"
+    },
+    "guardrailsLink": "Guardrails →",
+    "botPersona": {
+      "sendMode": {
+        "title": "WhatsApp sending rule",
+        "always": {
+          "label": "Always send",
+          "help": "A WhatsApp message is sent for every order, whether or not the products in it are set up in Recete. Products with usage instructions get them; products without get a general welcome message."
+        },
+        "all_products_required": {
+          "label": "Only send if every product is set up",
+          "help": "Every product in the order must have usage instructions in Recete. If any product is missing them, no WhatsApp message is sent for that order at all."
+        }
+      },
+      "welcomeTemplateWindowNotice": "Welcome messaging follows the 24-hour WhatsApp rule. If the customer already has an open conversation window, Recete sends the rendered text below as a normal message. If the window is closed and Twilio is the sender, Recete uses a platform-managed approved WhatsApp template and injects the rendered message automatically.",
+      "insertVariables": "Insert order variables",
+      "previewLabel": "Preview",
+      "additionalPlaceholders": "Additional placeholders",
+      "welcomeTokens": {
+        "firstName": {
+          "label": "First name",
+          "help": "Adds the buyer's first name."
+        },
+        "orderNumber": {
+          "label": "Order number",
+          "help": "Adds the order number from Shopify."
+        },
+        "productNames": {
+          "label": "Product names",
+          "help": "Adds product names in a natural sentence."
+        },
+        "productCount": {
+          "label": "Product count",
+          "help": "Adds how many products were in the order."
+        },
+        "botName": {
+          "label": "Bot name",
+          "help": "Adds the configured bot name."
+        }
+      },
+      "title": "Bot Persona",
+      "description": "Define how your AI bot speaks to customers.",
+      "botInfoLink": "Bot Info (AI Guidelines) →",
+      "nameLabel": "Bot Name",
+      "namePlaceholder": "Assistant",
+      "toneLabel": "Tone",
+      "tones": {
+        "friendly": "😊 Friendly",
+        "professional": "👔 Professional",
+        "casual": "😎 Casual",
+        "formal": "🎩 Formal"
+      },
+      "emojiLabel": "Use Emojis",
+      "emojiDesc": "Should the bot use emojis in messages?",
+      "responseLengthLabel": "Response Length",
+      "lengths": {
+        "short": "Short",
+        "medium": "Medium",
+        "long": "Long"
+      },
+      "temperatureLabel": "Creativity (Temperature): {value}",
+      "tempLabels": {
+        "consistent": "Consistent (0.0)",
+        "balanced": "Balanced (0.7)",
+        "creative": "Creative (1.0)"
+      },
+      "whatsappSenderLabel": "WhatsApp Sender Number",
+      "whatsappSenderDesc": "Which number should be used for outgoing messages?",
+      "whatsappSenders": {
+        "merchantOwn": {
+          "label": "My own number (store)",
+          "desc": "Uses your connected WhatsApp Business number."
+        },
+        "corporate": {
+          "label": "Corporate number (Recete)",
+          "desc": "Uses the platform's shared number."
+        }
+      },
+      "whatsappHelpTitle": "Where do I get my own number?",
+      "whatsappHelpText": "You can get a WhatsApp Business API number from Meta for Developers. Once you have a Phone Number ID, connect it in the Integrations page.",
+      "welcomeTemplateLabel": "Initial WhatsApp message template (T+0 welcome)",
+      "welcomeTemplatePlaceholder": "Hello 😊\nYour products should have been delivered. Do you have any questions about how to use them?\n\nOrder No: {{order_number}}\nProducts:\n{{product_list}}\n\nIf you want, I can prepare a personalized care routine for the products you bought.",
+      "welcomeTemplateDesc": "If left empty, the system default welcome message is used. If filled, this template is used for the T+0 message.",
+      "welcomeTemplatePlaceholdersTitle": "Available placeholders",
+      "welcomeTemplatePlaceholderOrder": "{{order_number}} : Order number (external order id)",
+      "welcomeTemplatePlaceholderProducts": "{{product_list}} : Products in the order (one per line)",
+      "saveButton": "Save Settings",
+      "saving": "Saving..."
+    },
+    "multilingual": {
+      "primaryTag": "primary",
+      "title": "Multilingual Smart Answers",
+      "description": "Configure language settings for the AI response system. Set a primary language and enable additional customer-facing languages.",
+      "primaryLanguageLabel": "Primary Store Language",
+      "supportedLanguagesLabel": "Supported Languages",
+      "enableLabel": "Enable Multilingual AI for this shop",
+      "enableHelp": "Allow the AI to automatically respond in the customer's preferred language based on your supported languages.",
+      "currentStateLabel": "Current state:",
+      "stateConfigured": "Configured",
+      "stateNotConfigured": "Not configured yet",
+      "stateHelp": "When enabled, the AI syncs multilingual product data and adapts responses to customer language.",
+      "saveButton": "Save Language Settings"
+    },
+    "modules": {
+      "loadError": "Could not load your modules.",
+      "loadErrorTitle": "Modules unavailable",
+      "retry": "Try again",
+      "pricePerMonth": "+{price} / month",
+      "title": "Modules",
+      "description": "Optional paid modules to enhance your AI capabilities.",
+      "empty": "No modules available"
+    },
+    "guardrails": {
+      "title": "Guardrails",
+      "description": "Define rules for what the bot should not say or how it should react.",
+      "addButton": "New Rule",
+      "systemTitle": "System Rules (Read-only)",
+      "customTitle": "Your Custom Rules",
+      "empty": "No custom rules yet. Add one!",
+      "locked": "Locked",
+      "application": "Applies to: {type} · {action}",
+      "types": {
+        "both": "User + AI",
+        "user_message": "User only",
+        "ai_response": "AI only"
+      },
+      "actions": {
+        "block": "Block",
+        "escalate": "Escalate"
+      },
+      "edit": "Edit",
+      "delete": "Delete",
+      "modal": {
+        "nameRequired": "Enter a name for this guardrail.",
+        "valueRequired": "Enter at least one keyword or a phrase to match.",
+        "deleteConfirmTitle": "Delete \"{name}\"?",
+        "deleteConfirmMessage": "This action cannot be undone.",
+        "titleAdd": "New Guardrail",
+        "titleEdit": "Edit Guardrail",
+        "nameLabel": "Rule Name *",
+        "descLabel": "Description (optional)",
+        "applyToLabel": "Apply To",
+        "matchTypeLabel": "Match Type",
+        "matchTypes": {
+          "keywords": "Keywords (comma separated)",
+          "phrase": "Exact Phrase"
+        },
+        "valueLabel": "Keywords / Phrase *",
+        "namePlaceholder": "e.g. Competitor mention",
+        "descPlaceholder": "Brief description of the rule",
+        "keywordsPlaceholder": "competitor, price, discount",
+        "phrasePlaceholder": "This product cures",
+        "actionLabel": "Action",
+        "responseLabel": "Suggested Response (optional)",
+        "responsePlaceholder": "Text to show when this rule is triggered",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving..."
+      }
+    },
+    "apiKeys": {
+      "title": "API Keys",
+      "description": "Manage API keys for integrations (Max 5)",
+      "createButton": "New Key",
+      "creating": "Creating...",
+      "empty": "No API keys yet",
+      "expired": "Expired",
+      "expiresIn": "Expires in {days} days",
+      "created": "Created: {date}",
+      "expires": "Expires: {date}",
+      "lastUsed": "Last used: {date}",
+      "copy": "Copy",
+      "revoke": "Revoke",
+      "modal": {
+        "title": "API Key Created!",
+        "important": "Important:",
+        "warning": "This key is shown only once. Save it securely!",
+        "label": "API Key",
+        "close": "Close"
+      }
+    },
+    "gdpr": {
+      "title": "GDPR & Data Management",
+      "description": "Export or delete your data.",
+      "exportTitle": "Download Data",
+      "exportDesc": "Download all your data in JSON format.",
+      "exportButton": "Download",
+      "exporting": "Downloading...",
+      "deleteTitle": "Delete Account",
+      "deleteDesc": "Delete all your data (Right to Erasure). This cannot be undone!",
+      "deleteWarning": "Data will be permanently deleted in 30 days.",
+      "deleteButton": "Delete",
+      "links": {
+        "dpa": "Data Processing Addendum",
+        "security": "Security Overview",
+        "newTab": "(opens in a new tab)",
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Service",
+        "cookie": "Cookie Policy"
+      },
+      "modal": {
+        "title": "Confirm Account Deletion",
+        "warning": "This action cannot be undone!",
+        "list": {
+          "all": "All data will be deleted",
+          "permanent": "Permanently deleted in 30 days",
+          "cancel": "Can be cancelled within 30 days by support"
+        },
+        "softDelete": "Delete in 30 Days (Recommended)",
+        "hardDelete": "Delete Immediately",
+        "cancel": "Cancel",
+        "deleting": "Deleting...",
+        "hardConfirmLabel": "To permanently delete, type DELETE below",
+        "hardConfirmHelp": "This cannot be undone. Soft delete above is reversible.",
+        "hardDeleteAction": "Permanently delete everything"
+      }
+    },
+    "toasts": {
+      "saveSuccess": {
+        "title": "Success",
+        "message": "Settings saved successfully"
+      },
+      "saveError": {
+        "title": "Error saving",
+        "message": "Could not save your settings. Please try again."
+      },
+      "multiLangSuccess": {
+        "title": "Language settings saved",
+        "message": "Multilingual AI settings were saved successfully."
+      },
+      "multiLangError": {
+        "title": "Error saving language settings",
+        "message": "Could not save multilingual settings. Please try again."
+      },
+      "guardrailSuccess": {
+        "title": "Guardrails updated",
+        "message": "Guardrail settings were saved successfully."
+      },
+      "guardrailError": {
+        "title": "Guardrail error",
+        "message": "Could not update guardrail settings. Please review inputs and try again."
+      },
+      "exportSuccess": {
+        "title": "Data export ready",
+        "message": "Your data export download has started."
+      },
+      "deleteScheduled": {
+        "title": "Deletion scheduled",
+        "message": "Your account is scheduled for deletion on {date}."
+      },
+      "deletePermanent": {
+        "title": "Account deleted",
+        "message": "Your account and data were permanently deleted."
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Set where you receive alerts when a customer requests a human agent.",
+      "phoneLabel": "WhatsApp Notification Number",
+      "phonePlaceholder": "+905XXXXXXXXX",
+      "phoneHint": "When a customer asks to speak with a human, a WhatsApp alert is sent to this number. Leave empty to disable WhatsApp notifications.",
+      "phoneInvalid": "Enter a phone number with 8 to 15 digits, including the country code."
+    }
+  },
+  "Analytics": {
+    "loading": "Loading analytics…",
+    "loadError": {
+      "title": "Could not load analytics",
+      "message": "Please try refreshing the page.",
+      "retry": "Try again"
+    },
+    "dateRange": {
+      "start": "Start date",
+      "end": "End date"
+    },
+    "title": "Analytics",
+    "description": "System performance and metrics",
+    "metrics": {
+      "avgSentiment": "Avg. Sentiment",
+      "interactionRate": "Interaction Rate",
+      "returnRate": "Return Rate",
+      "totalUsers": "Total Users",
+      "totalOrders": "Total Orders",
+      "activeUsers": "active users",
+      "orders": "total orders"
+    },
+    "roi": {
+      "savedReturns": "Saved Returns",
+      "savedReturnsDesc": "Complaint → positive outcome conversations",
+      "repeatPurchases": "Repeat Purchases",
+      "repeatPurchasesDesc": "Customers with conversations who bought again",
+      "resolvedConversations": "Resolved Conversations",
+      "resolvedDesc": "Conversations marked resolved",
+      "resolvedTotalDesc": "/ {total} total",
+      "messagesTotalLabel": "Total Messages",
+      "interactionRate": "Interaction Rate",
+      "interactionRateDesc": "{withConv}/{total} customers in conversation"
+    },
+    "charts": {
+      "dau": {
+        "title": "Daily Active Users (DAU)",
+        "users": "users"
+      },
+      "volume": {
+        "title": "Message Volume",
+        "sent": "Sent",
+        "received": "Received"
+      }
+    },
+    "empty": {
+      "title": "No analytics data yet",
+      "description": "Metrics will appear here once the system is in use",
+      "addProduct": "Add Product",
+      "setupIntegration": "Setup Integration"
+    },
+    "sentiment": {
+      "positive": "Positive",
+      "neutral": "Neutral",
+      "negative": "Negative"
+    }
+  },
+  "ShopifyMap": {
+    "title": "Shopify → Usage Instructions",
+    "description": "Enter usage instructions and recipe for each Shopify product; the AI assistant uses this in responses.",
+    "productCount": "{count} products listed",
+    "backToProducts": "Back to Products",
+    "empty": {
+      "title": "No products found",
+      "description": "No products have been pulled from your Shopify store yet, or integration is not set up. Connect Shopify from the Integrations page first.",
+      "connectButton": "Connect Shopify"
+    },
+    "table": {
+      "hint": "Enter instructions per row and add to AI context with",
+      "hintSave": "Save",
+      "product": "Product (Shopify)",
+      "instructions": "Usage instructions / Recipe",
+      "action": "Action",
+      "ariaLabel": "Shopify products and usage instructions"
+    },
+    "placeholder": "e.g. Apply a thin layer after cleansing. Can be used 1–2 times daily.",
+    "saved": "Saved",
+    "lastSaved": "Saved at {time}",
+    "save": "Save",
+    "saving": "Saving…",
+    "instructionLabel": "Usage instructions: {title}",
+    "feedback": {
+      "savedTitle": "{title} saved",
+      "savedMessage": "Changes are live and were saved at {time}.",
+      "jumpToSaved": "Jump to row",
+      "dismiss": "Dismiss"
+    },
+    "toasts": {
+      "shopifyNotConnected": {
+        "title": "Shopify not connected",
+        "message": "Connect Shopify from the Integrations page first."
+      },
+      "loadError": {
+        "title": "Error loading data",
+        "message": "An error occurred while loading."
+      },
+      "enterInstruction": "Please enter usage instructions",
+      "saveSuccess": {
+        "title": "Usage instructions saved",
+        "message": "Changes saved successfully."
+      },
+      "saveError": {
+        "title": "Save error",
+        "message": "Failed to save."
+      },
+      "productCreateError": "Product could not be created"
+    }
+  },
+  "Customers": {
+    "subtitleLoading": "All your customers and details",
+    "export": {
+      "button": "Export CSV",
+      "busy": "Preparing…",
+      "confirmTitle": "Export customers as CSV?",
+      "confirmMessage": "The file includes your customers' phone numbers in plain text, alongside their segment and churn risk. It covers the view you have filtered to. Store it somewhere safe and delete it when you are done.",
+      "confirmAction": "Export",
+      "doneTitle": "Export ready",
+      "doneMessage": "{count} customers exported.",
+      "truncatedTitle": "Export capped",
+      "truncatedMessage": "The first {count} customers were exported. Narrow the filter to export the rest.",
+      "errorTitle": "Export failed",
+      "errorMessage": "Could not export customers. Please try again."
+    },
+    "noResults": {
+      "title": "No matches",
+      "description": "No customer matches this search or segment. Try a different name or phone number.",
+      "clear": "Clear filters"
+    },
+    "loading": "Loading customers…",
+    "segmentFilterLabel": "Segment",
+    "segmentChipsLabel": "Filter customers by segment",
+    "noOrders": "No orders yet",
+    "unnamed": "Unnamed",
+    "columns": {
+      "name": "Name",
+      "phone": "Phone",
+      "segment": "Segment",
+      "lastOrder": "Last order",
+      "churnRisk": "Churn risk"
+    },
+    "title": "Customers",
+    "subtitle": "All your customers and details ({total} customers)",
+    "searchPlaceholder": "Search by name...",
+    "filterAll": "All",
+    "segment": {
+      "champions": "Champions",
+      "loyal": "Loyal",
+      "promising": "Promising",
+      "at_risk": "At Risk",
+      "lost": "Lost",
+      "new": "New"
+    },
+    "empty": {
+      "title": "No customers found",
+      "description": "No customer records yet or no results match the filter."
+    },
+    "orders": "orders",
+    "conversations": "conversations",
+    "previous": "Previous",
+    "next": "Next",
+    "pagination": {
+      "page": "Page {page} of {totalPages}"
+    },
+    "search": "Search",
+    "toasts": {
+      "loadError": {
+        "title": "Error",
+        "message": "Failed to load customers."
+      }
+    }
+  },
+  "CustomerDetail": {
+    "segment": {
+      "champions": "Champion",
+      "loyal": "Loyal",
+      "promising": "Promising",
+      "at_risk": "At Risk",
+      "lost": "Lost",
+      "new": "New"
+    },
+    "backToCustomers": "Back to Customers",
+    "notFound": "Customer not found",
+    "toasts": {
+      "loadError": {
+        "title": "Error",
+        "message": "Failed to load customer."
+      }
+    },
+    "churnRisk": "Churn risk",
+    "registered": "Registered",
+    "consent": "Consent",
+    "order": "Order",
+    "conversation": "Conversation",
+    "lastOrder": "Last Order",
+    "ordersCount": "Orders ({count})",
+    "noOrders": "No orders",
+    "conversationsCount": "Conversations ({count})",
+    "noConversations": "No conversations",
+    "statusHuman": "Human",
+    "statusResolved": "Resolved",
+    "statusAi": "AI",
+    "feedbackNps": "NPS",
+    "feedbackReview": "Review Request"
+  },
+  "ConversationDetail": {
+    "context": {
+      "orders": "Orders",
+      "conversations": "Conversations",
+      "currentOrder": "Current order",
+      "noOrders": "No orders yet",
+      "fullProfile": "Full profile",
+      "churn": "churn",
+      "optedIn": "opt-in ✓"
+    },
+    "suggest": {
+      "button": "Suggest reply",
+      "busy": "Drafting…",
+      "readyTitle": "Draft ready",
+      "readyMessage": "Edit it before sending — nothing has gone out yet.",
+      "emptyTitle": "No draft",
+      "emptyMessage": "There was not enough product knowledge to answer this one.",
+      "noQuestionTitle": "Nothing to answer",
+      "noQuestionMessage": "The customer has not asked anything yet.",
+      "errorTitle": "Could not draft a reply",
+      "errorMessage": "Please try again."
+    },
+    "aiPausedNotice": "AI paused — {name} asked for a human. You are replying yourself.",
+    "autopilotPaused": "paused",
+    "autopilotOn": "on",
+    "autopilot": "AI autopilot",
+    "profile": "Profile",
+    "yesterday": "Yesterday",
+    "today": "Today",
+    "loading": "Loading conversation…",
+    "backToConversations": "Back to Conversations",
+    "notFound": "Conversation not found",
+    "feedback": {
+      "dismiss": "Dismiss",
+      "reviewReplyPanel": "Review reply panel",
+      "reviewStatusControls": "Review status controls",
+      "sentTitle": "Reply sent",
+      "sentMessage": "Your WhatsApp reply was added to the conversation thread.",
+      "sendErrorTitle": "Reply failed",
+      "statusUpdatedTitle": "Conversation status updated",
+      "statusUpdatedMessage": "The conversation is now assigned to {status}.",
+      "statusErrorTitle": "Status update failed"
+    },
+    "order": "Order",
+    "messageHistory": "Message History",
+    "messageCount": "{count} messages · Auto-updating",
+    "noMessages": "No messages yet",
+    "customer": "Customer",
+    "you": "You",
+    "aiBot": "AI Bot",
+    "placeholderResolved": "Conversation resolved",
+    "placeholderReply": "Type message to customer...",
+    "send": "Send",
+    "sending": "Sending…",
+    "humanModeNote": "Human mode active. Sending a message will switch to human mode.",
+    "startAi": "Start AI",
+    "stopAi": "Stop AI",
+    "resolved": "Resolved",
+    "reopen": "Reopen",
+    "started": "Started",
+    "lastUpdate": "Last update",
+    "customerMessage": "Customer Message",
+    "botResponse": "Bot Response",
+    "totalMessages": "Total Messages",
+    "toasts": {
+      "loadError": {
+        "title": "Error",
+        "message": "Error loading conversation."
+      },
+      "sent": {
+        "title": "Sent",
+        "message": "Your message was sent via WhatsApp."
+      },
+      "sendError": {
+        "title": "Error",
+        "message": "Failed to send message."
+      },
+      "statusUpdated": "Status updated",
+      "statusError": {
+        "title": "Error",
+        "message": "Failed to update status."
+      }
+    },
+    "statusHuman": "Human Mode",
+    "statusResolved": "Resolved",
+    "statusAi": "AI Mode",
+    "statusHumanLabel": "Human mode",
+    "statusResolvedLabel": "Resolved",
+    "statusAiLabel": "AI mode",
+    "retry": "Try again"
+  },
+  "BotInfo": {
+    "loadError": "Could not load your bot information. Please try again.",
+    "unsavedChanges": "Unsaved changes",
+    "discard": "Discard",
+    "title": "Bot Info (AI Guidelines)",
+    "description": "Brand rules, boundaries, and recipe info the AI assistant uses when answering customer questions.",
+    "backToSettings": "← Back to Settings",
+    "loading": "Loading…",
+    "saveAll": "Save All",
+    "saving": "Saving…",
+    "feedback": {
+      "dismiss": "Dismiss",
+      "savedTitle": "Bot guidelines saved",
+      "savedMessage": "The AI guideline changes are live as of {time}.",
+      "saveErrorTitle": "Bot guidelines failed to save"
+    },
+    "sections": {
+      "brand_guidelines": {
+        "label": "Brand & Guidelines",
+        "placeholder": "Your brand voice, values, how to address customers…"
+      },
+      "bot_boundaries": {
+        "label": "Bot Boundaries",
+        "placeholder": "What the bot should / should not do, no medical advice, human handoff rules…"
+      },
+      "recipe_overview": {
+        "label": "Recipe & Usage Overview",
+        "placeholder": "General cosmetic recipe info, usage summary…"
+      },
+      "custom_instructions": {
+        "label": "Additional Instructions",
+        "placeholder": "Other custom rules or instructions…"
+      }
+    },
+    "toasts": {
+      "loadError": {
+        "title": "Error",
+        "message": "Error loading bot info."
+      },
+      "saveError": {
+        "title": "Save error",
+        "message": "Failed to save."
+      }
+    }
+  },
+  "ProductDetail": {
+    "notFound": "Product not found",
+    "backToProducts": "Back to Products",
+    "editProduct": "Edit Product",
+    "editDescription": "Edit product details",
+    "feedback": {
+      "dismiss": "Dismiss",
+      "reviewInstructions": "Review bot instructions",
+      "reviewScrapedContent": "Review scraped content",
+      "savedTitle": "Product changes saved",
+      "savedMessage": "Product details and instruction content are live as of {time}.",
+      "saveErrorTitle": "Product save failed",
+      "rescanSavedTitle": "Product content refreshed",
+      "rescanSavedMessage": "Scraped content was refreshed and embeddings were queued again.",
+      "rescanErrorTitle": "Product refresh failed"
+    },
+    "save": "Save",
+    "saving": "Saving...",
+    "rescrape": "Rescrape",
+    "rescraping": "Scraping...",
+    "productName": "Product Name",
+    "productUrl": "Product URL",
+    "openPage": "Open page",
+    "scrapedContent": "Scraped Content",
+    "scrapedPlaceholder": "Scraped content will appear here...",
+    "scrapedChars": "{chars} characters",
+    "scrapedLines": "{lines} lines",
+    "notScrapedYet": "Content not scraped yet",
+    "scrapeNow": "Scrape Now",
+    "toasts": {
+      "loadError": {
+        "title": "Error",
+        "message": "Failed to load product details"
+      },
+      "saved": {
+        "title": "Saved",
+        "message": "Product changes saved successfully"
+      },
+      "saveError": {
+        "title": "Error",
+        "message": "Failed to save product changes"
+      },
+      "rescanSuccess": {
+        "title": "Scraped",
+        "message": "Product scraped successfully"
+      },
+      "rescanError": {
+        "title": "Error",
+        "message": "Failed to scrape product"
+      },
+      "embeddingWarning": {
+        "title": "Embedding Warning",
+        "message": "Product was scraped but embedding generation failed. Try re-scraping."
+      }
+    },
+    "ragAlert": {
+      "emptyTitle": "⚠️ Bot Instructions Missing",
+      "emptyDesc": "The bot has no manual instructions for this product. Add usage instructions below so the bot can answer customer questions correctly.",
+      "thinTitle": "ℹ️ Instructions Need More Detail",
+      "thinDesc": "Usage instructions are too short for the bot to answer questions well. Add more detail (50+ characters)."
+    },
+    "botInstructions": {
+      "title": "Bot Instructions",
+      "description": "These are read directly by the AI bot to answer customer questions on WhatsApp. The more detail here, the better the bot answers.",
+      "readyBadge": "Ready ✓",
+      "usageLabel": "Usage Instructions",
+      "usagePlaceholder": "Describe how to use this product step-by-step. Include dosage, application method, frequency, and any important warnings...",
+      "usageHint": "This is the most important field. The bot uses it directly to answer \"How do I use this?\" questions.",
+      "videoLabel": "Tutorial Video URL (optional)",
+      "videoPlaceholder": "https://youtube.com/...",
+      "videoHint": "When a customer struggles with a product, the bot will share this link.",
+      "preventionLabel": "Return Prevention Tips (optional)",
+      "preventionPlaceholder": "Tips the bot uses when a customer wants to return the product — common issues and how to fix them...",
+      "preventionHint": "Used by the bot when a customer says they want to return the product."
+    },
+    "knowledge": {
+      "title": "Knowledge Coverage",
+      "subtitle": "This score shows how much usable product knowledge the bot has for this item.",
+      "scoreBadge": "Knowledge {score}",
+      "coverageLabel": "Coverage",
+      "answerRiskLabel": "Answer risk",
+      "chunkCountLabel": "Knowledge chunks",
+      "bannerTitle": "Customer answer quality depends on product detail",
+      "bannerBody": "Current coverage is {coverage}. The biggest quality gap is: {gap}.",
+      "noGap": "No major gap detected",
+      "coverage": {
+        "strong": "Strong",
+        "moderate": "Moderate",
+        "weak": "Weak"
+      },
+      "risk": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "reasons": {
+        "missingScrapedContent": "Missing scraped product content",
+        "missingEnrichedContent": "Missing enriched product summary",
+        "missingUsageInstructions": "Missing usage instructions",
+        "thinUsageInstructions": "Usage instructions are too thin",
+        "missingReturnTips": "Missing return-prevention tips",
+        "missingFacts": "Missing structured product facts",
+        "missingEmbeddings": "Embeddings not generated"
+      }
+    }
+  },
+  "Test": {
+    "customerName": "Test User",
+    "testProduct": "Test Product",
+    "chatMessage": "How do I use this product?",
+    "ragQuery": "How do I use this product?",
+    "toasts": {
+      "orderError": "Order could not be created",
+      "orderSuccess": {
+        "title": "Order created",
+        "message": "You can now trigger the delivery event."
+      },
+      "deliveryError": "Delivery event could not be created",
+      "deliverySuccess": {
+        "title": "Delivery event sent",
+        "message": "You can now chat with the customer."
+      },
+      "messageError": "Message could not be sent",
+      "noResponse": "No response received",
+      "messageSent": "Message sent",
+      "resetSuccess": {
+        "title": "Test reset",
+        "message": "You can start a new test."
+      },
+      "tasksLoadError": "Failed to load tasks",
+      "taskTriggered": {
+        "title": "Task triggered",
+        "message": "Worker will process shortly."
+      },
+      "ragError": "RAG test failed",
+      "ragAiError": "Failed to get RAG + AI response"
+    },
+    "healthLoadError": "Failed to load system health",
+    "subtitle": "Create an order and test the system by chatting with the bot",
+    "createOrder": "Create Order",
+    "step1Title": "Step 1: Create Order",
+    "step1Desc": "Create a test order. It will be saved to the database and a customer profile will be created.",
+    "customerPhone": "Customer Phone",
+    "customerNameLabel": "Customer Name",
+    "orderId": "Order ID",
+    "products": "Products",
+    "addProduct": "Add Product",
+    "productNamePlaceholder": "Product name",
+    "productIdPlaceholder": "Product ID",
+    "productUrlPlaceholder": "Product URL",
+    "creating": "Creating…",
+    "step2Title": "Step 2: Trigger Delivery Event",
+    "step2Desc": "Simulate order delivered. This will trigger the AI agent and send a WhatsApp message to the customer.",
+    "orderDetails": "Order Details",
+    "orderIdLabel": "Order ID",
+    "customerLabel": "Customer",
+    "productCount": "Product count",
+    "sendDelivery": "Send Delivery Event",
+    "sending": "Sending…",
+    "step3Title": "Step 3: Chat with the Bot",
+    "step3Desc": "Chat as the customer. The AI agent will respond with product and order history.",
+    "messagePlaceholder": "Type your message... (Press Enter to send)",
+    "sendMessage": "Send Message",
+    "advancedTools": "Advanced Test Tools",
+    "ragPlaceholder": "Question about product...",
+    "ragEmptyHint": "Leave empty to search all products",
+    "ragOnly": "RAG Only",
+    "ragAndAi": "RAG + AI Response",
+    "processing": "Processing…",
+    "aiResponse": "AI Response",
+    "noResults": "No results found",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "loadFailed": "Failed to load",
+    "noScheduledTasks": "No scheduled tasks yet",
+    "resetTest": "Reset test"
+  },
+  "Sidebar": {
+    "mainMenu": "Main Menu"
+  },
+  "ShopifyCallback": {
+    "connecting": "Connecting to Shopify...",
+    "pleaseWait": "Please wait, integration is completing.",
+    "success": "Success!",
+    "successMessage": "Shopify integration completed successfully!",
+    "redirecting": "Redirecting to Integrations...",
+    "invalidCallback": "Invalid callback. Please try again from the Integrations page.",
+    "backToIntegrations": "Back to Integrations",
+    "error": "Error"
+  },
+  "ReturnPrevention": {
+    "moduleTitle": "Return Prevention Module",
+    "moduleDescription": "AI-powered return prevention. Detects return intent and helps customers get value from their products with usage guides and video tutorials.",
+    "priceNote": "+${price}/month",
+    "enableConfirmTitle": "Enable Return Prevention?",
+    "enableConfirmMessage": "This will add ${price}/month to your billing. The AI will proactively help customers before they return products.",
+    "enableConfirmButton": "Enable & Subscribe",
+    "disableConfirmTitle": "Disable Return Prevention?",
+    "disableConfirmMessage": "The module will be deactivated. You can re-enable it at any time.",
+    "disableConfirmButton": "Disable Module",
+    "planGateMessage": "Available on Starter plan and above.",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "cancel": "Cancel",
+    "videoUrl": "Tutorial Video URL",
+    "videoUrlPlaceholder": "https://youtube.com/watch?v=...",
+    "videoUrlDescription": "Link to a product usage or tutorial video",
+    "preventionTips": "Return Prevention Tips",
+    "preventionTipsPlaceholder": "Tips to help customers when they want to return (e.g. Most customers see results after 2 weeks...)",
+    "preventionTipsDescription": "Tips shown to customers expressing return intent",
+    "analyticsTitle": "Return Prevention",
+    "preventedRevenue": "Prevented Revenue",
+    "returnsPrevented": "Returns Prevented",
+    "preventionRate": "Prevention Rate",
+    "topProducts": "Top At-Risk Products",
+    "totalAttempts": "Total Attempts",
+    "escalated": "Escalated",
+    "returned": "Returned",
+    "pending": "Pending",
+    "prevented": "Prevented",
+    "noData": "No return prevention data yet",
+    "badgeLabel": "Return Prevention",
+    "outcomePrevented": "Prevented",
+    "outcomeReturned": "Returned",
+    "outcomeEscalated": "Escalated",
+    "outcomePending": "Pending",
+    "attempts": "attempts",
+    "product": "Product"
+  }
 }

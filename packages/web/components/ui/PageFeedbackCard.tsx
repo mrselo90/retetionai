@@ -1,7 +1,5 @@
 'use client';
 
-import { Box, Button, Card, InlineStack, Text } from '@shopify/polaris';
-
 type PageFeedbackCardProps = {
   tone: 'success' | 'critical' | 'info';
   title: string;
@@ -12,10 +10,10 @@ type PageFeedbackCardProps = {
   onDismiss?: () => void;
 };
 
-const toneClasses: Record<PageFeedbackCardProps['tone'], string> = {
-  success: 'border-emerald-500/20 from-emerald-50',
-  critical: 'border-red-500/20 from-red-50',
-  info: 'border-sky-500/20 from-sky-50',
+const ALERT_TONE: Record<PageFeedbackCardProps['tone'], string> = {
+  success: 'r-alert-success',
+  critical: 'r-alert-error',
+  info: 'r-alert-info',
 };
 
 export function PageFeedbackCard({
@@ -28,37 +26,29 @@ export function PageFeedbackCard({
   onDismiss,
 }: PageFeedbackCardProps) {
   return (
-    <div className="sticky top-4 z-20">
-      <Card>
-        <Box padding="400">
-          <div
-            className={`flex flex-col gap-3 rounded-2xl border bg-gradient-to-r via-white to-white p-4 shadow-sm ${toneClasses[tone]}`}
-          >
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <Text as="h2" variant="headingMd">
-                  {title}
-                </Text>
-                <div className="mt-1">
-                  <Text as="p" tone="subdued">
-                    {message}
-                  </Text>
-                </div>
-              </div>
-              {(actionLabel && onAction) || onDismiss ? (
-                <InlineStack gap="200" align="end">
-                  {actionLabel && onAction ? (
-                    <Button variant="primary" onClick={onAction}>
-                      {actionLabel}
-                    </Button>
-                  ) : null}
-                  {onDismiss ? <Button onClick={onDismiss}>{dismissLabel}</Button> : null}
-                </InlineStack>
-              ) : null}
-            </div>
-          </div>
-        </Box>
-      </Card>
+    <div
+      className={`r-alert ${ALERT_TONE[tone]}`}
+      style={{ position: 'sticky', top: 16, zIndex: 20, flexWrap: 'wrap' }}
+      role="status"
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p className="r-alert-title">{title}</p>
+        <p className="r-alert-body">{message}</p>
+      </div>
+      {(actionLabel && onAction) || onDismiss ? (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexShrink: 0 }}>
+          {actionLabel && onAction ? (
+            <button className="r-btn r-btn-primary r-btn-sm" onClick={onAction}>
+              {actionLabel}
+            </button>
+          ) : null}
+          {onDismiss ? (
+            <button className="r-btn r-btn-secondary r-btn-sm" onClick={onDismiss}>
+              {dismissLabel}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

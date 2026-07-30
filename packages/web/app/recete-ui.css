@@ -1149,6 +1149,7 @@
 .r-alert-error   { background: var(--r-danger-bg);  border-color: var(--r-danger);  color: var(--r-danger); }
 .r-alert-warning { background: var(--r-warning-bg); border-color: var(--r-warning); color: var(--r-warning); }
 .r-alert-info    { background: var(--r-brand-tint); border-color: var(--r-brand-tint); color: var(--r-text); }
+.r-alert-success { background: var(--r-success-bg); border-color: var(--r-success); color: var(--r-success); }
 
 /* ============================== Dashboard home ============================== */
 
