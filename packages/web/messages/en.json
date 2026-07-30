@@ -32,7 +32,10 @@
       "passwordMismatch": "Passwords do not match",
       "passwordLength": "Password must be at least 8 characters",
       "googleDisabled": "Google signup is currently disabled. Please sign up with email.",
-      "default": "Signup failed."
+      "default": "Signup failed.",
+      "resendVerification": "Resend confirmation email",
+      "resendSuccess": "Confirmation email resent!",
+      "resendError": "Failed to resend email."
     }
   },
   "Dashboard": {
@@ -181,19 +184,26 @@
     "error": "Login error"
   },
   "Login": {
-    "title": "Login to Recete",
-    "description": "Continue by logging in to your account",
+    "eyebrow": "Post-purchase AI · WhatsApp",
+    "headline1": "Turn every order into",
+    "headline2": "a loyal customer.",
+    "feature1": "AI that replies on WhatsApp — in your brand voice",
+    "feature2": "Reduce returns before customers ask for them",
+    "feature3": "Reorder reminders that actually convert",
+    "backToSite": "Back to recete.co.uk",
+    "title": "Welcome back",
+    "description": "Sign in to your Recete account",
     "emailLabel": "Email",
     "passwordLabel": "Password",
     "forgotPassword": "Forgot password?",
-    "emailPlaceholder": "example@company.com",
-    "submitButton": "Login",
-    "submitting": "Logging in...",
-    "or": "or",
-    "googleLogin": "Login with Google",
-    "googleRedirecting": "Redirecting...",
+    "emailPlaceholder": "you@example.com",
+    "submitButton": "Sign in",
+    "submitting": "Signing in…",
+    "or": "OR",
+    "googleLogin": "Continue with Google",
+    "googleRedirecting": "Redirecting…",
     "noAccount": "Don't have an account?",
-    "register": "Sign up",
+    "register": "Sign up free",
     "errors": {
       "default": "Login failed.",
       "googleDisabled": "Google login is currently disabled. Please use email and password.",

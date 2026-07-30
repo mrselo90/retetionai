@@ -32,7 +32,10 @@
       "passwordMismatch": "Şifreler eşleşmiyor",
       "passwordLength": "Şifre en az 8 karakter olmalıdır",
       "googleDisabled": "Google ile kayıt şu anda devre dışı. Lütfen e-posta ile kayıt olun.",
-      "default": "Kayıt başarısız oldu."
+      "default": "Kayıt başarısız oldu.",
+      "resendVerification": "Doğrulama e-postasını yeniden gönderin",
+      "resendSuccess": "Doğrulama e-postası yeniden gönderildi!",
+      "resendError": "E-posta gönderilemedi."
     }
   },
   "Dashboard": {
@@ -181,19 +184,26 @@
     "error": "Giriş hatası"
   },
   "Login": {
-    "title": "Recete’ye giriş yapın",
-    "description": "Hesabınıza giriş yaparak devam edin",
+    "eyebrow": "Satış sonrası yapay zekâ · WhatsApp",
+    "headline1": "Her siparişi",
+    "headline2": "sadık bir müşteriye dönüştürün.",
+    "feature1": "WhatsApp üzerinde markanızın sesiyle yanıt veren yapay zekâ",
+    "feature2": "Müşteriler sormadan önce iadeleri azaltın",
+    "feature3": "Gerçekten dönüşüm sağlayan yeniden sipariş hatırlatmaları",
+    "backToSite": "recete.co.uk’a dön",
+    "title": "Yeniden hoş geldiniz",
+    "description": "Recete hesabınıza giriş yapın",
     "emailLabel": "E-posta",
     "passwordLabel": "Şifre",
     "forgotPassword": "Şifrenizi mi unuttunuz?",
-    "emailPlaceholder": "ornek@sirket.com",
+    "emailPlaceholder": "sen@sirket.com",
     "submitButton": "Giriş yapın",
-    "submitting": "Giriş yapılıyor...",
-    "or": "veya",
-    "googleLogin": "Google ile giriş yapın",
-    "googleRedirecting": "Yönlendiriliyor...",
+    "submitting": "Giriş yapılıyor…",
+    "or": "VEYA",
+    "googleLogin": "Google ile devam edin",
+    "googleRedirecting": "Yönlendiriliyor…",
     "noAccount": "Hesabınız yok mu?",
-    "register": "Kayıt olun",
+    "register": "Ücretsiz kayıt olun",
     "errors": {
       "default": "Giriş başarısız oldu.",
       "googleDisabled": "Google ile giriş şu anda devre dışı. Lütfen e-posta ve şifre kullanın.",
