@@ -553,7 +553,12 @@ merchants.get('/me/stats', async (c) => {
     }));
 
     // Critical Alerts
-    const alerts: Array<{ type: string; message: string; severity: 'error' | 'warning' | 'info' }> = [];
+    const alerts: Array<{
+      type: string;
+      message: string;
+      severity: 'error' | 'warning' | 'info';
+      provider?: string;
+    }> = [];
 
     // Check integrations status
     const { data: integrations } = await serviceClient
@@ -565,8 +570,12 @@ merchants.get('/me/stats', async (c) => {
       if (integration.status === 'error') {
         alerts.push({
           type: 'integration_error',
+          // `message` is kept for older clients; the dashboard now builds its own
+          // translated sentence from `type` + `provider` instead of showing this
+          // hardcoded English text inside an otherwise-localized banner.
           message: `Integration error with ${integration.provider}`,
           severity: 'error',
+          provider: integration.provider,
         });
       }
     });

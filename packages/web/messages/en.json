@@ -286,6 +286,11 @@
                 }
             },
             "alerts": {
+            "messages": {
+                "noIntegration": "No integrations have been connected yet.",
+                "noProducts": "No products have been added yet.",
+                "integrationError": "There was a problem connecting to {provider}."
+            },
                 "title": "System Notice",
                 "types": {
                     "noIntegration": "Integration Missing",
@@ -339,6 +344,8 @@
                 "emptyAction": "Open Integrations"
             },
             "recentConversations": {
+                "rowTitle": "Conversation #{id}",
+                "rowMeta": "{count} messages · {time}",
                 "title": "Recent Conversations",
                 "viewAll": "View All",
                 "emptyTitle": "No conversations yet",

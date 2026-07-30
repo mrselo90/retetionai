@@ -1125,3 +1125,139 @@
 @media (max-width: 1039px) {
     .r-nav-close { display: flex; }
 }
+
+/* ============================== Alert banner ============================== */
+
+/*
+ * Full-width callout for page-level notices — setup reminders, integration
+ * errors. Distinct from .r-callout-danger (an inline block inside a dialog) and
+ * from .r-notice (a small centered pill inside the inbox thread) — this one
+ * spans the content column and carries a title plus an optional action.
+ */
+.r-alert {
+    display: flex;
+    gap: var(--r-space-6);
+    align-items: flex-start;
+    padding: var(--r-space-7);
+    border-radius: var(--r-radius-lg);
+    border: 1px solid transparent;
+}
+
+.r-alert-title { margin: 0; font-weight: var(--r-weight-semibold); font-size: var(--r-text-base-plus); }
+.r-alert-body { margin: var(--r-space-2) 0 var(--r-space-6); font-size: var(--r-text-base-plus); }
+
+.r-alert-error   { background: var(--r-danger-bg);  border-color: var(--r-danger);  color: var(--r-danger); }
+.r-alert-warning { background: var(--r-warning-bg); border-color: var(--r-warning); color: var(--r-warning); }
+.r-alert-info    { background: var(--r-brand-tint); border-color: var(--r-brand-tint); color: var(--r-text); }
+
+/* ============================== Dashboard home ============================== */
+
+.r-stepper { display: flex; align-items: flex-start; }
+
+.r-stepper-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.r-stepper-connector {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: var(--r-border);
+}
+
+.r-stepper-connector.done { background: var(--r-brand-strong); }
+
+.r-stepper-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--r-radius-pill);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--r-text-sm);
+    font-weight: var(--r-weight-semibold);
+    position: relative;
+    z-index: 1;
+    border: 2px solid var(--r-border);
+    background: var(--r-surface);
+    color: var(--r-text-muted);
+}
+
+.r-stepper-circle.done { background: var(--r-brand-strong); border-color: var(--r-brand-strong); color: var(--r-brand-on); }
+.r-stepper-circle.current { border-color: var(--r-brand); color: var(--r-brand); }
+
+.r-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--r-space-7);
+}
+
+@media (max-width: 899px) {
+    .r-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.r-kpi-card {
+    background: var(--r-surface);
+    border: 1px solid var(--r-border);
+    border-radius: var(--r-radius-lg);
+    padding: var(--r-space-8) var(--r-space-9);
+    display: flex;
+    gap: var(--r-space-6);
+}
+
+.r-kpi-icon {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: var(--r-radius-md);
+    background: var(--r-brand-tint);
+    color: var(--r-brand);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.r-kpi-value { font-size: var(--r-text-4xl); font-weight: var(--r-weight-bold); letter-spacing: var(--r-tracking-tight); line-height: 1.1; }
+.r-kpi-label { font-size: var(--r-text-sm-plus); font-weight: var(--r-weight-semibold); color: var(--r-text-secondary); margin-top: 2px; }
+.r-kpi-hint  { font-size: var(--r-text-xs); color: var(--r-text-subtle); margin-top: 2px; }
+
+.r-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--r-space-7); }
+
+@media (max-width: 899px) {
+    .r-two-col { grid-template-columns: 1fr; }
+}
+
+.r-activity-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--r-space-6);
+    padding: var(--r-space-6) 0;
+    border-bottom: 1px solid var(--r-brand-tint);
+    text-decoration: none;
+    color: inherit;
+}
+
+.r-activity-row:last-child { border-bottom: 0; }
+
+/* Quick-action cards get a real :hover rule instead of the mouse-only inline
+   onMouseEnter/onMouseLeave this replaced — that version did nothing for
+   keyboard focus and hardcoded a colour outside the token set. */
+.r-quick-action {
+    display: flex;
+    gap: var(--r-space-7);
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 120ms ease;
+}
+
+.r-quick-action:hover,
+.r-quick-action:focus-visible {
+    background: var(--r-surface-subtle);
+}

@@ -282,6 +282,11 @@
                 }
             },
             "alerts": {
+            "messages": {
+                "noIntegration": "Henüz bağlı bir entegrasyon yok.",
+                "noProducts": "Henüz ürün eklenmedi.",
+                "integrationError": "{provider} bağlantısında bir sorun oluştu."
+            },
                 "title": "Sistem bildirimi",
                 "types": {
                     "noIntegration": "Entegrasyon eksik",
@@ -335,6 +340,8 @@
                 "emptyAction": "Entegrasyonları açın"
             },
             "recentConversations": {
+                "rowTitle": "Konuşma #{id}",
+                "rowMeta": "{count} mesaj · {time}",
                 "title": "Son konuşmalar",
                 "viewAll": "Tümünü gör",
                 "emptyTitle": "Henüz konuşma yok",
