@@ -500,6 +500,7 @@
             }
         },
         "bulk": {
+            "selectedCountSimple": "{count} selected",
             "selectVisible": "Select visible",
             "unselectVisible": "Unselect visible",
             "selectedCount": "{count} selected ({visible} visible)",
@@ -518,6 +519,7 @@
             "requestFailedMessage": "Bulk request could not be completed."
         },
         "savedViews": {
+            "groupLabel": "Views",
             "all": "All",
             "saveCurrent": "Save current view",
             "promptName": "Name this view",

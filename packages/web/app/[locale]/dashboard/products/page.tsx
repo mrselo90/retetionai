@@ -710,7 +710,13 @@ export default function ProductsPage() {
           <div id="products-catalog" className="r-card" style={{ marginBottom: 16 }}>
             {/* Saved views tabs */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: 2 }}>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', overflowX: 'auto', flexWrap: 'nowrap', paddingBottom: 2 }}>
+                {/* Labelled because the score chips above also offer an "All": two
+                    controls with the same word, doing different things, read as a
+                    duplicate without it. */}
+                <span className="r-label-sm" style={{ margin: 0, whiteSpace: 'nowrap' }}>
+                  {t('savedViews.groupLabel')}
+                </span>
                 <button
                   type="button"
                   onClick={() => applySavedView('all')}
@@ -810,7 +816,12 @@ export default function ProductsPage() {
                 {allVisibleSelected ? t('bulk.unselectVisible') : t('bulk.selectVisible')}
               </button>
               <span className="r-hint">
-                {t('bulk.selectedCount', { count: selectedProductIds.length, visible: selectedVisibleCount })}
+                {selectedProductIds.length > selectedVisibleCount
+                  ? t('bulk.selectedCount', {
+                      count: selectedProductIds.length,
+                      visible: selectedVisibleCount,
+                    })
+                  : t('bulk.selectedCountSimple', { count: selectedProductIds.length })}
               </span>
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
