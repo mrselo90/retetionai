@@ -918,6 +918,16 @@
         }
     },
     "Settings": {
+        "nav": {
+            "label": "Settings sections",
+            "persona": "Bot persona",
+            "knowledge": "Knowledge",
+            "notifications": "Notifications",
+            "languages": "Languages",
+            "safety": "Safety",
+            "modules": "Modules",
+            "privacy": "Data & privacy"
+        },
         "title": "Settings",
         "description": "Manage bot behavior and API access.",
         "feedback": {

@@ -1,15 +1,26 @@
+/**
+ * Settings frame — the design's page header plus the tab bar, above whichever tab
+ * is open.
+ *
+ * The header is new: the screen used to open straight onto a bare tab bar, with no
+ * title and nothing saying what any of it governs.
+ */
+
 import { ReactNode } from 'react';
+import { getTranslations } from 'next-intl/server';
 import SettingsNav from './SettingsNav';
 
-export default function SettingsLayout({ children }: { children: ReactNode }) {
+export default async function SettingsLayout({ children }: { children: ReactNode }) {
+  const t = await getTranslations('Settings');
+
   return (
-    <div className="space-y-0">
-      <div className="pb-0">
-        <div className="px-0 pt-2 pb-0">
-          <SettingsNav />
-        </div>
+    <div>
+      <div style={{ paddingBottom: 18 }}>
+        <h1 className="r-page-title">{t('title')}</h1>
+        <p className="r-page-sub">{t('description')}</p>
       </div>
-      <div className="pt-4">{children}</div>
+      <SettingsNav />
+      <div style={{ paddingTop: 22 }}>{children}</div>
     </div>
   );
 }

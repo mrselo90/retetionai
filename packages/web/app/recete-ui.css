@@ -976,3 +976,39 @@
 @media (max-width: 1199px) {
     .r-context { display: none; }
 }
+
+/* ============================ Sub-tab bar ============================ */
+
+/*
+ * Underline tabs from the design (Settings). Distinct from .r-tab, which is the
+ * pill filter chip — these navigate between routes, those filter a list in place.
+ */
+.r-subtabs {
+    display: flex;
+    gap: 2px;
+    border-bottom: 1px solid var(--r-border);
+    overflow-x: auto;
+    /* The bar can outgrow a narrow screen, so it scrolls itself rather than
+       forcing the page sideways or wrapping into a ragged block. */
+    scrollbar-width: none;
+}
+
+.r-subtabs::-webkit-scrollbar { display: none; }
+
+.r-subtab {
+    font-size: var(--r-text-base-plus);
+    padding: 9px var(--r-space-7);
+    color: var(--r-text-muted);
+    text-decoration: none;
+    white-space: nowrap;
+    /* Transparent by default so the 2px active underline does not shift the row. */
+    border-bottom: 2px solid transparent;
+}
+
+.r-subtab:hover { color: var(--r-text); }
+
+.r-subtab[aria-current='page'] {
+    color: var(--r-brand);
+    font-weight: var(--r-weight-semibold);
+    border-bottom-color: var(--r-brand);
+}

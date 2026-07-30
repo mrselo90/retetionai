@@ -913,6 +913,16 @@
         }
     },
     "Settings": {
+        "nav": {
+            "label": "Ayar bölümleri",
+            "persona": "Bot kişiliği",
+            "knowledge": "Bilgi",
+            "notifications": "Bildirimler",
+            "languages": "Diller",
+            "safety": "Güvenlik",
+            "modules": "Modüller",
+            "privacy": "Veri ve gizlilik"
+        },
         "title": "Ayarlar",
         "description": "Bot davranışı ve API erişimini yönetin.",
         "feedback": {
