@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Button, Card, Layout, Page, Text, TextField } from '@shopify/polaris';
+import { getErrorMessage, getErrorStatus } from '@/lib/errors';
+import { Button } from '@/components/recete';
 import { ShopifySaveBar } from '@/components/ui/ShopifySaveBar';
 import { InlineError } from '@/components/ui/InlineError';
 import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
@@ -14,19 +15,16 @@ import { isShopifyEmbedded } from '@/lib/shopifyEmbedded';
 const BOT_INFO_KEYS = ['brand_guidelines', 'bot_boundaries', 'recipe_overview', 'custom_instructions'] as const;
 
 function formatSavedAt(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(value));
+  return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date(value));
 }
 
 export default function BotInfoPage() {
   const t = useTranslations('BotInfo');
+  const fieldPrefix = useId();
   const [botInfo, setBotInfo] = useState<Record<string, string>>({});
   const [originalBotInfo, setOriginalBotInfo] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pageFeedback, setPageFeedback] = useState<{
     tone: 'success' | 'critical';
@@ -34,11 +32,7 @@ export default function BotInfoPage() {
     message: string;
   } | null>(null);
 
-  useEffect(() => {
-    loadBotInfo();
-  }, []);
-
-  const loadBotInfo = async () => {
+  const loadBotInfo = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -47,28 +41,51 @@ export default function BotInfoPage() {
       }
       const res = await authenticatedRequest<{ botInfo: Record<string, string> }>(
         '/api/merchants/me/bot-info',
-        session.access_token
+        session.access_token,
       );
       const info = res.botInfo || {};
       setBotInfo(info);
       setOriginalBotInfo(info);
-      setIsDirty(false);
       setSaveError(null);
-    } catch (err: unknown) {
-      setSaveError((err instanceof Error ? err.message : '') || 'Failed to load bot info');
+    } catch (err) {
+      if (getErrorStatus(err) === 401) {
+        window.location.href = '/login';
+        return;
+      }
+      // The fallback used to be a hardcoded English string.
+      setSaveError(getErrorMessage(err, t('loadError')));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
-  const handleFieldChange = (key: string, value: string) => {
-    setBotInfo((prev) => ({ ...prev, [key]: value }));
-    setIsDirty(true);
-  };
+  useEffect(() => {
+    void loadBotInfo();
+  }, [loadBotInfo]);
+
+  /**
+   * Derived rather than a separate isDirty flag, which could disagree with the
+   * fields it describes — for instance after a merchant edits a box and types the
+   * original text back in.
+   */
+  const isDirty = BOT_INFO_KEYS.some((key) => (botInfo[key] ?? '') !== (originalBotInfo[key] ?? ''));
+
+  /**
+   * The settings tab bar makes it one click to leave this page with edits in
+   * progress, and a client-side route change fires no browser warning. This only
+   * covers reloads and tab closes, which is what the platform allows; the visible
+   * "unsaved changes" marker next to Save covers the rest by being impossible to
+   * miss.
+   */
+  useEffect(() => {
+    if (!isDirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [isDirty]);
 
   const handleDiscard = () => {
     setBotInfo(originalBotInfo);
-    setIsDirty(false);
     setSaveError(null);
   };
 
@@ -85,34 +102,28 @@ export default function BotInfoPage() {
         method: 'PUT',
         body: JSON.stringify({ botInfo: payload }),
       });
-      toast.success('Saved');
+      // Was toast.success('Saved') — the one untranslated string on the screen.
+      toast.success(t('feedback.savedTitle'));
       setPageFeedback({
         tone: 'success',
         title: t('feedback.savedTitle'),
         message: t('feedback.savedMessage', { time: formatSavedAt(new Date().toISOString()) }),
       });
       setOriginalBotInfo(payload);
-      setIsDirty(false);
       setSaveError(null);
-    } catch (err: unknown) {
-      // G4: Persistent inline error instead of auto-dismissing toast (BFS 4.2.4)
-      const message = (err instanceof Error ? err.message : '') || t('toasts.saveError.title');
+    } catch (err) {
+      // A persistent inline error rather than a toast that disappears before the
+      // merchant has read it.
+      const message = getErrorMessage(err, t('toasts.saveError.title'));
       setSaveError(message);
-      setPageFeedback({
-        tone: 'critical',
-        title: t('feedback.saveErrorTitle'),
-        message,
-      });
+      setPageFeedback({ tone: 'critical', title: t('feedback.saveErrorTitle'), message });
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Page title={t('title')} subtitle={t('description')}>
-      <Layout>
-        <Layout.Section>
-    <div className="space-y-6">
+    <div style={{ maxWidth: 760, display: 'flex', flexDirection: 'column', gap: 14 }}>
       {pageFeedback ? (
         <PageFeedbackCard
           tone={pageFeedback.tone}
@@ -122,19 +133,8 @@ export default function BotInfoPage() {
           onDismiss={() => setPageFeedback(null)}
         />
       ) : null}
-      <Card>
-        <div className="p-5 flex items-center justify-between gap-4">
-          <div>
-            <Text as="h2" variant="headingMd">{t('title')}</Text>
-            <div className="mt-1">
-              <Text as="p" tone="subdued">{t('description')}</Text>
-            </div>
-          </div>
-          <Button url="/dashboard/settings">{t('backToSettings')}</Button>
-        </div>
-      </Card>
 
-      {/* G3: Contextual Save Bar (BFS 4.1.5) — embedded only */}
+      {/* Contextual save bar, embedded only. */}
       <ShopifySaveBar
         id="bot-info-csb"
         isDirty={isDirty}
@@ -143,50 +143,48 @@ export default function BotInfoPage() {
         onDiscard={handleDiscard}
       />
 
-      {/* G4: Persistent inline error (BFS 4.2.4) */}
       <InlineError message={saveError} onDismiss={() => setSaveError(null)} />
 
       {loading ? (
-        <Card>
-          <div className="p-8 text-center">
-            <Text as="p" tone="subdued">{t('loading')}</Text>
-          </div>
-        </Card>
+        <div className="r-card" role="status" aria-label={t('loading')}>
+          {[0, 1].map((row) => (
+            <div key={row} className="r-skeleton" style={{ height: 96, marginBottom: row === 0 ? 14 : 0 }} />
+          ))}
+        </div>
       ) : (
-        <div className="space-y-6">
+        <>
           {BOT_INFO_KEYS.map((key) => (
-            <Card key={key}>
-              <div className="p-4">
-                <TextField
-                  label={t(`sections.${key}.label`)}
-                  multiline={5}
-                  autoComplete="off"
-                  placeholder={t(`sections.${key}.placeholder`)}
-                  value={botInfo[key] ?? ''}
-                  onChange={(value) => handleFieldChange(key, value)}
-                />
-              </div>
-            </Card>
+            <div className="r-card" key={key}>
+              <label className="r-label" htmlFor={`${fieldPrefix}-${key}`}>
+                {t(`sections.${key}.label`)}
+              </label>
+              <textarea
+                id={`${fieldPrefix}-${key}`}
+                className="r-textarea"
+                rows={5}
+                placeholder={t(`sections.${key}.placeholder`)}
+                value={botInfo[key] ?? ''}
+                onChange={(event) => setBotInfo((prev) => ({ ...prev, [key]: event.target.value }))}
+              />
+            </div>
           ))}
 
-          {/* Inline Save Button — standalone mode only (BFS 4.1.5) */}
+          {/* Standalone only; embedded uses the contextual save bar above. */}
           {!isShopifyEmbedded() && (
-            <div className="flex justify-end">
-              <Button
-                variant="primary"
-                disabled={saving}
-                onClick={handleSave}
-                loading={saving}
-              >
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
+              {isDirty ? <span className="r-hint">{t('unsavedChanges')}</span> : null}
+              {isDirty ? (
+                <Button variant="secondary" onClick={handleDiscard} disabled={saving}>
+                  {t('discard')}
+                </Button>
+              ) : null}
+              <Button variant="primary" onClick={handleSave} loading={saving} disabled={!isDirty}>
                 {saving ? t('saving') : t('saveAll')}
               </Button>
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
-        </Layout.Section>
-      </Layout>
-    </Page>
   );
 }

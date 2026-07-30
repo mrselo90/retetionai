@@ -1002,6 +1002,7 @@
             "saving": "Kaydediliyor..."
         },
         "multilingual": {
+            "primaryTag": "birincil",
             "title": "Çok dilli akıllı yanıtlar",
             "description": "Yapay zekâ yanıt sistemi için dil ayarlarını yapılandırın. Birincil dil belirleyin ve ek müşteri dillerini etkinleştirin.",
             "primaryLanguageLabel": "Mağazanın birincil dili",
@@ -1445,6 +1446,9 @@
         "retry": "Tekrar dene"
     },
     "BotInfo": {
+        "loadError": "Bot bilgileriniz yüklenemedi. Lütfen tekrar deneyin.",
+        "unsavedChanges": "Kaydedilmemiş değişiklik",
+        "discard": "Vazgeç",
         "title": "Bot bilgisi (yapay zekâ yönergeleri)",
         "description": "Müşteri sorularını yanıtlarken yapay zekâ asistanının kullandığı marka kuralları, sınırlar ve reçete bilgisi.",
         "backToSettings": "← Ayarlara dönün",

@@ -1007,6 +1007,7 @@
             "saving": "Saving..."
         },
         "multilingual": {
+            "primaryTag": "primary",
             "title": "Multilingual Smart Answers",
             "description": "Configure language settings for the AI response system. Set a primary language and enable additional customer-facing languages.",
             "primaryLanguageLabel": "Primary Store Language",
@@ -1454,6 +1455,9 @@
         "retry": "Try again"
     },
     "BotInfo": {
+        "loadError": "Could not load your bot information. Please try again.",
+        "unsavedChanges": "Unsaved changes",
+        "discard": "Discard",
         "title": "Bot Info (AI Guidelines)",
         "description": "Brand rules, boundaries, and recipe info the AI assistant uses when answering customer questions.",
         "backToSettings": "← Back to Settings",
