@@ -1,29 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import {
-  Banner,
-  Badge,
-  BlockStack,
-  Box,
-  Button,
-  Card,
-  InlineGrid,
-  InlineStack,
-  Layout,
-  Page,
-  SkeletonBodyText,
-  SkeletonDisplayText,
-  SkeletonPage,
-  Text,
-  TextField,
-} from '@shopify/polaris';
 import { useTranslations } from 'next-intl';
 import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
+import { Badge, EmptyState } from '@/components/recete';
+import type { BadgeTone } from '@/components/recete';
+import { Link } from '@/i18n/routing';
+import { AlertTriangle } from 'lucide-react';
 
 interface ProductInstruction {
   usage_instructions: string;
@@ -72,11 +59,18 @@ function formatSavedAt(value: string) {
   }).format(new Date(value));
 }
 
+function healthTone(score: number): BadgeTone {
+  if (score >= 80) return 'success';
+  if (score >= 55) return 'caution';
+  return 'danger';
+}
+
 export default function ProductDetailPage() {
   const t = useTranslations('ProductDetail');
   const rp = useTranslations('ReturnPrevention');
   const params = useParams();
   const router = useRouter();
+  const fieldPrefix = useId();
   const productId = params.id as string;
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -126,7 +120,9 @@ export default function ProductDetailPage() {
 
   const loadProduct = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       const response = await authenticatedRequest<{ product: Product }>(
@@ -140,10 +136,9 @@ export default function ProductDetailPage() {
       setEditedRawText(response.product.raw_text || '');
 
       try {
-        const instrResponse = await authenticatedRequest<{ instruction: ProductInstruction | null }>(
-          `/api/products/${productId}/instruction`,
-          session.access_token
-        );
+        const instrResponse = await authenticatedRequest<{
+          instruction: ProductInstruction | null;
+        }>(`/api/products/${productId}/instruction`, session.access_token);
         if (instrResponse.instruction) {
           setUsageInstructions(instrResponse.instruction.usage_instructions || '');
           setRecipeSummary(instrResponse.instruction.recipe_summary || '');
@@ -166,7 +161,9 @@ export default function ProductDetailPage() {
     if (!product) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       setSaving(true);
@@ -194,19 +191,15 @@ export default function ProductDetailPage() {
       // The error is no longer swallowed either. These instructions are what the
       // AI answers customers with, so a failed save must not be reported as
       // success — that was the worst case in this file.
-      await authenticatedRequest(
-        `/api/products/${productId}/instruction`,
-        session.access_token,
-        {
-          method: 'PUT',
-          body: JSON.stringify({
-            usage_instructions: usageInstructions,
-            recipe_summary: recipeSummary || undefined,
-            video_url: videoUrl || undefined,
-            prevention_tips: preventionTips || undefined,
-          }),
-        }
-      );
+      await authenticatedRequest(`/api/products/${productId}/instruction`, session.access_token, {
+        method: 'PUT',
+        body: JSON.stringify({
+          usage_instructions: usageInstructions,
+          recipe_summary: recipeSummary || undefined,
+          video_url: videoUrl || undefined,
+          prevention_tips: preventionTips || undefined,
+        }),
+      });
 
       await loadProduct();
       toast.success(t('toasts.saved.title'), t('toasts.saved.message'));
@@ -237,7 +230,9 @@ export default function ProductDetailPage() {
     if (!product) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       setRescraping(true);
@@ -245,13 +240,9 @@ export default function ProductDetailPage() {
       const scrapeResponse = await authenticatedRequest<{
         message: string;
         scraped: { rawContent?: string } | null;
-      }>(
-        `/api/products/${productId}/scrape`,
-        session.access_token,
-        {
-          method: 'POST',
-        }
-      );
+      }>(`/api/products/${productId}/scrape`, session.access_token, {
+        method: 'POST',
+      });
 
       // Update local state with scraped content
       if (scrapeResponse.scraped?.rawContent) {
@@ -302,373 +293,504 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <SkeletonPage title={t('editProduct')}>
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <Box padding="400">
-                <BlockStack gap="400">
-                  <SkeletonDisplayText size="medium" />
-                  <SkeletonBodyText lines={2} />
-                  <SkeletonBodyText lines={8} />
-                </BlockStack>
-              </Box>
-            </Card>
-          </Layout.Section>
-        </Layout>
-      </SkeletonPage>
+      <div className="d-page">
+        <div
+          className="d-page-header"
+          role="status"
+          aria-live="polite"
+          aria-label={t('editProduct')}
+        >
+          <div className="r-skeleton" style={{ height: 26, width: 200, marginBottom: 8 }} />
+          <div className="r-skeleton" style={{ height: 16, width: 300 }} />
+        </div>
+        {[0, 1, 2].map((row) => (
+          <div
+            key={row}
+            className="r-skeleton"
+            style={{ height: 120, marginBottom: 16 }}
+            aria-hidden="true"
+          />
+        ))}
+      </div>
     );
   }
 
   if (!product) {
     return (
-      <Page title={t('editProduct')}>
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <Box padding="800">
-                <BlockStack gap="300" align="center">
-                  <Text as="p" tone="subdued">
-                    {t('notFound')}
-                  </Text>
-                  <Button onClick={() => router.push('/dashboard/products')}>
-                    {t('backToProducts')}
-                  </Button>
-                </BlockStack>
-              </Box>
-            </Card>
-          </Layout.Section>
-        </Layout>
-      </Page>
+      <div className="d-page">
+        <div className="r-card">
+          <EmptyState
+            title={t('notFound')}
+            action={
+              <button
+                className="r-btn r-btn-primary"
+                onClick={() => router.push('/dashboard/products')}
+              >
+                {t('backToProducts')}
+              </button>
+            }
+          />
+        </div>
+      </div>
     );
   }
 
   // Determine RAG quality status for the alert
   const hasGoodInstructions = usageInstructions.trim().length >= 50;
   const hasAnyInstructions = usageInstructions.trim().length > 0;
-  const instructionCharStatus = usageInstructions.trim().length > 0
-    ? `${usageInstructions.length} characters — ${hasGoodInstructions ? 'Good' : 'Enter 50+ characters'}`
-    : t('botInstructions.usageHint');
   const knowledgeHealth = product.knowledgeHealth;
 
   return (
-    <Page title={t('editProduct')} subtitle={t('editDescription')} fullWidth>
-      <Layout>
-        <Layout.Section>
-          <BlockStack gap="500">
-            {pageFeedback ? (
-              <PageFeedbackCard
-                tone={pageFeedback.tone}
-                title={pageFeedback.title}
-                message={pageFeedback.message}
-                actionLabel={pageFeedback.actionLabel}
-                onAction={
-                  pageFeedback.targetId
-                    ? () => {
-                        document
-                          .getElementById(pageFeedback.targetId!)
-                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }
-                    : undefined
-                }
-                dismissLabel={t('feedback.dismiss')}
-                onDismiss={() => setPageFeedback(null)}
+    <div className="d-page">
+      <div
+        className="d-page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <div>
+          <Link
+            href="/dashboard/products"
+            className="r-btn r-btn-ghost r-btn-sm"
+            style={{ marginBottom: 10 }}
+          >
+            ← {t('backToProducts')}
+          </Link>
+          <h1 className="r-page-title">{t('editProduct')}</h1>
+          <p className="r-page-sub">{t('editDescription')}</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            className="r-btn r-btn-secondary"
+            onClick={handleRescrape}
+            disabled={rescraping}
+            aria-busy={rescraping || undefined}
+          >
+            {rescraping ? t('rescraping') : t('rescrape')}
+          </button>
+          <button
+            className="r-btn r-btn-primary"
+            onClick={handleSave}
+            disabled={saving}
+            aria-busy={saving || undefined}
+          >
+            {saving ? t('saving') : t('save')}
+          </button>
+        </div>
+      </div>
+
+      {pageFeedback ? (
+        <div style={{ marginBottom: 16 }}>
+          <PageFeedbackCard
+            tone={pageFeedback.tone}
+            title={pageFeedback.title}
+            message={pageFeedback.message}
+            actionLabel={pageFeedback.actionLabel}
+            onAction={
+              pageFeedback.targetId
+                ? () => {
+                    document
+                      .getElementById(pageFeedback.targetId!)
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                : undefined
+            }
+            dismissLabel={t('feedback.dismiss')}
+            onDismiss={() => setPageFeedback(null)}
+          />
+        </div>
+      ) : null}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {knowledgeHealth ? (
+          <div className="r-card">
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                gap: 12,
+                flexWrap: 'wrap',
+                marginBottom: 16,
+              }}
+            >
+              <div>
+                <p className="r-card-title">{t('knowledge.title')}</p>
+                <p className="r-hint" style={{ marginTop: 2 }}>
+                  {t('knowledge.subtitle')}
+                </p>
+              </div>
+              <Badge tone={healthTone(knowledgeHealth.score)}>
+                {t('knowledge.scoreBadge', { score: knowledgeHealth.score })}
+              </Badge>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: 12,
+                marginBottom: 14,
+              }}
+            >
+              <div
+                style={{
+                  border: '1px solid var(--r-border)',
+                  borderRadius: 'var(--r-radius-md)',
+                  padding: 'var(--r-space-6) var(--r-space-7)',
+                }}
+              >
+                <p className="r-hint" style={{ margin: '0 0 6px' }}>
+                  {t('knowledge.coverageLabel')}
+                </p>
+                <p style={{ margin: 0, fontWeight: 'var(--r-weight-semibold)' }}>
+                  {coverageLabel(knowledgeHealth.coverage)}
+                </p>
+              </div>
+              <div
+                style={{
+                  border: '1px solid var(--r-border)',
+                  borderRadius: 'var(--r-radius-md)',
+                  padding: 'var(--r-space-6) var(--r-space-7)',
+                }}
+              >
+                <p className="r-hint" style={{ margin: '0 0 6px' }}>
+                  {t('knowledge.answerRiskLabel')}
+                </p>
+                <p style={{ margin: 0, fontWeight: 'var(--r-weight-semibold)' }}>
+                  {riskLabel(knowledgeHealth.answerRisk)}
+                </p>
+              </div>
+              <div
+                style={{
+                  border: '1px solid var(--r-border)',
+                  borderRadius: 'var(--r-radius-md)',
+                  padding: 'var(--r-space-6) var(--r-space-7)',
+                }}
+              >
+                <p className="r-hint" style={{ margin: '0 0 6px' }}>
+                  {t('knowledge.chunkCountLabel')}
+                </p>
+                <p style={{ margin: 0, fontWeight: 'var(--r-weight-semibold)' }}>
+                  {knowledgeHealth.metrics.chunkCount}
+                </p>
+              </div>
+            </div>
+
+            <div
+              className={`r-alert ${knowledgeHealth.answerRisk === 'high' ? 'r-alert-warning' : 'r-alert-info'}`}
+              style={{ marginTop: 0 }}
+            >
+              <AlertTriangle size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div style={{ flex: 1 }}>
+                <p className="r-alert-title">{t('knowledge.bannerTitle')}</p>
+                <p className="r-alert-body">
+                  {t('knowledge.bannerBody', {
+                    coverage: coverageLabel(knowledgeHealth.coverage),
+                    gap: knowledgeReasonLabel(knowledgeHealth.missingReasonCodes[0]),
+                  })}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {!hasGoodInstructions ? (
+          <div className="r-alert r-alert-warning">
+            <AlertTriangle size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+            <div style={{ flex: 1 }}>
+              <p className="r-alert-title">
+                {!hasAnyInstructions ? t('ragAlert.emptyTitle') : t('ragAlert.thinTitle')}
+              </p>
+              <p className="r-alert-body">
+                {!hasAnyInstructions ? t('ragAlert.emptyDesc') : t('ragAlert.thinDesc')}
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="r-card" id="product-scraped-content">
+          <p className="r-card-title" style={{ marginBottom: 16 }}>
+            {t('productName')}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label className="r-label" htmlFor={`${fieldPrefix}-name`}>
+                {t('productName')}
+              </label>
+              <input
+                id={`${fieldPrefix}-name`}
+                className="r-input"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                autoComplete="off"
               />
+            </div>
+
+            <div>
+              <label className="r-label" htmlFor={`${fieldPrefix}-url`}>
+                {t('productUrl')}
+              </label>
+              <input
+                id={`${fieldPrefix}-url`}
+                type="url"
+                className="r-input"
+                value={editedUrl}
+                onChange={(e) => setEditedUrl(e.target.value)}
+                autoComplete="off"
+              />
+              {editedUrl ? (
+                <a
+                  href={editedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="r-btn r-btn-ghost r-btn-sm"
+                  style={{ marginTop: 8 }}
+                >
+                  {t('openPage')}
+                </a>
+              ) : null}
+            </div>
+
+            {product.external_id ? (
+              <div>
+                <label className="r-label" htmlFor={`${fieldPrefix}-external-id`}>
+                  {t('externalIdLabel')}
+                </label>
+                <input
+                  id={`${fieldPrefix}-external-id`}
+                  className="r-input"
+                  value={product.external_id}
+                  disabled
+                />
+              </div>
             ) : null}
+          </div>
+        </div>
 
-            {knowledgeHealth && (
-              <Card>
-                <Box padding="400">
-                  <BlockStack gap="300">
-                    <InlineStack align="space-between" blockAlign="start" gap="300">
-                      <BlockStack gap="100">
-                        <Text as="h2" variant="headingMd">
-                          {t('knowledge.title')}
-                        </Text>
-                        <Text as="p" tone="subdued">
-                          {t('knowledge.subtitle')}
-                        </Text>
-                      </BlockStack>
-                      <Badge tone={knowledgeHealth.score >= 80 ? 'success' : knowledgeHealth.score >= 55 ? 'attention' : 'critical'}>
-                        {t('knowledge.scoreBadge', { score: knowledgeHealth.score })}
-                      </Badge>
-                    </InlineStack>
+        <div
+          className="r-card"
+          id="product-bot-instructions"
+          style={
+            !hasGoodInstructions
+              ? { background: 'var(--r-warning-bg)', borderColor: 'var(--r-warning)' }
+              : undefined
+          }
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              gap: 12,
+              flexWrap: 'wrap',
+              marginBottom: 16,
+            }}
+          >
+            <div>
+              <p className="r-card-title">{t('botInstructions.title')}</p>
+              <p className="r-hint" style={{ marginTop: 2 }}>
+                {t('botInstructions.description')}
+              </p>
+            </div>
+            {hasGoodInstructions ? (
+              <Badge tone="success">{t('botInstructions.readyBadge')}</Badge>
+            ) : null}
+          </div>
 
-                    <InlineGrid columns={{ xs: '1fr', md: '1fr 1fr 1fr' }} gap="300">
-                      <BlockStack gap="050">
-                        <Text as="span" tone="subdued">
-                          {t('knowledge.coverageLabel')}
-                        </Text>
-                        <Text as="p" variant="bodyMd" fontWeight="medium">
-                          {coverageLabel(knowledgeHealth.coverage)}
-                        </Text>
-                      </BlockStack>
-                      <BlockStack gap="050">
-                        <Text as="span" tone="subdued">
-                          {t('knowledge.answerRiskLabel')}
-                        </Text>
-                        <Text as="p" variant="bodyMd" fontWeight="medium">
-                          {riskLabel(knowledgeHealth.answerRisk)}
-                        </Text>
-                      </BlockStack>
-                      <BlockStack gap="050">
-                        <Text as="span" tone="subdued">
-                          {t('knowledge.chunkCountLabel')}
-                        </Text>
-                        <Text as="p" variant="bodyMd" fontWeight="medium">
-                          {knowledgeHealth.metrics.chunkCount}
-                        </Text>
-                      </BlockStack>
-                    </InlineGrid>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label className="r-label" htmlFor={`${fieldPrefix}-usage`}>
+                {t('botInstructions.usageLabel')} *
+              </label>
+              <textarea
+                id={`${fieldPrefix}-usage`}
+                className="r-textarea"
+                rows={6}
+                value={usageInstructions}
+                onChange={(e) => setUsageInstructions(e.target.value)}
+                placeholder={t('botInstructions.usagePlaceholder')}
+                autoComplete="off"
+              />
+              <p className="r-field-help">
+                {usageInstructions.trim().length > 0
+                  ? t('botInstructions.usageCharCount', {
+                      count: usageInstructions.length,
+                      status: hasGoodInstructions
+                        ? t('botInstructions.usageStatusGood')
+                        : t('botInstructions.usageStatusShort'),
+                    })
+                  : t('botInstructions.usageHint')}
+              </p>
+            </div>
 
-                    <Banner
-                      tone={knowledgeHealth.answerRisk === 'high' ? 'warning' : 'info'}
-                      title={t('knowledge.bannerTitle')}
-                    >
-                      <p>
-                        {t('knowledge.bannerBody', {
-                          coverage: coverageLabel(knowledgeHealth.coverage),
-                          gap: knowledgeReasonLabel(knowledgeHealth.missingReasonCodes[0]),
-                        })}
-                      </p>
-                    </Banner>
-                  </BlockStack>
-                </Box>
-              </Card>
-            )}
+            <div>
+              <label className="r-label" htmlFor={`${fieldPrefix}-video`}>
+                {t('botInstructions.videoLabel')}
+              </label>
+              <input
+                id={`${fieldPrefix}-video`}
+                type="url"
+                className="r-input"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder={t('botInstructions.videoPlaceholder')}
+                autoComplete="off"
+              />
+              <p className="r-field-help">{t('botInstructions.videoHint')}</p>
+            </div>
 
-            {!hasGoodInstructions && (
-              <Banner tone="warning" title={!hasAnyInstructions ? t('ragAlert.emptyTitle') : t('ragAlert.thinTitle')}>
-                <p>{!hasAnyInstructions ? t('ragAlert.emptyDesc') : t('ragAlert.thinDesc')}</p>
-              </Banner>
-            )}
+            <div>
+              <label className="r-label" htmlFor={`${fieldPrefix}-prevention`}>
+                {t('botInstructions.preventionLabel')}
+              </label>
+              <textarea
+                id={`${fieldPrefix}-prevention`}
+                className="r-textarea"
+                rows={3}
+                value={preventionTips}
+                onChange={(e) => setPreventionTips(e.target.value)}
+                placeholder={t('botInstructions.preventionPlaceholder')}
+                autoComplete="off"
+              />
+              <p className="r-field-help">{t('botInstructions.preventionHint')}</p>
+            </div>
+          </div>
+        </div>
 
-            <Card>
-              <Box id="product-bot-instructions" padding="400">
-                <InlineGrid columns={{ xs: '1fr', md: '2fr auto' }} gap="400" alignItems="center">
-                  <BlockStack gap="200">
-                    <Button onClick={() => router.push('/dashboard/products')} variant="plain" textAlign="left">
-                      {t('backToProducts')}
-                    </Button>
-                    <Text as="p" tone="subdued">
-                      {t('editDescription')}
-                    </Text>
-                  </BlockStack>
-                  <InlineStack gap="300" wrap={false} align="end">
-                    <Button onClick={handleRescrape} disabled={rescraping} loading={rescraping}>
-                      {rescraping ? t('rescraping') : t('rescrape')}
-                    </Button>
-                    <Button onClick={handleSave} disabled={saving} loading={saving} variant="primary">
-                      {saving ? t('saving') : t('save')}
-                    </Button>
-                  </InlineStack>
-                </InlineGrid>
-              </Box>
-            </Card>
+        <div className="r-card">
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 12,
+              flexWrap: 'wrap',
+              marginBottom: 16,
+            }}
+          >
+            <p className="r-card-title" style={{ margin: 0 }}>
+              {t('scrapedContent')}
+            </p>
+            <button
+              className="r-btn r-btn-ghost r-btn-sm"
+              onClick={handleRescrape}
+              disabled={rescraping}
+              aria-busy={rescraping || undefined}
+            >
+              {rescraping ? t('rescraping') : t('rescrape')}
+            </button>
+          </div>
 
-            <Card>
-              <Box id="product-scraped-content" padding="400">
-                <BlockStack gap="400">
-                  <Text as="h2" variant="headingMd">
-                    {t('productName')}
-                  </Text>
-                  <TextField
-                    label={t('productName')}
-                    labelHidden
-                    value={editedName}
-                    onChange={setEditedName}
-                    autoComplete="off"
-                  />
-                  <BlockStack gap="200">
-                    <Text as="h2" variant="headingMd">
-                      {t('productUrl')}
-                    </Text>
-                    <TextField
-                      label={t('productUrl')}
-                      labelHidden
-                      type="url"
-                      value={editedUrl}
-                      onChange={setEditedUrl}
-                      autoComplete="off"
-                    />
-                    {editedUrl && (
-                      <InlineStack align="start">
-                        <Button url={editedUrl} target="_blank" variant="plain">
-                          {t('openPage')}
-                        </Button>
-                      </InlineStack>
-                    )}
-                  </BlockStack>
+          {editedRawText ? (
+            <div>
+              <textarea
+                className="r-textarea"
+                rows={20}
+                value={editedRawText}
+                onChange={(e) => setEditedRawText(e.target.value)}
+                placeholder={t('scrapedPlaceholder')}
+                autoComplete="off"
+                aria-label={t('scrapedContent')}
+              />
+              <p className="r-hint" style={{ marginTop: 8 }}>
+                {t('scrapedChars', { chars: editedRawText.length.toLocaleString('en-GB') })} •{' '}
+                {t('scrapedLines', { lines: editedRawText.split('\n').length })}
+              </p>
+            </div>
+          ) : (
+            <EmptyState
+              title={t('notScrapedYet')}
+              action={
+                <button
+                  className="r-btn r-btn-primary"
+                  onClick={handleRescrape}
+                  disabled={rescraping}
+                  aria-busy={rescraping || undefined}
+                >
+                  {rescraping ? t('rescraping') : t('scrapeNow')}
+                </button>
+              }
+            />
+          )}
+        </div>
 
-                  {product.external_id && (
-                    <TextField
-                      label="External ID"
-                      value={product.external_id}
-                      disabled
-                      autoComplete="off"
-                    />
-                  )}
-                </BlockStack>
-              </Box>
-            </Card>
+        {/*
+          Same videoUrl/preventionTips fields as the Bot Instructions card above,
+          sharing the same state — editing one updates the other immediately.
+          Kept as-is (not a data bug, both write the same fields), but this
+          duplication reads like two features were merged without deciding which
+          card owns these fields. Worth a product call on whether to drop one.
+        */}
+        <div className="r-card">
+          <p className="r-card-title">{rp('analyticsTitle')}</p>
+          <p className="r-hint" style={{ marginTop: 2, marginBottom: 16 }}>
+            {rp('moduleDescription')}
+          </p>
 
-            <Card background={!hasGoodInstructions ? 'bg-surface-warning' : undefined}>
-              <Box padding="400">
-                <BlockStack gap="400">
-                  <InlineStack align="space-between" blockAlign="start" gap="300">
-                    <BlockStack gap="100">
-                      <Text as="h2" variant="headingMd">
-                        {t('botInstructions.title')}
-                      </Text>
-                      <Text as="p" tone="subdued">
-                        {t('botInstructions.description')}
-                      </Text>
-                    </BlockStack>
-                    {hasGoodInstructions && <Badge tone="success">{t('botInstructions.readyBadge')}</Badge>}
-                  </InlineStack>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label className="r-label" htmlFor={`${fieldPrefix}-rp-video`}>
+                {rp('videoUrl')}
+              </label>
+              <input
+                id={`${fieldPrefix}-rp-video`}
+                type="url"
+                className="r-input"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder={rp('videoUrlPlaceholder')}
+                autoComplete="off"
+              />
+              <p className="r-field-help">{rp('videoUrlDescription')}</p>
+            </div>
 
-                  <TextField
-                    label={`${t('botInstructions.usageLabel')} *`}
-                    multiline={6}
-                    value={usageInstructions}
-                    onChange={setUsageInstructions}
-                    placeholder={t('botInstructions.usagePlaceholder')}
-                    autoComplete="off"
-                    helpText={instructionCharStatus}
-                  />
+            <div>
+              <label className="r-label" htmlFor={`${fieldPrefix}-rp-prevention`}>
+                {rp('preventionTips')}
+              </label>
+              <textarea
+                id={`${fieldPrefix}-rp-prevention`}
+                className="r-textarea"
+                rows={4}
+                value={preventionTips}
+                onChange={(e) => setPreventionTips(e.target.value)}
+                placeholder={rp('preventionTipsPlaceholder')}
+                autoComplete="off"
+              />
+              <p className="r-field-help">{rp('preventionTipsDescription')}</p>
+            </div>
+          </div>
+        </div>
 
-                  <TextField
-                    label={t('botInstructions.videoLabel')}
-                    type="url"
-                    value={videoUrl}
-                    onChange={setVideoUrl}
-                    placeholder={t('botInstructions.videoPlaceholder')}
-                    autoComplete="off"
-                    helpText={t('botInstructions.videoHint')}
-                  />
-
-                  <TextField
-                    label={t('botInstructions.preventionLabel')}
-                    multiline={3}
-                    value={preventionTips}
-                    onChange={setPreventionTips}
-                    placeholder={t('botInstructions.preventionPlaceholder')}
-                    autoComplete="off"
-                    helpText={t('botInstructions.preventionHint')}
-                  />
-                </BlockStack>
-              </Box>
-            </Card>
-
-            <Card>
-              <Box padding="400">
-                <BlockStack gap="400">
-                  <InlineStack align="space-between" blockAlign="center" gap="300">
-                    <Text as="h2" variant="headingMd">
-                      {t('scrapedContent')}
-                    </Text>
-                    <Button onClick={handleRescrape} disabled={rescraping} loading={rescraping} variant="plain">
-                      {rescraping ? t('rescraping') : t('rescrape')}
-                    </Button>
-                  </InlineStack>
-
-                  {editedRawText ? (
-                    <BlockStack gap="300">
-                      <TextField
-                        label={t('scrapedContent')}
-                        labelHidden
-                        value={editedRawText}
-                        onChange={setEditedRawText}
-                        multiline={20}
-                        autoComplete="off"
-                        placeholder={t('scrapedPlaceholder')}
-                      />
-                      <Text as="p" tone="subdued">
-                        {t('scrapedChars', { chars: editedRawText.length.toLocaleString('en-GB') })} •{' '}
-                        {t('scrapedLines', { lines: editedRawText.split('\n').length })}
-                      </Text>
-                    </BlockStack>
-                  ) : (
-                    <Box paddingBlock="800">
-                      <BlockStack gap="300" align="center">
-                        <Text as="p" tone="subdued">
-                          {t('notScrapedYet')}
-                        </Text>
-                        <Button onClick={handleRescrape} disabled={rescraping} loading={rescraping} variant="primary">
-                          {rescraping ? t('rescraping') : t('scrapeNow')}
-                        </Button>
-                      </BlockStack>
-                    </Box>
-                  )}
-                </BlockStack>
-              </Box>
-            </Card>
-
-            <Card>
-              <Box padding="400">
-                <BlockStack gap="400">
-                  <BlockStack gap="100">
-                    <Text as="h2" variant="headingMd">
-                      {rp('analyticsTitle')}
-                    </Text>
-                    <Text as="p" tone="subdued">
-                      {rp('moduleDescription')}
-                    </Text>
-                  </BlockStack>
-
-                  <TextField
-                    label={rp('videoUrl')}
-                    type="url"
-                    value={videoUrl}
-                    onChange={setVideoUrl}
-                    placeholder={rp('videoUrlPlaceholder')}
-                    autoComplete="off"
-                    helpText={rp('videoUrlDescription')}
-                  />
-
-                  <TextField
-                    label={rp('preventionTips')}
-                    multiline={4}
-                    value={preventionTips}
-                    onChange={setPreventionTips}
-                    placeholder={rp('preventionTipsPlaceholder')}
-                    autoComplete="off"
-                    helpText={rp('preventionTipsDescription')}
-                  />
-                </BlockStack>
-              </Box>
-            </Card>
-
-            <Card>
-              <Box padding="400">
-                <BlockStack gap="400">
-                  <Text as="h2" variant="headingMd">
-                    Metadata
-                  </Text>
-                  <InlineGrid columns={{ xs: '1fr', sm: '1fr 1fr' }} gap="400">
-                    <BlockStack gap="100">
-                      <Text as="span" tone="subdued">
-                        Created
-                      </Text>
-                      <Text as="p" variant="bodyMd" fontWeight="medium">
-                        {new Date(product.created_at).toLocaleString('en-GB')}
-                      </Text>
-                    </BlockStack>
-                    <BlockStack gap="100">
-                      <Text as="span" tone="subdued">
-                        Last Updated
-                      </Text>
-                      <Text as="p" variant="bodyMd" fontWeight="medium">
-                        {new Date(product.updated_at).toLocaleString('en-GB')}
-                      </Text>
-                    </BlockStack>
-                  </InlineGrid>
-                </BlockStack>
-              </Box>
-            </Card>
-          </BlockStack>
-        </Layout.Section>
-      </Layout>
-    </Page>
+        <div className="r-card">
+          <p className="r-card-title" style={{ marginBottom: 16 }}>
+            {t('metadata.title')}
+          </p>
+          <div className="r-two-col">
+            <div>
+              <p className="r-hint" style={{ margin: '0 0 4px' }}>
+                {t('metadata.created')}
+              </p>
+              <p style={{ margin: 0, fontWeight: 'var(--r-weight-semibold)' }}>
+                {new Date(product.created_at).toLocaleString('en-GB')}
+              </p>
+            </div>
+            <div>
+              <p className="r-hint" style={{ margin: '0 0 4px' }}>
+                {t('metadata.lastUpdated')}
+              </p>
+              <p style={{ margin: 0, fontWeight: 'var(--r-weight-semibold)' }}>
+                {new Date(product.updated_at).toLocaleString('en-GB')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1415,6 +1415,12 @@
     "productName": "Product Name",
     "productUrl": "Product URL",
     "openPage": "Open page",
+    "externalIdLabel": "External ID",
+    "metadata": {
+      "title": "Metadata",
+      "created": "Created",
+      "lastUpdated": "Last Updated"
+    },
     "scrapedContent": "Scraped Content",
     "scrapedPlaceholder": "Scraped content will appear here...",
     "scrapedChars": "{chars} characters",
@@ -1460,6 +1466,9 @@
       "usageLabel": "Usage Instructions",
       "usagePlaceholder": "Describe how to use this product step-by-step. Include dosage, application method, frequency, and any important warnings...",
       "usageHint": "This is the most important field. The bot uses it directly to answer \"How do I use this?\" questions.",
+      "usageCharCount": "{count} characters — {status}",
+      "usageStatusGood": "Good",
+      "usageStatusShort": "Enter 50+ characters",
       "videoLabel": "Tutorial Video URL (optional)",
       "videoPlaceholder": "https://youtube.com/...",
       "videoHint": "When a customer struggles with a product, the bot will share this link.",

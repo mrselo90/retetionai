@@ -1415,6 +1415,12 @@
     "productName": "Ürün adı",
     "productUrl": "Ürün URL",
     "openPage": "Sayfayı açın",
+    "externalIdLabel": "Harici kimlik",
+    "metadata": {
+      "title": "Meta veri",
+      "created": "Oluşturulma",
+      "lastUpdated": "Son güncelleme"
+    },
     "scrapedContent": "Çekilen içerik",
     "scrapedPlaceholder": "Çekilen içerik burada görünecek...",
     "scrapedChars": "{chars} karakter",
@@ -1460,6 +1466,9 @@
       "usageLabel": "Kullanım talimatları",
       "usagePlaceholder": "Bu ürünü adım adım nasıl kullanacağınızı açıklayın. Doz, uygulama yöntemi, sıklık ve önemli uyarıları ekleyin...",
       "usageHint": "En önemli alan. Bot bunu doğrudan \"Nasıl kullanırım?\" sorularında kullanır.",
+      "usageCharCount": "{count} karakter — {status}",
+      "usageStatusGood": "İyi",
+      "usageStatusShort": "50+ karakter girin",
       "videoLabel": "Öğretici video URL (isteğe bağlı)",
       "videoPlaceholder": "https://youtube.com/...",
       "videoHint": "Bir müşteri ürünle zorlandığında bot bu bağlantıyı paylaşır.",
