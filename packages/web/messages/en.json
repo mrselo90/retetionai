@@ -655,6 +655,10 @@
         }
     },
     "Conversations": {
+        "selectPrompt": {
+            "title": "Pick a conversation",
+            "description": "Choose a thread on the left to read it and reply."
+        },
         "title": "Conversations",
         "description": "All WhatsApp conversations with your customers",
         "empty": {
@@ -663,6 +667,11 @@
             "button": "Start a conversation"
         },
         "filters": {
+            "sentimentLabel": "Sentiment",
+            "sentimentAll": "Any sentiment",
+            "needsYou": "Needs you",
+            "ai": "AI",
+            "groupLabel": "Filter conversations",
             "all": "All",
             "human": "Human",
             "humanCount": "Human ({count})",
@@ -676,6 +685,8 @@
             "resolved": "Resolved"
         },
         "list": {
+            "loading": "Loading conversations…",
+            "noMessages": "No messages yet",
             "empty": {
                 "title": "No conversations yet",
                 "description": "Conversations will appear here when customers message you"
@@ -1340,6 +1351,26 @@
         "feedbackReview": "Review Request"
     },
     "ConversationDetail": {
+        "suggest": {
+            "button": "Suggest reply",
+            "busy": "Drafting…",
+            "readyTitle": "Draft ready",
+            "readyMessage": "Edit it before sending — nothing has gone out yet.",
+            "emptyTitle": "No draft",
+            "emptyMessage": "There was not enough product knowledge to answer this one.",
+            "noQuestionTitle": "Nothing to answer",
+            "noQuestionMessage": "The customer has not asked anything yet.",
+            "errorTitle": "Could not draft a reply",
+            "errorMessage": "Please try again."
+        },
+        "aiPausedNotice": "AI paused — {name} asked for a human. You are replying yourself.",
+        "autopilotPaused": "paused",
+        "autopilotOn": "on",
+        "autopilot": "AI autopilot",
+        "profile": "Profile",
+        "yesterday": "Yesterday",
+        "today": "Today",
+        "loading": "Loading conversation…",
         "backToConversations": "Back to Conversations",
         "notFound": "Conversation not found",
         "feedback": {

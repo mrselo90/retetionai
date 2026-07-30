@@ -650,6 +650,10 @@
         }
     },
     "Conversations": {
+        "selectPrompt": {
+            "title": "Bir konuşma seçin",
+            "description": "Okumak ve yanıtlamak için soldan bir konuşma seçin."
+        },
         "title": "Konuşmalar",
         "description": "Müşterilerinizle tüm WhatsApp konuşmaları",
         "empty": {
@@ -658,6 +662,11 @@
             "button": "Konuşmayı başlatın"
         },
         "filters": {
+            "sentimentLabel": "Duygu",
+            "sentimentAll": "Tüm duygular",
+            "needsYou": "Sizi bekliyor",
+            "ai": "AI",
+            "groupLabel": "Konuşmaları filtrele",
             "all": "Tümü",
             "human": "İnsan",
             "humanCount": "İnsan ({count})",
@@ -671,6 +680,8 @@
             "resolved": "Çözüldü"
         },
         "list": {
+            "loading": "Konuşmalar yükleniyor…",
+            "noMessages": "Henüz mesaj yok",
             "empty": {
                 "title": "Henüz konuşma yok",
                 "description": "Müşteriler size yazdığında konuşmalar burada görünür"
@@ -1331,6 +1342,26 @@
         "feedbackReview": "Değerlendirme isteği"
     },
     "ConversationDetail": {
+        "suggest": {
+            "button": "Yanıt öner",
+            "busy": "Hazırlanıyor…",
+            "readyTitle": "Taslak hazır",
+            "readyMessage": "Göndermeden önce düzenleyin — henüz hiçbir şey gitmedi.",
+            "emptyTitle": "Taslak yok",
+            "emptyMessage": "Bunu yanıtlamak için yeterli ürün bilgisi yok.",
+            "noQuestionTitle": "Yanıtlanacak bir şey yok",
+            "noQuestionMessage": "Müşteri henüz bir şey sormamış.",
+            "errorTitle": "Yanıt önerilemedi",
+            "errorMessage": "Lütfen tekrar deneyin."
+        },
+        "aiPausedNotice": "AI duraklatıldı — {name} bir insan istedi. Şu an kendiniz yanıtlıyorsunuz.",
+        "autopilotPaused": "duraklatıldı",
+        "autopilotOn": "açık",
+        "autopilot": "AI otopilot",
+        "profile": "Profil",
+        "yesterday": "Dün",
+        "today": "Bugün",
+        "loading": "Konuşma yükleniyor…",
         "backToConversations": "Konuşmalara dönün",
         "notFound": "Konuşma bulunamadı",
         "feedback": {

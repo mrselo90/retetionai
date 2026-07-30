@@ -1,38 +1,37 @@
+/**
+ * Conversation thread — the right pane of the inbox, rewritten off Polaris.
+ *
+ * Everything that worked before is kept: the 5-second poll that pauses when the
+ * tab is hidden and never navigates away on failure, the status transitions, the
+ * return-prevention badge, and the distinction between "could not load" and
+ * "does not exist".
+ *
+ * What the design adds, and this now has: the AI-autopilot switch in the header
+ * instead of a row of status buttons, day dividers in the thread, an inline
+ * notice explaining why the AI is paused and who the merchant is replying as, and
+ * a Suggest reply action.
+ *
+ * The design's "Attach shade guide" and "Offer exchange" chips are not here: they
+ * are product-specific canned actions with nothing behind them, and a button that
+ * does nothing is worse than an absent one.
+ */
+
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import type { KeyboardEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { Link } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { getErrorMessage, getErrorStatus } from '@/lib/errors';
-import {
-  Badge as PolarisBadge,
-  BlockStack,
-  Box,
-  Button,
-  Card,
-  InlineGrid,
-  InlineStack,
-  Layout,
-  Page,
-  SkeletonBodyText,
-  SkeletonDisplayText,
-  SkeletonPage,
-  Text,
-  TextField,
-  type BoxProps,
-} from '@shopify/polaris';
-import { MessageSquare, Clock, User, ShoppingBag, Bot } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
-
-interface ConversationMessage {
-  role: 'user' | 'assistant' | 'merchant';
-  content: string;
-  timestamp: string;
-}
+import { useLocale, useTranslations } from 'next-intl';
+import { Sparkles } from 'lucide-react';
+import { Avatar, Badge, Button, EmptyState } from '@/components/recete';
+import type { BadgeTone } from '@/components/recete';
+import { MessageThread } from '@/components/recete/MessageThread';
+import type { MessageRole, ThreadMessage } from '@/components/recete/MessageThread';
+import { Switch } from '@/components/recete/Switch';
 
 interface ReturnPreventionAttempt {
   id: string;
@@ -47,198 +46,135 @@ interface ConversationDetail {
   orderId?: string;
   userName: string;
   phone: string;
-  history: ConversationMessage[];
+  history: ThreadMessage[];
   status: string;
   conversationStatus: 'ai' | 'human' | 'resolved';
-  assignedTo?: string;
   escalatedAt?: string;
   createdAt: string;
   updatedAt: string;
-  order?: {
-    id: string;
-    externalOrderId: string;
-    status: string;
-    deliveryDate?: string;
-  };
+  order?: { id: string; externalOrderId: string; status: string; deliveryDate?: string };
   returnPreventionAttempt?: ReturnPreventionAttempt;
 }
 
-interface PageFeedbackState {
-  tone: 'success' | 'critical' | 'info';
-  title: string;
-  message: string;
-  actionLabel?: string;
-  targetId?: string;
-}
+const POLL_MS = 5_000;
 
-function DetailIconSurface({
-  icon,
-  background = 'bg-surface-secondary',
-}: {
-  icon: React.ReactNode;
-  background?: BoxProps['background'];
-}) {
-  return (
-    <Box background={background} borderRadius="200" padding="300" minWidth="44px" minHeight="44px">
-      {icon}
-    </Box>
-  );
-}
-
-export default function ConversationDetailPage() {
+export default function ConversationThreadPage() {
   const t = useTranslations('ConversationDetail');
   const rp = useTranslations('ReturnPrevention');
+  const locale = useLocale();
   const params = useParams();
-  const router = useRouter();
   const conversationId = params.id as string;
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [conversation, setConversation] = useState<ConversationDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
-  const [pageFeedback, setPageFeedback] = useState<PageFeedbackState | null>(null);
-  // Only set by the initial load; background poll failures stay silent.
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!conversationId) return;
-
-    loadConversation({ isInitial: true });
-
-    let interval: ReturnType<typeof setInterval> | null = null;
-
-    const startPolling = () => {
-      if (interval) return;
-      interval = setInterval(() => { loadConversation(); }, 5000);
-    };
-
-    const stopPolling = () => {
-      if (interval) { clearInterval(interval); interval = null; }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        stopPolling();
-      } else {
-        loadConversation();
-        startPolling();
-      }
-    };
-
-    startPolling();
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      stopPolling();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [conversationId]);
-
-  useEffect(() => {
-    // Scroll to bottom when messages change
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [conversation?.history]);
+  const [suggesting, setSuggesting] = useState(false);
 
   /**
-   * Also runs as the 5-second poll body, which is why it must not navigate.
-   *
-   * It used to router.push back to the list on ANY error — so one 502, one
-   * timeout or one Wi-Fi hiccup ejected the merchant from the conversation they
-   * were reading and destroyed a half-typed reply. A failed background refresh
-   * now leaves the last good state on screen; only the very first load, which has
-   * nothing to show, surfaces an error.
+   * Also the poll body, so it must not navigate: it used to router.push back to
+   * the list on any error, which meant one 502 ejected the merchant from the
+   * conversation they were reading and threw away a half-typed reply.
    */
-  const loadConversation = async (options?: { isInitial?: boolean }) => {
+  const loadConversation = useCallback(async (options?: { isInitial?: boolean }) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        if (options?.isInitial) {
-          window.location.href = '/login';
-        }
+        if (options?.isInitial) window.location.href = '/login';
         return;
       }
 
       const response = await authenticatedRequest<{ conversation: ConversationDetail }>(
         `/api/conversations/${conversationId}`,
-        session.access_token
+        session.access_token,
       );
-
       setConversation(response.conversation);
       setLoadError(null);
     } catch (err) {
-      console.error('Failed to load conversation:', err);
-
       if (getErrorStatus(err) === 401) {
         window.location.href = '/login';
         return;
       }
-
       if (options?.isInitial) {
-        setLoadError(getErrorMessage(err, t('toasts.loadError.message')));
-        toast.error(t('toasts.loadError.title'), getErrorMessage(err, t('toasts.loadError.message')));
+        const message = getErrorMessage(err, t('toasts.loadError.message'));
+        setLoadError(message);
+        toast.error(t('toasts.loadError.title'), message);
       }
-      // Background poll failures are intentionally silent — retrying in 5s.
+      // Background poll failures stay silent — it retries in 5s.
     } finally {
       setLoading(false);
     }
+  }, [conversationId, t]);
+
+  /**
+   * Switching conversations must not show the previous thread while the new one
+   * loads. Next reuses this component across [id] changes rather than remounting
+   * it, so the reset is done by adjusting state during render — React's
+   * documented pattern for "props changed, derived state is stale".
+   *
+   * The tracker is state, not a ref: React discards and re-runs the render, and a
+   * ref mutated during render would already be updated on the retry, so the
+   * resets would be skipped.
+   */
+  const [renderedId, setRenderedId] = useState(conversationId);
+  if (renderedId !== conversationId) {
+    setRenderedId(conversationId);
+    setConversation(null);
+    setLoading(true);
+    setLoadError(null);
+    setReplyText('');
+  }
+
+  useEffect(() => {
+    if (!conversationId) return;
+    void loadConversation({ isInitial: true });
+
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (!interval) interval = setInterval(() => void loadConversation(), POLL_MS);
+    };
+    const stop = () => {
+      if (interval) { clearInterval(interval); interval = null; }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        stop();
+      } else {
+        void loadConversation();
+        start();
+      }
+    };
+
+    start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [conversationId, loadConversation]);
+
+  const formatTime = (iso: string) =>
+    new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+
+  /** Today and yesterday get words; anything older gets a date. */
+  const formatDayLabel = (iso: string) => {
+    const date = new Date(iso);
+    const today = new Date();
+    const sameDay = (a: Date, b: Date) =>
+      a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    if (sameDay(date, today)) return t('today');
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    if (sameDay(date, yesterday)) return t('yesterday');
+    return date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const roleLabel = (role: MessageRole) =>
+    role === 'user' ? t('customer') : role === 'merchant' ? t('you') : t('aiBot');
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const handleSendReply = async () => {
-    if (!replyText.trim() || sending) return;
-    setSending(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      await authenticatedRequest(
-        `/api/conversations/${conversationId}/reply`,
-        session.access_token,
-        { method: 'POST', body: JSON.stringify({ text: replyText.trim() }) }
-      );
-      setReplyText('');
-      await loadConversation();
-      toast.success(t('toasts.sent.title'), t('toasts.sent.message'));
-      setPageFeedback({
-        tone: 'success',
-        title: t('feedback.sentTitle'),
-        message: t('feedback.sentMessage'),
-        actionLabel: t('feedback.reviewReplyPanel'),
-        targetId: 'conversation-reply-panel',
-      });
-    } catch (err) {
-      console.error('Failed to send reply:', err);
-      setPageFeedback({
-        tone: 'critical',
-        title: t('feedback.sendErrorTitle'),
-        message: t('toasts.sendError.message'),
-        actionLabel: t('feedback.reviewReplyPanel'),
-        targetId: 'conversation-reply-panel',
-      });
-      toast.error(t('toasts.sendError.title'), t('toasts.sendError.message'));
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const handleToggleStatus = async (newStatus: 'ai' | 'human' | 'resolved') => {
+  const setStatus = async (next: 'ai' | 'human' | 'resolved') => {
     setTogglingStatus(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -246,355 +182,275 @@ export default function ConversationDetailPage() {
       await authenticatedRequest(
         `/api/conversations/${conversationId}/status`,
         session.access_token,
-        { method: 'PUT', body: JSON.stringify({ status: newStatus }) }
+        { method: 'PUT', body: JSON.stringify({ status: next }) },
       );
       await loadConversation();
-      const statusLabels: Record<string, string> = { ai: t('statusAiLabel'), human: t('statusHumanLabel'), resolved: t('statusResolvedLabel') };
-      toast.success(t('toasts.statusUpdated'), statusLabels[newStatus]);
-      setPageFeedback({
-        tone: 'success',
-        title: t('feedback.statusUpdatedTitle'),
-        message: t('feedback.statusUpdatedMessage', { status: statusLabels[newStatus] }),
-        actionLabel: t('feedback.reviewStatusControls'),
-        targetId: 'conversation-status-controls',
-      });
-    } catch (err) {
-      setPageFeedback({
-        tone: 'critical',
-        title: t('feedback.statusErrorTitle'),
-        message: t('toasts.statusError.message'),
-        actionLabel: t('feedback.reviewStatusControls'),
-        targetId: 'conversation-status-controls',
-      });
+      const labels: Record<string, string> = {
+        ai: t('statusAiLabel'),
+        human: t('statusHumanLabel'),
+        resolved: t('statusResolvedLabel'),
+      };
+      toast.success(t('toasts.statusUpdated'), labels[next]);
+    } catch {
       toast.error(t('toasts.statusError.title'), t('toasts.statusError.message'));
     } finally {
       setTogglingStatus(false);
     }
   };
 
-  if (loading) {
+  const sendReply = async () => {
+    const text = replyText.trim();
+    if (!text || sending) return;
+    setSending(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await authenticatedRequest(
+        `/api/conversations/${conversationId}/reply`,
+        session.access_token,
+        { method: 'POST', body: JSON.stringify({ text }) },
+      );
+      setReplyText('');
+      await loadConversation();
+      toast.success(t('toasts.sent.title'), t('toasts.sent.message'));
+    } catch (err) {
+      toast.error(t('toasts.sendError.title'), getErrorMessage(err, t('toasts.sendError.message')));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  /**
+   * Draft a reply from the customer's last question using the same grounded
+   * answer path the WhatsApp bot uses, so the suggestion is built from the
+   * merchant's own product knowledge rather than invented.
+   *
+   * It fills the composer instead of sending: the merchant took the conversation
+   * over precisely because they wanted to decide what goes out.
+   */
+  const suggestReply = async () => {
+    const lastCustomerMessage = [...(conversation?.history ?? [])]
+      .reverse()
+      .find((message) => message.role === 'user');
+
+    if (!lastCustomerMessage) {
+      toast.warning(t('suggest.noQuestionTitle'), t('suggest.noQuestionMessage'));
+      return;
+    }
+
+    setSuggesting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const response = await authenticatedRequest<{ answer?: string; text?: string }>(
+        '/api/answer',
+        session.access_token,
+        {
+          method: 'POST',
+          body: JSON.stringify({ question: lastCustomerMessage.content, user_lang: locale }),
+        },
+      );
+      const suggestion = (response.answer || response.text || '').trim();
+      if (!suggestion) {
+        toast.warning(t('suggest.emptyTitle'), t('suggest.emptyMessage'));
+        return;
+      }
+      setReplyText(suggestion);
+      toast.success(t('suggest.readyTitle'), t('suggest.readyMessage'));
+    } catch (err) {
+      toast.error(t('suggest.errorTitle'), getErrorMessage(err, t('suggest.errorMessage')));
+    } finally {
+      setSuggesting(false);
+    }
+  };
+
+  if (loading && !conversation) {
     return (
-      <SkeletonPage title={t('backToConversations')}>
-        <Layout>
-          <Layout.Section>
-            <BlockStack gap="400">
-              <Card>
-                <BlockStack gap="300">
-                  <SkeletonDisplayText size="small" maxWidth="18ch" />
-                  <SkeletonBodyText lines={3} />
-                </BlockStack>
-              </Card>
-              <Card>
-                <SkeletonBodyText lines={10} />
-              </Card>
-            </BlockStack>
-          </Layout.Section>
-        </Layout>
-      </SkeletonPage>
+      <div className="r-thread">
+        <div className="r-thread-head">
+          <div className="r-skeleton" style={{ height: 38, width: 220 }} role="status" aria-label={t('loading')} />
+        </div>
+        <div className="r-thread-scroll">
+          {[0, 1, 2].map((row) => (
+            <div
+              key={row}
+              className={`r-msg ${row % 2 ? 'r-msg-out' : 'r-msg-in'}`}
+              aria-hidden="true"
+            >
+              <div className="r-skeleton" style={{ height: 44, width: row % 2 ? 240 : 300 }} />
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
   if (!conversation) {
     return (
-      <Page title={t('backToConversations')}>
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <Box padding="600">
-                <BlockStack gap="300" inlineAlign="center">
-                  {/* Distinguish "could not load" from "does not exist" — the poll
-                      no longer navigates away, so this is where a first-load
-                      failure surfaces. */}
-                  <Text as="p" tone={loadError ? 'critical' : 'subdued'}>
-                    {loadError || t('notFound')}
-                  </Text>
-                  <InlineStack gap="200">
-                    {loadError ? (
-                      <Button variant="primary" onClick={() => { setLoading(true); loadConversation({ isInitial: true }); }}>
-                        {t('retry')}
-                      </Button>
-                    ) : null}
-                    <Button onClick={() => router.push('/dashboard/conversations')}>{t('backToConversations')}</Button>
-                  </InlineStack>
-                </BlockStack>
-              </Box>
-            </Card>
-          </Layout.Section>
-        </Layout>
-      </Page>
+      <div className="r-thread" style={{ alignItems: 'center', justifyContent: 'center' }}>
+        <EmptyState
+          title={loadError ? t('toasts.loadError.title') : t('notFound')}
+          body={loadError ?? undefined}
+          action={
+            loadError ? (
+              <Button
+                variant="primary"
+                onClick={() => { setLoading(true); void loadConversation({ isInitial: true }); }}
+              >
+                {t('retry')}
+              </Button>
+            ) : undefined
+          }
+        />
+      </div>
     );
   }
 
+  const isResolved = conversation.conversationStatus === 'resolved';
+  const isHuman = conversation.conversationStatus === 'human';
+  const autopilotOn = conversation.conversationStatus === 'ai';
+
+  const preventionTone: Record<ReturnPreventionAttempt['outcome'], BadgeTone> = {
+    prevented: 'success',
+    returned: 'danger',
+    escalated: 'warning',
+    pending: 'neutral',
+  };
+  const preventionLabel: Record<ReturnPreventionAttempt['outcome'], string> = {
+    prevented: rp('outcomePrevented'),
+    returned: rp('outcomeReturned'),
+    escalated: rp('outcomeEscalated'),
+    pending: rp('outcomePending'),
+  };
+
   return (
-    <Page title={conversation.userName} subtitle={conversation.phone} fullWidth>
-      <Layout>
-        <Layout.Section>
-    <BlockStack gap="400">
-      {pageFeedback ? (
-        <PageFeedbackCard
-          tone={pageFeedback.tone}
-          title={pageFeedback.title}
-          message={pageFeedback.message}
-          actionLabel={pageFeedback.actionLabel}
-          onAction={
-            pageFeedback.targetId
-              ? () => {
-                  document
-                    .getElementById(pageFeedback.targetId!)
-                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-              : undefined
-          }
-          dismissLabel={t('feedback.dismiss')}
-          onDismiss={() => setPageFeedback(null)}
-        />
-      ) : null}
-      {/* Header */}
-      <Card>
-        <BlockStack gap="400">
-          <Button onClick={() => router.push('/dashboard/conversations')} variant="plain">
-            {t('backToConversations')}
-          </Button>
+    <div className="r-thread">
+      <div className="r-thread-head">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          {/* Only shown on narrow screens, where the list is hidden behind the thread. */}
+          <Link href="/dashboard/conversations" className="r-btn r-btn-secondary r-btn-sm r-thread-back">
+            ← {t('backToConversations')}
+          </Link>
+          <Avatar name={conversation.userName || conversation.phone} solid size="lg" />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <Link
+                href={`/dashboard/customers/${conversation.userId}`}
+                className="r-table-strong"
+                style={{ fontSize: 'var(--r-text-md-plus)', textDecoration: 'none' }}
+              >
+                {conversation.userName || conversation.phone}
+              </Link>
+              {isHuman ? <Badge tone="warning">{t('statusHuman')}</Badge> : null}
+              {isResolved ? <Badge tone="success">{t('statusResolved')}</Badge> : null}
+              {conversation.returnPreventionAttempt ? (
+                <Badge tone={preventionTone[conversation.returnPreventionAttempt.outcome]}>
+                  {`${rp('badgeLabel')} · ${preventionLabel[conversation.returnPreventionAttempt.outcome]}`}
+                </Badge>
+              ) : null}
+            </div>
+            <div style={{ fontSize: 'var(--r-text-sm)', color: 'var(--r-text-muted)', marginTop: 2 }}>
+              {conversation.order
+                ? `${t('order')} #${conversation.order.externalOrderId} · ${conversation.order.status}`
+                : conversation.phone}
+            </div>
+          </div>
+        </div>
 
-        <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-          <InlineStack gap="300" blockAlign="start">
-            <DetailIconSurface
-              background="bg-fill-info-secondary"
-              icon={<User className="w-6 h-6 text-blue-700" />}
-            />
-            <BlockStack gap="100">
-              <Text as="h1" variant="headingLg">{conversation.userName}</Text>
-              <Text as="p" tone="subdued">{conversation.phone}</Text>
-              {conversation.order && (
-                <InlineStack gap="150" blockAlign="center" wrap>
-                  <ShoppingBag className="w-4 h-4 text-zinc-600" />
-                  <Text as="p" variant="bodySm">{t('order')}: #{conversation.order.externalOrderId}</Text>
-                  <PolarisBadge tone={conversation.order.status === 'delivered' ? 'success' : 'info'}>
-                    {conversation.order.status}
-                  </PolarisBadge>
-                </InlineStack>
-              )}
-            </BlockStack>
-          </InlineStack>
-
-          <BlockStack id="conversation-status-controls" gap="300">
-            <InlineStack gap="200" wrap>
-              <PolarisBadge tone={
-                conversation.conversationStatus === 'human'
-                  ? 'critical'
-                  : conversation.conversationStatus === 'resolved'
-                    ? 'success'
-                    : 'info'
-              }>
-                {conversation.conversationStatus === 'human' ? t('statusHuman') :
-                  conversation.conversationStatus === 'resolved' ? t('statusResolved') : t('statusAi')}
-              </PolarisBadge>
-              {conversation.returnPreventionAttempt && (
-                <PolarisBadge tone={
-                  conversation.returnPreventionAttempt.outcome === 'prevented'
-                    ? 'success'
-                    : conversation.returnPreventionAttempt.outcome === 'returned'
-                      ? 'critical'
-                      : conversation.returnPreventionAttempt.outcome === 'escalated'
-                        ? 'warning'
-                        : 'enabled'
-                }>
-                  {`${rp('badgeLabel')} · ${
-                    conversation.returnPreventionAttempt.outcome === 'prevented' ? rp('outcomePrevented') :
-                      conversation.returnPreventionAttempt.outcome === 'returned' ? rp('outcomeReturned') :
-                        conversation.returnPreventionAttempt.outcome === 'escalated' ? rp('outcomeEscalated') :
-                          rp('outcomePending')
-                  }`}
-                </PolarisBadge>
-              )}
-            </InlineStack>
-            <InlineStack gap="200" wrap>
-              {conversation.conversationStatus === 'ai' && (
-                <Button
-                  onClick={() => handleToggleStatus('human')}
-                  disabled={togglingStatus}
-                  size="micro"
-                  tone="critical"
-                  variant="primary"
-                >
-                  {t('stopAi')}
-                </Button>
-              )}
-              {conversation.conversationStatus === 'human' && (
-                <>
-                  <Button
-                    onClick={() => handleToggleStatus('ai')}
-                    disabled={togglingStatus}
-                    size="micro"
-                    variant="primary"
-                  >
-                    {t('startAi')}
-                  </Button>
-                  <Button
-                    onClick={() => handleToggleStatus('resolved')}
-                    disabled={togglingStatus}
-                    size="micro"
-                    tone="success"
-                    variant="primary"
-                  >
-                    {t('resolved')}
-                  </Button>
-                </>
-              )}
-              {conversation.conversationStatus === 'resolved' && (
-                <Button
-                  onClick={() => handleToggleStatus('ai')}
-                  disabled={togglingStatus}
-                  size="micro"
-                  variant="primary"
-                >
-                  {t('reopen')}
-                </Button>
-              )}
-            </InlineStack>
-            <BlockStack gap="050">
-              <Text as="p" variant="bodySm" tone="subdued">{t('started')}: {formatDateTime(conversation.createdAt)}</Text>
-              <Text as="p" variant="bodySm" tone="subdued">{t('lastUpdate')}: {formatDateTime(conversation.updatedAt)}</Text>
-            </BlockStack>
-          </BlockStack>
-        </InlineGrid>
-        </BlockStack>
-      </Card>
-
-      {/* Chat Messages */}
-      <div id="conversation-reply-panel">
-      <Card>
-        <Box padding="400" borderBlockEndWidth="025" borderColor="border">
-          <Text as="h2" variant="headingSm">{t('messageHistory')}</Text>
-          <Box paddingBlockStart="100">
-            <Text as="p" variant="bodySm" tone="subdued">
-            {t('messageCount', { count: conversation.history.length })}
-            </Text>
-          </Box>
-        </Box>
-
-        <Box padding="400">
-        <div className="space-y-4 max-h-[600px] overflow-y-auto">
-          {conversation.history.length === 0 ? (
-            <Box padding="600">
-              <BlockStack gap="300" inlineAlign="center">
-                <DetailIconSurface icon={<MessageSquare className="w-6 h-6 text-muted-foreground" />} />
-                <Text as="p" tone="subdued">{t('noMessages')}</Text>
-              </BlockStack>
-            </Box>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          {/* One switch replaces the old start/stop AI button pair: the state and
+              the control are the same thing, so they cannot disagree. Resolved
+              threads are reopened rather than toggled. */}
+          {isResolved ? (
+            <Button variant="primary" size="sm" onClick={() => setStatus('ai')} disabled={togglingStatus}>
+              {t('reopen')}
+            </Button>
           ) : (
             <>
-              {conversation.history.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${message.role === 'user' ? 'justify-start' : 'justify-end'}`}
-                >
-                  <div className={`max-w-[85%] sm:max-w-[70%] ${message.role === 'user' ? 'order-1' : 'order-2'}`}>
-                    <div
-                      className={`rounded-lg p-4 ${message.role === 'user'
-                        ? 'bg-zinc-100 text-zinc-900'
-                        : message.role === 'merchant'
-                          ? 'bg-teal-600 text-white'
-                          : 'bg-primary text-primary-foreground'
-                        }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap flex-wrap break-words">{message.content}</p>
-                    </div>
-                    <div className={`flex items-center gap-2 mt-1 text-xs text-zinc-600 ${message.role === 'user' ? 'justify-start' : 'justify-end'
-                      }`}>
-                      <span>{message.role === 'user' ? t('customer') : message.role === 'merchant' ? t('you') : t('aiBot')}</span>
-                      <span>•</span>
-                      <span>{formatTime(message.timestamp)}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
+              <Switch
+                label={t('autopilot')}
+                checked={autopilotOn}
+                disabled={togglingStatus}
+                onChange={(next) => setStatus(next ? 'ai' : 'human')}
+                stateLabel={autopilotOn ? t('autopilotOn') : t('autopilotPaused')}
+                stateTone={autopilotOn ? 'default' : 'warning'}
+              />
+              {isHuman ? (
+                <Button variant="secondary" size="sm" onClick={() => setStatus('resolved')} disabled={togglingStatus}>
+                  {t('resolved')}
+                </Button>
+              ) : null}
             </>
           )}
+          <Link href={`/dashboard/customers/${conversation.userId}`} className="r-btn r-btn-secondary r-btn-sm">
+            {t('profile')}
+          </Link>
         </div>
-        </Box>
-
-        {/* Reply Input */}
-        <Box padding="400" borderBlockStartWidth="025" borderColor="border">
-          <InlineStack gap="300" blockAlign="center">
-            <Box width="100%">
-              <div
-                onKeyDown={(e: KeyboardEvent) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendReply();
-                  }
-                }}
-              >
-                <TextField
-                  label={t('send')}
-                  labelHidden
-                  autoComplete="off"
-                  value={replyText}
-                  onChange={(value) => setReplyText(value)}
-                  placeholder={conversation.conversationStatus === 'resolved' ? t('placeholderResolved') : t('placeholderReply')}
-                  disabled={sending || conversation.conversationStatus === 'resolved'}
-                />
-              </div>
-            </Box>
-            <Button
-              onClick={handleSendReply}
-              disabled={!replyText.trim() || sending || conversation.conversationStatus === 'resolved'}
-              loading={sending}
-              variant="primary"
-            >
-              {sending ? t('sending') : t('send')}
-            </Button>
-          </InlineStack>
-          {conversation.conversationStatus === 'ai' && (
-            <Box paddingBlockStart="200">
-              <Text as="p" variant="bodyXs" tone="subdued">{t('humanModeNote')}</Text>
-            </Box>
-          )}
-        </Box>
-      </Card>
       </div>
 
-      {/* Conversation Stats */}
-      <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
-        <Card>
-          <InlineStack gap="300" blockAlign="center">
-            <DetailIconSurface background="bg-fill-info-secondary" icon={<MessageSquare className="w-5 h-5 text-blue-700" />} />
-            <BlockStack gap="050">
-              <Text as="p" variant="bodySm" tone="subdued">{t('totalMessages')}</Text>
-              <Text as="p" variant="headingLg" fontWeight="semibold">{conversation.history.length}</Text>
-            </BlockStack>
-          </InlineStack>
-        </Card>
+      <MessageThread
+        messages={conversation.history}
+        roleLabel={roleLabel}
+        formatTime={formatTime}
+        formatDayLabel={formatDayLabel}
+        emptyTitle={t('noMessages')}
+        notice={
+          isHuman ? (
+            <p className="r-notice">
+              {t('aiPausedNotice', { name: conversation.userName || conversation.phone })}
+            </p>
+          ) : null
+        }
+      />
 
-        <Card>
-          <InlineStack gap="300" blockAlign="center">
-            <DetailIconSurface background="bg-fill-success-secondary" icon={<User className="w-5 h-5 text-green-700" />} />
-            <BlockStack gap="050">
-              <Text as="p" variant="bodySm" tone="subdued">{t('customerMessage')}</Text>
-              <Text as="p" variant="headingLg" fontWeight="semibold">
-                {conversation.history.filter((m) => m.role === 'user').length}
-              </Text>
-            </BlockStack>
-          </InlineStack>
-        </Card>
+      <div className="r-composer">
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={suggestReply}
+            disabled={suggesting || isResolved}
+            loading={suggesting}
+          >
+            <Sparkles size={13} aria-hidden="true" />
+            {suggesting ? t('suggest.busy') : t('suggest.button')}
+          </Button>
+        </div>
 
-        <Card>
-          <InlineStack gap="300" blockAlign="center">
-            <DetailIconSurface background="bg-surface-secondary" icon={<Bot className="w-5 h-5 text-zinc-700" />} />
-            <BlockStack gap="050">
-              <Text as="p" variant="bodySm" tone="subdued">{t('botResponse')}</Text>
-              <Text as="p" variant="headingLg" fontWeight="semibold">
-                {conversation.history.filter((m) => m.role === 'assistant').length}
-              </Text>
-            </BlockStack>
-          </InlineStack>
-        </Card>
-      </InlineGrid>
-    </BlockStack>
-        </Layout.Section>
-      </Layout>
-    </Page>
+        <div className="r-composer-row">
+          <label className="sr-only" htmlFor="conversation-reply">{t('send')}</label>
+          <textarea
+            id="conversation-reply"
+            className="r-input r-composer-input"
+            rows={1}
+            value={replyText}
+            onChange={(event) => setReplyText(event.target.value)}
+            onKeyDown={(event) => {
+              // Enter sends, Shift+Enter breaks the line — the same shortcut the
+              // old single-line field had, now on a field that can hold a
+              // paragraph without hiding the start of it.
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                void sendReply();
+              }
+            }}
+            placeholder={isResolved ? t('placeholderResolved') : t('placeholderReply')}
+            disabled={sending || isResolved}
+          />
+          <Button
+            variant="primary"
+            onClick={sendReply}
+            disabled={!replyText.trim() || sending || isResolved}
+            loading={sending}
+          >
+            {sending ? t('sending') : t('send')}
+          </Button>
+        </div>
+
+        {autopilotOn ? (
+          <p className="r-field-help" style={{ marginTop: 8 }}>{t('humanModeNote')}</p>
+        ) : null}
+      </div>
+    </div>
   );
 }

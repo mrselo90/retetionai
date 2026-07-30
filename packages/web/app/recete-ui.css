@@ -662,3 +662,257 @@
     color: var(--r-text-muted);
     margin-bottom: var(--r-space-2);
 }
+
+/* ================================== Inbox ================================== */
+
+/*
+ * Three-pane inbox from the design: conversation list, thread, customer context.
+ * The panes each scroll independently and the page itself never does — an inbox
+ * where the whole document scrolls loses the composer off the bottom.
+ */
+.r-inbox {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    background: var(--r-bg);
+}
+
+.r-inbox-list {
+    width: 340px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--r-border);
+    background: var(--r-surface);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.r-inbox-list-head { padding: var(--r-space-8) 18px var(--r-space-6); }
+.r-inbox-list-scroll { overflow-y: auto; flex: 1; min-height: 0; }
+
+.r-inbox-item {
+    display: flex;
+    gap: 11px;
+    padding: 13px 18px;
+    border-top: 1px solid var(--r-brand-tint);
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.r-inbox-item:hover { background: var(--r-surface-subtle); }
+
+/* Selected row. aria-current="page" rather than a class, so the state is one
+   fact the screen reader and the stylesheet both read. */
+.r-inbox-item[aria-current='page'] { background: var(--r-brand-tint); }
+
+.r-inbox-item-body { flex: 1; min-width: 0; }
+
+.r-inbox-item-top {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--r-space-4);
+    align-items: baseline;
+}
+
+.r-inbox-item-name {
+    font-size: var(--r-text-base-plus);
+    font-weight: var(--r-weight-semibold);
+    color: var(--r-text);
+}
+
+.r-inbox-item-time {
+    font-size: var(--r-text-2xs);
+    color: var(--r-text-subtle);
+    flex-shrink: 0;
+}
+
+.r-inbox-item-preview {
+    font-size: var(--r-text-sm-plus);
+    color: var(--r-text-muted);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---- Thread ---- */
+
+.r-thread {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    background: var(--r-bg);
+}
+
+.r-thread-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--r-space-6);
+    flex-wrap: wrap;
+    padding: var(--r-space-7) var(--r-space-10);
+    background: var(--r-surface);
+    border-bottom: 1px solid var(--r-border);
+}
+
+.r-thread-scroll {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding: var(--r-space-10);
+    display: flex;
+    flex-direction: column;
+    gap: var(--r-space-7);
+}
+
+.r-day-divider {
+    align-self: center;
+    font-size: var(--r-text-2xs);
+    font-weight: var(--r-weight-semibold);
+    letter-spacing: var(--r-tracking-wide);
+    text-transform: uppercase;
+    color: var(--r-text-muted);
+    background: var(--r-brand-tint);
+    padding: 3px var(--r-space-6);
+    border-radius: var(--r-radius-pill);
+}
+
+.r-msg { display: flex; flex-direction: column; }
+.r-msg-in { align-items: flex-start; }
+.r-msg-out { align-items: flex-end; }
+
+.r-bubble {
+    max-width: 520px;
+    border-radius: var(--r-radius-lg);
+    padding: 11px var(--r-space-8);
+    font-size: var(--r-text-base-plus);
+    line-height: var(--r-leading-relaxed);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* Customer: plain surface. AI: brand tint. Merchant: solid brand, because a
+   human reply is the thing you scan a thread for. */
+.r-bubble-customer { background: var(--r-surface); border: 1px solid var(--r-border); color: var(--r-text); }
+.r-bubble-ai { background: var(--r-brand-tint); border: 1px solid var(--r-brand-tint); color: var(--r-text); }
+.r-bubble-merchant { background: var(--r-brand); border: 1px solid var(--r-brand); color: var(--r-brand-on); }
+
+.r-msg-meta {
+    font-size: var(--r-text-2xs);
+    color: var(--r-text-muted);
+    margin-top: 5px;
+}
+
+/* ---- Inline notice (AI paused, and anything else the thread must say) ---- */
+
+.r-notice {
+    align-self: center;
+    display: flex;
+    gap: var(--r-space-4);
+    align-items: center;
+    font-size: var(--r-text-sm);
+    color: var(--r-caution);
+    background: var(--r-caution-bg);
+    border: 1px solid var(--r-caution-border);
+    padding: var(--r-space-4) var(--r-space-7);
+    border-radius: var(--r-radius-pill);
+    text-align: center;
+}
+
+/* ---- Composer ---- */
+
+.r-composer {
+    padding: var(--r-space-7) var(--r-space-10) var(--r-space-8);
+    background: var(--r-surface);
+    border-top: 1px solid var(--r-border);
+}
+
+.r-composer-row { display: flex; gap: var(--r-space-5); align-items: flex-end; }
+
+.r-composer-input {
+    flex: 1;
+    resize: none;
+    min-height: 44px;
+    max-height: 160px;
+}
+
+/* ---- Autopilot switch ---- */
+
+.r-switch-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--r-space-4);
+    font-size: var(--r-text-sm-plus);
+    color: var(--r-text-secondary);
+    background: var(--r-bg);
+    border: 1px solid var(--r-border);
+    border-radius: var(--r-radius-pill);
+    padding: 5px var(--r-space-4) 5px var(--r-space-6);
+}
+
+/* A real checkbox underneath, so it is focusable and announced as a switch;
+   only the visual is custom. */
+.r-switch {
+    appearance: none;
+    margin: 0;
+    width: 30px;
+    height: 17px;
+    border-radius: var(--r-radius-pill);
+    background: var(--r-border-strong);
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 140ms ease;
+}
+
+.r-switch::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 13px;
+    height: 13px;
+    border-radius: var(--r-radius-pill);
+    background: var(--r-surface);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+    transition: transform 140ms ease;
+}
+
+.r-switch:checked { background: var(--r-brand); }
+.r-switch:checked::after { transform: translateX(13px); }
+.r-switch:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/*
+ * Below this width a 340px list plus a thread leaves neither usable, so the
+ * inbox becomes one pane at a time: the list until a conversation is open, the
+ * thread once one is, with a back link. The design only specifies desktop.
+ */
+@media (max-width: 899px) {
+    .r-inbox-list { width: 100%; border-right: 0; }
+    .r-inbox[data-thread-open='true'] .r-inbox-list { display: none; }
+    .r-inbox:not([data-thread-open='true']) .r-thread { display: none; }
+    .r-thread-scroll { padding: var(--r-space-7); }
+    .r-composer { padding: var(--r-space-6) var(--r-space-7) var(--r-space-7); }
+
+    /* The header wraps to two or three rows on a phone, so it gets tighter
+       padding and gaps to keep the thread itself the bulk of the screen. The
+       design specifies desktop only; this is the honest reading of it. */
+    .r-thread-head {
+        padding: var(--r-space-5) var(--r-space-7);
+        gap: var(--r-space-4);
+    }
+}
+
+/* Back to the list. Only reachable below the inbox breakpoint, where the list
+   pane is hidden behind the thread; on desktop the list is right there. */
+.r-thread-back { display: none; }
+
+@media (max-width: 899px) {
+    .r-thread-back { display: inline-flex; }
+}

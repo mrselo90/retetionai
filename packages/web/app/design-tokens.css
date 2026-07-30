@@ -51,6 +51,7 @@
     --r-warning-bg: #FDF0E7;
     --r-caution: #8A6A1F;          /* mid-range scores, reorder window */
     --r-caution-bg: #FBF3DE;
+    --r-caution-border: #EFE3BC;   /* the inbox "AI paused" notice outlines itself */
     --r-danger: #B3261E;
     --r-danger-bg: #FBE9E7;
     --r-neutral: var(--r-text-muted);

@@ -33,6 +33,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { userEmail, loading } = useDashboardAuth();
   const { isEmbedded } = useShopify();
 
+  /**
+   * The inbox is a three-pane surface that scrolls its own panes and pins a
+   * composer to the bottom, so the centred max-w-6xl column with page padding
+   * would both squeeze it and let the composer fall off the end of the document.
+   * Full-bleed pages get the whole width and a definite height instead.
+   *
+   * Definite is the operative word: with min-h-screen the shell has no ceiling,
+   * so a long thread simply grew the document and took the composer off-screen
+   * with it. h-dvh (not h-screen) because 100vh on mobile browsers is the
+   * viewport *behind* the URL bar.
+   *
+   * Scoped to this one route on purpose. Adding min-h-0 to <main> app-wide would
+   * finally let its overflow-y-auto fire, which is arguably how it was always
+   * meant to work — today the document scrolls and that scroll container is
+   * effectively dead — but that changes the scroll container on 16 other screens
+   * and is not this change's job.
+   */
+  const isFullBleed = /\/dashboard\/conversations(\/|$)/.test(pathname);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     window.location.href = '/login';
@@ -57,7 +76,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   return (
-    <div className="shopify-dashboard-theme min-h-screen bg-[hsl(var(--surface))] flex">
+    <div className={cn("shopify-dashboard-theme bg-[hsl(var(--surface))] flex", isFullBleed ? "h-dvh" : "min-h-screen")}>
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && !isEmbedded && (
         <div
@@ -219,11 +238,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         )}
 
         {/* ── Page Content ── */}
+        {/* min-h-0 only in full-bleed mode: without it a flex item will not go
+            below its content height, so the panes' h-full chain would have
+            nothing definite to resolve against. Leaving it off elsewhere keeps
+            every other screen scrolling exactly as it does today. */}
         <main className={cn(
-          "flex-1 overflow-y-auto scrollbar-thin",
-          isEmbedded ? "p-0" : "p-4 sm:p-6 lg:p-8"
+          "flex-1",
+          isFullBleed ? "min-h-0 overflow-hidden" : "overflow-y-auto scrollbar-thin",
+          isEmbedded || isFullBleed ? "p-0" : "p-4 sm:p-6 lg:p-8"
         )}>
-          <div className={cn("max-w-6xl mx-auto", isEmbedded ? "p-0" : "")}>
+          <div className={cn(
+            isFullBleed ? "h-full" : "max-w-6xl mx-auto",
+            isEmbedded ? "p-0" : ""
+          )}>
             {children}
           </div>
         </main>
