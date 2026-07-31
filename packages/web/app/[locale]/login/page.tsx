@@ -269,56 +269,6 @@ export default function LoginPage() {
             ))}
           </div>
         </div>
-
-        {/*
-          Testimonial left hardcoded and untranslated deliberately — "Ece Demir"
-          does not correspond to a real customer anywhere else in this codebase,
-          and translating it would just spread the same fabricated quote into a
-          second language. Needs a product decision (real quote, or drop it)
-          before it's wired up like the rest of this page.
-        */}
-        <div
-          style={{
-            borderTop: '1px solid',
-            borderColor: 'rgba(255,255,255,0.12)',
-            paddingTop: 28,
-          }}
-        >
-          <p
-            style={{
-              fontSize: 14,
-              lineHeight: 1.55,
-              opacity: 0.65,
-              margin: '0 0 16px',
-              fontStyle: 'italic',
-            }}
-          >
-            &ldquo;We reduced avoidable returns by 28% in the first month. Setup took one
-            afternoon.&rdquo;
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 999,
-                background: 'oklch(0.42 0.07 160)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 13,
-                fontWeight: 600,
-                color: 'white',
-              }}
-            >
-              E
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500 }}>Ece Demir</div>
-              <div style={{ fontSize: 12, opacity: 0.5 }}>Founder · skincare brand</div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* ── Right panel — form ── */}
