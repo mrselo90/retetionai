@@ -33,7 +33,10 @@ function extractToken(c: Context): string | null {
 async function authenticateJWT(token: string): Promise<string | null> {
   try {
     const supabase = getSupabaseServiceClient();
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(token);
 
     if (error || !user) {
       if (error) {
@@ -131,7 +134,6 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-
 /** Internal product routes (worker -> API) */
 const INTERNAL_PRODUCT_PATHS: Array<string | RegExp> = [
   '/api/products',
@@ -180,6 +182,9 @@ const INTERNAL_MERCHANT_PATHS: Array<string | RegExp> = [
   '/api/billing/addons',
   /^\/api\/billing\/addons\/[^/]+\/subscribe$/,
   /^\/api\/billing\/addons\/[^/]+\/cancel$/,
+  // Onboarding's "Run a test order" step (triggerTestOrderFlow), same
+  // shell-drops-the-bearer-token situation as the routes above.
+  '/api/test/events',
 ];
 
 function isInternalProductPath(path: string): boolean {
@@ -295,10 +300,7 @@ async function authenticateInternalSecret(c: Context): Promise<{
   };
 }
 
-function setAuthenticatedUser(
-  c: Context,
-  user: AuthContext
-) {
+function setAuthenticatedUser(c: Context, user: AuthContext) {
   c.set('merchantId', user.merchantId);
   c.set('authMethod', user.authMethod);
   c.set('user', user);
