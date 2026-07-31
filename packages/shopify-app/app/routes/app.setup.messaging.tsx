@@ -1,7 +1,14 @@
-import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Form, Link as RemixLink, redirect, useActionData, useLoaderData, useNavigation } from "react-router";
-import { useMemo, useState } from "react";
-import { boundary } from "@shopify/shopify-app-react-router/server";
+import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from 'react-router';
+import {
+  Form,
+  Link as RemixLink,
+  redirect,
+  useActionData,
+  useLoaderData,
+  useNavigation,
+} from 'react-router';
+import { useMemo, useState } from 'react';
+import { boundary } from '@shopify/shopify-app-react-router/server';
 import {
   Banner,
   BlockStack,
@@ -14,34 +21,36 @@ import {
   Select,
   Text,
   TextField,
-} from "@shopify/polaris";
-import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
+} from '@shopify/polaris';
+import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import {
+  extractPlatformErrorMessage,
   fetchMerchantSettings,
   fetchMerchantMultiLangSettings,
+  settle,
   type MerchantSettingsRecord,
-} from "../platform.server";
-import { persistMessagingSetup } from "../lib/persistMessagingSetup";
+} from '../platform.server';
+import { persistMessagingSetup } from '../lib/persistMessagingSetup';
 
 const WELCOME_TEMPLATE_TOKENS = [
-  { label: "First name", token: "{{customer_first_name}}" },
-  { label: "Order number", token: "{{order_number}}" },
-  { label: "Product names", token: "{{product_names}}" },
-  { label: "Bot name", token: "{{bot_name}}" },
+  { label: 'First name', token: '{{customer_first_name}}' },
+  { label: 'Order number', token: '{{order_number}}' },
+  { label: 'Product names', token: '{{product_names}}' },
+  { label: 'Bot name', token: '{{bot_name}}' },
 ] as const;
 
 const LANGUAGE_OPTIONS = [
-  { label: "English", value: "en" },
-  { label: "Turkish", value: "tr" },
-  { label: "Hungarian", value: "hu" },
-  { label: "German", value: "de" },
-  { label: "Greek", value: "el" },
+  { label: 'English', value: 'en' },
+  { label: 'Turkish', value: 'tr' },
+  { label: 'Hungarian', value: 'hu' },
+  { label: 'German', value: 'de' },
+  { label: 'Greek', value: 'el' },
 ] as const;
 
 function appendToken(template: string, token: string) {
   if (!template.trim()) return token;
   const needsSpace = /[\s\n]$/.test(template);
-  return `${template}${needsSpace ? "" : " "}${token}`;
+  return `${template}${needsSpace ? '' : ' '}${token}`;
 }
 
 function buildPreview(template: string, botName: string) {
@@ -49,37 +58,41 @@ function buildPreview(template: string, botName: string) {
     template.trim() ||
     'Hi {{customer_first_name}}, your order "{{order_number}}" with {{product_names}} should have arrived. Need help using it? — {{bot_name}}';
   return base
-    .replace(/\{\{\s*customer_first_name\s*\}\}/gi, "Ayse")
-    .replace(/\{\{\s*order_number\s*\}\}/gi, "1212")
-    .replace(/\{\{\s*product_names\s*\}\}/gi, "Serum A and Cream B")
-    .replace(/\{\{\s*product_count\s*\}\}/gi, "2")
-    .replace(/\{\{\s*bot_name\s*\}\}/gi, botName.trim() || "Recete");
+    .replace(/\{\{\s*customer_first_name\s*\}\}/gi, 'Ayse')
+    .replace(/\{\{\s*order_number\s*\}\}/gi, '1212')
+    .replace(/\{\{\s*product_names\s*\}\}/gi, 'Serum A and Cream B')
+    .replace(/\{\{\s*product_count\s*\}\}/gi, '2')
+    .replace(/\{\{\s*bot_name\s*\}\}/gi, botName.trim() || 'Recete');
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
-  const [settings, multiLang] = await Promise.all([
-    fetchMerchantSettings(request).catch((): MerchantSettingsRecord => ({
-      merchant: { id: "", name: "" },
-    })),
-    fetchMerchantMultiLangSettings(request).catch(() => ({
+  const [settingsResult, multiLangResult] = await Promise.all([
+    settle<MerchantSettingsRecord>(fetchMerchantSettings(request), {
+      merchant: { id: '', name: '' },
+    }),
+    settle(fetchMerchantMultiLangSettings(request), {
       settings: {
-        shop_id: "",
-        default_source_lang: "en",
-        enabled_langs: ["en"],
+        shop_id: '',
+        default_source_lang: 'en',
+        enabled_langs: ['en'],
         multi_lang_rag_enabled: true,
       },
-    })),
+    }),
   ]);
 
-  const persona = settings.merchant.persona_settings || {};
-  const enabledLangs = multiLang.settings?.enabled_langs || ["en"];
-  const defaultLanguage = enabledLangs[0] || "en";
+  const persona = settingsResult.value.merchant.persona_settings || {};
+  const enabledLangs = multiLangResult.value.settings?.enabled_langs || ['en'];
+  const defaultLanguage = enabledLangs[0] || 'en';
 
   return {
-    botName: persona.bot_name || "",
+    botName: persona.bot_name || '',
     defaultLanguage,
-    welcomeTemplate: persona.whatsapp_welcome_template || "",
+    welcomeTemplate: persona.whatsapp_welcome_template || '',
+    // Blank fields on a genuinely fresh merchant look identical to blank
+    // fields because the platform call failed - this tells the page which
+    // one actually happened so it can warn rather than silently show blanks.
+    settingsUnavailable: !settingsResult.ok || !multiLangResult.ok,
   };
 };
 
@@ -87,15 +100,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticateEmbeddedAdmin(request);
   const formData = await request.formData();
 
-  const botName = String(formData.get("bot_name") || "").trim();
-  const defaultLanguage = String(formData.get("default_language") || "en").trim();
-  const welcomeTemplate = String(formData.get("welcome_template") || "").trim();
+  const botName = String(formData.get('bot_name') || '').trim();
+  const defaultLanguage = String(formData.get('default_language') || 'en').trim();
+  const welcomeTemplate = String(formData.get('welcome_template') || '').trim();
 
   try {
     const result = await persistMessagingSetup(request, session.shop, {
       botName,
       welcomeTemplate,
-      enabledLangs: [defaultLanguage || "en"],
+      enabledLangs: [defaultLanguage || 'en'],
     });
 
     if (!result.ok) {
@@ -103,10 +116,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     // Setup is one step closer to done — head back to the overview.
-    return redirect("/app?setup=messaging_saved");
+    return redirect('/app?setup=messaging_saved');
   } catch (error) {
-    let message = "Could not save messaging settings.";
-    if (error instanceof Error) message = error.message;
+    const message = await extractPlatformErrorMessage(error, 'Could not save messaging settings.');
     return { ok: false, error: message };
   }
 };
@@ -115,11 +127,11 @@ export default function MessagingSetupPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const busy = navigation.state !== "idle";
+  const busy = navigation.state !== 'idle';
 
-  const [botName, setBotName] = useState(data.botName || "Recete");
-  const [defaultLanguage, setDefaultLanguage] = useState(data.defaultLanguage || "en");
-  const [welcomeTemplate, setWelcomeTemplate] = useState(data.welcomeTemplate || "");
+  const [botName, setBotName] = useState(data.botName || 'Recete');
+  const [defaultLanguage, setDefaultLanguage] = useState(data.defaultLanguage || 'en');
+  const [welcomeTemplate, setWelcomeTemplate] = useState(data.welcomeTemplate || '');
 
   const preview = useMemo(() => buildPreview(welcomeTemplate, botName), [welcomeTemplate, botName]);
 
@@ -127,12 +139,21 @@ export default function MessagingSetupPage() {
     <Page
       title="Set up your welcome message"
       subtitle="Three quick fields. You can fine-tune everything else from Settings later."
-      backAction={{ content: "Back to setup", url: "/app" }}
+      backAction={{ content: 'Back to setup', url: '/app' }}
     >
       <BlockStack gap="400">
         <Card padding="400" roundedAbove="sm">
           <Form method="post">
             <BlockStack gap="400">
+              {data.settingsUnavailable ? (
+                <Banner tone="warning" title="Couldn't reach Recete">
+                  <p>
+                    We couldn't load your current settings — the fields below may be blank even if
+                    you've already configured this. Refresh before saving.
+                  </p>
+                </Banner>
+              ) : null}
+
               {actionData?.error ? (
                 <Banner tone="critical">
                   <Text as="p" variant="bodyMd">
@@ -142,8 +163,8 @@ export default function MessagingSetupPage() {
               ) : null}
 
               <Banner tone="info">
-                These three settings are enough to start sending WhatsApp messages to your customers after delivery.
-                Advanced behavior (tone, guardrails, languages) lives in Settings.
+                These three settings are enough to start sending WhatsApp messages to your customers
+                after delivery. Advanced behavior (tone, guardrails, languages) lives in Settings.
               </Banner>
 
               <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
@@ -184,7 +205,9 @@ export default function MessagingSetupPage() {
                   {WELCOME_TEMPLATE_TOKENS.map((item) => (
                     <Button
                       key={item.token}
-                      onClick={() => setWelcomeTemplate((current) => appendToken(current, item.token))}
+                      onClick={() =>
+                        setWelcomeTemplate((current) => appendToken(current, item.token))
+                      }
                     >
                       {item.label}
                     </Button>
@@ -214,7 +237,7 @@ export default function MessagingSetupPage() {
 
               <Box paddingBlockStart="200">
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Need tone, response length, guardrails, or add-ons?{" "}
+                  Need tone, response length, guardrails, or add-ons?{' '}
                   <RemixLink to="/app/settings">Open full settings</RemixLink>
                 </Text>
               </Box>

@@ -1,36 +1,56 @@
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
-import { boundary } from "@shopify/shopify-app-react-router/server";
-import { ConnectIcon, CreditCardIcon, SettingsIcon, ViewIcon } from "@shopify/polaris-icons";
-import { BlockStack, Button, InlineGrid, InlineStack, Text } from "@shopify/polaris";
-import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
-import { fetchMerchantOverviewFromRequest, type ShopifyMerchantOverview } from "../platform.server";
-import { ActionCard, EmptyCard, MetricCard, SectionCard, ShellPage, StatusBadge } from "../components/shell-ui";
+import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
+import { useLoaderData } from 'react-router';
+import { boundary } from '@shopify/shopify-app-react-router/server';
+import { ConnectIcon, CreditCardIcon, SettingsIcon, ViewIcon } from '@shopify/polaris-icons';
+import { Banner, BlockStack, Button, InlineGrid, InlineStack, Text } from '@shopify/polaris';
+import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
+import {
+  fetchMerchantOverviewFromRequest,
+  settle,
+  type ShopifyMerchantOverview,
+} from '../platform.server';
+import {
+  ActionCard,
+  EmptyCard,
+  MetricCard,
+  SectionCard,
+  ShellPage,
+  StatusBadge,
+} from '../components/shell-ui';
+
+const EMPTY_OVERVIEW: ShopifyMerchantOverview = {
+  merchant: { id: '', name: '' },
+  shop: '',
+  integration: { id: '', provider: 'shopify', status: 'unknown' },
+  subscription: null,
+  metrics: { totalOrders: 0, activeUsers: 0, totalProducts: 0, responseRate: 0 },
+  analytics: {
+    avgSentiment: 0,
+    returnRate: 0,
+    preventedReturns: 0,
+    totalConversations: 0,
+    resolvedConversations: 0,
+  },
+  settings: {},
+  integrations: [],
+  products: [],
+  recentOrders: [],
+};
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
-  return fetchMerchantOverviewFromRequest(request).catch((): ShopifyMerchantOverview => ({
-    merchant: { id: '', name: '' },
-    shop: '',
-    integration: { id: '', provider: 'shopify', status: 'unknown' },
-    subscription: null,
-    metrics: { totalOrders: 0, activeUsers: 0, totalProducts: 0, responseRate: 0 },
-    analytics: { avgSentiment: 0, returnRate: 0, preventedReturns: 0, totalConversations: 0, resolvedConversations: 0 },
-    settings: {},
-    integrations: [],
-    products: [],
-    recentOrders: [],
-  }));
+  const result = await settle(fetchMerchantOverviewFromRequest(request), EMPTY_OVERVIEW);
+  return { ...result.value, overviewUnavailable: !result.ok };
 };
 
 export default function IntegrationsPage() {
   const data = useLoaderData<typeof loader>();
   const hasOrdersFlow = data.metrics.totalOrders > 0;
   const activeCount = data.integrations.filter((integration) =>
-    ["active", "connected", "approved"].includes((integration.status || "").toLowerCase()),
+    ['active', 'connected', 'approved'].includes((integration.status || '').toLowerCase())
   ).length;
   const pendingCount = data.integrations.filter((integration) =>
-    ["pending", "trialing"].includes((integration.status || "").toLowerCase()),
+    ['pending', 'trialing'].includes((integration.status || '').toLowerCase())
   ).length;
   const failedCount = data.integrations.length - activeCount - pendingCount;
 
@@ -39,11 +59,36 @@ export default function IntegrationsPage() {
       title="Integrations"
       subtitle="Connection health across Shopify and the merchant’s adjacent service stack."
     >
+      {data.overviewUnavailable ? (
+        <Banner tone="warning" title="Couldn't reach Recete">
+          <p>
+            Integration status below may be stale — we couldn't load current data. Refresh in a
+            moment.
+          </p>
+        </Banner>
+      ) : null}
+
       <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
-        <MetricCard label="Connected" value={activeCount} hint="Integrations in a healthy active state." />
-        <MetricCard label="Pending" value={pendingCount} hint="Connections awaiting approval or completion." />
-        <MetricCard label="Attention needed" value={failedCount} hint="Broken or inactive providers requiring merchant review." />
-        <MetricCard label="Total" value={data.integrations.length} hint="Integration records currently visible." />
+        <MetricCard
+          label="Connected"
+          value={activeCount}
+          hint="Integrations in a healthy active state."
+        />
+        <MetricCard
+          label="Pending"
+          value={pendingCount}
+          hint="Connections awaiting approval or completion."
+        />
+        <MetricCard
+          label="Attention needed"
+          value={failedCount}
+          hint="Broken or inactive providers requiring merchant review."
+        />
+        <MetricCard
+          label="Total"
+          value={data.integrations.length}
+          hint="Integration records currently visible."
+        />
       </InlineGrid>
 
       <SectionCard
@@ -54,14 +99,14 @@ export default function IntegrationsPage() {
           <ActionCard
             title="Billing"
             description="Billing approval should be visible here because it directly gates feature availability."
-            status={data.subscription?.status || "inactive"}
-            action={{ content: "Open billing", url: "/app/billing", icon: CreditCardIcon }}
+            status={data.subscription?.status || 'inactive'}
+            action={{ content: 'Open billing', url: '/app/billing', icon: CreditCardIcon }}
           />
           <ActionCard
             title="Settings"
             description="If delivery or bot behavior feels wrong, settings should be the next merchant stop."
             status="info"
-            action={{ content: "Open settings", url: "/app/settings", icon: SettingsIcon }}
+            action={{ content: 'Open settings', url: '/app/settings', icon: SettingsIcon }}
           />
         </InlineGrid>
       </SectionCard>
@@ -71,8 +116,8 @@ export default function IntegrationsPage() {
         title="Orders flow setup"
         subtitle="Complete this to finish the checklist step named Orders flowing."
         badge={
-          <StatusBadge status={hasOrdersFlow ? "active" : "pending"}>
-            {hasOrdersFlow ? "active" : "pending"}
+          <StatusBadge status={hasOrdersFlow ? 'active' : 'pending'}>
+            {hasOrdersFlow ? 'active' : 'pending'}
           </StatusBadge>
         }
       >
@@ -81,7 +126,7 @@ export default function IntegrationsPage() {
             title="Order flow is active"
             description={`${data.metrics.totalOrders} order(s) are already visible in Recete. You can continue daily operations from Dashboard.`}
             status="active"
-            action={{ content: "Open dashboard", url: "/app/dashboard", icon: ViewIcon }}
+            action={{ content: 'Open dashboard', url: '/app/dashboard', icon: ViewIcon }}
           />
         ) : (
           <BlockStack gap="300">
@@ -125,10 +170,10 @@ export default function IntegrationsPage() {
                 description={
                   integration.updated_at
                     ? `Updated ${new Date(integration.updated_at).toLocaleString()}`
-                    : "No update timestamp available."
+                    : 'No update timestamp available.'
                 }
                 status={integration.status}
-                action={{ content: "View activity", url: "/app/dashboard", icon: ViewIcon }}
+                action={{ content: 'View activity', url: '/app/dashboard', icon: ViewIcon }}
               />
             ))}
           </InlineGrid>
@@ -136,7 +181,7 @@ export default function IntegrationsPage() {
           <EmptyCard
             heading="No integrations connected"
             description="Connect your Shopify store or other services to start syncing data."
-            action={{ content: "Open settings", url: "/app/settings" }}
+            action={{ content: 'Open settings', url: '/app/settings' }}
           />
         )}
       </SectionCard>

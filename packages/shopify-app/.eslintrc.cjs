@@ -58,6 +58,12 @@ module.exports = {
       files: ["**/*.{ts,tsx}"],
       plugins: ["@typescript-eslint", "import"],
       parser: "@typescript-eslint/parser",
+      // Root-level `env` above stops reaching these files once this override
+      // swaps in the TS parser (browser globals like window/document/
+      // HTMLFormElement start reporting as no-undef) - restate it here.
+      env: {
+        browser: true,
+      },
       settings: {
         "import/internal-regex": "^~/",
         "import/resolver": {

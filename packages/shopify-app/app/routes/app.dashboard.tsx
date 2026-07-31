@@ -1,7 +1,7 @@
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useNavigate } from "react-router";
-import { boundary } from "@shopify/shopify-app-react-router/server";
-import { CartIcon, ChatIcon, ViewIcon } from "@shopify/polaris-icons";
+import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
+import { useLoaderData, useNavigate } from 'react-router';
+import { boundary } from '@shopify/shopify-app-react-router/server';
+import { CartIcon, ChatIcon, ViewIcon } from '@shopify/polaris-icons';
 import {
   Badge,
   Banner,
@@ -14,48 +14,83 @@ import {
   Layout,
   Page,
   Text,
-} from "@shopify/polaris";
-import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
-import { getSetupProgress } from "../lib/setupProgress";
-import { fetchMerchantConversations } from "../platform.server";
-import { fetchMerchantOverviewFromRequest, type ShopifyMerchantOverview } from "../platform.server";
-import { MetricCard, SectionCard } from "../components/shell-ui";
+} from '@shopify/polaris';
+import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
+import { getSetupProgress } from '../lib/setupProgress';
+import { fetchMerchantConversations } from '../platform.server';
+import {
+  fetchMerchantOverviewFromRequest,
+  settle,
+  type ShopifyMerchantOverview,
+} from '../platform.server';
+import { MetricCard, SectionCard } from '../components/shell-ui';
+
+const EMPTY_OVERVIEW: ShopifyMerchantOverview = {
+  merchant: { id: '', name: '' },
+  shop: '',
+  integration: { id: '', provider: 'shopify', status: 'unknown' },
+  subscription: null,
+  metrics: { totalOrders: 0, activeUsers: 0, totalProducts: 0, responseRate: 0 },
+  analytics: {
+    avgSentiment: 0,
+    returnRate: 0,
+    preventedReturns: 0,
+    totalConversations: 0,
+    resolvedConversations: 0,
+  },
+  settings: {},
+  integrations: [],
+  products: [],
+  recentOrders: [],
+};
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
-  const [overview, conversationsResult] = await Promise.all([
-    fetchMerchantOverviewFromRequest(request).catch((): ShopifyMerchantOverview => ({
-      merchant: { id: "", name: "" },
-      shop: "",
-      integration: { id: "", provider: "shopify", status: "unknown" },
-      subscription: null,
-      metrics: { totalOrders: 0, activeUsers: 0, totalProducts: 0, responseRate: 0 },
-      analytics: { avgSentiment: 0, returnRate: 0, preventedReturns: 0, totalConversations: 0, resolvedConversations: 0 },
-      settings: {},
-      integrations: [],
-      products: [],
-      recentOrders: [],
-    })),
+  const [overviewResult, conversationsResult] = await Promise.all([
+    settle(fetchMerchantOverviewFromRequest(request), EMPTY_OVERVIEW),
     fetchMerchantConversations(request).catch(() => ({ conversations: [] })),
   ]);
 
-  return { overview, conversations: conversationsResult.conversations || [] };
+  return {
+    overview: overviewResult.value,
+    overviewUnavailable: !overviewResult.ok,
+    conversations: conversationsResult.conversations || [],
+  };
 };
 
 export default function DashboardPage() {
-  const { overview: data, conversations } = useLoaderData<typeof loader>();
+  const { overview: data, overviewUnavailable, conversations } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
   const progress = getSetupProgress(data);
   const { setupComplete } = progress;
 
-  const manualQueue = conversations.filter((c) => c.conversationStatus === "human");
-  const humanCount = manualQueue.length;
-  const aiCount = conversations.filter((c) => c.conversationStatus === "ai").length;
-  const resolvedCount = conversations.filter((c) => c.conversationStatus === "resolved").length;
+  // A platform outage zeroes the overview, which getSetupProgress reads as
+  // "setup not finished" — without this, a fully onboarded merchant would see
+  // the setup wizard again during an outage, not their real dashboard.
+  if (overviewUnavailable) {
+    return (
+      <Page title="Dashboard">
+        <Layout>
+          <Layout.Section>
+            <Banner tone="warning" title="Couldn't reach Recete">
+              <p>
+                We couldn't load your dashboard data right now. This isn't your real setup or
+                activity status — refresh in a moment.
+              </p>
+            </Banner>
+          </Layout.Section>
+        </Layout>
+      </Page>
+    );
+  }
 
-  const responseValue =
-    data.metrics.responseRate > 0 ? `${data.metrics.responseRate}%` : "—";
+  const manualQueue = conversations.filter((c) => c.conversationStatus === 'human');
+  const humanCount = manualQueue.length;
+  const aiCount = conversations.filter((c) => c.conversationStatus === 'ai').length;
+  const resolvedCount = conversations.filter((c) => c.conversationStatus === 'resolved').length;
+
+  const responseValue = data.metrics.responseRate > 0 ? `${data.metrics.responseRate}%` : '—';
 
   if (!setupComplete) {
     return (
@@ -63,8 +98,8 @@ export default function DashboardPage() {
         title="Dashboard"
         subtitle="Complete setup to unlock daily operations."
         primaryAction={{
-          content: "Continue setup",
-          onAction: () => navigate("/app"),
+          content: 'Continue setup',
+          onAction: () => navigate('/app'),
           icon: CartIcon as never,
         }}
       >
@@ -73,9 +108,12 @@ export default function DashboardPage() {
             <Card>
               <BlockStack gap="400">
                 <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">Setup is not finished yet</Text>
+                  <Text as="h2" variant="headingMd">
+                    Setup is not finished yet
+                  </Text>
                   <Text as="p" variant="bodyMd" tone="subdued">
-                    Dashboard, Conversations, and Analytics unlock once the 3 required setup steps are done.
+                    Dashboard, Conversations, and Analytics unlock once the 3 required setup steps
+                    are done.
                   </Text>
                 </BlockStack>
                 <InlineStack>
@@ -98,13 +136,13 @@ export default function DashboardPage() {
       primaryAction={
         humanCount > 0
           ? {
-              content: `Handle ${humanCount} escalation${humanCount === 1 ? "" : "s"}`,
+              content: `Handle ${humanCount} escalation${humanCount === 1 ? '' : 's'}`,
               onAction: () => navigate(`/app/conversations/${manualQueue[0].id}`),
               icon: ChatIcon as never,
             }
           : {
-              content: "View conversations",
-              onAction: () => navigate("/app/conversations"),
+              content: 'View conversations',
+              onAction: () => navigate('/app/conversations'),
               icon: ViewIcon as never,
             }
       }
@@ -112,14 +150,13 @@ export default function DashboardPage() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
-
             {/* ── Escalation alert ────────────────────────────────────────── */}
             {humanCount > 0 ? (
               <Banner
-                title={`${humanCount} conversation${humanCount === 1 ? "" : "s"} need${humanCount === 1 ? "s" : ""} your attention`}
+                title={`${humanCount} conversation${humanCount === 1 ? '' : 's'} need${humanCount === 1 ? 's' : ''} your attention`}
                 tone="warning"
                 action={{
-                  content: "Handle next",
+                  content: 'Handle next',
                   onAction: () => navigate(`/app/conversations/${manualQueue[0].id}`),
                 }}
               >
@@ -134,27 +171,35 @@ export default function DashboardPage() {
               <MetricCard
                 label="Orders"
                 value={data.metrics.totalOrders}
-                hint={data.metrics.totalOrders > 0 ? "Orders tracked by Recete." : "No orders yet."}
+                hint={data.metrics.totalOrders > 0 ? 'Orders tracked by Recete.' : 'No orders yet.'}
               />
               <MetricCard
                 label="Opted-in customers"
                 value={data.metrics.activeUsers}
-                hint={data.metrics.activeUsers > 0 ? "Customers ready for messaging." : "No consented customers yet."}
+                hint={
+                  data.metrics.activeUsers > 0
+                    ? 'Customers ready for messaging.'
+                    : 'No consented customers yet.'
+                }
               />
               <MetricCard
                 label="Reply rate"
                 value={responseValue}
-                hint={data.metrics.responseRate > 0 ? "Replies vs. total buyer threads." : "Not available yet."}
+                hint={
+                  data.metrics.responseRate > 0
+                    ? 'Replies vs. total buyer threads.'
+                    : 'Not available yet.'
+                }
               />
               <MetricCard
                 label="Conversations"
                 value={conversations.length}
                 hint={
                   humanCount > 0
-                    ? `${humanCount} need${humanCount === 1 ? "s" : ""} manual attention.`
+                    ? `${humanCount} need${humanCount === 1 ? 's' : ''} manual attention.`
                     : aiCount > 0
                       ? `${aiCount} AI-owned, ${resolvedCount} resolved.`
-                      : "No conversations yet."
+                      : 'No conversations yet.'
                 }
               />
             </InlineGrid>
@@ -169,23 +214,35 @@ export default function DashboardPage() {
                   <Box
                     padding="300"
                     borderRadius="200"
-                    background={humanCount > 0 ? "bg-surface-caution" : "bg-surface-secondary"}
+                    background={humanCount > 0 ? 'bg-surface-caution' : 'bg-surface-secondary'}
                   >
                     <BlockStack gap="100">
-                      <Text as="p" variant="headingLg">{humanCount}</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">Manual queue</Text>
+                      <Text as="p" variant="headingLg">
+                        {humanCount}
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Manual queue
+                      </Text>
                     </BlockStack>
                   </Box>
                   <Box padding="300" borderRadius="200" background="bg-surface-secondary">
                     <BlockStack gap="100">
-                      <Text as="p" variant="headingLg">{aiCount}</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">AI-owned</Text>
+                      <Text as="p" variant="headingLg">
+                        {aiCount}
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        AI-owned
+                      </Text>
                     </BlockStack>
                   </Box>
                   <Box padding="300" borderRadius="200" background="bg-surface-secondary">
                     <BlockStack gap="100">
-                      <Text as="p" variant="headingLg">{resolvedCount}</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">Resolved</Text>
+                      <Text as="p" variant="headingLg">
+                        {resolvedCount}
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Resolved
+                      </Text>
                     </BlockStack>
                   </Box>
                 </InlineGrid>
@@ -193,17 +250,14 @@ export default function DashboardPage() {
             ) : null}
 
             {/* ── Recent orders ────────────────────────────────────────────── */}
-            <SectionCard
-              title="Recent orders"
-              subtitle="Latest order events seen by Recete."
-            >
+            <SectionCard title="Recent orders" subtitle="Latest order events seen by Recete.">
               {data.recentOrders.length > 0 ? (
                 <BlockStack gap="0">
                   {data.recentOrders.slice(0, 8).map((order, index) => (
                     <Box
                       key={order.id}
                       paddingBlock="300"
-                      borderBlockStartWidth={index > 0 ? "025" : undefined}
+                      borderBlockStartWidth={index > 0 ? '025' : undefined}
                       borderColor="border-secondary"
                     >
                       <InlineStack align="space-between" blockAlign="center" wrap>
@@ -212,21 +266,21 @@ export default function DashboardPage() {
                             {order.external_order_id || order.id}
                           </Text>
                           <Text as="p" variant="bodyXs" tone="subdued">
-                            {new Intl.DateTimeFormat("en", {
-                              month: "short",
-                              day: "2-digit",
-                              hour: "2-digit",
-                              minute: "2-digit",
+                            {new Intl.DateTimeFormat('en', {
+                              month: 'short',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
                             }).format(new Date(order.created_at))}
                           </Text>
                         </BlockStack>
                         <Badge
                           tone={
-                            order.status === "delivered"
-                              ? "success"
-                              : order.status === "created"
-                                ? "info"
-                                : "attention"
+                            order.status === 'delivered'
+                              ? 'success'
+                              : order.status === 'created'
+                                ? 'info'
+                                : 'attention'
                           }
                         >
                           {order.status}
@@ -241,7 +295,6 @@ export default function DashboardPage() {
                 </Text>
               )}
             </SectionCard>
-
           </BlockStack>
         </Layout.Section>
       </Layout>

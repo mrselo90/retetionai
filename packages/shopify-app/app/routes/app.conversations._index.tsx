@@ -1,7 +1,7 @@
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useNavigate } from "react-router";
-import { boundary } from "@shopify/shopify-app-react-router/server";
-import { ChatIcon, PersonIcon } from "@shopify/polaris-icons";
+import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
+import { useLoaderData, useNavigate } from 'react-router';
+import { boundary } from '@shopify/shopify-app-react-router/server';
+import { ChatIcon, PersonIcon } from '@shopify/polaris-icons';
 import {
   Avatar,
   Badge,
@@ -15,10 +15,10 @@ import {
   ResourceItem,
   ResourceList,
   Text,
-} from "@shopify/polaris";
-import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
-import { fetchMerchantConversations } from "../platform.server";
-import { MetricCard } from "../components/shell-ui";
+} from '@shopify/polaris';
+import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
+import { extractPlatformErrorMessage, fetchMerchantConversations } from '../platform.server';
+import { MetricCard } from '../components/shell-ui';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
@@ -28,58 +28,60 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   } catch (error) {
     return {
       conversations: [],
-      unavailableReason:
-        error instanceof Error ? error.message : "Conversation data is unavailable.",
+      unavailableReason: await extractPlatformErrorMessage(
+        error,
+        'Conversation data is unavailable.'
+      ),
     };
   }
 };
 
 function formatRelativeTime(value?: string | null) {
-  if (!value) return "";
+  if (!value) return '';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
+  if (Number.isNaN(date.getTime())) return '';
 
   const diff = Date.now() - date.getTime();
   const mins = Math.floor(diff / 60_000);
   const hours = Math.floor(diff / 3_600_000);
   const days = Math.floor(diff / 86_400_000);
 
-  if (mins < 1) return "just now";
+  if (mins < 1) return 'just now';
   if (mins < 60) return `${mins}m ago`;
   if (hours < 24) return `${hours}h ago`;
   return `${days}d ago`;
 }
 
-function statusTone(status?: string | null): "attention" | "success" | "info" | undefined {
-  if (status === "human") return "attention";
-  if (status === "resolved") return "success";
-  return "info";
+function statusTone(status?: string | null): 'attention' | 'success' | 'info' | undefined {
+  if (status === 'human') return 'attention';
+  if (status === 'resolved') return 'success';
+  return 'info';
 }
 
 function statusLabel(status?: string | null) {
-  if (status === "human") return "Needs reply";
-  if (status === "resolved") return "Resolved";
-  return "AI handling";
+  if (status === 'human') return 'Needs reply';
+  if (status === 'resolved') return 'Resolved';
+  return 'AI handling';
 }
 
 export default function ConversationsPage() {
   const data = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const conversations = data.conversations || [];
-  const unavailableReason = "unavailableReason" in data ? data.unavailableReason : null;
+  const unavailableReason = 'unavailableReason' in data ? data.unavailableReason : null;
 
   // Sort: human first, then by recency
   const sorted = [...conversations].sort((a, b) => {
-    const weight = (s?: string | null) => (s === "human" ? 0 : s === "ai" ? 1 : 2);
+    const weight = (s?: string | null) => (s === 'human' ? 0 : s === 'ai' ? 1 : 2);
     const wDiff = weight(a.conversationStatus) - weight(b.conversationStatus);
     if (wDiff !== 0) return wDiff;
     return new Date(b.lastMessageAt ?? 0).getTime() - new Date(a.lastMessageAt ?? 0).getTime();
   });
 
-  const humanCount = conversations.filter((c) => c.conversationStatus === "human").length;
-  const aiCount = conversations.filter((c) => c.conversationStatus === "ai").length;
-  const resolvedCount = conversations.filter((c) => c.conversationStatus === "resolved").length;
-  const firstHuman = sorted.find((c) => c.conversationStatus === "human");
+  const humanCount = conversations.filter((c) => c.conversationStatus === 'human').length;
+  const aiCount = conversations.filter((c) => c.conversationStatus === 'ai').length;
+  const resolvedCount = conversations.filter((c) => c.conversationStatus === 'resolved').length;
+  const firstHuman = sorted.find((c) => c.conversationStatus === 'human');
 
   return (
     <Page
@@ -93,8 +95,8 @@ export default function ConversationsPage() {
               icon: ChatIcon as never,
             }
           : {
-              content: "View customers",
-              onAction: () => navigate("/app/customers"),
+              content: 'View customers',
+              onAction: () => navigate('/app/customers'),
               icon: PersonIcon as never,
             }
       }
@@ -102,25 +104,31 @@ export default function ConversationsPage() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
-
             {/* ── Escalation alert ────────────────────────────────────────── */}
             {humanCount > 0 && !unavailableReason ? (
               <Banner
-                title={`${humanCount} thread${humanCount === 1 ? "" : "s"} need${humanCount === 1 ? "s" : ""} your reply`}
+                title={`${humanCount} thread${humanCount === 1 ? '' : 's'} need${humanCount === 1 ? 's' : ''} your reply`}
                 tone="warning"
                 action={
                   firstHuman
-                    ? { content: "Handle next", onAction: () => navigate(`/app/conversations/${firstHuman.id}`) }
+                    ? {
+                        content: 'Handle next',
+                        onAction: () => navigate(`/app/conversations/${firstHuman.id}`),
+                      }
                     : undefined
                 }
               >
-                <Text as="p" variant="bodyMd">Escalated to human — buyer is waiting.</Text>
+                <Text as="p" variant="bodyMd">
+                  Escalated to human — buyer is waiting.
+                </Text>
               </Banner>
             ) : null}
 
             {unavailableReason ? (
               <Banner title="Conversations unavailable" tone="critical">
-                <Text as="p" variant="bodyMd">{unavailableReason}</Text>
+                <Text as="p" variant="bodyMd">
+                  {unavailableReason}
+                </Text>
               </Banner>
             ) : null}
 
@@ -135,7 +143,7 @@ export default function ConversationsPage() {
             {/* ── Conversation list ────────────────────────────────────────── */}
             <Card padding="0">
               <ResourceList
-                resourceName={{ singular: "conversation", plural: "conversations" }}
+                resourceName={{ singular: 'conversation', plural: 'conversations' }}
                 items={sorted}
                 emptyState={
                   <BlockStack gap="200">
@@ -143,12 +151,13 @@ export default function ConversationsPage() {
                       No conversations yet
                     </Text>
                     <Text as="p" variant="bodySm" tone="subdued" alignment="center">
-                      Threads appear here after orders flow through Recete and buyers start responding.
+                      Threads appear here after orders flow through Recete and buyers start
+                      responding.
                     </Text>
                   </BlockStack>
                 }
                 renderItem={(conversation) => {
-                  const isHuman = conversation.conversationStatus === "human";
+                  const isHuman = conversation.conversationStatus === 'human';
                   const relativeTime = formatRelativeTime(conversation.lastMessageAt);
 
                   return (
@@ -156,16 +165,12 @@ export default function ConversationsPage() {
                       id={conversation.id}
                       url={`/app/conversations/${conversation.id}`}
                       media={
-                        <Avatar
-                          customer
-                          size="md"
-                          name={conversation.userName || "Unknown"}
-                        />
+                        <Avatar customer size="md" name={conversation.userName || 'Unknown'} />
                       }
-                      accessibilityLabel={`View conversation with ${conversation.userName || "Unknown buyer"}`}
+                      accessibilityLabel={`View conversation with ${conversation.userName || 'Unknown buyer'}`}
                       shortcutActions={[
                         {
-                          content: isHuman ? "Reply" : "Open",
+                          content: isHuman ? 'Reply' : 'Open',
                           url: `/app/conversations/${conversation.id}`,
                         },
                       ]}
@@ -173,7 +178,7 @@ export default function ConversationsPage() {
                       <BlockStack gap="100">
                         <InlineStack gap="200" blockAlign="center" wrap>
                           <Text as="p" variant="bodyMd" fontWeight="semibold">
-                            {conversation.userName || "Unknown buyer"}
+                            {conversation.userName || 'Unknown buyer'}
                           </Text>
                           <Badge tone={statusTone(conversation.conversationStatus)}>
                             {statusLabel(conversation.conversationStatus)}
@@ -200,7 +205,6 @@ export default function ConversationsPage() {
                 }}
               />
             </Card>
-
           </BlockStack>
         </Layout.Section>
       </Layout>

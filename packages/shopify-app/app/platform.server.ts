@@ -50,6 +50,32 @@ export async function extractPlatformErrorMessage(err: unknown, fallback: string
   return err instanceof Error ? err.message : fallback;
 }
 
+export interface Settled<T> {
+  value: T;
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Loaders across this app were defaulting a platform call straight to an
+ * empty/zeroed shape on any failure (`.catch(() => ({ ... }))`), which reads
+ * identically to a merchant with a genuinely fresh, empty account. A platform
+ * outage then rendered as "no integrations connected" / "no order activity"
+ * for a fully-configured store, with nothing telling the merchant their real
+ * data just failed to load. Wrap each call in this instead of a bare .catch()
+ * so the route can render a "some data may be stale" notice when `ok` is
+ * false, rather than presenting the fallback as if it were real.
+ */
+export async function settle<T>(promise: Promise<T>, fallback: T): Promise<Settled<T>> {
+  try {
+    const value = await promise;
+    return { value, ok: true };
+  } catch (err) {
+    const error = await extractPlatformErrorMessage(err, 'Failed to load');
+    return { value: fallback, ok: false, error };
+  }
+}
+
 async function parseRequiredJson(response: Response, context: string) {
   const bodyText = await response.text();
   const parsed = parseJsonSafe(bodyText);

@@ -57,9 +57,19 @@ export default [
         },
     },
 
-    // Browser environment for web package
+    // Browser environment for packages with client-rendered UI. shopify-app
+    // has its own legacy .eslintrc.cjs too, but ESLint 9 here runs in flat-config
+    // mode and this root config is what actually lints these files — a fix
+    // to .eslintrc.cjs's env.browser has no effect since that file isn't
+    // consulted. window/document/HTMLFormElement were reporting as no-undef
+    // in pre-existing shopify-app code that nothing had touched until now.
     {
-        files: ['packages/web/**/*.ts', 'packages/web/**/*.tsx'],
+        files: [
+            'packages/web/**/*.ts',
+            'packages/web/**/*.tsx',
+            'packages/shopify-app/**/*.ts',
+            'packages/shopify-app/**/*.tsx',
+        ],
         languageOptions: {
             globals: {
                 ...globals.browser,

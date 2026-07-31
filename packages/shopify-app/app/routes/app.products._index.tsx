@@ -1,4 +1,4 @@
-import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from 'react-router';
 import {
   Form,
   useActionData,
@@ -6,10 +6,10 @@ import {
   useNavigation,
   useSearchParams,
   useSubmit,
-} from "react-router";
-import { useEffect, useMemo, useState } from "react";
-import { boundary } from "@shopify/shopify-app-react-router/server";
-import { DeleteIcon } from "@shopify/polaris-icons";
+} from 'react-router';
+import { useEffect, useMemo, useState } from 'react';
+import { boundary } from '@shopify/shopify-app-react-router/server';
+import { DeleteIcon } from '@shopify/polaris-icons';
 import {
   Badge,
   Banner,
@@ -32,8 +32,8 @@ import {
   Spinner,
   Text,
   TextField,
-} from "@shopify/polaris";
-import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
+} from '@shopify/polaris';
+import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import {
   createMerchantProduct,
   deleteMerchantProduct,
@@ -49,18 +49,19 @@ import {
   prepareMerchantProductKnowledge,
   resetMerchantProductKnowledge,
   scrapeMerchantProduct,
+  settle,
   type MerchantProduct,
   type MerchantProductInstruction,
   type ProductStepOutcome,
   type ProductFactsSnapshot,
   type ShopifyCatalogProduct,
   updateMerchantProductInstruction,
-} from "../platform.server";
+} from '../platform.server';
 import {
   canCreateRecipe,
   getPlanSnapshotByDomain,
   registerRecipeProduct,
-} from "../services/planService.server";
+} from '../services/planService.server';
 
 type MappingDraft = {
   usage_instructions: string;
@@ -88,8 +89,8 @@ type ActionResult = {
   previewQuestion?: string;
 };
 
-type SetupState = "needs_setup" | "needs_ai_answers" | "ready";
-type JourneyStep = "guidance" | "improve" | "ready";
+type SetupState = 'needs_setup' | 'needs_ai_answers' | 'ready';
+type JourneyStep = 'guidance' | 'improve' | 'ready';
 
 type WorkspaceRow = {
   shopify: ShopifyCatalogProduct;
@@ -104,22 +105,22 @@ type WorkspaceRow = {
   readyLanguageCount: number;
   languageCoverage: number;
   languageWorkflowEnabled: boolean;
-  languageState: "not_started" | "pending" | "ready";
+  languageState: 'not_started' | 'pending' | 'ready';
   sourceLanguage?: string | null;
   languageSummary: string;
-  languageTone: "attention" | "info" | "success";
+  languageTone: 'attention' | 'info' | 'success';
   progress: number;
   state: SetupState;
   statusLabel: string;
-  statusTone: "attention" | "info" | "success";
+  statusTone: 'attention' | 'info' | 'success';
   nextActionLabel: string;
   detailHint: string;
 };
 
 type LifecyclePresentation = {
-  key: "needs_setup" | "needs_ai_answers" | "processing" | "ready" | "error";
+  key: 'needs_setup' | 'needs_ai_answers' | 'processing' | 'ready' | 'error';
   label: string;
-  tone: "attention" | "info" | "success" | "critical";
+  tone: 'attention' | 'info' | 'success' | 'critical';
   message: string;
 };
 
@@ -143,52 +144,57 @@ type JourneyMeta = {
 
 function stripHtmlForRag(html?: string) {
   if (!html) return undefined;
-  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() || undefined;
+  return (
+    html
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim() || undefined
+  );
 }
 
 function emptyDraft(): MappingDraft {
   return {
-    usage_instructions: "",
-    recipe_summary: "",
-    prevention_tips: "",
-    video_url: "",
+    usage_instructions: '',
+    recipe_summary: '',
+    prevention_tips: '',
+    video_url: '',
   };
 }
 
 function draftFromInstruction(instruction?: MerchantProductInstruction): MappingDraft {
   return {
-    usage_instructions: instruction?.usage_instructions || "",
-    recipe_summary: instruction?.recipe_summary || "",
-    prevention_tips: instruction?.prevention_tips || "",
-    video_url: instruction?.video_url || "",
+    usage_instructions: instruction?.usage_instructions || '',
+    recipe_summary: instruction?.recipe_summary || '',
+    prevention_tips: instruction?.prevention_tips || '',
+    video_url: instruction?.video_url || '',
   };
 }
 
 function formatOutcomeDelta(delta?: Record<string, unknown>) {
-  if (!delta) return "";
+  if (!delta) return '';
 
   const parts: string[] = [];
-  if (typeof delta.source === "string") {
-    parts.push(delta.source === "workflow_url" ? "extra source" : "product page");
+  if (typeof delta.source === 'string') {
+    parts.push(delta.source === 'workflow_url' ? 'extra source' : 'product page');
   }
-  if (typeof delta.chunksCreated === "number") {
+  if (typeof delta.chunksCreated === 'number') {
     parts.push(`${delta.chunksCreated} chunks`);
   }
-  if (typeof delta.totalTokens === "number") {
+  if (typeof delta.totalTokens === 'number') {
     parts.push(`${delta.totalTokens} tokens`);
   }
-  if (typeof delta.jobId === "string") {
+  if (typeof delta.jobId === 'string') {
     parts.push(`job ${delta.jobId}`);
   }
 
-  return parts.join(" • ");
+  return parts.join(' • ');
 }
 
 function normalizeOptionalUrl(value: string) {
   const trimmed = value.trim();
-  if (!trimmed) return "";
+  if (!trimmed) return '';
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) return trimmed;
-  if (trimmed.startsWith("//")) return `https:${trimmed}`;
+  if (trimmed.startsWith('//')) return `https:${trimmed}`;
   return `https://${trimmed}`;
 }
 
@@ -196,11 +202,11 @@ async function getActionErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Response) {
     try {
       const payload = await error.clone().json();
-      if (payload && typeof payload === "object") {
-        if ("details" in payload && typeof payload.details === "string" && payload.details.trim()) {
+      if (payload && typeof payload === 'object') {
+        if ('details' in payload && typeof payload.details === 'string' && payload.details.trim()) {
           return payload.details;
         }
-        if ("error" in payload && typeof payload.error === "string" && payload.error.trim()) {
+        if ('error' in payload && typeof payload.error === 'string' && payload.error.trim()) {
           return payload.error;
         }
       }
@@ -218,8 +224,8 @@ async function getActionErrorMessage(error: unknown, fallback: string) {
 }
 
 function summarizeText(text: string, maxLength = 140) {
-  const cleaned = text.replace(/\s+/g, " ").trim();
-  if (!cleaned) return "";
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  if (!cleaned) return '';
   if (cleaned.length <= maxLength) return cleaned;
   return `${cleaned.slice(0, maxLength).trim()}…`;
 }
@@ -230,25 +236,26 @@ function getLifecyclePresentation(
     actionError?: string | null;
     processRunning?: boolean;
     recentAction?: boolean;
-  },
+  }
 ): LifecyclePresentation {
   const persistedLifecycle = row.localProduct?.lifecycle;
 
   if (options?.actionError) {
     return {
-      key: "error",
-      label: "Needs attention",
-      tone: "critical",
+      key: 'error',
+      label: 'Needs attention',
+      tone: 'critical',
       message: options.actionError,
     };
   }
 
   if (options?.processRunning || options?.recentAction) {
     return {
-      key: "processing",
-      label: "Preparing answers",
-      tone: "info",
-      message: "Recete is processing this product right now. There is nothing to click until this finishes.",
+      key: 'processing',
+      label: 'Preparing answers',
+      tone: 'info',
+      message:
+        'Recete is processing this product right now. There is nothing to click until this finishes.',
     };
   }
 
@@ -257,47 +264,46 @@ function getLifecyclePresentation(
       key: persistedLifecycle.status,
       label: persistedLifecycle.label,
       tone:
-        persistedLifecycle.status === "ready"
-          ? "success"
-          : persistedLifecycle.status === "needs_ai_answers"
-            ? "info"
-            : "attention",
+        persistedLifecycle.status === 'ready'
+          ? 'success'
+          : persistedLifecycle.status === 'needs_ai_answers'
+            ? 'info'
+            : 'attention',
       message: persistedLifecycle.message,
     };
   }
 
   if (!row.linked || !row.hasGuidance) {
     return {
-      key: "needs_setup",
-      label: "Needs setup",
-      tone: "attention",
-      message: "Add customer guidance so Recete knows what customers should do after delivery.",
+      key: 'needs_setup',
+      label: 'Needs setup',
+      tone: 'attention',
+      message: 'Add customer guidance so Recete knows what customers should do after delivery.',
     };
   }
 
   if (!row.hasKnowledge) {
     return {
-      key: "needs_ai_answers",
-      label: "Needs AI answers",
-      tone: "info",
-      message: "The guidance is saved. Recete still needs product knowledge before it can answer customers well.",
+      key: 'needs_ai_answers',
+      label: 'Needs AI answers',
+      tone: 'info',
+      message:
+        'The guidance is saved. Recete still needs product knowledge before it can answer customers well.',
     };
   }
 
   return {
-    key: "ready",
-    label: "Ready",
-    tone: "success",
-    message: row.languageWorkflowEnabled && row.languageCoverage < 100
-      ? "Setup is complete. Extra language coverage will keep improving in the background."
-      : "Setup is complete and this product is ready to answer customer questions.",
+    key: 'ready',
+    label: 'Ready',
+    tone: 'success',
+    message:
+      row.languageWorkflowEnabled && row.languageCoverage < 100
+        ? 'Setup is complete. Extra language coverage will keep improving in the background.'
+        : 'Setup is complete and this product is ready to answer customer questions.',
   };
 }
 
-function getFactsArray(
-  facts: Record<string, unknown> | null | undefined,
-  key: string,
-): string[] {
+function getFactsArray(facts: Record<string, unknown> | null | undefined, key: string): string[] {
   const value = facts?.[key];
   if (!Array.isArray(value)) return [];
   return value.map((item) => String(item)).filter((item) => item.trim());
@@ -306,23 +312,22 @@ function getFactsArray(
 function buildKnowledgeSummary(row: WorkspaceRow): KnowledgeSummary {
   const facts = (row.factsSnapshot?.facts_json || {}) as Record<string, unknown>;
   const identity = (facts.product_identity || {}) as Record<string, unknown>;
-  const usageSteps = getFactsArray(facts, "usage_steps");
-  const benefits = getFactsArray(facts, "benefits");
-  const ingredients = getFactsArray(facts, "ingredients");
-  const activeIngredients = getFactsArray(facts, "active_ingredients");
-  const claims = getFactsArray(facts, "claims");
-  const skinTypes = getFactsArray(facts, "target_skin_types");
+  const usageSteps = getFactsArray(facts, 'usage_steps');
+  const benefits = getFactsArray(facts, 'benefits');
+  const ingredients = getFactsArray(facts, 'ingredients');
+  const activeIngredients = getFactsArray(facts, 'active_ingredients');
+  const claims = getFactsArray(facts, 'claims');
+  const skinTypes = getFactsArray(facts, 'target_skin_types');
   const warnings = [
     ...(row.instruction?.prevention_tips ? [row.instruction.prevention_tips] : []),
-    ...getFactsArray(facts, "warnings"),
+    ...getFactsArray(facts, 'warnings'),
   ]
     .map((item) => summarizeText(String(item), 120))
     .filter(Boolean);
 
   const howToUseSource =
-    row.instruction?.usage_instructions ||
-    (usageSteps.length ? usageSteps.join(". ") : "");
-  const howToUse = summarizeText(howToUseSource || "No usage guidance yet.", 160);
+    row.instruction?.usage_instructions || (usageSteps.length ? usageSteps.join('. ') : '');
+  const howToUse = summarizeText(howToUseSource || 'No usage guidance yet.', 160);
 
   const keyDetails: string[] = [];
   if (identity.brand) keyDetails.push(`Brand: ${identity.brand}`);
@@ -331,37 +336,41 @@ function buildKnowledgeSummary(row: WorkspaceRow): KnowledgeSummary {
   if (identity.volume_value && identity.volume_unit) {
     keyDetails.push(`Size: ${identity.volume_value} ${identity.volume_unit}`);
   }
-  if (benefits.length) keyDetails.push(`Benefits: ${benefits.slice(0, 3).join(", ")}`);
-  if (claims.length) keyDetails.push(`Claims: ${claims.slice(0, 3).join(", ")}`);
-  if (skinTypes.length) keyDetails.push(`Best for: ${skinTypes.slice(0, 3).join(", ")}`);
-  if (activeIngredients.length) keyDetails.push(`Active ingredients: ${activeIngredients.slice(0, 3).join(", ")}`);
-  if (ingredients.length) keyDetails.push(`Ingredients: ${ingredients.slice(0, 3).join(", ")}`);
-  if (row.instruction?.recipe_summary?.trim()) keyDetails.push(`Key features & ingredients: ${summarizeText(row.instruction.recipe_summary, 120)}`);
+  if (benefits.length) keyDetails.push(`Benefits: ${benefits.slice(0, 3).join(', ')}`);
+  if (claims.length) keyDetails.push(`Claims: ${claims.slice(0, 3).join(', ')}`);
+  if (skinTypes.length) keyDetails.push(`Best for: ${skinTypes.slice(0, 3).join(', ')}`);
+  if (activeIngredients.length)
+    keyDetails.push(`Active ingredients: ${activeIngredients.slice(0, 3).join(', ')}`);
+  if (ingredients.length) keyDetails.push(`Ingredients: ${ingredients.slice(0, 3).join(', ')}`);
+  if (row.instruction?.recipe_summary?.trim())
+    keyDetails.push(
+      `Key features & ingredients: ${summarizeText(row.instruction.recipe_summary, 120)}`
+    );
 
   const commonQuestions = [
-    "How do I use this product?",
-    keyDetails.length ? "What does this product help with?" : "",
-    (ingredients.length || activeIngredients.length) ? "What are the key ingredients?" : "",
+    'How do I use this product?',
+    keyDetails.length ? 'What does this product help with?' : '',
+    ingredients.length || activeIngredients.length ? 'What are the key ingredients?' : '',
   ].filter(Boolean);
 
   const sources: string[] = [];
-  if (row.localProduct?.url) sources.push("Product page");
-  if (row.hasGuidance) sources.push("Merchant guidance");
-  if (row.hasOptionalDetails) sources.push("Optional details");
-  if (row.factsSnapshot?.source_url) sources.push("Structured product facts");
+  if (row.localProduct?.url) sources.push('Product page');
+  if (row.hasGuidance) sources.push('Merchant guidance');
+  if (row.hasOptionalDetails) sources.push('Optional details');
+  if (row.factsSnapshot?.source_url) sources.push('Structured product facts');
 
   const hasManualFeatures = Boolean(row.instruction?.recipe_summary?.trim());
   const languageCoverageIncomplete = row.languageWorkflowEnabled && row.languageCoverage < 100;
 
   const missingInfo: string[] = [];
-  if (!row.instruction?.usage_instructions?.trim()) missingInfo.push("How to use the product");
+  if (!row.instruction?.usage_instructions?.trim()) missingInfo.push('How to use the product');
   // AI knowledge is the precondition for answering anything: without embeddings
   // retrieval returns nothing regardless of how complete the text fields look.
-  if (!row.hasKnowledge) missingInfo.push("AI knowledge (not generated yet)");
-  if (!warnings.length) missingInfo.push("Warnings or important notes");
-  if (!benefits.length && !claims.length && !hasManualFeatures) missingInfo.push("Key benefits");
-  if (!ingredients.length && !activeIngredients.length) missingInfo.push("Ingredients");
-  if (languageCoverageIncomplete) missingInfo.push("Reply language coverage");
+  if (!row.hasKnowledge) missingInfo.push('AI knowledge (not generated yet)');
+  if (!warnings.length) missingInfo.push('Warnings or important notes');
+  if (!benefits.length && !claims.length && !hasManualFeatures) missingInfo.push('Key benefits');
+  if (!ingredients.length && !activeIngredients.length) missingInfo.push('Ingredients');
+  if (languageCoverageIncomplete) missingInfo.push('Reply language coverage');
 
   // Scored against what actually determines answer quality, not just whether
   // text fields are non-empty. The previous version never looked at embeddings,
@@ -383,7 +392,7 @@ function buildKnowledgeSummary(row: WorkspaceRow): KnowledgeSummary {
     keyDetails,
     commonQuestions,
     warnings,
-    sources: sources.length ? sources : ["No sources connected yet"],
+    sources: sources.length ? sources : ['No sources connected yet'],
     missingInfo,
     qualityScore,
   };
@@ -397,28 +406,28 @@ function getJourneyMeta(row: WorkspaceRow): JourneyMeta {
 
   if (!guidanceDone) {
     return {
-      activeStep: "guidance",
+      activeStep: 'guidance',
       completedSteps,
       totalSteps,
-      nextActionLabel: "Continue",
-      shortStatus: "Write what customers should know",
+      nextActionLabel: 'Continue',
+      shortStatus: 'Write what customers should know',
     };
   }
   if (!improveDone) {
     return {
-      activeStep: "improve",
+      activeStep: 'improve',
       completedSteps,
       totalSteps,
-      nextActionLabel: "Continue",
-      shortStatus: "Improve AI replies",
+      nextActionLabel: 'Continue',
+      shortStatus: 'Improve AI replies',
     };
   }
   return {
-    activeStep: "ready",
+    activeStep: 'ready',
     completedSteps: totalSteps,
     totalSteps,
-    nextActionLabel: "Review",
-    shortStatus: "Setup complete",
+    nextActionLabel: 'Review',
+    shortStatus: 'Setup complete',
   };
 }
 
@@ -428,12 +437,12 @@ function buildWorkspaceRows(
   instructions: MerchantProductInstruction[],
   productFacts: ProductFactsSnapshot[],
   serviceLanguages: string[],
-  multiLangEnabled: boolean,
+  multiLangEnabled: boolean
 ): WorkspaceRow[] {
   const localByExternalId = new Map(
     merchantProducts
       .filter((product) => product.external_id)
-      .map((product) => [product.external_id as string, product]),
+      .map((product) => [product.external_id as string, product])
   );
   const instructionsByExternalId = new Map<string, MerchantProductInstruction>();
   const instructionsByProductId = new Map<string, MerchantProductInstruction>();
@@ -443,9 +452,7 @@ function buildWorkspaceRows(
     instructionsByProductId.set(instruction.product_id, instruction);
   }
 
-  const factsByProductId = new Map(
-    (productFacts || []).map((fact) => [fact.product_id, fact]),
-  );
+  const factsByProductId = new Map((productFacts || []).map((fact) => [fact.product_id, fact]));
 
   const catalogExternalIds = new Set(catalogProducts.map((p) => p.id));
   const combinedProducts = [...catalogProducts];
@@ -454,10 +461,10 @@ function buildWorkspaceRows(
     if (!mp.external_id || !catalogExternalIds.has(mp.external_id)) {
       combinedProducts.push({
         id: mp.id,
-        title: mp.name || "Manual Source",
+        title: mp.name || 'Manual Source',
         handle: `manual-${mp.id.slice(0, 8)}`,
-        status: "ACTIVE",
-        vendor: "Manual Entry",
+        status: 'ACTIVE',
+        vendor: 'Manual Entry',
         featuredImageUrl: undefined,
       });
       localByExternalId.set(mp.id, mp);
@@ -474,8 +481,8 @@ function buildWorkspaceRows(
     const hasGuidance = Boolean(instruction?.usage_instructions?.trim());
     const hasOptionalDetails = Boolean(
       instruction?.recipe_summary?.trim() ||
-        instruction?.prevention_tips?.trim() ||
-        instruction?.video_url?.trim(),
+      instruction?.prevention_tips?.trim() ||
+      instruction?.video_url?.trim()
     );
     const languageHealth = localProduct?.languageHealth || null;
     const languageWorkflowEnabled = multiLangEnabled && serviceLanguages.length > 1;
@@ -488,25 +495,22 @@ function buildWorkspaceRows(
       : baseChunkCount > 0
         ? 1
         : 0;
-    const languageCoverage = linked && hasGuidance
-      ? languageWorkflowEnabled
-        ? languageHealth?.answerCoverage ?? 0
-        : baseChunkCount > 0
-          ? 100
-          : 0
-      : 0;
+    const languageCoverage =
+      linked && hasGuidance
+        ? languageWorkflowEnabled
+          ? (languageHealth?.answerCoverage ?? 0)
+          : baseChunkCount > 0
+            ? 100
+            : 0
+        : 0;
     const hasKnowledge = readyLanguageCount > 0 || Boolean(baseChunkCount > 0);
     const languageState = languageWorkflowEnabled
-      ? languageHealth?.state || "not_started"
+      ? languageHealth?.state || 'not_started'
       : baseChunkCount > 0
-        ? "ready"
-        : "not_started";
+        ? 'ready'
+        : 'not_started';
     const state: SetupState =
-      !linked || !hasGuidance
-        ? "needs_setup"
-        : hasKnowledge
-          ? "ready"
-          : "needs_ai_answers";
+      !linked || !hasGuidance ? 'needs_setup' : hasKnowledge ? 'ready' : 'needs_ai_answers';
     const progress = !linked
       ? 0
       : !hasGuidance
@@ -516,22 +520,22 @@ function buildWorkspaceRows(
       !linked || !hasGuidance
         ? `Reply languages will be prepared after guidance is saved`
         : !languageWorkflowEnabled
-          ? "Primary reply language is ready."
-        : languageCoverage >= 100
-          ? `Ready in ${readyLanguageCount}/${requiredLanguageCount} reply languages`
-          : readyLanguageCount > 0
-            ? `${readyLanguageCount}/${requiredLanguageCount} reply languages are ready. More are still syncing.`
-            : languageState === "pending"
-              ? `Language sync is running in the background`
-              : `Reply languages will keep syncing in the background`;
+          ? 'Primary reply language is ready.'
+          : languageCoverage >= 100
+            ? `Ready in ${readyLanguageCount}/${requiredLanguageCount} reply languages`
+            : readyLanguageCount > 0
+              ? `${readyLanguageCount}/${requiredLanguageCount} reply languages are ready. More are still syncing.`
+              : languageState === 'pending'
+                ? `Language sync is running in the background`
+                : `Reply languages will keep syncing in the background`;
     const languageTone =
       !linked || !hasGuidance
-        ? "info"
+        ? 'info'
         : languageCoverage >= 100
-          ? "success"
+          ? 'success'
           : readyLanguageCount > 0
-            ? "attention"
-            : "info";
+            ? 'attention'
+            : 'info';
 
     return {
       shopify,
@@ -554,41 +558,31 @@ function buildWorkspaceRows(
       state,
       statusLabel:
         localProduct?.lifecycle?.label ||
-        (!linked || !hasGuidance
-          ? "Needs setup"
-          : hasKnowledge
-            ? "Ready"
-            : "Needs AI answers"),
+        (!linked || !hasGuidance ? 'Needs setup' : hasKnowledge ? 'Ready' : 'Needs AI answers'),
       statusTone:
-        localProduct?.lifecycle?.status === "ready"
-          ? "success"
-          : localProduct?.lifecycle?.status === "needs_ai_answers"
-            ? "info"
-            : (!linked || !hasGuidance
-              ? "attention"
+        localProduct?.lifecycle?.status === 'ready'
+          ? 'success'
+          : localProduct?.lifecycle?.status === 'needs_ai_answers'
+            ? 'info'
+            : !linked || !hasGuidance
+              ? 'attention'
               : hasKnowledge
-                ? "success"
-                : "info"),
+                ? 'success'
+                : 'info',
       nextActionLabel:
         localProduct?.lifecycle?.nextActionLabel ||
-        (!linked
-          ? "Set up"
-          : !hasGuidance
-            ? "Continue"
-            : hasKnowledge
-              ? "Review"
-              : "Generate AI"),
+        (!linked ? 'Set up' : !hasGuidance ? 'Continue' : hasKnowledge ? 'Review' : 'Generate AI'),
       detailHint:
         localProduct?.lifecycle?.message ||
         (!linked
-          ? "Create the Recete setup and add guidance."
+          ? 'Create the Recete setup and add guidance.'
           : !hasGuidance
-            ? "Add customer guidance so Recete knows what customers should do next."
+            ? 'Add customer guidance so Recete knows what customers should do next.'
             : hasKnowledge
               ? languageWorkflowEnabled && languageCoverage < 100
-                ? "Answers are ready now. Extra language coverage will keep syncing in the background."
-                : "Ready for customer replies."
-              : "Prepare the answer knowledge Recete will use in customer replies."),
+                ? 'Answers are ready now. Extra language coverage will keep syncing in the background.'
+                : 'Ready for customer replies.'
+              : 'Prepare the answer knowledge Recete will use in customer replies.'),
     };
   });
 }
@@ -624,7 +618,7 @@ async function persistProductSetup({
     return {
       ok: false,
       selectedProductId,
-      error: "Missing Shopify product context.",
+      error: 'Missing Shopify product context.',
     } satisfies ActionResult;
   }
 
@@ -633,9 +627,25 @@ async function persistProductSetup({
     // Defensive resolution: if UI context misses existingProductId for the same
     // Shopify product, recover it from merchant mappings so we don't consume
     // plan capacity as if this were a brand-new setup.
-    const mappingData = await fetchMerchantMappingData(request).catch(() => null);
+    //
+    // A transient failure here used to be swallowed (.catch(() => null)) and
+    // treated identically to "genuinely no mapping exists" - exactly the
+    // brand-new-setup case this comment says it exists to prevent. That let a
+    // flaky lookup silently create a duplicate product record and burn plan
+    // quota for a product that was already linked. Fail the action instead of
+    // guessing when we can't tell the two cases apart.
+    let mappingData: Awaited<ReturnType<typeof fetchMerchantMappingData>>;
+    try {
+      mappingData = await fetchMerchantMappingData(request);
+    } catch (err) {
+      return {
+        ok: false,
+        selectedProductId,
+        error: `Could not verify whether this product is already set up: ${await getActionErrorMessage(err, 'lookup failed')}. Please try again.`,
+      } satisfies ActionResult;
+    }
     const mappedProduct = mappingData?.localProducts?.find(
-      (product) => String(product.external_id || "").trim() === externalId,
+      (product) => String(product.external_id || '').trim() === externalId
     );
     if (mappedProduct?.id) {
       productId = mappedProduct.id;
@@ -650,7 +660,8 @@ async function persistProductSetup({
       return {
         ok: false,
         selectedProductId,
-        error: "Product limit reached for the current plan. Upgrade before creating more product setups.",
+        error:
+          'Product limit reached for the current plan. Upgrade before creating more product setups.',
       } satisfies ActionResult;
     }
 
@@ -660,14 +671,14 @@ async function persistProductSetup({
       external_id: externalId,
       raw_text: stripHtmlForRag(descriptionHtml),
     })) as { product?: { id?: string } };
-    productId = createResponse.product?.id || "";
+    productId = createResponse.product?.id || '';
   }
 
   if (!productId) {
     return {
       ok: false,
       selectedProductId,
-      error: "Failed to create the linked Recete product record.",
+      error: 'Failed to create the linked Recete product record.',
     } satisfies ActionResult;
   }
 
@@ -695,50 +706,70 @@ async function persistProductSetup({
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
-  const [catalog, merchantProducts, instructionPayload, multiLang] = await Promise.all([
-    fetchShopifyCatalog(request, { first: 100 }).catch(() => ({ shopDomain: '', products: [] as never[] })),
-    fetchMerchantProducts(request).catch(() => ({ products: [] as never[] })),
-    fetchMerchantProductInstructions(request).catch(() => ({ instructions: [] as never[] })),
-    fetchMerchantMultiLangSettings(request).catch(() => ({
-      settings: {
-        shop_id: "",
-        default_source_lang: "en",
-        enabled_langs: ["en"],
-        multi_lang_rag_enabled: true,
-      },
-    })),
-  ]);
+  const [catalogResult, merchantProductsResult, instructionResult, multiLangResult] =
+    await Promise.all([
+      settle(fetchShopifyCatalog(request, { first: 100 }), {
+        shopDomain: '',
+        products: [] as ShopifyCatalogProduct[],
+        hasNextPage: false,
+      }),
+      settle(fetchMerchantProducts(request), { products: [] as MerchantProduct[] }),
+      settle(fetchMerchantProductInstructions(request), {
+        instructions: [] as MerchantProductInstruction[],
+      }),
+      settle(fetchMerchantMultiLangSettings(request), {
+        settings: {
+          shop_id: '',
+          default_source_lang: 'en',
+          enabled_langs: ['en'],
+          multi_lang_rag_enabled: true,
+        },
+      }),
+    ]);
 
-  const productIds = (merchantProducts.products || []).map((product) => product.id);
-  const factsPayload = await fetchMerchantProductFacts(request, productIds).catch(() => ({
+  const productIds = (merchantProductsResult.value.products || []).map((product) => product.id);
+  const factsResult = await settle(fetchMerchantProductFacts(request, productIds), {
     facts: [] as ProductFactsSnapshot[],
-  }));
+  });
+
+  // Every fetch above defaults to an empty shape on failure, which looks
+  // identical to a merchant with a genuinely empty catalog. Without this flag
+  // a platform outage rendered as "you have no products yet" instead of
+  // telling the merchant their real catalog just failed to load.
+  const dataUnavailable = [
+    catalogResult,
+    merchantProductsResult,
+    instructionResult,
+    multiLangResult,
+    factsResult,
+  ].some((result) => !result.ok);
 
   return {
-    shopDomain: catalog.shopDomain,
-    catalogProducts: catalog.products,
-    merchantProducts: merchantProducts.products || [],
-    instructions: instructionPayload.instructions || [],
-    productFacts: factsPayload.facts || [],
-    serviceLanguages: multiLang.settings.enabled_langs || ["en"],
-    multiLangEnabled: multiLang.settings.multi_lang_rag_enabled !== false,
+    shopDomain: catalogResult.value.shopDomain,
+    catalogProducts: catalogResult.value.products,
+    merchantProducts: merchantProductsResult.value.products || [],
+    instructions: instructionResult.value.instructions || [],
+    productFacts: factsResult.value.facts || [],
+    serviceLanguages: multiLangResult.value.settings.enabled_langs || ['en'],
+    multiLangEnabled: multiLangResult.value.settings.multi_lang_rag_enabled !== false,
+    dataUnavailable,
   };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticateEmbeddedAdmin(request);
   const formData = await request.formData();
-  const intent = String(formData.get("intent") || "").trim();
+  const intent = String(formData.get('intent') || '').trim();
 
   try {
     switch (intent) {
-      case "create": {
-        const name = String(formData.get("name") || "").trim();
-        const url = String(formData.get("url") || "").trim();
-        const enrichmentUrl = normalizeOptionalUrl(String(formData.get("enrichmentUrl") || ""));
+      case 'create': {
+        const name = String(formData.get('name') || '').trim();
+        const url = String(formData.get('url') || '').trim();
+        const enrichmentUrl = normalizeOptionalUrl(String(formData.get('enrichmentUrl') || ''));
 
         if (!name || !url) {
-          return { ok: false, intent, error: "Name and URL are required." } satisfies ActionResult;
+          return { ok: false, intent, error: 'Name and URL are required.' } satisfies ActionResult;
         }
 
         const created = (await createMerchantProduct(request, { name, url })) as {
@@ -750,12 +781,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           return {
             ok: true,
             intent,
-            message: "Manual source created.",
+            message: 'Manual source created.',
           } satisfies ActionResult;
         }
 
         const stepOutcomes: StepOutcomeState[] = [];
-        let message = "Manual source created.";
+        let message = 'Manual source created.';
 
         if (enrichmentUrl) {
           const enrich = await enrichMerchantProductFromUrl(request, createdId, enrichmentUrl);
@@ -766,7 +797,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               intent,
             });
           }
-          message = "Manual source created and extra source added.";
+          message = 'Manual source created and extra source added.';
         }
 
         return {
@@ -777,21 +808,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           stepOutcomes,
         } satisfies ActionResult;
       }
-      case "save-setup": {
-        const workflowUrl = normalizeOptionalUrl(String(formData.get("workflow_url") || ""));
+      case 'save-setup': {
+        const workflowUrl = normalizeOptionalUrl(String(formData.get('workflow_url') || ''));
         const result = await persistProductSetup({
           request,
           shopDomain: session.shop,
-          selectedProductId: String(formData.get("selected_product_id") || "").trim(),
-          title: String(formData.get("title") || "").trim(),
-          handle: String(formData.get("handle") || "").trim(),
-          externalId: String(formData.get("external_id") || "").trim(),
-          descriptionHtml: String(formData.get("description_html") || ""),
-          usageInstructions: String(formData.get("usage_instructions") || "").trim(),
-          recipeSummary: String(formData.get("recipe_summary") || "").trim(),
-          preventionTips: String(formData.get("prevention_tips") || "").trim(),
-          videoUrl: String(formData.get("video_url") || "").trim(),
-          existingProductId: String(formData.get("existing_product_id") || "").trim(),
+          selectedProductId: String(formData.get('selected_product_id') || '').trim(),
+          title: String(formData.get('title') || '').trim(),
+          handle: String(formData.get('handle') || '').trim(),
+          externalId: String(formData.get('external_id') || '').trim(),
+          descriptionHtml: String(formData.get('description_html') || ''),
+          usageInstructions: String(formData.get('usage_instructions') || '').trim(),
+          recipeSummary: String(formData.get('recipe_summary') || '').trim(),
+          preventionTips: String(formData.get('prevention_tips') || '').trim(),
+          videoUrl: String(formData.get('video_url') || '').trim(),
+          existingProductId: String(formData.get('existing_product_id') || '').trim(),
         });
 
         if (!result.ok) {
@@ -802,7 +833,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const stepOutcomes: StepOutcomeState[] = [];
         if (result.productId) {
           try {
-            const prepared = await prepareMerchantProductKnowledge(request, result.productId, workflowUrl || undefined);
+            const prepared = await prepareMerchantProductKnowledge(
+              request,
+              result.productId,
+              workflowUrl || undefined
+            );
             for (const outcome of prepared.stepOutcomes || []) {
               stepOutcomes.push({
                 ...outcome,
@@ -811,17 +846,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               });
             }
           } catch (error) {
-            console.warn("[auto-prepare-knowledge-failed]", error);
+            console.warn('[auto-prepare-knowledge-failed]', error);
             const errorMessage = await getActionErrorMessage(
               error,
-              "Your guidance was saved, but Recete could not prepare product answers automatically.",
+              'Your guidance was saved, but Recete could not prepare product answers automatically.'
             );
             stepOutcomes.push({
               step: 'collect_sources',
               status: 'error',
               updatedAt: new Date().toISOString(),
               error: errorMessage,
-              intent
+              intent,
             });
           }
         }
@@ -831,17 +866,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           ok: true,
           intent,
           stepOutcomes,
-          message: "Customer guidance saved and AI updated.",
+          message: 'Customer guidance saved and AI updated.',
         } satisfies ActionResult;
       }
-      case "embeddings": {
-        const productId = String(formData.get("productId") || "").trim();
-        const productName = String(formData.get("productName") || "").trim();
-        const selectedProductId = String(formData.get("shopifyProductId") || "").trim();
-        const hasContent = String(formData.get("hasContent") || "").trim() === "true";
-        const enrichmentUrl = normalizeOptionalUrl(String(formData.get("enrichmentUrl") || ""));
+      case 'embeddings': {
+        const productId = String(formData.get('productId') || '').trim();
+        const productName = String(formData.get('productName') || '').trim();
+        const selectedProductId = String(formData.get('shopifyProductId') || '').trim();
+        const hasContent = String(formData.get('hasContent') || '').trim() === 'true';
+        const enrichmentUrl = normalizeOptionalUrl(String(formData.get('enrichmentUrl') || ''));
 
-        console.info("[products-action:embeddings] start", {
+        console.info('[products-action:embeddings] start', {
           shop: session.shop,
           intent,
           productId,
@@ -852,17 +887,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         });
 
         if (!productId) {
-          console.warn("[products-action:embeddings] missing-product-id", {
+          console.warn('[products-action:embeddings] missing-product-id', {
             shop: session.shop,
             intent,
             selectedProductId,
             productName,
           });
-          return { ok: false, intent, selectedProductId, error: "Missing product id." } satisfies ActionResult;
+          return {
+            ok: false,
+            intent,
+            selectedProductId,
+            error: 'Missing product id.',
+          } satisfies ActionResult;
         }
 
         const stepOutcomes: StepOutcomeState[] = [];
-        let pipelineMessage = `${productName || "Product"} answers improved with product context.`;
+        let pipelineMessage = `${productName || 'Product'} answers improved with product context.`;
 
         if (enrichmentUrl) {
           try {
@@ -874,11 +914,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 intent,
               });
             }
-            pipelineMessage = enrich.message || `${productName || "Product"} answers improved with extra source context.`;
+            pipelineMessage =
+              enrich.message ||
+              `${productName || 'Product'} answers improved with extra source context.`;
           } catch (error) {
             const errorMessage = await getActionErrorMessage(
               error,
-              "Extra source URL could not be processed.",
+              'Extra source URL could not be processed.'
             );
             return {
               ok: false,
@@ -889,8 +931,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               error: errorMessage,
               stepOutcomes: [
                 {
-                  step: "collect_sources",
-                  status: "error",
+                  step: 'collect_sources',
+                  status: 'error',
                   updatedAt: new Date().toISOString(),
                   error: errorMessage,
                   intent,
@@ -907,16 +949,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               intent,
             });
           }
-          pipelineMessage = scrape.message || `${productName || "Product"} content was collected and prepared for answers.`;
+          pipelineMessage =
+            scrape.message ||
+            `${productName || 'Product'} content was collected and prepared for answers.`;
         } else {
-          console.info("[products-action:embeddings] generate-request", {
+          console.info('[products-action:embeddings] generate-request', {
             shop: session.shop,
             productId,
             selectedProductId,
             stepOutcomesBeforeGenerate: stepOutcomes.length,
           });
           const generated = await generateMerchantProductEmbeddings(request, productId);
-          console.info("[products-action:embeddings] generate-response", {
+          console.info('[products-action:embeddings] generate-response', {
             shop: session.shop,
             productId,
             selectedProductId,
@@ -944,21 +988,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           stepOutcomes,
         } satisfies ActionResult;
       }
-      case "bulk-prepare": {
-        const shopifyProductIds = String(formData.get("shopifyProductIds") || "")
-          .split(",")
+      case 'bulk-prepare': {
+        const shopifyProductIds = String(formData.get('shopifyProductIds') || '')
+          .split(',')
           .map((value) => value.trim())
           .filter(Boolean);
 
         if (!shopifyProductIds.length) {
-          return { ok: false, intent, error: "Select at least one product." } satisfies ActionResult;
+          return {
+            ok: false,
+            intent,
+            error: 'Select at least one product.',
+          } satisfies ActionResult;
         }
 
         const mappingData = await fetchMerchantMappingData(request);
         const localByExternalId = new Map(
           (mappingData.localProducts || [])
             .filter((product) => product.external_id)
-            .map((product) => [String(product.external_id), product]),
+            .map((product) => [String(product.external_id), product])
         );
 
         let processed = 0;
@@ -982,7 +1030,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           return {
             ok: false,
             intent,
-            error: "No selected products had a saved setup yet. Open each product once and click Save draft, then retry bulk update.",
+            error:
+              'No selected products had a saved setup yet. Open each product once and click Save draft, then retry bulk update.',
           } satisfies ActionResult;
         }
 
@@ -997,13 +1046,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           message,
         } satisfies ActionResult;
       }
-      case "delete": {
-        const productId = String(formData.get("productId") || "").trim();
-        const productName = String(formData.get("productName") || "").trim();
-        const selectedProductId = String(formData.get("shopifyProductId") || "").trim();
+      case 'delete': {
+        const productId = String(formData.get('productId') || '').trim();
+        const productName = String(formData.get('productName') || '').trim();
+        const selectedProductId = String(formData.get('shopifyProductId') || '').trim();
 
         if (!productId) {
-          return { ok: false, intent, selectedProductId, error: "Missing product id." } satisfies ActionResult;
+          return {
+            ok: false,
+            intent,
+            selectedProductId,
+            error: 'Missing product id.',
+          } satisfies ActionResult;
         }
 
         await deleteMerchantProduct(request, productId);
@@ -1013,16 +1067,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           productId,
           productName,
           selectedProductId,
-          message: `${productName || "Product"} local setup removed.`,
+          message: `${productName || 'Product'} local setup removed.`,
         } satisfies ActionResult;
       }
-      case "reset-knowledge": {
-        const productId = String(formData.get("productId") || "").trim();
-        const productName = String(formData.get("productName") || "").trim();
-        const selectedProductId = String(formData.get("shopifyProductId") || "").trim();
+      case 'reset-knowledge': {
+        const productId = String(formData.get('productId') || '').trim();
+        const productName = String(formData.get('productName') || '').trim();
+        const selectedProductId = String(formData.get('shopifyProductId') || '').trim();
 
         if (!productId) {
-          return { ok: false, intent, selectedProductId, error: "Missing product id." } satisfies ActionResult;
+          return {
+            ok: false,
+            intent,
+            selectedProductId,
+            error: 'Missing product id.',
+          } satisfies ActionResult;
         }
 
         await resetMerchantProductKnowledge(request, productId);
@@ -1032,39 +1091,54 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           productId,
           productName,
           selectedProductId,
-          message: `AI knowledge for ${productName || "this product"} has been cleared.`,
+          message: `AI knowledge for ${productName || 'this product'} has been cleared.`,
         } satisfies ActionResult;
       }
-      case "preview-answer": {
-        const productId = String(formData.get("productId") || "").trim();
-        const selectedProductId = String(formData.get("shopifyProductId") || "").trim();
-        const question = String(formData.get("question") || "").trim();
+      case 'preview-answer': {
+        const productId = String(formData.get('productId') || '').trim();
+        const selectedProductId = String(formData.get('shopifyProductId') || '').trim();
+        const question = String(formData.get('question') || '').trim();
 
         if (!productId) {
-          return { ok: false, intent, selectedProductId, error: "Missing product id." } satisfies ActionResult;
+          return {
+            ok: false,
+            intent,
+            selectedProductId,
+            error: 'Missing product id.',
+          } satisfies ActionResult;
         }
         if (!question) {
-          return { ok: false, intent, selectedProductId, error: "Question is required." } satisfies ActionResult;
+          return {
+            ok: false,
+            intent,
+            selectedProductId,
+            error: 'Question is required.',
+          } satisfies ActionResult;
         }
 
         const result = await previewMerchantProductAnswer(request, productId, question);
         if (result.error) {
-          return { ok: false, intent, selectedProductId, error: result.error } satisfies ActionResult;
+          return {
+            ok: false,
+            intent,
+            selectedProductId,
+            error: result.error,
+          } satisfies ActionResult;
         }
 
         return {
           ok: true,
           intent,
           selectedProductId,
-          previewAnswer: result.answer || "",
+          previewAnswer: result.answer || '',
           previewQuestion: question,
         } satisfies ActionResult;
       }
       default:
-        return { ok: false, intent, error: "Unknown action." } satisfies ActionResult;
+        return { ok: false, intent, error: 'Unknown action.' } satisfies ActionResult;
     }
   } catch (error) {
-    console.error("[products-action] failed", {
+    console.error('[products-action] failed', {
       shop: session.shop,
       intent,
       error: error instanceof Error ? error.message : String(error),
@@ -1076,7 +1150,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return {
       ok: false,
       intent,
-      error: error instanceof Error ? error.message : "Product action failed.",
+      error: error instanceof Error ? error.message : 'Product action failed.',
     } satisfies ActionResult;
   }
 };
@@ -1087,34 +1161,37 @@ export default function ProductsPage() {
   const navigation = useNavigation();
   const submit = useSubmit();
   const [searchParams] = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [showReadyProducts, setShowReadyProducts] = useState(true);
   const [showManualEntryModal, setShowManualEntryModal] = useState(false);
   const [manualSourceDraft, setManualSourceDraft] = useState({
-    name: "",
-    url: "",
-    enrichmentUrl: "",
+    name: '',
+    url: '',
+    enrichmentUrl: '',
   });
   const [drafts, setDrafts] = useState<Record<string, MappingDraft>>({});
   const [savedDrafts, setSavedDrafts] = useState<Record<string, MappingDraft>>({});
   const [workflowUrlByProduct, setWorkflowUrlByProduct] = useState<Record<string, string>>({});
-  const [previewQuestionByProduct, setPreviewQuestionByProduct] = useState<Record<string, string>>({});
+  const [previewQuestionByProduct, setPreviewQuestionByProduct] = useState<Record<string, string>>(
+    {}
+  );
   const [previewAnswerByProduct, setPreviewAnswerByProduct] = useState<Record<string, string>>({});
   const [bulkSelectedProductIds, setBulkSelectedProductIds] = useState<string[]>([]);
   const [outcomesByProduct, setOutcomesByProduct] = useState<
-    Record<string, Partial<Record<ProductStepOutcome["step"], StepOutcomeState>>>
+    Record<string, Partial<Record<ProductStepOutcome['step'], StepOutcomeState>>>
   >({});
-  const busy = navigation.state === "submitting";
+  const busy = navigation.state === 'submitting';
 
   const rows = useMemo(
-    () => buildWorkspaceRows(
-      data.catalogProducts,
-      data.merchantProducts,
-      data.instructions,
-      data.productFacts,
-      data.serviceLanguages,
-      data.multiLangEnabled,
-    ),
+    () =>
+      buildWorkspaceRows(
+        data.catalogProducts,
+        data.merchantProducts,
+        data.instructions,
+        data.productFacts,
+        data.serviceLanguages,
+        data.multiLangEnabled
+      ),
     [
       data.catalogProducts,
       data.instructions,
@@ -1122,19 +1199,20 @@ export default function ProductsPage() {
       data.multiLangEnabled,
       data.productFacts,
       data.serviceLanguages,
-    ],
+    ]
   );
   const summary = useMemo(
     () => ({
       total: rows.length,
-      needsSetup: rows.filter((row) => row.state === "needs_setup").length,
-      needsAiAnswers: rows.filter((row) => row.state === "needs_ai_answers").length,
-      ready: rows.filter((row) => row.state === "ready").length,
+      needsSetup: rows.filter((row) => row.state === 'needs_setup').length,
+      needsAiAnswers: rows.filter((row) => row.state === 'needs_ai_answers').length,
+      ready: rows.filter((row) => row.state === 'ready').length,
       languageUpdates: rows.filter(
-        (row) => row.languageWorkflowEnabled && row.linked && row.hasGuidance && row.languageCoverage < 100,
+        (row) =>
+          row.languageWorkflowEnabled && row.linked && row.hasGuidance && row.languageCoverage < 100
       ).length,
     }),
-    [rows],
+    [rows]
   );
   const searchedRows = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -1144,26 +1222,28 @@ export default function ProductsPage() {
     return rows.filter((row) => {
       const title = row.shopify.title.toLowerCase();
       const handle = row.shopify.handle.toLowerCase();
-      const vendor = row.shopify.vendor?.toLowerCase() || "";
+      const vendor = row.shopify.vendor?.toLowerCase() || '';
       return title.includes(query) || handle.includes(query) || vendor.includes(query);
     });
   }, [rows, searchQuery]);
   const needsActionRows = useMemo(
-    () => searchedRows.filter((row) => row.state !== "ready"),
-    [searchedRows],
+    () => searchedRows.filter((row) => row.state !== 'ready'),
+    [searchedRows]
   );
   const readyRows = useMemo(
-    () => searchedRows.filter((row) => row.state === "ready"),
-    [searchedRows],
+    () => searchedRows.filter((row) => row.state === 'ready'),
+    [searchedRows]
   );
   const nextIncompleteProduct = useMemo(
-    () => rows.find((row) => getJourneyMeta(row).activeStep !== "ready") || null,
-    [rows],
+    () => rows.find((row) => getJourneyMeta(row).activeStep !== 'ready') || null,
+    [rows]
   );
 
-  const requestedProductId = searchParams.get("product") || "";
-  const [selectedProductId, setSelectedProductId] = useState<string>(requestedProductId || "");
-  const [hasInitializedSelection, setHasInitializedSelection] = useState(Boolean(requestedProductId));
+  const requestedProductId = searchParams.get('product') || '';
+  const [selectedProductId, setSelectedProductId] = useState<string>(requestedProductId || '');
+  const [hasInitializedSelection, setHasInitializedSelection] = useState(
+    Boolean(requestedProductId)
+  );
 
   useEffect(() => {
     if (hasInitializedSelection || selectedProductId || rows.length === 0) return;
@@ -1190,7 +1270,7 @@ export default function ProductsPage() {
   useEffect(() => {
     if (!selectedProductId) return;
     if (searchedRows.length === 0) {
-      setSelectedProductId("");
+      setSelectedProductId('');
       replaceProductSearchParam(null);
       return;
     }
@@ -1228,7 +1308,7 @@ export default function ProductsPage() {
   useEffect(() => {
     if (
       actionData?.ok &&
-      actionData.intent === "save-setup" &&
+      actionData.intent === 'save-setup' &&
       actionData.selectedProductId &&
       actionData.savedDraft &&
       actionData.message
@@ -1245,7 +1325,7 @@ export default function ProductsPage() {
   }, [actionData]);
 
   useEffect(() => {
-    if (!(actionData?.ok && actionData.intent === "delete" && actionData.selectedProductId)) return;
+    if (!(actionData?.ok && actionData.intent === 'delete' && actionData.selectedProductId)) return;
 
     setDrafts((current) => ({
       ...current,
@@ -1259,25 +1339,22 @@ export default function ProductsPage() {
   }, [actionData]);
 
   useEffect(() => {
-    if (actionData?.ok && actionData.intent === "create") {
+    if (actionData?.ok && actionData.intent === 'create') {
       setShowManualEntryModal(false);
-      setManualSourceDraft({ name: "", url: "", enrichmentUrl: "" });
+      setManualSourceDraft({ name: '', url: '', enrichmentUrl: '' });
     }
   }, [actionData]);
 
   useEffect(() => {
-    if (
-      actionData?.ok &&
-      actionData.intent === "preview-answer" &&
-      actionData.selectedProductId
-    ) {
+    if (actionData?.ok && actionData.intent === 'preview-answer' && actionData.selectedProductId) {
       setPreviewQuestionByProduct((current) => ({
         ...current,
-        [actionData.selectedProductId as string]: actionData.previewQuestion || current[actionData.selectedProductId as string] || "",
+        [actionData.selectedProductId as string]:
+          actionData.previewQuestion || current[actionData.selectedProductId as string] || '',
       }));
       setPreviewAnswerByProduct((current) => ({
         ...current,
-        [actionData.selectedProductId as string]: actionData.previewAnswer || "",
+        [actionData.selectedProductId as string]: actionData.previewAnswer || '',
       }));
     }
   }, [actionData]);
@@ -1288,82 +1365,84 @@ export default function ProductsPage() {
     ? savedDrafts[selectedRow.shopify.id] || draftFromInstruction(selectedRow.instruction)
     : emptyDraft();
   const dirty = JSON.stringify(currentDraft) !== JSON.stringify(initialDraft);
-  const workflowUrl = selectedRow ? workflowUrlByProduct[selectedRow.shopify.id] || "" : "";
+  const workflowUrl = selectedRow ? workflowUrlByProduct[selectedRow.shopify.id] || '' : '';
   const previewQuestion = selectedRow
-    ? previewQuestionByProduct[selectedRow.shopify.id] || "How do I use this product?"
-    : "How do I use this product?";
-  const previewAnswer = selectedRow ? previewAnswerByProduct[selectedRow.shopify.id] || "" : "";
+    ? previewQuestionByProduct[selectedRow.shopify.id] || 'How do I use this product?'
+    : 'How do I use this product?';
+  const previewAnswer = selectedRow ? previewAnswerByProduct[selectedRow.shopify.id] || '' : '';
   const handlePreviewQuestionChange = (productId: string, value: string) => {
     setPreviewQuestionByProduct((current) => ({
       ...current,
       [productId]: value,
     }));
   };
-  const currentIntent = String(navigation.formData?.get("intent") || "");
+  const currentIntent = String(navigation.formData?.get('intent') || '');
   const currentSelectedProductId = String(
-    navigation.formData?.get("selected_product_id") || navigation.formData?.get("shopifyProductId") || "",
+    navigation.formData?.get('selected_product_id') ||
+      navigation.formData?.get('shopifyProductId') ||
+      ''
   );
   const isSavingSetup =
-    navigation.state === "submitting" &&
+    navigation.state === 'submitting' &&
     currentSelectedProductId === selectedRow?.shopify.id &&
-    currentIntent === "save-setup";
+    currentIntent === 'save-setup';
   const isRunningAiAction =
-    navigation.state === "submitting" &&
+    navigation.state === 'submitting' &&
     currentSelectedProductId === selectedRow?.shopify.id &&
-    currentIntent === "embeddings";
+    currentIntent === 'embeddings';
   const isDeletingLocalSetup =
-    navigation.state === "submitting" &&
+    navigation.state === 'submitting' &&
     currentSelectedProductId === selectedRow?.shopify.id &&
-    currentIntent === "delete";
+    currentIntent === 'delete';
   const isPreviewingAnswer =
-    navigation.state === "submitting" &&
+    navigation.state === 'submitting' &&
     currentSelectedProductId === selectedRow?.shopify.id &&
-    currentIntent === "preview-answer";
-  const isBulkPreparing =
-    navigation.state === "submitting" &&
-    currentIntent === "bulk-prepare";
+    currentIntent === 'preview-answer';
+  const isBulkPreparing = navigation.state === 'submitting' && currentIntent === 'bulk-prepare';
   const selectedBulkCount = bulkSelectedProductIds.length;
 
   function replaceProductSearchParam(productId: string | null) {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
 
     const next = new URLSearchParams(window.location.search);
     if (productId) {
-      next.set("product", productId);
+      next.set('product', productId);
     } else {
-      next.delete("product");
+      next.delete('product');
     }
 
     const query = next.toString();
-    const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
-    window.history.replaceState(window.history.state, "", nextUrl);
+    const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`;
+    window.history.replaceState(window.history.state, '', nextUrl);
   }
 
   function handleSelectProduct(productId: string, forceOpen = false) {
-    const nextProductId = forceOpen ? productId : selectedProductId === productId ? "" : productId;
+    const nextProductId = forceOpen ? productId : selectedProductId === productId ? '' : productId;
     setSelectedProductId(nextProductId);
     setHasInitializedSelection(true);
     replaceProductSearchParam(nextProductId || null);
 
-    if (nextProductId && typeof window !== "undefined") {
+    if (nextProductId && typeof window !== 'undefined') {
       window.requestAnimationFrame(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     }
   }
 
   function closeSelectedProduct() {
-    setSelectedProductId("");
+    setSelectedProductId('');
     setHasInitializedSelection(true);
     replaceProductSearchParam(null);
   }
 
   function openProductBrowser() {
     closeSelectedProduct();
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
 
     window.requestAnimationFrame(() => {
-      document.getElementById("all-products-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document
+        .getElementById('all-products-panel')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
 
@@ -1384,12 +1463,12 @@ export default function ProductsPage() {
   function submitBulkPrepare() {
     if (!bulkSelectedProductIds.length) return;
     const formData = new FormData();
-    formData.set("intent", "bulk-prepare");
-    formData.set("shopifyProductIds", bulkSelectedProductIds.join(","));
-    submit(formData, { method: "post" });
+    formData.set('intent', 'bulk-prepare');
+    formData.set('shopifyProductIds', bulkSelectedProductIds.join(','));
+    submit(formData, { method: 'post' });
   }
 
-  if (navigation.state === "loading" && rows.length === 0) {
+  if (navigation.state === 'loading' && rows.length === 0) {
     return (
       <SkeletonPage title="Products" primaryAction>
         <Layout>
@@ -1405,11 +1484,11 @@ export default function ProductsPage() {
   }
 
   const needsActionCount = summary.needsSetup + summary.needsAiAnswers;
-  const pageTitle = selectedRow ? undefined : "Products";
+  const pageTitle = selectedRow ? undefined : 'Products';
   const pageSubtitle = selectedRow
     ? undefined
     : needsActionCount > 0
-      ? `${needsActionCount} product${needsActionCount === 1 ? "" : "s"} need action · ${summary.ready} of ${summary.total} ready`
+      ? `${needsActionCount} product${needsActionCount === 1 ? '' : 's'} need action · ${summary.ready} of ${summary.total} ready`
       : `All ${summary.total} products are ready.`;
 
   return (
@@ -1422,7 +1501,7 @@ export default function ProductsPage() {
           ? []
           : [
               {
-                content: "Add manual source",
+                content: 'Add manual source',
                 onAction: () => setShowManualEntryModal(true),
               },
             ]
@@ -1435,7 +1514,18 @@ export default function ProductsPage() {
           </Layout.Section>
         ) : null}
 
-        {actionData?.message && actionData.intent === "create" ? (
+        {data.dataUnavailable ? (
+          <Layout.Section>
+            <Banner tone="warning" title="Couldn't reach Recete">
+              <p>
+                Some product data below may be stale or missing — we couldn't load current data.
+                Refresh in a moment.
+              </p>
+            </Banner>
+          </Layout.Section>
+        ) : null}
+
+        {actionData?.message && actionData.intent === 'create' ? (
           <Layout.Section>
             <Banner tone="success" title="Manual source added">
               <Text as="p" variant="bodyMd">
@@ -1454,7 +1544,6 @@ export default function ProductsPage() {
             </Banner>
           </Layout.Section>
         ) : null}
-
 
         {summary.total > 0 && summary.ready === summary.total ? (
           <Layout.Section>
@@ -1500,7 +1589,9 @@ export default function ProductsPage() {
               }
               previewQuestion={previewQuestion}
               previewAnswer={previewAnswer}
-              onPreviewQuestionChange={(value) => handlePreviewQuestionChange(selectedRow.shopify.id, value)}
+              onPreviewQuestionChange={(value) =>
+                handlePreviewQuestionChange(selectedRow.shopify.id, value)
+              }
               stepOutcomes={outcomesByProduct[selectedRow.shopify.id]}
               isSavingSetup={isSavingSetup}
               isRunningAiAction={isRunningAiAction}
@@ -1528,7 +1619,13 @@ export default function ProductsPage() {
 
         {!selectedRow ? (
           <Layout.Section>
-            <Box id="all-products-panel" padding="300" borderWidth="025" borderColor="border" borderRadius="300">
+            <Box
+              id="all-products-panel"
+              padding="300"
+              borderWidth="025"
+              borderColor="border"
+              borderRadius="300"
+            >
               <BlockStack gap="300">
                 <BlockStack gap="050">
                   <Text as="h2" variant="headingMd">
@@ -1539,7 +1636,7 @@ export default function ProductsPage() {
                   </Text>
                 </BlockStack>
 
-                <InlineGrid columns={{ xs: 1, md: "2fr auto" }} gap="200">
+                <InlineGrid columns={{ xs: 1, md: '2fr auto' }} gap="200">
                   <TextField
                     label="Search products"
                     labelHidden
@@ -1549,7 +1646,7 @@ export default function ProductsPage() {
                     onChange={setSearchQuery}
                   />
                   <Text as="p" variant="bodySm" tone="subdued">
-                    {searchedRows.length} {searchedRows.length === 1 ? "product" : "products"} shown
+                    {searchedRows.length} {searchedRows.length === 1 ? 'product' : 'products'} shown
                   </Text>
                 </InlineGrid>
 
@@ -1557,8 +1654,8 @@ export default function ProductsPage() {
                   <InlineStack align="space-between" blockAlign="center" wrap gap="200">
                     <Text as="p" variant="bodySm" tone="subdued">
                       {selectedBulkCount > 0
-                        ? `${selectedBulkCount} product${selectedBulkCount > 1 ? "s" : ""} selected`
-                        : "Select products to run bulk actions."}
+                        ? `${selectedBulkCount} product${selectedBulkCount > 1 ? 's' : ''} selected`
+                        : 'Select products to run bulk actions.'}
                     </Text>
                     <InlineStack gap="200" wrap>
                       <Button
@@ -1598,7 +1695,9 @@ export default function ProductsPage() {
                         row={row}
                         selected={row.shopify.id === selectedProductId}
                         bulkSelected={bulkSelectedProductIds.includes(row.shopify.id)}
-                        onBulkSelectChange={(checked) => toggleBulkSelection(row.shopify.id, checked)}
+                        onBulkSelectChange={(checked) =>
+                          toggleBulkSelection(row.shopify.id, checked)
+                        }
                         onSelect={() => {
                           handleSelectProduct(row.shopify.id, true);
                         }}
@@ -1625,7 +1724,7 @@ export default function ProductsPage() {
                         ariaExpanded={showReadyProducts}
                         ariaControls="ready-products-list"
                       >
-                        {showReadyProducts ? "Hide ready products" : "Show ready products"}
+                        {showReadyProducts ? 'Hide ready products' : 'Show ready products'}
                       </Button>
                     </InlineStack>
                     <Collapsible open={showReadyProducts} id="ready-products-list">
@@ -1636,7 +1735,9 @@ export default function ProductsPage() {
                             row={row}
                             selected={row.shopify.id === selectedProductId}
                             bulkSelected={bulkSelectedProductIds.includes(row.shopify.id)}
-                            onBulkSelectChange={(checked) => toggleBulkSelection(row.shopify.id, checked)}
+                            onBulkSelectChange={(checked) =>
+                              toggleBulkSelection(row.shopify.id, checked)
+                            }
                             onSelect={() => {
                               handleSelectProduct(row.shopify.id, true);
                             }}
@@ -1668,9 +1769,9 @@ export default function ProductsPage() {
         onClose={() => setShowManualEntryModal(false)}
         title="Add manual source"
         primaryAction={{
-          content: "Create manual source",
+          content: 'Create manual source',
           onAction: () => {
-            const form = document.getElementById("manual-source-form") as HTMLFormElement | null;
+            const form = document.getElementById('manual-source-form') as HTMLFormElement | null;
             if (form) form.requestSubmit();
           },
           loading: busy,
@@ -1678,7 +1779,7 @@ export default function ProductsPage() {
         }}
         secondaryActions={[
           {
-            content: "Cancel",
+            content: 'Cancel',
             onAction: () => setShowManualEntryModal(false),
             disabled: busy,
           },
@@ -1688,7 +1789,8 @@ export default function ProductsPage() {
           <BlockStack gap="300">
             <Banner tone="info">
               <Text as="p" variant="bodySm">
-                Use this only when a product does not exist in Shopify and still needs response content.
+                Use this only when a product does not exist in Shopify and still needs response
+                content.
               </Text>
             </Banner>
             <Form method="post" id="manual-source-form">
@@ -1772,7 +1874,7 @@ function SetupPanel({
   previewQuestion: string;
   previewAnswer: string;
   onPreviewQuestionChange: (value: string) => void;
-  stepOutcomes?: Partial<Record<ProductStepOutcome["step"], StepOutcomeState>>;
+  stepOutcomes?: Partial<Record<ProductStepOutcome['step'], StepOutcomeState>>;
   isSavingSetup: boolean;
   isRunningAiAction: boolean;
   isDeletingLocalSetup: boolean;
@@ -1788,12 +1890,14 @@ function SetupPanel({
   const [showDangerZone, setShowDangerZone] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const hasGuidance = Boolean(row.instruction?.usage_instructions?.trim()) || (!dirty && Boolean(draft.usage_instructions.trim()));
+  const hasGuidance =
+    Boolean(row.instruction?.usage_instructions?.trim()) ||
+    (!dirty && Boolean(draft.usage_instructions.trim()));
   const hasAiKnowledge = row.hasKnowledge;
   const languagesDone =
     !row.languageWorkflowEnabled || row.languageCoverage >= 100 || row.readyLanguageCount > 0;
   const enhancementDone = hasAiKnowledge && languagesDone;
-  const setupComplete = row.state === "ready" || (hasGuidance && enhancementDone);
+  const setupComplete = row.state === 'ready' || (hasGuidance && enhancementDone);
   const knowledge = buildKnowledgeSummary(row);
   const canSubmitSave = !isSavingSetup && !isRunningAiAction && !isDeletingLocalSetup;
   const canRunAiStep = !isRunningAiAction && !isSavingSetup && !isDeletingLocalSetup;
@@ -1803,9 +1907,13 @@ function SetupPanel({
     processRunning,
   });
   const statusLabel =
-    lifecycle.key === "ready" ? "Ready" : lifecycle.key === "processing" ? "In progress" : "Needs attention";
-  const statusTone: "success" | "info" | "attention" =
-    lifecycle.key === "ready" ? "success" : lifecycle.key === "processing" ? "info" : "attention";
+    lifecycle.key === 'ready'
+      ? 'Ready'
+      : lifecycle.key === 'processing'
+        ? 'In progress'
+        : 'Needs attention';
+  const statusTone: 'success' | 'info' | 'attention' =
+    lifecycle.key === 'ready' ? 'success' : lifecycle.key === 'processing' ? 'info' : 'attention';
 
   useEffect(() => {
     setKnowledgeOpen(false);
@@ -1818,31 +1926,31 @@ function SetupPanel({
     if (!canSubmitSave) return;
 
     const formData = new FormData();
-    formData.set("intent", "save-setup");
-    formData.set("selected_product_id", row.shopify.id);
-    formData.set("title", row.shopify.title);
-    formData.set("handle", row.shopify.handle);
-    formData.set("external_id", row.shopify.id);
-    formData.set("description_html", row.shopify.descriptionHtml || "");
-    formData.set("existing_product_id", row.localProduct?.id || "");
-    formData.set("workflow_url", workflowUrl || "");
-    formData.set("usage_instructions", draft.usage_instructions);
-    formData.set("recipe_summary", draft.recipe_summary);
-    formData.set("prevention_tips", draft.prevention_tips);
-    formData.set("video_url", draft.video_url);
-    submit(formData, { method: "post" });
+    formData.set('intent', 'save-setup');
+    formData.set('selected_product_id', row.shopify.id);
+    formData.set('title', row.shopify.title);
+    formData.set('handle', row.shopify.handle);
+    formData.set('external_id', row.shopify.id);
+    formData.set('description_html', row.shopify.descriptionHtml || '');
+    formData.set('existing_product_id', row.localProduct?.id || '');
+    formData.set('workflow_url', workflowUrl || '');
+    formData.set('usage_instructions', draft.usage_instructions);
+    formData.set('recipe_summary', draft.recipe_summary);
+    formData.set('prevention_tips', draft.prevention_tips);
+    formData.set('video_url', draft.video_url);
+    submit(formData, { method: 'post' });
   }
 
   function submitEmbeddingsFromStep() {
     if (!row.localProduct || !canRunAiStep) return;
     const formData = new FormData();
-    formData.set("intent", "embeddings");
-    formData.set("productId", row.localProduct?.id || "");
-    formData.set("shopifyProductId", row.shopify.id);
-    formData.set("productName", row.shopify.title);
-    formData.set("hasContent", row.localProduct?.raw_text ? "true" : "false");
-    formData.set("enrichmentUrl", workflowUrl || "");
-    submit(formData, { method: "post" });
+    formData.set('intent', 'embeddings');
+    formData.set('productId', row.localProduct?.id || '');
+    formData.set('shopifyProductId', row.shopify.id);
+    formData.set('productName', row.shopify.title);
+    formData.set('hasContent', row.localProduct?.raw_text ? 'true' : 'false');
+    formData.set('enrichmentUrl', workflowUrl || '');
+    submit(formData, { method: 'post' });
   }
 
   function handlePrimarySaveAndUpdate() {
@@ -1861,33 +1969,33 @@ function SetupPanel({
   function submitPreviewAnswer() {
     if (!row.localProduct || isPreviewingAnswer || processRunning) return;
     const formData = new FormData();
-    formData.set("intent", "preview-answer");
-    formData.set("productId", row.localProduct.id);
-    formData.set("shopifyProductId", row.shopify.id);
-    formData.set("productName", row.shopify.title);
-    formData.set("question", previewQuestion.trim() || "How do I use this product?");
-    submit(formData, { method: "post" });
+    formData.set('intent', 'preview-answer');
+    formData.set('productId', row.localProduct.id);
+    formData.set('shopifyProductId', row.shopify.id);
+    formData.set('productName', row.shopify.title);
+    formData.set('question', previewQuestion.trim() || 'How do I use this product?');
+    submit(formData, { method: 'post' });
   }
 
   const enhancementNeedsRun = !enhancementDone || Boolean(workflowUrl.trim());
   const canSubmitStep = !processRunning;
   const setupScore = Math.max(0, Math.min(100, knowledge.qualityScore));
   const readySummary = knowledge.missingInfo.length
-    ? "This product can answer questions, but coverage is not complete yet."
-    : "This product is fully prepared for customer replies.";
-  const runningMessage = "We’re applying updates. This usually takes a few seconds.";
+    ? 'This product can answer questions, but coverage is not complete yet.'
+    : 'This product is fully prepared for customer replies.';
+  const runningMessage = 'We’re applying updates. This usually takes a few seconds.';
 
   const content = (
     <BlockStack gap="500">
       <div
         style={{
-          position: "sticky",
+          position: 'sticky',
           top: 0,
           zIndex: 30,
-          background: "var(--p-color-bg-surface)",
-          paddingBottom: "16px",
-          paddingTop: "8px",
-          borderBottom: "1px solid var(--p-color-border)",
+          background: 'var(--p-color-bg-surface)',
+          paddingBottom: '16px',
+          paddingTop: '8px',
+          borderBottom: '1px solid var(--p-color-border)',
         }}
       >
         <BlockStack gap="200">
@@ -1905,19 +2013,24 @@ function SetupPanel({
                     width: 48,
                     height: 48,
                     borderRadius: 6,
-                    overflow: "hidden",
-                    border: "1px solid var(--p-color-border)",
-                    background: "var(--p-color-bg-surface-secondary)",
+                    overflow: 'hidden',
+                    border: '1px solid var(--p-color-border)',
+                    background: 'var(--p-color-bg-surface-secondary)',
                   }}
                 >
                   <img
                     src={row.shopify.featuredImageUrl}
                     alt={row.shopify.title}
-                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   />
                 </div>
               ) : (
-                <Box minWidth="48px" minHeight="48px" borderRadius="100" background="bg-surface-secondary" />
+                <Box
+                  minWidth="48px"
+                  minHeight="48px"
+                  borderRadius="100"
+                  background="bg-surface-secondary"
+                />
               )}
               <BlockStack gap="050">
                 <Text as="h1" variant="headingLg">
@@ -1928,133 +2041,132 @@ function SetupPanel({
                 </Text>
               </BlockStack>
             </InlineStack>
-            <Badge tone={statusTone}>
-              {statusLabel}
-            </Badge>
+            <Badge tone={statusTone}>{statusLabel}</Badge>
           </InlineStack>
-
         </BlockStack>
       </div>
 
       {processRunning ? (
         <Banner tone="info" title="Updating">
-          <Text as="p" variant="bodyMd">{runningMessage}</Text>
+          <Text as="p" variant="bodyMd">
+            {runningMessage}
+          </Text>
         </Banner>
       ) : null}
 
       {actionError && !processRunning ? (
         <Banner tone="critical" title="Action failed">
-          <Text as="p" variant="bodyMd">{actionError}</Text>
+          <Text as="p" variant="bodyMd">
+            {actionError}
+          </Text>
         </Banner>
       ) : null}
       {actionMessage && !actionError && !processRunning ? (
         <Banner tone="success" title="Success">
-          <Text as="p" variant="bodyMd">{actionMessage}</Text>
+          <Text as="p" variant="bodyMd">
+            {actionMessage}
+          </Text>
         </Banner>
       ) : null}
 
       <Card padding="500">
         <BlockStack gap="400">
           <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">
-                Customer instructions
-              </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                Clear instructions define what customers should do after delivery.
-              </Text>
-                <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-                  <BlockStack gap="100">
-                    <Text as="p" variant="bodySm" fontWeight="semibold">
-                      Good examples:
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Use twice daily on clean skin, morning and evening.
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Avoid direct contact with eyes. Stop use if irritation appears.
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Keep away from children and store below 25C.
-                    </Text>
-                  </BlockStack>
-                </Box>
+            <Text as="h2" variant="headingMd">
+              Customer instructions
+            </Text>
+            <Text as="p" variant="bodySm" tone="subdued">
+              Clear instructions define what customers should do after delivery.
+            </Text>
+            <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+              <BlockStack gap="100">
+                <Text as="p" variant="bodySm" fontWeight="semibold">
+                  Good examples:
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Use twice daily on clean skin, morning and evening.
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Avoid direct contact with eyes. Stop use if irritation appears.
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Keep away from children and store below 25C.
+                </Text>
+              </BlockStack>
+            </Box>
 
-                <TextField
-                  label="Customer instructions"
-                  name="usage_instructions"
-                  value={draft.usage_instructions}
-                  onChange={(value) => onChangeDraft("usage_instructions", value)}
-                  multiline={6}
-                  autoComplete="off"
-                  helpText="Optional but recommended. Write the guidance Recete should send to customers after delivery."
-                />
+            <TextField
+              label="Customer instructions"
+              name="usage_instructions"
+              value={draft.usage_instructions}
+              onChange={(value) => onChangeDraft('usage_instructions', value)}
+              multiline={6}
+              autoComplete="off"
+              helpText="Optional but recommended. Write the guidance Recete should send to customers after delivery."
+            />
 
-                <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">
-                  <TextField
-                    label="Warnings and important notes"
-                    name="prevention_tips"
-                    value={draft.prevention_tips}
-                    onChange={(value) => onChangeDraft("prevention_tips", value)}
-                    multiline={3}
-                    autoComplete="off"
-                  />
-                  <TextField
-                    label="Key product summary"
-                    name="recipe_summary"
-                    value={draft.recipe_summary}
-                    onChange={(value) => onChangeDraft("recipe_summary", value)}
-                    multiline={3}
-                    autoComplete="off"
-                  />
-                </InlineGrid>
-
-            </BlockStack>
+            <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">
+              <TextField
+                label="Warnings and important notes"
+                name="prevention_tips"
+                value={draft.prevention_tips}
+                onChange={(value) => onChangeDraft('prevention_tips', value)}
+                multiline={3}
+                autoComplete="off"
+              />
+              <TextField
+                label="Key product summary"
+                name="recipe_summary"
+                value={draft.recipe_summary}
+                onChange={(value) => onChangeDraft('recipe_summary', value)}
+                multiline={3}
+                autoComplete="off"
+              />
+            </InlineGrid>
+          </BlockStack>
 
           <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">
-                Enhancement
-              </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                Refine AI answers with extra sources and keep language coverage healthy.
-              </Text>
+            <Text as="h2" variant="headingMd">
+              Enhancement
+            </Text>
+            <Text as="p" variant="bodySm" tone="subdued">
+              Refine AI answers with extra sources and keep language coverage healthy.
+            </Text>
 
-                <TextField
-                  label="Extra source URL"
-                  autoComplete="off"
-                  value={workflowUrl}
-                  onChange={onWorkflowUrlChange}
-                  placeholder="https://example.com/product-faq"
-                  helpText="Optional. Add a page with FAQs or usage details to improve answer quality."
-                />
+            <TextField
+              label="Extra source URL"
+              autoComplete="off"
+              value={workflowUrl}
+              onChange={onWorkflowUrlChange}
+              placeholder="https://example.com/product-faq"
+              helpText="Optional. Add a page with FAQs or usage details to improve answer quality."
+            />
 
-                <BlockStack gap="100">
-                  <InlineStack gap="200" wrap>
-                    {canSubmitStep ? (
-                      <>
-                        <Button
-                          variant="primary"
-                          loading={isSavingSetup || isRunningAiAction}
-                          disabled={!canSubmitStep}
-                          onClick={handlePrimarySaveAndUpdate}
-                        >
-                          Save & Update AI
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          disabled={!canSubmitSave}
-                          onClick={submitSaveDraft}
-                        >
-                          Save Draft
-                        </Button>
-                      </>
-                    ) : null}
-                  </InlineStack>
-                  {canSubmitStep ? (
-                    <Text as="p" variant="bodyXs" tone="subdued">
-                      <strong>Save &amp; Update AI</strong> saves changes and regenerates AI knowledge. <strong>Save Draft</strong> saves your work without regenerating AI.
-                    </Text>
-                  ) : null}
-                </BlockStack>
+            <BlockStack gap="100">
+              <InlineStack gap="200" wrap>
+                {canSubmitStep ? (
+                  <>
+                    <Button
+                      variant="primary"
+                      loading={isSavingSetup || isRunningAiAction}
+                      disabled={!canSubmitStep}
+                      onClick={handlePrimarySaveAndUpdate}
+                    >
+                      Save & Update AI
+                    </Button>
+                    <Button variant="secondary" disabled={!canSubmitSave} onClick={submitSaveDraft}>
+                      Save Draft
+                    </Button>
+                  </>
+                ) : null}
+              </InlineStack>
+              {canSubmitStep ? (
+                <Text as="p" variant="bodyXs" tone="subdued">
+                  <strong>Save &amp; Update AI</strong> saves changes and regenerates AI knowledge.{' '}
+                  <strong>Save Draft</strong> saves your work without regenerating AI.
+                </Text>
+              ) : null}
+            </BlockStack>
           </BlockStack>
         </BlockStack>
       </Card>
@@ -2072,7 +2184,10 @@ function SetupPanel({
                 </Text>
               </BlockStack>
             </InlineStack>
-            <ProgressBar progress={setupScore} tone={knowledge.missingInfo.length ? "highlight" : "success"} />
+            <ProgressBar
+              progress={setupScore}
+              tone={knowledge.missingInfo.length ? 'highlight' : 'success'}
+            />
 
             {/* Mini checklist showing what's done vs missing */}
             <BlockStack gap="100">
@@ -2083,7 +2198,7 @@ function SetupPanel({
                   done={languagesDone}
                   label={
                     row.languageCoverage >= 100
-                      ? "All reply languages ready"
+                      ? 'All reply languages ready'
                       : `Language coverage (${row.readyLanguageCount}/${row.requiredLanguageCount} ready)`
                   }
                 />
@@ -2103,7 +2218,7 @@ function SetupPanel({
                 onClick={() => setKnowledgeOpen((current) => !current)}
                 ariaExpanded={knowledgeOpen}
               >
-                {knowledgeOpen ? "Hide" : "Review"}
+                {knowledgeOpen ? 'Hide' : 'Review'}
               </Button>
             </InlineStack>
             <Text as="p" variant="bodySm" tone="subdued">
@@ -2151,7 +2266,7 @@ function SetupPanel({
                 onClick={() => setPreviewOpen((current) => !current)}
                 ariaExpanded={previewOpen}
               >
-                {previewOpen ? "Hide" : "Open"}
+                {previewOpen ? 'Hide' : 'Open'}
               </Button>
             </InlineStack>
             <Text as="p" variant="bodySm" tone="subdued">
@@ -2177,7 +2292,7 @@ function SetupPanel({
                 </InlineStack>
                 <Box padding="200" background="bg-surface-secondary" borderRadius="200">
                   <Text as="p" variant="bodySm" tone="subdued">
-                    {previewAnswer || "Generate a preview to inspect the response."}
+                    {previewAnswer || 'Generate a preview to inspect the response.'}
                   </Text>
                 </Box>
               </BlockStack>
@@ -2196,7 +2311,8 @@ function SetupPanel({
                     Danger zone
                   </Text>
                   <Text as="p" variant="bodySm" tone="subdued">
-                    Remove only if you want to delete this product&apos;s Recete setup and AI knowledge.
+                    Remove only if you want to delete this product&apos;s Recete setup and AI
+                    knowledge.
                   </Text>
                 </BlockStack>
                 <Button
@@ -2205,7 +2321,7 @@ function SetupPanel({
                   tone="critical"
                   onClick={() => setShowDangerZone((current) => !current)}
                 >
-                  {showDangerZone ? "Hide" : "Open"}
+                  {showDangerZone ? 'Hide' : 'Open'}
                 </Button>
               </InlineStack>
             </BlockStack>
@@ -2214,9 +2330,13 @@ function SetupPanel({
           {showDangerZone && (
             <Box padding="200" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="200">
-                <Text as="h3" variant="headingSm">Danger zone</Text>
+                <Text as="h3" variant="headingSm">
+                  Danger zone
+                </Text>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Clears all Recete setup for this product — instructions, AI knowledge, and language data. Your Shopify product stays untouched. You can set it up again from scratch.
+                  Clears all Recete setup for this product — instructions, AI knowledge, and
+                  language data. Your Shopify product stays untouched. You can set it up again from
+                  scratch.
                 </Text>
                 <Checkbox
                   label="I understand this removes the saved setup for this product."
@@ -2271,57 +2391,55 @@ function ProductBrowserItem({
       borderWidth="025"
       borderColor="border"
       borderRadius="200"
-      background={selected ? "bg-surface-secondary" : undefined}
+      background={selected ? 'bg-surface-secondary' : undefined}
     >
-      <InlineGrid columns={{ xs: "auto 1fr auto", md: "auto 1fr auto" }} gap="200" alignItems="center">
+      <InlineGrid
+        columns={{ xs: 'auto 1fr auto', md: 'auto 1fr auto' }}
+        gap="200"
+        alignItems="center"
+      >
         {row.shopify.featuredImageUrl ? (
           <div
             style={{
               width: 40,
               height: 40,
               borderRadius: 4,
-              overflow: "hidden",
-              border: "1px solid var(--p-color-border)",
-              background: "var(--p-color-bg-surface-secondary)",
+              overflow: 'hidden',
+              border: '1px solid var(--p-color-border)',
+              background: 'var(--p-color-bg-surface-secondary)',
               flexShrink: 0,
             }}
           >
             <img
               src={row.shopify.featuredImageUrl}
               alt={row.shopify.title}
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
           </div>
         ) : (
-          <Box minWidth="40px" minHeight="40px" borderRadius="100" background="bg-surface-secondary" />
+          <Box
+            minWidth="40px"
+            minHeight="40px"
+            borderRadius="100"
+            background="bg-surface-secondary"
+          />
         )}
         <BlockStack gap="100">
           <InlineStack gap="150" wrap blockAlign="center">
-            <Checkbox
-              label=""
-              labelHidden
-              checked={bulkSelected}
-              onChange={onBulkSelectChange}
-            />
+            <Checkbox label="" labelHidden checked={bulkSelected} onChange={onBulkSelectChange} />
             <Text as="h3" variant="headingSm">
               {row.shopify.title}
             </Text>
-            <Badge tone={lifecycle.tone}>
-              {lifecycle.label}
-            </Badge>
-            {!row.hasGuidance ? (
-              <Badge tone="attention">
-                Missing instructions
-              </Badge>
-            ) : null}
+            <Badge tone={lifecycle.tone}>{lifecycle.label}</Badge>
+            {!row.hasGuidance ? <Badge tone="attention">Missing instructions</Badge> : null}
           </InlineStack>
           <Text as="p" variant="bodySm" tone="subdued">
             {lifecycle.message}
           </Text>
         </BlockStack>
         <InlineStack align="end" blockAlign="center">
-          <Button variant={selected ? "secondary" : "primary"} onClick={onSelect}>
-            {selected ? "Open" : journey.nextActionLabel}
+          <Button variant={selected ? 'secondary' : 'primary'} onClick={onSelect}>
+            {selected ? 'Open' : journey.nextActionLabel}
           </Button>
         </InlineStack>
       </InlineGrid>
@@ -2332,10 +2450,10 @@ function ProductBrowserItem({
 function ChecklistRow({ done, label }: { done: boolean; label: string }) {
   return (
     <InlineStack gap="200" blockAlign="center">
-      <Text as="span" variant="bodySm" tone={done ? "success" : "subdued"}>
-        {done ? "✓" : "○"}
+      <Text as="span" variant="bodySm" tone={done ? 'success' : 'subdued'}>
+        {done ? '✓' : '○'}
       </Text>
-      <Text as="span" variant="bodySm" tone={done ? "subdued" : "base"}>
+      <Text as="span" variant="bodySm" tone={done ? 'subdued' : 'base'}>
         {label}
       </Text>
     </InlineStack>
@@ -2357,15 +2475,7 @@ function InfoMiniCard({ title, body }: { title: string; body: string }) {
   );
 }
 
-function InfoListCard({
-  title,
-  items,
-  empty,
-}: {
-  title: string;
-  items: string[];
-  empty: string;
-}) {
+function InfoListCard({ title, items, empty }: { title: string; items: string[]; empty: string }) {
   return (
     <Box padding="200" background="bg-surface-secondary" borderRadius="200">
       <BlockStack gap="100">
@@ -2390,30 +2500,24 @@ function InfoListCard({
   );
 }
 
-function StepOutcomeLine({
-  title,
-  outcome,
-}: {
-  title: string;
-  outcome?: StepOutcomeState;
-}) {
+function StepOutcomeLine({ title, outcome }: { title: string; outcome?: StepOutcomeState }) {
   if (!outcome) return null;
 
   return (
-    <Text as="p" variant="bodySm" tone={outcome.status === "error" ? "critical" : "subdued"}>
+    <Text as="p" variant="bodySm" tone={outcome.status === 'error' ? 'critical' : 'subdued'}>
       {[
         `${title}:`,
         outcome.status,
         outcome.updatedAt
-          ? new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit" }).format(
-              new Date(outcome.updatedAt),
+          ? new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit' }).format(
+              new Date(outcome.updatedAt)
             )
-          : "",
+          : '',
         formatOutcomeDelta(outcome.delta),
-        outcome.error || outcome.message || "",
+        outcome.error || outcome.message || '',
       ]
         .filter(Boolean)
-        .join(" ")}
+        .join(' ')}
     </Text>
   );
 }
@@ -2430,7 +2534,7 @@ function InlineActionForm({
   enrichmentUrl,
   disabled = false,
   loading = false,
-  variant = "secondary",
+  variant = 'secondary',
   onActionStart,
   confirmMessage,
 }: {
@@ -2445,7 +2549,7 @@ function InlineActionForm({
   enrichmentUrl?: string;
   disabled?: boolean;
   loading?: boolean;
-  variant?: "primary" | "secondary" | "tertiary";
+  variant?: 'primary' | 'secondary' | 'tertiary';
   onActionStart?: () => void;
   confirmMessage?: string;
 }) {
@@ -2457,20 +2561,20 @@ function InlineActionForm({
     onActionStart?.();
 
     const formData = new FormData();
-    formData.set("intent", intent);
-    formData.set("productId", productId);
-    formData.set("shopifyProductId", shopifyProductId);
-    formData.set("productName", productName || "");
-    formData.set("hasContent", hasContent ? "true" : "false");
-    formData.set("enrichmentUrl", enrichmentUrl || "");
-    submit(formData, { method: "post" });
+    formData.set('intent', intent);
+    formData.set('productId', productId);
+    formData.set('shopifyProductId', shopifyProductId);
+    formData.set('productName', productName || '');
+    formData.set('hasContent', hasContent ? 'true' : 'false');
+    formData.set('enrichmentUrl', enrichmentUrl || '');
+    submit(formData, { method: 'post' });
   }
 
   return (
     <Button
       icon={icon as never}
       variant={variant}
-      tone={destructive ? "critical" : undefined}
+      tone={destructive ? 'critical' : undefined}
       disabled={disabled || loading}
       loading={loading}
       onClick={submitAction}
