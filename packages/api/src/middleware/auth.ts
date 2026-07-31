@@ -173,12 +173,6 @@ const INTERNAL_MERCHANT_PATHS: Array<string | RegExp> = [
   /^\/api\/conversations\/[^/]+\/status$/,
   '/api/customers',
   '/api/products/instructions/list',
-  // Read-only, same shape/cost as instructions/list above. Missing entirely
-  // before this fix: mapping-index is called uncaught from the Products page's
-  // "bulk prepare knowledge" action (crashed it for every merchant), and facts
-  // is called with a .catch() fallback (silently returned empty instead).
-  '/api/products/mapping-index',
-  '/api/products/facts',
   /^\/api\/products\/[^/]+\/instruction$/,
   // Merchant-initiated from the Shopify app's product detail panel. Both were
   // unreachable before: the shell drops the bearer token on the internal path,

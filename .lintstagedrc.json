@@ -1,9 +1,6 @@
 {
-  "*.{ts,tsx}": [
-    "eslint --fix",
-    "prettier --write"
-  ],
-  "*.{json,md}": [
-    "prettier --write"
-  ]
+  "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+  "*.{json,md}": ["prettier --write"],
+  "packages/api/src/middleware/auth.ts": ["node scripts/check-internal-auth-paths.mjs"],
+  "packages/shopify-app/app/platform.server.ts": ["node scripts/check-internal-auth-paths.mjs"]
 }
