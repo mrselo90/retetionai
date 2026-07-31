@@ -4,21 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import {
-  Badge as PolarisBadge,
-  Banner,
-  BlockStack,
-  Box,
-  Button as PolarisButton,
-  Card as PolarisCard,
-  Layout,
-  Page,
-  SkeletonBodyText,
-  SkeletonDisplayText,
-  SkeletonPage,
-  Text,
-  TextField,
-} from '@shopify/polaris';
+import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
+import { Badge, EmptyState, TableWrap, Textarea } from '@/components/recete';
 import { Link2, Package, Image as ImageIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -76,15 +63,20 @@ export default function ShopifyMapPage() {
   const [shopifyProducts, setShopifyProducts] = useState<ShopifyProduct[]>([]);
   const [shopDomain, setShopDomain] = useState<string>('');
   const [localProducts, setLocalProducts] = useState<LocalProduct[]>([]);
-  const [editing, setEditing] = useState<Record<string, { usage_instructions: string; recipe_summary?: string }>>({});
+  const [editing, setEditing] = useState<
+    Record<string, { usage_instructions: string; recipe_summary?: string }>
+  >({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [saveFeedback, setSaveFeedback] = useState<Record<string, SaveFeedback>>({});
   const [pageFeedback, setPageFeedback] = useState<SaveFeedback | null>(null);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         window.location.href = '/login';
         return;
@@ -92,9 +84,15 @@ export default function ShopifyMapPage() {
       const token = session.access_token;
 
       const [shopifyRes, productsRes, instructionsRes] = await Promise.all([
-        authenticatedRequest<{ products: ShopifyProduct[], shopDomain: string }>('/api/integrations/shopify/products', token),
+        authenticatedRequest<{ products: ShopifyProduct[]; shopDomain: string }>(
+          '/api/integrations/shopify/products',
+          token
+        ),
         authenticatedRequest<{ products: LocalProduct[] }>('/api/products', token),
-        authenticatedRequest<{ instructions: InstructionRow[] }>('/api/products/instructions/list', token).catch(() => ({ instructions: [] })),
+        authenticatedRequest<{ instructions: InstructionRow[] }>(
+          '/api/products/instructions/list',
+          token
+        ).catch(() => ({ instructions: [] })),
       ]);
 
       setShopDomain(shopifyRes.shopDomain || 'myshopify.com');
@@ -106,7 +104,8 @@ export default function ShopifyMapPage() {
         if (row.external_id) byExternal[row.external_id] = row;
         byExternal[row.product_id] = row;
       });
-      const initialEdit: Record<string, { usage_instructions: string; recipe_summary?: string }> = {};
+      const initialEdit: Record<string, { usage_instructions: string; recipe_summary?: string }> =
+        {};
       (shopifyRes.products || []).forEach((p) => {
         const localId = productsRes.products?.find((lp) => lp.external_id === p.id)?.id;
         const instr = byExternal[p.id] || (localId ? byExternal[localId] : undefined);
@@ -122,7 +121,10 @@ export default function ShopifyMapPage() {
           ? String((err as { message?: string }).message ?? '')
           : '';
       if (message.includes('Shopify integration not found') || message.includes('404')) {
-        toast.warning(t('toasts.shopifyNotConnected.title'), t('toasts.shopifyNotConnected.message'));
+        toast.warning(
+          t('toasts.shopifyNotConnected.title'),
+          t('toasts.shopifyNotConnected.message')
+        );
       } else {
         toast.error(t('toasts.loadError.title'), message || t('toasts.loadError.message'));
       }
@@ -149,7 +151,12 @@ export default function ShopifyMapPage() {
       div.innerHTML = html;
       return div.textContent?.trim() || div.innerText?.trim() || undefined;
     }
-    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() || undefined;
+    return (
+      html
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim() || undefined
+    );
   };
 
   const handleSave = async (shopifyProduct: ShopifyProduct) => {
@@ -165,17 +172,25 @@ export default function ShopifyMapPage() {
       let productId = getLocalProductId(shopifyProduct.id);
       if (!productId) {
         const descriptionForRag = stripHtmlForRag(shopifyProduct.descriptionHtml);
-        const createRes = await authenticatedRequest<{ product: { id: string } }>('/api/products', token, {
-          method: 'POST',
-          body: JSON.stringify({
-            name: shopifyProduct.title,
-            url: `https://${shopDomain}/products/${shopifyProduct.handle || shopifyProduct.id}`,
-            external_id: shopifyProduct.id,
-            raw_text: descriptionForRag ?? undefined,
-          }),
-        });
+        const createRes = await authenticatedRequest<{ product: { id: string } }>(
+          '/api/products',
+          token,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              name: shopifyProduct.title,
+              url: `https://${shopDomain}/products/${shopifyProduct.handle || shopifyProduct.id}`,
+              external_id: shopifyProduct.id,
+              raw_text: descriptionForRag ?? undefined,
+            }),
+          }
+        );
         productId = createRes.product?.id;
-        if (productId) setLocalProducts((prev) => [...prev, { id: productId!, name: shopifyProduct.title, external_id: shopifyProduct.id }]);
+        if (productId)
+          setLocalProducts((prev) => [
+            ...prev,
+            { id: productId!, name: shopifyProduct.title, external_id: shopifyProduct.id },
+          ]);
       }
       if (!productId) throw new Error(t('toasts.productCreateError'));
       const descriptionForRag = stripHtmlForRag(shopifyProduct.descriptionHtml);
@@ -204,12 +219,11 @@ export default function ShopifyMapPage() {
       }));
       setPageFeedback(feedback);
 
-      // Add success highlight animation
-      const row = document.querySelector(`tr[data-product-id="${shopifyProduct.id}"]`);
-      if (row) {
-        row.classList.add('bg-success/10');
-        setTimeout(() => row.classList.remove('bg-success/10'), 1000);
-      }
+      setHighlightedId(shopifyProduct.id);
+      setTimeout(
+        () => setHighlightedId((current) => (current === shopifyProduct.id ? null : current)),
+        1000
+      );
 
       await loadData();
     } catch (err: unknown) {
@@ -223,243 +237,256 @@ export default function ShopifyMapPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="d-page">
+        <div className="d-page-header" role="status" aria-live="polite" aria-label={t('title')}>
+          <div className="r-skeleton" style={{ height: 26, width: 260, marginBottom: 8 }} />
+          <div className="r-skeleton" style={{ height: 16, width: 360 }} />
+        </div>
+        {[0, 1, 2].map((row) => (
+          <div
+            key={row}
+            className="r-skeleton"
+            style={{ height: 90, marginBottom: 16 }}
+            aria-hidden="true"
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <Page title={t('title')} subtitle={t('description')} fullWidth>
-      <Layout>
-        <Layout.Section>
-          <div className="space-y-6 animate-fade-in pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-zinc-100 text-primary shrink-0 shadow-sm">
-            <Link2 className="w-6 h-6" />
-          </div>
-          <div className="space-y-1.5 min-w-0">
-            <p className="text-sm sm:text-base text-muted-foreground font-medium max-w-xl">
+    <div className="d-page">
+      <div
+        className="d-page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, minWidth: 0 }}>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 'var(--r-radius-md)',
+              background: 'var(--r-brand-tint)',
+              color: 'var(--r-brand)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Link2 size={20} aria-hidden="true" />
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <h1 className="r-page-title">{t('title')}</h1>
+            <p className="r-page-sub" style={{ maxWidth: 560 }}>
               {t('description')}
             </p>
-            {!loading && shopifyProducts.length > 0 && (
-              <PolarisBadge tone="info">{t('productCount', { count: shopifyProducts.length })}</PolarisBadge>
-            )}
+            {shopifyProducts.length > 0 ? (
+              <span style={{ display: 'inline-block', marginTop: 8 }}>
+                <Badge tone="brand">{t('productCount', { count: shopifyProducts.length })}</Badge>
+              </span>
+            ) : null}
           </div>
         </div>
-        <PolarisButton onClick={() => router.push('/dashboard/products')} variant="secondary">
+        <button
+          className="r-btn r-btn-secondary"
+          onClick={() => router.push('/dashboard/products')}
+        >
           {t('backToProducts')}
-        </PolarisButton>
+        </button>
       </div>
 
       {pageFeedback ? (
-        <div className="sticky top-4 z-20">
-          <PolarisCard>
-            <Box padding="400">
-              <div className="flex flex-col gap-3 rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-50 via-white to-white p-4 shadow-sm">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <Text as="h2" variant="headingMd">
-                      {t('feedback.savedTitle', { title: pageFeedback.productTitle })}
-                    </Text>
-                    <div className="mt-1">
-                      <Text as="p" tone="subdued">
-                        {t('feedback.savedMessage', { time: formatSavedAt(pageFeedback.savedAt) })}
-                      </Text>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <PolarisButton
-                      onClick={() => {
-                        document
-                          .querySelector(`tr[data-product-id="${pageFeedback.productId}"]`)
-                          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }}
-                      variant="primary"
-                    >
-                      {t('feedback.jumpToSaved')}
-                    </PolarisButton>
-                    <PolarisButton onClick={() => setPageFeedback(null)}>
-                      {t('feedback.dismiss')}
-                    </PolarisButton>
-                  </div>
-                </div>
-              </div>
-            </Box>
-          </PolarisCard>
+        <div style={{ marginBottom: 16 }}>
+          <PageFeedbackCard
+            tone="success"
+            title={t('feedback.savedTitle', { title: pageFeedback.productTitle })}
+            message={t('feedback.savedMessage', { time: formatSavedAt(pageFeedback.savedAt) })}
+            actionLabel={t('feedback.jumpToSaved')}
+            onAction={() => {
+              document
+                .querySelector(`tr[data-product-id="${pageFeedback.productId}"]`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }}
+            dismissLabel={t('feedback.dismiss')}
+            onDismiss={() => setPageFeedback(null)}
+          />
         </div>
       ) : null}
 
-      {/* Loading State */}
-      {loading ? (
-        <SkeletonPage title={t('title')}>
-          <Layout>
-            <Layout.Section>
-              <PolarisCard>
-                <BlockStack gap="300">
-                  <SkeletonDisplayText size="small" maxWidth="24ch" />
-                  <SkeletonBodyText lines={2} />
-                  <SkeletonBodyText lines={6} />
-                </BlockStack>
-              </PolarisCard>
-            </Layout.Section>
-          </Layout>
-        </SkeletonPage>
-      ) : shopifyProducts.length === 0 ? (
-        /* Empty State */
-        <PolarisCard>
-          <Box padding="600">
-            <BlockStack gap="400" inlineAlign="center">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center shadow-inner">
-              <Package className="w-10 h-10 text-primary" />
-            </div>
-            <Text as="h2" variant="headingMd" alignment="center">
-              {t('empty.title')}
-            </Text>
-            <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
-              {t('empty.description')}
-            </Text>
-            <PolarisButton onClick={() => router.push('/dashboard/integrations')} variant="primary">
-              {t('empty.connectButton')}
-            </PolarisButton>
-            </BlockStack>
-          </Box>
-        </PolarisCard>
+      {shopifyProducts.length === 0 ? (
+        <div className="r-card">
+          <EmptyState
+            icon={<Package size={28} aria-hidden="true" />}
+            title={t('empty.title')}
+            body={t('empty.description')}
+            action={
+              <button
+                className="r-btn r-btn-primary"
+                onClick={() => router.push('/dashboard/integrations')}
+              >
+                {t('empty.connectButton')}
+              </button>
+            }
+          />
+        </div>
       ) : (
-        /* Products Table */
-        <div className="space-y-4">
-          <Banner tone="info">
-            <Text as="p" variant="bodySm">
-              {t('table.hint')} <strong className="text-primary">{t('table.hintSave')}</strong>.
-            </Text>
-          </Banner>
-          <PolarisCard>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-border" aria-label={t('table.ariaLabel')}>
-                <thead className="bg-muted/30">
-                  <tr>
-                    <th scope="col" className="px-5 py-4 text-left text-xs font-bold text-foreground uppercase tracking-wider w-[min(240px,30%)]">
-                      {t('table.product')}
-                    </th>
-                    <th scope="col" className="px-5 py-4 text-left text-xs font-bold text-foreground uppercase tracking-wider">
-                      {t('table.instructions')}
-                    </th>
-                    <th scope="col" className="px-5 py-4 text-right text-xs font-bold text-foreground uppercase tracking-wider w-32">
-                      {t('table.action')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border bg-card">
-                  {shopifyProducts.map((p, idx) => (
-                    <tr
-                      key={p.id}
-                      data-product-id={p.id}
-                      className="hover:bg-gradient-to-r hover:from-muted/30 hover:to-transparent transition-all duration-200 group animate-fade-in"
-                      style={{ animationDelay: `${idx * 50}ms` }}
-                    >
-                      {/* Product Info */}
-                      <td className="px-5 py-5 align-top">
-                        <div className="flex gap-4">
-                          {p.featuredImageUrl ? (
-                            <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-muted shrink-0 shadow-sm">
-                              <img
-                                src={p.featuredImageUrl}
-                                alt={p.title}
-                                className="w-full h-full object-cover"
-                              />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="r-alert r-alert-info">
+            <p className="r-alert-body" style={{ margin: 0 }}>
+              {t('table.hint')} <strong>{t('table.hintSave')}</strong>.
+            </p>
+          </div>
+
+          <TableWrap>
+            <table className="r-table" aria-label={t('table.ariaLabel')}>
+              <thead>
+                <tr>
+                  <th scope="col" style={{ width: 'min(280px, 32%)' }}>
+                    {t('table.product')}
+                  </th>
+                  <th scope="col">{t('table.instructions')}</th>
+                  <th scope="col" style={{ width: 140, textAlign: 'right' }}>
+                    {t('table.action')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {shopifyProducts.map((p) => (
+                  <tr
+                    key={p.id}
+                    data-product-id={p.id}
+                    style={{
+                      background: highlightedId === p.id ? 'var(--r-success-bg)' : undefined,
+                      transition: 'background 300ms',
+                    }}
+                  >
+                    <td style={{ verticalAlign: 'top' }}>
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        {p.featuredImageUrl ? (
+                          <img
+                            src={p.featuredImageUrl}
+                            alt={p.title}
+                            style={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 'var(--r-radius-md)',
+                              objectFit: 'cover',
+                              flexShrink: 0,
+                            }}
+                          />
+                        ) : (
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 'var(--r-radius-md)',
+                              background: 'var(--r-surface-muted)',
+                              color: 'var(--r-text-muted)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <ImageIcon size={20} aria-hidden="true" />
+                          </span>
+                        )}
+                        <div style={{ minWidth: 0 }}>
+                          <p
+                            className="r-table-strong"
+                            style={{
+                              margin: '0 0 2px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: 280,
+                            }}
+                            title={p.title}
+                          >
+                            {p.title}
+                          </p>
+                          <p className="r-hint" style={{ margin: '0 0 6px' }}>
+                            {p.handle}
+                          </p>
+                          {p.productType ||
+                          p.vendor ||
+                          saveFeedback[p.id] ||
+                          p.variants?.[0]?.price != null ? (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                              {saveFeedback[p.id] ? (
+                                <Badge tone="success">{t('saved')}</Badge>
+                              ) : null}
+                              {p.productType ? <Badge tone="brand">{p.productType}</Badge> : null}
+                              {p.vendor ? <Badge tone="neutral">{p.vendor}</Badge> : null}
+                              {p.variants?.[0]?.price != null ? (
+                                <Badge tone="caution">{p.variants[0].price}</Badge>
+                              ) : null}
                             </div>
-                          ) : (
-                            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center text-muted-foreground shrink-0 shadow-inner">
-                              <ImageIcon className="w-7 h-7" aria-hidden />
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="font-bold text-foreground truncate mb-1" title={p.title}>{p.title}</p>
-                            <p className="text-xs text-muted-foreground font-medium mb-2">{p.handle}</p>
-                            {(p.productType || p.vendor || (p.variants?.length && p.variants[0])) && (
-                              <div className="flex flex-wrap gap-2">
-                                {saveFeedback[p.id] && (
-                                  <PolarisBadge tone="success">
-                                    {t('saved')}
-                                  </PolarisBadge>
-                                )}
-                                {p.productType && (
-                                  <PolarisBadge tone="info">
-                                    {p.productType}
-                                  </PolarisBadge>
-                                )}
-                                {p.vendor && (
-                                  <PolarisBadge>{p.vendor}</PolarisBadge>
-                                )}
-                                {p.variants?.[0]?.price != null && (
-                                  <PolarisBadge tone="attention">
-                                    {p.variants[0].price}
-                                  </PolarisBadge>
-                                )}
-                              </div>
-                            )}
-                            {p.descriptionHtml && (
-                              <p className="mt-2 text-xs text-muted-foreground/80 line-clamp-2 max-w-xs" title={stripHtmlForRag(p.descriptionHtml) ?? ''}>
-                                {stripHtmlForRag(p.descriptionHtml)?.slice(0, 100)}…
-                              </p>
-                            )}
-                          </div>
+                          ) : null}
                         </div>
-                      </td>
+                      </div>
+                    </td>
 
-                      {/* Usage Instructions Textarea */}
-                      <td className="px-5 py-5 align-top">
-                        <TextField
-                          id={`instruction-${p.id}`}
-                          label={t('instructionLabel', { title: p.title })}
-                          labelHidden
-                          autoComplete="off"
-                          multiline={3}
-                          value={editing[p.id]?.usage_instructions ?? ''}
-                          placeholder={t('placeholder')}
-                          onChange={(value) =>
-                            {
-                              setEditing((prev) => ({
-                                ...prev,
-                                [p.id]: { ...prev[p.id], usage_instructions: value },
-                              }));
-                              setSaveFeedback((prev) => {
-                                if (!prev[p.id]) return prev;
-                                const next = { ...prev };
-                                delete next[p.id];
-                                return next;
-                              });
-                              setPageFeedback((current) => (current?.productId === p.id ? null : current));
-                            }
-                          }
-                        />
-                      </td>
+                    <td style={{ verticalAlign: 'top' }}>
+                      <Textarea
+                        label={t('instructionLabel', { title: p.title })}
+                        labelHidden
+                        rows={3}
+                        autoComplete="off"
+                        value={editing[p.id]?.usage_instructions ?? ''}
+                        placeholder={t('placeholder')}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setEditing((prev) => ({
+                            ...prev,
+                            [p.id]: { ...prev[p.id], usage_instructions: value },
+                          }));
+                          setSaveFeedback((prev) => {
+                            if (!prev[p.id]) return prev;
+                            const next = { ...prev };
+                            delete next[p.id];
+                            return next;
+                          });
+                          setPageFeedback((current) =>
+                            current?.productId === p.id ? null : current
+                          );
+                        }}
+                      />
+                    </td>
 
-                      {/* Save Button */}
-                      <td className="px-5 py-5 text-right align-top">
-                        <PolarisButton
-                          onClick={() => handleSave(p)}
-                          disabled={saving === p.id}
-                          loading={saving === p.id}
-                          variant="primary"
-                        >
-                          {saving === p.id ? t('saving') : t('save')}
-                        </PolarisButton>
-                        {saveFeedback[p.id] ? (
-                          <div className="mt-2">
-                            <Text as="p" variant="bodySm" tone="success">
-                              {t('lastSaved', { time: formatSavedAt(saveFeedback[p.id].savedAt) })}
-                            </Text>
-                          </div>
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </PolarisCard>
+                    <td style={{ verticalAlign: 'top', textAlign: 'right' }}>
+                      <button
+                        className="r-btn r-btn-primary r-btn-sm"
+                        onClick={() => handleSave(p)}
+                        disabled={saving === p.id}
+                        aria-busy={saving === p.id || undefined}
+                      >
+                        {saving === p.id ? t('saving') : t('save')}
+                      </button>
+                      {saveFeedback[p.id] ? (
+                        <p className="r-hint" style={{ marginTop: 8, color: 'var(--r-success)' }}>
+                          {t('lastSaved', { time: formatSavedAt(saveFeedback[p.id].savedAt) })}
+                        </p>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableWrap>
         </div>
       )}
-          </div>
-        </Layout.Section>
-      </Layout>
-    </Page>
+    </div>
   );
 }
