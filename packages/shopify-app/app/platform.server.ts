@@ -1,4 +1,4 @@
-import { getVerifiedShopDomain, normalizeShopDomain } from "./lib/verifiedShop.server";
+import { getVerifiedShopDomain, normalizeShopDomain } from './lib/verifiedShop.server';
 
 function getRequiredEnv(name: string): string {
   const value = process.env[name]?.trim();
@@ -27,8 +27,27 @@ function parseJsonSafe(text: string) {
 function jsonErrorResponse(status: number, payload: unknown) {
   return new Response(JSON.stringify(payload), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { 'Content-Type': 'application/json' },
   });
+}
+
+/**
+ * parseRequiredJson (below) throws a Response, not an Error, so callers doing
+ * `err instanceof Error ? err.message : fallback` always hit the fallback and
+ * never see the real backend error — that's exactly what hid the /api/test
+ * 404 behind a generic "Failed to create test order" message. Route action
+ * catch blocks should await this instead of checking `instanceof Error`.
+ */
+export async function extractPlatformErrorMessage(err: unknown, fallback: string): Promise<string> {
+  if (err instanceof Response) {
+    const body = await err.json().catch(() => null);
+    const message =
+      (typeof body?.message === 'string' && body.message) ||
+      (typeof body?.error === 'string' && body.error) ||
+      (typeof body?.raw === 'string' && body.raw);
+    return message || `${fallback} (HTTP ${err.status})`;
+  }
+  return err instanceof Error ? err.message : fallback;
 }
 
 async function parseRequiredJson(response: Response, context: string) {
@@ -41,7 +60,7 @@ async function parseRequiredJson(response: Response, context: string) {
       response.status,
       parsed || {
         error: `${context} failed`,
-      },
+      }
     );
   }
 
@@ -87,12 +106,12 @@ export interface ShopifyMerchantOverview {
     notificationPhone?: string | null;
     personaSettings?: {
       bot_name?: string;
-      tone?: "friendly" | "professional" | "casual" | "formal";
+      tone?: 'friendly' | 'professional' | 'casual' | 'formal';
       emoji?: boolean;
       ai_vision_enabled?: boolean;
-      response_length?: "short" | "medium" | "long";
-      message_send_mode?: "always" | "all_products_required";
-      whatsapp_sender_mode?: "merchant_own" | "corporate";
+      response_length?: 'short' | 'medium' | 'long';
+      message_send_mode?: 'always' | 'all_products_required';
+      whatsapp_sender_mode?: 'merchant_own' | 'corporate';
       whatsapp_welcome_template?: string;
       onboarding_settings_configured_at?: string;
     };
@@ -129,13 +148,13 @@ export interface MerchantSettingsRecord {
     trial_ends_at?: string | null;
     persona_settings?: {
       bot_name?: string;
-      tone?: "friendly" | "professional" | "casual" | "formal";
+      tone?: 'friendly' | 'professional' | 'casual' | 'formal';
       emoji?: boolean;
       ai_vision_enabled?: boolean;
-      response_length?: "short" | "medium" | "long";
+      response_length?: 'short' | 'medium' | 'long';
       temperature?: number;
-      message_send_mode?: "always" | "all_products_required";
-      whatsapp_sender_mode?: "merchant_own" | "corporate";
+      message_send_mode?: 'always' | 'all_products_required';
+      whatsapp_sender_mode?: 'merchant_own' | 'corporate';
       whatsapp_welcome_template?: string;
       onboarding_settings_configured_at?: string;
     };
@@ -167,8 +186,8 @@ export interface MerchantProduct {
   chunkCount?: number;
   knowledgeHealth?: {
     score: number;
-    coverage: "strong" | "moderate" | "weak";
-    answerRisk: "low" | "medium" | "high";
+    coverage: 'strong' | 'moderate' | 'weak';
+    answerRisk: 'low' | 'medium' | 'high';
     missingReasonCodes: string[];
     metrics: {
       chunkCount: number;
@@ -189,10 +208,10 @@ export interface MerchantProduct {
     pendingLanguages: string[];
     translationCoverage: number;
     answerCoverage: number;
-    state: "not_started" | "pending" | "ready";
+    state: 'not_started' | 'pending' | 'ready';
   } | null;
   lifecycle?: {
-    status: "needs_setup" | "needs_ai_answers" | "ready";
+    status: 'needs_setup' | 'needs_ai_answers' | 'ready';
     label: string;
     nextActionLabel: string;
     message: string;
@@ -208,8 +227,8 @@ export interface ProductFactsSnapshot {
 }
 
 export interface ProductStepOutcome {
-  step: "map_product" | "collect_sources" | "generate_ai_knowledge";
-  status: "not_started" | "in_progress" | "ready" | "error";
+  step: 'map_product' | 'collect_sources' | 'generate_ai_knowledge';
+  status: 'not_started' | 'in_progress' | 'ready' | 'error';
   updatedAt?: string;
   delta?: Record<string, unknown>;
   error?: string | null;
@@ -265,10 +284,10 @@ export interface MerchantGuardrail {
   id: string;
   name: string;
   description?: string;
-  apply_to: "user_message" | "ai_response" | "both";
-  match_type: "keywords" | "phrase";
+  apply_to: 'user_message' | 'ai_response' | 'both';
+  match_type: 'keywords' | 'phrase';
   value: string[] | string;
-  action: "block" | "escalate";
+  action: 'block' | 'escalate';
   suggested_response?: string;
 }
 
@@ -276,8 +295,8 @@ export interface SystemGuardrail {
   id: string;
   name: string;
   description: string;
-  apply_to: "user_message" | "ai_response" | "both";
-  action: "block" | "escalate";
+  apply_to: 'user_message' | 'ai_response' | 'both';
+  action: 'block' | 'escalate';
   editable: false;
 }
 
@@ -290,8 +309,8 @@ export interface MerchantConversation {
   messageCount: number;
   lastMessageAt?: string | null;
   status?: string;
-  conversationStatus?: "ai" | "human" | "resolved";
-  sentiment?: "positive" | "neutral" | "negative";
+  conversationStatus?: 'ai' | 'human' | 'resolved';
+  sentiment?: 'positive' | 'neutral' | 'negative';
 }
 
 export interface MerchantConversationDetail {
@@ -302,12 +321,12 @@ export interface MerchantConversationDetail {
     userName: string;
     phone: string;
     history: Array<{
-      role: "user" | "assistant" | "merchant";
+      role: 'user' | 'assistant' | 'merchant';
       content: string;
       timestamp: string;
     }>;
     status: string;
-    conversationStatus: "ai" | "human" | "resolved";
+    conversationStatus: 'ai' | 'human' | 'resolved';
     assignedTo?: string | null;
     escalatedAt?: string | null;
     createdAt: string;
@@ -320,7 +339,7 @@ export interface MerchantConversationDetail {
     } | null;
     returnPreventionAttempt?: {
       id: string;
-      outcome: "pending" | "prevented" | "returned" | "escalated";
+      outcome: 'pending' | 'prevented' | 'returned' | 'escalated';
       triggerMessage: string;
       createdAt: string;
     } | null;
@@ -340,66 +359,72 @@ export interface MerchantCustomer {
 }
 
 function extractBearerToken(request: Request): string | null {
-  const headerAuth = request.headers.get("Authorization")?.trim();
+  const headerAuth = request.headers.get('Authorization')?.trim();
   if (headerAuth) return headerAuth;
 
   const url = new URL(request.url);
-  const idToken = url.searchParams.get("id_token")?.trim();
+  const idToken = url.searchParams.get('id_token')?.trim();
   if (idToken) return `Bearer ${idToken}`;
 
   return null;
 }
 
-function buildPlatformAuthHeaders(request: Request, initHeaders?: HeadersInit) {
+function buildPlatformAuthHeaders(
+  request: Request,
+  initHeaders?: ConstructorParameters<typeof Headers>[0]
+) {
   const authorization = extractBearerToken(request);
   if (!authorization) {
     throw jsonErrorResponse(401, {
-      error: "Missing Shopify session token in Authorization header",
+      error: 'Missing Shopify session token in Authorization header',
     });
   }
 
-  if (!authorization.startsWith("Bearer ")) {
+  if (!authorization.startsWith('Bearer ')) {
     throw jsonErrorResponse(401, {
-      error: "Malformed Authorization header",
+      error: 'Malformed Authorization header',
     });
   }
 
   const headers = new Headers(initHeaders || {});
-  headers.set("Authorization", authorization);
-  console.info("[platform-auth]", {
+  headers.set('Authorization', authorization);
+  console.info('[platform-auth]', {
     path: new URL(request.url).pathname,
     hasAuthorization: true,
   });
   return headers;
 }
 
-function buildPlatformMerchantHeaders(request: Request, initHeaders?: HeadersInit) {
+function buildPlatformMerchantHeaders(
+  request: Request,
+  initHeaders?: ConstructorParameters<typeof Headers>[0]
+) {
   const headers = new Headers(initHeaders || {});
   const internalSecret =
     process.env.INTERNAL_SERVICE_SECRET?.trim() ||
     process.env.PLATFORM_INTERNAL_SECRET?.trim() ||
-    "";
+    '';
 
   // Tenant identity must come from the verified session only. The `?shop=`
   // parameter is caller-controlled: trusting it let any authenticated merchant
   // read and write another shop's data through the internal-secret path.
   const verifiedShop = getVerifiedShopDomain(request);
-  const requestedShop = normalizeShopDomain(new URL(request.url).searchParams.get("shop"));
+  const requestedShop = normalizeShopDomain(new URL(request.url).searchParams.get('shop'));
 
   if (verifiedShop && requestedShop && requestedShop !== verifiedShop) {
-    console.warn("[platform-auth] shop mismatch rejected", {
+    console.warn('[platform-auth] shop mismatch rejected', {
       path: new URL(request.url).pathname,
       verifiedShop,
       requestedShop,
     });
     throw jsonErrorResponse(403, {
-      error: "Shop mismatch between session and request",
+      error: 'Shop mismatch between session and request',
     });
   }
 
   if (verifiedShop && internalSecret) {
-    headers.set("X-Internal-Secret", internalSecret);
-    headers.set("X-Internal-Shop-Domain", verifiedShop);
+    headers.set('X-Internal-Secret', internalSecret);
+    headers.set('X-Internal-Shop-Domain', verifiedShop);
     return headers;
   }
 
@@ -418,17 +443,16 @@ export async function syncShopInstall(session: {
   }
 
   const response = await fetch(
-    `${getRequiredEnv("PLATFORM_API_URL").replace(/\/$/, "")}/api/integrations/shopify/install-sync`,
+    `${getRequiredEnv('PLATFORM_API_URL').replace(/\/$/, '')}/api/integrations/shopify/install-sync`,
     {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         // Accept either name: requiring only PLATFORM_INTERNAL_SECRET here made
         // installs hard-fail on deployments that set INTERNAL_SERVICE_SECRET,
         // because this runs inside the afterAuth hook.
-        "X-Internal-Secret":
-          process.env.PLATFORM_INTERNAL_SECRET?.trim() ||
-          getRequiredEnv("INTERNAL_SERVICE_SECRET"),
+        'X-Internal-Secret':
+          process.env.PLATFORM_INTERNAL_SECRET?.trim() || getRequiredEnv('INTERNAL_SERVICE_SECRET'),
       },
       body: JSON.stringify({
         shop: session.shop,
@@ -436,59 +460,52 @@ export async function syncShopInstall(session: {
         scope: session.scope ?? null,
       }),
       signal: platformSignal(),
-    },
+    }
   );
 
-  return parseRequiredJson(response, "Platform install sync");
+  return parseRequiredJson(response, 'Platform install sync');
 }
 
 export async function forwardWebhookToPlatform(request: Request, path: string) {
   const rawBody = await request.clone().text();
   const headers = new Headers({
-    "Content-Type": request.headers.get("content-type") || "application/json",
+    'Content-Type': request.headers.get('content-type') || 'application/json',
   });
 
   for (const name of [
-    "x-shopify-hmac-sha256",
-    "x-shopify-shop-domain",
-    "x-shopify-topic",
-    "x-shopify-api-version",
-    "x-shopify-webhook-id",
-    "x-shopify-triggered-at",
+    'x-shopify-hmac-sha256',
+    'x-shopify-shop-domain',
+    'x-shopify-topic',
+    'x-shopify-api-version',
+    'x-shopify-webhook-id',
+    'x-shopify-triggered-at',
   ]) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);
   }
 
-  const response = await fetch(
-    `${getRequiredEnv("PLATFORM_API_URL").replace(/\/$/, "")}${path}`,
-    {
-      method: "POST",
-      headers,
-      body: rawBody,
-      signal: platformSignal(),
-    },
-  );
+  const response = await fetch(`${getRequiredEnv('PLATFORM_API_URL').replace(/\/$/, '')}${path}`, {
+    method: 'POST',
+    headers,
+    body: rawBody,
+    signal: platformSignal(),
+  });
 
   if (!response.ok) {
     const bodyText = await response.text();
     throw new Error(
-      `Platform webhook forward failed with ${response.status}: ${bodyText || "empty body"}`,
+      `Platform webhook forward failed with ${response.status}: ${bodyText || 'empty body'}`
     );
   }
 
   return response;
 }
 
-async function internalMerchantRequest(
-  request: Request,
-  path: string,
-  init?: RequestInit,
-) {
-  const baseUrl = getRequiredEnv("PLATFORM_API_URL").replace(/\/$/, "");
+async function internalMerchantRequest(request: Request, path: string, init?: RequestInit) {
+  const baseUrl = getRequiredEnv('PLATFORM_API_URL').replace(/\/$/, '');
   const headers = buildPlatformMerchantHeaders(request, init?.headers);
-  if (init?.body && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
+  if (init?.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
   }
 
   let response: Response;
@@ -501,7 +518,7 @@ async function internalMerchantRequest(
   } catch (err) {
     console.error(
       `[platform] Connection to API failed for ${path}:`,
-      err instanceof Error ? err.message : err,
+      err instanceof Error ? err.message : err
     );
     throw jsonErrorResponse(502, {
       error: `Platform API unreachable`,
@@ -514,7 +531,7 @@ async function internalMerchantRequest(
 }
 
 export async function fetchMerchantOverviewFromRequest(request: Request) {
-  const baseUrl = getRequiredEnv("PLATFORM_API_URL").replace(/\/$/, "");
+  const baseUrl = getRequiredEnv('PLATFORM_API_URL').replace(/\/$/, '');
   let response: Response;
   try {
     response = await fetch(`${baseUrl}/api/integrations/shopify/merchant-overview`, {
@@ -524,7 +541,7 @@ export async function fetchMerchantOverviewFromRequest(request: Request) {
   } catch (err) {
     console.error(
       `[platform] Connection to API failed for merchant-overview:`,
-      err instanceof Error ? err.message : err,
+      err instanceof Error ? err.message : err
     );
     throw jsonErrorResponse(502, {
       error: `Platform API unreachable`,
@@ -533,26 +550,29 @@ export async function fetchMerchantOverviewFromRequest(request: Request) {
     });
   }
 
-  return (await parseRequiredJson(response, "Platform merchant overview")) as ShopifyMerchantOverview;
+  return (await parseRequiredJson(
+    response,
+    'Platform merchant overview'
+  )) as ShopifyMerchantOverview;
 }
 
 export async function fetchMerchantProducts(request: Request) {
-  const productsPayload = (await internalMerchantRequest(request, "/api/products")) as {
+  const productsPayload = (await internalMerchantRequest(request, '/api/products')) as {
     products: MerchantProduct[];
   };
 
   const products = productsPayload.products || [];
   if (products.length === 0) return { products: [] as MerchantProduct[] };
 
-  const chunkPayload = (await internalMerchantRequest(request, "/api/products/chunks/batch", {
-    method: "POST",
+  const chunkPayload = (await internalMerchantRequest(request, '/api/products/chunks/batch', {
+    method: 'POST',
     body: JSON.stringify({ productIds: products.map((product) => product.id) }),
   })) as {
     chunkCounts: Array<{ productId: string; chunkCount: number }>;
   };
 
   const chunkMap = new Map(
-    (chunkPayload.chunkCounts || []).map((entry) => [entry.productId, entry.chunkCount]),
+    (chunkPayload.chunkCounts || []).map((entry) => [entry.productId, entry.chunkCount])
   );
 
   return {
@@ -564,68 +584,67 @@ export async function fetchMerchantProducts(request: Request) {
 }
 
 export async function fetchMerchantSettings(request: Request) {
-  return (await internalMerchantRequest(request, "/api/merchants/me")) as MerchantSettingsRecord;
+  return (await internalMerchantRequest(request, '/api/merchants/me')) as MerchantSettingsRecord;
 }
 
 export async function updateMerchantSettings(
   request: Request,
   payload: {
     notification_phone?: string | null;
-    persona_settings?: MerchantSettingsRecord["merchant"]["persona_settings"];
-  },
+    persona_settings?: MerchantSettingsRecord['merchant']['persona_settings'];
+  }
 ) {
-  return internalMerchantRequest(request, "/api/merchants/me", {
-    method: "PUT",
+  return internalMerchantRequest(request, '/api/merchants/me', {
+    method: 'PUT',
     body: JSON.stringify(payload),
   });
 }
 
 export async function fetchMerchantMultiLangSettings(request: Request) {
-  return (await internalMerchantRequest(
-    request,
-    "/api/merchants/me/multi-lang-rag-settings",
-  )) as { settings: MultiLangRagSettings };
+  return (await internalMerchantRequest(request, '/api/merchants/me/multi-lang-rag-settings')) as {
+    settings: MultiLangRagSettings;
+  };
 }
 
 export async function updateMerchantMultiLangSettings(
   request: Request,
-  payload: Partial<MultiLangRagSettings>,
+  payload: Partial<MultiLangRagSettings>
 ) {
-  return internalMerchantRequest(request, "/api/merchants/me/multi-lang-rag-settings", {
-    method: "PUT",
+  return internalMerchantRequest(request, '/api/merchants/me/multi-lang-rag-settings', {
+    method: 'PUT',
     body: JSON.stringify(payload),
   }) as Promise<MultiLangSettingsUpdateResponse>;
 }
 
 export async function createMerchantProduct(
   request: Request,
-  input: { name: string; url: string; external_id?: string; raw_text?: string },
+  input: { name: string; url: string; external_id?: string; raw_text?: string }
 ) {
-  return internalMerchantRequest(request, "/api/products", {
-    method: "POST",
+  return internalMerchantRequest(request, '/api/products', {
+    method: 'POST',
     body: JSON.stringify(input),
   });
 }
 
 export async function scrapeMerchantProduct(request: Request, productId: string) {
   return internalMerchantRequest(request, `/api/products/${productId}/scrape`, {
-    method: "POST",
+    method: 'POST',
   }) as Promise<ProductActionApiResponse>;
 }
 
 export async function scrapeMerchantProductAsync(request: Request, productId: string) {
   return internalMerchantRequest(request, `/api/products/${productId}/scrape-async`, {
-    method: "POST",
+    method: 'POST',
   }) as Promise<ProductActionApiResponse>;
 }
 
 export async function enrichMerchantProductFromUrl(
   request: Request,
   productId: string,
-  sourceUrl: string,
+  sourceUrl: string
 ) {
   return internalMerchantRequest(request, `/api/products/${productId}/enrich-from-url`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify({ source_url: sourceUrl }),
   }) as Promise<ProductActionApiResponse>;
 }
@@ -633,10 +652,10 @@ export async function enrichMerchantProductFromUrl(
 export async function prepareMerchantProductKnowledge(
   request: Request,
   productId: string,
-  sourceUrl?: string,
+  sourceUrl?: string
 ) {
   return internalMerchantRequest(request, `/api/products/${productId}/prepare-knowledge`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify(sourceUrl ? { source_url: sourceUrl } : {}),
   }) as Promise<{
     message?: string;
@@ -646,17 +665,17 @@ export async function prepareMerchantProductKnowledge(
 
 export async function generateMerchantProductEmbeddings(request: Request, productId: string) {
   return internalMerchantRequest(request, `/api/products/${productId}/generate-embeddings`, {
-    method: "POST",
+    method: 'POST',
   }) as Promise<ProductActionApiResponse>;
 }
 
 export async function previewMerchantProductAnswer(
   request: Request,
   productId: string,
-  question: string,
+  question: string
 ) {
-  return internalMerchantRequest(request, "/api/answer", {
-    method: "POST",
+  return internalMerchantRequest(request, '/api/answer', {
+    method: 'POST',
     body: JSON.stringify({ question, product_ids: [productId] }),
   }) as Promise<{
     answer?: string;
@@ -667,27 +686,27 @@ export async function previewMerchantProductAnswer(
 
 export async function deleteMerchantProduct(request: Request, productId: string) {
   return internalMerchantRequest(request, `/api/products/${productId}`, {
-    method: "DELETE",
+    method: 'DELETE',
   });
 }
 
 export async function resetMerchantProductKnowledge(request: Request, productId: string) {
   return internalMerchantRequest(request, `/api/products/${productId}/knowledge`, {
-    method: "DELETE",
+    method: 'DELETE',
   });
 }
 
 export async function fetchShopifyCatalog(
   request: Request,
-  input?: { first?: number; after?: string },
+  input?: { first?: number; after?: string }
 ) {
   const query = new URLSearchParams();
-  query.set("first", String(input?.first || 24));
-  if (input?.after) query.set("after", input.after);
+  query.set('first', String(input?.first || 24));
+  if (input?.after) query.set('after', input.after);
 
   return (await internalMerchantRequest(
     request,
-    `/api/integrations/shopify/products?${query.toString()}`,
+    `/api/integrations/shopify/products?${query.toString()}`
   )) as {
     products: ShopifyCatalogProduct[];
     shopDomain: string;
@@ -697,7 +716,7 @@ export async function fetchShopifyCatalog(
 }
 
 export async function fetchMerchantProductInstructions(request: Request) {
-  return (await internalMerchantRequest(request, "/api/products/instructions/list")) as {
+  return (await internalMerchantRequest(request, '/api/products/instructions/list')) as {
     instructions: MerchantProductInstruction[];
   };
 }
@@ -707,15 +726,14 @@ export async function fetchMerchantProductFacts(request: Request, productIds: st
     return { facts: [] as ProductFactsSnapshot[] };
   }
   const query = new URLSearchParams();
-  query.set("product_ids", productIds.join(","));
-  return (await internalMerchantRequest(
-    request,
-    `/api/products/facts?${query.toString()}`,
-  )) as { facts: ProductFactsSnapshot[] };
+  query.set('product_ids', productIds.join(','));
+  return (await internalMerchantRequest(request, `/api/products/facts?${query.toString()}`)) as {
+    facts: ProductFactsSnapshot[];
+  };
 }
 
 export async function fetchMerchantMappingData(request: Request) {
-  return (await internalMerchantRequest(request, "/api/products/mapping-index")) as {
+  return (await internalMerchantRequest(request, '/api/products/mapping-index')) as {
     localProducts: Array<{
       id: string;
       external_id?: string | null;
@@ -733,16 +751,16 @@ export async function updateMerchantProductInstruction(
     recipe_summary?: string;
     video_url?: string;
     prevention_tips?: string;
-  },
+  }
 ) {
   return internalMerchantRequest(request, `/api/products/${productId}/instruction`, {
-    method: "PUT",
+    method: 'PUT',
     body: JSON.stringify(payload),
   });
 }
 
 export async function fetchMerchantGuardrails(request: Request) {
-  return (await internalMerchantRequest(request, "/api/merchants/me/guardrails")) as {
+  return (await internalMerchantRequest(request, '/api/merchants/me/guardrails')) as {
     system_guardrails: SystemGuardrail[];
     custom_guardrails: MerchantGuardrail[];
   };
@@ -750,58 +768,55 @@ export async function fetchMerchantGuardrails(request: Request) {
 
 export async function updateMerchantGuardrails(
   request: Request,
-  customGuardrails: MerchantGuardrail[],
+  customGuardrails: MerchantGuardrail[]
 ) {
-  return internalMerchantRequest(request, "/api/merchants/me/guardrails", {
-    method: "PUT",
+  return internalMerchantRequest(request, '/api/merchants/me/guardrails', {
+    method: 'PUT',
     body: JSON.stringify({ custom_guardrails: customGuardrails }),
   });
 }
 
 export async function fetchMerchantAddons(request: Request) {
-  return (await internalMerchantRequest(request, "/api/billing/addons")) as {
+  return (await internalMerchantRequest(request, '/api/billing/addons')) as {
     addons: MerchantAddon[];
   };
 }
 
 export async function subscribeMerchantAddon(request: Request, addonKey: string) {
   return internalMerchantRequest(request, `/api/billing/addons/${addonKey}/subscribe`, {
-    method: "POST",
+    method: 'POST',
   });
 }
 
 export async function cancelMerchantAddon(request: Request, addonKey: string) {
   return internalMerchantRequest(request, `/api/billing/addons/${addonKey}/cancel`, {
-    method: "POST",
+    method: 'POST',
   });
 }
 
 export async function deleteMerchantDataFromAdminPanel(shopDomain: string) {
-  const baseUrl = getRequiredEnv("PLATFORM_API_URL").replace(/\/$/, "");
-  const internalSecret = (
+  const baseUrl = getRequiredEnv('PLATFORM_API_URL').replace(/\/$/, '');
+  const internalSecret =
     process.env.INTERNAL_SERVICE_SECRET?.trim() ||
     process.env.PLATFORM_INTERNAL_SECRET?.trim() ||
-    ""
-  );
+    '';
   if (!internalSecret) {
-    throw new Error("INTERNAL_SERVICE_SECRET is not configured");
+    throw new Error('INTERNAL_SERVICE_SECRET is not configured');
   }
-  const shop = shopDomain.includes(".myshopify.com")
-    ? shopDomain
-    : `${shopDomain}.myshopify.com`;
+  const shop = shopDomain.includes('.myshopify.com') ? shopDomain : `${shopDomain}.myshopify.com`;
 
   const response = await fetch(`${baseUrl}/api/merchants/me/data-reset`, {
-    method: "DELETE",
+    method: 'DELETE',
     headers: {
-      "Content-Type": "application/json",
-      "X-Internal-Secret": internalSecret,
-      "X-Internal-Shop-Domain": shop,
+      'Content-Type': 'application/json',
+      'X-Internal-Secret': internalSecret,
+      'X-Internal-Shop-Domain': shop,
     },
     body: JSON.stringify({ confirm: true }),
     signal: platformSignal(),
   });
 
-  return (await parseRequiredJson(response, "Merchant data reset")) as {
+  return (await parseRequiredJson(response, 'Merchant data reset')) as {
     ok?: boolean;
     message?: string;
   };
@@ -815,7 +830,7 @@ export async function deleteMerchantDataFromAdminPanel(shopDomain: string) {
 export async function triggerTestOrderFlow(
   request: Request,
   phone: string,
-  products: Array<{ name: string; external_id?: string | null }>,
+  products: Array<{ name: string; external_id?: string | null }>
 ): Promise<{ success: boolean; externalOrderId: string }> {
   const externalOrderId = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const items = products.map((p) => ({
@@ -823,20 +838,20 @@ export async function triggerTestOrderFlow(
     ...(p.external_id ? { external_id: p.external_id } : {}),
   }));
 
-  await internalMerchantRequest(request, "/api/test/events", {
-    method: "POST",
+  await internalMerchantRequest(request, '/api/test/events', {
+    method: 'POST',
     body: JSON.stringify({
-      event_type: "order_created",
+      event_type: 'order_created',
       external_order_id: externalOrderId,
       customer_phone: phone,
       products: items,
     }),
   });
 
-  await internalMerchantRequest(request, "/api/test/events", {
-    method: "POST",
+  await internalMerchantRequest(request, '/api/test/events', {
+    method: 'POST',
     body: JSON.stringify({
-      event_type: "order_delivered",
+      event_type: 'order_delivered',
       external_order_id: externalOrderId,
       customer_phone: phone,
       products: items,
@@ -847,28 +862,25 @@ export async function triggerTestOrderFlow(
 }
 
 export async function fetchMerchantConversations(request: Request) {
-  return (await internalMerchantRequest(request, "/api/conversations")) as {
+  return (await internalMerchantRequest(request, '/api/conversations')) as {
     conversations: MerchantConversation[];
   };
 }
 
-export async function fetchMerchantConversationDetail(
-  request: Request,
-  conversationId: string,
-) {
+export async function fetchMerchantConversationDetail(request: Request, conversationId: string) {
   return (await internalMerchantRequest(
     request,
-    `/api/conversations/${conversationId}`,
+    `/api/conversations/${conversationId}`
   )) as MerchantConversationDetail;
 }
 
 export async function sendMerchantConversationReply(
   request: Request,
   conversationId: string,
-  text: string,
+  text: string
 ) {
   return internalMerchantRequest(request, `/api/conversations/${conversationId}/reply`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify({ text }),
   });
 }
@@ -876,28 +888,25 @@ export async function sendMerchantConversationReply(
 export async function updateMerchantConversationStatus(
   request: Request,
   conversationId: string,
-  status: "ai" | "human" | "resolved",
+  status: 'ai' | 'human' | 'resolved'
 ) {
   return internalMerchantRequest(request, `/api/conversations/${conversationId}/status`, {
-    method: "PUT",
+    method: 'PUT',
     body: JSON.stringify({ status }),
   });
 }
 
 export async function fetchMerchantCustomers(
   request: Request,
-  input?: { page?: number; limit?: number; segment?: string; search?: string },
+  input?: { page?: number; limit?: number; segment?: string; search?: string }
 ) {
   const query = new URLSearchParams();
-  query.set("page", String(input?.page || 1));
-  query.set("limit", String(input?.limit || 20));
-  if (input?.segment && input.segment !== "all") query.set("segment", input.segment);
-  if (input?.search) query.set("search", input.search);
+  query.set('page', String(input?.page || 1));
+  query.set('limit', String(input?.limit || 20));
+  if (input?.segment && input.segment !== 'all') query.set('segment', input.segment);
+  if (input?.search) query.set('search', input.search);
 
-  return (await internalMerchantRequest(
-    request,
-    `/api/customers?${query.toString()}`,
-  )) as {
+  return (await internalMerchantRequest(request, `/api/customers?${query.toString()}`)) as {
     customers: MerchantCustomer[];
     total: number;
     page: number;

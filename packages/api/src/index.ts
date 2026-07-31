@@ -29,6 +29,7 @@ import memberRoutes from './routes/members.js';
 import adminRoutes from './routes/admin.js';
 import shopifyGdprRoutes from './routes/shopifyGdpr.js';
 import answerRoutes from './routes/answer.js';
+import testRoutes from './routes/test.js';
 import { rateLimitMiddleware, authRateLimitMiddleware } from './middleware/rateLimit.js';
 import { securityHeadersMiddleware } from './middleware/securityHeaders.js';
 import { loggerMiddleware } from './middleware/logger.js';
@@ -50,7 +51,10 @@ if (process.env.NODE_ENV === 'production') {
    * previous one had picked. Failing at boot means ops finds out from a crashed
    * deploy, not from a merchant asking why the customers screen shows "***".
    */
-  if (!process.env.ENCRYPTION_KEY?.trim() || !/^[0-9a-fA-F]{64}$/.test(process.env.ENCRYPTION_KEY)) {
+  if (
+    !process.env.ENCRYPTION_KEY?.trim() ||
+    !/^[0-9a-fA-F]{64}$/.test(process.env.ENCRYPTION_KEY)
+  ) {
     console.error(
       '✖ ENCRYPTION_KEY is missing or invalid (must be 64 hex characters). Refusing to start: this key protects customer phone numbers, and running without it risks writing data that can never be decrypted again.'
     );
@@ -99,7 +103,11 @@ app.use('/*', async (c, next) => {
   } else {
     // In production: allow listed origins, or any localhost/127.0.0.1 (for local/ingress dev)
     if (origin) {
-      if (allowedOrigins.includes(origin) || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
         c.header('Access-Control-Allow-Origin', origin);
       }
     }
@@ -209,10 +217,18 @@ app.route('/webhooks', webhookRoutes);
 // Shopify GDPR Mandatory Webhook routes (public, authenticated via HMAC)
 app.route('/api/webhooks/shopify/gdpr', shopifyGdprRoutes);
 
+// Test & development routes — merchant-scoped via authMiddleware inside test.ts.
+// Backs the Shopify onboarding "Run a test order" step and the admin RAG debug
+// tool; was accidentally unmounted in 1b28d698, 404ing both for every merchant.
+app.route('/api/test', testRoutes);
+
 // Swagger UI Documentation
-app.get('/api/docs', swaggerUI({
-  url: '/api/docs/openapi.json',
-}));
+app.get(
+  '/api/docs',
+  swaggerUI({
+    url: '/api/docs/openapi.json',
+  })
+);
 
 // OpenAPI JSON specification (basic)
 app.get('/api/docs/openapi.json', (c) => {
@@ -267,7 +283,7 @@ app.get('/', (c) => {
   return c.json({
     message: 'Recete API',
     version: '0.1.0',
-    status: 'ok'
+    status: 'ok',
   });
 });
 
@@ -288,15 +304,13 @@ app.get('/health', async (c) => {
           process.env.INTERNAL_SERVICE_SECRET?.trim()
         ),
         whatsappProviderDefaultsConfigured: Boolean(
-          (
-            process.env.WHATSAPP_ACCESS_TOKEN?.trim() &&
-            process.env.WHATSAPP_PHONE_NUMBER_ID?.trim()
-          ) ||
-          (
-            process.env.TWILIO_ACCOUNT_SID?.trim() &&
-            (process.env.TWILIO_WHATSAPP_AUTH_TOKEN?.trim() || process.env.TWILIO_AUTH_TOKEN?.trim()) &&
-            (process.env.TWILIO_WHATSAPP_NUMBER?.trim() || process.env.TWILIO_WHATSAPP_FROM?.trim())
-          )
+          (process.env.WHATSAPP_ACCESS_TOKEN?.trim() &&
+            process.env.WHATSAPP_PHONE_NUMBER_ID?.trim()) ||
+          (process.env.TWILIO_ACCOUNT_SID?.trim() &&
+            (process.env.TWILIO_WHATSAPP_AUTH_TOKEN?.trim() ||
+              process.env.TWILIO_AUTH_TOKEN?.trim()) &&
+            (process.env.TWILIO_WHATSAPP_NUMBER?.trim() ||
+              process.env.TWILIO_WHATSAPP_FROM?.trim()))
         ),
       },
     },
@@ -321,8 +335,7 @@ app.get('/health', async (c) => {
   }
 
   const allHealthy =
-    health.services.database === 'connected' &&
-    health.services.redis === 'connected';
+    health.services.database === 'connected' && health.services.redis === 'connected';
 
   return c.json(health, allHealthy ? 200 : 503);
 });
