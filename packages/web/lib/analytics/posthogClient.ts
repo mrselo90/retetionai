@@ -7,6 +7,7 @@ import {
   POSTHOG_UI_HOST,
   isAnalyticsConfigured,
 } from './posthogConfig';
+import { cleanPathname } from './cleanPathname';
 
 let client: PostHog | null = null;
 let loading: Promise<PostHog | null> | null = null;
@@ -50,6 +51,21 @@ export function ensurePostHog(): Promise<PostHog | null> {
         // bodies. Recordings would ship all of that to PostHog, so they stay off
         // until someone deliberately configures masking for those screens.
         disable_session_recording: true,
+        // Collapse record ids in $pathname. $current_url is left alone, so the
+        // specific record is still there in the raw event — see cleanPathname.ts
+        // for why this is done here rather than with PostHog's own path cleaning.
+        before_send: (event) => {
+          if (!event?.properties) return event;
+          try {
+            const path = event.properties.$pathname;
+            if (typeof path === 'string') {
+              event.properties.$pathname = cleanPathname(path);
+            }
+          } catch {
+            // Never let this drop an event or throw inside capture.
+          }
+          return event;
+        },
       });
 
       // Stamp every event with the product and surface it came from.
