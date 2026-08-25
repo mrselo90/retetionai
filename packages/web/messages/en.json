@@ -1629,5 +1629,12 @@
     "outcomePending": "Pending",
     "attempts": "attempts",
     "product": "Product"
+  },
+  "CookieConsent": {
+    "ariaLabel": "Cookie consent",
+    "message": "We use analytics cookies to understand how the site is used. They are only set if you accept. Declining changes nothing about how the product works.",
+    "policyLink": "Read our cookie policy",
+    "accept": "Accept analytics",
+    "decline": "Decline"
   }
 }

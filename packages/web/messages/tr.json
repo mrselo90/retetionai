@@ -1629,5 +1629,12 @@
     "outcomePending": "Beklemede",
     "attempts": "deneme",
     "product": "Ürün"
+  },
+  "CookieConsent": {
+    "ariaLabel": "Çerez onayı",
+    "message": "Sitenin nasıl kullanıldığını anlamak için analitik çerezler kullanıyoruz. Bu çerezler yalnızca kabul etmeniz halinde yazılır. Reddetmeniz ürünün çalışmasını hiçbir şekilde etkilemez.",
+    "policyLink": "Çerez politikamızı okuyun",
+    "accept": "Analitiği kabul et",
+    "decline": "Reddet"
   }
 }

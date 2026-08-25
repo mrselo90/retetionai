@@ -9,5 +9,10 @@ export default function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next|monitoring|api-backend|.*\\..*).*)'],
+  // rc-relay is the PostHog proxy (see next.config.mjs). Without excluding it,
+  // the locale rewrite turns /rc-relay/i/v0/e/ into /en/rc-relay/i/v0/e/, which
+  // matches no route — every event 404s instead of reaching PostHog. Static
+  // assets under it happen to survive via the `.*\..*` extension escape, so the
+  // library loads and only the ingestion silently fails.
+  matcher: ['/((?!api|_next|monitoring|api-backend|rc-relay|.*\\..*).*)'],
 };

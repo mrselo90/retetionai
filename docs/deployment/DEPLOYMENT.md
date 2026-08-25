@@ -3,6 +3,7 @@
 ## Overview
 
 Recete Retention Agent is a monorepo application with three main services:
+
 - **API**: Hono-based REST API server
 - **Workers**: BullMQ background job processors
 - **Web**: Next.js frontend application
@@ -22,6 +23,7 @@ See [ENV_SETUP.md](../../ENV_SETUP.md) for complete environment variable documen
 ### Required Variables
 
 **API:**
+
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_KEY`
 - `REDIS_URL`
@@ -30,9 +32,11 @@ See [ENV_SETUP.md](../../ENV_SETUP.md) for complete environment variable documen
 - `SHOPIFY_API_SECRET`
 
 **Web:**
+
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` (optional; analytics is disabled when unset. Inlined at build time — must be present before `pnpm build`)
 
 ## Deployment Options
 
@@ -82,18 +86,21 @@ cd packages/web && pnpm build && cd ../..
 #### 3. Run Services
 
 **API:**
+
 ```bash
 cd packages/api
 NODE_ENV=production node dist/index.js
 ```
 
 **Workers:**
+
 ```bash
 cd packages/workers
 NODE_ENV=production node dist/index.js
 ```
 
 **Web:**
+
 ```bash
 cd packages/web
 NODE_ENV=production pnpm start
@@ -107,7 +114,6 @@ NODE_ENV=production pnpm start
 cd packages/web
 vercel --prod
 ```
-
 
 1. Connect your GitHub repository
 2. Set environment variables

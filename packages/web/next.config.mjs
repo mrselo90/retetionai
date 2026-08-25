@@ -56,8 +56,33 @@ const nextConfig = {
             destination: `${apiUrl.replace(/\/$/, '')}/:path*`,
         };
 
-        return [oauthRewrite, monitoringRewrite, apiBackendRewrite];
+        // PostHog (EU cloud) proxied through our own origin. Ad blockers block
+        // *.posthog.com by default, so without this a meaningful share of real
+        // visitors is never measured. The path must match POSTHOG_PROXY_PATH in
+        // lib/analytics/posthogConfig.ts, and is deliberately not /analytics or
+        // /posthog — blocker lists match those names too.
+        // Order matters: the static/array rules must precede the catch-all.
+        const posthogRewrites = [
+            {
+                source: "/rc-relay/static/:path*",
+                destination: "https://eu-assets.i.posthog.com/static/:path*",
+            },
+            {
+                source: "/rc-relay/array/:path*",
+                destination: "https://eu-assets.i.posthog.com/array/:path*",
+            },
+            {
+                source: "/rc-relay/:path*",
+                destination: "https://eu.i.posthog.com/:path*",
+            },
+        ];
+
+        return [oauthRewrite, monitoringRewrite, apiBackendRewrite, ...posthogRewrites];
     },
+
+    // Required by the PostHog proxy above: without it Next's trailing-slash
+    // redirect rewrites some ingestion URLs and events are lost.
+    skipTrailingSlashRedirect: true,
 
     // Cache headers for static assets
     async headers() {
