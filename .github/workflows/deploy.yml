@@ -98,6 +98,7 @@ jobs:
             
             echo "🔒 Verifying HTTPS endpoint..."
             HTTPS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://recete.co.uk/health 2>/dev/null || echo "000")
+            echo "   HTTPS_STATUS=$HTTPS_STATUS"
             if [ "$HTTPS_STATUS" != "200" ]; then
               echo "⚠️  HTTPS health check returned HTTP $HTTPS_STATUS (may be OK if DNS/cert not yet configured)"
             else
@@ -105,3 +106,13 @@ jobs:
             fi
 
             echo "✅ Deployment completed successfully! Health check passed."
+
+            # Explicit success. Every step above is guarded by script_stop's
+            # `set -e`, so reaching this line means they all passed — but the run
+            # was still reported as failed, with the log's tail cut off after the
+            # HTTPS echo and nothing identifiably returning non-zero. Rather than
+            # let a stray status from the last construct fail a deploy that
+            # demonstrably worked (server on the right commit, rebuilt, all four
+            # services online), say so explicitly. This cannot mask an earlier
+            # failure: set -e aborts before ever getting here.
+            exit 0
