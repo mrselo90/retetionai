@@ -52,6 +52,21 @@ export function ensurePostHog(): Promise<PostHog | null> {
         disable_session_recording: true,
       });
 
+      // Unhandled errors and promise rejections, from the moment consent is
+      // given. React error boundaries swallow render errors before they ever
+      // reach window.onerror, so ErrorBoundary reports those explicitly via
+      // reportClientError() — autocapture alone would miss exactly the failures that
+      // blank out a page.
+      //
+      // Console errors stay off: they would pull in React's warnings and our
+      // own console.error calls, including the one reportClientError makes, which
+      // would double-report every error it handles.
+      posthog.startExceptionAutocapture({
+        capture_unhandled_errors: true,
+        capture_unhandled_rejections: true,
+        capture_console_errors: false,
+      });
+
       client = posthog;
       return posthog;
     })

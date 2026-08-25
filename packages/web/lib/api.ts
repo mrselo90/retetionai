@@ -2,6 +2,8 @@
  * API client for backend communication
  */
 
+import { reportClientError } from './analytics/reportClientError';
+
 function getApiBaseUrl(): string {
   // In the browser always use same-origin (/api-backend) so requests go through current host
   // (ingress or Next.js proxy). Avoids "Could not reach the API" when NEXT_PUBLIC_API_URL
@@ -103,12 +105,12 @@ export async function apiRequest<T>(endpoint: string, options?: RequestInit): Pr
         hint: error.hint,
       });
 
-    // This used to call a Sentry helper, but client-side Sentry.init() never ran
-    // (no withSentryConfig, and sentry.client.config.ts was imported by nothing),
-    // so every one of those reports was a no-op. Logged instead — next.config.mjs
-    // keeps console.error in production builds.
+    // Reported explicitly rather than left to autocapture: this error is thrown
+    // and handled by the caller (toast, retry), so it never becomes an unhandled
+    // exception that PostHog would see on its own.
     if (response.status >= 500) {
-      console.error('[api] server error', {
+      reportClientError(apiError, {
+        source: 'apiRequest',
         endpoint,
         status: response.status,
         details: error.details,

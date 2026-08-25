@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { reportClientError } from '@/lib/analytics/reportClientError';
 import { Button } from '@/components/ui/button';
 
 interface ErrorBoundaryState {
@@ -34,11 +35,13 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Console only. There is no error-reporting service wired up on the client —
-    // an earlier comment here claimed Sentry picked these up, which was never
-    // true: client-side Sentry.init() never ran. If you want these reported,
-    // initialise a reporter in instrumentation-client.ts and call it from here.
-    console.error('[ErrorBoundary] Caught error:', error, info.componentStack);
+    // React swallows render errors here — they never reach window.onerror, so
+    // PostHog's autocapture cannot see them. This is the only way they get
+    // reported.
+    reportClientError(error, {
+      source: 'ErrorBoundary',
+      componentStack: info.componentStack,
+    });
   }
 
   handleReset = () => {
