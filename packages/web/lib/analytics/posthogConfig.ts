@@ -9,6 +9,11 @@
  *
  * NEXT_PUBLIC_* values are inlined at build time, so the token has to be
  * present when `next build` runs, not just when the server starts.
+ *
+ * There is deliberately no NEXT_PUBLIC_POSTHOG_HOST, even though PostHog's own
+ * snippets use one: pointing the browser straight at eu.i.posthog.com is the
+ * thing the proxy exists to avoid. The upstream host lives in the rewrite in
+ * next.config.mjs, where only our server sees it.
  */
 
 /** Path on our own origin that proxies to PostHog. Must match the rewrites in next.config.mjs. */
@@ -18,7 +23,7 @@ export const POSTHOG_PROXY_PATH = '/rc-relay';
 export const POSTHOG_UI_HOST = 'https://eu.posthog.com';
 
 /** Public project token (phc_...). Safe to ship to the browser by design. */
-export const POSTHOG_TOKEN = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN ?? '';
+export const POSTHOG_TOKEN = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? '';
 
 /**
  * Analytics is a no-op without a token, so local dev and preview builds run

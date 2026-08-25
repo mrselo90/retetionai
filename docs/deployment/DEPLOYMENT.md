@@ -36,7 +36,7 @@ See [ENV_SETUP.md](../../ENV_SETUP.md) for complete environment variable documen
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_API_URL`
-- `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` (optional; analytics is disabled when unset. Inlined at build time — must be present before `pnpm build`)
+- `NEXT_PUBLIC_POSTHOG_KEY` (optional; analytics is disabled when unset. Inlined at build time — must be present before `pnpm build`)
 
 ## Deployment Options
 
