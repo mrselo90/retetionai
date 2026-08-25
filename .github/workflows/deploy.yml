@@ -18,6 +18,12 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          # Abort on the first failing command. Without this the script runs to
+          # the end regardless, so a failed `pnpm build` still reached the PM2
+          # restart and put the services on a half-written .next — pages answer
+          # 200 from SSR while the client chunks 404, which looks healthy from
+          # outside. Better to stop with the old build still serving.
+          script_stop: true
           script: |
             # Load NVM and node
             export NVM_DIR="$HOME/.nvm"
