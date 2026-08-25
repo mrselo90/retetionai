@@ -2,8 +2,6 @@
  * API client for backend communication
  */
 
-import { captureException } from './sentry';
-
 function getApiBaseUrl(): string {
   // In the browser always use same-origin (/api-backend) so requests go through current host
   // (ingress or Next.js proxy). Avoids "Could not reach the API" when NEXT_PUBLIC_API_URL
@@ -39,10 +37,7 @@ export interface ApiError {
 /** Default client-side request timeout. */
 const REQUEST_TIMEOUT_MS = 30_000;
 
-export async function apiRequest<T>(
-  endpoint: string,
-  options?: RequestInit
-): Promise<T> {
+export async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = getApiUrl(endpoint);
 
   let response: Response;
@@ -61,7 +56,7 @@ export async function apiRequest<T>(
   } catch (err) {
     if (err instanceof DOMException && err.name === 'TimeoutError') {
       throw new Error(
-        `The request took longer than ${Math.round(REQUEST_TIMEOUT_MS / 1000)}s and was cancelled. Please try again.`,
+        `The request took longer than ${Math.round(REQUEST_TIMEOUT_MS / 1000)}s and was cancelled. Please try again.`
       );
     }
 
@@ -83,12 +78,12 @@ export async function apiRequest<T>(
       error = text
         ? (JSON.parse(text) as ApiError)
         : {
-          error: 'Request failed',
-          message:
-            response.status === 404
-              ? 'API not found. Is the backend running on the correct port?'
-              : `Request failed (${response.status})`,
-        };
+            error: 'Request failed',
+            message:
+              response.status === 404
+                ? 'API not found. Is the backend running on the correct port?'
+                : `Request failed (${response.status})`,
+          };
     } catch {
       // Response was HTML or non-JSON (e.g. 404 page, proxy error)
       error = {
@@ -108,8 +103,12 @@ export async function apiRequest<T>(
         hint: error.hint,
       });
 
+    // This used to call a Sentry helper, but client-side Sentry.init() never ran
+    // (no withSentryConfig, and sentry.client.config.ts was imported by nothing),
+    // so every one of those reports was a no-op. Logged instead — next.config.mjs
+    // keeps console.error in production builds.
     if (response.status >= 500) {
-      captureException(apiError, {
+      console.error('[api] server error', {
         endpoint,
         status: response.status,
         details: error.details,
@@ -156,7 +155,7 @@ const DOWNLOAD_TIMEOUT_MS = 120_000;
 
 export async function authenticatedFileRequest(
   endpoint: string,
-  token: string,
+  token: string
 ): Promise<{ text: string; filename: string; headers: Headers }> {
   const url = getApiUrl(endpoint);
 
@@ -169,7 +168,7 @@ export async function authenticatedFileRequest(
   } catch (err) {
     if (err instanceof DOMException && err.name === 'TimeoutError') {
       throw new Error(
-        `The download took longer than ${Math.round(DOWNLOAD_TIMEOUT_MS / 1000)}s and was cancelled. Please try again.`,
+        `The download took longer than ${Math.round(DOWNLOAD_TIMEOUT_MS / 1000)}s and was cancelled. Please try again.`
       );
     }
     throw new Error(err instanceof Error ? err.message : 'Network error');
@@ -200,7 +199,11 @@ export async function authenticatedFileRequest(
  * Hand a fetched file to the browser's download flow.
  * Revokes the object URL so repeated exports do not leak blobs.
  */
-export function triggerBrowserDownload(text: string, filename: string, mimeType = 'text/csv;charset=utf-8') {
+export function triggerBrowserDownload(
+  text: string,
+  filename: string,
+  mimeType = 'text/csv;charset=utf-8'
+) {
   const url = URL.createObjectURL(new Blob([text], { type: mimeType }));
   const link = document.createElement('a');
   link.href = url;

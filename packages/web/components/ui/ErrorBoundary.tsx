@@ -34,7 +34,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Log to console in dev; Sentry picks this up in prod via its own ErrorBoundary listener
+    // Console only. There is no error-reporting service wired up on the client —
+    // an earlier comment here claimed Sentry picked these up, which was never
+    // true: client-side Sentry.init() never ran. If you want these reported,
+    // initialise a reporter in instrumentation-client.ts and call it from here.
     console.error('[ErrorBoundary] Caught error:', error, info.componentStack);
   }
 
@@ -52,9 +55,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       return (
         <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center">
           <div className="text-4xl mb-4">⚠️</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Something went wrong
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Something went wrong</h2>
           <p className="text-sm text-gray-500 mb-6 max-w-md">
             An unexpected error occurred. Try refreshing the page — your data is safe.
           </p>
