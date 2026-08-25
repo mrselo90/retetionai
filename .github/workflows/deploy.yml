@@ -78,8 +78,15 @@ jobs:
             # definitions, which can keep stale ports and env and break routing.
             # The config names exactly Recete's four services, so the scope stays
             # correct without a list to keep in sync here.
+            # Output redirected and stdin closed on purpose. The action was
+            # reporting "Process exited with status 1" mid-stream — its own line
+            # appeared in the log BEFORE output the script printed afterwards, so
+            # the session was being torn down while the script still ran. pm2
+            # holding the channel is the usual cause; keeping it off our stdio
+            # lets the session close cleanly.
             echo "🔄 Restarting PM2 services..."
-            pm2 startOrRestart ecosystem.config.cjs --update-env
+            pm2 startOrRestart ecosystem.config.cjs --update-env </dev/null >/dev/null 2>&1
+            echo "✔ pm2 restart issued"
             
             echo "⏳ Waiting for services to start..."
             sleep 10
@@ -91,7 +98,7 @@ jobs:
               git checkout HEAD~1
               pnpm install
               pnpm build
-              pm2 startOrRestart ecosystem.config.cjs --update-env
+              pm2 startOrRestart ecosystem.config.cjs --update-env </dev/null >/dev/null 2>&1
               echo "🔙 Rolled back to previous version"
               exit 1
             fi
