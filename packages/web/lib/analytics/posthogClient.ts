@@ -52,6 +52,23 @@ export function ensurePostHog(): Promise<PostHog | null> {
         disable_session_recording: true,
       });
 
+      // Stamp every event with the product and surface it came from.
+      //
+      // This PostHog project is shared: matchcountdown.com reports into the same
+      // one, and the free plan allows a single project. Web analytics separates
+      // them with its domain picker, but error tracking, product analytics and
+      // insights do not — Recete's exceptions land in the same issue list as
+      // another product's. Registered as super properties, so they ride along on
+      // every event (autocaptured exceptions included) and can be filtered
+      // anywhere with `product = recete`.
+      //
+      // Note this does NOT separate person profiles or the event quota; those
+      // stay shared until Recete gets a project of its own.
+      posthog.register({
+        product: 'recete',
+        app: 'recete-web',
+      });
+
       // Unhandled errors and promise rejections, from the moment consent is
       // given. React error boundaries swallow render errors before they ever
       // reach window.onerror, so ErrorBoundary reports those explicitly via
