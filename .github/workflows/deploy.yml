@@ -52,6 +52,13 @@ jobs:
             
             cd /root/retetionai
             
+            # Remember what is running before we move the tree. The rollback
+            # below needs the exact commit whose build is live — `HEAD~1` after
+            # the pull is not it: a deploy often brings several commits, so
+            # HEAD~1 can still be ahead of what was deployed.
+            DEPLOYED_SHA=$(git rev-parse HEAD)
+            echo "   currently deployed: $DEPLOYED_SHA"
+
             echo "📦 Pulling latest code..."
             git pull origin main
             
@@ -94,15 +101,40 @@ jobs:
             echo "⏳ Waiting for services to start..."
             sleep 10
             
+            # Check the web app as well as the API. The failure this pipeline
+            # most needs to catch is a bad web build, and that presents as a
+            # perfectly healthy API: SSR still answers 200 while the client
+            # chunks 404. Checking only :3002 would wave it straight through.
             echo "🏥 Running post-deploy health check..."
-            HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 http://localhost:3002/health || echo "000")
-            if [ "$HEALTH_STATUS" != "200" ]; then
-              echo "❌ Health check failed (HTTP $HEALTH_STATUS). Rolling back..."
-              git checkout HEAD~1
+            API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 http://localhost:3002/health || echo "000")
+            WEB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 http://localhost:3001/ || echo "000")
+            echo "   api=$API_STATUS web=$WEB_STATUS"
+
+            if [ "$API_STATUS" != "200" ] || [ "$WEB_STATUS" != "200" ]; then
+              echo "❌ Health check failed (api=$API_STATUS web=$WEB_STATUS). Rolling back to $DEPLOYED_SHA..."
+
+              # `git reset --hard`, not `git checkout HEAD~1`: checkout leaves the
+              # server on a detached HEAD, and then every later `git pull origin
+              # main` fails with "not currently on any branch" — one bad deploy
+              # would wedge the pipeline until someone fixed it by hand. reset
+              # stays on main and lands exactly on the commit that was live.
+              #
+              # set +e for the duration: with -e a failure part-way through the
+              # rollback would abort before the restart, leaving the services on
+              # the broken build — the opposite of what a rollback is for.
+              set +e
+              git reset --hard "$DEPLOYED_SHA"
               pnpm install
-              pnpm build
-              pm2 startOrRestart ecosystem.config.cjs --update-env </dev/null >/dev/null 2>&1
-              echo "🔙 Rolled back to previous version"
+              if pnpm build; then
+                pm2 startOrRestart ecosystem.config.cjs --update-env </dev/null >/dev/null 2>&1
+                echo "🔙 Rolled back to $DEPLOYED_SHA and restarted"
+              else
+                echo "🚨 Rollback BUILD FAILED. The tree is back on $DEPLOYED_SHA but"
+                echo "   .next is not rebuilt, so the services are still serving the"
+                echo "   bad build. Fix by hand, from /root/retetionai:"
+                echo "   pnpm install && pnpm build && pm2 startOrRestart ecosystem.config.cjs --update-env"
+              fi
+              set -e
               exit 1
             fi
             
