@@ -26,6 +26,9 @@ jobs:
           script_stop: true
           script: |
             echo "🔑 Connected. Starting deploy script..."
+            # Deliberately not `env` — this repo is public and its logs with it.
+            echo "   shell=$0 bash=${BASH_VERSION:-none} psql=$(command -v psql || echo none)"
+            echo "   DATABASE_URL=${DATABASE_URL:+set}${DATABASE_URL:-unset}"
 
             # Load nvm if it is installed. Written as an `if` rather than
             # `[ -s ... ] && . ...` on purpose: nvm is NOT installed on this
@@ -52,21 +55,13 @@ jobs:
             echo "📥 Installing dependencies..."
             pnpm install
 
-            # `&>` is a bashism. Under dash it parses as `command -v psql &`
-            # (backgrounded) followed by a bare `> /dev/null`, which changes what
-            # the condition even means. POSIX redirect instead, so this behaves
-            # the same whichever shell the action gives us.
-            #
-            # Note DATABASE_URL is not passed into this SSH session at all, so in
-            # practice this always skips. Left in place rather than deleted so a
-            # future run with the env wired up still works.
-            echo "🗄️ Running Supabase migrations..."
-            if command -v psql >/dev/null 2>&1 && [ -n "$DATABASE_URL" ]; then
-              bash supabase/run-migrations.sh
-            else
-              echo "⚠️  psql not available or DATABASE_URL not set, skipping Supabase migrations"
-            fi
-            echo "✔ migrations step done"
+            # Supabase migrations are NOT run here. DATABASE_URL is not passed into
+            # this SSH session, so the step could only ever take its skip branch —
+            # and it was the point every deploy died at, killing the run before the
+            # build. Run them deliberately instead:
+            #   DATABASE_URL="postgres://..." ./supabase/run-migrations.sh
+            # If you want them back in CI, pass DATABASE_URL through the action's
+            # `envs` input rather than hoping the shell already has it.
 
             echo "🗄️ Syncing Shopify shell Prisma schema..."
             pnpm --filter @recete/shopify-app prisma db push
