@@ -16,9 +16,14 @@ if [ ! -f "$NGINX_CONF" ]; then
     exit 1
 fi
 
-# Backup the current configuration
-cp "$NGINX_CONF" "${NGINX_CONF}.bak.$(date +%F_%T)"
-echo -e "${GREEN}Backed up Nginx config to ${NGINX_CONF}.bak.$(date +%F_%T)${NC}"
+# Backup the current configuration.
+# The path is computed ONCE. It used to be spelled `$(date +%F_%T)` at each use,
+# which re-evaluated seconds apart — so the echo reported a different filename
+# than the one written, and the restore below looked for a file that never
+# existed.
+BACKUP="${NGINX_CONF}.bak.$(date +%F_%T)"
+cp "$NGINX_CONF" "$BACKUP"
+echo -e "${GREEN}Backed up Nginx config to ${BACKUP}${NC}"
 
 # Update the proxy_pass port for /api/ location
 # Replaces 'proxy_pass http://localhost:3000;' with 'proxy_pass http://localhost:3002;'
@@ -35,17 +40,21 @@ else
     fi
 fi
 
-# Test Nginx configuration
+# Test Nginx configuration.
+# `nginx -t` inside the `if`, not on its own line: with `set -e` a failing test
+# aborted the script right there, so the restore branch below was dead code and
+# a bad edit was left on disk while the script claimed to have restored it.
+# Note this validates the WHOLE nginx config, other projects' sites included —
+# so a reload never goes ahead on a config that would break them.
 echo -e "${YELLOW}Testing Nginx configuration...${NC}"
-nginx -t
-
-if [ $? -eq 0 ]; then
+if nginx -t; then
     echo -e "${GREEN}Configuration test passed. Reloading Nginx...${NC}"
     systemctl reload nginx
     echo -e "${GREEN}Nginx reloaded successfully!${NC}"
 else
     echo -e "${RED}Configuration test failed! Restoring backup...${NC}"
-    cp "${NGINX_CONF}.bak.$(date +%F_%T)" "$NGINX_CONF"
-    echo -e "${YELLOW}Backup restored. Please check errors manually.${NC}"
+    cp "$BACKUP" "$NGINX_CONF"
+    echo -e "${YELLOW}Backup restored from ${BACKUP}. Nginx was NOT reloaded, so"
+    echo -e "the running config is untouched. Please check errors manually.${NC}"
     exit 1
 fi

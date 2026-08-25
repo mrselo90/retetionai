@@ -52,7 +52,11 @@ for domain in "${DOMAINS[@]}"; do
     fi
 done
 
-# Open firewall ports if ufw is active
+# Open firewall ports if ufw is active.
+# This is box-wide, unlike everything else here, and deliberately kept: 80/443
+# are what any web server on this host needs, the rules are additive, and `ufw
+# reload` does not drop established connections. Nothing else in this script
+# touches shared state any more.
 if command -v ufw &>/dev/null && ufw status | grep -q "active"; then
     log "Opening ports 80 and 443 in ufw..."
     ufw allow 80/tcp
@@ -100,7 +104,18 @@ server {
 TMPCONF
 
 ln -sf "$NGINX_CONF_DST" /etc/nginx/sites-enabled/recete
-rm -f /etc/nginx/sites-enabled/default
+
+# The default site is deliberately left alone. This box serves other projects,
+# and disabling it could take one of them down. Recete does not need it gone
+# either: nginx routes by server_name, and the default site only ever handles
+# requests that match no server_name at all.
+if [[ -e /etc/nginx/sites-enabled/default ]]; then
+    warn "/etc/nginx/sites-enabled/default is enabled and left as-is."
+    if grep -qs "default_server" /etc/nginx/sites-enabled/default; then
+        warn "  It claims default_server. That only affects unmatched requests,"
+        warn "  but if Recete's domains do not resolve, you will hit it instead."
+    fi
+fi
 
 nginx -t || fail "Nginx config test failed"
 systemctl reload nginx
@@ -164,14 +179,29 @@ log "Production HTTPS Nginx config is active."
 # ──────────────────────────────────────────────
 log "Configuring auto-renewal..."
 
-CRON_CMD="0 3,15 * * * certbot renew --quiet --deploy-hook 'systemctl reload nginx'"
+# Our own file in /etc/cron.d rather than root's crontab. The old approach was
+#   (crontab -l 2>/dev/null; echo "$CRON_CMD") | crontab -
+# which reads the shared crontab and writes it back. `crontab -l`'s stderr was
+# suppressed, so if that read failed for any reason other than "no crontab yet",
+# the rewrite would silently replace every other project's cron jobs with this
+# one line. A dedicated file cannot clobber anything, and removing it is one rm.
+CRON_FILE="/etc/cron.d/recete-certbot-renew"
 
-# Add to root crontab if not already present
-if ! crontab -l 2>/dev/null | grep -qF "certbot renew"; then
-    (crontab -l 2>/dev/null; echo "$CRON_CMD") | crontab -
-    log "Auto-renewal cron job added (runs at 03:00 and 15:00 daily)."
+if [[ -f "$CRON_FILE" ]]; then
+    log "Auto-renewal cron file already exists ($CRON_FILE)."
 else
-    log "Auto-renewal cron job already exists."
+    if crontab -l 2>/dev/null | grep -qF "certbot renew"; then
+        warn "root's crontab already renews certbot. Leaving it, not adding $CRON_FILE."
+    else
+        cat > "$CRON_FILE" <<'CRON'
+# Recete: renew Let's Encrypt certificates. Installed by nginx/setup-https.sh.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+0 3,15 * * * root certbot renew --quiet --deploy-hook 'systemctl reload nginx'
+CRON
+        chmod 644 "$CRON_FILE"
+        log "Auto-renewal installed at $CRON_FILE (runs at 03:00 and 15:00 daily)."
+    fi
 fi
 
 # ──────────────────────────────────────────────
