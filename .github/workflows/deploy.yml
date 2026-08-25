@@ -52,15 +52,25 @@ jobs:
             echo "📥 Installing dependencies..."
             pnpm install
 
+            # `&>` is a bashism. Under dash it parses as `command -v psql &`
+            # (backgrounded) followed by a bare `> /dev/null`, which changes what
+            # the condition even means. POSIX redirect instead, so this behaves
+            # the same whichever shell the action gives us.
+            #
+            # Note DATABASE_URL is not passed into this SSH session at all, so in
+            # practice this always skips. Left in place rather than deleted so a
+            # future run with the env wired up still works.
             echo "🗄️ Running Supabase migrations..."
-            if command -v psql &> /dev/null && [ -n "$DATABASE_URL" ]; then
+            if command -v psql >/dev/null 2>&1 && [ -n "$DATABASE_URL" ]; then
               bash supabase/run-migrations.sh
             else
               echo "⚠️  psql not available or DATABASE_URL not set, skipping Supabase migrations"
             fi
+            echo "✔ migrations step done"
 
             echo "🗄️ Syncing Shopify shell Prisma schema..."
             pnpm --filter @recete/shopify-app prisma db push
+            echo "✔ prisma step done"
             
             echo "🔨 Building the application..."
             pnpm build
