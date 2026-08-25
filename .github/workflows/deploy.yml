@@ -25,9 +25,18 @@ jobs:
           # outside. Better to stop with the old build still serving.
           script_stop: true
           script: |
-            # Load NVM and node
+            echo "🔑 Connected. Starting deploy script..."
+
+            # Load nvm if it is installed. Written as an `if` rather than
+            # `[ -s ... ] && . ...` on purpose: nvm is NOT installed on this
+            # server (node and pnpm come from /usr/bin), so that AND-list
+            # evaluated false and returned 1. Under script_stop's `set -e` the
+            # whole deploy died on this line, before the first echo — a failure
+            # with no output at all, which is very hard to read from the logs.
             export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              . "$NVM_DIR/nvm.sh"
+            fi
             
             # Load PNPM
             export PNPM_HOME="/root/.local/share/pnpm"
