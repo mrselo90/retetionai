@@ -1,19 +1,19 @@
 'use client';
 
 import { useEffect } from 'react';
-import posthog from 'posthog-js';
-import { PostHogProvider as PHProvider } from 'posthog-js/react';
 import { isAnalyticsConfigured } from '@/lib/analytics/posthogConfig';
-import { ensurePostHogInitialised, isPostHogInitialised } from '@/lib/analytics/posthogClient';
+import { ensurePostHog, getPostHog } from '@/lib/analytics/posthogClient';
 import { CONSENT_CHANGED_EVENT, readConsent } from '@/lib/analytics/consent';
 import PostHogIdentify from './PostHogIdentify';
 
 /**
- * Starts and stops PostHog in step with the visitor's consent choice, and makes
- * the client available to the tree.
+ * Starts and stops PostHog in step with the visitor's consent choice.
  *
- * Nothing runs until consent is granted — see lib/analytics/posthogClient.ts
- * for why init itself is the thing being gated.
+ * There is no posthog-js/react context provider here on purpose: nothing in the
+ * app uses usePostHog(), and importing the React wrapper would pull the SDK
+ * into the initial bundle, which is exactly what the dynamic load in
+ * lib/analytics/posthogClient.ts avoids. Components that need the client call
+ * ensurePostHog()/getPostHog() directly.
  */
 export default function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -21,17 +21,28 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
 
     const applyConsent = () => {
       if (readConsent() === 'granted') {
-        // First grant of the session: this is where PostHog actually starts.
-        ensurePostHogInitialised();
-        posthog.opt_in_capturing();
-        // init() alone does not send a pageview for the page already on screen,
-        // so without this the visit that produced the consent is uncounted.
-        posthog.capture('$pageview');
+        const existing = getPostHog();
+
+        if (!existing) {
+          // First grant of the session: this is where the SDK is fetched and
+          // started. init() captures the page in view itself, so no manual
+          // $pageview here — sending one would double-count the visit.
+          void ensurePostHog();
+          return;
+        }
+
+        // Consent was withdrawn and given again. opt_out_capturing() stores a
+        // persistent preference that survives reset(), so the already-loaded
+        // client stays mute unless it is explicitly opted back in.
+        if (existing.has_opted_out_capturing()) {
+          existing.opt_in_capturing();
+        }
         return;
       }
 
-      // Never initialised, so there is nothing to opt out of or clear.
-      if (!isPostHogInitialised()) return;
+      // Never loaded, so there is nothing to opt out of or clear.
+      const posthog = getPostHog();
+      if (!posthog) return;
 
       posthog.opt_out_capturing();
       // Drops the stored distinct_id and the analytics cookie, so withdrawing
@@ -43,14 +54,10 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
     return () => window.removeEventListener(CONSENT_CHANGED_EVENT, applyConsent);
   }, []);
 
-  if (!isAnalyticsConfigured()) {
-    return <>{children}</>;
-  }
-
   return (
-    <PHProvider client={posthog}>
-      <PostHogIdentify />
+    <>
+      {isAnalyticsConfigured() && <PostHogIdentify />}
       {children}
-    </PHProvider>
+    </>
   );
 }

@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import posthog from 'posthog-js';
 import { supabase } from '@/lib/supabase';
 import { CONSENT_CHANGED_EVENT, readConsent } from '@/lib/analytics/consent';
-import { ensurePostHogInitialised, isPostHogInitialised } from '@/lib/analytics/posthogClient';
+import { ensurePostHog, getPostHog } from '@/lib/analytics/posthogClient';
 
 /**
  * Links the anonymous visitor to the signed-in merchant so funnels can run
@@ -23,12 +22,16 @@ export default function PostHogIdentify() {
     let cancelled = false;
 
     const identifyFromSession = async () => {
-      // A visitor who has not consented has no PostHog client at all, and
-      // skipping the Supabase round trip keeps them free of side effects.
+      // A visitor who has not consented has no PostHog client at all — and no
+      // SDK download either. Skipping the Supabase round trip keeps them free
+      // of side effects.
       if (readConsent() !== 'granted') return;
+
       // This listener can fire before the provider's (child effects register
-      // first), so make sure the client exists rather than assuming it does.
-      if (!ensurePostHogInitialised()) return;
+      // first), so ask for the client rather than assuming it is there. Shared
+      // load, so this does not start a second one.
+      const posthog = await ensurePostHog();
+      if (!posthog || cancelled) return;
 
       try {
         const {
@@ -51,7 +54,12 @@ export default function PostHogIdentify() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (cancelled || readConsent() !== 'granted' || !isPostHogInitialised()) return;
+      if (cancelled || readConsent() !== 'granted') return;
+
+      // Auth can change before consent has loaded the SDK. Nothing to attribute
+      // in that case — identifyFromSession above covers the consented path.
+      const posthog = getPostHog();
+      if (!posthog) return;
 
       if (event === 'SIGNED_OUT') {
         // Without reset() the next visitor on a shared machine would inherit
