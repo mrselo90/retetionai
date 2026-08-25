@@ -3,17 +3,19 @@
 ## Technology Stack
 
 ### Backend (packages/api)
+
 - **Runtime**: Node.js (TypeScript)
 - **Framework**: Hono (lightweight, edge-compatible)
 - **Database**: Supabase (PostgreSQL + pgvector extension)
 - **Queue**: BullMQ + Redis
 - **LLM Orchestration**: LangChain.js
-- **LLM Models**: 
+- **LLM Models**:
   - GPT-4o / GPT-4o-mini (reasoning, generation, enrichment, eval judge)
   - Multilingual embeddings via OpenAI (`text-embedding-3-small`)
 - **Messaging**: WhatsApp Business API (Meta Cloud API)
 
 ### Frontend (packages/web)
+
 - **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
@@ -21,11 +23,13 @@
 - **State Management**: React hooks + Supabase client
 
 ### Workers (packages/workers)
+
 - **Queue**: BullMQ (Redis-backed)
 - **Jobs**: Order processing, scheduled messages, product scraping, analytics
 - **Intelligence Workers**: RFM analysis (daily 2AM), churn prediction (weekly Mon 3AM), product recommendations (weekly Tue 4AM), abandoned cart reminders, feedback/NPS requests
 
 ### Shared (packages/shared)
+
 - **Purpose**: Shared types, utilities, logger, database helpers
 
 ## Development Environment
@@ -40,6 +44,7 @@
 ## Deployment (DigitalOcean)
 
 ### Server Details
+
 - **Provider**: DigitalOcean Droplet
 - **IP Address**: 167.172.60.234
 - **OS**: Ubuntu
@@ -48,42 +53,47 @@
 - **Reverse Proxy**: Nginx
 
 ### Service Ports (production behind Nginx)
-| Service | Port | PM2 Name |
-|---------|------|----------|
-| API     | 3002 | api      |
-| Frontend| 3001 | web      |
-| Workers | -    | workers  |
-| Redis   | 6379 | system   |
+
+| Service  | Port | PM2 Name |
+| -------- | ---- | -------- |
+| API      | 3002 | api      |
+| Frontend | 3001 | web      |
+| Workers  | -    | workers  |
+| Redis    | 6379 | system   |
 
 Local dev: Frontend 3000, API 3001. See docs/deployment/PORTS_AND_ROUTING.md.
 
 ### Nginx Configuration
+
 - `/` and `/api-backend/*` → Frontend (127.0.0.1:3001)
 - `/api/*` and `/health` → API (127.0.0.1:3002)
 
 ### PM2 Commands
+
 ```bash
 pm2 list                    # View all services
 pm2 logs                    # View all logs
 pm2 logs api --lines 50     # View API logs
 pm2 restart api             # Restart API
-pm2 restart all             # Restart all services
+pm2 startOrRestart ecosystem.config.cjs   # Recete's four only (from repo root)
 pm2 save                    # Save current config
 ```
 
 ### Deploying Updates
+
 ```bash
 ssh root@167.172.60.234
 cd /root/retetionai
 git pull
 pnpm install
-cd packages/web && pnpm build
-pm2 restart all --update-env
+pnpm build   # from the repo root: builds every package
+pm2 startOrRestart ecosystem.config.cjs --update-env
 ```
 
 ## Database Schema (Key Tables)
 
 ### Core Tables
+
 - `merchants` — Merchant accounts, guardrail_settings (merchant API key feature removed from active app paths)
 - `users` — End users/customers with phone, consent, rfm_score (JSONB), segment, churn_probability
 - `orders` — Order records linked to merchants and users
@@ -92,6 +102,7 @@ pm2 restart all --update-env
 - `analytics_events` — DAU, message volume, sentiment tracking
 
 ### Enrichment Tables (Migration 009)
+
 - `merchant_members` — Team management (owner/admin/agent/viewer roles)
 - `user_preferences` — Smart send timing (optimal_send_hour, timezone, avg_response_time)
 - `feedback_requests` — Review/NPS requests (type, status, rating)
@@ -118,15 +129,16 @@ pm2 restart all --update-env
 - `scheduled-messages` — T+0/3/14/25 messages, upsell
 - `scrape-jobs` — Product URL scraping + embedding
 - `analytics` — Async analytics event processing
-- `rfm-analysis` — Daily RFM scoring (cron 0 2 * * *)
-- `churn-prediction` — Weekly churn scoring (cron 0 3 * * 1)
-- `product-recommendations` — Weekly co-purchase (cron 0 4 * * 2)
+- `rfm-analysis` — Daily RFM scoring (cron 0 2 \* \* \*)
+- `churn-prediction` — Weekly churn scoring (cron 0 3 \* \* 1)
+- `product-recommendations` — Weekly co-purchase (cron 0 4 \* \* 2)
 - `abandoned-cart` — Cart recovery WhatsApp reminders
 - `feedback-request` — Review/NPS WhatsApp requests
 
 ## Environment Variables
 
 ### Backend (.env on server at /root/retetionai/.env)
+
 ```env
 # Supabase
 SUPABASE_URL=https://clcqmasqkfdcmznwdrbx.supabase.co
@@ -156,6 +168,7 @@ ALLOWED_ORIGINS=http://167.172.60.234,http://localhost:3000
 ```
 
 ### Frontend (.env.local on server at /root/retetionai/packages/web/.env.local)
+
 ```env
 PORT=3001
 INTERNAL_API_URL=http://127.0.0.1:3002
@@ -163,7 +176,8 @@ NEXT_PUBLIC_API_URL=http://167.172.60.234
 NEXT_PUBLIC_SUPABASE_URL=https://clcqmasqkfdcmznwdrbx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<key>
 ```
-(INTERNAL_API_URL is required so Next.js can proxy /api-backend/* to the API; avoids "Could not reach the API".)
+
+(INTERNAL_API_URL is required so Next.js can proxy /api-backend/\* to the API; avoids "Could not reach the API".)
 
 ## API Endpoints (Key)
 
@@ -202,6 +216,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<key>
 ## Key Dependencies
 
 ### Backend
+
 - `@hono/node-server` - Hono server adapter
 - `@supabase/supabase-js` - Supabase client
 - `bullmq` - Queue management
@@ -212,6 +227,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<key>
 - `zod` - Schema validation
 
 ### Frontend
+
 - `next` - Next.js framework
 - `react` - React library
 - `@supabase/auth-helpers-nextjs` - Supabase auth
@@ -220,9 +236,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<key>
 
 ## External Services
 
-| Service | Purpose | Dashboard |
-|---------|---------|-----------|
-| Supabase | Auth + PostgreSQL DB | https://app.supabase.com/project/clcqmasqkfdcmznwdrbx |
-| OpenAI | LLM (GPT-4o, GPT-3.5) | https://platform.openai.com |
-| Shopify | E-commerce integration | https://partners.shopify.com |
-| Meta WhatsApp | Messaging | https://developers.facebook.com |
+| Service       | Purpose                | Dashboard                                             |
+| ------------- | ---------------------- | ----------------------------------------------------- |
+| Supabase      | Auth + PostgreSQL DB   | https://app.supabase.com/project/clcqmasqkfdcmznwdrbx |
+| OpenAI        | LLM (GPT-4o, GPT-3.5)  | https://platform.openai.com                           |
+| Shopify       | E-commerce integration | https://partners.shopify.com                          |
+| Meta WhatsApp | Messaging              | https://developers.facebook.com                       |

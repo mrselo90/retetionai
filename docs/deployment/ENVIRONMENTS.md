@@ -11,6 +11,7 @@ This guide covers environment setup and management for Recete Retention Agent ac
 **Purpose**: Local development and testing
 
 **Characteristics**:
+
 - Runs on `localhost`
 - Uses local Supabase project
 - Local Redis instance
@@ -22,6 +23,7 @@ This guide covers environment setup and management for Recete Retention Agent ac
 **Purpose**: Pre-production testing
 
 **Characteristics**:
+
 - Separate Supabase project
 - Separate Redis instance
 - Production-like configuration
@@ -33,6 +35,7 @@ This guide covers environment setup and management for Recete Retention Agent ac
 **Purpose**: Live application
 
 **Characteristics**:
+
 - Production Supabase project
 - Production Redis instance
 - Optimized configuration
@@ -144,6 +147,7 @@ TWILIO_AUTH_TOKEN=production-auth-token
 #### Development
 
 1. Create local Supabase project:
+
 ```bash
 supabase init
 supabase start
@@ -155,6 +159,7 @@ supabase start
 2. Name: `recete-staging`
 3. Copy project URL and keys
 4. Run migrations:
+
 ```bash
 supabase link --project-ref staging-project-ref
 supabase db push
@@ -166,6 +171,7 @@ supabase db push
 2. Name: `recete-production`
 3. Copy project URL and keys
 4. Run migrations:
+
 ```bash
 supabase link --project-ref production-project-ref
 supabase db push
@@ -196,18 +202,22 @@ docker run -d -p 6379:6379 redis:7-alpine
 ### DigitalOcean Droplet (Frontend & API)
 
 #### Staging
+
 1. SSH into Staging Droplet
-2. `git pull origin develop`
-3. `pnpm install`
-4. `pnpm build`
-5. `pm2 restart all`
+2. `cd /root/retetionai` — the rest of these run from the repository root
+3. `git pull origin develop`
+4. `pnpm install`
+5. `pnpm build`
+6. `pm2 startOrRestart ecosystem.config.cjs --update-env`
 
 #### Production
+
 1. SSH into Production Droplet (167.172.60.234)
-2. `git pull origin main`
-3. `pnpm install`
-4. `pnpm build`
-5. `pm2 restart all`
+2. `cd /root/retetionai` — the rest of these run from the repository root
+3. `git pull origin main`
+4. `pnpm install`
+5. `pnpm build`
+6. `pm2 startOrRestart ecosystem.config.cjs --update-env`
 
 ### Docker Compose
 
@@ -263,13 +273,14 @@ SUPABASE_URL=...
 ### Option 2: Platform Secrets (Staging/Production)
 
 **DigitalOcean (PM2):**
+
 ```bash
 # .env file on server
 export SUPABASE_URL=...
 ```
 
-
 **AWS:**
+
 ```bash
 aws secretsmanager create-secret \
   --name recete/production/supabase-url \
@@ -289,12 +300,7 @@ aws secretsmanager create-secret \
 
 ```typescript
 // scripts/validate-env.ts
-const requiredVars = [
-  'SUPABASE_URL',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'REDIS_URL',
-  'OPENAI_API_KEY',
-];
+const requiredVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'REDIS_URL', 'OPENAI_API_KEY'];
 
 for (const varName of requiredVars) {
   if (!process.env[varName]) {
@@ -363,6 +369,7 @@ logger.info({
 ## Checklist
 
 ### Development
+
 - [ ] Local Supabase running
 - [ ] Local Redis running
 - [ ] `.env` file configured
@@ -370,6 +377,7 @@ logger.info({
 - [ ] Debug logging enabled
 
 ### Staging
+
 - [ ] Staging Supabase project created
 - [ ] Staging Redis instance created
 - [ ] Staging domain configured
@@ -379,6 +387,7 @@ logger.info({
 - [ ] Monitoring configured
 
 ### Production
+
 - [ ] Production Supabase project created
 - [ ] Production Redis instance created
 - [ ] Production domains configured

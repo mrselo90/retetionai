@@ -3,22 +3,23 @@
 ## 🟢 Application is LIVE
 
 **URLs**:
+
 - Standalone: https://recete.co.uk
 - API: https://api.recete.co.uk
 - Shopify App: https://shop.recete.co.uk
-**Server**: DigitalOcean Droplet (167.172.60.234)
+  **Server**: DigitalOcean Droplet (167.172.60.234)
 
 ## Services
 
-| Service | Status | Port | Domain |
-|---------|--------|------|--------|
-| API | ✅ Online | 3002 | api.recete.co.uk |
-| Frontend | ✅ Online | 3001 | recete.co.uk |
-| Shopify Shell | ✅ Online | 3003 | shop.recete.co.uk |
-| Workers | ✅ Online | - | - |
-| Redis | ✅ Connected | 6379 | - |
-| Supabase DB | ✅ Connected | cloud | - |
-| Nginx | ✅ Running | 80, 443 | HTTPS (Let's Encrypt) |
+| Service       | Status       | Port    | Domain                |
+| ------------- | ------------ | ------- | --------------------- |
+| API           | ✅ Online    | 3002    | api.recete.co.uk      |
+| Frontend      | ✅ Online    | 3001    | recete.co.uk          |
+| Shopify Shell | ✅ Online    | 3003    | shop.recete.co.uk     |
+| Workers       | ✅ Online    | -       | -                     |
+| Redis         | ✅ Connected | 6379    | -                     |
+| Supabase DB   | ✅ Connected | cloud   | -                     |
+| Nginx         | ✅ Running   | 80, 443 | HTTPS (Let's Encrypt) |
 
 ## Quick Commands
 
@@ -32,25 +33,25 @@ pm2 list
 # View logs
 pm2 logs api --lines 50
 
-# Restart
-pm2 restart all --update-env
+# Restart (config path is relative, so run it from the repo)
+cd /root/retetionai && pm2 startOrRestart ecosystem.config.cjs --update-env
 
 # Deploy update
-cd /root/retetionai && git pull && pnpm install && cd packages/web && pnpm build && pm2 restart all
+cd /root/retetionai && git pull && pnpm install && pnpm build && pm2 startOrRestart ecosystem.config.cjs --update-env
 ```
 
 ## Key Files on Server
 
-| File | Path |
-|------|------|
-| Backend .env | `/root/retetionai/.env` |
-| Frontend .env | `/root/retetionai/packages/web/.env.local` |
-| Nginx config (HTTPS) | `/etc/nginx/sites-available/recete` |
-| Nginx config (source) | `nginx/recete-https.conf` |
-| PM2 config | `~/.pm2/dump.pm2` / `ecosystem.config.cjs` |
-| SSL certs | `/etc/letsencrypt/live/{recete.co.uk,api.recete.co.uk,shop.recete.co.uk}/` |
+| File                  | Path                                                                       |
+| --------------------- | -------------------------------------------------------------------------- |
+| Backend .env          | `/root/retetionai/.env`                                                    |
+| Frontend .env         | `/root/retetionai/packages/web/.env.local`                                 |
+| Nginx config (HTTPS)  | `/etc/nginx/sites-available/recete`                                        |
+| Nginx config (source) | `nginx/recete-https.conf`                                                  |
+| PM2 config            | `~/.pm2/dump.pm2` / `ecosystem.config.cjs`                                 |
+| SSL certs             | `/etc/letsencrypt/live/{recete.co.uk,api.recete.co.uk,shop.recete.co.uk}/` |
 
-**Ports & "Could not reach the API"**: Fixed inside PM2 process via `.env` by setting **INTERNAL_API_URL=http://127.0.0.1:3002**. 
+**Ports & "Could not reach the API"**: Fixed inside PM2 process via `.env` by setting **INTERNAL_API_URL=http://127.0.0.1:3002**.
 
 ## Recent Operational Changes (Feb 24-25)
 
@@ -81,6 +82,7 @@ cd /root/retetionai && git pull && pnpm install && cd packages/web && pnpm build
   - UI supports query-set presets, `RAG only` mode, and product exclusion for next run
 
 ### Next Steps
+
 1. **Eval quality tuning (TR/EN/HU)**: Re-run and tune multilingual/product-scoped evals using Maruderm products (facts-first coverage, language consistency, grounding).
 2. **Prod DB migration alignment**: Verify/apply latest `product_facts` / chunk metadata migrations in Supabase (schema drift observed during eval checks).
 3. ~~**SSL/Domain**: Configure custom domain and Let's Encrypt SSL.~~ **DONE** — HTTPS setup script at `nginx/setup-https.sh`.
