@@ -45,7 +45,8 @@ const nrEnv = {
 
 /**
  * PM2 ecosystem config for production.
- * Run from repo root: pm2 start ecosystem.config.cjs
+ * Run from repo root: pm2 startOrRestart ecosystem.config.cjs --update-env
+ * (startOrRestart, not start — `start` errors on apps that are already running)
  * Nginx:
  * - recete.co.uk -> Web (3001)
  * - api.recete.co.uk -> API (3002)

@@ -52,9 +52,16 @@ echo -e "${GREEN}✓ Build completed${NC}"
 echo ""
 
 echo -e "${BLUE}Step 5/7: Reloading PM2 from ecosystem.config.cjs${NC}"
-pm2 start ecosystem.config.cjs --update-env
-pm2 save
-echo -e "${GREEN}✓ PM2 services reloaded from ecosystem config and saved${NC}"
+# startOrRestart, not start: `start` on an already-running app errors instead of
+# reloading it. Stdio detached so pm2 does not hold this script's channel.
+pm2 startOrRestart ecosystem.config.cjs --update-env </dev/null >/dev/null 2>&1
+# Deliberately NOT `pm2 save`. Saving snapshots the WHOLE process list, and this
+# droplet's PM2 also runs unrelated projects (matchcountdown, eralp-*) — so a
+# Recete deploy would freeze whatever transient state those happened to be in,
+# including a worker someone had deliberately stopped. Nothing here adds or
+# removes apps, so there is nothing new to persist. If you intentionally change
+# the app list, run `pm2 save` yourself, once, knowing it covers everything.
+echo -e "${GREEN}✓ Recete services reloaded from ecosystem config${NC}"
 echo ""
 
 echo -e "${BLUE}Step 6/7: Verifying services${NC}"
@@ -62,11 +69,23 @@ sleep 3
 pm2 list
 echo ""
 
-# Check if services are online
-if pm2 list | grep -q "online"; then
-    echo -e "${GREEN}✓ All services are online${NC}"
+# Check Recete's own services, by name. `pm2 list | grep -q online` was
+# meaningless here: this droplet runs six processes belonging to other projects,
+# so the grep matched one of those and reported success even with every Recete
+# service down.
+NOT_ONLINE=""
+for app in api web workers shopify-shell; do
+    if pm2 describe "$app" 2>/dev/null | grep "status" | grep -q "online"; then
+        echo -e "  ${GREEN}✓${NC} $app"
+    else
+        echo -e "  ${RED}✗${NC} $app"
+        NOT_ONLINE="$NOT_ONLINE $app"
+    fi
+done
+if [ -z "$NOT_ONLINE" ]; then
+    echo -e "${GREEN}✓ All four Recete services are online${NC}"
 else
-    echo -e "${RED}✗ Some services are not online. Check logs with: pm2 logs${NC}"
+    echo -e "${RED}✗ Not online:${NOT_ONLINE}. Check logs with: pm2 logs${NC}"
     exit 1
 fi
 echo ""

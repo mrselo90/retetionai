@@ -74,10 +74,16 @@ From project root on the server:
 cd /root/retetionai
 pnpm install
 pnpm build
-pm2 start ecosystem.config.cjs
-pm2 save
+pm2 startOrRestart ecosystem.config.cjs --update-env
+pm2 save      # ONE-TIME only, see warning below
 pm2 startup   # follow the command it prints to enable on reboot
 ```
+
+> **`pm2 save` is global.** It snapshots the whole process list, and this droplet's
+> PM2 also runs unrelated projects (`matchcountdown`, `eralp-*`). Run it once when
+> first setting the services up, or after deliberately changing the app list —
+> never as part of a routine deploy, or you freeze whatever state those other
+> projects happened to be in.
 
 ---
 

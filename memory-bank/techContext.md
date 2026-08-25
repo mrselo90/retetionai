@@ -76,7 +76,7 @@ pm2 logs                    # View all logs
 pm2 logs api --lines 50     # View API logs
 pm2 restart api             # Restart API
 pm2 startOrRestart ecosystem.config.cjs   # Recete's four only (from repo root)
-pm2 save                    # Save current config
+pm2 save                    # Global! Snapshots ALL projects — one-time only
 ```
 
 ### Deploying Updates
