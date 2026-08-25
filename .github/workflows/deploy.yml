@@ -50,8 +50,16 @@ jobs:
             echo "🔨 Building the application..."
             pnpm build
             
+            # Reload from ecosystem.config.cjs rather than `pm2 restart all`.
+            # Two reasons: this PM2 instance also runs unrelated projects
+            # (matchcountdown, eralp-*), and `all` bounced those on every deploy —
+            # once even starting one that had been deliberately stopped. And per
+            # DEPLOY_INSTRUCTIONS.md, a plain restart reuses PM2's saved process
+            # definitions, which can keep stale ports and env and break routing.
+            # The config names exactly Recete's four services, so the scope stays
+            # correct without a list to keep in sync here.
             echo "🔄 Restarting PM2 services..."
-            pm2 restart all --update-env
+            pm2 startOrRestart ecosystem.config.cjs --update-env
             
             echo "⏳ Waiting for services to start..."
             sleep 10
@@ -63,7 +71,7 @@ jobs:
               git checkout HEAD~1
               pnpm install
               pnpm build
-              pm2 restart all --update-env
+              pm2 startOrRestart ecosystem.config.cjs --update-env
               echo "🔙 Rolled back to previous version"
               exit 1
             fi

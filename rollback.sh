@@ -40,7 +40,9 @@ echo -e "${YELLOW}Step 3: Building...${NC}"
 pnpm build
 
 echo -e "${YELLOW}Step 4: Restarting services...${NC}"
-pm2 restart all --update-env
+# ecosystem.config.cjs, not `restart all`: this PM2 instance also runs unrelated
+# projects, and a plain restart reuses stale saved process definitions.
+pm2 startOrRestart ecosystem.config.cjs --update-env
 
 echo -e "${YELLOW}Step 5: Health check...${NC}"
 sleep 8
