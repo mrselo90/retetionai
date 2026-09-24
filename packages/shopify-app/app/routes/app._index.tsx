@@ -119,16 +119,18 @@ export default function Index() {
     );
   }
 
-  const justCompletedSetup = new URLSearchParams(location.search).has('setup');
+  const justSavedMessaging =
+    new URLSearchParams(location.search).get('setup') === 'messaging_saved';
 
   return (
     <SetupOverview
       data={data}
+      storePending={Boolean(bootstrapData?.pending)}
       billingApproved={bootstrapData?.billingApproved}
       themeEmbedEnabled={bootstrapData?.themeEmbedEnabled}
       shop={bootstrapData?.shop || ''}
       merchantName={bootstrapData?.merchantName || ''}
-      justCompletedSetup={justCompletedSetup}
+      justSavedMessaging={justSavedMessaging}
     />
   );
 }
@@ -150,14 +152,16 @@ function SetupOverview({
   themeEmbedEnabled,
   shop,
   merchantName,
-  justCompletedSetup,
+  justSavedMessaging,
+  storePending,
 }: {
   data: ShopifyMerchantOverview;
+  storePending?: boolean;
   billingApproved?: boolean;
   themeEmbedEnabled?: boolean;
   shop: string;
   merchantName: string;
-  justCompletedSetup?: boolean;
+  justSavedMessaging?: boolean;
 }) {
   const progress = getSetupProgress(data, billingApproved, themeEmbedEnabled);
   const fetcher = useFetcher<{
@@ -266,14 +270,35 @@ function SetupOverview({
             }
       }
     >
-      {/* ── Celebration banner (shown once after completing final setup step) ── */}
-      {setupComplete && justCompletedSetup ? (
-        <Banner tone="success">
-          <Text as="p" variant="bodyMd" fontWeight="semibold">
-            🎉 Setup complete — Recete is live! Your customers will now receive a WhatsApp message
-            after delivery.
-          </Text>
+      {/* A fresh install can open before the platform has finished creating the
+          store's records. The page below is all zeros until then, so say why. */}
+      {storePending ? (
+        <Banner tone="info" title="Preparing your store">
+          <p>
+            Recete is still setting up your store. This usually takes a few seconds, and this page
+            updates by itself.
+          </p>
         </Banner>
+      ) : null}
+
+      {/* ── Save feedback, after returning from the welcome-message step ── */}
+      {justSavedMessaging ? (
+        setupComplete ? (
+          <Banner tone="success">
+            <Text as="p" variant="bodyMd" fontWeight="semibold">
+              🎉 Setup complete — Recete is live! Your customers will now receive a WhatsApp message
+              after delivery.
+            </Text>
+          </Banner>
+        ) : (
+          <Banner tone="success">
+            <Text as="p" variant="bodyMd">
+              {nextRequiredStep
+                ? `Welcome message saved. Next: ${nextRequiredStep.title.toLowerCase()}.`
+                : 'Welcome message saved.'}
+            </Text>
+          </Banner>
+        )
       ) : null}
 
       {/* ── Hero progress card ──────────────────────────────────────────── */}

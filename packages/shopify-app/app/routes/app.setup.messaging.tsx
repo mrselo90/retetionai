@@ -65,6 +65,30 @@ function buildPreview(template: string, botName: string) {
     .replace(/\{\{\s*bot_name\s*\}\}/gi, botName.trim() || 'Recete');
 }
 
+/**
+ * The languages to save, with `defaultLanguage` first.
+ *
+ * This step only picks the default, but it used to save `[defaultLanguage]` as
+ * the whole list — so a merchant who had enabled English and Turkish in
+ * Settings lost Turkish (and had its product knowledge purged) just by saving
+ * their welcome message. Keeps every other enabled language, and returns null
+ * ("leave unchanged") when nothing would change or the current list can't be
+ * read, rather than guessing and overwriting it.
+ */
+async function withDefaultLanguage(request: Request, defaultLanguage: string) {
+  let current: string[];
+  try {
+    const response = await fetchMerchantMultiLangSettings(request);
+    current = response.settings?.enabled_langs || [];
+  } catch {
+    return null;
+  }
+
+  const next = [defaultLanguage, ...current.filter((lang) => lang !== defaultLanguage)];
+  const unchanged = next.length === current.length && next.every((lang, i) => lang === current[i]);
+  return unchanged ? null : next;
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
   const [settingsResult, multiLangResult] = await Promise.all([
@@ -108,7 +132,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const result = await persistMessagingSetup(request, session.shop, {
       botName,
       welcomeTemplate,
-      enabledLangs: [defaultLanguage || 'en'],
+      enabledLangs: await withDefaultLanguage(request, defaultLanguage || 'en'),
     });
 
     if (!result.ok) {
