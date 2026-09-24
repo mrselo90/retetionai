@@ -54,7 +54,9 @@
       "analytics": "Analytics",
       "integrations": "Integrations",
       "settings": "Settings",
-      "signOut": "Sign Out"
+      "signOut": "Sign Out",
+      "setupProgress": "Setup {done}/{total} complete",
+      "setupNext": "Next: {step} →"
     },
     "home": {
       "title": "Dashboard",
@@ -1637,5 +1639,15 @@
     "policyLink": "Read our cookie policy",
     "accept": "Accept analytics",
     "decline": "Decline"
+  },
+  "WhatsAppConsent": {
+    "title": "WhatsApp and customer consent",
+    "body": "Recete only messages customers who accepted marketing at your checkout, and checks again before every scheduled message. Before you go live:",
+    "stepCheckout": "Make sure the marketing consent wording at checkout mentions WhatsApp.",
+    "stepPrivacy": "Add a WhatsApp paragraph to your store's privacy policy (copy ours below).",
+    "stepOptOut": "Customers can reply STOP at any time; Recete then cancels everything scheduled for them.",
+    "openChecklist": "WhatsApp & GDPR checklist",
+    "copySnippet": "Copy privacy paragraph",
+    "copied": "Copied"
   }
 }

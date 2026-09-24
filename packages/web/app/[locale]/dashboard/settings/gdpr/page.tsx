@@ -8,6 +8,7 @@ import { getErrorMessage } from '@/lib/errors';
 import { AlertTriangle, ExternalLink } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/recete';
+import { WhatsAppConsentNotice } from '@/components/recete/WhatsAppConsentNotice';
 
 /**
  * Deliberately not translated. It is a literal the merchant must reproduce
@@ -49,7 +50,9 @@ export default function GdprPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session) window.location.href = '/login';
       } finally {
         setLoading(false);
@@ -86,16 +89,18 @@ export default function GdprPage() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
       const response = await authenticatedRequest<{ data: unknown; exported_at: string }>(
         '/api/gdpr/export',
-        session.access_token,
+        session.access_token
       );
       triggerBrowserDownload(
         JSON.stringify(response.data, null, 2),
         `recete-data-export-${new Date().toISOString().split('T')[0]}.json`,
-        'application/json',
+        'application/json'
       );
       toast.success(t('toasts.exportSuccess.title'), t('toasts.exportSuccess.message'));
     } catch (err) {
@@ -108,7 +113,9 @@ export default function GdprPage() {
   const handleDelete = async (permanent: boolean) => {
     setDeleting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
       const response = await authenticatedRequest<{
         message: string;
@@ -120,13 +127,15 @@ export default function GdprPage() {
 
       if (permanent) {
         toast.warning(t('toasts.deletePermanent.title'), t('toasts.deletePermanent.message'));
-        setTimeout(() => { window.location.href = '/'; }, 2000);
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
       } else {
         toast.error(
           t('toasts.deleteScheduled.title'),
           t('toasts.deleteScheduled.message', {
             date: new Date(response.permanent_deletion_at || '').toLocaleDateString(locale),
-          }),
+          })
         );
       }
       setDialogOpen(false);
@@ -150,7 +159,13 @@ export default function GdprPage() {
   return (
     <div className="r-card" id="gdpr" style={{ maxWidth: 760 }}>
       <div className="r-card-title">{t('gdpr.title')}</div>
-      <p className="r-hint" style={{ marginTop: 3 }}>{t('gdpr.description')}</p>
+      <p className="r-hint" style={{ marginTop: 3 }}>
+        {t('gdpr.description')}
+      </p>
+
+      <div style={{ marginTop: 16 }}>
+        <WhatsAppConsentNotice />
+      </div>
 
       {/* Export */}
       <div
@@ -170,7 +185,9 @@ export default function GdprPage() {
           <div style={{ fontSize: 'var(--r-text-md)', fontWeight: 'var(--r-weight-semibold)' }}>
             {t('gdpr.exportTitle')}
           </div>
-          <p className="r-hint" style={{ marginTop: 3 }}>{t('gdpr.exportDesc')}</p>
+          <p className="r-hint" style={{ marginTop: 3 }}>
+            {t('gdpr.exportDesc')}
+          </p>
         </div>
         <Button variant="secondary" onClick={handleExport} loading={exporting}>
           {exporting ? t('gdpr.exporting') : t('gdpr.exportButton')}
@@ -267,7 +284,9 @@ export default function GdprPage() {
       {dialogOpen ? (
         <div
           className="r-modal-backdrop"
-          onClick={(event) => { if (event.target === event.currentTarget) closeDialog(); }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeDialog();
+          }}
         >
           {/* tabIndex so focus can land on the dialog itself when it opens. */}
           <div
@@ -279,7 +298,9 @@ export default function GdprPage() {
             aria-labelledby={titleId}
           >
             <div className="r-modal-head">
-              <h2 className="r-modal-title" id={titleId}>{t('gdpr.modal.title')}</h2>
+              <h2 className="r-modal-title" id={titleId}>
+                {t('gdpr.modal.title')}
+              </h2>
             </div>
 
             <div className="r-modal-body">
@@ -300,7 +321,9 @@ export default function GdprPage() {
               */}
               <hr style={{ border: 0, borderTop: '1px solid var(--r-border)', margin: '18px 0' }} />
 
-              <label className="r-label" htmlFor={fieldId}>{t('gdpr.modal.hardConfirmLabel')}</label>
+              <label className="r-label" htmlFor={fieldId}>
+                {t('gdpr.modal.hardConfirmLabel')}
+              </label>
               <input
                 id={fieldId}
                 className="r-input"
@@ -311,7 +334,9 @@ export default function GdprPage() {
                 disabled={deleting}
                 aria-describedby={`${fieldId}-help`}
               />
-              <p className="r-field-help" id={`${fieldId}-help`}>{t('gdpr.modal.hardConfirmHelp')}</p>
+              <p className="r-field-help" id={`${fieldId}-help`}>
+                {t('gdpr.modal.hardConfirmHelp')}
+              </p>
 
               <div style={{ marginTop: 12 }}>
                 <Button

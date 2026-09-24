@@ -5,7 +5,7 @@ import { CompanyIdentityBlock } from '@/components/site/CompanyIdentityBlock';
 
 export default function SecurityPage() {
   return (
-    <div className="min-h-screen bg-[hsl(var(--recete-cream))] py-12 px-4">
+    <div className="legal-page min-h-screen bg-[hsl(var(--recete-cream))] py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-zinc-900 mb-8">Security Overview</h1>
@@ -25,24 +25,26 @@ export default function SecurityPage() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">2. Access Management</h2>
               <p className="text-zinc-700 mb-4">
-                Access to production systems and customer personal data is limited to authorized personnel with
-                a legitimate operational need. We require strong passwords for merchant-facing account access.
+                Access to production systems and customer personal data is limited to authorized
+                personnel with a legitimate operational need. We require strong passwords for
+                merchant-facing account access.
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">3. Incident Handling</h2>
               <p className="text-zinc-700 mb-4">
-                We maintain internal incident-response procedures for detection, containment, remediation,
-                recovery, and merchant notification where required.
+                We maintain internal incident-response procedures for detection, containment,
+                remediation, recovery, and merchant notification where required.
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">4. Backups and Recovery</h2>
               <p className="text-zinc-700 mb-4">
-                We maintain documented backup and recovery procedures. Backup encryption status should be
-                confirmed against the active production environment before making compliance attestations.
+                We maintain documented backup and recovery procedures. Backup encryption status
+                should be confirmed against the active production environment before making
+                compliance attestations.
               </p>
             </section>
 
@@ -52,11 +54,12 @@ export default function SecurityPage() {
                 For security questions, contact{' '}
                 <a href="mailto:security@recete.co.uk" className="text-blue-600 hover:underline">
                   security@recete.co.uk
-                </a>.
+                </a>
+                .
               </p>
               <p className="text-zinc-700 mb-4">
-                Legal entity: RECETE LTD · Company number 17082027 · Registered office: 71-75 Shelton Street,
-                Covent Garden, London, WC2H 9JQ · Phone: +44 7915 922506
+                Legal entity: RECETE LTD · Company number 17082027 · Registered office: 71-75
+                Shelton Street, Covent Garden, London, WC2H 9JQ · Phone: +44 7915 922506
               </p>
             </section>
           </div>

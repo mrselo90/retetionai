@@ -1262,3 +1262,19 @@
 .r-quick-action:focus-visible {
     background: var(--r-surface-subtle);
 }
+
+/* ============================ Legal pages ============================ */
+/*
+ * Polaris's stylesheet is loaded app-wide (components/ShopifyProvider.tsx) and
+ * resets h1-h6 and p to font-size: 1em and regular weight. It is unlayered, so
+ * it beats every Tailwind utility: the headings on Privacy, Terms, DPA and the
+ * other legal pages rendered at body size, with no hierarchy at all. These
+ * rules are unlayered too and more specific, so they win on those pages only.
+ */
+.legal-page h1 { font-size: 1.875rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
+.legal-page h2 { font-size: 1.375rem; font-weight: 600; line-height: 1.3; }
+.legal-page h3 { font-size: 1.125rem; font-weight: 600; line-height: 1.35; }
+.legal-page p,
+.legal-page li { font-size: 1rem; line-height: 1.65; }
+.legal-page strong { font-weight: 600; }
+.legal-page li + li { margin-top: 0.25rem; }

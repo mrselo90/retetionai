@@ -54,7 +54,9 @@
       "analytics": "Analitik",
       "integrations": "Entegrasyonlar",
       "settings": "Ayarlar",
-      "signOut": "Çıkış yapın"
+      "signOut": "Çıkış yapın",
+      "setupProgress": "Kurulum {done}/{total} tamamlandı",
+      "setupNext": "Sıradaki: {step} →"
     },
     "home": {
       "title": "Kontrol paneli",
@@ -1637,5 +1639,15 @@
     "policyLink": "Çerez politikamızı okuyun",
     "accept": "Analitiği kabul et",
     "decline": "Reddet"
+  },
+  "WhatsAppConsent": {
+    "title": "WhatsApp ve müşteri onayı",
+    "body": "Recete yalnızca ödeme sayfanızda pazarlama iznini onaylayan müşterilere mesaj gönderir ve her planlanmış mesajdan önce bunu yeniden kontrol eder. Yayına almadan önce:",
+    "stepCheckout": "Ödeme sayfasındaki pazarlama onayı metninin WhatsApp’ı kapsadığından emin olun.",
+    "stepPrivacy": "Mağazanızın gizlilik politikasına WhatsApp paragrafı ekleyin (bizimkini aşağıdan kopyalayabilirsiniz).",
+    "stepOptOut": "Müşteriler istedikleri an STOP yazabilir; Recete onlar için planlanan her şeyi iptal eder.",
+    "openChecklist": "WhatsApp ve GDPR kontrol listesi",
+    "copySnippet": "Gizlilik paragrafını kopyala",
+    "copied": "Kopyalandı"
   }
 }

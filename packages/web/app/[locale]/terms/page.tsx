@@ -5,7 +5,7 @@ import { CompanyIdentityBlock } from '@/components/site/CompanyIdentityBlock';
 
 export default function TermsOfServicePage() {
   return (
-    <div className="min-h-screen bg-[hsl(var(--recete-cream))] py-12 px-4">
+    <div className="legal-page min-h-screen bg-[hsl(var(--recete-cream))] py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-zinc-900 mb-8">Terms of Service</h1>
@@ -15,16 +15,19 @@ export default function TermsOfServicePage() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">1. Agreement to Terms</h2>
               <p className="text-zinc-700 mb-4">
-                By accessing or using Recete (&ldquo;Service&rdquo;), provided by Recete Ltd., you agree to be bound by these
-                Terms of Service. If you disagree with any part of these terms, you may not access the Service.
+                By accessing or using Recete (&ldquo;Service&rdquo;), provided by Recete Ltd., you
+                agree to be bound by these Terms of Service. If you disagree with any part of these
+                terms, you may not access the Service.
               </p>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">2. Description of Service</h2>
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">
+                2. Description of Service
+              </h2>
               <p className="text-zinc-700 mb-4">
-                Recete is a white-label SaaS platform that provides post-purchase AI assistance via WhatsApp.
-                The Service includes:
+                Recete is a white-label SaaS platform that provides post-purchase AI assistance via
+                WhatsApp. The Service includes:
               </p>
               <ul className="list-disc pl-6 text-zinc-700 mb-4">
                 <li>AI-powered customer support via WhatsApp</li>
@@ -37,9 +40,7 @@ export default function TermsOfServicePage() {
 
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">3. User Accounts</h2>
-              <p className="text-zinc-700 mb-4">
-                You are responsible for:
-              </p>
+              <p className="text-zinc-700 mb-4">You are responsible for:</p>
               <ul className="list-disc pl-6 text-zinc-700 mb-4">
                 <li>Maintaining the confidentiality of your account credentials</li>
                 <li>All activities that occur under your account</li>
@@ -50,11 +51,13 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">4. Data Protection Addendum</h2>
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">
+                4. Data Protection Addendum
+              </h2>
               <p className="text-zinc-700 mb-4">
-                If you use the Service to process customer personal data, our Data Processing Addendum applies
-                and is incorporated into these Terms. Recete acts as a processor for merchant customer data
-                handled on the merchant’s behalf.
+                If you use the Service to process customer personal data, our Data Processing
+                Addendum applies and is incorporated into these Terms. Recete acts as a processor
+                for merchant customer data handled on the merchant’s behalf.
               </p>
             </section>
 
@@ -74,21 +77,25 @@ export default function TermsOfServicePage() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">6. Payment and Billing</h2>
               <p className="text-zinc-700 mb-4">
-                Subscription fees are billed in advance. You agree to pay all fees associated with your
-                subscription plan. We reserve the right to change pricing with 30 days notice.
+                Subscription fees are billed in advance. You agree to pay all fees associated with
+                your subscription plan. We reserve the right to change pricing with 30 days notice.
               </p>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">7. Intellectual Property</h2>
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">
+                7. Intellectual Property
+              </h2>
               <p className="text-zinc-700 mb-4">
-                The Service and its original content are owned by Recete and protected by international
-                copyright laws. You retain ownership of your data and content.
+                The Service and its original content are owned by Recete and protected by
+                international copyright laws. You retain ownership of your data and content.
               </p>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">8. Limitation of Liability</h2>
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">
+                8. Limitation of Liability
+              </h2>
               <p className="text-zinc-700 mb-4">
                 To the maximum extent permitted by law, Recete shall not be liable for any indirect,
                 incidental, special, or consequential damages arising from your use of the Service.
@@ -98,26 +105,29 @@ export default function TermsOfServicePage() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">9. Termination</h2>
               <p className="text-zinc-700 mb-4">
-                We may terminate or suspend your account immediately, without prior notice, for conduct that
-                we believe violates these Terms or is harmful to other users, us, or third parties.
+                We may terminate or suspend your account immediately, without prior notice, for
+                conduct that we believe violates these Terms or is harmful to other users, us, or
+                third parties.
               </p>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">10. Security and Incident Handling</h2>
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">
+                10. Security and Incident Handling
+              </h2>
               <p className="text-zinc-700 mb-4">
-                We maintain internal security and incident-response procedures to detect, contain, investigate,
-                and remediate security incidents. Where required, we will notify affected merchants without undue
-                delay after confirming a personal data incident.
+                We maintain internal security and incident-response procedures to detect, contain,
+                investigate, and remediate security incidents. Where required, we will notify
+                affected merchants without undue delay after confirming a personal data incident.
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">11. Changes to Terms</h2>
               <p className="text-zinc-700 mb-4">
-                We reserve the right to modify these Terms at any time. We will notify you of any material
-                changes via email or through the Service. Your continued use constitutes acceptance of the
-                modified Terms.
+                We reserve the right to modify these Terms at any time. We will notify you of any
+                material changes via email or through the Service. Your continued use constitutes
+                acceptance of the modified Terms.
               </p>
             </section>
 
@@ -143,10 +153,7 @@ export default function TermsOfServicePage() {
           </div>
 
           <div className="mt-8 pt-8 border-t border-zinc-200">
-            <Link
-              href="/"
-              className="text-blue-600 hover:text-blue-700 font-medium"
-            >
+            <Link href="/" className="text-blue-600 hover:text-blue-700 font-medium">
               ← Back to Home
             </Link>
           </div>

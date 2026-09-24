@@ -7,6 +7,7 @@ import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { getErrorMessage, getErrorStatus } from '@/lib/errors';
 import { useTranslations } from 'next-intl';
+import { WhatsAppConsentNotice } from '@/components/recete/WhatsAppConsentNotice';
 import { ShopifySaveBar } from '@/components/ui/ShopifySaveBar';
 import { InlineError } from '@/components/ui/InlineError';
 import { isShopifyEmbedded } from '@/lib/shopifyEmbedded';
@@ -71,18 +72,28 @@ export default function SettingsPage() {
 
   const [botName, setBotName] = useState('');
   const [original, setOriginal] = useState<{
-    botName: string; tone: (typeof TONES)[number]; emoji: boolean;
-    responseLength: (typeof LENGTHS)[number]; temperature: number;
-    whatsappWelcomeTemplate: string; messageSendMode: 'always' | 'all_products_required';
+    botName: string;
+    tone: (typeof TONES)[number];
+    emoji: boolean;
+    responseLength: (typeof LENGTHS)[number];
+    temperature: number;
+    whatsappWelcomeTemplate: string;
+    messageSendMode: 'always' | 'all_products_required';
   } | null>(null);
   const [tone, setTone] = useState<(typeof TONES)[number]>('friendly');
   const [emoji, setEmoji] = useState(true);
   const [responseLength, setResponseLength] = useState<(typeof LENGTHS)[number]>('medium');
   const [temperature, setTemperature] = useState(0.7);
   const [whatsappWelcomeTemplate, setWhatsappWelcomeTemplate] = useState('');
-  const [messageSendMode, setMessageSendMode] = useState<'always' | 'all_products_required'>('always');
+  const [messageSendMode, setMessageSendMode] = useState<'always' | 'all_products_required'>(
+    'always'
+  );
 
-  const preview = buildPreview(whatsappWelcomeTemplate, botName, t('botPersona.welcomeTemplatePlaceholder'));
+  const preview = buildPreview(
+    whatsappWelcomeTemplate,
+    botName,
+    t('botPersona.welcomeTemplatePlaceholder')
+  );
 
   /**
    * Derived from a comparison, not tracked as a side-channel boolean. The old
@@ -90,24 +101,29 @@ export default function SettingsPage() {
    * on save/discard — editing a field then typing back the original value still
    * counted as dirty, and a bug in any one handler could leave it stuck either way.
    */
-  const isDirty = original !== null && (
-    botName !== original.botName ||
-    tone !== original.tone ||
-    emoji !== original.emoji ||
-    responseLength !== original.responseLength ||
-    temperature !== original.temperature ||
-    whatsappWelcomeTemplate !== original.whatsappWelcomeTemplate ||
-    messageSendMode !== original.messageSendMode
-  );
+  const isDirty =
+    original !== null &&
+    (botName !== original.botName ||
+      tone !== original.tone ||
+      emoji !== original.emoji ||
+      responseLength !== original.responseLength ||
+      temperature !== original.temperature ||
+      whatsappWelcomeTemplate !== original.whatsappWelcomeTemplate ||
+      messageSendMode !== original.messageSendMode);
 
   const loadData = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         window.location.href = '/login';
         return;
       }
-      const response = await authenticatedRequest<{ merchant: Merchant }>('/api/merchants/me', session.access_token);
+      const response = await authenticatedRequest<{ merchant: Merchant }>(
+        '/api/merchants/me',
+        session.access_token
+      );
       const persona = response.merchant.persona_settings || {};
       /*
        * This used to fall back to the *translated placeholder text* as the actual
@@ -124,7 +140,10 @@ export default function SettingsPage() {
         emoji: persona.emoji !== false,
         responseLength: persona.response_length || 'medium',
         temperature: persona.temperature ?? 0.7,
-        whatsappWelcomeTemplate: typeof persona.whatsapp_welcome_template === 'string' ? persona.whatsapp_welcome_template : '',
+        whatsappWelcomeTemplate:
+          typeof persona.whatsapp_welcome_template === 'string'
+            ? persona.whatsapp_welcome_template
+            : '',
         messageSendMode: persona.message_send_mode || 'always',
       } as const;
       setBotName(loaded.botName);
@@ -173,7 +192,9 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
       await authenticatedRequest('/api/merchants/me', session.access_token, {
         method: 'PUT',
@@ -209,19 +230,28 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="r-card" id="settings-bot-persona" style={{ maxWidth: 760, display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div
+      className="r-card"
+      id="settings-bot-persona"
+      style={{ maxWidth: 760, display: 'flex', flexDirection: 'column', gap: 18 }}
+    >
       <div>
         <div className="r-card-title">{t('botPersona.title')}</div>
         <p className="r-hint" style={{ marginTop: 3 }}>
           {t('botPersona.description')}{' '}
-          <Link href="/dashboard/settings/bot-info" style={{ color: 'var(--r-brand)', fontWeight: 'var(--r-weight-semibold)' }}>
+          <Link
+            href="/dashboard/settings/bot-info"
+            style={{ color: 'var(--r-brand)', fontWeight: 'var(--r-weight-semibold)' }}
+          >
             {t('botPersona.botInfoLink')}
           </Link>
         </p>
       </div>
 
       <div>
-        <label className="r-label" htmlFor={`${fieldPrefix}-name`}>{t('botPersona.nameLabel')}</label>
+        <label className="r-label" htmlFor={`${fieldPrefix}-name`}>
+          {t('botPersona.nameLabel')}
+        </label>
         <input
           id={`${fieldPrefix}-name`}
           className="r-input"
@@ -234,7 +264,9 @@ export default function SettingsPage() {
       </div>
 
       <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-        <legend className="r-label" style={{ padding: 0, marginBottom: 8 }}>{t('botPersona.toneLabel')}</legend>
+        <legend className="r-label" style={{ padding: 0, marginBottom: 8 }}>
+          {t('botPersona.toneLabel')}
+        </legend>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {TONES.map((value) => (
             <label key={value} style={{ cursor: 'pointer' }}>
@@ -248,7 +280,11 @@ export default function SettingsPage() {
               />
               <span
                 className="r-tab"
-                style={tone === value ? { background: 'var(--r-brand-tint)', color: 'var(--r-brand)' } : undefined}
+                style={
+                  tone === value
+                    ? { background: 'var(--r-brand-tint)', color: 'var(--r-brand)' }
+                    : undefined
+                }
               >
                 {t(`botPersona.tones.${value}`)}
               </span>
@@ -263,7 +299,9 @@ export default function SettingsPage() {
       </div>
 
       <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-        <legend className="r-label" style={{ padding: 0, marginBottom: 8 }}>{t('botPersona.responseLengthLabel')}</legend>
+        <legend className="r-label" style={{ padding: 0, marginBottom: 8 }}>
+          {t('botPersona.responseLengthLabel')}
+        </legend>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {LENGTHS.map((value) => (
             <label key={value} style={{ cursor: 'pointer' }}>
@@ -277,7 +315,11 @@ export default function SettingsPage() {
               />
               <span
                 className="r-tab"
-                style={responseLength === value ? { background: 'var(--r-brand-tint)', color: 'var(--r-brand)' } : undefined}
+                style={
+                  responseLength === value
+                    ? { background: 'var(--r-brand-tint)', color: 'var(--r-brand)' }
+                    : undefined
+                }
               >
                 {t(`botPersona.lengths.${value}`)}
               </span>
@@ -316,10 +358,15 @@ export default function SettingsPage() {
         Turkish, and the design had no way of adapting it to any other language.
       */}
       <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-        <legend className="r-label" style={{ padding: 0, marginBottom: 8 }}>{t('botPersona.sendMode.title')}</legend>
+        <legend className="r-label" style={{ padding: 0, marginBottom: 8 }}>
+          {t('botPersona.sendMode.title')}
+        </legend>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {(['always', 'all_products_required'] as const).map((value) => (
-            <label key={value} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer' }}>
+            <label
+              key={value}
+              style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer' }}
+            >
               <input
                 type="radio"
                 name={`${fieldPrefix}-sendmode`}
@@ -329,7 +376,13 @@ export default function SettingsPage() {
                 style={{ marginTop: 3 }}
               />
               <span>
-                <span style={{ display: 'block', fontSize: 'var(--r-text-base-plus)', fontWeight: 'var(--r-weight-semibold)' }}>
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: 'var(--r-text-base-plus)',
+                    fontWeight: 'var(--r-weight-semibold)',
+                  }}
+                >
                   {t(`botPersona.sendMode.${value}.label`)}
                 </span>
                 <span className="r-hint">{t(`botPersona.sendMode.${value}.help`)}</span>
@@ -342,6 +395,7 @@ export default function SettingsPage() {
       <hr style={{ border: 0, borderTop: '1px solid var(--r-border)', margin: 0 }} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <WhatsAppConsentNotice />
         <div
           style={{
             display: 'flex',
@@ -356,7 +410,9 @@ export default function SettingsPage() {
           {t('botPersona.welcomeTemplateWindowNotice')}
         </div>
 
-        <label className="r-label" htmlFor={`${fieldPrefix}-welcome`}>{t('botPersona.welcomeTemplateLabel')}</label>
+        <label className="r-label" htmlFor={`${fieldPrefix}-welcome`}>
+          {t('botPersona.welcomeTemplateLabel')}
+        </label>
         <textarea
           id={`${fieldPrefix}-welcome`}
           className="r-textarea"
@@ -368,7 +424,13 @@ export default function SettingsPage() {
         <p className="r-field-help">{t('botPersona.welcomeTemplateDesc')}</p>
 
         <div>
-          <p style={{ fontSize: 'var(--r-text-base-plus)', fontWeight: 'var(--r-weight-semibold)', margin: '4px 0 8px' }}>
+          <p
+            style={{
+              fontSize: 'var(--r-text-base-plus)',
+              fontWeight: 'var(--r-weight-semibold)',
+              margin: '4px 0 8px',
+            }}
+          >
             {t('botPersona.insertVariables')}
           </p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -378,7 +440,9 @@ export default function SettingsPage() {
                 type="button"
                 variant="secondary"
                 size="sm"
-                onClick={() => setWhatsappWelcomeTemplate((current) => appendToken(current, TOKEN_VALUE[key]))}
+                onClick={() =>
+                  setWhatsappWelcomeTemplate((current) => appendToken(current, TOKEN_VALUE[key]))
+                }
               >
                 {t(`botPersona.welcomeTokens.${key}.label`)}
               </Button>
@@ -393,21 +457,52 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div style={{ padding: 'var(--r-space-6) var(--r-space-7)', background: 'var(--r-bg)', borderRadius: 'var(--r-radius-md)', border: '1px solid var(--r-border)' }}>
-          <p style={{ fontSize: 'var(--r-text-sm-plus)', fontWeight: 'var(--r-weight-semibold)', margin: '0 0 4px' }}>
+        <div
+          style={{
+            padding: 'var(--r-space-6) var(--r-space-7)',
+            background: 'var(--r-bg)',
+            borderRadius: 'var(--r-radius-md)',
+            border: '1px solid var(--r-border)',
+          }}
+        >
+          <p
+            style={{
+              fontSize: 'var(--r-text-sm-plus)',
+              fontWeight: 'var(--r-weight-semibold)',
+              margin: '0 0 4px',
+            }}
+          >
             {t('botPersona.previewLabel')}
           </p>
-          <p style={{ fontSize: 'var(--r-text-sm-plus)', margin: 0, whiteSpace: 'pre-wrap' }}>{preview}</p>
+          <p style={{ fontSize: 'var(--r-text-sm-plus)', margin: 0, whiteSpace: 'pre-wrap' }}>
+            {preview}
+          </p>
         </div>
 
-        <div style={{ padding: 'var(--r-space-6) var(--r-space-7)', background: 'var(--r-bg)', borderRadius: 'var(--r-radius-md)', border: '1px solid var(--r-border)' }}>
-          <p style={{ fontSize: 'var(--r-text-sm-plus)', fontWeight: 'var(--r-weight-semibold)', margin: '0 0 4px' }}>
+        <div
+          style={{
+            padding: 'var(--r-space-6) var(--r-space-7)',
+            background: 'var(--r-bg)',
+            borderRadius: 'var(--r-radius-md)',
+            border: '1px solid var(--r-border)',
+          }}
+        >
+          <p
+            style={{
+              fontSize: 'var(--r-text-sm-plus)',
+              fontWeight: 'var(--r-weight-semibold)',
+              margin: '0 0 4px',
+            }}
+          >
             {t('botPersona.welcomeTemplatePlaceholdersTitle')}
           </p>
           <p className="r-hint">{t('botPersona.welcomeTemplatePlaceholderOrder')}</p>
           <p className="r-hint">{t('botPersona.welcomeTemplatePlaceholderProducts')}</p>
           <p className="r-hint">
-            {t('botPersona.additionalPlaceholders')}: {WELCOME_TEMPLATE_TOKENS.filter((k) => k !== 'orderNumber' && k !== 'productNames').map((k) => TOKEN_VALUE[k]).join(', ')}
+            {t('botPersona.additionalPlaceholders')}:{' '}
+            {WELCOME_TEMPLATE_TOKENS.filter((k) => k !== 'orderNumber' && k !== 'productNames')
+              .map((k) => TOKEN_VALUE[k])
+              .join(', ')}
           </p>
         </div>
       </div>
@@ -415,13 +510,29 @@ export default function SettingsPage() {
       <div style={{ paddingTop: 12, borderTop: '1px solid var(--r-border)' }}>
         <InlineError message={saveError} onDismiss={() => setSaveError(null)} />
 
-        <ShopifySaveBar id="settings-persona-csb" isDirty={isDirty} saving={saving} onSave={handleSave} onDiscard={discard} />
+        <ShopifySaveBar
+          id="settings-persona-csb"
+          isDirty={isDirty}
+          saving={saving}
+          onSave={handleSave}
+          onDiscard={discard}
+        />
 
         {!isShopifyEmbedded() && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12, marginTop: saveError ? 12 : 0 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: 12,
+              marginTop: saveError ? 12 : 0,
+            }}
+          >
             {isDirty ? <span className="r-hint">{t('unsavedChanges')}</span> : null}
             {isDirty ? (
-              <Button variant="secondary" onClick={discard} disabled={saving}>{t('discard')}</Button>
+              <Button variant="secondary" onClick={discard} disabled={saving}>
+                {t('discard')}
+              </Button>
             ) : null}
             <Button variant="primary" onClick={handleSave} loading={saving} disabled={!isDirty}>
               {saving ? t('botPersona.saving') : t('botPersona.saveButton')}

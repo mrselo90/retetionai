@@ -5,28 +5,33 @@ import { CompanyIdentityBlock } from '@/components/site/CompanyIdentityBlock';
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-[hsl(var(--recete-cream))] py-12 px-4">
+    <div className="legal-page min-h-screen bg-[hsl(var(--recete-cream))] py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-zinc-900 mb-8">Privacy Policy</h1>
-          <p className="text-sm text-zinc-600 mb-8">Last updated: March 12, 2026</p>
+          <p className="text-sm text-zinc-600 mb-8">Last updated: September 24, 2026</p>
 
           <div className="prose prose-zinc max-w-none">
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">1. Introduction</h2>
               <p className="text-zinc-700 mb-4">
-                Recete Ltd. (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) is committed to protecting your privacy.
-                This Privacy Policy explains how we collect, use, disclose, and safeguard your information
-                when you use our service.
+                Recete Ltd. (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) is committed
+                to protecting your privacy. This Privacy Policy explains how we collect, use,
+                disclose, and safeguard your information when you use our service.
               </p>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">2. Information We Collect</h2>
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">
+                2. Information We Collect
+              </h2>
               <h3 className="text-xl font-semibold text-zinc-900 mb-3">2.1 Merchant Information</h3>
               <ul className="list-disc pl-6 text-zinc-700 mb-4">
                 <li>Business name and contact information</li>
-                <li>Email address and account authentication data handled by our authentication provider</li>
+                <li>
+                  Email address and account authentication data handled by our authentication
+                  provider
+                </li>
                 <li>API keys and integration credentials</li>
                 <li>Product information and knowledge base data</li>
               </ul>
@@ -41,10 +46,15 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">3. How We Use Your Information</h2>
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">
+                3. How We Use Your Information
+              </h2>
               <ul className="list-disc pl-6 text-zinc-700 mb-4">
                 <li>To provide and maintain our service</li>
-                <li>To provide merchant-requested post-purchase support and WhatsApp messaging workflows</li>
+                <li>
+                  To provide merchant-requested post-purchase support and WhatsApp messaging
+                  workflows
+                </li>
                 <li>To process customer conversations, delivery context, and product guidance</li>
                 <li>To provide analytics, reporting, and operational tools to merchants</li>
                 <li>To comply with legal obligations</li>
@@ -52,11 +62,14 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">4. Data Minimization and Purpose Limitation</h2>
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">
+                4. Data Minimization and Purpose Limitation
+              </h2>
               <p className="text-zinc-700 mb-4">
-                We process the minimum personal data needed to provide merchant-requested functionality.
-                We do not use merchant customer data for unrelated purposes, and we expect merchants to use
-                the service only for lawful, consent-respecting customer communications.
+                We process the minimum personal data needed to provide merchant-requested
+                functionality. We do not use merchant customer data for unrelated purposes, and we
+                expect merchants to use the service only for lawful, consent-respecting customer
+                communications.
               </p>
             </section>
 
@@ -108,14 +121,67 @@ export default function PrivacyPolicyPage() {
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">7. Data Retention</h2>
               <p className="text-zinc-700 mb-4">
-                We retain your data for as long as necessary to provide our service and comply with legal
-                obligations. When you request deletion, we will:
+                We retain your data for as long as necessary to provide our service and comply with
+                legal obligations. When you request deletion, we will:
               </p>
               <ul className="list-disc pl-6 text-zinc-700 mb-4">
                 <li>Schedule deletion with a 30-day grace period</li>
                 <li>Permanently delete data after the grace period</li>
-                <li>Retain only limited backup copies according to our documented retention schedules</li>
+                <li>
+                  Retain only limited backup copies according to our documented retention schedules
+                </li>
               </ul>
+            </section>
+
+            <section id="sub-processors" className="mb-8">
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">
+                8. Third-Party Services (Sub-processors)
+              </h2>
+              <p className="text-zinc-700 mb-4">
+                We use the following providers to run the service:
+              </p>
+              <ul className="list-disc pl-6 text-zinc-700 mb-4">
+                <li>
+                  <strong>Supabase:</strong> Database and merchant authentication (London, United
+                  Kingdom)
+                </li>
+                <li>
+                  <strong>DigitalOcean:</strong> Application hosting and message queues (London,
+                  United Kingdom)
+                </li>
+                <li>
+                  <strong>OpenAI:</strong> Generates AI replies from the customer&apos;s message and
+                  product information (United States)
+                </li>
+                <li>
+                  <strong>Meta Platforms (WhatsApp Business Platform):</strong> WhatsApp message
+                  delivery
+                </li>
+                <li>
+                  <strong>Twilio:</strong> WhatsApp message delivery
+                </li>
+                <li>
+                  <strong>PostHog:</strong> Website and dashboard analytics, only after cookie
+                  consent (European Union)
+                </li>
+                <li>
+                  <strong>New Relic:</strong> Error and performance monitoring (European Union)
+                </li>
+              </ul>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">8a. WhatsApp Messaging</h2>
+              <p className="text-zinc-700 mb-4">
+                Recete sends scheduled WhatsApp messages only to customers whose merchant has
+                recorded marketing consent for them, and checks that consent again before each
+                message. Customers can stop messages at any time by replying STOP. Merchants can
+                find a checklist and a privacy-notice paragraph on our{' '}
+                <Link href="/whatsapp-gdpr" className="text-blue-600 hover:underline">
+                  WhatsApp &amp; GDPR page
+                </Link>
+                .
+              </p>
             </section>
 
             <section className="mb-8">
@@ -138,10 +204,13 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">9. Merchant Data Protection Terms</h2>
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">
+                9. Merchant Data Protection Terms
+              </h2>
               <p className="text-zinc-700 mb-4">
-                If you are a merchant using the service, our Data Processing Addendum forms part of our merchant
-                terms and explains how we process customer personal data on your behalf.
+                If you are a merchant using the service, our Data Processing Addendum forms part of
+                our merchant terms and explains how we process customer personal data on your
+                behalf.
               </p>
             </section>
 
@@ -165,10 +234,7 @@ export default function PrivacyPolicyPage() {
           </div>
 
           <div className="mt-8 pt-8 border-t border-zinc-200">
-            <Link
-              href="/"
-              className="text-blue-600 hover:text-blue-700 font-medium"
-            >
+            <Link href="/" className="text-blue-600 hover:text-blue-700 font-medium">
               ← Back to Home
             </Link>
           </div>

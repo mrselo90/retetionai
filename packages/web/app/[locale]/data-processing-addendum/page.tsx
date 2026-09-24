@@ -5,18 +5,18 @@ import { CompanyIdentityBlock } from '@/components/site/CompanyIdentityBlock';
 
 export default function DataProcessingAddendumPage() {
   return (
-    <div className="min-h-screen bg-[hsl(var(--recete-cream))] py-12 px-4">
+    <div className="legal-page min-h-screen bg-[hsl(var(--recete-cream))] py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-zinc-900 mb-8">Data Processing Addendum</h1>
-          <p className="text-sm text-zinc-600 mb-8">Last updated: March 12, 2026</p>
+          <p className="text-sm text-zinc-600 mb-8">Last updated: September 24, 2026</p>
 
           <div className="prose prose-zinc max-w-none">
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">1. Scope</h2>
               <p className="text-zinc-700 mb-4">
-                This Addendum applies when Recete Retention Agent processes merchant customer personal data
-                on behalf of a merchant using the service.
+                This Addendum applies when Recete Retention Agent processes merchant customer
+                personal data on behalf of a merchant using the service.
               </p>
             </section>
 
@@ -24,7 +24,10 @@ export default function DataProcessingAddendumPage() {
               <h2 className="text-2xl font-semibold text-zinc-900 mb-4">2. Roles</h2>
               <ul className="list-disc pl-6 text-zinc-700 mb-4">
                 <li>Merchant acts as the controller of customer personal data.</li>
-                <li>Recete acts as a processor, handling personal data only on the merchant&apos;s behalf.</li>
+                <li>
+                  Recete acts as a processor, handling personal data only on the merchant&apos;s
+                  behalf.
+                </li>
               </ul>
             </section>
 
@@ -50,27 +53,64 @@ export default function DataProcessingAddendumPage() {
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">5. Processor Commitments</h2>
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">
+                5. Processor Commitments
+              </h2>
               <ul className="list-disc pl-6 text-zinc-700 mb-4">
                 <li>Process personal data only for merchant-requested service functionality</li>
                 <li>Apply encryption in transit and encryption at rest for sensitive data</li>
                 <li>Maintain tenant isolation and role-limited internal access</li>
                 <li>Support merchant export, deletion, and consent-management requests</li>
-                <li>Notify affected merchants without undue delay after confirming a personal data incident</li>
+                <li>
+                  Notify affected merchants without undue delay after confirming a personal data
+                  incident
+                </li>
               </ul>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">6. Contact</h2>
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">6. Consent and Opt-out</h2>
+              <ul className="list-disc pl-6 text-zinc-700 mb-4">
+                <li>
+                  The merchant is responsible for obtaining a lawful basis, including consent where
+                  required, before customers are messaged on WhatsApp.
+                </li>
+                <li>
+                  Recete starts scheduled messages only for customers whose Shopify record shows
+                  marketing consent, and re-checks consent immediately before each message is sent.
+                </li>
+                <li>
+                  When a customer opts out (for example by replying STOP), Recete records the
+                  opt-out and cancels all messages still scheduled for that customer.
+                </li>
+              </ul>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">7. Sub-processors</h2>
+              <p className="text-zinc-700 mb-4">
+                The merchant authorises Recete to use the sub-processors listed in our{' '}
+                <Link href="/privacy#sub-processors" className="text-blue-600 hover:underline">
+                  Privacy Policy
+                </Link>
+                , including Meta Platforms and Twilio for WhatsApp delivery and OpenAI for AI
+                replies.
+              </p>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">8. Contact</h2>
               <p className="text-zinc-700 mb-4">
                 For merchant data protection questions, contact{' '}
                 <a href="mailto:legal@recete.co.uk" className="text-blue-600 hover:underline">
                   legal@recete.co.uk
-                </a>.
+                </a>
+                .
               </p>
               <p className="text-zinc-700 mb-4">
-                Processor legal entity: RECETE LTD, registered in England and Wales. Registered office:
-                71-75 Shelton Street, Covent Garden, London, WC2H 9JQ. Company number 17082027.
+                Processor legal entity: RECETE LTD, registered in England and Wales. Registered
+                office: 71-75 Shelton Street, Covent Garden, London, WC2H 9JQ. Company number
+                17082027.
               </p>
             </section>
           </div>

@@ -17,6 +17,7 @@ import {
   Card,
   InlineGrid,
   InlineStack,
+  Link,
   Page,
   Select,
   Text,
@@ -31,6 +32,8 @@ import {
   type MerchantSettingsRecord,
 } from '../platform.server';
 import { persistMessagingSetup } from '../lib/persistMessagingSetup';
+
+const WHATSAPP_GDPR_URL = 'https://recete.co.uk/whatsapp-gdpr';
 
 const WELCOME_TEMPLATE_TOKENS = [
   { label: 'First name', token: '{{customer_first_name}}' },
@@ -189,6 +192,25 @@ export default function MessagingSetupPage() {
               <Banner tone="info">
                 These three settings are enough to start sending WhatsApp messages to your customers
                 after delivery. Advanced behavior (tone, guardrails, languages) lives in Settings.
+              </Banner>
+
+              {/* Recete only messages customers with marketing consent, so the
+                  merchant's checkout wording and privacy notice must cover
+                  WhatsApp. This is the moment they set up what customers get. */}
+              <Banner tone="warning" title="Before you go live: customer consent">
+                <BlockStack gap="200">
+                  <p>
+                    Recete only messages customers who accepted marketing at your checkout, and
+                    checks again before every scheduled message. Make sure your checkout&apos;s
+                    consent wording mentions WhatsApp and your privacy policy says you use it.
+                    Customers can reply STOP at any time.
+                  </p>
+                  <p>
+                    <Link url={WHATSAPP_GDPR_URL} target="_blank">
+                      Open the WhatsApp &amp; GDPR checklist (with a privacy policy paragraph)
+                    </Link>
+                  </p>
+                </BlockStack>
               </Banner>
 
               <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
