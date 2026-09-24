@@ -727,7 +727,8 @@
 /* ── Responsive layout classes — desktop defaults ── */
 .lhero-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 64px; align-items: center; }
 .lproof-inner { display: grid; grid-template-columns: auto 1fr; gap: 48px; align-items: center; }
-.lproof-logos { display: grid; grid-template-columns: repeat(6, 1fr); gap: 24px; align-items: center; }
+/* Wrapping row of product facts (was a fixed six-column grid of logos). */
+.lproof-logos { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; }
 .ldemo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
 .lroi-grid { display: grid; grid-template-columns: 1.1fr 1fr; margin-top: 48px; }
 .lfaq-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 64px; margin-top: 16px; }
