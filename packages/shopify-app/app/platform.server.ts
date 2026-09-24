@@ -939,3 +939,52 @@ export async function fetchMerchantCustomers(
     limit: number;
   };
 }
+
+// ---------------------------------------------------------------------------
+// WhatsApp (the store's own number, via Meta Embedded Signup)
+// ---------------------------------------------------------------------------
+
+export type WhatsAppConnectConfig =
+  | { enabled: true; appId: string; configId: string; graphVersion: string }
+  | { enabled: false };
+
+export type WhatsAppConnectStatus =
+  | { connected: false }
+  | {
+      connected: true;
+      phoneNumberDisplay: string | null;
+      verifiedName: string | null;
+      coexistence: boolean;
+    };
+
+export type WhatsAppConnection = { config: WhatsAppConnectConfig; status: WhatsAppConnectStatus };
+
+export async function fetchWhatsAppConnection(request: Request): Promise<WhatsAppConnection> {
+  const [config, status] = await Promise.all([
+    internalMerchantRequest(
+      request,
+      '/api/integrations/whatsapp/embedded-signup/config'
+    ) as Promise<WhatsAppConnectConfig>,
+    internalMerchantRequest(
+      request,
+      '/api/integrations/whatsapp/status'
+    ) as Promise<WhatsAppConnectStatus>,
+  ]);
+  return { config, status };
+}
+
+export async function completeWhatsAppSignup(
+  request: Request,
+  input: { code: string; wabaId: string; phoneNumberId: string; coexistence: boolean }
+) {
+  return (await internalMerchantRequest(request, '/api/integrations/whatsapp/embedded-signup', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })) as WhatsAppConnectStatus;
+}
+
+export async function disconnectWhatsApp(request: Request) {
+  return (await internalMerchantRequest(request, '/api/integrations/whatsapp', {
+    method: 'DELETE',
+  })) as WhatsAppConnectStatus;
+}

@@ -5,6 +5,7 @@ import { boundary } from '@shopify/shopify-app-react-router/server';
 import {
   CartIcon,
   CatalogIcon,
+  ChatIcon,
   CodeIcon,
   ConnectIcon,
   SettingsIcon,
@@ -48,6 +49,7 @@ type SetupStep = {
 // Per-step time estimates (minutes). Used for "X minutes left" hint.
 const STEP_ESTIMATES: Record<SetupStepKey, number> = {
   billing: 2,
+  whatsapp: 3,
   products: 5,
   messaging: 3,
   orders: 5,
@@ -128,6 +130,7 @@ export default function Index() {
       storePending={Boolean(bootstrapData?.pending)}
       billingApproved={bootstrapData?.billingApproved}
       themeEmbedEnabled={bootstrapData?.themeEmbedEnabled}
+      whatsapp={bootstrapData?.whatsapp}
       shop={bootstrapData?.shop || ''}
       merchantName={bootstrapData?.merchantName || ''}
       justSavedMessaging={justSavedMessaging}
@@ -150,6 +153,7 @@ function SetupOverview({
   data,
   billingApproved,
   themeEmbedEnabled,
+  whatsapp,
   shop,
   merchantName,
   justSavedMessaging,
@@ -159,11 +163,12 @@ function SetupOverview({
   storePending?: boolean;
   billingApproved?: boolean;
   themeEmbedEnabled?: boolean;
+  whatsapp?: { enabled: boolean; connected: boolean } | null;
   shop: string;
   merchantName: string;
   justSavedMessaging?: boolean;
 }) {
-  const progress = getSetupProgress(data, billingApproved, themeEmbedEnabled);
+  const progress = getSetupProgress(data, billingApproved, themeEmbedEnabled, whatsapp);
   const fetcher = useFetcher<{
     ok?: boolean;
     error?: string;
@@ -186,6 +191,21 @@ function SetupOverview({
       status: statusFor(progress.hasBilling, progress.nextStep === 'billing'),
       estimateMinutes: STEP_ESTIMATES.billing,
     },
+    // Only while connecting a number is available; see getSetupProgress.
+    ...(progress.whatsappRequired
+      ? [
+          {
+            id: 'whatsapp' as const,
+            title: REQUIRED_STEP_INFO.whatsapp.title,
+            description:
+              "Connect your store's own WhatsApp Business number with a Facebook sign-in. Customer messages are sent from it.",
+            to: REQUIRED_STEP_INFO.whatsapp.path,
+            icon: ChatIcon,
+            status: statusFor(progress.hasWhatsApp, progress.nextStep === 'whatsapp'),
+            estimateMinutes: STEP_ESTIMATES.whatsapp,
+          },
+        ]
+      : []),
     {
       id: 'products',
       title: REQUIRED_STEP_INFO.products.title,
@@ -258,7 +278,7 @@ function SetupOverview({
       subtitle={
         setupComplete
           ? 'Setup is complete. You can now run daily operations.'
-          : 'Three quick steps to start helping customers after delivery.'
+          : `${totalRequired === 4 ? 'Four' : 'Three'} quick steps to start helping customers after delivery.`
       }
       primaryAction={
         setupComplete

@@ -83,9 +83,9 @@
             "action": "Add Product"
           },
           "sendFirstWhatsApp": {
-            "title": "Send your first WhatsApp flow",
-            "description": "Set sender and welcome message to start customer conversations.",
-            "action": "Open WhatsApp Settings"
+            "title": "Connect WhatsApp and send your first message",
+            "description": "Connect your store’s WhatsApp Business number with a Facebook sign-in, then set your welcome message.",
+            "action": "Connect WhatsApp"
           }
         }
       },
@@ -162,7 +162,7 @@
         "integration": "Connect Shopify",
         "integrationDesc": "Sync orders and customers automatically",
         "settings": "Settings",
-        "settingsDesc": "WhatsApp sender and bot behavior"
+        "settingsDesc": "Bot name, tone and welcome message"
       },
       "toasts": {
         "sessionExpired": {
@@ -805,19 +805,7 @@
         "balanced": "Balanced (0.7)",
         "creative": "Creative (1.0)"
       },
-      "whatsappSenderLabel": "WhatsApp Sender Number",
       "whatsappSenderDesc": "Which number should be used for outgoing messages?",
-      "whatsappSenders": {
-        "merchantOwn": {
-          "label": "My own number (store)",
-          "desc": "Uses your connected WhatsApp Business number."
-        },
-        "corporate": {
-          "label": "Corporate number (Recete)",
-          "desc": "Uses the platform's shared number."
-        }
-      },
-      "whatsappHelpTitle": "Where do I get my own number?",
       "welcomeTemplateLabel": "Initial WhatsApp message template (T+0 welcome)",
       "welcomeTemplatePlaceholder": "Hello 😊\nYour products should have been delivered. Do you have any questions about how to use them?\n\nOrder No: {{order_number}}\nProducts:\n{{product_list}}\n\nIf you want, I can prepare a personalized care routine for the products you bought.",
       "welcomeTemplateDesc": "If left empty, the system default welcome message is used. If filled, this template is used for the T+0 message.",
@@ -1592,5 +1580,44 @@
     "openChecklist": "WhatsApp & GDPR checklist",
     "copySnippet": "Copy privacy paragraph",
     "copied": "Copied"
+  },
+  "WhatsAppConnect": {
+    "title": "WhatsApp Business",
+    "description": "Connect your store's own WhatsApp Business number. You sign in with Facebook and pick your number — no API keys, about two minutes.",
+    "comingSoonDescription": "Connecting your own WhatsApp number with a Facebook sign-in is coming soon. Until then Recete cannot send WhatsApp messages.",
+    "connectedDescription": "Messages go from {number} ({name}).",
+    "coexistenceLabel": "I already use this number in the WhatsApp Business app",
+    "coexistenceHelp": "Keep using the app: you confirm the move with a QR code in WhatsApp Business, and your chats stay there too.",
+    "steps": "A Facebook window opens: sign in, choose or create your business account, pick the number, and confirm.",
+    "disconnectConfirm": "Disconnect this WhatsApp number? Recete will stop sending and receiving messages for your store.",
+    "loadFailed": "Couldn't load your WhatsApp connection.",
+    "badges": {
+      "connected": "Connected",
+      "comingSoon": "Coming soon"
+    },
+    "actions": {
+      "connect": "Connect WhatsApp",
+      "connecting": "Connecting…",
+      "disconnect": "Disconnect",
+      "retry": "Retry"
+    },
+    "toasts": {
+      "connected": {
+        "title": "WhatsApp connected",
+        "message": "Recete will now message your customers from this number."
+      },
+      "disconnected": {
+        "title": "WhatsApp disconnected",
+        "message": "Recete no longer sends messages from this number."
+      },
+      "cancelled": {
+        "title": "Connection cancelled",
+        "message": "Nothing was changed. You can try again any time."
+      },
+      "failed": {
+        "title": "Could not connect WhatsApp",
+        "message": "Please try again."
+      }
+    }
   }
 }

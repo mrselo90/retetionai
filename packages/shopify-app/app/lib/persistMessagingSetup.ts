@@ -8,18 +8,18 @@ import {
   fetchMerchantSettings,
   updateMerchantSettings,
   updateMerchantMultiLangSettings,
-} from "../platform.server";
-import { getPlanSnapshotByDomain } from "../services/planService.server";
+} from '../platform.server';
+import { getPlanSnapshotByDomain } from '../services/planService.server';
 
 export type MessagingSetupInput = {
   botName?: string | null;
-  tone?: "friendly" | "professional" | "casual" | "formal" | null;
-  responseLength?: "short" | "medium" | "long" | null;
+  tone?: 'friendly' | 'professional' | 'casual' | 'formal' | null;
+  responseLength?: 'short' | 'medium' | 'long' | null;
   emoji?: boolean | null;
   aiVisionEnabled?: boolean | null;
   notificationPhone?: string | null;
   welcomeTemplate?: string | null;
-  messageSendMode?: "always" | "all_products_required" | null;
+  messageSendMode?: 'always' | 'all_products_required' | null;
   enabledLangs?: string[] | null; // null → leave unchanged
 };
 
@@ -31,8 +31,8 @@ export type MessagingSetupResult = {
   removedLangs?: string[];
 };
 
-const VALID_TONES = new Set(["friendly", "professional", "casual", "formal"] as const);
-const VALID_LENGTHS = new Set(["short", "medium", "long"] as const);
+const VALID_TONES = new Set(['friendly', 'professional', 'casual', 'formal'] as const);
+const VALID_LENGTHS = new Set(['short', 'medium', 'long'] as const);
 
 /**
  * Persist the merchant's messaging/persona settings.
@@ -46,7 +46,7 @@ const VALID_LENGTHS = new Set(["short", "medium", "long"] as const);
 export async function persistMessagingSetup(
   request: Request,
   shop: string,
-  input: MessagingSetupInput,
+  input: MessagingSetupInput
 ): Promise<MessagingSetupResult> {
   const plan = await getPlanSnapshotByDomain(shop);
   const currentSettings = await fetchMerchantSettings(request);
@@ -59,10 +59,10 @@ export async function persistMessagingSetup(
 
   // Tone (optional update)
   if (input.tone !== undefined && input.tone !== null) {
-    const tone = VALID_TONES.has(input.tone as typeof input.tone) ? input.tone : "friendly";
-    nextPersonaSettings.tone = tone || "friendly";
+    const tone = VALID_TONES.has(input.tone as typeof input.tone) ? input.tone : 'friendly';
+    nextPersonaSettings.tone = tone || 'friendly';
   } else if (existingPersonaSettings.tone == null) {
-    nextPersonaSettings.tone = "friendly";
+    nextPersonaSettings.tone = 'friendly';
   }
 
   // Emoji (default true if unset on existing record)
@@ -76,16 +76,16 @@ export async function persistMessagingSetup(
   if (input.responseLength !== undefined && input.responseLength !== null) {
     const rl = VALID_LENGTHS.has(input.responseLength as typeof input.responseLength)
       ? input.responseLength
-      : "medium";
-    nextPersonaSettings.response_length = rl || "medium";
+      : 'medium';
+    nextPersonaSettings.response_length = rl || 'medium';
   } else if (existingPersonaSettings.response_length == null) {
-    nextPersonaSettings.response_length = "medium";
+    nextPersonaSettings.response_length = 'medium';
   }
 
   // AI Vision: forced off on Starter
   if (input.aiVisionEnabled !== undefined && input.aiVisionEnabled !== null) {
     nextPersonaSettings.ai_vision_enabled =
-      plan.planType === "STARTER" ? false : Boolean(input.aiVisionEnabled);
+      plan.planType === 'STARTER' ? false : Boolean(input.aiVisionEnabled);
   }
 
   // Bot name
@@ -111,7 +111,7 @@ export async function persistMessagingSetup(
   // Message send mode
   if (input.messageSendMode !== undefined && input.messageSendMode !== null) {
     nextPersonaSettings.message_send_mode =
-      input.messageSendMode === "all_products_required" ? "all_products_required" : "always";
+      input.messageSendMode === 'all_products_required' ? 'all_products_required' : 'always';
   }
 
   // Notification phone: pass-through (null clears, undefined leaves unchanged)
@@ -124,25 +124,33 @@ export async function persistMessagingSetup(
 
   const updatePromises: Array<Promise<unknown>> = [
     updateMerchantSettings(request, {
-      ...(notificationPhonePayload === undefined ? {} : { notification_phone: notificationPhonePayload }),
+      ...(notificationPhonePayload === undefined
+        ? {}
+        : { notification_phone: notificationPhonePayload }),
       persona_settings: nextPersonaSettings,
     }),
   ];
 
-  let multiLangPromise: Promise<{
-    backfillTriggered?: boolean;
-    addedLangs?: string[];
-    removedLangs?: string[];
-  } | undefined> | null = null;
+  let multiLangPromise: Promise<
+    | {
+        backfillTriggered?: boolean;
+        addedLangs?: string[];
+        removedLangs?: string[];
+      }
+    | undefined
+  > | null = null;
 
   if (input.enabledLangs && input.enabledLangs.length > 0) {
     multiLangPromise = updateMerchantMultiLangSettings(request, {
       enabled_langs: input.enabledLangs,
-    }) as Promise<{
-      backfillTriggered?: boolean;
-      addedLangs?: string[];
-      removedLangs?: string[];
-    } | undefined>;
+    }) as Promise<
+      | {
+          backfillTriggered?: boolean;
+          addedLangs?: string[];
+          removedLangs?: string[];
+        }
+      | undefined
+    >;
     updatePromises.push(multiLangPromise);
   }
 
@@ -155,16 +163,12 @@ export async function persistMessagingSetup(
       ? ` Customer reply languages changed, so product knowledge refresh has started for ${[
           ...(multiLangResponse.addedLangs || []).map((lang) => `+${lang}`),
           ...(multiLangResponse.removedLangs || []).map((lang) => `-${lang}`),
-        ].join(", ")}.`
-      : " Customer reply languages were updated."
-    : "";
+        ].join(', ')}.`
+      : ' Customer reply languages were updated.'
+    : '';
 
   const planNote =
-    plan.planType === "STARTER"
-      ? " AI Vision stayed off because it requires Growth, and shared Recete WhatsApp routing was kept because custom branded WhatsApp requires Pro."
-      : plan.planType === "GROWTH"
-        ? " Shared Recete WhatsApp routing was kept because custom branded WhatsApp requires Pro."
-        : "";
+    plan.planType === 'STARTER' ? ' AI Vision stayed off because it requires Growth.' : '';
 
   return {
     ok: true,

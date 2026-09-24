@@ -1,19 +1,14 @@
-import { logger } from '@recete/shared';
+import { downloadMetaImageDataUrl, logger } from '@recete/shared';
 import { getOpenAIClient } from './openaiClient.js';
 import { getDefaultVisionModel } from './runtimeModelSettings.js';
 import { trackAiUsageEvent } from './aiUsageEvents.js';
 import type { WhatsAppCredentials, WhatsAppWebhookMessage } from './whatsapp.js';
 
-/**
- * Downloading the customer's image is provider-specific (Meta and Twilio each
- * had their own authenticated media URLs). With both providers removed there is
- * no source to fetch from, so image analysis reports that instead of guessing.
- */
 async function resolveImageDataUrl(
-  _message: WhatsAppWebhookMessage,
-  _credentials: WhatsAppCredentials
+  message: WhatsAppWebhookMessage,
+  credentials: WhatsAppCredentials
 ): Promise<string> {
-  throw new Error('No WhatsApp provider is connected to download customer images from');
+  return downloadMetaImageDataUrl(message, credentials);
 }
 
 function buildVisionPrompt(params: { customerCaption?: string; merchantName?: string | null }) {

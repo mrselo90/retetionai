@@ -1188,9 +1188,9 @@ export default function SettingsPage() {
             <BlockStack gap="300">
               <Banner tone="info">
                 {onStarter
-                  ? 'Growth unlocks AI Vision. Pro unlocks custom branded WhatsApp and advanced add-ons.'
+                  ? 'Growth unlocks AI Vision. Pro unlocks the advanced add-ons.'
                   : data.plan.planType === 'GROWTH'
-                    ? 'Pro unlocks custom branded WhatsApp and the advanced add-ons listed below.'
+                    ? 'Pro unlocks the advanced add-ons listed below.'
                     : 'Your current plan can use any compatible add-on below.'}
               </Banner>
               {data.plan.planType !== 'PRO' ? (

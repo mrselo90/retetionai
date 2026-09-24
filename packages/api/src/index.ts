@@ -18,7 +18,8 @@ import eventRoutes from './routes/events.js';
 import csvRoutes from './routes/csv.js';
 import productRoutes from './routes/products.js';
 import ragRoutes from './routes/rag.js';
-import whatsappRoutes from './routes/whatsapp.js';
+import whatsappRoutes, { whatsappWebhookRoutes } from './routes/whatsapp.js';
+import whatsappConnectRoutes from './routes/whatsappConnect.js';
 import messageRoutes from './routes/messages.js';
 import conversationRoutes from './routes/conversations.js';
 import analyticsRoutes from './routes/analytics.js';
@@ -165,6 +166,8 @@ app.route('/api/merchants', merchantRoutes);
 app.route('/api/integrations/shopify', shopifyRoutes);
 
 // Integration routes
+// Before the integrations router, so /api/integrations/:id does not swallow /whatsapp/*.
+app.route('/api/integrations/whatsapp', whatsappConnectRoutes);
 app.route('/api/integrations', integrationRoutes);
 
 // CSV import routes
@@ -181,6 +184,8 @@ app.route('/api/answer', answerRoutes);
 
 // WhatsApp routes
 app.route('/api/whatsapp', whatsappRoutes);
+// Meta Cloud API webhook for every merchant's connected number: /webhooks/whatsapp
+app.route('/webhooks', whatsappWebhookRoutes);
 
 // Message scheduling routes
 app.route('/api/messages', messageRoutes);

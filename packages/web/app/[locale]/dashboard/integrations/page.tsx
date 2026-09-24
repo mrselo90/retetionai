@@ -11,6 +11,7 @@ import type { BadgeTone } from '@/components/recete';
 import { Trash2, Plug, Upload, Code, ShoppingBag } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { getErrorMessage, getErrorStatus } from '@/lib/errors';
+import { WhatsAppConnectCard } from '@/components/recete/WhatsAppConnectCard';
 
 interface Integration {
   id: string;
@@ -491,6 +492,9 @@ export default function IntegrationsPage() {
                   : t('providers.shopify.action.connect')}
               </button>
             </div>
+
+            {/* WhatsApp: the store's own number via Meta Embedded Signup */}
+            <WhatsAppConnectCard />
 
             {/* CSV Import */}
             <div

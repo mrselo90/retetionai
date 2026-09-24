@@ -66,7 +66,14 @@ const navItems = [
 ] as const;
 
 // Until the required setup steps are done, list only the pages those steps use.
-const SETUP_NAV_PATHS = new Set<string>(['/app', '/app/billing', '/app/products', '/app/settings']);
+// Integrations is where the store connects its WhatsApp number.
+const SETUP_NAV_PATHS = new Set<string>([
+  '/app',
+  '/app/billing',
+  '/app/integrations',
+  '/app/products',
+  '/app/settings',
+]);
 const setupNavItems = navItems.filter((item) => SETUP_NAV_PATHS.has(item.to));
 
 function isDocumentRequest(request: Request) {
@@ -118,6 +125,7 @@ export type AppBootstrapData = {
   activePlanName?: string | null;
   // Set by /app/bootstrap while the platform is still provisioning a fresh install.
   pending?: boolean;
+  whatsapp?: { enabled: boolean; connected: boolean } | null;
 };
 
 export type AppBootstrapContext = {
@@ -212,7 +220,7 @@ function AppShell() {
   const overview = bootstrapData?.overview;
   const themeEmbedEnabled = bootstrapData?.themeEmbedEnabled ?? false;
   const setupProgress = overview
-    ? getSetupProgress(overview, hasBillingApproved, themeEmbedEnabled)
+    ? getSetupProgress(overview, hasBillingApproved, themeEmbedEnabled, bootstrapData?.whatsapp)
     : null;
 
   // Navigation lives in the Shopify admin's own sidebar (App Bridge nav menu),

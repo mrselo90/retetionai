@@ -1,9 +1,6 @@
-import type {
-  HeadersFunction,
-  LoaderFunctionArgs,
-} from "react-router";
-import { redirect, useLoaderData } from "react-router";
-import { boundary } from "@shopify/shopify-app-react-router/server";
+import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
+import { redirect, useLoaderData } from 'react-router';
+import { boundary } from '@shopify/shopify-app-react-router/server';
 import {
   Badge,
   Banner,
@@ -14,19 +11,17 @@ import {
   InlineStack,
   List,
   Text,
-} from "@shopify/polaris";
-import {
-  isPlanKey,
-} from "../services/planDefinitions";
-import { SectionCard, ShellPage } from "../components/shell-ui";
-import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
+} from '@shopify/polaris';
+import { isPlanKey } from '../services/planDefinitions';
+import { SectionCard, ShellPage } from '../components/shell-ui';
+import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 
-const STARTER_MONTHLY_PLAN = "starter-monthly";
-const STARTER_YEARLY_PLAN = "starter-yearly";
-const GROWTH_MONTHLY_PLAN = "growth-monthly";
-const GROWTH_YEARLY_PLAN = "growth-yearly";
-const PRO_MONTHLY_PLAN = "pro-monthly";
-const PRO_YEARLY_PLAN = "pro-yearly";
+const STARTER_MONTHLY_PLAN = 'starter-monthly';
+const STARTER_YEARLY_PLAN = 'starter-yearly';
+const GROWTH_MONTHLY_PLAN = 'growth-monthly';
+const GROWTH_YEARLY_PLAN = 'growth-yearly';
+const PRO_MONTHLY_PLAN = 'pro-monthly';
+const PRO_YEARLY_PLAN = 'pro-yearly';
 
 const ALL_PLAN_KEYS = [
   STARTER_MONTHLY_PLAN,
@@ -38,12 +33,12 @@ const ALL_PLAN_KEYS = [
 ] as const;
 
 function getStoreHandle(shop: string) {
-  return shop.replace(/\.myshopify\.com$/i, "");
+  return shop.replace(/\.myshopify\.com$/i, '');
 }
 
 function getManagedPricingUrl(shop: string) {
   const storeHandle = getStoreHandle(shop);
-  const appHandle = process.env.SHOPIFY_MANAGED_PRICING_APP_HANDLE?.trim() || "blackeagle";
+  const appHandle = process.env.SHOPIFY_MANAGED_PRICING_APP_HANDLE?.trim() || 'blackeagle';
   return `https://admin.shopify.com/store/${storeHandle}/charges/${appHandle}/pricing_plans`;
 }
 
@@ -59,74 +54,75 @@ const PLAN_TIERS: ReadonlyArray<{
   features: readonly string[];
 }> = [
   {
-    tier: "Starter",
-    monthly: "$29/mo",
-    yearly: "$290/yr",
+    tier: 'Starter',
+    monthly: '$29/mo',
+    yearly: '$290/yr',
     planKey: STARTER_MONTHLY_PLAN,
-    audience: "Best for new or low-volume stores starting post-purchase support.",
-    yearlySavings: "Save $58 with yearly billing (2 months free).",
-    ctaLabel: "Choose Starter plan",
+    audience: 'Best for new or low-volume stores starting post-purchase support.',
+    yearlySavings: 'Save $58 with yearly billing (2 months free).',
+    ctaLabel: 'Choose Starter plan',
     features: [
-      "150 included chats per month",
-      "Up to 20 recipes",
-      "Shared WhatsApp number",
-      "Basic analytics",
+      '150 included chats per month',
+      'Up to 20 recipes',
+      'Your own WhatsApp Business number',
+      'Basic analytics',
     ],
   },
   {
-    tier: "Growth",
-    monthly: "$69/mo",
-    yearly: "$690/yr",
+    tier: 'Growth',
+    monthly: '$69/mo',
+    yearly: '$690/yr',
     planKey: GROWTH_MONTHLY_PLAN,
     recommended: true,
-    audience: "Best for active stores with daily support traffic and regular repeat orders.",
-    yearlySavings: "Save $138 with yearly billing (2 months free).",
-    ctaLabel: "Choose Growth plan",
+    audience: 'Best for active stores with daily support traffic and regular repeat orders.',
+    yearlySavings: 'Save $138 with yearly billing (2 months free).',
+    ctaLabel: 'Choose Growth plan',
     features: [
-      "1,000 included chats per month",
-      "Up to 500 recipes",
-      "AI vision for product photos",
-      "Upsell links in conversations",
+      '1,000 included chats per month',
+      'Up to 500 recipes',
+      'Your own WhatsApp Business number',
+      'AI vision for product photos',
+      'Upsell links in conversations',
     ],
   },
   {
-    tier: "Pro",
-    monthly: "$169/mo",
-    yearly: "$1,690/yr",
+    tier: 'Pro',
+    monthly: '$169/mo',
+    yearly: '$1,690/yr',
     planKey: PRO_MONTHLY_PLAN,
-    audience: "Best for high-volume operations that need advanced automation and insights.",
-    yearlySavings: "Save $338 with yearly billing (2 months free).",
-    ctaLabel: "Choose Pro plan",
+    audience: 'Best for high-volume operations that need advanced automation and insights.',
+    yearlySavings: 'Save $338 with yearly billing (2 months free).',
+    ctaLabel: 'Choose Pro plan',
     features: [
-      "3,000 included chats per month",
-      "Unlimited recipes",
-      "Advanced analytics",
-      "Smart re-order engine",
-      "Custom-branded WhatsApp number",
+      '3,000 included chats per month',
+      'Unlimited recipes',
+      'Advanced analytics',
+      'Smart re-order engine',
+      'Your own WhatsApp Business number',
     ],
   },
 ] as const;
 
 function extractBillingErrorMessage(err: unknown): string {
-  if (err && typeof err === "object" && "errorData" in err) {
+  if (err && typeof err === 'object' && 'errorData' in err) {
     const data = (err as { errorData: Array<{ message: string }> }).errorData;
     if (Array.isArray(data) && data.length > 0) {
-      return data.map((e) => e.message).join("; ");
+      return data.map((e) => e.message).join('; ');
     }
   }
-  return err instanceof Error ? err.message : "An unexpected billing error occurred.";
+  return err instanceof Error ? err.message : 'An unexpected billing error occurred.';
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     const url = new URL(request.url);
     const requestedPlan = String(
-      url.searchParams.get("plan") || url.searchParams.get("upgradePlan") || "",
+      url.searchParams.get('plan') || url.searchParams.get('upgradePlan') || ''
     ).trim();
     const { billing, session } = await authenticateEmbeddedAdmin(request);
     const billingState = await billing.check({
       plans: [...ALL_PLAN_KEYS],
-      isTest: process.env.NODE_ENV !== "production",
+      isTest: process.env.NODE_ENV !== 'production',
     });
 
     const subscriptions = billingState.appSubscriptions.map((subscription) => ({
@@ -139,7 +135,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return {
       hasActivePayment: billingState.hasActivePayment,
       hasDeclinedSubscription: subscriptions.some(
-        (s) => s.status === "DECLINED" || s.status === "EXPIRED" || s.status === "CANCELLED",
+        (s) => s.status === 'DECLINED' || s.status === 'EXPIRED' || s.status === 'CANCELLED'
       ),
       managedPricingUrl: getManagedPricingUrl(session.shop),
       requestedPlan: isPlanKey(requestedPlan) ? requestedPlan : null,
@@ -148,7 +144,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     };
   } catch (err) {
     if (err instanceof Response) throw err;
-    console.error("[billing-loader]", err);
+    console.error('[billing-loader]', err);
     return {
       hasActivePayment: false,
       hasDeclinedSubscription: false,
@@ -162,13 +158,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export const action = async ({ request }: { request: Request }) => {
   const formData = await request.formData();
-  const requestedPlan = String(formData.get("plan") || "").trim();
+  const requestedPlan = String(formData.get('plan') || '').trim();
 
   if (!isPlanKey(requestedPlan)) {
-    return Response.json(
-      { ok: false, error: "Unknown billing plan." },
-      { status: 400 },
-    );
+    return Response.json({ ok: false, error: 'Unknown billing plan.' }, { status: 400 });
   }
 
   throw redirect(`/app/billing?plan=${encodeURIComponent(requestedPlan)}`);
@@ -178,7 +171,7 @@ export default function BillingPage() {
   const data = useLoaderData<typeof loader>();
 
   const activePlanName = data.subscriptions.find(
-    (s) => s.status === "ACTIVE" || s.status === "ACCEPTED",
+    (s) => s.status === 'ACTIVE' || s.status === 'ACCEPTED'
   )?.name;
 
   return (
@@ -199,8 +192,10 @@ export default function BillingPage() {
           <Text as="p" variant="bodySm" tone="subdued">
             Current Status
           </Text>
-          <Badge tone={data.hasActivePayment ? "success" : "attention"}>
-            {data.hasActivePayment ? `Active${activePlanName ? ` · ${activePlanName}` : ""}` : "Free / No Plan"}
+          <Badge tone={data.hasActivePayment ? 'success' : 'attention'}>
+            {data.hasActivePayment
+              ? `Active${activePlanName ? ` · ${activePlanName}` : ''}`
+              : 'Free / No Plan'}
           </Badge>
         </InlineStack>
       </Card>
@@ -211,11 +206,14 @@ export default function BillingPage() {
           title="Billing requires attention"
           action={
             data.managedPricingUrl
-              ? { content: "Reactivate billing", url: data.managedPricingUrl, target: "_top" }
+              ? { content: 'Reactivate billing', url: data.managedPricingUrl, target: '_top' }
               : undefined
           }
         >
-          <p>Your previous subscription was declined or expired. Choose a plan below to reactivate Recete.</p>
+          <p>
+            Your previous subscription was declined or expired. Choose a plan below to reactivate
+            Recete.
+          </p>
         </Banner>
       ) : null}
 
@@ -230,11 +228,17 @@ export default function BillingPage() {
               ? `${data.managedPricingUrl}?plan=${encodeURIComponent(plan.planKey)}`
               : undefined;
             return (
-              <Card key={plan.tier} padding="500" background={isCurrentTier ? "bg-surface-success" : undefined}>
+              <Card
+                key={plan.tier}
+                padding="500"
+                background={isCurrentTier ? 'bg-surface-success' : undefined}
+              >
                 <BlockStack gap="400">
                   <BlockStack gap="200">
                     <InlineStack gap="200" align="space-between" blockAlign="center">
-                      <Text as="h3" variant="headingLg">{plan.tier}</Text>
+                      <Text as="h3" variant="headingLg">
+                        {plan.tier}
+                      </Text>
                       {plan.recommended ? <Badge tone="success">Recommended</Badge> : null}
                       {isCurrentTier ? <Badge tone="info">Current</Badge> : null}
                     </InlineStack>
@@ -270,8 +274,8 @@ export default function BillingPage() {
                   </Button>
                   <Text as="p" variant="bodySm" tone="subdued">
                     {planSelectionUrl
-                      ? "Redirects to Shopify billing approval."
-                      : "Billing is temporarily unavailable. Refresh the page or contact support if this continues."}
+                      ? 'Redirects to Shopify billing approval.'
+                      : 'Billing is temporarily unavailable. Refresh the page or contact support if this continues.'}
                   </Text>
                 </BlockStack>
               </Card>

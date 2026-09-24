@@ -10,7 +10,6 @@ import {
   Box,
   Button,
   Card,
-  Checkbox,
   InlineGrid,
   InlineStack,
   Layout,
@@ -780,12 +779,6 @@ export default function SystemHealthPage() {
                         value={corporateWhatsAppPhoneDisplay}
                         onChange={setCorporateWhatsAppPhoneDisplay}
                         helpText="Optional human-readable display value used in platform contact surfaces."
-                      />
-                      <Checkbox
-                        label="Force corporate WhatsApp for customer messaging"
-                        checked={forceCorporateWhatsAppForCustomerMessaging}
-                        onChange={setForceCorporateWhatsAppForCustomerMessaging}
-                        helpText="Default is off. Turn on to force all customer-facing WhatsApp sends (welcome, AI replies, manual replies, test kit) to use the Recete Ltd corporate line."
                       />
                       <Select
                         label="Conversation memory mode"

@@ -1,9 +1,13 @@
-import type { LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from 'react-router';
 
-import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
-import { isBillingReady } from "../lib/billingStatus";
-import { fetchMerchantOverviewFromRequest, syncShopInstall } from "../platform.server";
-import prisma from "../db.server";
+import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
+import { isBillingReady } from '../lib/billingStatus';
+import {
+  fetchMerchantOverviewFromRequest,
+  fetchWhatsAppConnection,
+  syncShopInstall,
+} from '../platform.server';
+import prisma from '../db.server';
 import {
   GROWTH_MONTHLY_PLAN,
   GROWTH_YEARLY_PLAN,
@@ -11,7 +15,7 @@ import {
   PRO_YEARLY_PLAN,
   STARTER_MONTHLY_PLAN,
   STARTER_YEARLY_PLAN,
-} from "../services/planDefinitions";
+} from '../services/planDefinitions';
 
 const ALL_PLAN_KEYS = [
   STARTER_MONTHLY_PLAN,
@@ -22,25 +26,39 @@ const ALL_PLAN_KEYS = [
   PRO_YEARLY_PLAN,
 ] as const;
 
+/**
+ * For the setup checklist: whether connecting a WhatsApp number is available
+ * yet, and whether this store has connected one. null when it can't be read,
+ * which leaves the step out rather than blocking setup on a failed call.
+ */
+async function loadSetupWhatsApp(request: Request) {
+  try {
+    const { config, status } = await fetchWhatsAppConnection(request);
+    return { enabled: config.enabled, connected: status.connected };
+  } catch {
+    return null;
+  }
+}
+
 function buildPendingOverview(shop: string) {
-  const merchantName = shop.replace(".myshopify.com", "");
+  const merchantName = shop.replace('.myshopify.com', '');
   return {
     merchant: {
       id: `pending:${shop}`,
       name: merchantName,
-      subscription_status: "pending",
+      subscription_status: 'pending',
       subscription_plan: null,
       trial_ends_at: null,
     },
     shop,
     integration: {
       id: `pending:${shop}`,
-      provider: "shopify",
-      status: "pending",
+      provider: 'shopify',
+      status: 'pending',
     },
     subscription: {
       plan: null,
-      status: "pending",
+      status: 'pending',
       billingProvider: null,
       trialEndsAt: null,
     },
@@ -72,30 +90,35 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing, session } = await authenticateEmbeddedAdmin(request);
   const billingState = await billing.check({
     plans: [...ALL_PLAN_KEYS],
-    isTest: process.env.NODE_ENV !== "production",
+    isTest: process.env.NODE_ENV !== 'production',
   });
 
   try {
     const overview = await fetchMerchantOverviewFromRequest(request);
-    const shop = requestUrl.searchParams.get("shop") || overview.shop;
-    const billingApproved = billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
-    const shopRecord = await prisma.shop.findUnique({ where: { shopDomain: session.shop }, select: { themeEmbedEnabled: true } });
+    const shop = requestUrl.searchParams.get('shop') || overview.shop;
+    const billingApproved =
+      billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
+    const shopRecord = await prisma.shop.findUnique({
+      where: { shopDomain: session.shop },
+      select: { themeEmbedEnabled: true },
+    });
 
     const activeSubscription = billingState.appSubscriptions.find(
-      (s) => String(s.status).toUpperCase() === "ACTIVE",
+      (s) => String(s.status).toUpperCase() === 'ACTIVE'
     );
     const activePlanName = activeSubscription?.name || overview.merchant.subscription_plan || null;
 
     return Response.json({
-      merchantName: overview.merchant.name || shop.replace(".myshopify.com", ""),
+      merchantName: overview.merchant.name || shop.replace('.myshopify.com', ''),
       overview,
       shop,
       subscriptionStatus: billingApproved
-        ? "active"
-        : overview.merchant.subscription_status || "inactive",
+        ? 'active'
+        : overview.merchant.subscription_status || 'inactive',
       billingApproved,
       themeEmbedEnabled: shopRecord?.themeEmbedEnabled ?? false,
       activePlanName,
+      whatsapp: await loadSetupWhatsApp(request),
     });
   } catch (error) {
     // Attempt install-sync repair when the platform doesn't know about this shop yet.
@@ -114,28 +137,33 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         });
 
         const overview = await fetchMerchantOverviewFromRequest(request);
-        const shop = requestUrl.searchParams.get("shop") || overview.shop;
+        const shop = requestUrl.searchParams.get('shop') || overview.shop;
         const billingApproved =
           billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
-        const shopRecord2 = await prisma.shop.findUnique({ where: { shopDomain: session.shop }, select: { themeEmbedEnabled: true } });
+        const shopRecord2 = await prisma.shop.findUnique({
+          where: { shopDomain: session.shop },
+          select: { themeEmbedEnabled: true },
+        });
         const activeSubscription2 = billingState.appSubscriptions.find(
-          (s) => String(s.status).toUpperCase() === "ACTIVE",
+          (s) => String(s.status).toUpperCase() === 'ACTIVE'
         );
-        const activePlanName2 = activeSubscription2?.name || overview.merchant.subscription_plan || null;
+        const activePlanName2 =
+          activeSubscription2?.name || overview.merchant.subscription_plan || null;
 
         return Response.json({
-          merchantName: overview.merchant.name || shop.replace(".myshopify.com", ""),
+          merchantName: overview.merchant.name || shop.replace('.myshopify.com', ''),
           overview,
           shop,
           subscriptionStatus: billingApproved
-            ? "active"
-            : overview.merchant.subscription_status || "inactive",
+            ? 'active'
+            : overview.merchant.subscription_status || 'inactive',
           billingApproved,
           themeEmbedEnabled: shopRecord2?.themeEmbedEnabled ?? false,
           activePlanName: activePlanName2,
+          whatsapp: await loadSetupWhatsApp(request),
         });
       } catch (repairError) {
-        console.error("[app-bootstrap] install sync repair failed", repairError);
+        console.error('[app-bootstrap] install sync repair failed', repairError);
       }
     }
 
@@ -143,26 +171,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // but merchant records are not fully bootstrapped in the platform API yet.
     if (error instanceof Response && (error.status === 403 || error.status === 404)) {
       const shop =
-        requestUrl.searchParams.get("shop")?.trim() ||
-        session.shop ||
-        "unknown.myshopify.com";
+        requestUrl.searchParams.get('shop')?.trim() || session.shop || 'unknown.myshopify.com';
       const overview = buildPendingOverview(shop);
       const billingApproved = billingState.hasActivePayment;
       if (billingApproved) {
-        overview.merchant.subscription_status = "active";
-        overview.subscription.status = "active";
+        overview.merchant.subscription_status = 'active';
+        overview.subscription.status = 'active';
       }
       return Response.json(
         {
           pending: true,
-          reason: "merchant_bootstrap_pending",
+          reason: 'merchant_bootstrap_pending',
           merchantName: overview.merchant.name,
           overview,
           shop,
-          subscriptionStatus: billingApproved ? "active" : "pending",
+          subscriptionStatus: billingApproved ? 'active' : 'pending',
           billingApproved,
         },
-        { status: 202 },
+        { status: 202 }
       );
     }
     throw error;

@@ -83,9 +83,9 @@
             "action": "Ürün ekleyin"
           },
           "sendFirstWhatsApp": {
-            "title": "İlk WhatsApp akışınızı gönderin",
-            "description": "Müşteri konuşmalarını başlatmak için gönderen ve karşılama mesajını ayarlayın.",
-            "action": "WhatsApp ayarlarını açın"
+            "title": "WhatsApp’ı bağlayın ve ilk mesajı gönderin",
+            "description": "Mağazanızın WhatsApp Business numarasını Facebook girişiyle bağlayın, sonra karşılama mesajınızı ayarlayın.",
+            "action": "WhatsApp’ı bağla"
           }
         }
       },
@@ -162,7 +162,7 @@
         "integration": "Shopify’ı bağlayın",
         "integrationDesc": "Siparişleri ve müşterileri otomatik senkronize edin",
         "settings": "Ayarlar",
-        "settingsDesc": "WhatsApp göndereni ve bot davranışı"
+        "settingsDesc": "Bot adı, ton ve karşılama mesajı"
       },
       "toasts": {
         "sessionExpired": {
@@ -805,19 +805,7 @@
         "balanced": "Dengeli (0,7)",
         "creative": "Yaratıcı (1,0)"
       },
-      "whatsappSenderLabel": "WhatsApp gönderen numara",
       "whatsappSenderDesc": "Giden mesajlar için hangi numara kullanılsın?",
-      "whatsappSenders": {
-        "merchantOwn": {
-          "label": "Kendi numaram (mağaza)",
-          "desc": "Bağlı WhatsApp Business numaranızı kullanır."
-        },
-        "corporate": {
-          "label": "Kurumsal numara (Recete)",
-          "desc": "Platformun paylaşımlı numarasını kullanır."
-        }
-      },
-      "whatsappHelpTitle": "Kendi numaramı nereden alırım?",
       "welcomeTemplateLabel": "İlk WhatsApp mesaj şablonu (T+0 hoş geldin)",
       "welcomeTemplatePlaceholder": "Merhaba 😊\nÜrünleriniz teslim edilmiş olmalı. Kullanımı hakkında sorunuz var mı?\n\nSipariş no: {{order_number}}\nÜrünler:\n{{product_list}}\n\nİsterseniz satın aldığınız ürünler için kişiselleştirilmiş bir bakım rutini hazırlayabilirim.",
       "welcomeTemplateDesc": "Boş bırakılırsa sistem varsayılan karşılama mesajı kullanılır. Doldurulursa T+0 mesajı için bu şablon kullanılır.",
@@ -1592,5 +1580,44 @@
     "openChecklist": "WhatsApp ve GDPR kontrol listesi",
     "copySnippet": "Gizlilik paragrafını kopyala",
     "copied": "Kopyalandı"
+  },
+  "WhatsAppConnect": {
+    "title": "WhatsApp Business",
+    "description": "Mağazanızın kendi WhatsApp Business numarasını bağlayın. Facebook ile giriş yapıp numaranızı seçersiniz; API anahtarı yok, yaklaşık iki dakika.",
+    "comingSoonDescription": "Kendi WhatsApp numaranızı Facebook girişiyle bağlama çok yakında. O zamana kadar Recete WhatsApp mesajı gönderemez.",
+    "connectedDescription": "Mesajlar {number} ({name}) numarasından gider.",
+    "coexistenceLabel": "Bu numarayı zaten WhatsApp Business uygulamasında kullanıyorum",
+    "coexistenceHelp": "Uygulamayı kullanmaya devam edin: taşımayı WhatsApp Business’ta bir QR kodla onaylarsınız, sohbetleriniz de orada kalır.",
+    "steps": "Bir Facebook penceresi açılır: giriş yapın, işletme hesabınızı seçin ya da oluşturun, numarayı seçip onaylayın.",
+    "disconnectConfirm": "Bu WhatsApp numarasının bağlantısı kesilsin mi? Recete mağazanız için mesaj göndermeyi ve almayı durdurur.",
+    "loadFailed": "WhatsApp bağlantınız yüklenemedi.",
+    "badges": {
+      "connected": "Bağlı",
+      "comingSoon": "Yakında"
+    },
+    "actions": {
+      "connect": "WhatsApp’ı bağla",
+      "connecting": "Bağlanıyor…",
+      "disconnect": "Bağlantıyı kes",
+      "retry": "Tekrar dene"
+    },
+    "toasts": {
+      "connected": {
+        "title": "WhatsApp bağlandı",
+        "message": "Recete artık müşterilerinize bu numaradan mesaj gönderecek."
+      },
+      "disconnected": {
+        "title": "WhatsApp bağlantısı kesildi",
+        "message": "Recete artık bu numaradan mesaj göndermiyor."
+      },
+      "cancelled": {
+        "title": "Bağlantı iptal edildi",
+        "message": "Hiçbir şey değişmedi. İstediğiniz zaman tekrar deneyebilirsiniz."
+      },
+      "failed": {
+        "title": "WhatsApp bağlanamadı",
+        "message": "Lütfen tekrar deneyin."
+      }
+    }
   }
 }

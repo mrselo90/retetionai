@@ -3,9 +3,18 @@ import type { ShopifyMerchantOverview } from '../platform.server';
 
 type PersonaSettings = NonNullable<ShopifyMerchantOverview['settings']['personaSettings']>;
 
-export type SetupStepKey = 'billing' | 'products' | 'messaging' | 'orders' | 'themeEmbed';
+export type SetupStepKey =
+  | 'billing'
+  | 'whatsapp'
+  | 'products'
+  | 'messaging'
+  | 'orders'
+  | 'themeEmbed';
 
 // Required steps: gate the activation metric. Setup is "complete" once all of these are done.
+// 'whatsapp' joins them (second) only while connecting a number is available —
+// see getSetupProgress. Nothing reaches customers without one, but a step no
+// merchant can complete must not block setup either.
 export const REQUIRED_SETUP_STEPS: ReadonlyArray<SetupStepKey> = [
   'billing',
   'products',
@@ -16,10 +25,11 @@ export const REQUIRED_SETUP_STEPS: ReadonlyArray<SetupStepKey> = [
 // setup banner shown on every other page both read these, so they always name
 // the same step and send the merchant to the same place.
 export const REQUIRED_STEP_INFO: Record<
-  'billing' | 'products' | 'messaging',
+  'billing' | 'whatsapp' | 'products' | 'messaging',
   { title: string; path: string }
 > = {
   billing: { title: 'Pick a plan', path: '/app/billing' },
+  whatsapp: { title: 'Connect WhatsApp', path: '/app/integrations' },
   products: { title: 'Add product instructions', path: '/app/products' },
   messaging: { title: 'Set up welcome message', path: '/app/setup/messaging' },
 };
@@ -27,8 +37,13 @@ export const REQUIRED_STEP_INFO: Record<
 // Optional steps: shown in a separate "Polish your setup" section. Don't gate dashboard access.
 export const OPTIONAL_SETUP_STEPS: ReadonlyArray<SetupStepKey> = ['orders', 'themeEmbed'] as const;
 
+/** From /app/bootstrap: whether connecting is available, and whether it is done. */
+export type SetupWhatsApp = { enabled: boolean; connected: boolean } | null | undefined;
+
 export type SetupProgress = {
   hasBilling: boolean;
+  hasWhatsApp: boolean;
+  whatsappRequired: boolean;
   hasProducts: boolean;
   hasMessagingConfigured: boolean;
   hasOrders: boolean;
@@ -61,7 +76,8 @@ function hasSavedMessagingConfiguration(
 export function getSetupProgress(
   overview: ShopifyMerchantOverview,
   billingApproved?: boolean,
-  themeEmbedEnabled?: boolean
+  themeEmbedEnabled?: boolean,
+  whatsapp?: SetupWhatsApp
 ): SetupProgress {
   const productCount = Math.max(
     overview.metrics.totalProducts || 0,
@@ -78,19 +94,28 @@ export function getSetupProgress(
   const hasOrders = (overview.metrics.totalOrders || 0) > 0;
   const hasThemeEmbed = themeEmbedEnabled ?? false;
 
+  const whatsappRequired = Boolean(whatsapp?.enabled);
+  const hasWhatsApp = Boolean(whatsapp?.connected);
+
   const statusByKey: Record<SetupStepKey, boolean> = {
     billing: hasBilling,
+    whatsapp: hasWhatsApp,
     products: hasProducts,
     messaging: hasMessagingConfigured,
     orders: hasOrders,
     themeEmbed: hasThemeEmbed,
   };
 
-  const requiredPairs = REQUIRED_SETUP_STEPS.map((key) => [key, statusByKey[key]] as const);
+  const requiredKeys: SetupStepKey[] = whatsappRequired
+    ? ['billing', 'whatsapp', 'products', 'messaging']
+    : [...REQUIRED_SETUP_STEPS];
+  const requiredPairs = requiredKeys.map((key) => [key, statusByKey[key]] as const);
   const optionalPairs = OPTIONAL_SETUP_STEPS.map((key) => [key, statusByKey[key]] as const);
 
   return {
     hasBilling,
+    hasWhatsApp,
+    whatsappRequired,
     hasProducts,
     hasMessagingConfigured,
     hasOrders,
