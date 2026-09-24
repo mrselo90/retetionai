@@ -49,25 +49,26 @@ describe('POST /webhooks/commerce/shopify', () => {
     const shopifyEvent = createTestShopifyEvent();
     const rawBody = JSON.stringify(shopifyEvent);
     const secret = process.env.SHOPIFY_API_SECRET || 'test-secret';
-    const hmac = crypto
-      .createHmac('sha256', secret)
-      .update(rawBody, 'utf8')
-      .digest('base64');
+    const hmac = crypto.createHmac('sha256', secret).update(rawBody, 'utf8').digest('base64');
 
     // Mock: find integration by provider/status/shop
     const integrationBuilder = mockSupabaseClient.from('integrations');
-    const selectBuilder = {
+    const selectBuilder: Record<string, ReturnType<typeof vi.fn>> = {
       eq: vi.fn().mockReturnThis(),
       contains: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn(),
     };
     integrationBuilder.select = vi.fn().mockReturnValue(selectBuilder);
-    selectBuilder.eq = vi.fn()
+    selectBuilder.eq = vi
+      .fn()
       .mockReturnValueOnce(selectBuilder)
       .mockReturnValueOnce(selectBuilder);
     selectBuilder.contains = vi.fn().mockReturnValue(selectBuilder);
-    selectBuilder.maybeSingle = vi.fn().mockResolvedValue({
-      data: integration,
+    selectBuilder.order = vi.fn().mockReturnValue(selectBuilder);
+    // findShopifyIntegration ends in .order().limit(1), which resolves to a list.
+    selectBuilder.limit = vi.fn().mockResolvedValue({
+      data: [integration],
       error: null,
     });
 
@@ -98,6 +99,40 @@ describe('POST /webhooks/commerce/shopify', () => {
     // Should process webhook successfully
     expect(response.status).toBe(200);
     expect(addCommerceEventJob).toHaveBeenCalled();
+  });
+
+  it('answers 500, not 404, when the integration lookup fails', async () => {
+    // Regression guard. A failed lookup used to be reported as "Integration not
+    // found for shop" with a 404, which Shopify does not retry — so every order,
+    // uninstall and billing webhook from a shop with duplicate rows was dropped
+    // for good (146 in the production logs). A 500 is redelivered.
+    const shopifyEvent = createTestShopifyEvent();
+    const rawBody = JSON.stringify(shopifyEvent);
+    const secret = process.env.SHOPIFY_API_SECRET || 'test-secret';
+    const hmac = crypto.createHmac('sha256', secret).update(rawBody, 'utf8').digest('base64');
+
+    const integrationBuilder = mockSupabaseClient.from('integrations');
+    const selectBuilder: Record<string, ReturnType<typeof vi.fn>> = {};
+    selectBuilder.eq = vi.fn().mockReturnValue(selectBuilder);
+    selectBuilder.contains = vi.fn().mockReturnValue(selectBuilder);
+    selectBuilder.order = vi.fn().mockReturnValue(selectBuilder);
+    selectBuilder.limit = vi.fn().mockResolvedValue({
+      data: null,
+      error: { message: 'JSON object requested, multiple (or no) rows returned', code: 'PGRST116' },
+    });
+    integrationBuilder.select = vi.fn().mockReturnValue(selectBuilder);
+
+    const response = await testRequest(app, 'POST', '/webhooks/commerce/shopify', {
+      body: shopifyEvent,
+      headers: {
+        'x-shopify-shop-domain': 'test-shop.myshopify.com',
+        'x-shopify-topic': 'orders/create',
+        'x-shopify-hmac-sha256': hmac,
+      },
+    });
+
+    expect(response.status).toBe(500);
+    expect(addCommerceEventJob).not.toHaveBeenCalled();
   });
 
   it('should reject webhook with invalid HMAC', async () => {
@@ -157,24 +192,25 @@ describe('POST /webhooks/commerce/shopify', () => {
     });
     const rawBody = JSON.stringify(shopifyEvent);
     const secret = process.env.SHOPIFY_API_SECRET || 'test-secret';
-    const hmac = crypto
-      .createHmac('sha256', secret)
-      .update(rawBody, 'utf8')
-      .digest('base64');
+    const hmac = crypto.createHmac('sha256', secret).update(rawBody, 'utf8').digest('base64');
 
     const integrationBuilder = mockSupabaseClient.from('integrations');
-    const selectBuilder = {
+    const selectBuilder: Record<string, ReturnType<typeof vi.fn>> = {
       eq: vi.fn().mockReturnThis(),
       contains: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn(),
     };
     integrationBuilder.select = vi.fn().mockReturnValue(selectBuilder);
-    selectBuilder.eq = vi.fn()
+    selectBuilder.eq = vi
+      .fn()
       .mockReturnValueOnce(selectBuilder)
       .mockReturnValueOnce(selectBuilder);
     selectBuilder.contains = vi.fn().mockReturnValue(selectBuilder);
-    selectBuilder.maybeSingle = vi.fn().mockResolvedValue({
-      data: integration,
+    selectBuilder.order = vi.fn().mockReturnValue(selectBuilder);
+    // findShopifyIntegration ends in .order().limit(1), which resolves to a list.
+    selectBuilder.limit = vi.fn().mockResolvedValue({
+      data: [integration],
       error: null,
     });
 
@@ -193,4 +229,3 @@ describe('POST /webhooks/commerce/shopify', () => {
     expect(addCommerceEventJob).not.toHaveBeenCalled();
   });
 });
-

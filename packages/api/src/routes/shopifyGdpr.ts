@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { verifyShopifyGdprWebhook } from '../middleware/shopifyGdprHmac.js';
+import { findShopifyIntegration } from '../lib/shopifyIntegrationLookup.js';
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { addGdprJob } from '../queues.js';
 import type { ShopifyGdprJobType } from '../lib/shopifyGdprJobs.js';
@@ -21,12 +22,17 @@ async function resolveMerchantId(shopDomain?: string | null): Promise<string | n
   if (!shopDomain) return null;
 
   const supabase = getSupabaseServiceClient();
-  const { data: integration } = await supabase
-    .from('integrations')
-    .select('merchant_id')
-    .eq('provider', 'shopify')
-    .contains('auth_data', { shop: shopDomain })
-    .maybeSingle();
+  // No activeOnly: shop/redact arrives 48h after uninstall, when the
+  // integration is no longer active and still has to be found.
+  const { integration, error } = await findShopifyIntegration(supabase, shopDomain);
+
+  // Throw rather than return null. A null here reads as "we hold no data for
+  // this shop", so the request was acknowledged and never acted on — a GDPR
+  // deletion silently skipped. Throwing makes the webhook answer 500 and the job
+  // retry, which is what an unanswered data request should do.
+  if (error) {
+    throw new Error(`Shopify integration lookup failed for GDPR request: ${error.message}`);
+  }
 
   return integration?.merchant_id || null;
 }
@@ -36,7 +42,10 @@ async function enqueueGdprJob(jobType: ShopifyGdprJobType, payload: ShopifyGdprP
   const merchantId = await resolveMerchantId(payload.shop_domain || null);
 
   if (!merchantId) {
-    logger.warn({ jobType, shopDomain: payload.shop_domain }, '[GDPR] No local merchant found for Shopify compliance webhook.');
+    logger.warn(
+      { jobType, shopDomain: payload.shop_domain },
+      '[GDPR] No local merchant found for Shopify compliance webhook.'
+    );
     return;
   }
 
@@ -73,6 +82,10 @@ shopifyGdpr.post('/customers/data_request', async (c) => {
     await enqueueGdprJob('customers_data_request', payload);
   } catch (error) {
     logger.error({ error, payload }, '[GDPR] Failed to enqueue customer data request job.');
+    // 500, not the 200 this used to fall through to. A 200 tells Shopify the
+    // request was handled, so a failed enqueue meant a data request that was
+    // acknowledged and never acted on. 500 makes Shopify redeliver it.
+    return c.text('Failed to enqueue GDPR job', 500);
   }
 
   return c.text('OK', 200);
@@ -85,6 +98,10 @@ shopifyGdpr.post('/customers/redact', async (c) => {
     await enqueueGdprJob('customers_redact', payload);
   } catch (error) {
     logger.error({ error, payload }, '[GDPR] Failed to enqueue customer redact job.');
+    // 500, not the 200 this used to fall through to. A 200 tells Shopify the
+    // request was handled, so a failed enqueue meant a data request that was
+    // acknowledged and never acted on. 500 makes Shopify redeliver it.
+    return c.text('Failed to enqueue GDPR job', 500);
   }
 
   return c.text('OK', 200);
@@ -97,6 +114,10 @@ shopifyGdpr.post('/shop/redact', async (c) => {
     await enqueueGdprJob('shop_redact', payload);
   } catch (error) {
     logger.error({ error, payload }, '[GDPR] Failed to enqueue shop redact job.');
+    // 500, not the 200 this used to fall through to. A 200 tells Shopify the
+    // request was handled, so a failed enqueue meant a data request that was
+    // acknowledged and never acted on. 500 makes Shopify redeliver it.
+    return c.text('Failed to enqueue GDPR job', 500);
   }
 
   return c.text('OK', 200);

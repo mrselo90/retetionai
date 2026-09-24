@@ -9,6 +9,7 @@
  */
 
 import crypto from 'crypto';
+import { findShopifyIntegration } from './shopifyIntegrationLookup.js';
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
@@ -65,7 +66,10 @@ function claimAudienceMatches(aud: unknown): boolean {
   return false;
 }
 
-function verifySessionTokenClaims(token: string, expectedShop: string): { valid: boolean; claims?: SessionTokenClaims; error?: string } {
+function verifySessionTokenClaims(
+  token: string,
+  expectedShop: string
+): { valid: boolean; claims?: SessionTokenClaims; error?: string } {
   if (!SHOPIFY_API_SECRET) {
     logger.error('SHOPIFY_API_SECRET not configured');
     return { valid: false, error: 'Server configuration error' };
@@ -140,7 +144,7 @@ function verifySessionTokenClaims(token: string, expectedShop: string): { valid:
 export async function verifyShopifySessionToken(
   token: string,
   shop: string
-): Promise<{ valid: boolean; merchantId?: string; error?: string }> {
+): Promise<{ valid: boolean; merchantId?: string; error?: string; transient?: boolean }> {
   const normalizedShop = normalizeShopDomain(shop);
   if (!normalizedShop) {
     return { valid: false, error: 'Invalid shop domain' };
@@ -153,16 +157,26 @@ export async function verifyShopifySessionToken(
     }
 
     const serviceClient = getSupabaseServiceClient();
-    const { data: integration } = await serviceClient
-      .from('integrations')
-      .select('merchant_id')
-      .eq('provider', 'shopify')
-      .eq('status', 'active')
-      .contains('auth_data', { shop: normalizedShop })
-      .maybeSingle();
+    const { integration, error: lookupError } = await findShopifyIntegration(
+      serviceClient,
+      normalizedShop,
+      { activeOnly: true }
+    );
+
+    if (lookupError) {
+      // NOT "new install". Reporting it as one is what sent the session route
+      // off to provision a fresh merchant every time a shop with two rows opened
+      // the app. `transient` lets the caller answer 503 so the shell retries.
+      logger.error(
+        { lookupError, shop: normalizedShop },
+        'Shopify integration lookup failed during session verification'
+      );
+      return { valid: false, error: 'Integration lookup failed', transient: true };
+    }
 
     if (!integration) {
-      // Valid token, but no integration yet (new install)
+      // Valid token, genuinely no active integration: a new install, or a
+      // reinstall of an uninstalled shop (ensureShopifyInstall reactivates that).
       return { valid: true };
     }
 

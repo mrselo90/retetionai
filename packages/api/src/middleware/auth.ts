@@ -4,6 +4,7 @@
  */
 
 import { Context, Next } from 'hono';
+import { findShopifyIntegration } from '../lib/shopifyIntegrationLookup.js';
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 
 export interface AuthContext {
@@ -253,14 +254,24 @@ async function authenticateInternalSecret(c: Context): Promise<{
     const supabase = getSupabaseServiceClient();
 
     if (!resolvedMerchantId && shopDomainHeader) {
-      const { data: integration, error: integrationLookupError } = await supabase
-        .from('integrations')
-        .select('merchant_id')
-        .eq('provider', 'shopify')
-        .contains('auth_data', { shop: shopDomainHeader })
-        .maybeSingle();
+      const { integration, error: integrationLookupError } = await findShopifyIntegration(
+        supabase,
+        shopDomainHeader
+      );
 
-      if (!integrationLookupError && integration?.merchant_id) {
+      // A failed lookup used to fall through to the 403 below. The shell reads a
+      // 403 as "not provisioned" and runs its bootstrap repair, which called
+      // install-sync, which — before the fix there — made another merchant. Say
+      // what actually happened instead: a 500 is retried, not repaired.
+      if (integrationLookupError) {
+        return {
+          ok: false,
+          status: 500,
+          error: 'Internal merchant validation failed',
+        };
+      }
+
+      if (integration?.merchant_id) {
         resolvedMerchantId = integration.merchant_id;
       }
     }

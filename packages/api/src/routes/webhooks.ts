@@ -4,6 +4,7 @@
  */
 
 import { Hono } from 'hono';
+import { findShopifyIntegration } from '../lib/shopifyIntegrationLookup.js';
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { verifyShopifyHmac } from '../lib/shopify.js';
 import { addCommerceEventJob } from '../queues.js';
@@ -63,15 +64,20 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
       return c.json({ error: 'Invalid HMAC signature' }, 401);
     }
 
-    // Find integration directly by shop domain (efficient single-row lookup)
     const serviceClient = getSupabaseServiceClient();
-    const { data: integration } = await serviceClient
-      .from('integrations')
-      .select('id, merchant_id, auth_data')
-      .eq('provider', 'shopify')
-      .eq('status', 'active')
-      .contains('auth_data', { shop })
-      .maybeSingle();
+    const { integration, error: lookupError } = await findShopifyIntegration(serviceClient, shop, {
+      activeOnly: true,
+    });
+
+    // A failed lookup used to be indistinguishable from "no such shop" and got a
+    // 404 — which Shopify does not retry. Every order, uninstall and billing
+    // webhook from a shop with duplicate rows was dropped that way (146 seen in
+    // the logs). A 500 gets retried with backoff, so a transient DB problem no
+    // longer costs an event.
+    if (lookupError) {
+      logger.error({ lookupError, shop, topic }, 'Shopify integration lookup failed for webhook');
+      return c.json({ error: 'Integration lookup failed' }, 500);
+    }
 
     if (!integration) {
       return c.json({ error: 'Integration not found for shop' }, 404);
@@ -82,7 +88,10 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
     if (topic === 'app/uninstalled') {
       try {
         const merchantId = integration.merchant_id;
-        logger.info({ shop, merchantId }, '[Uninstall] Mağaza uygulamayı kaldırdı. Entegrasyon ve abonelik deaktive ediliyor.');
+        logger.info(
+          { shop, merchantId },
+          '[Uninstall] Mağaza uygulamayı kaldırdı. Entegrasyon ve abonelik deaktive ediliyor.'
+        );
 
         // 1. Entegrasyonu "uninstalled" olarak işaretle
         const { error: intError } = await serviceClient
@@ -107,7 +116,10 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
           .eq('id', merchantId);
 
         if (merchError) {
-          logger.error({ merchError, shop, merchantId }, '[Uninstall] Merchant abonelik durumu güncellenemedi.');
+          logger.error(
+            { merchError, shop, merchantId },
+            '[Uninstall] Merchant abonelik durumu güncellenemedi.'
+          );
         }
 
         const { data: users } = await serviceClient
@@ -125,7 +137,10 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
             .eq('status', 'pending');
 
           if (tasksError) {
-            logger.warn({ tasksError, shop, merchantId }, '[Uninstall] Scheduled tasks could not be cancelled.');
+            logger.warn(
+              { tasksError, shop, merchantId },
+              '[Uninstall] Scheduled tasks could not be cancelled.'
+            );
           }
         }
 
@@ -215,7 +230,10 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
         merchantId: normalizedEvent.merchant_id,
       });
     } catch (queueError) {
-      logger.error({ queueError, shop, externalEventId: insertedEvent.id }, 'Failed to enqueue commerce event');
+      logger.error(
+        { queueError, shop, externalEventId: insertedEvent.id },
+        'Failed to enqueue commerce event'
+      );
       return c.json({ error: 'Failed to queue event' }, 500);
     }
 
@@ -226,9 +244,12 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
     });
   } catch (error) {
     logger.error({ error }, 'Webhook processing error');
-    return c.json({
-      error: 'Internal server error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+      },
+      500
+    );
   }
 });
 
@@ -238,10 +259,13 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
  * Accepts normalized events from merchants (API push or manual webhook)
  */
 webhooks.post('/commerce/event', async (c) => {
-  return c.json({
-    error: 'Manual commerce webhook API-key ingestion has been removed',
-    message: 'Use Shopify webhooks (HMAC-verified) or an internal ingestion endpoint.',
-  }, 410);
+  return c.json(
+    {
+      error: 'Manual commerce webhook API-key ingestion has been removed',
+      message: 'Use Shopify webhooks (HMAC-verified) or an internal ingestion endpoint.',
+    },
+    410
+  );
 });
 
 export default webhooks;

@@ -13,6 +13,7 @@ import {
   exchangeCodeForToken,
 } from '../lib/shopify.js';
 import { verifyShopifySessionToken } from '../lib/shopifySession.js';
+import { findShopifyIntegration } from '../lib/shopifyIntegrationLookup.js';
 import { getMerchantSubscription } from '../lib/billing.js';
 import { getCachedApiResponse, setCachedApiResponse } from '../lib/cache.js';
 import { logger } from '@recete/shared';
@@ -32,7 +33,11 @@ function verifyInternalSecret(c: any) {
   }
 
   if (!providedSecret || !expectedSecrets.includes(providedSecret)) {
-    return { ok: false as const, status: 403 as const, error: 'Forbidden: Invalid internal secret' };
+    return {
+      ok: false as const,
+      status: 403 as const,
+      error: 'Forbidden: Invalid internal secret',
+    };
   }
 
   return { ok: true as const };
@@ -49,7 +54,7 @@ const SHOPIFY_OAUTH_SCOPES = [
 
 async function reactivateMerchantForShopifyInstall(
   merchantId: string,
-  serviceClient: ReturnType<typeof getSupabaseServiceClient>,
+  serviceClient: ReturnType<typeof getSupabaseServiceClient>
 ) {
   const { data: merchant } = await serviceClient
     .from('merchants')
@@ -57,9 +62,8 @@ async function reactivateMerchantForShopifyInstall(
     .eq('id', merchantId)
     .maybeSingle();
 
-  const status = typeof merchant?.subscription_status === 'string'
-    ? merchant.subscription_status
-    : null;
+  const status =
+    typeof merchant?.subscription_status === 'string' ? merchant.subscription_status : null;
 
   if (status === 'active' || status === 'trial') {
     return;
@@ -80,6 +84,102 @@ async function reactivateMerchantForShopifyInstall(
       'Failed to reactivate merchant subscription during Shopify install'
     );
   }
+}
+
+class ShopifyInstallError extends Error {}
+
+/**
+ * Find the shop's merchant, or create it — exactly once.
+ *
+ * Both provisioning paths (the shell's install-sync and the session-token route)
+ * used to do this inline, and both created a new merchant whenever their lookup
+ * came back empty — including when it came back empty because the query FAILED.
+ * With two rows for a shop that was every time, so each app open added a
+ * merchant. See lib/shopifyIntegrationLookup.ts for the full chain.
+ *
+ * Now:
+ * - A failed lookup throws. It never falls through to "create".
+ * - Two requests racing on a first install (afterAuth and bootstrap land together)
+ *   cannot both create: migration 045's unique index turns the loser's insert into
+ *   a 23505, and the loser adopts the winner's row instead.
+ * - If the integration insert fails, the merchant just created is removed rather
+ *   than left behind as an orphan with no way in.
+ */
+async function ensureShopifyInstall(
+  serviceClient: ReturnType<typeof getSupabaseServiceClient>,
+  params: { shop: string; accessToken: string; scope: string | null }
+): Promise<{ merchantId: string; created: boolean }> {
+  const { shop, accessToken, scope } = params;
+  const authData = { shop, access_token: accessToken, scope };
+
+  const adopt = async (integrationId: string, merchantId: string) => {
+    const { error: updateError } = await serviceClient
+      .from('integrations')
+      .update({
+        status: 'active',
+        auth_type: 'oauth',
+        auth_data: authData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', integrationId);
+    if (updateError) {
+      logger.error({ updateError, shop }, 'Failed to refresh Shopify integration');
+      throw new ShopifyInstallError('Failed to update integration');
+    }
+    await reactivateMerchantForShopifyInstall(merchantId, serviceClient);
+    return { merchantId, created: false };
+  };
+
+  const found = await findShopifyIntegration(serviceClient, shop);
+  if (found.error) {
+    logger.error(
+      { error: found.error, shop },
+      'Shopify integration lookup failed; refusing to provision'
+    );
+    throw new ShopifyInstallError('Integration lookup failed');
+  }
+  if (found.integration) {
+    return adopt(found.integration.id, found.integration.merchant_id);
+  }
+
+  const merchantId = crypto.randomUUID();
+  const { error: merchantError } = await serviceClient
+    .from('merchants')
+    .insert({ id: merchantId, name: shop.replace('.myshopify.com', '') });
+  if (merchantError) {
+    logger.error({ merchantError, shop }, 'Failed to create merchant for Shopify install');
+    throw new ShopifyInstallError('Failed to create merchant');
+  }
+
+  const { error: integrationError } = await serviceClient.from('integrations').insert({
+    merchant_id: merchantId,
+    provider: 'shopify',
+    status: 'active',
+    auth_type: 'oauth',
+    auth_data: authData,
+  });
+
+  if (integrationError) {
+    // Whatever happened, the merchant row we just made has no integration and
+    // nothing will ever find it again. Remove it.
+    await serviceClient.from('merchants').delete().eq('id', merchantId);
+
+    if (integrationError.code === '23505') {
+      // Lost the race to a concurrent install of the same shop. Use theirs.
+      const winner = await findShopifyIntegration(serviceClient, shop);
+      if (winner.error || !winner.integration) {
+        logger.error({ error: winner.error, shop }, 'Shopify install race: winner not found');
+        throw new ShopifyInstallError('Failed to resolve concurrent install');
+      }
+      logger.info({ shop }, 'Shopify install race resolved by adopting existing integration');
+      return adopt(winner.integration.id, winner.integration.merchant_id);
+    }
+
+    logger.error({ integrationError, shop }, 'Failed to create Shopify integration');
+    throw new ShopifyInstallError('Failed to create integration');
+  }
+
+  return { merchantId, created: true };
 }
 
 /**
@@ -110,80 +210,28 @@ shopify.post('/install-sync', async (c) => {
     const shop = shopRaw.includes('.myshopify.com') ? shopRaw : `${shopRaw}.myshopify.com`;
     const serviceClient = getSupabaseServiceClient();
 
-    const { data: existingIntegration } = await serviceClient
-      .from('integrations')
-      .select('id, merchant_id')
-      .eq('provider', 'shopify')
-      .contains('auth_data', { shop })
-      .maybeSingle();
+    const { merchantId, created } = await ensureShopifyInstall(serviceClient, {
+      shop,
+      accessToken,
+      scope,
+    });
 
-    if (existingIntegration) {
-      const { error: updateError } = await serviceClient
-        .from('integrations')
-        .update({
-          status: 'active',
-          auth_type: 'oauth',
-          auth_data: {
-            shop,
-            access_token: accessToken,
-            scope,
-          },
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existingIntegration.id);
-
-      if (updateError) {
-        logger.error({ updateError, shop }, 'Failed to update Shopify integration via install sync');
-        return c.json({ error: 'Failed to update integration' }, 500);
-      }
-
-      await reactivateMerchantForShopifyInstall(existingIntegration.merchant_id, serviceClient);
-
-      return c.json({ ok: true, created: false, merchantId: existingIntegration.merchant_id });
-    }
-
-    const merchantId = crypto.randomUUID();
-    const merchantName = shop.replace('.myshopify.com', '');
-
-    const { error: merchantError } = await serviceClient
-      .from('merchants')
-      .insert({
-        id: merchantId,
-        name: merchantName,
-      });
-
-    if (merchantError) {
-      logger.error({ merchantError, shop }, 'Failed to create merchant via install sync');
-      return c.json({ error: 'Failed to create merchant' }, 500);
-    }
-
-    const { error: integrationError } = await serviceClient
-      .from('integrations')
-      .insert({
-        merchant_id: merchantId,
-        provider: 'shopify',
-        status: 'active',
-        auth_type: 'oauth',
-        auth_data: {
-          shop,
-          access_token: accessToken,
-          scope,
-        },
-      });
-
-    if (integrationError) {
-      logger.error({ integrationError, shop, merchantId }, 'Failed to create Shopify integration via install sync');
-      return c.json({ error: 'Failed to create integration' }, 500);
-    }
-
-    return c.json({ ok: true, created: true, merchantId });
+    return c.json({ ok: true, created, merchantId });
   } catch (err) {
+    if (err instanceof ShopifyInstallError) {
+      return c.json({ error: err.message }, 500);
+    }
     logger.error({ err }, 'Shopify install sync error');
     return c.json({ error: 'Failed to sync Shopify install' }, 500);
   }
 });
 
-async function buildMerchantOverviewResponse(c: any, merchantId: string, integration: any, shop: string) {
+async function buildMerchantOverviewResponse(
+  c: any,
+  merchantId: string,
+  integration: any,
+  shop: string
+) {
   try {
     const cacheKey = `shopify-merchant-overview:${merchantId}:${shop}`;
     const cached = await getCachedApiResponse(cacheKey);
@@ -203,7 +251,9 @@ async function buildMerchantOverviewResponse(c: any, merchantId: string, integra
     ] = await Promise.all([
       serviceClient
         .from('merchants')
-        .select('id, name, created_at, subscription_plan, subscription_status, trial_ends_at, notification_phone, persona_settings')
+        .select(
+          'id, name, created_at, subscription_plan, subscription_status, trial_ends_at, notification_phone, persona_settings'
+        )
         .eq('id', merchantId)
         .maybeSingle(),
       serviceClient
@@ -249,15 +299,10 @@ async function buildMerchantOverviewResponse(c: any, merchantId: string, integra
 
     const conversationCount = (conversations || []).length;
     const resolvedConversationCount = (conversations || []).filter((conv: any) =>
-      Array.isArray(conv.history) ? conv.history.length >= 2 : false,
+      Array.isArray(conv.history) ? conv.history.length >= 2 : false
     ).length;
-    const responseRate = conversationCount > 0
-      ? Math.round(
-          (resolvedConversationCount /
-            conversationCount) *
-            100,
-        )
-      : 0;
+    const responseRate =
+      conversationCount > 0 ? Math.round((resolvedConversationCount / conversationCount) * 100) : 0;
 
     const [{ data: analyticsEvents }, { count: returnedOrders }, { count: preventedReturns }] =
       await Promise.all([
@@ -278,20 +323,26 @@ async function buildMerchantOverviewResponse(c: any, merchantId: string, integra
           .eq('outcome', 'prevented'),
       ]);
 
-    const avgSentiment = analyticsEvents && analyticsEvents.length > 0
-      ? analyticsEvents.reduce((sum: number, event: any) => sum + (Number(event.sentiment_score) || 0), 0) / analyticsEvents.length
-      : 0;
+    const avgSentiment =
+      analyticsEvents && analyticsEvents.length > 0
+        ? analyticsEvents.reduce(
+            (sum: number, event: any) => sum + (Number(event.sentiment_score) || 0),
+            0
+          ) / analyticsEvents.length
+        : 0;
 
     const totalOrders = ordersCountResult.count || 0;
-    const returnRate = totalOrders > 0
-      ? Math.round(((returnedOrders || 0) / totalOrders) * 100)
-      : 0;
+    const returnRate =
+      totalOrders > 0 ? Math.round(((returnedOrders || 0) / totalOrders) * 100) : 0;
 
     let subscription = null;
     try {
       subscription = await getMerchantSubscription(merchantId);
     } catch (error) {
-      logger.warn({ error, merchantId }, 'Failed to resolve merchant subscription for Shopify overview');
+      logger.warn(
+        { error, merchantId },
+        'Failed to resolve merchant subscription for Shopify overview'
+      );
     }
 
     const payload = {
@@ -350,9 +401,7 @@ shopify.get('/merchant-overview', authMiddleware, async (c) => {
 
     if (authMethod === 'internal') {
       const shopRaw =
-        c.req.query('shop')?.trim() ||
-        c.req.header('X-Internal-Shop-Domain')?.trim() ||
-        '';
+        c.req.query('shop')?.trim() || c.req.header('X-Internal-Shop-Domain')?.trim() || '';
       if (!shopRaw) {
         return c.json({ error: 'shop is required' }, 400);
       }
@@ -367,7 +416,10 @@ shopify.get('/merchant-overview', authMiddleware, async (c) => {
         .maybeSingle();
 
       if (integrationError) {
-        logger.error({ integrationError, merchantId, shop }, 'Failed to load Shopify integration for merchant overview');
+        logger.error(
+          { integrationError, merchantId, shop },
+          'Failed to load Shopify integration for merchant overview'
+        );
         return c.json({ error: 'Failed to load integration' }, 500);
       }
 
@@ -388,7 +440,10 @@ shopify.get('/merchant-overview', authMiddleware, async (c) => {
       .maybeSingle();
 
     if (integrationError) {
-      logger.error({ integrationError, merchantId }, 'Failed to load Shopify integration for merchant overview');
+      logger.error(
+        { integrationError, merchantId },
+        'Failed to load Shopify integration for merchant overview'
+      );
       return c.json({ error: 'Failed to load integration' }, 500);
     }
 
@@ -396,7 +451,8 @@ shopify.get('/merchant-overview', authMiddleware, async (c) => {
       return c.json({ error: 'Integration not found' }, 404);
     }
 
-    const shop = typeof integration.auth_data?.shop === 'string' ? integration.auth_data.shop : null;
+    const shop =
+      typeof integration.auth_data?.shop === 'string' ? integration.auth_data.shop : null;
     if (!shop) {
       return c.json({ error: 'Integration shop is missing' }, 500);
     }
@@ -423,7 +479,10 @@ shopify.post('/auth', authMiddleware, async (c) => {
     }
     const shop = shopRaw.includes('.myshopify.com') ? shopRaw : `${shopRaw}.myshopify.com`;
     const merchantId = c.get('merchantId') as string;
-    const state = Buffer.from(JSON.stringify({ merchantId, n: crypto.randomBytes(8).toString('hex') }), 'utf8').toString('base64url');
+    const state = Buffer.from(
+      JSON.stringify({ merchantId, n: crypto.randomBytes(8).toString('hex') }),
+      'utf8'
+    ).toString('base64url');
     const authUrl = getShopifyAuthUrl(shop, SHOPIFY_OAUTH_SCOPES, state);
     return c.json({ authUrl });
   } catch (err) {
@@ -438,7 +497,8 @@ shopify.post('/auth', authMiddleware, async (c) => {
  * Exchanges code for token, saves/updates integration for merchant in state, redirects to frontend.
  */
 shopify.get('/oauth/callback', async (c) => {
-  const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const frontendUrl =
+    process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const redirectBase = `${frontendUrl}/en/dashboard/integrations`;
   try {
     const query = c.req.query();
@@ -455,14 +515,18 @@ shopify.get('/oauth/callback', async (c) => {
       if (typeof v === 'string') queryRecord[k] = v;
     }
     if (!verifyShopifyHmac(queryRecord)) {
-      return c.redirect(`${redirectBase}/shopify/callback?error=${encodeURIComponent('Invalid HMAC')}`);
+      return c.redirect(
+        `${redirectBase}/shopify/callback?error=${encodeURIComponent('Invalid HMAC')}`
+      );
     }
     let merchantId: string;
     try {
       const decoded = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
       merchantId = decoded.merchantId;
     } catch {
-      return c.redirect(`${redirectBase}/shopify/callback?error=${encodeURIComponent('Invalid state')}`);
+      return c.redirect(
+        `${redirectBase}/shopify/callback?error=${encodeURIComponent('Invalid state')}`
+      );
     }
     const tokenData = await exchangeCodeForToken(shop, code);
     const serviceClient = getSupabaseServiceClient();
@@ -479,17 +543,17 @@ shopify.get('/oauth/callback', async (c) => {
         .update({ status: 'active', auth_data: authData, updated_at: new Date().toISOString() })
         .eq('id', existing.id);
     } else {
-      await serviceClient
-        .from('integrations')
-        .insert({
-          merchant_id: merchantId,
-          provider: 'shopify',
-          status: 'active',
-          auth_type: 'oauth',
-          auth_data: authData,
-        });
+      await serviceClient.from('integrations').insert({
+        merchant_id: merchantId,
+        provider: 'shopify',
+        status: 'active',
+        auth_type: 'oauth',
+        auth_data: authData,
+      });
     }
-    return c.redirect(`${redirectBase}/shopify/callback?success=true&message=${encodeURIComponent('Shopify connected')}`);
+    return c.redirect(
+      `${redirectBase}/shopify/callback?success=true&message=${encodeURIComponent('Shopify connected')}`
+    );
   } catch (err) {
     logger.error({ err }, 'Shopify OAuth callback error');
     const msg = err instanceof Error ? err.message : 'Connection failed';
@@ -532,7 +596,11 @@ shopify.get('/products', authMiddleware, async (c) => {
       return c.json({ error: 'Shopify integration not found or inactive' }, 404);
     }
 
-    const authData = integration.auth_data as { shop: string; access_token: string; scope?: string };
+    const authData = integration.auth_data as {
+      shop: string;
+      access_token: string;
+      scope?: string;
+    };
     const shopDomain = authData?.shop;
     const accessToken = authData?.access_token;
     if (!shopDomain || !accessToken) {
@@ -549,17 +617,23 @@ shopify.get('/products', authMiddleware, async (c) => {
   } catch (error) {
     const err = error as Error & { code?: string };
     if (err.code === 'SHOPIFY_SCOPE_REQUIRED') {
-      return c.json({
-        error: 'Shopify product access required',
-        code: 'SHOPIFY_SCOPE_REQUIRED',
-        message: 'Reconnect your Shopify store and accept product access to load products.',
-      }, 403);
+      return c.json(
+        {
+          error: 'Shopify product access required',
+          code: 'SHOPIFY_SCOPE_REQUIRED',
+          message: 'Reconnect your Shopify store and accept product access to load products.',
+        },
+        403
+      );
     }
     logger.error({ error }, 'Error fetching Shopify products');
-    return c.json({
-      error: 'Internal server error',
-      message: err.message || 'Unknown error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+        message: err.message || 'Unknown error',
+      },
+      500
+    );
   }
 });
 
@@ -570,7 +644,7 @@ shopify.get('/products', authMiddleware, async (c) => {
  */
 shopify.post('/verify-session', async (c) => {
   try {
-    const body = await c.req.json() as { token: string; shop: string };
+    const body = (await c.req.json()) as { token: string; shop: string };
     const { token, shop } = body;
 
     if (!token || !shop) {
@@ -581,9 +655,14 @@ shopify.post('/verify-session', async (c) => {
     const verification = await verifyShopifySessionToken(token, shop);
 
     if (!verification.valid) {
-      return c.json({
-        error: verification.error || 'Invalid session token'
-      }, 401);
+      // A failed DB lookup is not a bad token: 503 so the shell retries instead
+      // of treating the merchant as signed out.
+      return c.json(
+        {
+          error: verification.error || 'Invalid session token',
+        },
+        verification.transient ? 503 : 401
+      );
     }
 
     let merchantId = verification.merchantId;
@@ -602,74 +681,24 @@ shopify.post('/verify-session', async (c) => {
 
       const serviceClient = getSupabaseServiceClient();
 
-      // Check if integration exists (maybe under different merchant?)
-      const { data: existingIntegration } = await serviceClient
-        .from('integrations')
-        .select('id, merchant_id')
-        .eq('provider', 'shopify')
-        .contains('auth_data', { shop })
-        .maybeSingle();
-
-      if (existingIntegration) {
-        // Integration exists but verifyShopifySessionToken didn't return it? 
-        // This implies the integration record exists but maybe verify logic failed to find it via shop look up?
-        // Or maybe it was inactive?
-        // Let's update it.
-        merchantId = existingIntegration.merchant_id;
-
-        await serviceClient
-          .from('integrations')
-          .update({
-            status: 'active',
-            auth_data: {
-              shop,
-              access_token: tokenData.access_token,
-              scope: tokenData.scope,
-            },
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingIntegration.id);
-
-        await reactivateMerchantForShopifyInstall(existingIntegration.merchant_id, serviceClient);
-
-      } else {
-        // Create New Merchant & Integration
-        const newMerchantId = crypto.randomUUID();
-        // Create Merchant
-        const { error: merchantError } = await serviceClient
-          .from('merchants')
-          .insert({
-            id: newMerchantId,
-            name: shop.replace('.myshopify.com', ''),
-          });
-
-        if (merchantError) {
-          logger.error({ error: merchantError }, 'Failed to create merchant');
+      // An inactive integration (uninstalled, then reinstalled) lands here too:
+      // session verification only matches active rows. ensureShopifyInstall finds
+      // it regardless of status and reactivates it instead of making a new one.
+      try {
+        const result = await ensureShopifyInstall(serviceClient, {
+          shop,
+          accessToken: tokenData.access_token,
+          scope: tokenData.scope ?? null,
+        });
+        merchantId = result.merchantId;
+        if (result.created) {
+          logger.info({ shop, merchantId }, 'Provisioned new merchant for Shopify shop');
+        }
+      } catch (provisionError) {
+        if (provisionError instanceof ShopifyInstallError) {
           return c.json({ error: 'Failed to provision account' }, 500);
         }
-
-        // Create Integration
-        const { error: integrationError } = await serviceClient
-          .from('integrations')
-          .insert({
-            merchant_id: newMerchantId,
-            provider: 'shopify',
-            status: 'active',
-            auth_type: 'oauth',
-            auth_data: {
-              shop,
-              access_token: tokenData.access_token,
-              scope: tokenData.scope,
-            },
-          });
-
-        if (integrationError) {
-          logger.error({ error: integrationError }, 'Failed to create integration');
-          return c.json({ error: 'Failed to provision integration' }, 500);
-        }
-
-        merchantId = newMerchantId;
-        console.log(`Provisioned new merchant ${merchantId} for shop ${shop}`);
+        throw provisionError;
       }
     }
 

@@ -1,12 +1,10 @@
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { permanentlyDeleteMerchantData } from './dataDeletion.js';
+import { findShopifyIntegration } from './shopifyIntegrationLookup.js';
 import { normalizeAndHashPhone } from './phoneLookup.js';
 import { exportUserData } from './dataExport.js';
 
-export type ShopifyGdprJobType =
-  | 'customers_data_request'
-  | 'customers_redact'
-  | 'shop_redact';
+export type ShopifyGdprJobType = 'customers_data_request' | 'customers_redact' | 'shop_redact';
 
 type ShopifyCustomerPayload = {
   id?: string | number | null;
@@ -22,19 +20,24 @@ type ShopifyGdprPayload = {
 async function resolveMerchantId(shopDomain?: string | null): Promise<string | null> {
   if (!shopDomain) return null;
   const supabase = getSupabaseServiceClient();
-  const { data: integration } = await supabase
-    .from('integrations')
-    .select('merchant_id')
-    .eq('provider', 'shopify')
-    .contains('auth_data', { shop: shopDomain })
-    .maybeSingle();
+  // No activeOnly: shop/redact arrives 48h after uninstall, when the
+  // integration is no longer active and still has to be found.
+  const { integration, error } = await findShopifyIntegration(supabase, shopDomain);
+
+  // Throw rather than return null. A null here reads as "we hold no data for
+  // this shop", so the request was acknowledged and never acted on — a GDPR
+  // deletion silently skipped. Throwing makes the webhook answer 500 and the job
+  // retry, which is what an unanswered data request should do.
+  if (error) {
+    throw new Error(`Shopify integration lookup failed for GDPR request: ${error.message}`);
+  }
 
   return integration?.merchant_id || null;
 }
 
 async function resolveUserIds(
   merchantId: string,
-  customer?: ShopifyCustomerPayload | null,
+  customer?: ShopifyCustomerPayload | null
 ): Promise<{ userIds: string[]; normalizedPhone: string | null }> {
   const supabase = getSupabaseServiceClient();
   const customerId = customer?.id?.toString() || null;
@@ -57,7 +60,10 @@ async function resolveUserIds(
       normalizedPhone = phoneLookup.normalizedPhone;
       userFilters.push({ field: 'phone_lookup_hash', value: phoneLookup.phoneLookupHash });
     } catch (phoneError) {
-      logger.warn({ phoneError, merchantId, customerPhone }, '[GDPR] Phone normalization failed while resolving user ids.');
+      logger.warn(
+        { phoneError, merchantId, customerPhone },
+        '[GDPR] Phone normalization failed while resolving user ids.'
+      );
     }
   }
 
@@ -82,38 +88,47 @@ async function resolveUserIds(
   return { userIds, normalizedPhone };
 }
 
-async function processCustomersDataRequest(jobId: string, merchantId: string, payload: ShopifyGdprPayload) {
+async function processCustomersDataRequest(
+  jobId: string,
+  merchantId: string,
+  payload: ShopifyGdprPayload
+) {
   const supabase = getSupabaseServiceClient();
   const shopDomain = payload.shop_domain || null;
   const customer = payload.customer || null;
   const { userIds } = await resolveUserIds(merchantId, customer);
 
   if (userIds.length === 0) {
-    logger.warn({ jobId, shopDomain }, '[GDPR] Customer data request did not match any local users.');
+    logger.warn(
+      { jobId, shopDomain },
+      '[GDPR] Customer data request did not match any local users.'
+    );
     return;
   }
 
   const matchedUserId = userIds[0];
   const exportPayload = await exportUserData(matchedUserId);
 
-  const { error: persistError } = await supabase
-    .from('gdpr_exports')
-    .insert({
-      merchant_id: merchantId,
-      user_id: matchedUserId,
-      source: 'shopify_customers_data_request',
-      shop_domain: shopDomain,
-      status: 'ready',
-      payload: exportPayload,
-      requested_at: new Date().toISOString(),
-    });
+  const { error: persistError } = await supabase.from('gdpr_exports').insert({
+    merchant_id: merchantId,
+    user_id: matchedUserId,
+    source: 'shopify_customers_data_request',
+    shop_domain: shopDomain,
+    status: 'ready',
+    payload: exportPayload,
+    requested_at: new Date().toISOString(),
+  });
 
   if (persistError) {
     throw new Error(`Failed to persist GDPR export: ${persistError.message}`);
   }
 }
 
-async function processCustomersRedact(jobId: string, merchantId: string, payload: ShopifyGdprPayload) {
+async function processCustomersRedact(
+  jobId: string,
+  merchantId: string,
+  payload: ShopifyGdprPayload
+) {
   const supabase = getSupabaseServiceClient();
   const shopDomain = payload.shop_domain || null;
   const customer = payload.customer || null;
@@ -123,7 +138,10 @@ async function processCustomersRedact(jobId: string, merchantId: string, payload
 
   const { userIds, normalizedPhone } = await resolveUserIds(merchantId, customer);
   if (userIds.length === 0) {
-    logger.warn({ jobId, shopDomain, customerId, customerEmail }, '[GDPR] Customer redact request did not match any local users.');
+    logger.warn(
+      { jobId, shopDomain, customerId, customerEmail },
+      '[GDPR] Customer redact request did not match any local users.'
+    );
     return;
   }
 
@@ -171,11 +189,7 @@ async function processCustomersRedact(jobId: string, merchantId: string, payload
       .contains('payload', { customer: { phone: normalizedPhone } });
   }
 
-  await supabase
-    .from('users')
-    .delete()
-    .eq('merchant_id', merchantId)
-    .in('id', userIds);
+  await supabase.from('users').delete().eq('merchant_id', merchantId).in('id', userIds);
 }
 
 async function processShopRedact(merchantId: string) {
@@ -186,13 +200,16 @@ export async function processShopifyGdprJob(
   jobId: string,
   jobType: ShopifyGdprJobType,
   payload: ShopifyGdprPayload,
-  merchantId?: string | null,
+  merchantId?: string | null
 ) {
   const supabase = getSupabaseServiceClient();
   const resolvedMerchantId = merchantId || (await resolveMerchantId(payload.shop_domain || null));
 
   if (!resolvedMerchantId) {
-    logger.warn({ jobId, jobType, shopDomain: payload.shop_domain }, '[GDPR] No merchant found for job.');
+    logger.warn(
+      { jobId, jobType, shopDomain: payload.shop_domain },
+      '[GDPR] No merchant found for job.'
+    );
     return;
   }
 

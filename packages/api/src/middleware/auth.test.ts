@@ -36,6 +36,9 @@ describe('Auth Middleware', () => {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       contains: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      // findShopifyIntegration ends in .order().limit(1), resolving to a list.
+      limit: vi.fn(),
       maybeSingle: vi.fn(),
       insert: vi.fn().mockReturnThis(),
       single: vi.fn(),
@@ -97,7 +100,13 @@ describe('Auth Middleware', () => {
       name === 'Authorization' ? 'Bearer valid-jwt-token' : undefined
     );
     mockSupabase.auth.getUser.mockResolvedValue({
-      data: { user: { id: 'merchant-2', email: 'new@test.com', user_metadata: { full_name: 'New Merchant' } } },
+      data: {
+        user: {
+          id: 'merchant-2',
+          email: 'new@test.com',
+          user_metadata: { full_name: 'New Merchant' },
+        },
+      },
       error: null,
     });
     mockSupabase.maybeSingle.mockResolvedValueOnce({ data: null, error: null });
@@ -151,9 +160,11 @@ describe('Auth Middleware', () => {
   it('supports internal-secret auth on internal merchant route via shop domain lookup', async () => {
     process.env.INTERNAL_SERVICE_SECRET = 'secret-123';
     mockContext.req.path = '/api/integrations/shopify/merchant-overview';
-    mockSupabase.maybeSingle
-      .mockResolvedValueOnce({ data: { merchant_id: 'merchant-shop' }, error: null })
-      .mockResolvedValueOnce({ data: { id: 'merchant-shop' }, error: null });
+    mockSupabase.limit.mockResolvedValueOnce({
+      data: [{ merchant_id: 'merchant-shop' }],
+      error: null,
+    });
+    mockSupabase.maybeSingle.mockResolvedValueOnce({ data: { id: 'merchant-shop' }, error: null });
     mockContext.req.header.mockImplementation((name: string) => {
       if (name === 'X-Internal-Secret') return 'secret-123';
       if (name === 'X-Internal-Shop-Domain') return 'receteshop.myshopify.com';
@@ -170,9 +181,11 @@ describe('Auth Middleware', () => {
   it('supports internal-secret auth on internal product route via shop domain lookup', async () => {
     process.env.INTERNAL_SERVICE_SECRET = 'secret-123';
     mockContext.req.path = '/api/products';
-    mockSupabase.maybeSingle
-      .mockResolvedValueOnce({ data: { merchant_id: 'merchant-shop' }, error: null })
-      .mockResolvedValueOnce({ data: { id: 'merchant-shop' }, error: null });
+    mockSupabase.limit.mockResolvedValueOnce({
+      data: [{ merchant_id: 'merchant-shop' }],
+      error: null,
+    });
+    mockSupabase.maybeSingle.mockResolvedValueOnce({ data: { id: 'merchant-shop' }, error: null });
     mockContext.req.header.mockImplementation((name: string) => {
       if (name === 'X-Internal-Secret') return 'secret-123';
       if (name === 'X-Internal-Shop-Domain') return 'receteshop.myshopify.com';
@@ -185,6 +198,32 @@ describe('Auth Middleware', () => {
     expect(mockContext.set).toHaveBeenCalledWith('authMethod', 'internal');
     expect(mockContext.set).toHaveBeenCalledWith('internalCall', true);
     expect(mockNext).toHaveBeenCalled();
+  });
+
+  it('answers 500, not 403, when the shop lookup itself fails', async () => {
+    // Regression guard for the duplicate-merchant loop. A failed lookup used to
+    // fall through to 403; the Shopify shell reads 403 as "not provisioned" and
+    // runs its bootstrap repair, which provisioned another merchant. One shop
+    // reached 41 merchants in a day. A 500 is retried, not repaired.
+    process.env.INTERNAL_SERVICE_SECRET = 'secret-123';
+    mockContext.req.path = '/api/integrations/shopify/merchant-overview';
+    mockSupabase.limit.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'JSON object requested, multiple (or no) rows returned', code: 'PGRST116' },
+    });
+    mockContext.req.header.mockImplementation((name: string) => {
+      if (name === 'X-Internal-Secret') return 'secret-123';
+      if (name === 'X-Internal-Shop-Domain') return 'receteshop.myshopify.com';
+      return undefined;
+    });
+
+    await authMiddleware(mockContext, mockNext);
+
+    expect(mockContext.json).toHaveBeenCalledWith(
+      expect.objectContaining({ error: 'Internal merchant validation failed' }),
+      500
+    );
+    expect(mockNext).not.toHaveBeenCalled();
   });
 
   it('optionalAuth proceeds without auth', async () => {
