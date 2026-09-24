@@ -457,6 +457,7 @@ function Hero() {
 // "Trusted by Shopify stores across the UK & EU" — none of them were customers.
 const PROOF_FACTS = [
   'Shopify App Store app',
+  'Your own WhatsApp Business number',
   'Consent checked before every message',
   'UK company · data hosted in London',
 ];
@@ -534,8 +535,8 @@ const FEATURES = [
   {
     icon: 'bolt' as IconName,
     title: 'One-click install',
-    body: "Install from the Shopify App Store and go live on Recete's WhatsApp number in about fifteen minutes. Templates ready out of the box, zero coding required.",
-    tags: ['App Store', 'Templated flows', 'Shopify billing'],
+    body: 'Install from the Shopify App Store and connect your own WhatsApp Business number with a Facebook sign-in — no API keys. Templates ready out of the box, zero coding required.',
+    tags: ['App Store', 'Facebook sign-in', 'Shopify billing'],
   },
   {
     icon: 'shield' as IconName,
@@ -857,14 +858,15 @@ function HowItWorks() {
                 maxWidth: 320,
               }}
             >
-              Approve the plan in Shopify. Recete reads your product catalog and receives new orders
-              through the official Shopify API. Your store keeps running.
+              Approve the plan in Shopify, then connect your WhatsApp Business number with a
+              Facebook sign-in. Recete reads your catalog and new orders through the official
+              Shopify API.
             </p>
             <div className="lhow-visual" style={{ display: 'grid', gap: 8 }}>
               <div style={{ color: 'var(--link-3)' }}>$ shopify install recete</div>
               <div style={{ color: 'var(--laccent-ink)' }}>→ plan approved in Shopify</div>
+              <div style={{ color: 'var(--laccent-ink)' }}>→ WhatsApp · your number connected</div>
               <div style={{ color: 'var(--laccent-ink)' }}>→ products · synced</div>
-              <div style={{ color: 'var(--laccent-ink)' }}>→ orders · listening</div>
             </div>
           </div>
           <div className="lhow-step">
@@ -1059,7 +1061,7 @@ const PLANS = [
       '150 included chats / month',
       '20 recipes',
       '$0.18 per overage chat',
-      'Shared Recete WhatsApp number',
+      'Your own WhatsApp Business number',
       'Basic analytics',
     ],
     cta: 'Install on Shopify',
@@ -1075,13 +1077,13 @@ const PLANS = [
       '500 recipes',
       '$0.12 per overage chat',
       'Customer photo analysis',
-      'Shared Recete WhatsApp number',
+      'Your own WhatsApp Business number',
     ],
     cta: 'Install on Shopify',
   },
   {
     name: 'Pro',
-    desc: 'For higher-volume brands that want a branded WhatsApp and deeper analytics.',
+    desc: 'For higher-volume brands that want smart re-orders and deeper analytics.',
     monthly: 169,
     annual: 1690,
     featured: false,
@@ -1090,7 +1092,8 @@ const PLANS = [
       'Unlimited recipes',
       '$0.08 per overage chat',
       'Smart Re-order',
-      'Advanced analytics + custom number',
+      'Advanced analytics',
+      'Your own WhatsApp Business number',
     ],
     cta: 'Talk to sales',
   },
@@ -1421,7 +1424,7 @@ function ROICalc() {
 const FAQS: Array<{ q: string; a: React.ReactNode }> = [
   {
     q: 'How do I get started?',
-    a: 'Install Recete from the Shopify App Store and approve a plan in Shopify. The app then walks you through three steps — products, welcome message, go live — with a checklist that shows what is left. Most merchants finish in about fifteen minutes.',
+    a: 'Install Recete from the Shopify App Store and approve a plan in Shopify. The app then walks you through the rest — connect your WhatsApp number, add product instructions, set your welcome message — with a checklist that shows what is left. Most merchants finish in about fifteen minutes.',
   },
   {
     q: 'Which customers will Recete message?',
@@ -1469,8 +1472,8 @@ const FAQS: Array<{ q: string; a: React.ReactNode }> = [
     ),
   },
   {
-    q: 'Can I use my own WhatsApp Business number?',
-    a: 'Yes — on the Pro plan you can connect your branded WhatsApp Business API number. Starter and Growth use a shared Recete number, which is faster to launch.',
+    q: 'Which WhatsApp number do messages come from?',
+    a: "Your own, on every plan. You connect your store's WhatsApp Business number with a Facebook sign-in — no API keys, about two minutes. Already using the number in the WhatsApp Business app? You can keep using the app: you confirm the move with a QR code, and your chats stay there too.",
   },
   {
     q: 'Which languages does the AI support?',

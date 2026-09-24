@@ -532,7 +532,19 @@
   font-weight: 400; padding: 2px 6px; border: 1px solid var(--lline); border-radius: 4px; margin-left: 4px;
 }
 .lnav-links { display: flex; align-items: center; gap: 28px; font-size: 14px; color: var(--link-2); }
+.lnav-links a { white-space: nowrap; }
 .lnav-links a:hover { color: var(--link); }
+.lnav-logo-tag { white-space: nowrap; }
+/* Between tablet and desktop the full row (links + theme + login + install)
+   no longer fits and the links wrapped onto three lines. Tighten, then drop
+   the decorative parts before anything wraps. */
+@media (max-width: 1100px) {
+  .lnav-links { gap: 18px; }
+  .lnav-logo-tag { display: none; }
+}
+@media (max-width: 920px) {
+  .lnav-theme-toggle { display: none; }
+}
 .lnav-cta { display: flex; align-items: center; gap: 12px; }
 .lnav-hamburger { display: none; } /* hidden on desktop */
 /* Buttons */

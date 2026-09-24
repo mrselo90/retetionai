@@ -48,6 +48,11 @@ export default function WhatsAppGdprPage() {
               </h2>
               <ol className="list-decimal pl-6 text-zinc-700 mb-4 space-y-2">
                 <li>
+                  <strong>Connect your own WhatsApp Business number.</strong> In Recete, go to
+                  Integrations and sign in with Facebook. Messages to your customers come from this
+                  number.
+                </li>
+                <li>
                   <strong>Ask for consent at checkout, and mention WhatsApp.</strong> Recete only
                   messages customers whose Shopify record shows they accepted marketing. Make sure
                   the wording they agree to says you may contact them on WhatsApp after their
@@ -87,7 +92,8 @@ export default function WhatsAppGdprPage() {
                   messaging and support you configure.
                 </li>
                 <li>
-                  The providers Recete itself relies on are listed in our{' '}
+                  <strong>Meta (WhatsApp)</strong> delivers the messages from your own connected
+                  number. The providers Recete relies on are listed in our{' '}
                   <Link href="/privacy#sub-processors" className="text-blue-600 hover:underline">
                     Privacy Policy
                   </Link>
@@ -142,6 +148,10 @@ export default function WhatsAppGdprPage() {
                 <li>
                   To write replies, the message and the relevant product information are sent to
                   OpenAI in the United States.
+                </li>
+                <li>
+                  Messages are delivered through Meta&apos;s WhatsApp Business Platform, from the
+                  WhatsApp Business number you connected.
                 </li>
               </ul>
             </section>

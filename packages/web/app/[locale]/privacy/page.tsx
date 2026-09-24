@@ -154,6 +154,10 @@ export default function PrivacyPolicyPage() {
                   product information (United States)
                 </li>
                 <li>
+                  <strong>Meta Platforms (WhatsApp Business Platform):</strong> Delivers WhatsApp
+                  messages from the merchant&apos;s own connected number
+                </li>
+                <li>
                   <strong>PostHog:</strong> Website and dashboard analytics, only after cookie
                   consent (European Union)
                 </li>
@@ -175,25 +179,6 @@ export default function PrivacyPolicyPage() {
                 </Link>
                 .
               </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-zinc-900 mb-4">8. Third-Party Services</h2>
-              <p className="text-zinc-700 mb-4">We use the following third-party services:</p>
-              <ul className="list-disc pl-6 text-zinc-700 mb-4">
-                <li>
-                  <strong>Supabase:</strong> Database and authentication (EU/US data centers)
-                </li>
-                <li>
-                  <strong>OpenAI:</strong> AI/LLM services (US-based)
-                </li>
-                <li>
-                  <strong>WhatsApp Business API:</strong> Messaging service
-                </li>
-                <li>
-                  <strong>Redis:</strong> Queue management
-                </li>
-              </ul>
             </section>
 
             <section className="mb-8">
