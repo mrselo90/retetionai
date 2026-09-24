@@ -6,6 +6,7 @@
 import { Hono } from 'hono';
 import { getSupabaseServiceClient } from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
+import { getMerchantWhatsAppSenderMode } from '../lib/merchantPlanFeatures.js';
 
 const integrations = new Hono();
 
@@ -28,7 +29,9 @@ function getWhatsAppProviderType(auth: WhatsAppAuthDataInput): 'meta' | 'twilio'
   return 'meta';
 }
 
-function validateWhatsAppAuthData(authData: unknown): { valid: true } | { valid: false; error: string } {
+function validateWhatsAppAuthData(
+  authData: unknown
+): { valid: true } | { valid: false; error: string } {
   if (!authData || typeof authData !== 'object' || Array.isArray(authData)) {
     return { valid: false, error: 'auth_data is required and must be an object' };
   }
@@ -50,7 +53,8 @@ function validateWhatsAppAuthData(authData: unknown): { valid: true } | { valid:
   if (!wa.phone_number_id || !wa.access_token || !wa.verify_token) {
     return {
       valid: false,
-      error: 'Meta WhatsApp integration requires auth_data.phone_number_id, auth_data.access_token, and auth_data.verify_token',
+      error:
+        'Meta WhatsApp integration requires auth_data.phone_number_id, auth_data.access_token, and auth_data.verify_token',
     };
   }
 
@@ -103,28 +107,66 @@ integrations.get('/', authMiddleware, async (c) => {
       return c.json({ error: 'Failed to fetch integrations' }, 500);
     }
 
-    const integrationList = (rawList || []).map((row: { auth_data?: { phone_number_display?: string; shop?: string; wa_provider?: string; provider_type?: string; from_number?: string }; provider?: string; [k: string]: unknown }) => {
-      const { auth_data, ...rest } = row;
-      const out = { ...rest };
-      if (row.provider === 'whatsapp' && auth_data && typeof auth_data === 'object' && 'phone_number_display' in auth_data) {
-        (out as Record<string, unknown>).phone_number_display = (auth_data as { phone_number_display?: string }).phone_number_display;
-        const waAuth = auth_data as WhatsAppAuthDataInput;
-        (out as Record<string, unknown>).whatsapp_provider = getWhatsAppProviderType(waAuth);
-        if (waAuth.from_number) {
-          (out as Record<string, unknown>).from_number = waAuth.from_number;
+    const integrationList = (rawList || []).map(
+      (row: {
+        auth_data?: {
+          phone_number_display?: string;
+          shop?: string;
+          wa_provider?: string;
+          provider_type?: string;
+          from_number?: string;
+        };
+        provider?: string;
+        [k: string]: unknown;
+      }) => {
+        const { auth_data, ...rest } = row;
+        const out = { ...rest };
+        if (
+          row.provider === 'whatsapp' &&
+          auth_data &&
+          typeof auth_data === 'object' &&
+          'phone_number_display' in auth_data
+        ) {
+          (out as Record<string, unknown>).phone_number_display = (
+            auth_data as { phone_number_display?: string }
+          ).phone_number_display;
+          const waAuth = auth_data as WhatsAppAuthDataInput;
+          (out as Record<string, unknown>).whatsapp_provider = getWhatsAppProviderType(waAuth);
+          if (waAuth.from_number) {
+            (out as Record<string, unknown>).from_number = waAuth.from_number;
+          }
         }
+        if (
+          row.provider === 'shopify' &&
+          auth_data &&
+          typeof auth_data === 'object' &&
+          'shop' in auth_data
+        ) {
+          (out as Record<string, unknown>).shop_domain = (auth_data as { shop?: string }).shop;
+        }
+        return out;
       }
-      if (row.provider === 'shopify' && auth_data && typeof auth_data === 'object' && 'shop' in auth_data) {
-        (out as Record<string, unknown>).shop_domain = (auth_data as { shop?: string }).shop;
-      }
-      return out;
-    });
+    );
 
-    return c.json({ integrations: integrationList });
+    // Which number customer messages go from, so the screen can say whether
+    // there is anything to connect. Starter and Growth always send from
+    // Recete's shared number (see getEffectiveWhatsAppCredentials); only Pro
+    // can use its own. null when the plan can't be resolved right now.
+    let whatsappSenderMode: 'corporate' | 'merchant_own' | null = null;
+    try {
+      whatsappSenderMode = await getMerchantWhatsAppSenderMode(merchantId);
+    } catch {
+      whatsappSenderMode = null;
+    }
+
+    return c.json({ integrations: integrationList, whatsappSenderMode });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+      },
+      500
+    );
   }
 });
 
@@ -150,15 +192,22 @@ integrations.get('/:id', authMiddleware, async (c) => {
     }
 
     // For WhatsApp, do not expose access_token or verify_token
-    if (integration.provider === 'whatsapp' && integration.auth_data && typeof integration.auth_data === 'object') {
+    if (
+      integration.provider === 'whatsapp' &&
+      integration.auth_data &&
+      typeof integration.auth_data === 'object'
+    ) {
       integration.auth_data = sanitizeWhatsAppAuthData(integration.auth_data);
     }
 
     return c.json({ integration });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+      },
+      500
+    );
   }
 });
 
@@ -181,9 +230,12 @@ integrations.post('/', authMiddleware, async (c) => {
     // Validate provider
     const validProviders = ['shopify', 'woocommerce', 'ticimax', 'manual', 'whatsapp'];
     if (!validProviders.includes(provider)) {
-      return c.json({
-        error: `provider must be one of: ${validProviders.join(', ')}`
-      }, 400);
+      return c.json(
+        {
+          error: `provider must be one of: ${validProviders.join(', ')}`,
+        },
+        400
+      );
     }
 
     if (!auth_type || typeof auth_type !== 'string') {
@@ -193,9 +245,12 @@ integrations.post('/', authMiddleware, async (c) => {
     // Validate auth_type
     const validAuthTypes = ['oauth', 'api_key', 'token'];
     if (!validAuthTypes.includes(auth_type)) {
-      return c.json({
-        error: `auth_type must be one of: ${validAuthTypes.join(', ')}`
-      }, 400);
+      return c.json(
+        {
+          error: `auth_type must be one of: ${validAuthTypes.join(', ')}`,
+        },
+        400
+      );
     }
 
     if (!auth_data || typeof auth_data !== 'object' || Array.isArray(auth_data)) {
@@ -220,9 +275,12 @@ integrations.post('/', authMiddleware, async (c) => {
       .single();
 
     if (existing) {
-      return c.json({
-        error: `Integration for provider '${provider}' already exists`
-      }, 409);
+      return c.json(
+        {
+          error: `Integration for provider '${provider}' already exists`,
+        },
+        409
+      );
     }
 
     // Create integration
@@ -244,9 +302,12 @@ integrations.post('/', authMiddleware, async (c) => {
 
     return c.json({ integration }, 201);
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+      },
+      500
+    );
   }
 });
 
@@ -267,9 +328,12 @@ integrations.put('/:id', authMiddleware, async (c) => {
     if (body.status !== undefined) {
       const validStatuses = ['pending', 'active', 'error', 'disabled'];
       if (!validStatuses.includes(body.status)) {
-        return c.json({
-          error: `status must be one of: ${validStatuses.join(', ')}`
-        }, 400);
+        return c.json(
+          {
+            error: `status must be one of: ${validStatuses.join(', ')}`,
+          },
+          400
+        );
       }
       updates.status = body.status;
     }
@@ -299,7 +363,10 @@ integrations.put('/:id', authMiddleware, async (c) => {
       return c.json({ error: 'Integration not found' }, 404);
     }
 
-    if (body.auth_data !== undefined && (existing as { provider?: string }).provider === 'whatsapp') {
+    if (
+      body.auth_data !== undefined &&
+      (existing as { provider?: string }).provider === 'whatsapp'
+    ) {
       const validation = validateWhatsAppAuthData(body.auth_data);
       if (!validation.valid) {
         return c.json({ error: validation.error }, 400);
@@ -321,9 +388,12 @@ integrations.put('/:id', authMiddleware, async (c) => {
 
     return c.json({ integration });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+      },
+      500
+    );
   }
 });
 
@@ -363,9 +433,12 @@ integrations.delete('/:id', authMiddleware, async (c) => {
 
     return c.json({ message: 'Integration deleted successfully' });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+      },
+      500
+    );
   }
 });
 

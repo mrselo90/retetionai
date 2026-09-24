@@ -46,6 +46,11 @@ export default function IntegrationsPage() {
   const whatsappTitleId = useId();
   const { confirm, ConfirmDialogNode } = useConfirm();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
+  // 'corporate' = Starter/Growth, always sent from Recete's shared number, so
+  // there is nothing to connect. null = unknown (keep the connect flow).
+  const [whatsappSenderMode, setWhatsappSenderMode] = useState<'corporate' | 'merchant_own' | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [showShopifyModal, setShowShopifyModal] = useState(false);
   const [shopifyShop, setShopifyShop] = useState('');
@@ -102,11 +107,12 @@ export default function IntegrationsPage() {
         return;
       }
 
-      const response = await authenticatedRequest<{ integrations: Integration[] }>(
-        '/api/integrations',
-        session.access_token
-      );
+      const response = await authenticatedRequest<{
+        integrations: Integration[];
+        whatsappSenderMode?: 'corporate' | 'merchant_own' | null;
+      }>('/api/integrations', session.access_token);
       setIntegrations(response.integrations);
+      setWhatsappSenderMode(response.whatsappSenderMode ?? null);
     } catch (err) {
       console.error('Failed to load integrations:', err);
       if (getErrorStatus(err) === 401) {
@@ -479,6 +485,7 @@ export default function IntegrationsPage() {
   };
 
   const hasWhatsApp = integrations.some((i) => i.provider === 'whatsapp');
+  const usesSharedNumber = whatsappSenderMode === 'corporate';
   const hasShopify = integrations.some((i) => i.provider === 'shopify');
   const hasManual = integrations.some((i) => i.provider === 'manual');
 
@@ -663,26 +670,35 @@ export default function IntegrationsPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span className="r-table-strong">{t('providers.whatsapp.title')}</span>
                     {hasWhatsApp ? <Badge tone="success">{t('active.connected')}</Badge> : null}
+                    {!hasWhatsApp && usesSharedNumber ? (
+                      <Badge tone="success">{t('providers.whatsapp.sharedBadge')}</Badge>
+                    ) : null}
                   </div>
                   <p className="r-hint" style={{ marginTop: 3 }}>
                     {hasWhatsApp
                       ? t('providers.whatsapp.connected')
-                      : t('providers.whatsapp.description')}
+                      : usesSharedNumber
+                        ? t('providers.whatsapp.sharedActive')
+                        : t('providers.whatsapp.description')}
                   </p>
                 </div>
               </div>
-              <button
-                className={
-                  hasWhatsApp ? 'r-btn r-btn-secondary r-btn-sm' : 'r-btn r-btn-primary r-btn-sm'
-                }
-                onClick={() =>
-                  openWhatsAppModal(integrations.find((i) => i.provider === 'whatsapp'))
-                }
-              >
-                {hasWhatsApp
-                  ? t('providers.whatsapp.action.update')
-                  : t('providers.whatsapp.action.connect')}
-              </button>
+              {!hasWhatsApp && usesSharedNumber ? (
+                <Badge tone="neutral">{t('providers.whatsapp.proBadge')}</Badge>
+              ) : (
+                <button
+                  className={
+                    hasWhatsApp ? 'r-btn r-btn-secondary r-btn-sm' : 'r-btn r-btn-primary r-btn-sm'
+                  }
+                  onClick={() =>
+                    openWhatsAppModal(integrations.find((i) => i.provider === 'whatsapp'))
+                  }
+                >
+                  {hasWhatsApp
+                    ? t('providers.whatsapp.action.update')
+                    : t('providers.whatsapp.action.connect')}
+                </button>
+              )}
             </div>
 
             {/* CSV Import */}
@@ -1141,8 +1157,23 @@ export default function IntegrationsPage() {
               <h2 className="r-modal-title" id={whatsappTitleId}>
                 {editingWhatsAppId ? t('modals.whatsapp.updateTitle') : t('modals.whatsapp.title')}
               </h2>
+              {/* Was one Meta-only sentence, shown even with Twilio selected. */}
               <p className="r-hint" style={{ marginTop: 4 }}>
-                {t('modals.whatsapp.description')}
+                {whatsappProviderType === 'twilio'
+                  ? t('modals.whatsapp.descriptionTwilio')
+                  : t('modals.whatsapp.descriptionMeta')}{' '}
+                <a
+                  href={
+                    whatsappProviderType === 'twilio'
+                      ? 'https://www.twilio.com/docs/whatsapp/self-sign-up'
+                      : 'https://developers.facebook.com/docs/whatsapp/cloud-api/get-started'
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}
+                >
+                  {t('modals.whatsapp.whereToFind')}
+                </a>
               </p>
             </div>
             <div

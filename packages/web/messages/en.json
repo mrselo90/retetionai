@@ -590,7 +590,10 @@
         "action": {
           "connect": "Connect",
           "update": "Update"
-        }
+        },
+        "sharedActive": "Ready to go: customer messages are sent from Recete's shared WhatsApp number, so there is nothing to connect. Using your own number is a Pro plan feature.",
+        "sharedBadge": "Shared number active",
+        "proBadge": "Own number: Pro"
       },
       "shopify": {
         "title": "Shopify",
@@ -665,7 +668,9 @@
       "whatsapp": {
         "title": "Connect WhatsApp Business",
         "updateTitle": "Update WhatsApp Connection",
-        "description": "Enter Phone Number ID, Access Token, and Verify Token from Meta for Developers.",
+        "descriptionTwilio": "Enter the Account SID and Auth Token from your Twilio console, and the WhatsApp sender number Twilio approved for you.",
+        "descriptionMeta": "Enter the Phone Number ID, Access Token and Verify Token from WhatsApp → API Setup in your Meta for Developers app.",
+        "whereToFind": "Where do I find these?",
         "displayLabel": "Display Number (optional)",
         "displayPlaceholder": "+90 555 123 45 67",
         "providerLabel": "WhatsApp provider",

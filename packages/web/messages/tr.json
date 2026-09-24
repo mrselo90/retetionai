@@ -590,7 +590,10 @@
         "action": {
           "connect": "Bağlayın",
           "update": "Güncelleyin"
-        }
+        },
+        "sharedActive": "Hazır: müşteri mesajları Recete’nin ortak WhatsApp numarasından gönderilir, bağlamanız gereken bir şey yok. Kendi numaranızı kullanmak Pro plan özelliğidir.",
+        "sharedBadge": "Ortak numara aktif",
+        "proBadge": "Kendi numara: Pro"
       },
       "shopify": {
         "title": "Shopify",
@@ -665,7 +668,9 @@
       "whatsapp": {
         "title": "WhatsApp Business’ı bağlayın",
         "updateTitle": "WhatsApp bağlantısını güncelle",
-        "description": "Meta for Developers’tan Telefon Numarası Kimliği, Erişim Jetonu ve Doğrulama Jetonunu girin.",
+        "descriptionTwilio": "Twilio konsolunuzdaki Account SID ve Auth Token’ı, ayrıca Twilio’nun sizin için onayladığı WhatsApp gönderici numarasını girin.",
+        "descriptionMeta": "Meta for Developers uygulamanızda WhatsApp → API Setup bölümündeki Phone Number ID, Access Token ve Verify Token değerlerini girin.",
+        "whereToFind": "Bunları nerede bulurum?",
         "displayLabel": "Görünen numara (isteğe bağlı)",
         "displayPlaceholder": "+90 555 123 45 67",
         "providerLabel": "WhatsApp sağlayıcısı",
