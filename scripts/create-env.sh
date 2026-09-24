@@ -40,13 +40,6 @@ read -p "Shopify API Key: " SHOPIFY_API_KEY
 read -p "Shopify API Secret: " SHOPIFY_API_SECRET
 echo ""
 
-# Twilio (WhatsApp)
-echo -e "${YELLOW}📱 Twilio/WhatsApp Configuration${NC}"
-read -p "Twilio Account SID (ACxxxxx): " TWILIO_ACCOUNT_SID
-read -p "Twilio Auth Token: " TWILIO_AUTH_TOKEN
-read -p "Twilio WhatsApp Number (whatsapp:+14155238886): " TWILIO_WHATSAPP_NUMBER
-echo ""
-
 # Sentry (Optional)
 echo -e "${YELLOW}🔍 Sentry Configuration (Optional - Enter to skip)${NC}"
 read -p "Sentry DSN: " SENTRY_DSN
@@ -154,11 +147,6 @@ OPENAI_API_KEY=$OPENAI_API_KEY
 # Shopify
 SHOPIFY_API_KEY=$SHOPIFY_API_KEY
 SHOPIFY_API_SECRET=$SHOPIFY_API_SECRET
-
-# Twilio
-TWILIO_ACCOUNT_SID=$TWILIO_ACCOUNT_SID
-TWILIO_AUTH_TOKEN=$TWILIO_AUTH_TOKEN
-TWILIO_WHATSAPP_NUMBER=$TWILIO_WHATSAPP_NUMBER
 
 # Security
 JWT_SECRET=$JWT_SECRET

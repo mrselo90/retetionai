@@ -8,19 +8,18 @@ import { toast } from '@/lib/toast';
 import { PageFeedbackCard } from '@/components/ui/PageFeedbackCard';
 import { Badge, EmptyState } from '@/components/recete';
 import type { BadgeTone } from '@/components/recete';
-import { Trash2, Pencil, Plug, Upload, Code, ShoppingBag, MessageCircle } from 'lucide-react';
+import { Trash2, Plug, Upload, Code, ShoppingBag } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { getErrorMessage, getErrorStatus } from '@/lib/errors';
 
 interface Integration {
   id: string;
-  provider: 'shopify' | 'woocommerce' | 'ticimax' | 'manual' | 'whatsapp';
+  provider: 'shopify' | 'woocommerce' | 'ticimax' | 'manual';
   status: 'pending' | 'active' | 'error' | 'disabled';
   auth_type: 'oauth' | 'api_key' | 'token';
   created_at: string;
   updated_at: string;
   phone_number_display?: string;
-  whatsapp_provider?: 'meta' | 'twilio';
   from_number?: string;
   /** Shopify store domain (e.g. store.myshopify.com) when provider is shopify */
   shop_domain?: string;
@@ -43,14 +42,8 @@ export default function IntegrationsPage() {
   const shopifyTitleId = useId();
   const csvTitleId = useId();
   const manualTitleId = useId();
-  const whatsappTitleId = useId();
   const { confirm, ConfirmDialogNode } = useConfirm();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
-  // 'corporate' = Starter/Growth, always sent from Recete's shared number, so
-  // there is nothing to connect. null = unknown (keep the connect flow).
-  const [whatsappSenderMode, setWhatsappSenderMode] = useState<'corporate' | 'merchant_own' | null>(
-    null
-  );
   const [loading, setLoading] = useState(true);
   const [showShopifyModal, setShowShopifyModal] = useState(false);
   const [shopifyShop, setShopifyShop] = useState('');
@@ -59,17 +52,6 @@ export default function IntegrationsPage() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
-  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
-  const [connectingWhatsApp, setConnectingWhatsApp] = useState(false);
-  const [whatsappProviderType, setWhatsappProviderType] = useState<'meta' | 'twilio'>('twilio');
-  const [whatsappPhoneDisplay, setWhatsappPhoneDisplay] = useState('');
-  const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState('');
-  const [whatsappAccessToken, setWhatsappAccessToken] = useState('');
-  const [whatsappVerifyToken, setWhatsappVerifyToken] = useState('');
-  const [whatsappTwilioAccountSid, setWhatsappTwilioAccountSid] = useState('');
-  const [whatsappTwilioAuthToken, setWhatsappTwilioAuthToken] = useState('');
-  const [whatsappTwilioFromNumber, setWhatsappTwilioFromNumber] = useState('');
-  const [editingWhatsAppId, setEditingWhatsAppId] = useState<string | null>(null);
   const [platformWhatsApp, setPlatformWhatsApp] = useState<string>('');
   const [pageFeedback, setPageFeedback] = useState<PageFeedbackState | null>(null);
 
@@ -107,12 +89,11 @@ export default function IntegrationsPage() {
         return;
       }
 
-      const response = await authenticatedRequest<{
-        integrations: Integration[];
-        whatsappSenderMode?: 'corporate' | 'merchant_own' | null;
-      }>('/api/integrations', session.access_token);
+      const response = await authenticatedRequest<{ integrations: Integration[] }>(
+        '/api/integrations',
+        session.access_token
+      );
       setIntegrations(response.integrations);
-      setWhatsappSenderMode(response.whatsappSenderMode ?? null);
     } catch (err) {
       console.error('Failed to load integrations:', err);
       if (getErrorStatus(err) === 401) {
@@ -308,129 +289,6 @@ export default function IntegrationsPage() {
     }
   };
 
-  const openWhatsAppModal = (integration?: Integration) => {
-    if (integration?.provider === 'whatsapp') {
-      setWhatsappProviderType(integration.whatsapp_provider === 'meta' ? 'meta' : 'twilio');
-      setEditingWhatsAppId(integration.id);
-      setWhatsappPhoneDisplay(integration.phone_number_display || '');
-      setWhatsappTwilioFromNumber(integration.from_number || '');
-      setWhatsappPhoneNumberId('');
-      setWhatsappAccessToken('');
-      setWhatsappVerifyToken('');
-      setWhatsappTwilioAccountSid('');
-      setWhatsappTwilioAuthToken('');
-    } else {
-      setWhatsappProviderType('twilio');
-      setEditingWhatsAppId(null);
-      setWhatsappPhoneDisplay('');
-      setWhatsappTwilioFromNumber('');
-      setWhatsappPhoneNumberId('');
-      setWhatsappAccessToken('');
-      setWhatsappVerifyToken('');
-      setWhatsappTwilioAccountSid('');
-      setWhatsappTwilioAuthToken('');
-    }
-    setShowWhatsAppModal(true);
-  };
-
-  const handleSaveWhatsApp = async () => {
-    const isTwilio = whatsappProviderType === 'twilio';
-    if (
-      (isTwilio &&
-        (!whatsappTwilioAccountSid.trim() ||
-          !whatsappTwilioAuthToken.trim() ||
-          !whatsappTwilioFromNumber.trim())) ||
-      (!isTwilio &&
-        (!whatsappPhoneNumberId.trim() ||
-          !whatsappAccessToken.trim() ||
-          !whatsappVerifyToken.trim()))
-    ) {
-      toast.warning(t('toasts.missingWhatsapp.title'), t('toasts.missingWhatsapp.message'));
-      return;
-    }
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) return;
-      setConnectingWhatsApp(true);
-      const auth_data = isTwilio
-        ? {
-            wa_provider: 'twilio' as const,
-            account_sid: whatsappTwilioAccountSid.trim(),
-            auth_token: whatsappTwilioAuthToken.trim(),
-            from_number: whatsappTwilioFromNumber.trim(),
-            phone_number_display: whatsappPhoneDisplay.trim() || undefined,
-          }
-        : {
-            wa_provider: 'meta' as const,
-            phone_number_id: whatsappPhoneNumberId.trim(),
-            access_token: whatsappAccessToken.trim(),
-            verify_token: whatsappVerifyToken.trim(),
-            phone_number_display: whatsappPhoneDisplay.trim() || undefined,
-          };
-      if (editingWhatsAppId) {
-        await authenticatedRequest(`/api/integrations/${editingWhatsAppId}`, session.access_token, {
-          method: 'PUT',
-          body: JSON.stringify({ auth_data, status: 'active' }),
-        });
-        toast.success(
-          t('toasts.whatsappUpdateSuccess.title'),
-          t('toasts.whatsappUpdateSuccess.message')
-        );
-        setPageFeedback({
-          tone: 'success',
-          title: t('feedback.whatsappUpdatedTitle'),
-          message: t('feedback.whatsappUpdatedMessage'),
-          actionLabel: t('feedback.reviewActive'),
-          targetId: 'active-integrations',
-        });
-      } else {
-        await authenticatedRequest('/api/integrations', session.access_token, {
-          method: 'POST',
-          body: JSON.stringify({
-            provider: 'whatsapp',
-            auth_type: 'token',
-            auth_data,
-          }),
-        });
-        toast.success(t('toasts.whatsappSuccess.title'), t('toasts.whatsappSuccess.message'));
-        setPageFeedback({
-          tone: 'success',
-          title: t('feedback.whatsappConnectedTitle'),
-          message: t('feedback.whatsappConnectedMessage'),
-          actionLabel: t('feedback.reviewActive'),
-          targetId: 'active-integrations',
-        });
-      }
-      setShowWhatsAppModal(false);
-      setEditingWhatsAppId(null);
-      setWhatsappProviderType('twilio');
-      setWhatsappPhoneDisplay('');
-      setWhatsappPhoneNumberId('');
-      setWhatsappAccessToken('');
-      setWhatsappVerifyToken('');
-      setWhatsappTwilioAccountSid('');
-      setWhatsappTwilioAuthToken('');
-      setWhatsappTwilioFromNumber('');
-      await loadIntegrations();
-    } catch (err) {
-      setPageFeedback({
-        tone: 'critical',
-        title: t('feedback.whatsappErrorTitle'),
-        message: getErrorMessage(err, t('toasts.whatsappError.message')),
-        actionLabel: t('feedback.reviewDiscover'),
-        targetId: 'discover-integrations',
-      });
-      toast.error(
-        t('toasts.whatsappError.title'),
-        getErrorMessage(err, t('toasts.whatsappError.message'))
-      );
-    } finally {
-      setConnectingWhatsApp(false);
-    }
-  };
-
   const handleDeleteIntegration = async (integrationId: string) => {
     try {
       const {
@@ -477,15 +335,11 @@ export default function IntegrationsPage() {
         return 'Ticimax';
       case 'manual':
         return t('providers.manual.title');
-      case 'whatsapp':
-        return t('providers.whatsapp.title');
       default:
         return provider;
     }
   };
 
-  const hasWhatsApp = integrations.some((i) => i.provider === 'whatsapp');
-  const usesSharedNumber = whatsappSenderMode === 'corporate';
   const hasShopify = integrations.some((i) => i.provider === 'shopify');
   const hasManual = integrations.some((i) => i.provider === 'manual');
 
@@ -638,69 +492,6 @@ export default function IntegrationsPage() {
               </button>
             </div>
 
-            {/* WhatsApp Business */}
-            <div
-              className="r-card"
-              style={{
-                padding: 'var(--r-space-7)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 16,
-                flexWrap: 'wrap',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 'var(--r-radius-md)',
-                    background: '#25D36620',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <MessageCircle size={18} color="#128C53" />
-                </span>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span className="r-table-strong">{t('providers.whatsapp.title')}</span>
-                    {hasWhatsApp ? <Badge tone="success">{t('active.connected')}</Badge> : null}
-                    {!hasWhatsApp && usesSharedNumber ? (
-                      <Badge tone="success">{t('providers.whatsapp.sharedBadge')}</Badge>
-                    ) : null}
-                  </div>
-                  <p className="r-hint" style={{ marginTop: 3 }}>
-                    {hasWhatsApp
-                      ? t('providers.whatsapp.connected')
-                      : usesSharedNumber
-                        ? t('providers.whatsapp.sharedActive')
-                        : t('providers.whatsapp.description')}
-                  </p>
-                </div>
-              </div>
-              {!hasWhatsApp && usesSharedNumber ? (
-                <Badge tone="neutral">{t('providers.whatsapp.proBadge')}</Badge>
-              ) : (
-                <button
-                  className={
-                    hasWhatsApp ? 'r-btn r-btn-secondary r-btn-sm' : 'r-btn r-btn-primary r-btn-sm'
-                  }
-                  onClick={() =>
-                    openWhatsAppModal(integrations.find((i) => i.provider === 'whatsapp'))
-                  }
-                >
-                  {hasWhatsApp
-                    ? t('providers.whatsapp.action.update')
-                    : t('providers.whatsapp.action.connect')}
-                </button>
-              )}
-            </div>
-
             {/* CSV Import */}
             <div
               className="r-card"
@@ -838,23 +629,6 @@ export default function IntegrationsPage() {
                           <ShoppingBag size={18} color="#5C8A2A" />
                         </span>
                       )}
-                      {integration.provider === 'whatsapp' && (
-                        <span
-                          aria-hidden="true"
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 'var(--r-radius-md)',
-                            background: '#25D36620',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          <MessageCircle size={18} color="#128C53" />
-                        </span>
-                      )}
                       {integration.provider === 'manual' && (
                         <span
                           aria-hidden="true"
@@ -872,35 +646,26 @@ export default function IntegrationsPage() {
                           <Code size={18} color="var(--r-brand)" />
                         </span>
                       )}
-                      {integration.provider !== 'shopify' &&
-                        integration.provider !== 'whatsapp' &&
-                        integration.provider !== 'manual' && (
-                          <span
-                            aria-hidden="true"
-                            style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 'var(--r-radius-md)',
-                              background: 'var(--r-surface-muted)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Plug size={18} color="var(--r-text-muted)" />
-                          </span>
-                        )}
+                      {integration.provider !== 'shopify' && integration.provider !== 'manual' && (
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 'var(--r-radius-md)',
+                            background: 'var(--r-surface-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Plug size={18} color="var(--r-text-muted)" />
+                        </span>
+                      )}
                       <div style={{ minWidth: 0 }}>
                         <h3 className="r-table-strong" style={{ margin: 0 }}>
                           {getProviderName(integration.provider)}
-                          {integration.provider === 'whatsapp' &&
-                            integration.phone_number_display && (
-                              <span className="r-hint" style={{ fontWeight: 400 }}>
-                                {' '}
-                                • {integration.phone_number_display}
-                              </span>
-                            )}
                           {integration.provider === 'shopify' && integration.shop_domain && (
                             <span className="r-hint" style={{ fontWeight: 400 }}>
                               {' '}
@@ -919,16 +684,6 @@ export default function IntegrationsPage() {
                         {getStatusText(integration.status)}
                       </Badge>
                       <div style={{ display: 'flex', gap: 4 }}>
-                        {integration.provider === 'whatsapp' && (
-                          <button
-                            onClick={() => openWhatsAppModal(integration)}
-                            title={t('providers.whatsapp.action.update')}
-                            aria-label={t('providers.whatsapp.action.update')}
-                            className="r-btn r-btn-ghost r-btn-sm"
-                          >
-                            <Pencil size={14} aria-hidden="true" />
-                          </button>
-                        )}
                         <button
                           className="r-btn r-btn-ghost r-btn-sm"
                           title={t('active.delete')}
@@ -1132,208 +887,6 @@ export default function IntegrationsPage() {
               </button>
               <button className="r-btn r-btn-primary" onClick={handleCreateManualIntegration}>
                 {t('modals.manual.create')}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {/* WhatsApp Business Modal */}
-      {showWhatsAppModal ? (
-        <div
-          className="r-modal-backdrop"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !connectingWhatsApp) setShowWhatsAppModal(false);
-          }}
-        >
-          <div
-            className="r-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={whatsappTitleId}
-            style={{ maxHeight: '90vh', overflowY: 'auto' }}
-          >
-            <div className="r-modal-head">
-              <h2 className="r-modal-title" id={whatsappTitleId}>
-                {editingWhatsAppId ? t('modals.whatsapp.updateTitle') : t('modals.whatsapp.title')}
-              </h2>
-              {/* Was one Meta-only sentence, shown even with Twilio selected. */}
-              <p className="r-hint" style={{ marginTop: 4 }}>
-                {whatsappProviderType === 'twilio'
-                  ? t('modals.whatsapp.descriptionTwilio')
-                  : t('modals.whatsapp.descriptionMeta')}{' '}
-                <a
-                  href={
-                    whatsappProviderType === 'twilio'
-                      ? 'https://www.twilio.com/docs/whatsapp/self-sign-up'
-                      : 'https://developers.facebook.com/docs/whatsapp/cloud-api/get-started'
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}
-                >
-                  {t('modals.whatsapp.whereToFind')}
-                </a>
-              </p>
-            </div>
-            <div
-              className="r-modal-body"
-              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-            >
-              <div>
-                <label className="r-label" htmlFor={`${fieldPrefix}-wa-display`}>
-                  {t('modals.whatsapp.displayLabel')}
-                </label>
-                <input
-                  id={`${fieldPrefix}-wa-display`}
-                  className="r-input"
-                  value={whatsappPhoneDisplay}
-                  onChange={(e) => setWhatsappPhoneDisplay(e.target.value)}
-                  placeholder={t('modals.whatsapp.displayPlaceholder')}
-                  disabled={connectingWhatsApp}
-                  autoComplete="off"
-                />
-              </div>
-
-              <div>
-                <label className="r-label" htmlFor={`${fieldPrefix}-wa-provider`}>
-                  {t('modals.whatsapp.providerLabel')}
-                </label>
-                <select
-                  id={`${fieldPrefix}-wa-provider`}
-                  className="r-select"
-                  value={whatsappProviderType}
-                  onChange={(e) => setWhatsappProviderType(e.target.value as 'meta' | 'twilio')}
-                  disabled={connectingWhatsApp}
-                >
-                  <option value="twilio">{t('modals.whatsapp.providerOptions.twilio')}</option>
-                  <option value="meta">{t('modals.whatsapp.providerOptions.meta')}</option>
-                </select>
-              </div>
-
-              {whatsappProviderType === 'twilio' ? (
-                <>
-                  <div>
-                    <label className="r-label" htmlFor={`${fieldPrefix}-wa-sid`}>
-                      {t('modals.whatsapp.twilioSidLabel')}
-                    </label>
-                    <input
-                      id={`${fieldPrefix}-wa-sid`}
-                      className="r-input"
-                      value={whatsappTwilioAccountSid}
-                      onChange={(e) => setWhatsappTwilioAccountSid(e.target.value)}
-                      placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      disabled={connectingWhatsApp}
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div>
-                    <label className="r-label" htmlFor={`${fieldPrefix}-wa-token`}>
-                      {t('modals.whatsapp.twilioTokenLabel')}
-                    </label>
-                    <input
-                      id={`${fieldPrefix}-wa-token`}
-                      type="password"
-                      className="r-input"
-                      value={whatsappTwilioAuthToken}
-                      onChange={(e) => setWhatsappTwilioAuthToken(e.target.value)}
-                      placeholder={t('modals.whatsapp.twilioTokenLabel')}
-                      disabled={connectingWhatsApp}
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div>
-                    <label className="r-label" htmlFor={`${fieldPrefix}-wa-from`}>
-                      {t('modals.whatsapp.twilioFromLabel')}
-                    </label>
-                    <input
-                      id={`${fieldPrefix}-wa-from`}
-                      className="r-input"
-                      value={whatsappTwilioFromNumber}
-                      onChange={(e) => setWhatsappTwilioFromNumber(e.target.value)}
-                      placeholder="+14155238886"
-                      disabled={connectingWhatsApp}
-                      autoComplete="off"
-                    />
-                    <p className="r-field-help">{t('modals.whatsapp.twilioFromHelper')}</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="r-label" htmlFor={`${fieldPrefix}-wa-phoneid`}>
-                      {t('modals.whatsapp.phoneIdLabel')}
-                    </label>
-                    <input
-                      id={`${fieldPrefix}-wa-phoneid`}
-                      className="r-input"
-                      value={whatsappPhoneNumberId}
-                      onChange={(e) => setWhatsappPhoneNumberId(e.target.value)}
-                      placeholder={t('modals.whatsapp.phoneIdPlaceholder')}
-                      disabled={connectingWhatsApp}
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div>
-                    <label className="r-label" htmlFor={`${fieldPrefix}-wa-access`}>
-                      {t('modals.whatsapp.tokenLabel')}
-                    </label>
-                    <input
-                      id={`${fieldPrefix}-wa-access`}
-                      type="password"
-                      className="r-input"
-                      value={whatsappAccessToken}
-                      onChange={(e) => setWhatsappAccessToken(e.target.value)}
-                      placeholder={t('modals.whatsapp.tokenPlaceholder')}
-                      disabled={connectingWhatsApp}
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div>
-                    <label className="r-label" htmlFor={`${fieldPrefix}-wa-verify`}>
-                      {t('modals.whatsapp.verifyLabel')}
-                    </label>
-                    <input
-                      id={`${fieldPrefix}-wa-verify`}
-                      className="r-input"
-                      value={whatsappVerifyToken}
-                      onChange={(e) => setWhatsappVerifyToken(e.target.value)}
-                      placeholder={t('modals.whatsapp.verifyPlaceholder')}
-                      disabled={connectingWhatsApp}
-                      autoComplete="off"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="r-modal-foot">
-              <button
-                className="r-btn r-btn-secondary"
-                onClick={() => setShowWhatsAppModal(false)}
-                disabled={connectingWhatsApp}
-              >
-                {t('modals.whatsapp.cancel')}
-              </button>
-              <button
-                className="r-btn r-btn-primary"
-                onClick={handleSaveWhatsApp}
-                disabled={
-                  connectingWhatsApp ||
-                  (whatsappProviderType === 'twilio'
-                    ? !whatsappTwilioAccountSid.trim() ||
-                      !whatsappTwilioAuthToken.trim() ||
-                      !whatsappTwilioFromNumber.trim()
-                    : !whatsappPhoneNumberId.trim() ||
-                      !whatsappAccessToken.trim() ||
-                      !whatsappVerifyToken.trim())
-                }
-                aria-busy={connectingWhatsApp || undefined}
-              >
-                {connectingWhatsApp
-                  ? t('modals.whatsapp.saving')
-                  : editingWhatsAppId
-                    ? t('modals.whatsapp.update')
-                    : t('modals.whatsapp.save')}
               </button>
             </div>
           </div>

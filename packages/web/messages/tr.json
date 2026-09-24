@@ -569,11 +569,6 @@
       "manualSavedTitle": "Manuel entegrasyon oluşturuldu",
       "manualSavedMessage": "Manuel/API entegrasyonu artık aktif bağlantılarınızda görünüyor.",
       "manualErrorTitle": "Manuel entegrasyon başarısız oldu",
-      "whatsappConnectedTitle": "WhatsApp bağlandı",
-      "whatsappConnectedMessage": "WhatsApp bağlantınız canlıya alındı ve mesaj akışlarına hazır.",
-      "whatsappUpdatedTitle": "WhatsApp güncellendi",
-      "whatsappUpdatedMessage": "WhatsApp bağlantı bilgileri başarıyla güncellendi.",
-      "whatsappErrorTitle": "WhatsApp kaydedilemedi",
       "integrationRemovedTitle": "Entegrasyon kaldırıldı",
       "integrationRemovedMessage": "Bağlantı kaldırıldı ve liste yenilendi.",
       "deleteErrorTitle": "Entegrasyon kaldırılamadı"
@@ -583,18 +578,6 @@
       "subtitle": "WhatsApp üzerinden bize ulaşın"
     },
     "providers": {
-      "whatsapp": {
-        "title": "WhatsApp Business",
-        "description": "Müşterilere mesaj göndermek için kendi WhatsApp Business numaranızı bağlayın",
-        "connected": "Numaranız bağlı. Güncellemek için tıklayın.",
-        "action": {
-          "connect": "Bağlayın",
-          "update": "Güncelleyin"
-        },
-        "sharedActive": "Hazır: müşteri mesajları Recete’nin ortak WhatsApp numarasından gönderilir, bağlamanız gereken bir şey yok. Kendi numaranızı kullanmak Pro plan özelliğidir.",
-        "sharedBadge": "Ortak numara aktif",
-        "proBadge": "Kendi numara: Pro"
-      },
       "shopify": {
         "title": "Shopify",
         "description": "Shopify mağazanızı OAuth ile bağlayın",
@@ -664,34 +647,6 @@
         "apiKeyLabel": "API Key (Ayarlar’dan alın):",
         "cancel": "İptal",
         "create": "Entegrasyon oluşturun"
-      },
-      "whatsapp": {
-        "title": "WhatsApp Business’ı bağlayın",
-        "updateTitle": "WhatsApp bağlantısını güncelle",
-        "descriptionTwilio": "Twilio konsolunuzdaki Account SID ve Auth Token’ı, ayrıca Twilio’nun sizin için onayladığı WhatsApp gönderici numarasını girin.",
-        "descriptionMeta": "Meta for Developers uygulamanızda WhatsApp → API Setup bölümündeki Phone Number ID, Access Token ve Verify Token değerlerini girin.",
-        "whereToFind": "Bunları nerede bulurum?",
-        "displayLabel": "Görünen numara (isteğe bağlı)",
-        "displayPlaceholder": "+90 555 123 45 67",
-        "providerLabel": "WhatsApp sağlayıcısı",
-        "providerOptions": {
-          "twilio": "Twilio (Önerilen)",
-          "meta": "Meta Cloud API"
-        },
-        "twilioSidLabel": "Twilio Hesap SID",
-        "twilioTokenLabel": "Twilio Kimlik Doğrulama Jetonu",
-        "twilioFromLabel": "Twilio WhatsApp gönderen numarası",
-        "twilioFromHelper": "Test sırasında sandbox numarasını kullanın, ardından onaylı Twilio WhatsApp gönderen numaranıza geçin.",
-        "phoneIdLabel": "Telefon numarası kimliği *",
-        "phoneIdPlaceholder": "Meta API kurulumundan",
-        "tokenLabel": "Erişim jetonu *",
-        "tokenPlaceholder": "Meta’dan jeton",
-        "verifyLabel": "Doğrulama jetonu (webhook) *",
-        "verifyPlaceholder": "Webhook doğrulaması için",
-        "cancel": "İptal",
-        "save": "Bağlayın",
-        "saving": "Kaydediliyor...",
-        "update": "Güncelleyin"
       }
     },
     "toasts": {
@@ -730,22 +685,6 @@
       "manualError": {
         "title": "Hata",
         "message": "Manuel entegrasyon oluşturulamadı"
-      },
-      "missingWhatsapp": {
-        "title": "Eksik bilgi",
-        "message": "Telefon numarası kimliği, erişim jetonu ve doğrulama jetonu zorunludur"
-      },
-      "whatsappSuccess": {
-        "title": "Bağlandı",
-        "message": "WhatsApp Business bağlantısı oluşturuldu"
-      },
-      "whatsappUpdateSuccess": {
-        "title": "Güncellendi",
-        "message": "WhatsApp bağlantısı güncellendi"
-      },
-      "whatsappError": {
-        "title": "Hata",
-        "message": "WhatsApp bağlantısı kaydedilemedi"
       },
       "deleteSuccess": {
         "title": "Silindi",
@@ -814,7 +753,7 @@
           "help": "Siparişteki tüm ürünlerin Recete'de kullanım talimatı tanımlı olması gerekir. Herhangi bir ürün tanımsızsa WhatsApp mesajı hiç gönderilmez."
         }
       },
-      "welcomeTemplateWindowNotice": "Karşılama mesajı 24 saatlik WhatsApp kuralına tabidir. Müşterinin açık bir konuşma penceresi varsa Recete aşağıdaki metni normal mesaj olarak gönderir. Pencere kapalıysa ve gönderen Twilio ise Recete, platform tarafından onaylı bir WhatsApp şablonu kullanır ve metni otomatik olarak yerleştirir.",
+      "welcomeTemplateWindowNotice": "Müşteriler bu mesajı siparişleri teslim edildiğinde alır. Kişiselleştirmek için aşağıdaki değişkenleri kullanın.",
       "insertVariables": "Sipariş değişkeni ekle",
       "previewLabel": "Önizleme",
       "additionalPlaceholders": "Diğer değişkenler",
@@ -879,7 +818,6 @@
         }
       },
       "whatsappHelpTitle": "Kendi numaramı nereden alırım?",
-      "whatsappHelpText": "WhatsApp Business API numarasını Meta for Developers üzerinden alabilirsiniz. Telefon numarası kimliğiniz olduğunda Entegrasyonlar sayfasından bağlayın.",
       "welcomeTemplateLabel": "İlk WhatsApp mesaj şablonu (T+0 hoş geldin)",
       "welcomeTemplatePlaceholder": "Merhaba 😊\nÜrünleriniz teslim edilmiş olmalı. Kullanımı hakkında sorunuz var mı?\n\nSipariş no: {{order_number}}\nÜrünler:\n{{product_list}}\n\nİsterseniz satın aldığınız ürünler için kişiselleştirilmiş bir bakım rutini hazırlayabilirim.",
       "welcomeTemplateDesc": "Boş bırakılırsa sistem varsayılan karşılama mesajı kullanılır. Doldurulursa T+0 mesajı için bu şablon kullanılır.",

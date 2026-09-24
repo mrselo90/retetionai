@@ -569,11 +569,6 @@
       "manualSavedTitle": "Manual integration created",
       "manualSavedMessage": "The manual/API integration is now available in your active connections.",
       "manualErrorTitle": "Manual integration failed",
-      "whatsappConnectedTitle": "WhatsApp connected",
-      "whatsappConnectedMessage": "Your WhatsApp connection is live and ready for messaging workflows.",
-      "whatsappUpdatedTitle": "WhatsApp updated",
-      "whatsappUpdatedMessage": "The WhatsApp connection details were updated successfully.",
-      "whatsappErrorTitle": "WhatsApp save failed",
       "integrationRemovedTitle": "Integration removed",
       "integrationRemovedMessage": "The connection was removed and the list has been refreshed.",
       "deleteErrorTitle": "Integration removal failed"
@@ -583,18 +578,6 @@
       "subtitle": "Contact us via WhatsApp"
     },
     "providers": {
-      "whatsapp": {
-        "title": "WhatsApp Business",
-        "description": "Connect your own WhatsApp Business number to send messages to customers",
-        "connected": "Your number is connected. Click to update.",
-        "action": {
-          "connect": "Connect",
-          "update": "Update"
-        },
-        "sharedActive": "Ready to go: customer messages are sent from Recete's shared WhatsApp number, so there is nothing to connect. Using your own number is a Pro plan feature.",
-        "sharedBadge": "Shared number active",
-        "proBadge": "Own number: Pro"
-      },
       "shopify": {
         "title": "Shopify",
         "description": "Connect your Shopify store via OAuth",
@@ -664,34 +647,6 @@
         "apiKeyLabel": "API Key (get from Settings):",
         "cancel": "Cancel",
         "create": "Create Integration"
-      },
-      "whatsapp": {
-        "title": "Connect WhatsApp Business",
-        "updateTitle": "Update WhatsApp Connection",
-        "descriptionTwilio": "Enter the Account SID and Auth Token from your Twilio console, and the WhatsApp sender number Twilio approved for you.",
-        "descriptionMeta": "Enter the Phone Number ID, Access Token and Verify Token from WhatsApp → API Setup in your Meta for Developers app.",
-        "whereToFind": "Where do I find these?",
-        "displayLabel": "Display Number (optional)",
-        "displayPlaceholder": "+90 555 123 45 67",
-        "providerLabel": "WhatsApp provider",
-        "providerOptions": {
-          "twilio": "Twilio (Recommended)",
-          "meta": "Meta Cloud API"
-        },
-        "twilioSidLabel": "Twilio Account SID",
-        "twilioTokenLabel": "Twilio Auth Token",
-        "twilioFromLabel": "Twilio WhatsApp From Number",
-        "twilioFromHelper": "Use the sandbox number during testing, then switch to your approved Twilio WhatsApp sender.",
-        "phoneIdLabel": "Phone Number ID *",
-        "phoneIdPlaceholder": "From Meta API Setup",
-        "tokenLabel": "Access Token *",
-        "tokenPlaceholder": "Token from Meta",
-        "verifyLabel": "Verify Token (webhook) *",
-        "verifyPlaceholder": "For webhook verification",
-        "cancel": "Cancel",
-        "save": "Connect",
-        "saving": "Saving...",
-        "update": "Update"
       }
     },
     "toasts": {
@@ -730,22 +685,6 @@
       "manualError": {
         "title": "Error",
         "message": "Failed to create manual integration"
-      },
-      "missingWhatsapp": {
-        "title": "Missing Information",
-        "message": "Phone Number ID, Access Token, and Verify Token are required"
-      },
-      "whatsappSuccess": {
-        "title": "Connected",
-        "message": "WhatsApp Business connection created"
-      },
-      "whatsappUpdateSuccess": {
-        "title": "Updated",
-        "message": "WhatsApp connection updated"
-      },
-      "whatsappError": {
-        "title": "Error",
-        "message": "Failed to save WhatsApp connection"
       },
       "deleteSuccess": {
         "title": "Deleted",
@@ -814,7 +753,7 @@
           "help": "Every product in the order must have usage instructions in Recete. If any product is missing them, no WhatsApp message is sent for that order at all."
         }
       },
-      "welcomeTemplateWindowNotice": "Welcome messaging follows the 24-hour WhatsApp rule. If the customer already has an open conversation window, Recete sends the rendered text below as a normal message. If the window is closed and Twilio is the sender, Recete uses a platform-managed approved WhatsApp template and injects the rendered message automatically.",
+      "welcomeTemplateWindowNotice": "Customers receive this message once their order is delivered. Use the variables below to personalise it.",
       "insertVariables": "Insert order variables",
       "previewLabel": "Preview",
       "additionalPlaceholders": "Additional placeholders",
@@ -879,7 +818,6 @@
         }
       },
       "whatsappHelpTitle": "Where do I get my own number?",
-      "whatsappHelpText": "You can get a WhatsApp Business API number from Meta for Developers. Once you have a Phone Number ID, connect it in the Integrations page.",
       "welcomeTemplateLabel": "Initial WhatsApp message template (T+0 welcome)",
       "welcomeTemplatePlaceholder": "Hello 😊\nYour products should have been delivered. Do you have any questions about how to use them?\n\nOrder No: {{order_number}}\nProducts:\n{{product_list}}\n\nIf you want, I can prepare a personalized care routine for the products you bought.",
       "welcomeTemplateDesc": "If left empty, the system default welcome message is used. If filled, this template is used for the T+0 message.",

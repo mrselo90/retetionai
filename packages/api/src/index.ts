@@ -18,7 +18,7 @@ import eventRoutes from './routes/events.js';
 import csvRoutes from './routes/csv.js';
 import productRoutes from './routes/products.js';
 import ragRoutes from './routes/rag.js';
-import whatsappRoutes, { whatsappWebhookRoutes } from './routes/whatsapp.js';
+import whatsappRoutes from './routes/whatsapp.js';
 import messageRoutes from './routes/messages.js';
 import conversationRoutes from './routes/conversations.js';
 import analyticsRoutes from './routes/analytics.js';
@@ -181,8 +181,6 @@ app.route('/api/answer', answerRoutes);
 
 // WhatsApp routes
 app.route('/api/whatsapp', whatsappRoutes);
-// Root WhatsApp webhook alias for Meta/Twilio integrations configured at /webhooks/whatsapp
-app.route('/webhooks', whatsappWebhookRoutes);
 
 // Message scheduling routes
 app.route('/api/messages', messageRoutes);
@@ -267,10 +265,7 @@ app.get('/api/config/platform-contact', async (c) => {
   try {
     const corporate = await getPlatformCorporateWhatsAppSettings();
     const whatsappNumber =
-      corporate.phoneNumberDisplay ||
-      corporate.fromNumber ||
-      process.env.PLATFORM_WHATSAPP_NUMBER ||
-      '+905545736900';
+      corporate.phoneNumberDisplay || process.env.PLATFORM_WHATSAPP_NUMBER || '+905545736900';
     return c.json({ whatsapp_number: whatsappNumber });
   } catch {
     const whatsappNumber = process.env.PLATFORM_WHATSAPP_NUMBER || '+905545736900';
@@ -302,15 +297,6 @@ app.get('/health', async (c) => {
         shopifyShellUsageConfigured: Boolean(
           (process.env.SHOPIFY_SHELL_URL || process.env.SHOPIFY_APP_URL)?.trim() &&
           process.env.INTERNAL_SERVICE_SECRET?.trim()
-        ),
-        whatsappProviderDefaultsConfigured: Boolean(
-          (process.env.WHATSAPP_ACCESS_TOKEN?.trim() &&
-            process.env.WHATSAPP_PHONE_NUMBER_ID?.trim()) ||
-          (process.env.TWILIO_ACCOUNT_SID?.trim() &&
-            (process.env.TWILIO_WHATSAPP_AUTH_TOKEN?.trim() ||
-              process.env.TWILIO_AUTH_TOKEN?.trim()) &&
-            (process.env.TWILIO_WHATSAPP_NUMBER?.trim() ||
-              process.env.TWILIO_WHATSAPP_FROM?.trim()))
         ),
       },
     },

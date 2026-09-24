@@ -87,8 +87,7 @@ export default function WhatsAppGdprPage() {
                   messaging and support you configure.
                 </li>
                 <li>
-                  <strong>Meta (WhatsApp) and Twilio</strong> deliver the messages, as Recete&apos;s
-                  sub-processors. The full list is in our{' '}
+                  The providers Recete itself relies on are listed in our{' '}
                   <Link href="/privacy#sub-processors" className="text-blue-600 hover:underline">
                     Privacy Policy
                   </Link>
@@ -143,9 +142,6 @@ export default function WhatsAppGdprPage() {
                 <li>
                   To write replies, the message and the relevant product information are sent to
                   OpenAI in the United States.
-                </li>
-                <li>
-                  Messages are delivered through Meta&apos;s WhatsApp Business Platform and Twilio.
                 </li>
               </ul>
             </section>

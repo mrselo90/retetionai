@@ -3,867 +3,1067 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
-import { Badge, Banner, BlockStack, Box, Button, Card, Checkbox, InlineGrid, InlineStack, Layout, Page, Select, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text, TextField } from '@shopify/polaris';
+import {
+  Badge,
+  Banner,
+  BlockStack,
+  Box,
+  Button,
+  Card,
+  Checkbox,
+  InlineGrid,
+  InlineStack,
+  Layout,
+  Page,
+  Select,
+  SkeletonBodyText,
+  SkeletonDisplayText,
+  SkeletonPage,
+  Text,
+  TextField,
+} from '@shopify/polaris';
 import { Database, Server, Activity, AlertCircle, type LucideIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { getErrorMessage } from '@/lib/errors';
 
 interface QueueStats {
-    waiting: number;
-    active: number;
-    completed: number;
-    failed: number;
-    delayed: number;
-    paused: number;
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  delayed: number;
+  paused: number;
 }
 
 interface SystemHealth {
-    status: string;
-    redis: {
-        connected: boolean;
-        uptime: string;
-    };
-    queues: {
-        scheduledMessages: QueueStats;
-        scrapeJobs: QueueStats;
-        analytics: QueueStats;
-    };
+  status: string;
+  redis: {
+    connected: boolean;
+    uptime: string;
+  };
+  queues: {
+    scheduledMessages: QueueStats;
+    scrapeJobs: QueueStats;
+    analytics: QueueStats;
+  };
 }
 
 interface PlatformAiSettings {
-    id: string;
-    default_llm_model: string;
-    allowed_llm_models: string[];
-    default_embedding_model?: string;
-    allowed_embedding_models?: string[];
-    default_vision_model?: string;
-    allowed_vision_models?: string[];
-    corporate_whatsapp_provider?: 'twilio' | 'meta';
-    corporate_whatsapp_from_number?: string | null;
-    corporate_whatsapp_phone_number_display?: string | null;
-    force_corporate_whatsapp_for_customer_messaging?: boolean;
-    conversation_memory_mode?: 'last_n' | 'full';
-    conversation_memory_count?: number;
-    products_cache_ttl_seconds?: number;
+  id: string;
+  default_llm_model: string;
+  allowed_llm_models: string[];
+  default_embedding_model?: string;
+  allowed_embedding_models?: string[];
+  default_vision_model?: string;
+  allowed_vision_models?: string[];
+  corporate_whatsapp_phone_number_display?: string | null;
+  force_corporate_whatsapp_for_customer_messaging?: boolean;
+  conversation_memory_mode?: 'last_n' | 'full';
+  conversation_memory_count?: number;
+  products_cache_ttl_seconds?: number;
 }
 
 interface RagSuiteProduct {
-    id: string;
-    name: string;
-    url?: string;
-    chunkCount: number;
+  id: string;
+  name: string;
+  url?: string;
+  chunkCount: number;
 }
 
 interface RagSuiteCaseResult {
-    query: string;
-    ragLatencyMs: number;
-    answerLatencyMs: number;
-    ragCount: number;
-    ragOk: boolean;
-    answerOk: boolean;
-    answerSkipped?: boolean;
-    error?: string;
+  query: string;
+  ragLatencyMs: number;
+  answerLatencyMs: number;
+  ragCount: number;
+  ragOk: boolean;
+  answerOk: boolean;
+  answerSkipped?: boolean;
+  error?: string;
 }
 
 interface RagSuiteRunResult {
-    startedAt: string;
-    finishedAt: string;
-    selectedProducts: RagSuiteProduct[];
-    cases: RagSuiteCaseResult[];
+  startedAt: string;
+  finishedAt: string;
+  selectedProducts: RagSuiteProduct[];
+  cases: RagSuiteCaseResult[];
 }
 
 export default function SystemHealthPage() {
-    const defaultLlmModels = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'];
-    const defaultEmbeddingModels = ['text-embedding-3-small'];
-    const defaultVisionModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini'];
-    const [health, setHealth] = useState<SystemHealth | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [aiSettings, setAiSettings] = useState<PlatformAiSettings | null>(null);
-    const [savingAiSettings, setSavingAiSettings] = useState(false);
-    const [selectedLlmModel, setSelectedLlmModel] = useState('gpt-4o-mini');
-    const [allowedLlmModelsInput, setAllowedLlmModelsInput] = useState(defaultLlmModels.join(', '));
-    const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState('text-embedding-3-small');
-    const [allowedEmbeddingModelsInput, setAllowedEmbeddingModelsInput] = useState(defaultEmbeddingModels.join(', '));
-    const [selectedVisionModel, setSelectedVisionModel] = useState('gpt-4o');
-    const [allowedVisionModelsInput, setAllowedVisionModelsInput] = useState(defaultVisionModels.join(', '));
-    const [corporateWhatsAppProvider, setCorporateWhatsAppProvider] = useState<'twilio' | 'meta'>('twilio');
-    const [corporateWhatsAppFromNumber, setCorporateWhatsAppFromNumber] = useState('');
-    const [corporateWhatsAppPhoneDisplay, setCorporateWhatsAppPhoneDisplay] = useState('');
-    const [forceCorporateWhatsAppForCustomerMessaging, setForceCorporateWhatsAppForCustomerMessaging] = useState(false);
-    const [conversationMemoryMode, setConversationMemoryMode] = useState<'last_n' | 'full'>('last_n');
-    const [conversationMemoryCount, setConversationMemoryCount] = useState('10');
-    const [productsCacheTtlSeconds, setProductsCacheTtlSeconds] = useState('300');
-    const [ragSuiteRunning, setRagSuiteRunning] = useState(false);
-    const [ragSuiteError, setRagSuiteError] = useState('');
-    const [ragSuiteResult, setRagSuiteResult] = useState<RagSuiteRunResult | null>(null);
-    const [ragSuiteQueryPreset, setRagSuiteQueryPreset] = useState<'short' | 'medium' | 'wide' | 'hungarian'>('short');
-    const [ragSuiteMode, setRagSuiteMode] = useState<'rag_only' | 'rag_and_answer'>('rag_and_answer');
-    const [ragSuiteExcludedProductIds, setRagSuiteExcludedProductIds] = useState<string[]>([]);
+  const defaultLlmModels = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'];
+  const defaultEmbeddingModels = ['text-embedding-3-small'];
+  const defaultVisionModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini'];
+  const [health, setHealth] = useState<SystemHealth | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [aiSettings, setAiSettings] = useState<PlatformAiSettings | null>(null);
+  const [savingAiSettings, setSavingAiSettings] = useState(false);
+  const [selectedLlmModel, setSelectedLlmModel] = useState('gpt-4o-mini');
+  const [allowedLlmModelsInput, setAllowedLlmModelsInput] = useState(defaultLlmModels.join(', '));
+  const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState('text-embedding-3-small');
+  const [allowedEmbeddingModelsInput, setAllowedEmbeddingModelsInput] = useState(
+    defaultEmbeddingModels.join(', ')
+  );
+  const [selectedVisionModel, setSelectedVisionModel] = useState('gpt-4o');
+  const [allowedVisionModelsInput, setAllowedVisionModelsInput] = useState(
+    defaultVisionModels.join(', ')
+  );
+  const [corporateWhatsAppPhoneDisplay, setCorporateWhatsAppPhoneDisplay] = useState('');
+  const [
+    forceCorporateWhatsAppForCustomerMessaging,
+    setForceCorporateWhatsAppForCustomerMessaging,
+  ] = useState(false);
+  const [conversationMemoryMode, setConversationMemoryMode] = useState<'last_n' | 'full'>('last_n');
+  const [conversationMemoryCount, setConversationMemoryCount] = useState('10');
+  const [productsCacheTtlSeconds, setProductsCacheTtlSeconds] = useState('300');
+  const [ragSuiteRunning, setRagSuiteRunning] = useState(false);
+  const [ragSuiteError, setRagSuiteError] = useState('');
+  const [ragSuiteResult, setRagSuiteResult] = useState<RagSuiteRunResult | null>(null);
+  const [ragSuiteQueryPreset, setRagSuiteQueryPreset] = useState<
+    'short' | 'medium' | 'wide' | 'hungarian'
+  >('short');
+  const [ragSuiteMode, setRagSuiteMode] = useState<'rag_only' | 'rag_and_answer'>('rag_and_answer');
+  const [ragSuiteExcludedProductIds, setRagSuiteExcludedProductIds] = useState<string[]>([]);
 
-    const fetchHealth = async () => {
-        setIsRefreshing(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
+  const fetchHealth = async () => {
+    setIsRefreshing(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
 
-            const data = await authenticatedRequest<SystemHealth>('/api/admin/system-health', session.access_token);
-            setHealth(data);
-            const ai = await authenticatedRequest<{ settings: PlatformAiSettings }>('/api/admin/ai-settings', session.access_token);
-            setAiSettings(ai.settings);
-            setSelectedLlmModel(ai.settings.default_llm_model || 'gpt-4o-mini');
-            setAllowedLlmModelsInput((ai.settings.allowed_llm_models || defaultLlmModels).join(', '));
-            setSelectedEmbeddingModel(ai.settings.default_embedding_model || 'text-embedding-3-small');
-            setAllowedEmbeddingModelsInput((ai.settings.allowed_embedding_models || defaultEmbeddingModels).join(', '));
-            setSelectedVisionModel(ai.settings.default_vision_model || ai.settings.default_llm_model || 'gpt-4o');
-            setAllowedVisionModelsInput((ai.settings.allowed_vision_models || defaultVisionModels).join(', '));
-            setCorporateWhatsAppProvider(ai.settings.corporate_whatsapp_provider === 'meta' ? 'meta' : 'twilio');
-            setCorporateWhatsAppFromNumber(ai.settings.corporate_whatsapp_from_number || '');
-            setCorporateWhatsAppPhoneDisplay(ai.settings.corporate_whatsapp_phone_number_display || '');
-            setForceCorporateWhatsAppForCustomerMessaging(Boolean(ai.settings.force_corporate_whatsapp_for_customer_messaging));
-            setConversationMemoryMode(ai.settings.conversation_memory_mode === 'full' ? 'full' : 'last_n');
-            setConversationMemoryCount(String(ai.settings.conversation_memory_count ?? 10));
-            setProductsCacheTtlSeconds(String(ai.settings.products_cache_ttl_seconds ?? 300));
-            setLastUpdated(new Date());
-            setError('');
-        } catch (err) {
-            setError(getErrorMessage(err, 'Failed to fetch system health'));
-        } finally {
-            setLoading(false);
-            setIsRefreshing(false);
+      const data = await authenticatedRequest<SystemHealth>(
+        '/api/admin/system-health',
+        session.access_token
+      );
+      setHealth(data);
+      const ai = await authenticatedRequest<{ settings: PlatformAiSettings }>(
+        '/api/admin/ai-settings',
+        session.access_token
+      );
+      setAiSettings(ai.settings);
+      setSelectedLlmModel(ai.settings.default_llm_model || 'gpt-4o-mini');
+      setAllowedLlmModelsInput((ai.settings.allowed_llm_models || defaultLlmModels).join(', '));
+      setSelectedEmbeddingModel(ai.settings.default_embedding_model || 'text-embedding-3-small');
+      setAllowedEmbeddingModelsInput(
+        (ai.settings.allowed_embedding_models || defaultEmbeddingModels).join(', ')
+      );
+      setSelectedVisionModel(
+        ai.settings.default_vision_model || ai.settings.default_llm_model || 'gpt-4o'
+      );
+      setAllowedVisionModelsInput(
+        (ai.settings.allowed_vision_models || defaultVisionModels).join(', ')
+      );
+      setCorporateWhatsAppPhoneDisplay(ai.settings.corporate_whatsapp_phone_number_display || '');
+      setForceCorporateWhatsAppForCustomerMessaging(
+        Boolean(ai.settings.force_corporate_whatsapp_for_customer_messaging)
+      );
+      setConversationMemoryMode(
+        ai.settings.conversation_memory_mode === 'full' ? 'full' : 'last_n'
+      );
+      setConversationMemoryCount(String(ai.settings.conversation_memory_count ?? 10));
+      setProductsCacheTtlSeconds(String(ai.settings.products_cache_ttl_seconds ?? 300));
+      setLastUpdated(new Date());
+      setError('');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to fetch system health'));
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  const parseCommaList = (value: string, fallback: string[]) => {
+    const parsed = value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .filter((item, index, arr) => arr.indexOf(item) === index);
+    return parsed.length > 0 ? parsed : fallback;
+  };
+
+  const saveAiSettings = async () => {
+    setSavingAiSettings(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
+      const allowedLlmModels = parseCommaList(allowedLlmModelsInput, defaultLlmModels);
+      const allowedEmbeddingModels = parseCommaList(
+        allowedEmbeddingModelsInput,
+        defaultEmbeddingModels
+      );
+      const allowedVisionModels = parseCommaList(allowedVisionModelsInput, defaultVisionModels);
+      const next = await authenticatedRequest<{ settings: PlatformAiSettings }>(
+        '/api/admin/ai-settings',
+        session.access_token,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            default_llm_model: selectedLlmModel,
+            allowed_llm_models: allowedLlmModels,
+            default_embedding_model: selectedEmbeddingModel,
+            allowed_embedding_models: allowedEmbeddingModels,
+            default_vision_model: selectedVisionModel,
+            allowed_vision_models: allowedVisionModels,
+            corporate_whatsapp_phone_number_display: corporateWhatsAppPhoneDisplay.trim() || null,
+            force_corporate_whatsapp_for_customer_messaging:
+              forceCorporateWhatsAppForCustomerMessaging,
+            conversation_memory_mode: conversationMemoryMode,
+            conversation_memory_count: Math.max(
+              1,
+              Math.min(200, parseInt(conversationMemoryCount || '10', 10) || 10)
+            ),
+            products_cache_ttl_seconds: Math.max(
+              30,
+              Math.min(3600, parseInt(productsCacheTtlSeconds || '300', 10) || 300)
+            ),
+          }),
         }
-    };
+      );
+      setAiSettings(next.settings);
+      setSelectedLlmModel(next.settings.default_llm_model);
+      setAllowedLlmModelsInput((next.settings.allowed_llm_models || defaultLlmModels).join(', '));
+      setSelectedEmbeddingModel(next.settings.default_embedding_model || 'text-embedding-3-small');
+      setAllowedEmbeddingModelsInput(
+        (next.settings.allowed_embedding_models || defaultEmbeddingModels).join(', ')
+      );
+      setSelectedVisionModel(
+        next.settings.default_vision_model || next.settings.default_llm_model || 'gpt-4o'
+      );
+      setAllowedVisionModelsInput(
+        (next.settings.allowed_vision_models || defaultVisionModels).join(', ')
+      );
+      setCorporateWhatsAppPhoneDisplay(next.settings.corporate_whatsapp_phone_number_display || '');
+      setForceCorporateWhatsAppForCustomerMessaging(
+        Boolean(next.settings.force_corporate_whatsapp_for_customer_messaging)
+      );
+      setConversationMemoryMode(
+        next.settings.conversation_memory_mode === 'full' ? 'full' : 'last_n'
+      );
+      setConversationMemoryCount(String(next.settings.conversation_memory_count ?? 10));
+      setProductsCacheTtlSeconds(String(next.settings.products_cache_ttl_seconds ?? 300));
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to save AI settings'));
+    } finally {
+      setSavingAiSettings(false);
+    }
+  };
 
-    const parseCommaList = (value: string, fallback: string[]) => {
-        const parsed = value
-            .split(',')
-            .map((item) => item.trim())
-            .filter(Boolean)
-            .filter((item, index, arr) => arr.indexOf(item) === index);
-        return parsed.length > 0 ? parsed : fallback;
+  const runSuperAdminRagSuite = async () => {
+    const suiteQueriesByPreset: Record<'short' | 'medium' | 'wide' | 'hungarian', string[]> = {
+      short: [
+        'Bu ürün nasıl kullanılır?',
+        'İçindekiler nelerdir?',
+        'Ne işe yarar?',
+        'Nasıl saklanmalı?',
+      ],
+      medium: [
+        'Bu ürün nasıl kullanılır?',
+        'İçindekiler nelerdir?',
+        'Ne işe yarar?',
+        'Nasıl saklanmalı?',
+        'Kimler için uygundur?',
+        'Günde kaç kez kullanılmalı?',
+        'Ne kadar süre kullanılmalı?',
+        'Dikkat edilmesi gereken bir durum var mı?',
+      ],
+      wide: [
+        'Bu ürün nasıl kullanılır?',
+        'İçindekiler nelerdir?',
+        'Ne işe yarar?',
+        'Nasıl saklanmalı?',
+        'Kimler için uygundur?',
+        'Günde kaç kez kullanılmalı?',
+        'Ne kadar süre kullanılmalı?',
+        'Dikkat edilmesi gereken bir durum var mı?',
+        'Açıldıktan sonra kullanım süresi nedir?',
+        'Hangi saatlerde kullanmak daha uygundur?',
+        'Farklı ürünlerle birlikte kullanılabilir mi?',
+        'Hassas ciltler için uygun mu?',
+      ],
+      hungarian: [
+        'Hogyan kell használni ezt a terméket?',
+        'Milyen összetevőket tartalmaz?',
+        'Mire való ez a termék?',
+        'Hogyan kell tárolni?',
+        'Kinek ajánlott ez a termék?',
+        'Naponta hányszor érdemes használni?',
+        'Mennyi ideig javasolt használni?',
+        'Van valamilyen fontos figyelmeztetés?',
+        'Felbontás után meddig használható?',
+        'Érzékeny bőrre is megfelelő?',
+        'Használható más termékekkel együtt?',
+        'Mikor várható látható eredmény?',
+      ],
     };
+    const suiteQueries = suiteQueriesByPreset[ragSuiteQueryPreset];
 
-    const saveAiSettings = async () => {
-        setSavingAiSettings(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-            const allowedLlmModels = parseCommaList(allowedLlmModelsInput, defaultLlmModels);
-            const allowedEmbeddingModels = parseCommaList(allowedEmbeddingModelsInput, defaultEmbeddingModels);
-            const allowedVisionModels = parseCommaList(allowedVisionModelsInput, defaultVisionModels);
-            const next = await authenticatedRequest<{ settings: PlatformAiSettings }>(
-                '/api/admin/ai-settings',
-                session.access_token,
-                {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        default_llm_model: selectedLlmModel,
-                        allowed_llm_models: allowedLlmModels,
-                        default_embedding_model: selectedEmbeddingModel,
-                        allowed_embedding_models: allowedEmbeddingModels,
-                        default_vision_model: selectedVisionModel,
-                        allowed_vision_models: allowedVisionModels,
-                        corporate_whatsapp_provider: corporateWhatsAppProvider,
-                        corporate_whatsapp_from_number: corporateWhatsAppFromNumber.trim() || null,
-                        corporate_whatsapp_phone_number_display: corporateWhatsAppPhoneDisplay.trim() || null,
-                        force_corporate_whatsapp_for_customer_messaging: forceCorporateWhatsAppForCustomerMessaging,
-                        conversation_memory_mode: conversationMemoryMode,
-                        conversation_memory_count: Math.max(1, Math.min(200, parseInt(conversationMemoryCount || '10', 10) || 10)),
-                        products_cache_ttl_seconds: Math.max(30, Math.min(3600, parseInt(productsCacheTtlSeconds || '300', 10) || 300)),
-                    }),
-                }
-            );
-            setAiSettings(next.settings);
-            setSelectedLlmModel(next.settings.default_llm_model);
-            setAllowedLlmModelsInput((next.settings.allowed_llm_models || defaultLlmModels).join(', '));
-            setSelectedEmbeddingModel(next.settings.default_embedding_model || 'text-embedding-3-small');
-            setAllowedEmbeddingModelsInput((next.settings.allowed_embedding_models || defaultEmbeddingModels).join(', '));
-            setSelectedVisionModel(next.settings.default_vision_model || next.settings.default_llm_model || 'gpt-4o');
-            setAllowedVisionModelsInput((next.settings.allowed_vision_models || defaultVisionModels).join(', '));
-            setCorporateWhatsAppProvider(next.settings.corporate_whatsapp_provider === 'meta' ? 'meta' : 'twilio');
-            setCorporateWhatsAppFromNumber(next.settings.corporate_whatsapp_from_number || '');
-            setCorporateWhatsAppPhoneDisplay(next.settings.corporate_whatsapp_phone_number_display || '');
-            setForceCorporateWhatsAppForCustomerMessaging(Boolean(next.settings.force_corporate_whatsapp_for_customer_messaging));
-            setConversationMemoryMode(next.settings.conversation_memory_mode === 'full' ? 'full' : 'last_n');
-            setConversationMemoryCount(String(next.settings.conversation_memory_count ?? 10));
-            setProductsCacheTtlSeconds(String(next.settings.products_cache_ttl_seconds ?? 300));
-        } catch (err) {
-            setError(getErrorMessage(err, 'Failed to save AI settings'));
-        } finally {
-            setSavingAiSettings(false);
-        }
-    };
+    setRagSuiteRunning(true);
+    setRagSuiteError('');
+    setRagSuiteResult(null);
 
-    const runSuperAdminRagSuite = async () => {
-        const suiteQueriesByPreset: Record<'short' | 'medium' | 'wide' | 'hungarian', string[]> = {
-            short: [
-                'Bu ürün nasıl kullanılır?',
-                'İçindekiler nelerdir?',
-                'Ne işe yarar?',
-                'Nasıl saklanmalı?',
-            ],
-            medium: [
-                'Bu ürün nasıl kullanılır?',
-                'İçindekiler nelerdir?',
-                'Ne işe yarar?',
-                'Nasıl saklanmalı?',
-                'Kimler için uygundur?',
-                'Günde kaç kez kullanılmalı?',
-                'Ne kadar süre kullanılmalı?',
-                'Dikkat edilmesi gereken bir durum var mı?',
-            ],
-            wide: [
-                'Bu ürün nasıl kullanılır?',
-                'İçindekiler nelerdir?',
-                'Ne işe yarar?',
-                'Nasıl saklanmalı?',
-                'Kimler için uygundur?',
-                'Günde kaç kez kullanılmalı?',
-                'Ne kadar süre kullanılmalı?',
-                'Dikkat edilmesi gereken bir durum var mı?',
-                'Açıldıktan sonra kullanım süresi nedir?',
-                'Hangi saatlerde kullanmak daha uygundur?',
-                'Farklı ürünlerle birlikte kullanılabilir mi?',
-                'Hassas ciltler için uygun mu?',
-            ],
-            hungarian: [
-                'Hogyan kell használni ezt a terméket?',
-                'Milyen összetevőket tartalmaz?',
-                'Mire való ez a termék?',
-                'Hogyan kell tárolni?',
-                'Kinek ajánlott ez a termék?',
-                'Naponta hányszor érdemes használni?',
-                'Mennyi ideig javasolt használni?',
-                'Van valamilyen fontos figyelmeztetés?',
-                'Felbontás után meddig használható?',
-                'Érzékeny bőrre is megfelelő?',
-                'Használható más termékekkel együtt?',
-                'Mikor várható látható eredmény?',
-            ],
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Session not found');
+      }
+
+      const startedAt = new Date().toISOString();
+
+      const productsResponse = await authenticatedRequest<{
+        products?: Array<{ id: string; name: string; url?: string }>;
+      }>('/api/products', session.access_token);
+      const products = productsResponse.products ?? [];
+      if (products.length === 0) {
+        throw new Error('No products found for this merchant');
+      }
+
+      const chunkCountsResponse = await authenticatedRequest<{
+        chunkCounts?: Array<{ productId: string; chunkCount: number }>;
+      }>('/api/products/chunks/batch', session.access_token, {
+        method: 'POST',
+        body: JSON.stringify({ productIds: products.map((p) => p.id) }),
+      });
+
+      const chunkMap = new Map(
+        (chunkCountsResponse.chunkCounts ?? []).map((c) => [c.productId, c.chunkCount])
+      );
+      const candidateProducts: RagSuiteProduct[] = products
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          url: p.url,
+          chunkCount: chunkMap.get(p.id) ?? 0,
+        }))
+        .filter((p) => p.chunkCount > 0)
+        .slice(0, 10);
+
+      if (candidateProducts.length === 0) {
+        throw new Error('No products found with chunks/embeddings (chunkCount > 0)');
+      }
+
+      const excludedIdSet = new Set(ragSuiteExcludedProductIds);
+      const ragReadyProducts = candidateProducts.filter((p) => !excludedIdSet.has(p.id));
+      if (ragReadyProducts.length === 0) {
+        throw new Error('No products left after exclusions');
+      }
+
+      const selectedProductIds = ragReadyProducts.map((p) => p.id);
+      const caseResults: RagSuiteCaseResult[] = [];
+
+      for (const query of suiteQueries) {
+        const caseResult: RagSuiteCaseResult = {
+          query,
+          ragLatencyMs: 0,
+          answerLatencyMs: 0,
+          ragCount: 0,
+          ragOk: false,
+          answerOk: false,
         };
-        const suiteQueries = suiteQueriesByPreset[ragSuiteQueryPreset];
-
-        setRagSuiteRunning(true);
-        setRagSuiteError('');
-        setRagSuiteResult(null);
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                throw new Error('Session not found');
+          const ragStarted = performance.now();
+          const ragResponse = await authenticatedRequest<{ count?: number; results?: unknown[] }>(
+            '/api/test/rag',
+            session.access_token,
+            {
+              method: 'POST',
+              body: JSON.stringify({
+                query,
+                productIds: selectedProductIds,
+                topK: 5,
+              }),
             }
+          );
+          caseResult.ragLatencyMs = Math.round(performance.now() - ragStarted);
+          caseResult.ragCount =
+            typeof ragResponse.count === 'number'
+              ? ragResponse.count
+              : Array.isArray(ragResponse.results)
+                ? ragResponse.results.length
+                : 0;
+          caseResult.ragOk = caseResult.ragCount > 0;
 
-            const startedAt = new Date().toISOString();
-
-            const productsResponse = await authenticatedRequest<{ products?: Array<{ id: string; name: string; url?: string }> }>(
-                '/api/products',
-                session.access_token
+          if (ragSuiteMode === 'rag_only') {
+            caseResult.answerSkipped = true;
+            caseResult.answerOk = true;
+          } else {
+            const answerStarted = performance.now();
+            const answerResponse = await authenticatedRequest<{ answer?: string; error?: string }>(
+              '/api/test/rag/answer',
+              session.access_token,
+              {
+                method: 'POST',
+                body: JSON.stringify({
+                  query,
+                  productIds: selectedProductIds,
+                  topK: 5,
+                }),
+              }
             );
-            const products = productsResponse.products ?? [];
-            if (products.length === 0) {
-                throw new Error('No products found for this merchant');
+            caseResult.answerLatencyMs = Math.round(performance.now() - answerStarted);
+            caseResult.answerOk =
+              typeof answerResponse.answer === 'string' && answerResponse.answer.trim().length > 0;
+            if (answerResponse.error) {
+              caseResult.error = answerResponse.error;
             }
-
-            const chunkCountsResponse = await authenticatedRequest<{ chunkCounts?: Array<{ productId: string; chunkCount: number }> }>(
-                '/api/products/chunks/batch',
-                session.access_token,
-                {
-                    method: 'POST',
-                    body: JSON.stringify({ productIds: products.map((p) => p.id) }),
-                }
-            );
-
-            const chunkMap = new Map((chunkCountsResponse.chunkCounts ?? []).map((c) => [c.productId, c.chunkCount]));
-            const candidateProducts: RagSuiteProduct[] = products
-                .map((p) => ({
-                    id: p.id,
-                    name: p.name,
-                    url: p.url,
-                    chunkCount: chunkMap.get(p.id) ?? 0,
-                }))
-                .filter((p) => p.chunkCount > 0)
-                .slice(0, 10);
-
-            if (candidateProducts.length === 0) {
-                throw new Error('No products found with chunks/embeddings (chunkCount > 0)');
-            }
-
-            const excludedIdSet = new Set(ragSuiteExcludedProductIds);
-            const ragReadyProducts = candidateProducts.filter((p) => !excludedIdSet.has(p.id));
-            if (ragReadyProducts.length === 0) {
-                throw new Error('No products left after exclusions');
-            }
-
-            const selectedProductIds = ragReadyProducts.map((p) => p.id);
-            const caseResults: RagSuiteCaseResult[] = [];
-
-            for (const query of suiteQueries) {
-                const caseResult: RagSuiteCaseResult = {
-                    query,
-                    ragLatencyMs: 0,
-                    answerLatencyMs: 0,
-                    ragCount: 0,
-                    ragOk: false,
-                    answerOk: false,
-                };
-
-                try {
-                    const ragStarted = performance.now();
-                    const ragResponse = await authenticatedRequest<{ count?: number; results?: unknown[] }>(
-                        '/api/test/rag',
-                        session.access_token,
-                        {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                query,
-                                productIds: selectedProductIds,
-                                topK: 5,
-                            }),
-                        }
-                    );
-                    caseResult.ragLatencyMs = Math.round(performance.now() - ragStarted);
-                    caseResult.ragCount = typeof ragResponse.count === 'number'
-                        ? ragResponse.count
-                        : Array.isArray(ragResponse.results) ? ragResponse.results.length : 0;
-                    caseResult.ragOk = caseResult.ragCount > 0;
-
-                    if (ragSuiteMode === 'rag_only') {
-                        caseResult.answerSkipped = true;
-                        caseResult.answerOk = true;
-                    } else {
-                        const answerStarted = performance.now();
-                        const answerResponse = await authenticatedRequest<{ answer?: string; error?: string }>(
-                            '/api/test/rag/answer',
-                            session.access_token,
-                            {
-                                method: 'POST',
-                                body: JSON.stringify({
-                                    query,
-                                    productIds: selectedProductIds,
-                                    topK: 5,
-                                }),
-                            }
-                        );
-                        caseResult.answerLatencyMs = Math.round(performance.now() - answerStarted);
-                        caseResult.answerOk = typeof answerResponse.answer === 'string' && answerResponse.answer.trim().length > 0;
-                        if (answerResponse.error) {
-                            caseResult.error = answerResponse.error;
-                        }
-                    }
-                } catch (err) {
-                    caseResult.error = err instanceof Error ? err.message : 'RAG case failed';
-                }
-
-                caseResults.push(caseResult);
-            }
-
-            setRagSuiteResult({
-                startedAt,
-                finishedAt: new Date().toISOString(),
-                selectedProducts: ragReadyProducts,
-                cases: caseResults,
-            });
+          }
         } catch (err) {
-            setRagSuiteError(err instanceof Error ? err.message : 'RAG test suite failed');
-        } finally {
-            setRagSuiteRunning(false);
+          caseResult.error = err instanceof Error ? err.message : 'RAG case failed';
         }
-    };
 
-    const toggleRagSuiteExcludedProduct = (productId: string) => {
-        setRagSuiteExcludedProductIds((prev) =>
-            prev.includes(productId)
-                ? prev.filter((id) => id !== productId)
-                : [...prev, productId]
-        );
-    };
+        caseResults.push(caseResult);
+      }
 
-    useEffect(() => {
-        fetchHealth();
-        // Auto refresh every 30 seconds
-        const interval = setInterval(fetchHealth, 30000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const formatUptime = (seconds: string) => {
-        const secs = parseInt(seconds, 10);
-        if (isNaN(secs)) return seconds;
-        const d = Math.floor(secs / (3600 * 24));
-        const h = Math.floor(secs % (3600 * 24) / 3600);
-        const m = Math.floor(secs % 3600 / 60);
-        return `${d}d ${h}h ${m}m`;
-    };
-
-    const ragSuitePassedCases = ragSuiteResult?.cases.filter((c) => c.ragOk && c.answerOk).length ?? 0;
-    const ragSuiteTotalCases = ragSuiteResult?.cases.length ?? 0;
-
-    if (loading && !health) {
-        return (
-            <SkeletonPage title="System Health">
-                <Layout>
-                    <Layout.Section>
-                        <BlockStack gap="500">
-                            <Card><Box padding="400"><BlockStack gap="200"><SkeletonDisplayText size="small" /><SkeletonBodyText lines={2} /></BlockStack></Box></Card>
-                            <Card><Box padding="400"><div className="h-32 rounded bg-zinc-100 animate-pulse" /></Box></Card>
-                            <InlineGrid columns={{ xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }} gap="400">
-                                {[1, 2, 3].map((i) => <Card key={i}><Box padding="400"><div className="h-56 rounded bg-zinc-100 animate-pulse" /></Box></Card>)}
-                            </InlineGrid>
-                        </BlockStack>
-                    </Layout.Section>
-                </Layout>
-            </SkeletonPage>
-        );
+      setRagSuiteResult({
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        selectedProducts: ragReadyProducts,
+        cases: caseResults,
+      });
+    } catch (err) {
+      setRagSuiteError(err instanceof Error ? err.message : 'RAG test suite failed');
+    } finally {
+      setRagSuiteRunning(false);
     }
+  };
 
-    if (error && !health) {
-        return (
-            <Page title="System Health">
-                <Layout>
-                    <Layout.Section>
-                        <Card>
-                            <Box padding="400">
-                                <InlineStack gap="200" blockAlign="start">
-                                    <AlertCircle className="w-5 h-5 mt-0.5 text-red-600" />
-                                    <BlockStack gap="200">
-                                        <Text as="h3" variant="headingMd" tone="critical">System connection failed</Text>
-                                        <Text as="p" tone="critical">{error}</Text>
-                                        <InlineStack align="start">
-                                            <Button variant="secondary" size="slim" onClick={fetchHealth}>Try Again</Button>
-                                        </InlineStack>
-                                    </BlockStack>
-                                </InlineStack>
-                            </Box>
-                        </Card>
-                    </Layout.Section>
-                </Layout>
-            </Page>
-        );
-    }
+  const toggleRagSuiteExcludedProduct = (productId: string) => {
+    setRagSuiteExcludedProductIds((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+    );
+  };
 
-    const QueueCard = ({ title, stats, icon: Icon, colorClass }: { title: string, stats: QueueStats | undefined, icon: LucideIcon, colorClass: string }) => {
-        if (!stats) return null;
+  useEffect(() => {
+    fetchHealth();
+    // Auto refresh every 30 seconds
+    const interval = setInterval(fetchHealth, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
-        const hasFailed = stats.failed > 0;
-        const hasBacklog = stats.waiting > 1000;
+  const formatUptime = (seconds: string) => {
+    const secs = parseInt(seconds, 10);
+    if (isNaN(secs)) return seconds;
+    const d = Math.floor(secs / (3600 * 24));
+    const h = Math.floor((secs % (3600 * 24)) / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    return `${d}d ${h}h ${m}m`;
+  };
 
-        return (
-            <Card>
-                {/* Status indicator bar */}
-                <div className={`absolute top-0 left-0 w-full h-1 ${hasFailed ? 'bg-red-500' : hasBacklog ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+  const ragSuitePassedCases =
+    ragSuiteResult?.cases.filter((c) => c.ragOk && c.answerOk).length ?? 0;
+  const ragSuiteTotalCases = ragSuiteResult?.cases.length ?? 0;
+
+  if (loading && !health) {
+    return (
+      <SkeletonPage title="System Health">
+        <Layout>
+          <Layout.Section>
+            <BlockStack gap="500">
+              <Card>
                 <Box padding="400">
-                    <BlockStack gap="300">
-                    <InlineStack align="space-between" blockAlign="center" gap="200">
-                        <InlineStack gap="200" blockAlign="center">
-                            <Box padding="200" borderRadius="200" background="bg-surface-secondary">
-                                <Icon className={`w-4 h-4 ${colorClass}`} />
-                            </Box>
-                            <Text as="h3" variant="headingSm">{title}</Text>
-                        </InlineStack>
-                        {hasFailed && (
-                            <Badge tone="critical">
-                                {`${stats.failed} Errors`}
-                            </Badge>
-                        )}
-                    </InlineStack>
-                    <InlineGrid columns={{ xs: '1fr', sm: '1fr 1fr' }} gap="300">
-                        <Box background="bg-surface-secondary" borderRadius="300" borderWidth="025" borderColor="border" padding="300">
-                            <Text as="p" variant="bodySm" tone="subdued">Active / Pending</Text>
-                            <Text as="p" variant="headingLg">
-                                {stats.active.toLocaleString()} <span className="text-zinc-300 font-light mx-1">/</span> <span className={`${hasBacklog ? 'text-amber-500' : 'text-zinc-600'}`}>{stats.waiting.toLocaleString()}</span>
-                            </Text>
-                        </Box>
-                        <Box background="bg-surface-secondary" borderRadius="300" borderWidth="025" borderColor="border" padding="300">
-                            <BlockStack gap="200">
-                                <InlineStack align="space-between" blockAlign="center">
-                                    <Text as="span" variant="bodySm" tone="subdued">Processed</Text>
-                                    <Text as="span" variant="bodyMd" fontWeight="semibold">{stats.completed.toLocaleString()}</Text>
-                                </InlineStack>
-                                <InlineStack align="space-between" blockAlign="center">
-                                    <Text as="span" variant="bodySm" tone="subdued">Delayed</Text>
-                                    <Text as="span" variant="bodyMd" fontWeight="semibold">{stats.delayed.toLocaleString()}</Text>
-                                </InlineStack>
-                            </BlockStack>
-                        </Box>
-                    </InlineGrid>
-                    </BlockStack>
+                  <BlockStack gap="200">
+                    <SkeletonDisplayText size="small" />
+                    <SkeletonBodyText lines={2} />
+                  </BlockStack>
                 </Box>
+              </Card>
+              <Card>
+                <Box padding="400">
+                  <div className="h-32 rounded bg-zinc-100 animate-pulse" />
+                </Box>
+              </Card>
+              <InlineGrid columns={{ xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }} gap="400">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i}>
+                    <Box padding="400">
+                      <div className="h-56 rounded bg-zinc-100 animate-pulse" />
+                    </Box>
+                  </Card>
+                ))}
+              </InlineGrid>
+            </BlockStack>
+          </Layout.Section>
+        </Layout>
+      </SkeletonPage>
+    );
+  }
+
+  if (error && !health) {
+    return (
+      <Page title="System Health">
+        <Layout>
+          <Layout.Section>
+            <Card>
+              <Box padding="400">
+                <InlineStack gap="200" blockAlign="start">
+                  <AlertCircle className="w-5 h-5 mt-0.5 text-red-600" />
+                  <BlockStack gap="200">
+                    <Text as="h3" variant="headingMd" tone="critical">
+                      System connection failed
+                    </Text>
+                    <Text as="p" tone="critical">
+                      {error}
+                    </Text>
+                    <InlineStack align="start">
+                      <Button variant="secondary" size="slim" onClick={fetchHealth}>
+                        Try Again
+                      </Button>
+                    </InlineStack>
+                  </BlockStack>
+                </InlineStack>
+              </Box>
             </Card>
-        );
-    };
+          </Layout.Section>
+        </Layout>
+      </Page>
+    );
+  }
+
+  const QueueCard = ({
+    title,
+    stats,
+    icon: Icon,
+    colorClass,
+  }: {
+    title: string;
+    stats: QueueStats | undefined;
+    icon: LucideIcon;
+    colorClass: string;
+  }) => {
+    if (!stats) return null;
+
+    const hasFailed = stats.failed > 0;
+    const hasBacklog = stats.waiting > 1000;
 
     return (
-        <Page title="System Health" subtitle="Monitoring background workers and infrastructure" fullWidth>
-            <Layout>
-                <Layout.Section>
-        <BlockStack gap="500">
-            <InlineGrid columns={{ xs: '1fr', md: '1fr auto' }} gap="300" alignItems="center">
-                <InlineStack gap="200" blockAlign="center">
-                    {health && <Badge tone="success">Live</Badge>}
-                </InlineStack>
-                <InlineStack align="end" gap="300" blockAlign="center">
+      <Card>
+        {/* Status indicator bar */}
+        <div
+          className={`absolute top-0 left-0 w-full h-1 ${hasFailed ? 'bg-red-500' : hasBacklog ? 'bg-amber-500' : 'bg-emerald-500'}`}
+        />
+        <Box padding="400">
+          <BlockStack gap="300">
+            <InlineStack align="space-between" blockAlign="center" gap="200">
+              <InlineStack gap="200" blockAlign="center">
+                <Box padding="200" borderRadius="200" background="bg-surface-secondary">
+                  <Icon className={`w-4 h-4 ${colorClass}`} />
+                </Box>
+                <Text as="h3" variant="headingSm">
+                  {title}
+                </Text>
+              </InlineStack>
+              {hasFailed && <Badge tone="critical">{`${stats.failed} Errors`}</Badge>}
+            </InlineStack>
+            <InlineGrid columns={{ xs: '1fr', sm: '1fr 1fr' }} gap="300">
+              <Box
+                background="bg-surface-secondary"
+                borderRadius="300"
+                borderWidth="025"
+                borderColor="border"
+                padding="300"
+              >
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Active / Pending
+                </Text>
+                <Text as="p" variant="headingLg">
+                  {stats.active.toLocaleString()}{' '}
+                  <span className="text-zinc-300 font-light mx-1">/</span>{' '}
+                  <span className={`${hasBacklog ? 'text-amber-500' : 'text-zinc-600'}`}>
+                    {stats.waiting.toLocaleString()}
+                  </span>
+                </Text>
+              </Box>
+              <Box
+                background="bg-surface-secondary"
+                borderRadius="300"
+                borderWidth="025"
+                borderColor="border"
+                padding="300"
+              >
+                <BlockStack gap="200">
+                  <InlineStack align="space-between" blockAlign="center">
                     <Text as="span" variant="bodySm" tone="subdued">
-                        Last checked: {formatDistanceToNow(lastUpdated)} ago
+                      Processed
                     </Text>
-                    <Button variant="secondary" size="slim" onClick={fetchHealth} disabled={isRefreshing}>
-                        Refresh
-                    </Button>
-                </InlineStack>
+                    <Text as="span" variant="bodyMd" fontWeight="semibold">
+                      {stats.completed.toLocaleString()}
+                    </Text>
+                  </InlineStack>
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      Delayed
+                    </Text>
+                    <Text as="span" variant="bodyMd" fontWeight="semibold">
+                      {stats.delayed.toLocaleString()}
+                    </Text>
+                  </InlineStack>
+                </BlockStack>
+              </Box>
+            </InlineGrid>
+          </BlockStack>
+        </Box>
+      </Card>
+    );
+  };
+
+  return (
+    <Page
+      title="System Health"
+      subtitle="Monitoring background workers and infrastructure"
+      fullWidth
+    >
+      <Layout>
+        <Layout.Section>
+          <BlockStack gap="500">
+            <InlineGrid columns={{ xs: '1fr', md: '1fr auto' }} gap="300" alignItems="center">
+              <InlineStack gap="200" blockAlign="center">
+                {health && <Badge tone="success">Live</Badge>}
+              </InlineStack>
+              <InlineStack align="end" gap="300" blockAlign="center">
+                <Text as="span" variant="bodySm" tone="subdued">
+                  Last checked: {formatDistanceToNow(lastUpdated)} ago
+                </Text>
+                <Button
+                  variant="secondary"
+                  size="slim"
+                  onClick={fetchHealth}
+                  disabled={isRefreshing}
+                >
+                  Refresh
+                </Button>
+              </InlineStack>
             </InlineGrid>
 
             {/* Core Infrastructure */}
             {health && (
-                <Card>
-                    <Box padding="400">
-                        <InlineGrid columns={{ xs: '1fr', md: 'minmax(0,1fr) auto' }} gap="400" alignItems="center">
-                            <InlineStack gap="400" blockAlign="center">
-                                <Box padding="300" borderRadius="300" background="bg-surface-secondary">
-                                    <Database className="w-6 h-6 text-zinc-300" />
-                                </Box>
-                                <BlockStack gap="100">
-                                    <InlineStack gap="200" blockAlign="center">
-                                        <Text as="h2" variant="headingMd">
-                                            Redis Message Broker
-                                        </Text>
-                                        {health.redis.connected ? (
-                                            <Badge tone="success">Connected</Badge>
-                                        ) : (
-                                            <Badge tone="critical">Disconnected</Badge>
-                                        )}
-                                    </InlineStack>
-                                    <Text as="p" tone="subdued">Used for BullMQ job queues and rate limiting across instances.</Text>
-                                </BlockStack>
-                            </InlineStack>
+              <Card>
+                <Box padding="400">
+                  <InlineGrid
+                    columns={{ xs: '1fr', md: 'minmax(0,1fr) auto' }}
+                    gap="400"
+                    alignItems="center"
+                  >
+                    <InlineStack gap="400" blockAlign="center">
+                      <Box padding="300" borderRadius="300" background="bg-surface-secondary">
+                        <Database className="w-6 h-6 text-zinc-300" />
+                      </Box>
+                      <BlockStack gap="100">
+                        <InlineStack gap="200" blockAlign="center">
+                          <Text as="h2" variant="headingMd">
+                            Redis Message Broker
+                          </Text>
+                          {health.redis.connected ? (
+                            <Badge tone="success">Connected</Badge>
+                          ) : (
+                            <Badge tone="critical">Disconnected</Badge>
+                          )}
+                        </InlineStack>
+                        <Text as="p" tone="subdued">
+                          Used for BullMQ job queues and rate limiting across instances.
+                        </Text>
+                      </BlockStack>
+                    </InlineStack>
 
-                            <InlineStack gap="600" blockAlign="start">
-                                <BlockStack gap="100">
-                                    <Text as="p" variant="bodySm" tone="subdued">Uptime</Text>
-                                    <Text as="p" variant="headingMd">{formatUptime(health.redis.uptime)}</Text>
-                                </BlockStack>
-                                <BlockStack gap="100">
-                                    <Text as="p" variant="bodySm" tone="subdued">State</Text>
-                                    <Text as="p" variant="headingMd">
-                                        {health.status === 'healthy' ? 'OK' : 'DEGRADED'}
-                                    </Text>
-                                </BlockStack>
-                            </InlineStack>
-                        </InlineGrid>
-                    </Box>
-                </Card>
+                    <InlineStack gap="600" blockAlign="start">
+                      <BlockStack gap="100">
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          Uptime
+                        </Text>
+                        <Text as="p" variant="headingMd">
+                          {formatUptime(health.redis.uptime)}
+                        </Text>
+                      </BlockStack>
+                      <BlockStack gap="100">
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          State
+                        </Text>
+                        <Text as="p" variant="headingMd">
+                          {health.status === 'healthy' ? 'OK' : 'DEGRADED'}
+                        </Text>
+                      </BlockStack>
+                    </InlineStack>
+                  </InlineGrid>
+                </Box>
+              </Card>
             )}
 
             {/* Global AI Model Settings */}
             <Card>
-                <Box padding="400">
-                    <BlockStack gap="300">
-                        <InlineStack align="space-between" blockAlign="center" gap="200">
-                            <BlockStack gap="100">
-                                <Text as="h2" variant="headingMd">Global AI Model</Text>
-                                <Text as="p" tone="subdued">
-                                    Super admin runtime defaults for chat answers, embeddings, WhatsApp AI vision, and the Recete corporate WhatsApp sender.
-                                </Text>
-                            </BlockStack>
-                            {aiSettings && <Badge tone="info">Runtime configurable</Badge>}
-                        </InlineStack>
-                        <InlineGrid columns={{ xs: '1fr', md: 'minmax(0,1fr) auto' }} gap="300" alignItems="end">
-                            <BlockStack gap="300">
-                                <Select
-                                    label="Default LLM model"
-                                    options={parseCommaList(allowedLlmModelsInput || '', defaultLlmModels).map((m) => ({
-                                        label: m,
-                                        value: m,
-                                    }))}
-                                    value={selectedLlmModel}
-                                    onChange={setSelectedLlmModel}
-                                />
-                                <TextField
-                                    label="Allowed LLM models"
-                                    autoComplete="off"
-                                    value={allowedLlmModelsInput}
-                                    onChange={setAllowedLlmModelsInput}
-                                    helpText="Comma-separated list of chat models available in the super admin runtime config."
-                                />
-                                <Select
-                                    label="Default embedding model"
-                                    options={parseCommaList(allowedEmbeddingModelsInput || '', defaultEmbeddingModels).map((m) => ({
-                                        label: m,
-                                        value: m,
-                                    }))}
-                                    value={selectedEmbeddingModel}
-                                    onChange={setSelectedEmbeddingModel}
-                                    helpText="Used for multilingual chunk indexing and retrieval embeddings. Keep this aligned with the vector dimension schema."
-                                />
-                                <TextField
-                                    label="Allowed embedding models"
-                                    autoComplete="off"
-                                    value={allowedEmbeddingModelsInput}
-                                    onChange={setAllowedEmbeddingModelsInput}
-                                    helpText="Comma-separated list. Current production schema is configured for 1536-dimension embeddings, so only compatible models should be listed."
-                                />
-                                <Select
-                                    label="Default vision model"
-                                    options={parseCommaList(allowedVisionModelsInput || '', defaultVisionModels).map((m) => ({
-                                        label: m,
-                                        value: m,
-                                    }))}
-                                    value={selectedVisionModel}
-                                    onChange={setSelectedVisionModel}
-                                    helpText="Used for customer photo analysis in WhatsApp AI vision flows."
-                                />
-                                <TextField
-                                    label="Allowed vision models"
-                                    autoComplete="off"
-                                    value={allowedVisionModelsInput}
-                                    onChange={setAllowedVisionModelsInput}
-                                    helpText="Comma-separated list of models allowed for WhatsApp AI vision."
-                                />
-                                <Select
-                                    label="Corporate WhatsApp provider"
-                                    options={[
-                                        { label: 'Twilio WhatsApp', value: 'twilio' },
-                                        { label: 'Meta WhatsApp Cloud', value: 'meta' },
-                                    ]}
-                                    value={corporateWhatsAppProvider}
-                                    onChange={(value) => setCorporateWhatsAppProvider(value === 'meta' ? 'meta' : 'twilio')}
-                                    helpText="Used when merchant sender mode is corporate and for Recete-originated merchant notifications."
-                                />
-                                <TextField
-                                    label="Corporate WhatsApp sender"
-                                    autoComplete="off"
-                                    value={corporateWhatsAppFromNumber}
-                                    onChange={setCorporateWhatsAppFromNumber}
-                                    helpText={corporateWhatsAppProvider === 'twilio'
-                                        ? 'Twilio sender number in E.164 format, for example +447915922506. Runtime will send as whatsapp:+447915922506.'
-                                        : 'Meta sender phone number ID.'}
-                                />
-                                <TextField
-                                    label="Corporate WhatsApp display number"
-                                    autoComplete="off"
-                                    value={corporateWhatsAppPhoneDisplay}
-                                    onChange={setCorporateWhatsAppPhoneDisplay}
-                                    helpText="Optional human-readable display value used in platform contact surfaces."
-                                />
-                                <Checkbox
-                                    label="Force corporate WhatsApp for customer messaging"
-                                    checked={forceCorporateWhatsAppForCustomerMessaging}
-                                    onChange={setForceCorporateWhatsAppForCustomerMessaging}
-                                    helpText="Default is off. Turn on to force all customer-facing WhatsApp sends (welcome, AI replies, manual replies, test kit) to use the Recete Ltd corporate line."
-                                />
-                                <Select
-                                    label="Conversation memory mode"
-                                    options={[
-                                        { label: 'Last N messages', value: 'last_n' },
-                                        { label: 'Full conversation', value: 'full' },
-                                    ]}
-                                    value={conversationMemoryMode}
-                                    onChange={(value) => setConversationMemoryMode(value === 'full' ? 'full' : 'last_n')}
-                                    helpText="Controls how much conversation history is sent to the model for customer chat responses."
-                                />
-                                {conversationMemoryMode === 'last_n' && (
-                                    <TextField
-                                        label="Conversation memory count"
-                                        type="number"
-                                        min={1}
-                                        max={200}
-                                        autoComplete="off"
-                                        value={conversationMemoryCount}
-                                        onChange={setConversationMemoryCount}
-                                        helpText="Number of latest messages to include in model context (1-200)."
-                                    />
-                                )}
-                                <TextField
-                                    label="Products list cache TTL (seconds)"
-                                    type="number"
-                                    min={30}
-                                    max={3600}
-                                    autoComplete="off"
-                                    value={productsCacheTtlSeconds}
-                                    onChange={setProductsCacheTtlSeconds}
-                                    helpText="Controls Redis cache duration for /api/products (30-3600 seconds)."
-                                />
-                            </BlockStack>
-                            <Button variant="primary" onClick={saveAiSettings} loading={savingAiSettings} disabled={savingAiSettings}>
-                                Save AI Settings
-                            </Button>
-                        </InlineGrid>
+              <Box padding="400">
+                <BlockStack gap="300">
+                  <InlineStack align="space-between" blockAlign="center" gap="200">
+                    <BlockStack gap="100">
+                      <Text as="h2" variant="headingMd">
+                        Global AI Model
+                      </Text>
+                      <Text as="p" tone="subdued">
+                        Super admin runtime defaults for chat answers, embeddings, WhatsApp AI
+                        vision, and the Recete corporate WhatsApp sender.
+                      </Text>
                     </BlockStack>
-                </Box>
+                    {aiSettings && <Badge tone="info">Runtime configurable</Badge>}
+                  </InlineStack>
+                  <InlineGrid
+                    columns={{ xs: '1fr', md: 'minmax(0,1fr) auto' }}
+                    gap="300"
+                    alignItems="end"
+                  >
+                    <BlockStack gap="300">
+                      <Select
+                        label="Default LLM model"
+                        options={parseCommaList(allowedLlmModelsInput || '', defaultLlmModels).map(
+                          (m) => ({
+                            label: m,
+                            value: m,
+                          })
+                        )}
+                        value={selectedLlmModel}
+                        onChange={setSelectedLlmModel}
+                      />
+                      <TextField
+                        label="Allowed LLM models"
+                        autoComplete="off"
+                        value={allowedLlmModelsInput}
+                        onChange={setAllowedLlmModelsInput}
+                        helpText="Comma-separated list of chat models available in the super admin runtime config."
+                      />
+                      <Select
+                        label="Default embedding model"
+                        options={parseCommaList(
+                          allowedEmbeddingModelsInput || '',
+                          defaultEmbeddingModels
+                        ).map((m) => ({
+                          label: m,
+                          value: m,
+                        }))}
+                        value={selectedEmbeddingModel}
+                        onChange={setSelectedEmbeddingModel}
+                        helpText="Used for multilingual chunk indexing and retrieval embeddings. Keep this aligned with the vector dimension schema."
+                      />
+                      <TextField
+                        label="Allowed embedding models"
+                        autoComplete="off"
+                        value={allowedEmbeddingModelsInput}
+                        onChange={setAllowedEmbeddingModelsInput}
+                        helpText="Comma-separated list. Current production schema is configured for 1536-dimension embeddings, so only compatible models should be listed."
+                      />
+                      <Select
+                        label="Default vision model"
+                        options={parseCommaList(
+                          allowedVisionModelsInput || '',
+                          defaultVisionModels
+                        ).map((m) => ({
+                          label: m,
+                          value: m,
+                        }))}
+                        value={selectedVisionModel}
+                        onChange={setSelectedVisionModel}
+                        helpText="Used for customer photo analysis in WhatsApp AI vision flows."
+                      />
+                      <TextField
+                        label="Allowed vision models"
+                        autoComplete="off"
+                        value={allowedVisionModelsInput}
+                        onChange={setAllowedVisionModelsInput}
+                        helpText="Comma-separated list of models allowed for WhatsApp AI vision."
+                      />
+                      <TextField
+                        label="Corporate WhatsApp display number"
+                        autoComplete="off"
+                        value={corporateWhatsAppPhoneDisplay}
+                        onChange={setCorporateWhatsAppPhoneDisplay}
+                        helpText="Optional human-readable display value used in platform contact surfaces."
+                      />
+                      <Checkbox
+                        label="Force corporate WhatsApp for customer messaging"
+                        checked={forceCorporateWhatsAppForCustomerMessaging}
+                        onChange={setForceCorporateWhatsAppForCustomerMessaging}
+                        helpText="Default is off. Turn on to force all customer-facing WhatsApp sends (welcome, AI replies, manual replies, test kit) to use the Recete Ltd corporate line."
+                      />
+                      <Select
+                        label="Conversation memory mode"
+                        options={[
+                          { label: 'Last N messages', value: 'last_n' },
+                          { label: 'Full conversation', value: 'full' },
+                        ]}
+                        value={conversationMemoryMode}
+                        onChange={(value) =>
+                          setConversationMemoryMode(value === 'full' ? 'full' : 'last_n')
+                        }
+                        helpText="Controls how much conversation history is sent to the model for customer chat responses."
+                      />
+                      {conversationMemoryMode === 'last_n' && (
+                        <TextField
+                          label="Conversation memory count"
+                          type="number"
+                          min={1}
+                          max={200}
+                          autoComplete="off"
+                          value={conversationMemoryCount}
+                          onChange={setConversationMemoryCount}
+                          helpText="Number of latest messages to include in model context (1-200)."
+                        />
+                      )}
+                      <TextField
+                        label="Products list cache TTL (seconds)"
+                        type="number"
+                        min={30}
+                        max={3600}
+                        autoComplete="off"
+                        value={productsCacheTtlSeconds}
+                        onChange={setProductsCacheTtlSeconds}
+                        helpText="Controls Redis cache duration for /api/products (30-3600 seconds)."
+                      />
+                    </BlockStack>
+                    <Button
+                      variant="primary"
+                      onClick={saveAiSettings}
+                      loading={savingAiSettings}
+                      disabled={savingAiSettings}
+                    >
+                      Save AI Settings
+                    </Button>
+                  </InlineGrid>
+                </BlockStack>
+              </Box>
             </Card>
 
             <Card>
-                <Box padding="400">
-                    <BlockStack gap="300">
-                        <InlineStack align="space-between" blockAlign="center" gap="200">
-                            <BlockStack gap="100">
-                                <Text as="h2" variant="headingMd">RAG Test Suite (Super Admin)</Text>
-                                <Text as="p" tone="subdued">
-                                    Selects the first 10 products with chunks for the current merchant and runs predefined RAG + Answer smoke tests.
-                                </Text>
-                            </BlockStack>
-                            <Badge tone="attention">Predefined</Badge>
-                        </InlineStack>
-
-                        <InlineGrid columns={{ xs: '1fr', md: 'repeat(3, minmax(0,1fr)) auto' }} gap="300" alignItems="end">
-                            <BlockStack gap="100">
-                                <Text as="p" variant="bodySm" tone="subdued">Suite ID</Text>
-                                <Text as="p" variant="bodyMd" fontWeight="medium">rag_superadmin_10_products_smoke</Text>
-                            </BlockStack>
-                            <Select
-                                label="Query set"
-                                options={[
-                                    { label: 'Short (4 queries)', value: 'short' },
-                                    { label: 'Medium (8 queries)', value: 'medium' },
-                                    { label: 'Wide (12 queries)', value: 'wide' },
-                                    { label: 'Hungarian (12 queries)', value: 'hungarian' },
-                                ]}
-                                value={ragSuiteQueryPreset}
-                                onChange={(value) => setRagSuiteQueryPreset((value === 'medium' || value === 'wide' || value === 'hungarian') ? value : 'short')}
-                            />
-                            <Select
-                                label="Run mode"
-                                options={[
-                                    { label: 'RAG + Answer', value: 'rag_and_answer' },
-                                    { label: 'RAG Only', value: 'rag_only' },
-                                ]}
-                                value={ragSuiteMode}
-                                onChange={(value) => setRagSuiteMode(value === 'rag_only' ? 'rag_only' : 'rag_and_answer')}
-                            />
-                            <Box paddingBlockStart="500">
-                                <Button variant="primary" onClick={runSuperAdminRagSuite} loading={ragSuiteRunning} disabled={ragSuiteRunning}>
-                                    Run Suite
-                                </Button>
-                            </Box>
-                        </InlineGrid>
-
-                        {ragSuiteExcludedProductIds.length > 0 && (
-                            <InlineStack gap="200" blockAlign="center">
-                                <Badge tone="warning">{`${ragSuiteExcludedProductIds.length} excluded`}</Badge>
-                                <Button size="slim" variant="tertiary" onClick={() => setRagSuiteExcludedProductIds([])}>
-                                    Clear exclusions
-                                </Button>
-                            </InlineStack>
-                        )}
-
-                        {ragSuiteError && (
-                            <Banner tone="critical">
-                                <p>{ragSuiteError}</p>
-                            </Banner>
-                        )}
-
-                        {ragSuiteResult && (
-                            <BlockStack gap="300">
-                                <InlineStack gap="200" blockAlign="center">
-                                    <Badge tone={ragSuitePassedCases === ragSuiteTotalCases ? 'success' : 'warning'}>
-                                        {`${ragSuitePassedCases}/${ragSuiteTotalCases} cases passed`}
-                                    </Badge>
-                                    <Badge tone="info">
-                                        {`${ragSuiteResult.selectedProducts.length} products selected`}
-                                    </Badge>
-                                    <Text as="span" variant="bodySm" tone="subdued">
-                                        {new Date(ragSuiteResult.finishedAt).toLocaleString()}
-                                    </Text>
-                                </InlineStack>
-
-                                <Box background="bg-surface-secondary" borderRadius="300" padding="300">
-                                    <BlockStack gap="200">
-                                        <Text as="h3" variant="headingSm">Selected products (first 10 with chunks)</Text>
-                                        <Text as="p" variant="bodySm" tone="subdued">
-                                            Use the button on each card to exclude products from the next run.
-                                        </Text>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                            {ragSuiteResult.selectedProducts.map((product) => (
-                                                <div key={product.id} className="rounded border border-zinc-200 bg-white px-3 py-2">
-                                                    <div className="text-sm font-medium text-zinc-800 truncate">{product.name || product.id}</div>
-                                                    <div className="text-xs text-zinc-500 truncate">{product.id}</div>
-                                                    <div className="text-xs text-zinc-600 mb-2">chunks: {product.chunkCount}</div>
-                                                    <Button
-                                                        size="slim"
-                                                        variant={ragSuiteExcludedProductIds.includes(product.id) ? 'primary' : 'tertiary'}
-                                                        onClick={() => toggleRagSuiteExcludedProduct(product.id)}
-                                                    >
-                                                        {ragSuiteExcludedProductIds.includes(product.id) ? 'Include next run' : 'Exclude next run'}
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </BlockStack>
-                                </Box>
-
-                                <Box background="bg-surface-secondary" borderRadius="300" padding="300">
-                                    <BlockStack gap="200">
-                                        <Text as="h3" variant="headingSm">Case results</Text>
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-sm">
-                                                <thead>
-                                                    <tr className="text-left text-zinc-500">
-                                                        <th className="py-2 pr-3">Query</th>
-                                                        <th className="py-2 pr-3">RAG</th>
-                                                        <th className="py-2 pr-3">Count</th>
-                                                        <th className="py-2 pr-3">RAG ms</th>
-                                                        <th className="py-2 pr-3">Answer</th>
-                                                        <th className="py-2 pr-3">Answer ms</th>
-                                                        <th className="py-2">Error</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {ragSuiteResult.cases.map((row) => (
-                                                        <tr key={row.query} className="border-t border-zinc-200">
-                                                            <td className="py-2 pr-3 text-zinc-800">{row.query}</td>
-                                                            <td className="py-2 pr-3">{row.ragOk ? 'PASS' : 'FAIL'}</td>
-                                                            <td className="py-2 pr-3">{row.ragCount}</td>
-                                                            <td className="py-2 pr-3">{row.ragLatencyMs}</td>
-                                                            <td className="py-2 pr-3">{row.answerSkipped ? 'SKIP' : row.answerOk ? 'PASS' : 'FAIL'}</td>
-                                                            <td className="py-2 pr-3">{row.answerSkipped ? '-' : row.answerLatencyMs}</td>
-                                                            <td className="py-2 text-zinc-600">{row.error || '-'}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </BlockStack>
-                                </Box>
-                            </BlockStack>
-                        )}
+              <Box padding="400">
+                <BlockStack gap="300">
+                  <InlineStack align="space-between" blockAlign="center" gap="200">
+                    <BlockStack gap="100">
+                      <Text as="h2" variant="headingMd">
+                        RAG Test Suite (Super Admin)
+                      </Text>
+                      <Text as="p" tone="subdued">
+                        Selects the first 10 products with chunks for the current merchant and runs
+                        predefined RAG + Answer smoke tests.
+                      </Text>
                     </BlockStack>
-                </Box>
+                    <Badge tone="attention">Predefined</Badge>
+                  </InlineStack>
+
+                  <InlineGrid
+                    columns={{ xs: '1fr', md: 'repeat(3, minmax(0,1fr)) auto' }}
+                    gap="300"
+                    alignItems="end"
+                  >
+                    <BlockStack gap="100">
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Suite ID
+                      </Text>
+                      <Text as="p" variant="bodyMd" fontWeight="medium">
+                        rag_superadmin_10_products_smoke
+                      </Text>
+                    </BlockStack>
+                    <Select
+                      label="Query set"
+                      options={[
+                        { label: 'Short (4 queries)', value: 'short' },
+                        { label: 'Medium (8 queries)', value: 'medium' },
+                        { label: 'Wide (12 queries)', value: 'wide' },
+                        { label: 'Hungarian (12 queries)', value: 'hungarian' },
+                      ]}
+                      value={ragSuiteQueryPreset}
+                      onChange={(value) =>
+                        setRagSuiteQueryPreset(
+                          value === 'medium' || value === 'wide' || value === 'hungarian'
+                            ? value
+                            : 'short'
+                        )
+                      }
+                    />
+                    <Select
+                      label="Run mode"
+                      options={[
+                        { label: 'RAG + Answer', value: 'rag_and_answer' },
+                        { label: 'RAG Only', value: 'rag_only' },
+                      ]}
+                      value={ragSuiteMode}
+                      onChange={(value) =>
+                        setRagSuiteMode(value === 'rag_only' ? 'rag_only' : 'rag_and_answer')
+                      }
+                    />
+                    <Box paddingBlockStart="500">
+                      <Button
+                        variant="primary"
+                        onClick={runSuperAdminRagSuite}
+                        loading={ragSuiteRunning}
+                        disabled={ragSuiteRunning}
+                      >
+                        Run Suite
+                      </Button>
+                    </Box>
+                  </InlineGrid>
+
+                  {ragSuiteExcludedProductIds.length > 0 && (
+                    <InlineStack gap="200" blockAlign="center">
+                      <Badge tone="warning">{`${ragSuiteExcludedProductIds.length} excluded`}</Badge>
+                      <Button
+                        size="slim"
+                        variant="tertiary"
+                        onClick={() => setRagSuiteExcludedProductIds([])}
+                      >
+                        Clear exclusions
+                      </Button>
+                    </InlineStack>
+                  )}
+
+                  {ragSuiteError && (
+                    <Banner tone="critical">
+                      <p>{ragSuiteError}</p>
+                    </Banner>
+                  )}
+
+                  {ragSuiteResult && (
+                    <BlockStack gap="300">
+                      <InlineStack gap="200" blockAlign="center">
+                        <Badge
+                          tone={ragSuitePassedCases === ragSuiteTotalCases ? 'success' : 'warning'}
+                        >
+                          {`${ragSuitePassedCases}/${ragSuiteTotalCases} cases passed`}
+                        </Badge>
+                        <Badge tone="info">
+                          {`${ragSuiteResult.selectedProducts.length} products selected`}
+                        </Badge>
+                        <Text as="span" variant="bodySm" tone="subdued">
+                          {new Date(ragSuiteResult.finishedAt).toLocaleString()}
+                        </Text>
+                      </InlineStack>
+
+                      <Box background="bg-surface-secondary" borderRadius="300" padding="300">
+                        <BlockStack gap="200">
+                          <Text as="h3" variant="headingSm">
+                            Selected products (first 10 with chunks)
+                          </Text>
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            Use the button on each card to exclude products from the next run.
+                          </Text>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {ragSuiteResult.selectedProducts.map((product) => (
+                              <div
+                                key={product.id}
+                                className="rounded border border-zinc-200 bg-white px-3 py-2"
+                              >
+                                <div className="text-sm font-medium text-zinc-800 truncate">
+                                  {product.name || product.id}
+                                </div>
+                                <div className="text-xs text-zinc-500 truncate">{product.id}</div>
+                                <div className="text-xs text-zinc-600 mb-2">
+                                  chunks: {product.chunkCount}
+                                </div>
+                                <Button
+                                  size="slim"
+                                  variant={
+                                    ragSuiteExcludedProductIds.includes(product.id)
+                                      ? 'primary'
+                                      : 'tertiary'
+                                  }
+                                  onClick={() => toggleRagSuiteExcludedProduct(product.id)}
+                                >
+                                  {ragSuiteExcludedProductIds.includes(product.id)
+                                    ? 'Include next run'
+                                    : 'Exclude next run'}
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </BlockStack>
+                      </Box>
+
+                      <Box background="bg-surface-secondary" borderRadius="300" padding="300">
+                        <BlockStack gap="200">
+                          <Text as="h3" variant="headingSm">
+                            Case results
+                          </Text>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="text-left text-zinc-500">
+                                  <th className="py-2 pr-3">Query</th>
+                                  <th className="py-2 pr-3">RAG</th>
+                                  <th className="py-2 pr-3">Count</th>
+                                  <th className="py-2 pr-3">RAG ms</th>
+                                  <th className="py-2 pr-3">Answer</th>
+                                  <th className="py-2 pr-3">Answer ms</th>
+                                  <th className="py-2">Error</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {ragSuiteResult.cases.map((row) => (
+                                  <tr key={row.query} className="border-t border-zinc-200">
+                                    <td className="py-2 pr-3 text-zinc-800">{row.query}</td>
+                                    <td className="py-2 pr-3">{row.ragOk ? 'PASS' : 'FAIL'}</td>
+                                    <td className="py-2 pr-3">{row.ragCount}</td>
+                                    <td className="py-2 pr-3">{row.ragLatencyMs}</td>
+                                    <td className="py-2 pr-3">
+                                      {row.answerSkipped ? 'SKIP' : row.answerOk ? 'PASS' : 'FAIL'}
+                                    </td>
+                                    <td className="py-2 pr-3">
+                                      {row.answerSkipped ? '-' : row.answerLatencyMs}
+                                    </td>
+                                    <td className="py-2 text-zinc-600">{row.error || '-'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </BlockStack>
+                      </Box>
+                    </BlockStack>
+                  )}
+                </BlockStack>
+              </Box>
             </Card>
 
             {/* Background Worker Queues */}
             <BlockStack gap="300">
-                <InlineStack gap="200" blockAlign="center">
-                    <Activity className="w-5 h-5 text-zinc-500" />
-                    <Text as="h3" variant="headingMd">Distributed Queues (BullMQ)</Text>
-                </InlineStack>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <QueueCard
-                        title="Scheduled Messages"
-                        stats={health?.queues.scheduledMessages}
-                        icon={Server}
-                        colorClass="text-blue-500"
-                    />
-                    <QueueCard
-                        title="Web Scraper Jobs"
-                        stats={health?.queues.scrapeJobs}
-                        icon={Server}
-                        colorClass="text-emerald-500"
-                    />
-                    <QueueCard
-                        title="Analytics Pipeline"
-                        stats={health?.queues.analytics}
-                        icon={Server}
-                        colorClass="text-purple-500"
-                    />
-                </div>
+              <InlineStack gap="200" blockAlign="center">
+                <Activity className="w-5 h-5 text-zinc-500" />
+                <Text as="h3" variant="headingMd">
+                  Distributed Queues (BullMQ)
+                </Text>
+              </InlineStack>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <QueueCard
+                  title="Scheduled Messages"
+                  stats={health?.queues.scheduledMessages}
+                  icon={Server}
+                  colorClass="text-blue-500"
+                />
+                <QueueCard
+                  title="Web Scraper Jobs"
+                  stats={health?.queues.scrapeJobs}
+                  icon={Server}
+                  colorClass="text-emerald-500"
+                />
+                <QueueCard
+                  title="Analytics Pipeline"
+                  stats={health?.queues.analytics}
+                  icon={Server}
+                  colorClass="text-purple-500"
+                />
+              </div>
             </BlockStack>
 
             <Banner tone="info">
-                <p className="font-semibold mb-1">Queue Management (Coming Soon)</p>
-                <p>In a future update, you will be able to pause queues, retry failed jobs in bulk, and clear backlogs directly from this dashboard.</p>
+              <p className="font-semibold mb-1">Queue Management (Coming Soon)</p>
+              <p>
+                In a future update, you will be able to pause queues, retry failed jobs in bulk, and
+                clear backlogs directly from this dashboard.
+              </p>
             </Banner>
-        </BlockStack>
-                </Layout.Section>
-            </Layout>
-        </Page>
-    );
+          </BlockStack>
+        </Layout.Section>
+      </Layout>
+    </Page>
+  );
 }

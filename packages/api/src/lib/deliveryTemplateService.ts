@@ -1,38 +1,12 @@
 /**
  * Delivery template service
- * Sends Twilio WhatsApp templates after order delivery and handles quick reply responses.
+ * Delivery-template flow after order delivery, and handling of the customer's
+ * quick-reply responses. Sending is disabled until a WhatsApp provider exists.
  */
 
 import { getSupabaseServiceClient, logger } from '@recete/shared';
-import {
-  sendTwilioWhatsAppTemplate,
-  getEffectiveWhatsAppCredentials,
-  type TwilioWhatsAppCredentials,
-  type WhatsAppCredentials,
-} from './whatsapp.js';
+import { type WhatsAppCredentials } from './whatsapp.js';
 import { sendTrackedWhatsAppMessage } from './whatsappOutbox.js';
-
-// ---------------------------------------------------------------------------
-// Template Content SIDs (Twilio Console)
-// ---------------------------------------------------------------------------
-
-const DEFAULT_CONTENT_SID_EN = 'HX48bf74194a186264d64a86098b4d1bed';
-const DEFAULT_CONTENT_SID_HU = 'HXa96141ffeaea9bdf1bc47bc26c97d4df';
-
-function getContentSid(lang: TemplateLang): string {
-  if (lang === 'hu') {
-    return process.env.TWILIO_TEMPLATE_DELIVERED_HU?.trim() || DEFAULT_CONTENT_SID_HU;
-  }
-  return process.env.TWILIO_TEMPLATE_DELIVERED_EN?.trim() || DEFAULT_CONTENT_SID_EN;
-}
-
-function getTemplateName(lang: TemplateLang): string {
-  return lang === 'hu' ? 'delivered_message_hu' : 'delivered_message_en';
-}
-
-// ---------------------------------------------------------------------------
-// Language helpers
-// ---------------------------------------------------------------------------
 
 export type TemplateLang = 'en' | 'hu';
 
@@ -49,37 +23,19 @@ export function resolveTemplateLanguage(locale?: string | null): TemplateLang {
 // Quick reply matching
 // ---------------------------------------------------------------------------
 
-const POSITIVE_PATTERNS_EN = [
-  'yes, help me',
-  'yes help me',
-  'yes',
-  'help me',
-  'yes please',
-];
+const POSITIVE_PATTERNS_EN = ['yes, help me', 'yes help me', 'yes', 'help me', 'yes please'];
 
-const POSITIVE_PATTERNS_HU = [
-  'igen, kérem',
-  'igen kérem',
-  'igen',
-  'kérem',
-];
+const POSITIVE_PATTERNS_HU = ['igen, kérem', 'igen kérem', 'igen', 'kérem'];
 
-const NEGATIVE_PATTERNS_EN = [
-  'no thanks',
-  'no, thanks',
-  'no thank you',
-  'no',
-];
+const NEGATIVE_PATTERNS_EN = ['no thanks', 'no, thanks', 'no thank you', 'no'];
 
-const NEGATIVE_PATTERNS_HU = [
-  'nem, köszönöm',
-  'nem köszönöm',
-  'nem',
-  'köszönöm, nem',
-];
+const NEGATIVE_PATTERNS_HU = ['nem, köszönöm', 'nem köszönöm', 'nem', 'köszönöm, nem'];
 
 function normalizeReplyText(text: string): string {
-  return text.trim().toLowerCase().replace(/[.,!?]+$/g, '');
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[.,!?]+$/g, '');
 }
 
 export function isPositiveReply(text: string): boolean {
@@ -100,13 +56,13 @@ export function isNegativeReply(text: string): boolean {
 // Product list message builder
 // ---------------------------------------------------------------------------
 
-export function buildProductListMessage(
-  productNames: string[],
-  lang: TemplateLang
-): string {
-  const numbered = productNames.length > 0
-    ? productNames.map((name, i) => `${i + 1}. ${name}`).join('\n')
-    : lang === 'hu' ? '(nincs termékinfo)' : '(no product info available)';
+export function buildProductListMessage(productNames: string[], lang: TemplateLang): string {
+  const numbered =
+    productNames.length > 0
+      ? productNames.map((name, i) => `${i + 1}. ${name}`).join('\n')
+      : lang === 'hu'
+        ? '(nincs termékinfo)'
+        : '(no product info available)';
 
   if (lang === 'hu') {
     return (
@@ -148,15 +104,7 @@ export interface SendDeliveryTemplateInput {
 export async function sendDeliveryTemplate(
   input: SendDeliveryTemplateInput
 ): Promise<{ sent: boolean; reason?: string }> {
-  const {
-    merchantId,
-    userId,
-    orderId,
-    customerPhone,
-    customerFirstName,
-    locale,
-    items,
-  } = input;
+  const { merchantId, userId, orderId, customerPhone, customerFirstName, locale, items } = input;
 
   if (!customerPhone) {
     logger.info({ orderId, merchantId }, '[delivery-template] No phone, skipping');
@@ -174,7 +122,10 @@ export async function sendDeliveryTemplate(
     .single();
 
   if (user?.consent_status !== 'opt_in') {
-    logger.info({ orderId, userId, consent: user?.consent_status }, '[delivery-template] No opt-in, skipping');
+    logger.info(
+      { orderId, userId, consent: user?.consent_status },
+      '[delivery-template] No opt-in, skipping'
+    );
     return { sent: false, reason: 'no_opt_in' };
   }
 
@@ -187,7 +138,10 @@ export async function sendDeliveryTemplate(
     .maybeSingle();
 
   if (existing) {
-    logger.info({ orderId, merchantId }, '[delivery-template] Already sent for this order, skipping');
+    logger.info(
+      { orderId, merchantId },
+      '[delivery-template] Already sent for this order, skipping'
+    );
     return { sent: false, reason: 'already_sent' };
   }
 
@@ -204,87 +158,21 @@ export async function sendDeliveryTemplate(
     .maybeSingle();
 
   if (recentOutbound) {
-    logger.info({ orderId, merchantId }, '[delivery-template] Active template window exists, skipping');
+    logger.info(
+      { orderId, merchantId },
+      '[delivery-template] Active template window exists, skipping'
+    );
     return { sent: false, reason: 'active_window' };
   }
 
-  // Resolve credentials — must be Twilio for template sends
-  const credentials = await getEffectiveWhatsAppCredentials(merchantId);
-  if (!credentials || credentials.provider !== 'twilio') {
-    logger.warn({ orderId, merchantId, provider: credentials?.provider }, '[delivery-template] Twilio credentials required for template sends');
-    return { sent: false, reason: 'not_twilio' };
-  }
-
-  const lang = resolveTemplateLanguage(locale);
-  const contentSid = getContentSid(lang);
-  const templateName = getTemplateName(lang);
-  const windowEnd = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-
-  // Record BEFORE sending so we always have a dedup record, even if the process crashes after send
-  const { data: inserted, error: insertError } = await serviceClient
-    .from('delivery_template_events')
-    .insert({
-      merchant_id: merchantId,
-      user_id: userId,
-      order_id: orderId,
-      to_phone: customerPhone,
-      template_name: templateName,
-      template_language: lang,
-      provider_message_id: null,
-      conversation_window_open_until: windowEnd,
-      reply_status: 'pending',
-      support_status: 'template_sent',
-    })
-    .select('id')
-    .single();
-
-  if (insertError) {
-    if ((insertError as any).code === '23505') {
-      logger.info({ orderId, merchantId }, '[delivery-template] Duplicate insert caught');
-      return { sent: false, reason: 'already_sent' };
-    }
-    logger.error({ insertError, orderId, merchantId }, '[delivery-template] Failed to record template event');
-    return { sent: false, reason: 'db_insert_failed' };
-  }
-
-  const eventId = inserted.id;
-
-  const sendResult = await sendTwilioWhatsAppTemplate({
-    to: customerPhone,
-    contentSid,
-    contentVariables: { '1': customerFirstName || (lang === 'hu' ? 'Kedves Vásárló' : 'Valued Customer') },
-    credentials: credentials as TwilioWhatsAppCredentials,
-  });
-
-  if (!sendResult.success) {
-    logger.error({ orderId, merchantId, error: sendResult.error }, '[delivery-template] Template send failed');
-    await serviceClient
-      .from('delivery_template_events')
-      .update({ reply_status: 'error', support_status: 'closed', updated_at: new Date().toISOString() })
-      .eq('id', eventId);
-    return { sent: false, reason: 'send_failed' };
-  }
-
-  // Update with provider message ID and mark as awaiting reply
-  await serviceClient
-    .from('delivery_template_events')
-    .update({
-      provider_message_id: sendResult.messageId || null,
-      support_status: 'awaiting_reply',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', eventId);
-
-  if (items.length === 0) {
-    logger.warn({ orderId, merchantId }, '[delivery-template] Template sent but order has no line items');
-  }
-
+  // The delivery template was a Twilio Content template (approved SIDs per
+  // language). Twilio was removed on 2026-09-24 and no provider replaces it
+  // yet, so nothing is recorded or sent.
   logger.info(
-    { orderId, merchantId, templateName, lang, messageId: sendResult.messageId },
-    '[delivery-template] Template sent successfully'
+    { orderId, merchantId },
+    '[delivery-template] No WhatsApp provider connected, skipping'
   );
-
-  return { sent: true };
+  return { sent: false, reason: 'no_provider' };
 }
 
 // ---------------------------------------------------------------------------
@@ -314,7 +202,9 @@ export async function findPendingTemplateEvent(
   const serviceClient = getSupabaseServiceClient();
   const { data } = await serviceClient
     .from('delivery_template_events')
-    .select('id, merchant_id, user_id, order_id, to_phone, template_name, template_language, reply_status, support_status, conversation_window_open_until')
+    .select(
+      'id, merchant_id, user_id, order_id, to_phone, template_name, template_language, reply_status, support_status, conversation_window_open_until'
+    )
     .eq('user_id', userId)
     .eq('merchant_id', merchantId)
     .in('reply_status', ['pending'])
@@ -329,7 +219,11 @@ export async function findPendingTemplateEvent(
   if (windowEnd && new Date(windowEnd) < new Date()) {
     await serviceClient
       .from('delivery_template_events')
-      .update({ reply_status: 'expired', support_status: 'closed', updated_at: new Date().toISOString() })
+      .update({
+        reply_status: 'expired',
+        support_status: 'closed',
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', data.id);
     return null;
   }
@@ -359,7 +253,10 @@ export async function handleDeliveryTemplateReply(params: {
 
   if (isPositiveReply(messageText)) {
     // Fetch order products from external_events payload
-    const productNames = await getOrderProductNames(templateEvent.order_id, templateEvent.merchant_id);
+    const productNames = await getOrderProductNames(
+      templateEvent.order_id,
+      templateEvent.merchant_id
+    );
 
     const listMessage = buildProductListMessage(productNames, lang);
 

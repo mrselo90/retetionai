@@ -33,20 +33,22 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
       event.occurred_at
     );
 
-    const { error: shadowInsertError } = await serviceClient
-      .from('external_events')
-      .insert({
-        merchant_id: event.merchant_id,
-        integration_id: event.integration_id ?? null,
-        source: event.source,
-        event_type: event.event_type,
-        payload: event as any,
-        idempotency_key: idempotencyKey,
-      });
+    const { error: shadowInsertError } = await serviceClient.from('external_events').insert({
+      merchant_id: event.merchant_id,
+      integration_id: event.integration_id ?? null,
+      source: event.source,
+      event_type: event.event_type,
+      payload: event as any,
+      idempotency_key: idempotencyKey,
+    });
 
     if (shadowInsertError && shadowInsertError.code !== '23505') {
       logger.warn(
-        { err: shadowInsertError, merchantId: event.merchant_id, externalOrderId: event.external_order_id },
+        {
+          err: shadowInsertError,
+          merchantId: event.merchant_id,
+          externalOrderId: event.external_order_id,
+        },
         'Failed to shadow-store normalized event'
       );
     }
@@ -85,7 +87,11 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
         .eq('merchant_id', event.merchant_id)
         .limit(5000);
 
-      for (const row of (merchantUsers || []) as Array<{ id: string; phone: string; phone_lookup_hash?: string | null }>) {
+      for (const row of (merchantUsers || []) as Array<{
+        id: string;
+        phone: string;
+        phone_lookup_hash?: string | null;
+      }>) {
         try {
           const candidate = normalizePhone(decryptPhone(row.phone));
           if (candidate === normalizedPhone) {
@@ -120,13 +126,11 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
       if (event.customer.name) updatePayload.name = event.customer.name;
       if (event.consent_status) updatePayload.consent_status = event.consent_status;
       if (event.customer.email) updatePayload.email = event.customer.email;
-      if (event.customer.shopify_customer_id) updatePayload.shopify_customer_id = event.customer.shopify_customer_id;
+      if (event.customer.shopify_customer_id)
+        updatePayload.shopify_customer_id = event.customer.shopify_customer_id;
       if (!existingUser.phoneLookupHash) updatePayload.phone_lookup_hash = phoneLookupHash;
       if (Object.keys(updatePayload).length > 0) {
-        await serviceClient
-          .from('users')
-          .update(updatePayload)
-          .eq('id', userId);
+        await serviceClient.from('users').update(updatePayload).eq('id', userId);
       }
     } else {
       // Create new user
@@ -190,10 +194,7 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
       updateData.delivery_date = new Date(event.order.delivered_at);
     }
 
-    await serviceClient
-      .from('orders')
-      .update(updateData)
-      .eq('id', orderId);
+    await serviceClient.from('orders').update(updateData).eq('id', orderId);
   } else {
     // Create new order
     const { data: newOrder, error: orderError } = await serviceClient
@@ -203,9 +204,7 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
         user_id: userId,
         external_order_id: event.external_order_id,
         status: orderStatus,
-        delivery_date: event.order?.delivered_at
-          ? new Date(event.order.delivered_at)
-          : null,
+        delivery_date: event.order?.delivered_at ? new Date(event.order.delivered_at) : null,
       })
       .select('id')
       .single();
@@ -245,23 +244,26 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
         .filter(Boolean);
       if (event.customer?.phone && productIds.length >= 0) {
         try {
-          await scheduleMessage({
-            type: 'welcome',
-            userId,
-            orderId,
-            merchantId: event.merchant_id,
-            to: event.customer.phone,
-            scheduledFor: new Date().toISOString(),
-            productIds: productIds.length > 0 ? productIds : undefined,
-            productNames: productNames.length > 0 ? productNames : undefined,
-          }, `welcome-${orderId}`);
+          await scheduleMessage(
+            {
+              type: 'welcome',
+              userId,
+              orderId,
+              merchantId: event.merchant_id,
+              to: event.customer.phone,
+              scheduledFor: new Date().toISOString(),
+              productIds: productIds.length > 0 ? productIds : undefined,
+              productNames: productNames.length > 0 ? productNames : undefined,
+            },
+            `welcome-${orderId}`
+          );
           logger.info({ orderId }, 'Queued T+0 welcome message for order');
         } catch (error) {
           logger.error({ error, orderId }, 'Failed to queue T+0 welcome message');
         }
       }
 
-      // Send delivery template (Twilio WhatsApp HSM)
+      // Delivery template (disabled until a WhatsApp provider is connected)
       if (event.customer?.phone) {
         try {
           await sendDeliveryTemplate({

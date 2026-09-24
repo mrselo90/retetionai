@@ -457,7 +457,6 @@ function Hero() {
 // "Trusted by Shopify stores across the UK & EU" — none of them were customers.
 const PROOF_FACTS = [
   'Shopify App Store app',
-  'Official WhatsApp Business Platform',
   'Consent checked before every message',
   'UK company · data hosted in London',
 ];

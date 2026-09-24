@@ -9,7 +9,12 @@ import { authMiddleware } from '../middleware/auth.js';
 import { getSupabaseServiceClient } from '@recete/shared';
 import { normalizePhone } from '../lib/events.js';
 import { processNormalizedEvent } from '../lib/orderProcessor.js';
-import { findUserByPhone, getOrCreateConversation, addMessageToConversation, getConversationHistory } from '../lib/conversation.js';
+import {
+  findUserByPhone,
+  getOrCreateConversation,
+  addMessageToConversation,
+  getConversationHistory,
+} from '../lib/conversation.js';
 import { generateAIResponse, detectPostDeliveryFollowUpSignal } from '../lib/aiAgent.js';
 import { formatRAGResultsForLLM } from '../lib/rag.js';
 import { getMerchantBotInfo } from '../lib/botInfo.js';
@@ -50,9 +55,12 @@ test.post('/events', async (c) => {
     } = body;
 
     if (!event_type || !external_order_id || !customer_phone) {
-      return c.json({
-        error: 'Missing required fields: event_type, external_order_id, customer_phone',
-      }, 400);
+      return c.json(
+        {
+          error: 'Missing required fields: event_type, external_order_id, customer_phone',
+        },
+        400
+      );
     }
 
     // Create normalized event
@@ -89,10 +97,13 @@ test.post('/events', async (c) => {
       result,
     });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
   }
 });
 
@@ -109,17 +120,23 @@ test.post('/whatsapp', async (c) => {
     const { phone, message } = body;
 
     if (!phone || !message) {
-      return c.json({
-        error: 'Missing required fields: phone, message',
-      }, 400);
+      return c.json(
+        {
+          error: 'Missing required fields: phone, message',
+        },
+        400
+      );
     }
 
     // Find user
     const user = await findUserByPhone(phone, merchantId);
     if (!user) {
-      return c.json({
-        error: 'User not found. Create an order first using /api/test/events',
-      }, 404);
+      return c.json(
+        {
+          error: 'User not found. Create an order first using /api/test/events',
+        },
+        404
+      );
     }
 
     // Get or create conversation
@@ -153,10 +170,13 @@ test.post('/whatsapp', async (c) => {
       upsellTriggered: aiResponse.upsellTriggered,
     });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
   }
 });
 
@@ -169,7 +189,7 @@ test.post('/whatsapp', async (c) => {
 test.post('/whatsapp-live', async (c) => {
   try {
     const merchantId = c.get('merchantId') as string;
-    const body = await c.req.json().catch(() => ({} as Record<string, unknown>));
+    const body = await c.req.json().catch(() => ({}) as Record<string, unknown>);
 
     const to = typeof body?.to === 'string' ? body.to.trim() : '';
     const text =
@@ -189,10 +209,10 @@ test.post('/whatsapp-live', async (c) => {
       );
     }
 
-    const providerInfo =
-      credentials.provider === 'twilio'
-        ? { provider: 'twilio', fromNumber: credentials.fromNumber }
-        : { provider: 'meta', phoneNumberId: credentials.phoneNumberId };
+    const providerInfo = {
+      provider: credentials.provider,
+      phoneNumberDisplay: credentials.phoneNumberDisplay ?? null,
+    };
 
     if (!to) {
       return c.json({
@@ -261,10 +281,13 @@ test.post('/rag', async (c) => {
     const topK = typeof body?.topK === 'number' ? body.topK : 3;
 
     if (!query) {
-      return c.json({
-        error: 'Missing required field: query',
-        message: 'Provide a search query (e.g. "nasıl kullanılır?", "içindekiler").',
-      }, 400);
+      return c.json(
+        {
+          error: 'Missing required field: query',
+          message: 'Provide a search query (e.g. "nasıl kullanılır?", "içindekiler").',
+        },
+        400
+      );
     }
 
     const ragResult = await new UnifiedRetrievalService().retrieve({
@@ -290,13 +313,10 @@ test.post('/rag', async (c) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    const isEmbeddingError =
-      /embedding|openai|api_key|invalid key|rate limit/i.test(message);
+    const isEmbeddingError = /embedding|openai|api_key|invalid key|rate limit/i.test(message);
     return c.json(
       {
-        error: isEmbeddingError
-          ? 'RAG requires OpenAI (embedding failed)'
-          : 'RAG test failed',
+        error: isEmbeddingError ? 'RAG requires OpenAI (embedding failed)' : 'RAG test failed',
         message: isEmbeddingError
           ? 'Set OPENAI_API_KEY and ensure products have embeddings (Products → product → Generate embeddings).'
           : message,
@@ -322,7 +342,12 @@ test.post('/rag/answer', async (c) => {
     const stream = body?.stream === true;
     const conversationHistory = Array.isArray(body?.conversationHistory)
       ? body.conversationHistory
-          .filter((m: any) => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant' || m.role === 'merchant'))
+          .filter(
+            (m: any) =>
+              m &&
+              typeof m.content === 'string' &&
+              (m.role === 'user' || m.role === 'assistant' || m.role === 'merchant')
+          )
           .map((m: any) => ({
             role: m.role,
             content: m.content,
@@ -331,10 +356,13 @@ test.post('/rag/answer', async (c) => {
       : [];
 
     if (!query) {
-      return c.json({
-        error: 'Missing required field: query',
-        message: 'Provide a question (e.g. "Bu ürün nasıl kullanılır?").',
-      }, 400);
+      return c.json(
+        {
+          error: 'Missing required field: query',
+          message: 'Provide a question (e.g. "Bu ürün nasıl kullanılır?").',
+        },
+        400
+      );
     }
 
     const followUpSignal = detectPostDeliveryFollowUpSignal(query, conversationHistory);
@@ -414,13 +442,14 @@ test.post('/rag/answer', async (c) => {
     } else {
       const openai = getOpenAIClient();
       memorySettings = await getConversationMemorySettings();
-      const recentHistory = memorySettings.mode === 'full'
-        ? conversationHistory
-        : conversationHistory.slice(-Math.max(1, memorySettings.count));
+      const recentHistory =
+        memorySettings.mode === 'full'
+          ? conversationHistory
+          : conversationHistory.slice(-Math.max(1, memorySettings.count));
       llmRequestMessages = [
         { role: 'system', content: systemPrompt },
         ...recentHistory.map((m: any) => ({
-          role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+          role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
           content: m.content,
         })),
         { role: 'user', content: query },
@@ -452,7 +481,10 @@ test.post('/rag/answer', async (c) => {
       }
     }
 
-    const styleCompliance = evaluateStyleCompliance(answer, (merchant as any)?.persona_settings || {});
+    const styleCompliance = evaluateStyleCompliance(
+      answer,
+      (merchant as any)?.persona_settings || {}
+    );
 
     return c.json({
       query,
@@ -556,10 +588,13 @@ test.get('/tasks', async (c) => {
 
     return c.json({ tasks: tasks || [] });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
   }
 });
 
@@ -610,10 +645,13 @@ test.post('/tasks/:id/trigger', async (c) => {
       taskId,
     });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
   }
 });
 
@@ -678,9 +716,7 @@ test.get('/health', async (c) => {
       /^your[_-]?production[_-]?openai[_-]?key$/i,
       /^your[_-]?openai[_-]?key$/i,
     ];
-    const isPlaceholder =
-      !rawKey ||
-      placeholderPatterns.some((p) => p.test(rawKey.trim()));
+    const isPlaceholder = !rawKey || placeholderPatterns.some((p) => p.test(rawKey.trim()));
 
     let openai: { configured: boolean; status: string; message: string; verified?: boolean } = {
       configured: !!rawKey && !isPlaceholder,
@@ -710,7 +746,11 @@ test.get('/health', async (c) => {
         const msg = err instanceof Error ? err.message : String(err);
         const isAuthError =
           /invalid.*api.*key|incorrect.*api.*key|authentication|401|403/i.test(msg) ||
-          (typeof (err as { status?: number })?.status === 'number' && [(err as { status: number }).status === 401, (err as { status: number }).status === 403].some(Boolean));
+          (typeof (err as { status?: number })?.status === 'number' &&
+            [
+              (err as { status: number }).status === 401,
+              (err as { status: number }).status === 403,
+            ].some(Boolean));
         openai = {
           ...openai,
           status: isAuthError ? 'invalid' : 'error',
@@ -752,10 +792,13 @@ test.get('/health', async (c) => {
       openai,
     });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
   }
 });
 
@@ -777,10 +820,13 @@ test.get('/debug-shopify', async (c) => {
       .single();
 
     if (error || !integration) {
-      return c.json({
-        error: 'Shopify integration not found',
-        dbError: error
-      }, 404);
+      return c.json(
+        {
+          error: 'Shopify integration not found',
+          dbError: error,
+        },
+        404
+      );
     }
 
     // Mask sensitive data
@@ -801,10 +847,13 @@ test.get('/debug-shopify', async (c) => {
       required_scopes_in_env: process.env.SHOPIFY_SCOPES,
     });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
   }
 });
 
@@ -842,10 +891,13 @@ test.get('/debug-billing', async (c) => {
       plans_error: plansError,
     });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
   }
 });
 

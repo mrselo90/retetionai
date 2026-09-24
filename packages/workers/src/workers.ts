@@ -18,12 +18,7 @@ import {
   fetchShopifyProductByHandle,
   type ProductInstructionRow,
 } from '@recete/shared';
-import {
-  sendTwilioWhatsAppTemplate,
-  sendWhatsAppMessage,
-  getEffectiveWhatsAppCredentials,
-  type TwilioWhatsAppCredentials,
-} from './lib/whatsapp.js';
+import { sendWhatsAppMessage, getEffectiveWhatsAppCredentials } from './lib/whatsapp.js';
 import { scrapeProductPage } from './lib/scraper.js';
 import { processProductForRAG } from './lib/knowledgeBase.js';
 
@@ -113,24 +108,6 @@ function getInternalApiBaseUrl(): string {
   return configured;
 }
 
-function getWelcomeTemplateContentSid(lang: WorkerLang): string | null {
-  if (lang === 'hu') {
-    return (
-      process.env.TWILIO_TEMPLATE_WELCOME_HU?.trim() ||
-      process.env.TWILIO_TEMPLATE_WELCOME_EN?.trim() ||
-      null
-    );
-  }
-  if (lang === 'tr') {
-    return (
-      process.env.TWILIO_TEMPLATE_WELCOME_TR?.trim() ||
-      process.env.TWILIO_TEMPLATE_WELCOME_EN?.trim() ||
-      null
-    );
-  }
-  return process.env.TWILIO_TEMPLATE_WELCOME_EN?.trim() || null;
-}
-
 function applyWelcomeTemplate(
   template: string,
   context: {
@@ -157,36 +134,6 @@ function applyWelcomeTemplate(
     .replace(/\{\{\s*product_names\s*\}\}/gi, productNames)
     .replace(/\{\{\s*product_count\s*\}\}/gi, productCount)
     .replace(/\{\{\s*bot_name\s*\}\}/gi, botName);
-}
-
-async function hasActiveWhatsAppConversationWindow(
-  serviceClient: ReturnType<typeof getSupabaseServiceClient>,
-  merchantId: string,
-  phone: string
-): Promise<boolean> {
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-  const { data: recentInbound, error } = await serviceClient
-    .from('whatsapp_inbound_events')
-    .select('id')
-    .eq('merchant_id', merchantId)
-    .eq('from_phone', phone)
-    .gte('received_at', twentyFourHoursAgo)
-    .limit(1)
-    .maybeSingle();
-
-  if (!error && recentInbound?.id) return true;
-
-  const { data: openTemplateWindow } = await serviceClient
-    .from('delivery_template_events')
-    .select('id')
-    .eq('merchant_id', merchantId)
-    .eq('to_phone', phone)
-    .gte('conversation_window_open_until', new Date().toISOString())
-    .limit(1)
-    .maybeSingle();
-
-  return Boolean(openTemplateWindow?.id);
 }
 
 type ConversationHistoryMessage = {
@@ -416,7 +363,6 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
 
       // Generate message if template not provided
       let message = messageTemplate;
-      let welcomeTemplateContentSid: string | null = null;
       let botNameForWelcome: string | null = null;
       let welcomeProductNames: string[] = [];
       let welcomeOrderNumber: string | null = null;
@@ -439,12 +385,6 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
             : null;
         botNameForWelcome =
           typeof personaSettings?.bot_name === 'string' ? personaSettings.bot_name : null;
-        welcomeTemplateContentSid =
-          getWelcomeTemplateContentSid(lang) ||
-          (typeof personaSettings?.whatsapp_welcome_template_content_sid === 'string' &&
-          personaSettings.whatsapp_welcome_template_content_sid.trim().length > 0
-            ? personaSettings.whatsapp_welcome_template_content_sid.trim()
-            : null);
 
         // T+0 welcome: build beauty-consultant message from product usage instructions
         if (type === 'welcome' && productIds && productIds.length > 0) {
@@ -557,56 +497,16 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
         }
       }
 
-      let sendResult;
-      if (type === 'welcome' && credentials.provider === 'twilio') {
-        const activeWindow = await hasActiveWhatsAppConversationWindow(
-          serviceClient,
-          merchantId,
-          to
-        );
-        if (!activeWindow) {
-          if (!welcomeTemplateContentSid) {
-            sendResult = {
-              success: false,
-              provider: 'twilio' as const,
-              error:
-                'Twilio welcome template requires a platform-managed Content SID when the 24-hour conversation window is closed',
-              retryable: false,
-              failureCategory: 'permanent' as const,
-            };
-          } else {
-            sendResult = await sendTwilioWhatsAppTemplate({
-              to,
-              contentSid: welcomeTemplateContentSid,
-              contentVariables: {
-                '1': message,
-                '2': welcomeCustomerFirstName?.trim() || 'Customer',
-                '3': welcomeOrderNumber?.trim() || '-',
-                '4': buildInlineProductNames(welcomeProductNames),
-              },
-              credentials: credentials as TwilioWhatsAppCredentials,
-            });
-          }
-        } else {
-          sendResult = await sendWhatsAppMessage(
-            {
-              to,
-              text: message,
-              preview_url: false,
-            },
-            credentials
-          );
-        }
-      } else {
-        sendResult = await sendWhatsAppMessage(
-          {
-            to,
-            text: message,
-            preview_url: false,
-          },
-          credentials
-        );
-      }
+      // The Twilio-only branch that sent the welcome as an approved Content
+      // template outside the 24-hour window went with Twilio (2026-09-24).
+      const sendResult = await sendWhatsAppMessage(
+        {
+          to,
+          text: message,
+          preview_url: false,
+        },
+        credentials
+      );
 
       if (!sendResult.success) {
         if (sendResult.retryable) {

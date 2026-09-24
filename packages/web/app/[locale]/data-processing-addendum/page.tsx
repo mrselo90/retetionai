@@ -93,8 +93,7 @@ export default function DataProcessingAddendumPage() {
                 <Link href="/privacy#sub-processors" className="text-blue-600 hover:underline">
                   Privacy Policy
                 </Link>
-                , including Meta Platforms and Twilio for WhatsApp delivery and OpenAI for AI
-                replies.
+                , including OpenAI for AI replies.
               </p>
             </section>
 

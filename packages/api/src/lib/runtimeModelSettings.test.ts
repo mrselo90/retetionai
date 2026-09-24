@@ -39,8 +39,6 @@ describe('runtimeModelSettings', () => {
         allowed_embedding_models: ['text-embedding-3-small'],
         default_vision_model: 'gpt-4o',
         allowed_vision_models: ['gpt-4o', 'gpt-4o-mini'],
-        corporate_whatsapp_provider: 'twilio',
-        corporate_whatsapp_from_number: '+447915922506',
         corporate_whatsapp_phone_number_display: '+447915922506',
         conversation_memory_mode: 'last_n',
         conversation_memory_count: 10,
@@ -51,27 +49,21 @@ describe('runtimeModelSettings', () => {
   });
 
   it('rejects unsupported default llm models', async () => {
-    await expect(runtimeModelSettings.updatePlatformAiSettings({
-      default_llm_model: 'gpt-5',
-    })).rejects.toThrow('default_llm_model is not supported');
+    await expect(
+      runtimeModelSettings.updatePlatformAiSettings({
+        default_llm_model: 'gpt-5',
+      })
+    ).rejects.toThrow('default_llm_model is not supported');
   });
 
   it('rejects unsupported allowed vision models', async () => {
-    await expect(runtimeModelSettings.updatePlatformAiSettings({
-      default_llm_model: 'gpt-4o',
-      default_vision_model: 'gpt-4o',
-      allowed_vision_models: ['gpt-4o', 'gpt-bad-model'],
-    })).rejects.toThrow('allowed_vision_models contains unsupported model');
-  });
-
-  it('rejects invalid corporate twilio whatsapp sender numbers', async () => {
-    await expect(runtimeModelSettings.updatePlatformAiSettings({
-      default_llm_model: 'gpt-4o',
-      default_embedding_model: 'text-embedding-3-small',
-      default_vision_model: 'gpt-4o',
-      corporate_whatsapp_provider: 'twilio',
-      corporate_whatsapp_from_number: '07915922506',
-    })).rejects.toThrow('corporate_whatsapp_from_number must be E.164 format');
+    await expect(
+      runtimeModelSettings.updatePlatformAiSettings({
+        default_llm_model: 'gpt-4o',
+        default_vision_model: 'gpt-4o',
+        allowed_vision_models: ['gpt-4o', 'gpt-bad-model'],
+      })
+    ).rejects.toThrow('allowed_vision_models contains unsupported model');
   });
 
   it('persists supported llm and vision models', async () => {
@@ -82,8 +74,6 @@ describe('runtimeModelSettings', () => {
       allowed_embedding_models: ['text-embedding-3-small'],
       default_vision_model: 'gpt-4o-mini',
       allowed_vision_models: ['gpt-4o-mini', 'gpt-4o'],
-      corporate_whatsapp_provider: 'twilio',
-      corporate_whatsapp_from_number: '+447915922506',
       corporate_whatsapp_phone_number_display: '+447915922506',
     });
 
@@ -91,7 +81,6 @@ describe('runtimeModelSettings', () => {
     expect(result.default_llm_model).toBe('gpt-4o');
     expect(result.default_vision_model).toBe('gpt-4o');
     expect(result.allowed_vision_models).toEqual(['gpt-4o', 'gpt-4o-mini']);
-    expect(result.corporate_whatsapp_provider).toBe('twilio');
-    expect(result.corporate_whatsapp_from_number).toBe('+447915922506');
+    expect(result.corporate_whatsapp_phone_number_display).toBe('+447915922506');
   });
 });

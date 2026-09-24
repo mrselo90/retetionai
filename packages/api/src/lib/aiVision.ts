@@ -4,105 +4,19 @@ import { getDefaultVisionModel } from './runtimeModelSettings.js';
 import { trackAiUsageEvent } from './aiUsageEvents.js';
 import type { WhatsAppCredentials, WhatsAppWebhookMessage } from './whatsapp.js';
 
-const META_GRAPH_VERSION = 'v21.0';
-
-async function fetchMetaMediaUrl(mediaId: string, accessToken: string) {
-  const response = await fetch(`https://graph.facebook.com/${META_GRAPH_VERSION}/${mediaId}`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Failed to fetch Meta media metadata (${response.status}): ${body}`);
-  }
-
-  const payload = (await response.json()) as {
-    url?: string;
-    mime_type?: string;
-  };
-
-  if (!payload.url) {
-    throw new Error('Meta media metadata did not include a download url');
-  }
-
-  return payload;
-}
-
-async function fetchMetaImageDataUrl(message: WhatsAppWebhookMessage, credentials: WhatsAppCredentials) {
-  if (credentials.provider !== 'meta') {
-    throw new Error('Meta credentials are required to fetch Meta media');
-  }
-
-  const mediaId = message.image?.providerMediaId?.trim();
-  if (!mediaId) {
-    throw new Error('Meta image message is missing a media id');
-  }
-
-  const metadata = await fetchMetaMediaUrl(mediaId, credentials.accessToken);
-  const response = await fetch(metadata.url!, {
-    headers: {
-      Authorization: `Bearer ${credentials.accessToken}`,
-    },
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Failed to download Meta image (${response.status}): ${body}`);
-  }
-
-  const mimeType = metadata.mime_type || message.image?.mimeType || 'image/jpeg';
-  const bytes = Buffer.from(await response.arrayBuffer());
-  return `data:${mimeType};base64,${bytes.toString('base64')}`;
-}
-
-async function fetchTwilioImageDataUrl(message: WhatsAppWebhookMessage, credentials: WhatsAppCredentials) {
-  if (credentials.provider !== 'twilio') {
-    throw new Error('Twilio credentials are required to fetch Twilio media');
-  }
-
-  const mediaUrl = message.image?.url?.trim();
-  if (!mediaUrl) {
-    throw new Error('Twilio image message is missing a media url');
-  }
-
-  const basicAuth = Buffer.from(
-    `${credentials.accountSid}:${credentials.authToken}`,
-    'utf8'
-  ).toString('base64');
-
-  const response = await fetch(mediaUrl, {
-    headers: {
-      Authorization: `Basic ${basicAuth}`,
-    },
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Failed to download Twilio image (${response.status}): ${body}`);
-  }
-
-  const mimeType = message.image?.mimeType || response.headers.get('content-type') || 'image/jpeg';
-  const bytes = Buffer.from(await response.arrayBuffer());
-  return `data:${mimeType};base64,${bytes.toString('base64')}`;
-}
-
+/**
+ * Downloading the customer's image is provider-specific (Meta and Twilio each
+ * had their own authenticated media URLs). With both providers removed there is
+ * no source to fetch from, so image analysis reports that instead of guessing.
+ */
 async function resolveImageDataUrl(
-  message: WhatsAppWebhookMessage,
-  credentials: WhatsAppCredentials
-) {
-  if (credentials.provider === 'meta') {
-    return fetchMetaImageDataUrl(message, credentials);
-  }
-
-  return fetchTwilioImageDataUrl(message, credentials);
+  _message: WhatsAppWebhookMessage,
+  _credentials: WhatsAppCredentials
+): Promise<string> {
+  throw new Error('No WhatsApp provider is connected to download customer images from');
 }
 
-function buildVisionPrompt(params: {
-  customerCaption?: string;
-  merchantName?: string | null;
-}) {
+function buildVisionPrompt(params: { customerCaption?: string; merchantName?: string | null }) {
   const merchantIntro = params.merchantName?.trim()
     ? `You are the WhatsApp support assistant for ${params.merchantName}.`
     : 'You are a WhatsApp support assistant for a merchant.';

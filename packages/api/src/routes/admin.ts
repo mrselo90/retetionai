@@ -6,7 +6,12 @@ import { getQueueStats } from '../queues.js';
 import { getPlatformAiSettings, updatePlatformAiSettings } from '../lib/runtimeModelSettings.js';
 import { normalizePhone, type NormalizedEvent } from '../lib/events.js';
 import { processNormalizedEvent } from '../lib/orderProcessor.js';
-import { addMessageToConversation, findUserByPhone, getConversationHistory, getOrCreateConversation } from '../lib/conversation.js';
+import {
+  addMessageToConversation,
+  findUserByPhone,
+  getConversationHistory,
+  getOrCreateConversation,
+} from '../lib/conversation.js';
 import { generateAIResponse, type Intent } from '../lib/aiAgent.js';
 import { getEffectiveWhatsAppCredentials, sendWhatsAppMessage } from '../lib/whatsapp.js';
 
@@ -16,272 +21,285 @@ const admin = new Hono();
 admin.use('/*', authMiddleware);
 admin.use('/*', adminAuthMiddleware);
 
-function resolveAiWindowStart(aiWindowRaw: string | undefined): { key: 'mtd' | '30d' | '7d'; periodStart: string } {
-    const aiWindow = (aiWindowRaw || 'mtd').toLowerCase();
-    const now = new Date();
-    if (aiWindow === '7d') {
-        const d = new Date(now);
-        d.setDate(d.getDate() - 7);
-        return { key: '7d', periodStart: d.toISOString() };
-    }
-    if (aiWindow === '30d') {
-        const d = new Date(now);
-        d.setDate(d.getDate() - 30);
-        return { key: '30d', periodStart: d.toISOString() };
-    }
-    return { key: 'mtd', periodStart: new Date(now.getFullYear(), now.getMonth(), 1).toISOString() };
+function resolveAiWindowStart(aiWindowRaw: string | undefined): {
+  key: 'mtd' | '30d' | '7d';
+  periodStart: string;
+} {
+  const aiWindow = (aiWindowRaw || 'mtd').toLowerCase();
+  const now = new Date();
+  if (aiWindow === '7d') {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 7);
+    return { key: '7d', periodStart: d.toISOString() };
+  }
+  if (aiWindow === '30d') {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 30);
+    return { key: '30d', periodStart: d.toISOString() };
+  }
+  return { key: 'mtd', periodStart: new Date(now.getFullYear(), now.getMonth(), 1).toISOString() };
 }
 
 function makeTestOrderExternalId(): string {
-    return `TEST-${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  return `TEST-${new Date()
+    .toISOString()
+    .replace(/[-:.TZ]/g, '')
+    .slice(0, 14)}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 }
 
 type ShopifyScenarioDefinition = {
-    id: string;
-    title: string;
-    feature: string;
-    description: string;
-    messageTemplate: string;
-    assistantSeedTemplates?: string[];
-    expectedIntents?: Intent[];
-    expectedGuardrailBlocked?: boolean;
-    mustNotContainPhrases?: string[];
+  id: string;
+  title: string;
+  feature: string;
+  description: string;
+  messageTemplate: string;
+  assistantSeedTemplates?: string[];
+  expectedIntents?: Intent[];
+  expectedGuardrailBlocked?: boolean;
+  mustNotContainPhrases?: string[];
 };
 
 type ScenarioAssertionResult = {
-    id: string;
-    passed: boolean;
-    message: string;
+  id: string;
+  passed: boolean;
+  message: string;
 };
 
 const SHOPIFY_TEST_SCENARIOS: ShopifyScenarioDefinition[] = [
-    {
-        id: 'shopify_usage_how_tr',
-        title: 'Usage guidance (TR)',
-        feature: 'Post-delivery usage guidance',
-        description: 'Customer asks how to use the product in Turkish.',
-        messageTemplate: '{firstProductName} urununu nasil kullanmaliyim?',
-        expectedIntents: ['question'],
-        expectedGuardrailBlocked: false,
-    },
-    {
-        id: 'shopify_usage_frequency_tr',
-        title: 'Usage frequency (TR)',
-        feature: 'Post-delivery usage guidance',
-        description: 'Customer asks frequency in Turkish.',
-        messageTemplate: '{firstProductName} gunde kac kez kullanilir?',
-        expectedIntents: ['question'],
-        expectedGuardrailBlocked: false,
-    },
-    {
-        id: 'shopify_product_pick_numeric',
-        title: 'Product pick by number',
-        feature: 'Order product resolution',
-        description: 'Customer selects product with a numeric reply from an earlier list.',
-        assistantSeedTemplates: [
-            'Kullanmak istediginiz urunu secin:\n{numberedProductList}',
-            'Kullanmayi biliyor musun?',
-        ],
-        messageTemplate: '1',
-        expectedIntents: ['question'],
-        expectedGuardrailBlocked: false,
-        mustNotContainPhrases: ['mesajiniz eksik', 'message is incomplete'],
-    },
-    {
-        id: 'shopify_routine_request',
-        title: 'Routine request',
-        feature: 'Post-delivery routine builder',
-        description: 'Customer asks for a routine using products in the order.',
-        assistantSeedTemplates: ['Kullanmayi biliyor musun?'],
-        messageTemplate: 'Bu urunleri rutin olarak bu sirayla kullanmak istiyorum.',
-        expectedIntents: ['question'],
-        expectedGuardrailBlocked: false,
-    },
-    {
-        id: 'shopify_return_intent_tr',
-        title: 'Return intent (TR)',
-        feature: 'Return prevention / complaint routing',
-        description: 'Customer expresses return/refund intention.',
-        messageTemplate: '{firstProductName} ise yaramadi, iade etmek istiyorum.',
-        expectedIntents: ['return_intent', 'complaint'],
-    },
-    {
-        id: 'shopify_opt_out_tr',
-        title: 'Opt-out request',
-        feature: 'Unsubscribe handling',
-        description: 'Customer asks to stop receiving messages.',
-        messageTemplate: 'Bana artik mesaj gondermeyin.',
-        expectedIntents: ['opt_out'],
-    },
-    {
-        id: 'shopify_usage_how_en',
-        title: 'Usage guidance (EN)',
-        feature: 'Multilingual support',
-        description: 'Customer asks in English.',
-        messageTemplate: 'How should I use {firstProductName} in my routine?',
-        expectedIntents: ['question'],
-        expectedGuardrailBlocked: false,
-    },
-    {
-        id: 'shopify_usage_how_de',
-        title: 'Usage guidance (DE)',
-        feature: 'Multilingual support',
-        description: 'Customer asks in German.',
-        messageTemplate: 'Wie soll ich {firstProductName} verwenden?',
-        expectedIntents: ['question'],
-        expectedGuardrailBlocked: false,
-    },
-    {
-        id: 'shopify_usage_how_hu',
-        title: 'Usage guidance (HU)',
-        feature: 'Multilingual support',
-        description: 'Customer asks in Hungarian.',
-        messageTemplate: 'Hogyan hasznaljam a(z) {firstProductName} termeket?',
-        expectedIntents: ['question'],
-        expectedGuardrailBlocked: false,
-    },
+  {
+    id: 'shopify_usage_how_tr',
+    title: 'Usage guidance (TR)',
+    feature: 'Post-delivery usage guidance',
+    description: 'Customer asks how to use the product in Turkish.',
+    messageTemplate: '{firstProductName} urununu nasil kullanmaliyim?',
+    expectedIntents: ['question'],
+    expectedGuardrailBlocked: false,
+  },
+  {
+    id: 'shopify_usage_frequency_tr',
+    title: 'Usage frequency (TR)',
+    feature: 'Post-delivery usage guidance',
+    description: 'Customer asks frequency in Turkish.',
+    messageTemplate: '{firstProductName} gunde kac kez kullanilir?',
+    expectedIntents: ['question'],
+    expectedGuardrailBlocked: false,
+  },
+  {
+    id: 'shopify_product_pick_numeric',
+    title: 'Product pick by number',
+    feature: 'Order product resolution',
+    description: 'Customer selects product with a numeric reply from an earlier list.',
+    assistantSeedTemplates: [
+      'Kullanmak istediginiz urunu secin:\n{numberedProductList}',
+      'Kullanmayi biliyor musun?',
+    ],
+    messageTemplate: '1',
+    expectedIntents: ['question'],
+    expectedGuardrailBlocked: false,
+    mustNotContainPhrases: ['mesajiniz eksik', 'message is incomplete'],
+  },
+  {
+    id: 'shopify_routine_request',
+    title: 'Routine request',
+    feature: 'Post-delivery routine builder',
+    description: 'Customer asks for a routine using products in the order.',
+    assistantSeedTemplates: ['Kullanmayi biliyor musun?'],
+    messageTemplate: 'Bu urunleri rutin olarak bu sirayla kullanmak istiyorum.',
+    expectedIntents: ['question'],
+    expectedGuardrailBlocked: false,
+  },
+  {
+    id: 'shopify_return_intent_tr',
+    title: 'Return intent (TR)',
+    feature: 'Return prevention / complaint routing',
+    description: 'Customer expresses return/refund intention.',
+    messageTemplate: '{firstProductName} ise yaramadi, iade etmek istiyorum.',
+    expectedIntents: ['return_intent', 'complaint'],
+  },
+  {
+    id: 'shopify_opt_out_tr',
+    title: 'Opt-out request',
+    feature: 'Unsubscribe handling',
+    description: 'Customer asks to stop receiving messages.',
+    messageTemplate: 'Bana artik mesaj gondermeyin.',
+    expectedIntents: ['opt_out'],
+  },
+  {
+    id: 'shopify_usage_how_en',
+    title: 'Usage guidance (EN)',
+    feature: 'Multilingual support',
+    description: 'Customer asks in English.',
+    messageTemplate: 'How should I use {firstProductName} in my routine?',
+    expectedIntents: ['question'],
+    expectedGuardrailBlocked: false,
+  },
+  {
+    id: 'shopify_usage_how_de',
+    title: 'Usage guidance (DE)',
+    feature: 'Multilingual support',
+    description: 'Customer asks in German.',
+    messageTemplate: 'Wie soll ich {firstProductName} verwenden?',
+    expectedIntents: ['question'],
+    expectedGuardrailBlocked: false,
+  },
+  {
+    id: 'shopify_usage_how_hu',
+    title: 'Usage guidance (HU)',
+    feature: 'Multilingual support',
+    description: 'Customer asks in Hungarian.',
+    messageTemplate: 'Hogyan hasznaljam a(z) {firstProductName} termeket?',
+    expectedIntents: ['question'],
+    expectedGuardrailBlocked: false,
+  },
 ];
 
 function buildNumberedProductList(products: Array<{ name: string }>) {
-    return products
-        .slice(0, 5)
-        .map((product, index) => `${index + 1}. ${product.name}`)
-        .join('\n');
+  return products
+    .slice(0, 5)
+    .map((product, index) => `${index + 1}. ${product.name}`)
+    .join('\n');
 }
 
 function resolveTemplateMessage(template: string, products: Array<{ name: string }>) {
-    const firstProductName = products[0]?.name || 'urun';
-    const secondProductName = products[1]?.name || firstProductName;
-    const numberedProductList = buildNumberedProductList(products);
-    return template
-        .replaceAll('{firstProductName}', firstProductName)
-        .replaceAll('{secondProductName}', secondProductName)
-        .replaceAll('{numberedProductList}', numberedProductList);
+  const firstProductName = products[0]?.name || 'urun';
+  const secondProductName = products[1]?.name || firstProductName;
+  const numberedProductList = buildNumberedProductList(products);
+  return template
+    .replaceAll('{firstProductName}', firstProductName)
+    .replaceAll('{secondProductName}', secondProductName)
+    .replaceAll('{numberedProductList}', numberedProductList);
 }
 
 function evaluateScenarioResult(
-    scenario: ShopifyScenarioDefinition,
-    aiResult: Awaited<ReturnType<typeof generateAIResponse>>,
+  scenario: ShopifyScenarioDefinition,
+  aiResult: Awaited<ReturnType<typeof generateAIResponse>>
 ): { passed: boolean; assertions: ScenarioAssertionResult[] } {
-    const assertions: ScenarioAssertionResult[] = [];
-    const response = (aiResult.response || '').trim();
+  const assertions: ScenarioAssertionResult[] = [];
+  const response = (aiResult.response || '').trim();
 
+  assertions.push({
+    id: 'reply_non_empty',
+    passed: response.length > 0,
+    message: response.length > 0 ? 'AI reply produced.' : 'AI reply is empty.',
+  });
+
+  if (scenario.expectedIntents && scenario.expectedIntents.length > 0) {
+    const passed = scenario.expectedIntents.includes(aiResult.intent);
     assertions.push({
-        id: 'reply_non_empty',
-        passed: response.length > 0,
-        message: response.length > 0 ? 'AI reply produced.' : 'AI reply is empty.',
+      id: 'intent_expected',
+      passed,
+      message: passed
+        ? `Intent matched (${aiResult.intent}).`
+        : `Intent mismatch. Expected one of: ${scenario.expectedIntents.join(', ')}. Got: ${aiResult.intent}.`,
     });
+  }
 
-    if (scenario.expectedIntents && scenario.expectedIntents.length > 0) {
-        const passed = scenario.expectedIntents.includes(aiResult.intent);
-        assertions.push({
-            id: 'intent_expected',
-            passed,
-            message: passed
-                ? `Intent matched (${aiResult.intent}).`
-                : `Intent mismatch. Expected one of: ${scenario.expectedIntents.join(', ')}. Got: ${aiResult.intent}.`,
-        });
-    }
+  if (typeof scenario.expectedGuardrailBlocked === 'boolean') {
+    const passed = Boolean(aiResult.guardrailBlocked) === scenario.expectedGuardrailBlocked;
+    assertions.push({
+      id: 'guardrail_expected',
+      passed,
+      message: passed
+        ? `Guardrail state matched (${Boolean(aiResult.guardrailBlocked)}).`
+        : `Guardrail mismatch. Expected ${scenario.expectedGuardrailBlocked}, got ${Boolean(aiResult.guardrailBlocked)}.`,
+    });
+  }
 
-    if (typeof scenario.expectedGuardrailBlocked === 'boolean') {
-        const passed = Boolean(aiResult.guardrailBlocked) === scenario.expectedGuardrailBlocked;
-        assertions.push({
-            id: 'guardrail_expected',
-            passed,
-            message: passed
-                ? `Guardrail state matched (${Boolean(aiResult.guardrailBlocked)}).`
-                : `Guardrail mismatch. Expected ${scenario.expectedGuardrailBlocked}, got ${Boolean(aiResult.guardrailBlocked)}.`,
-        });
-    }
+  if (scenario.mustNotContainPhrases && scenario.mustNotContainPhrases.length > 0) {
+    const normalizedReply = response.toLowerCase();
+    const matchedPhrase = scenario.mustNotContainPhrases.find((phrase) =>
+      normalizedReply.includes(phrase.toLowerCase())
+    );
+    assertions.push({
+      id: 'forbidden_phrase_absent',
+      passed: !matchedPhrase,
+      message: matchedPhrase
+        ? `Forbidden phrase detected: "${matchedPhrase}".`
+        : 'No forbidden phrase detected in reply.',
+    });
+  }
 
-    if (scenario.mustNotContainPhrases && scenario.mustNotContainPhrases.length > 0) {
-        const normalizedReply = response.toLowerCase();
-        const matchedPhrase = scenario.mustNotContainPhrases.find((phrase) =>
-            normalizedReply.includes(phrase.toLowerCase()),
-        );
-        assertions.push({
-            id: 'forbidden_phrase_absent',
-            passed: !matchedPhrase,
-            message: matchedPhrase
-                ? `Forbidden phrase detected: "${matchedPhrase}".`
-                : 'No forbidden phrase detected in reply.',
-        });
-    }
-
-    return {
-        passed: assertions.every((assertion) => assertion.passed),
-        assertions,
-    };
+  return {
+    passed: assertions.every((assertion) => assertion.passed),
+    assertions,
+  };
 }
 
-async function getMerchantOr404(serviceClient: ReturnType<typeof getSupabaseServiceClient>, merchantId: string) {
-    const { data: merchant, error } = await serviceClient
-        .from('merchants')
-        .select('id, name, subscription_plan, subscription_status')
-        .eq('id', merchantId)
-        .maybeSingle();
+async function getMerchantOr404(
+  serviceClient: ReturnType<typeof getSupabaseServiceClient>,
+  merchantId: string
+) {
+  const { data: merchant, error } = await serviceClient
+    .from('merchants')
+    .select('id, name, subscription_plan, subscription_status')
+    .eq('id', merchantId)
+    .maybeSingle();
 
-    if (error || !merchant) return null;
-    return merchant;
+  if (error || !merchant) return null;
+  return merchant;
 }
 
-async function getMerchantProducts(serviceClient: ReturnType<typeof getSupabaseServiceClient>, merchantId: string, productIds?: string[]) {
-    let query = serviceClient
-        .from('products')
-        .select('id, name, external_id, url, created_at, updated_at')
-        .eq('merchant_id', merchantId)
-        .order('updated_at', { ascending: false })
-        .limit(productIds && productIds.length > 0 ? Math.max(productIds.length, 50) : 100);
+async function getMerchantProducts(
+  serviceClient: ReturnType<typeof getSupabaseServiceClient>,
+  merchantId: string,
+  productIds?: string[]
+) {
+  let query = serviceClient
+    .from('products')
+    .select('id, name, external_id, url, created_at, updated_at')
+    .eq('merchant_id', merchantId)
+    .order('updated_at', { ascending: false })
+    .limit(productIds && productIds.length > 0 ? Math.max(productIds.length, 50) : 100);
 
-    if (productIds && productIds.length > 0) {
-        query = query.in('id', productIds);
-    }
+  if (productIds && productIds.length > 0) {
+    query = query.in('id', productIds);
+  }
 
-    const { data, error } = await query;
-    if (error) {
-        throw error;
-    }
-    return data || [];
+  const { data, error } = await query;
+  if (error) {
+    throw error;
+  }
+  return data || [];
 }
 
 function buildNormalizedTestEvent(input: {
-    merchantId: string;
-    integrationId?: string | null;
-    eventType: 'order_created' | 'order_delivered';
-    externalOrderId: string;
-    normalizedPhone: string;
-    customerName?: string;
-    customerEmail?: string;
-    customerLocale?: string;
-    products: Array<{ id: string; name: string; external_id?: string | null; url?: string | null }>;
-    deliveredAt?: string;
+  merchantId: string;
+  integrationId?: string | null;
+  eventType: 'order_created' | 'order_delivered';
+  externalOrderId: string;
+  normalizedPhone: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerLocale?: string;
+  products: Array<{ id: string; name: string; external_id?: string | null; url?: string | null }>;
+  deliveredAt?: string;
 }): NormalizedEvent {
-    const occurredAt = input.deliveredAt || new Date().toISOString();
-    return {
-        merchant_id: input.merchantId,
-        integration_id: input.integrationId || undefined,
-        source: 'super_admin_test',
-        event_type: input.eventType,
-        occurred_at: occurredAt,
-        external_order_id: input.externalOrderId,
-        customer: {
-            phone: input.normalizedPhone,
-            name: input.customerName,
-            email: input.customerEmail,
-        },
-        order: {
-            status: input.eventType === 'order_delivered' ? 'delivered' : 'created',
-            created_at: occurredAt,
-            delivered_at: input.deliveredAt,
-        },
-        items: input.products.map((product) => ({
-            external_product_id: product.external_id || product.id,
-            name: product.name,
-            url: product.url || undefined,
-        })),
-        consent_status: 'opt_in',
-        customer_locale: input.customerLocale || undefined,
-    };
+  const occurredAt = input.deliveredAt || new Date().toISOString();
+  return {
+    merchant_id: input.merchantId,
+    integration_id: input.integrationId || undefined,
+    source: 'super_admin_test',
+    event_type: input.eventType,
+    occurred_at: occurredAt,
+    external_order_id: input.externalOrderId,
+    customer: {
+      phone: input.normalizedPhone,
+      name: input.customerName,
+      email: input.customerEmail,
+    },
+    order: {
+      status: input.eventType === 'order_delivered' ? 'delivered' : 'created',
+      created_at: occurredAt,
+      delivered_at: input.deliveredAt,
+    },
+    items: input.products.map((product) => ({
+      external_product_id: product.external_id || product.id,
+      name: product.name,
+      url: product.url || undefined,
+    })),
+    consent_status: 'opt_in',
+    customer_locale: input.customerLocale || undefined,
+  };
 }
 
 /**
@@ -289,35 +307,35 @@ function buildNormalizedTestEvent(input: {
  * GET /api/admin/stats
  */
 admin.get('/stats', async (c) => {
-    const serviceClient = getSupabaseServiceClient();
+  const serviceClient = getSupabaseServiceClient();
 
-    try {
-        // We run multiple count queries in parallel for performance.
-        // In a real huge production app, we would cache this or use a materialized view.
-        const [
-            { count: totalMerchants },
-            { count: totalUsers },
-            { count: totalOrders },
-            { count: totalConversations }
-        ] = await Promise.all([
-            serviceClient.from('merchants').select('*', { count: 'exact', head: true }),
-            serviceClient.from('users').select('*', { count: 'exact', head: true }),
-            serviceClient.from('orders').select('*', { count: 'exact', head: true }),
-            serviceClient.from('conversations').select('*', { count: 'exact', head: true })
-        ]);
+  try {
+    // We run multiple count queries in parallel for performance.
+    // In a real huge production app, we would cache this or use a materialized view.
+    const [
+      { count: totalMerchants },
+      { count: totalUsers },
+      { count: totalOrders },
+      { count: totalConversations },
+    ] = await Promise.all([
+      serviceClient.from('merchants').select('*', { count: 'exact', head: true }),
+      serviceClient.from('users').select('*', { count: 'exact', head: true }),
+      serviceClient.from('orders').select('*', { count: 'exact', head: true }),
+      serviceClient.from('conversations').select('*', { count: 'exact', head: true }),
+    ]);
 
-        return c.json({
-            stats: {
-                totalMerchants: totalMerchants || 0,
-                totalUsers: totalUsers || 0,
-                totalOrders: totalOrders || 0,
-                totalConversations: totalConversations || 0
-            }
-        });
-    } catch (error) {
-        console.error('Failed to fetch admin stats:', error);
-        return c.json({ error: 'Failed to fetch global stats' }, 500);
-    }
+    return c.json({
+      stats: {
+        totalMerchants: totalMerchants || 0,
+        totalUsers: totalUsers || 0,
+        totalOrders: totalOrders || 0,
+        totalConversations: totalConversations || 0,
+      },
+    });
+  } catch (error) {
+    console.error('Failed to fetch admin stats:', error);
+    return c.json({ error: 'Failed to fetch global stats' }, 500);
+  }
 });
 
 /**
@@ -325,9 +343,9 @@ admin.get('/stats', async (c) => {
  * GET /api/admin/merchants
  */
 admin.get('/merchants', async (c) => {
-    const serviceClient = getSupabaseServiceClient();
+  const serviceClient = getSupabaseServiceClient();
 
-    const fullSelect = `
+  const fullSelect = `
         id,
         name,
         created_at,
@@ -335,65 +353,65 @@ admin.get('/merchants', async (c) => {
         settings,
         integrations (provider, status)
     `;
-    const selectWithoutSettings = `
+  const selectWithoutSettings = `
         id,
         name,
         created_at,
         is_super_admin,
         integrations (provider, status)
     `;
-    const minimalSelect = `
+  const minimalSelect = `
         id,
         name,
         created_at,
         is_super_admin
     `;
 
-    try {
-        const { key: aiWindow, periodStart } = resolveAiWindowStart(c.req.query('ai_window'));
-        const resultFull = await serviceClient
-            .from('merchants')
-            .select(fullSelect)
-            .order('created_at', { ascending: false });
+  try {
+    const { key: aiWindow, periodStart } = resolveAiWindowStart(c.req.query('ai_window'));
+    const resultFull = await serviceClient
+      .from('merchants')
+      .select(fullSelect)
+      .order('created_at', { ascending: false });
 
-        if (!resultFull.error) {
-            const merchants = resultFull.data ?? [];
-            const enriched = await attachAiUsageSummary(serviceClient, merchants, periodStart);
-            return c.json({ merchants: enriched, ai_window: aiWindow });
-        }
-
-        const resultWithoutSettings = await serviceClient
-            .from('merchants')
-            .select(selectWithoutSettings)
-            .order('created_at', { ascending: false });
-
-        if (!resultWithoutSettings.error) {
-            const merchants = (resultWithoutSettings.data || []).map((m: any) => ({
-                ...m,
-                settings: undefined,
-            }));
-            const enriched = await attachAiUsageSummary(serviceClient, merchants, periodStart);
-            return c.json({ merchants: enriched, ai_window: aiWindow });
-        }
-
-        const resultMinimal = await serviceClient
-            .from('merchants')
-            .select(minimalSelect)
-            .order('created_at', { ascending: false });
-
-        if (resultMinimal.error) throw resultMinimal.error;
-
-        const merchants = (resultMinimal.data || []).map((m: any) => ({
-            ...m,
-            settings: undefined,
-            integrations: [],
-        }));
-        const enriched = await attachAiUsageSummary(serviceClient, merchants, periodStart);
-        return c.json({ merchants: enriched, ai_window: aiWindow });
-    } catch (error) {
-        console.error('Failed to fetch all merchants:', error);
-        return c.json({ error: 'Failed to fetch merchants list' }, 500);
+    if (!resultFull.error) {
+      const merchants = resultFull.data ?? [];
+      const enriched = await attachAiUsageSummary(serviceClient, merchants, periodStart);
+      return c.json({ merchants: enriched, ai_window: aiWindow });
     }
+
+    const resultWithoutSettings = await serviceClient
+      .from('merchants')
+      .select(selectWithoutSettings)
+      .order('created_at', { ascending: false });
+
+    if (!resultWithoutSettings.error) {
+      const merchants = (resultWithoutSettings.data || []).map((m: any) => ({
+        ...m,
+        settings: undefined,
+      }));
+      const enriched = await attachAiUsageSummary(serviceClient, merchants, periodStart);
+      return c.json({ merchants: enriched, ai_window: aiWindow });
+    }
+
+    const resultMinimal = await serviceClient
+      .from('merchants')
+      .select(minimalSelect)
+      .order('created_at', { ascending: false });
+
+    if (resultMinimal.error) throw resultMinimal.error;
+
+    const merchants = (resultMinimal.data || []).map((m: any) => ({
+      ...m,
+      settings: undefined,
+      integrations: [],
+    }));
+    const enriched = await attachAiUsageSummary(serviceClient, merchants, periodStart);
+    return c.json({ merchants: enriched, ai_window: aiWindow });
+  } catch (error) {
+    console.error('Failed to fetch all merchants:', error);
+    return c.json({ error: 'Failed to fetch merchants list' }, 500);
+  }
 });
 
 /**
@@ -401,76 +419,100 @@ admin.get('/merchants', async (c) => {
  * GET /api/admin/merchants/:id/ai-usage?ai_window=mtd|30d|7d
  */
 admin.get('/merchants/:id/ai-usage', async (c) => {
-    const serviceClient = getSupabaseServiceClient();
-    const merchantId = c.req.param('id');
-    const { key: aiWindow, periodStart } = resolveAiWindowStart(c.req.query('ai_window'));
+  const serviceClient = getSupabaseServiceClient();
+  const merchantId = c.req.param('id');
+  const { key: aiWindow, periodStart } = resolveAiWindowStart(c.req.query('ai_window'));
 
-    try {
-        const { data: merchant, error: merchantError } = await serviceClient
-            .from('merchants')
-            .select('id, name')
-            .eq('id', merchantId)
-            .maybeSingle();
-        if (merchantError || !merchant) {
-            return c.json({ error: 'Merchant not found' }, 404);
-        }
-
-        const { data: usageRows, error } = await serviceClient
-            .from('ai_usage_events')
-            .select('id, model, feature, request_kind, prompt_tokens, completion_tokens, total_tokens, estimated_cost_usd, created_at, metadata')
-            .eq('merchant_id', merchantId)
-            .gte('created_at', periodStart)
-            .order('created_at', { ascending: false })
-            .limit(200);
-
-        if (error) {
-            if (error.code === '42P01' || error.code === '42703') {
-                return c.json({
-                    merchant,
-                    ai_window: aiWindow,
-                    summary: { total_tokens: 0, estimated_cost_usd: 0, by_model: [], by_feature: [] },
-                    recent_events: [],
-                });
-            }
-            throw error;
-        }
-
-        const rows = (usageRows || []) as any[];
-        const byModel = new Map<string, { total_tokens: number; estimated_cost_usd: number; count: number }>();
-        const byFeature = new Map<string, { total_tokens: number; estimated_cost_usd: number; count: number }>();
-        let totalTokens = 0;
-        let totalCost = 0;
-
-        for (const r of rows) {
-            const model = String(r.model || 'unknown');
-            const feature = String(r.feature || 'unknown');
-            const tokens = Number(r.total_tokens || 0);
-            const cost = Number(r.estimated_cost_usd || 0);
-            totalTokens += tokens;
-            totalCost += cost;
-            const m = byModel.get(model) || { total_tokens: 0, estimated_cost_usd: 0, count: 0 };
-            m.total_tokens += tokens; m.estimated_cost_usd += cost; m.count += 1; byModel.set(model, m);
-            const f = byFeature.get(feature) || { total_tokens: 0, estimated_cost_usd: 0, count: 0 };
-            f.total_tokens += tokens; f.estimated_cost_usd += cost; f.count += 1; byFeature.set(feature, f);
-        }
-
-        return c.json({
-            merchant,
-            ai_window: aiWindow,
-            summary: {
-                total_tokens: totalTokens,
-                estimated_cost_usd: Number(totalCost.toFixed(6)),
-                by_model: [...byModel.entries()].map(([model, v]) => ({ model, ...v, estimated_cost_usd: Number(v.estimated_cost_usd.toFixed(6)) }))
-                    .sort((a, b) => b.total_tokens - a.total_tokens),
-                by_feature: [...byFeature.entries()].map(([feature, v]) => ({ feature, ...v, estimated_cost_usd: Number(v.estimated_cost_usd.toFixed(6)) }))
-                    .sort((a, b) => b.total_tokens - a.total_tokens),
-            },
-            recent_events: rows.slice(0, 20),
-        });
-    } catch (error) {
-        console.error('Failed to fetch merchant AI usage detail:', error);
-        return c.json({ error: 'Failed to fetch merchant AI usage detail' }, 500);
+  try {
+    const { data: merchant, error: merchantError } = await serviceClient
+      .from('merchants')
+      .select('id, name')
+      .eq('id', merchantId)
+      .maybeSingle();
+    if (merchantError || !merchant) {
+      return c.json({ error: 'Merchant not found' }, 404);
     }
+
+    const { data: usageRows, error } = await serviceClient
+      .from('ai_usage_events')
+      .select(
+        'id, model, feature, request_kind, prompt_tokens, completion_tokens, total_tokens, estimated_cost_usd, created_at, metadata'
+      )
+      .eq('merchant_id', merchantId)
+      .gte('created_at', periodStart)
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (error) {
+      if (error.code === '42P01' || error.code === '42703') {
+        return c.json({
+          merchant,
+          ai_window: aiWindow,
+          summary: { total_tokens: 0, estimated_cost_usd: 0, by_model: [], by_feature: [] },
+          recent_events: [],
+        });
+      }
+      throw error;
+    }
+
+    const rows = (usageRows || []) as any[];
+    const byModel = new Map<
+      string,
+      { total_tokens: number; estimated_cost_usd: number; count: number }
+    >();
+    const byFeature = new Map<
+      string,
+      { total_tokens: number; estimated_cost_usd: number; count: number }
+    >();
+    let totalTokens = 0;
+    let totalCost = 0;
+
+    for (const r of rows) {
+      const model = String(r.model || 'unknown');
+      const feature = String(r.feature || 'unknown');
+      const tokens = Number(r.total_tokens || 0);
+      const cost = Number(r.estimated_cost_usd || 0);
+      totalTokens += tokens;
+      totalCost += cost;
+      const m = byModel.get(model) || { total_tokens: 0, estimated_cost_usd: 0, count: 0 };
+      m.total_tokens += tokens;
+      m.estimated_cost_usd += cost;
+      m.count += 1;
+      byModel.set(model, m);
+      const f = byFeature.get(feature) || { total_tokens: 0, estimated_cost_usd: 0, count: 0 };
+      f.total_tokens += tokens;
+      f.estimated_cost_usd += cost;
+      f.count += 1;
+      byFeature.set(feature, f);
+    }
+
+    return c.json({
+      merchant,
+      ai_window: aiWindow,
+      summary: {
+        total_tokens: totalTokens,
+        estimated_cost_usd: Number(totalCost.toFixed(6)),
+        by_model: [...byModel.entries()]
+          .map(([model, v]) => ({
+            model,
+            ...v,
+            estimated_cost_usd: Number(v.estimated_cost_usd.toFixed(6)),
+          }))
+          .sort((a, b) => b.total_tokens - a.total_tokens),
+        by_feature: [...byFeature.entries()]
+          .map(([feature, v]) => ({
+            feature,
+            ...v,
+            estimated_cost_usd: Number(v.estimated_cost_usd.toFixed(6)),
+          }))
+          .sort((a, b) => b.total_tokens - a.total_tokens),
+      },
+      recent_events: rows.slice(0, 20),
+    });
+  } catch (error) {
+    console.error('Failed to fetch merchant AI usage detail:', error);
+    return c.json({ error: 'Failed to fetch merchant AI usage detail' }, 500);
+  }
 });
 
 /**
@@ -478,51 +520,45 @@ admin.get('/merchants/:id/ai-usage', async (c) => {
  * GET /api/admin/merchants/:id/test-kit
  */
 admin.get('/merchants/:id/test-kit', async (c) => {
-    const serviceClient = getSupabaseServiceClient();
-    const merchantId = c.req.param('id');
+  const serviceClient = getSupabaseServiceClient();
+  const merchantId = c.req.param('id');
 
-    try {
-        const merchant = await getMerchantOr404(serviceClient, merchantId);
-        if (!merchant) {
-            return c.json({ error: 'Merchant not found' }, 404);
-        }
-
-        const [products, integrations, effectiveWhatsApp] = await Promise.all([
-            getMerchantProducts(serviceClient, merchantId),
-            serviceClient
-                .from('integrations')
-                .select('provider, status')
-                .eq('merchant_id', merchantId),
-            getEffectiveWhatsAppCredentials(merchantId),
-        ]);
-
-        return c.json({
-            merchant,
-            integrations: integrations.data || [],
-            products: products.map((product: any) => ({
-                id: product.id,
-                name: product.name,
-                externalId: product.external_id || null,
-                url: product.url || null,
-                updatedAt: product.updated_at || product.created_at || null,
-            })),
-            whatsapp: effectiveWhatsApp
-                ? {
-                    configured: true,
-                    provider: effectiveWhatsApp.provider,
-                    from:
-                        effectiveWhatsApp.provider === 'twilio'
-                            ? effectiveWhatsApp.fromNumber
-                            : effectiveWhatsApp.phoneNumberId,
-                }
-                : {
-                    configured: false,
-                },
-        });
-    } catch (error) {
-        console.error('Failed to load merchant test kit:', error);
-        return c.json({ error: 'Failed to load merchant test kit' }, 500);
+  try {
+    const merchant = await getMerchantOr404(serviceClient, merchantId);
+    if (!merchant) {
+      return c.json({ error: 'Merchant not found' }, 404);
     }
+
+    const [products, integrations, effectiveWhatsApp] = await Promise.all([
+      getMerchantProducts(serviceClient, merchantId),
+      serviceClient.from('integrations').select('provider, status').eq('merchant_id', merchantId),
+      getEffectiveWhatsAppCredentials(merchantId),
+    ]);
+
+    return c.json({
+      merchant,
+      integrations: integrations.data || [],
+      products: products.map((product: any) => ({
+        id: product.id,
+        name: product.name,
+        externalId: product.external_id || null,
+        url: product.url || null,
+        updatedAt: product.updated_at || product.created_at || null,
+      })),
+      whatsapp: effectiveWhatsApp
+        ? {
+            configured: true,
+            provider: effectiveWhatsApp.provider,
+            from: effectiveWhatsApp.phoneNumberDisplay ?? null,
+          }
+        : {
+            configured: false,
+          },
+    });
+  } catch (error) {
+    console.error('Failed to load merchant test kit:', error);
+    return c.json({ error: 'Failed to load merchant test kit' }, 500);
+  }
 });
 
 /**
@@ -530,14 +566,14 @@ admin.get('/merchants/:id/test-kit', async (c) => {
  * GET /api/admin/test-kit/shopify-scenarios
  */
 admin.get('/test-kit/shopify-scenarios', async (c) => {
-    return c.json({
-        scenarios: SHOPIFY_TEST_SCENARIOS.map((scenario) => ({
-            id: scenario.id,
-            title: scenario.title,
-            feature: scenario.feature,
-            description: scenario.description,
-        })),
-    });
+  return c.json({
+    scenarios: SHOPIFY_TEST_SCENARIOS.map((scenario) => ({
+      id: scenario.id,
+      title: scenario.title,
+      feature: scenario.feature,
+      description: scenario.description,
+    })),
+  });
 });
 
 /**
@@ -545,303 +581,345 @@ admin.get('/test-kit/shopify-scenarios', async (c) => {
  * POST /api/admin/test-kit/shopify-scenarios/run
  */
 admin.post('/test-kit/shopify-scenarios/run', async (c) => {
-    const serviceClient = getSupabaseServiceClient();
+  const serviceClient = getSupabaseServiceClient();
 
-    try {
-        const body = await c.req.json();
-        const merchantId = typeof body.merchantId === 'string' ? body.merchantId.trim() : '';
-        const requestedScenarioIds: string[] = Array.isArray(body.scenarioIds)
-            ? body.scenarioIds.map((value: unknown) => String(value).trim()).filter(Boolean)
-            : [];
-        const requestedProductIds = Array.isArray(body.productIds)
-            ? body.productIds.map((value: unknown) => String(value).trim()).filter(Boolean)
-            : [];
-        const customerPhoneRaw = typeof body.customerPhone === 'string' ? body.customerPhone.trim() : '';
-        const customerName = typeof body.customerName === 'string' ? body.customerName.trim() : 'Test Customer';
-        const customerEmail = typeof body.customerEmail === 'string' ? body.customerEmail.trim().toLowerCase() : '';
-        const customerLocale = typeof body.customerLocale === 'string' ? body.customerLocale.trim().toLowerCase() : 'tr';
-        const externalOrderId = typeof body.externalOrderId === 'string' && body.externalOrderId.trim()
-            ? body.externalOrderId.trim()
-            : makeTestOrderExternalId();
+  try {
+    const body = await c.req.json();
+    const merchantId = typeof body.merchantId === 'string' ? body.merchantId.trim() : '';
+    const requestedScenarioIds: string[] = Array.isArray(body.scenarioIds)
+      ? body.scenarioIds.map((value: unknown) => String(value).trim()).filter(Boolean)
+      : [];
+    const requestedProductIds = Array.isArray(body.productIds)
+      ? body.productIds.map((value: unknown) => String(value).trim()).filter(Boolean)
+      : [];
+    const customerPhoneRaw =
+      typeof body.customerPhone === 'string' ? body.customerPhone.trim() : '';
+    const customerName =
+      typeof body.customerName === 'string' ? body.customerName.trim() : 'Test Customer';
+    const customerEmail =
+      typeof body.customerEmail === 'string' ? body.customerEmail.trim().toLowerCase() : '';
+    const customerLocale =
+      typeof body.customerLocale === 'string' ? body.customerLocale.trim().toLowerCase() : 'tr';
+    const externalOrderId =
+      typeof body.externalOrderId === 'string' && body.externalOrderId.trim()
+        ? body.externalOrderId.trim()
+        : makeTestOrderExternalId();
 
-        if (!merchantId) {
-            return c.json({ error: 'merchantId is required' }, 400);
-        }
-        if (!customerPhoneRaw) {
-            return c.json({ error: 'customerPhone is required' }, 400);
-        }
-
-        let normalizedPhone: string;
-        try {
-            normalizedPhone = normalizePhone(customerPhoneRaw);
-        } catch {
-            return c.json({ error: 'Enter a valid customer phone in E.164 or local format' }, 400);
-        }
-
-        const merchant = await getMerchantOr404(serviceClient, merchantId);
-        if (!merchant) {
-            return c.json({ error: 'Merchant not found' }, 404);
-        }
-
-        const validScenarioIds = new Set(SHOPIFY_TEST_SCENARIOS.map((scenario) => scenario.id));
-        const invalidScenarioIds = requestedScenarioIds.filter((scenarioId) => !validScenarioIds.has(scenarioId));
-        if (invalidScenarioIds.length > 0) {
-            return c.json({ error: `Unknown scenario IDs: ${invalidScenarioIds.join(', ')}` }, 400);
-        }
-
-        const scenariosToRun = requestedScenarioIds.length > 0
-            ? SHOPIFY_TEST_SCENARIOS.filter((scenario) => requestedScenarioIds.includes(scenario.id))
-            : SHOPIFY_TEST_SCENARIOS;
-
-        if (!scenariosToRun.length) {
-            return c.json({ error: 'No scenarios selected' }, 400);
-        }
-
-        let products = requestedProductIds.length > 0
-            ? await getMerchantProducts(serviceClient, merchantId, requestedProductIds)
-            : await getMerchantProducts(serviceClient, merchantId);
-        if (requestedProductIds.length > 0 && products.length !== requestedProductIds.length) {
-            return c.json({ error: 'One or more selected products do not belong to the merchant' }, 400);
-        }
-        products = products.slice(0, 5);
-        if (products.length === 0) {
-            return c.json({ error: 'Merchant has no products to run Shopify scenarios' }, 400);
-        }
-
-        const { data: integration } = await serviceClient
-            .from('integrations')
-            .select('id')
-            .eq('merchant_id', merchantId)
-            .eq('provider', 'shopify')
-            .maybeSingle();
-
-        const createdEvent = buildNormalizedTestEvent({
-            merchantId,
-            integrationId: integration?.id ?? null,
-            eventType: 'order_created',
-            externalOrderId,
-            normalizedPhone,
-            customerName: customerName || undefined,
-            customerEmail: customerEmail || undefined,
-            customerLocale: customerLocale || undefined,
-            products: products as Array<{ id: string; name: string; external_id?: string | null; url?: string | null }>,
-        });
-        const createdResult = await processNormalizedEvent(createdEvent);
-
-        const deliveredAt = new Date().toISOString();
-        const deliveredEvent = buildNormalizedTestEvent({
-            merchantId,
-            integrationId: integration?.id ?? null,
-            eventType: 'order_delivered',
-            externalOrderId,
-            normalizedPhone,
-            customerName: customerName || undefined,
-            customerEmail: customerEmail || undefined,
-            customerLocale: customerLocale || undefined,
-            products: products as Array<{ id: string; name: string; external_id?: string | null; url?: string | null }>,
-            deliveredAt,
-        });
-        const deliveredResult = await processNormalizedEvent(deliveredEvent);
-
-        const { data: order } = await serviceClient
-            .from('orders')
-            .select('id, external_order_id, status, delivery_date, created_at')
-            .eq('merchant_id', merchantId)
-            .eq('external_order_id', externalOrderId)
-            .maybeSingle();
-
-        const user = await findUserByPhone(normalizedPhone, merchantId);
-        if (!user) {
-            return c.json({ error: 'Failed to resolve customer after creating test order' }, 500);
-        }
-
-        const conversationId = await getOrCreateConversation(
-            user.userId,
-            order?.id || deliveredResult.orderId || createdResult.orderId,
-            merchantId,
-        );
-
-        const scenarioResults: Array<{
-            id: string;
-            title: string;
-            feature: string;
-            passed: boolean;
-            inboundMessage: string;
-            aiReply: string;
-            intent: string;
-            guardrailBlocked: boolean;
-            upsellTriggered: boolean;
-            assertions: ScenarioAssertionResult[];
-        }> = [];
-
-        for (const scenario of scenariosToRun) {
-            const assistantSeedTemplates = scenario.assistantSeedTemplates || [];
-            for (const assistantSeedTemplate of assistantSeedTemplates) {
-                const seedMessage = resolveTemplateMessage(
-                    assistantSeedTemplate,
-                    products as Array<{ name: string }>,
-                );
-                await addMessageToConversation(conversationId, 'assistant', seedMessage);
-            }
-
-            const inboundMessage = resolveTemplateMessage(
-                scenario.messageTemplate,
-                products as Array<{ name: string }>,
-            );
-            await addMessageToConversation(conversationId, 'user', inboundMessage);
-
-            const history = await getConversationHistory(conversationId);
-            const aiResult = await generateAIResponse(
-                inboundMessage,
-                merchantId,
-                user.userId,
-                conversationId,
-                order?.id || deliveredResult.orderId || createdResult.orderId,
-                history,
-            );
-
-            await addMessageToConversation(conversationId, 'assistant', aiResult.response);
-
-            const evaluation = evaluateScenarioResult(scenario, aiResult);
-            scenarioResults.push({
-                id: scenario.id,
-                title: scenario.title,
-                feature: scenario.feature,
-                passed: evaluation.passed,
-                inboundMessage,
-                aiReply: aiResult.response,
-                intent: aiResult.intent,
-                guardrailBlocked: Boolean(aiResult.guardrailBlocked),
-                upsellTriggered: Boolean(aiResult.upsellTriggered),
-                assertions: evaluation.assertions,
-            });
-        }
-
-        const passed = scenarioResults.filter((result) => result.passed).length;
-        const failed = scenarioResults.length - passed;
-
-        return c.json({
-            success: failed === 0,
-            merchant: {
-                id: merchant.id,
-                name: merchant.name,
-            },
-            order: {
-                id: order?.id || deliveredResult.orderId || createdResult.orderId,
-                externalOrderId,
-                status: order?.status || 'delivered',
-                deliveryDate: order?.delivery_date || deliveredAt,
-                createdAt: order?.created_at || createdEvent.occurred_at,
-            },
-            user: {
-                id: user.userId,
-                phone: normalizedPhone,
-                name: user.userName || customerName || null,
-                email: customerEmail || null,
-            },
-            products: products.map((product: any) => ({
-                id: product.id,
-                name: product.name,
-                externalId: product.external_id || null,
-            })),
-            summary: {
-                total: scenarioResults.length,
-                passed,
-                failed,
-            },
-            results: scenarioResults,
-        });
-    } catch (error) {
-        console.error('Failed to run Shopify test scenarios:', error);
-        return c.json({
-            error: error instanceof Error ? error.message : 'Failed to run Shopify test scenarios',
-        }, 500);
+    if (!merchantId) {
+      return c.json({ error: 'merchantId is required' }, 400);
     }
+    if (!customerPhoneRaw) {
+      return c.json({ error: 'customerPhone is required' }, 400);
+    }
+
+    let normalizedPhone: string;
+    try {
+      normalizedPhone = normalizePhone(customerPhoneRaw);
+    } catch {
+      return c.json({ error: 'Enter a valid customer phone in E.164 or local format' }, 400);
+    }
+
+    const merchant = await getMerchantOr404(serviceClient, merchantId);
+    if (!merchant) {
+      return c.json({ error: 'Merchant not found' }, 404);
+    }
+
+    const validScenarioIds = new Set(SHOPIFY_TEST_SCENARIOS.map((scenario) => scenario.id));
+    const invalidScenarioIds = requestedScenarioIds.filter(
+      (scenarioId) => !validScenarioIds.has(scenarioId)
+    );
+    if (invalidScenarioIds.length > 0) {
+      return c.json({ error: `Unknown scenario IDs: ${invalidScenarioIds.join(', ')}` }, 400);
+    }
+
+    const scenariosToRun =
+      requestedScenarioIds.length > 0
+        ? SHOPIFY_TEST_SCENARIOS.filter((scenario) => requestedScenarioIds.includes(scenario.id))
+        : SHOPIFY_TEST_SCENARIOS;
+
+    if (!scenariosToRun.length) {
+      return c.json({ error: 'No scenarios selected' }, 400);
+    }
+
+    let products =
+      requestedProductIds.length > 0
+        ? await getMerchantProducts(serviceClient, merchantId, requestedProductIds)
+        : await getMerchantProducts(serviceClient, merchantId);
+    if (requestedProductIds.length > 0 && products.length !== requestedProductIds.length) {
+      return c.json({ error: 'One or more selected products do not belong to the merchant' }, 400);
+    }
+    products = products.slice(0, 5);
+    if (products.length === 0) {
+      return c.json({ error: 'Merchant has no products to run Shopify scenarios' }, 400);
+    }
+
+    const { data: integration } = await serviceClient
+      .from('integrations')
+      .select('id')
+      .eq('merchant_id', merchantId)
+      .eq('provider', 'shopify')
+      .maybeSingle();
+
+    const createdEvent = buildNormalizedTestEvent({
+      merchantId,
+      integrationId: integration?.id ?? null,
+      eventType: 'order_created',
+      externalOrderId,
+      normalizedPhone,
+      customerName: customerName || undefined,
+      customerEmail: customerEmail || undefined,
+      customerLocale: customerLocale || undefined,
+      products: products as Array<{
+        id: string;
+        name: string;
+        external_id?: string | null;
+        url?: string | null;
+      }>,
+    });
+    const createdResult = await processNormalizedEvent(createdEvent);
+
+    const deliveredAt = new Date().toISOString();
+    const deliveredEvent = buildNormalizedTestEvent({
+      merchantId,
+      integrationId: integration?.id ?? null,
+      eventType: 'order_delivered',
+      externalOrderId,
+      normalizedPhone,
+      customerName: customerName || undefined,
+      customerEmail: customerEmail || undefined,
+      customerLocale: customerLocale || undefined,
+      products: products as Array<{
+        id: string;
+        name: string;
+        external_id?: string | null;
+        url?: string | null;
+      }>,
+      deliveredAt,
+    });
+    const deliveredResult = await processNormalizedEvent(deliveredEvent);
+
+    const { data: order } = await serviceClient
+      .from('orders')
+      .select('id, external_order_id, status, delivery_date, created_at')
+      .eq('merchant_id', merchantId)
+      .eq('external_order_id', externalOrderId)
+      .maybeSingle();
+
+    const user = await findUserByPhone(normalizedPhone, merchantId);
+    if (!user) {
+      return c.json({ error: 'Failed to resolve customer after creating test order' }, 500);
+    }
+
+    const conversationId = await getOrCreateConversation(
+      user.userId,
+      order?.id || deliveredResult.orderId || createdResult.orderId,
+      merchantId
+    );
+
+    const scenarioResults: Array<{
+      id: string;
+      title: string;
+      feature: string;
+      passed: boolean;
+      inboundMessage: string;
+      aiReply: string;
+      intent: string;
+      guardrailBlocked: boolean;
+      upsellTriggered: boolean;
+      assertions: ScenarioAssertionResult[];
+    }> = [];
+
+    for (const scenario of scenariosToRun) {
+      const assistantSeedTemplates = scenario.assistantSeedTemplates || [];
+      for (const assistantSeedTemplate of assistantSeedTemplates) {
+        const seedMessage = resolveTemplateMessage(
+          assistantSeedTemplate,
+          products as Array<{ name: string }>
+        );
+        await addMessageToConversation(conversationId, 'assistant', seedMessage);
+      }
+
+      const inboundMessage = resolveTemplateMessage(
+        scenario.messageTemplate,
+        products as Array<{ name: string }>
+      );
+      await addMessageToConversation(conversationId, 'user', inboundMessage);
+
+      const history = await getConversationHistory(conversationId);
+      const aiResult = await generateAIResponse(
+        inboundMessage,
+        merchantId,
+        user.userId,
+        conversationId,
+        order?.id || deliveredResult.orderId || createdResult.orderId,
+        history
+      );
+
+      await addMessageToConversation(conversationId, 'assistant', aiResult.response);
+
+      const evaluation = evaluateScenarioResult(scenario, aiResult);
+      scenarioResults.push({
+        id: scenario.id,
+        title: scenario.title,
+        feature: scenario.feature,
+        passed: evaluation.passed,
+        inboundMessage,
+        aiReply: aiResult.response,
+        intent: aiResult.intent,
+        guardrailBlocked: Boolean(aiResult.guardrailBlocked),
+        upsellTriggered: Boolean(aiResult.upsellTriggered),
+        assertions: evaluation.assertions,
+      });
+    }
+
+    const passed = scenarioResults.filter((result) => result.passed).length;
+    const failed = scenarioResults.length - passed;
+
+    return c.json({
+      success: failed === 0,
+      merchant: {
+        id: merchant.id,
+        name: merchant.name,
+      },
+      order: {
+        id: order?.id || deliveredResult.orderId || createdResult.orderId,
+        externalOrderId,
+        status: order?.status || 'delivered',
+        deliveryDate: order?.delivery_date || deliveredAt,
+        createdAt: order?.created_at || createdEvent.occurred_at,
+      },
+      user: {
+        id: user.userId,
+        phone: normalizedPhone,
+        name: user.userName || customerName || null,
+        email: customerEmail || null,
+      },
+      products: products.map((product: any) => ({
+        id: product.id,
+        name: product.name,
+        externalId: product.external_id || null,
+      })),
+      summary: {
+        total: scenarioResults.length,
+        passed,
+        failed,
+      },
+      results: scenarioResults,
+    });
+  } catch (error) {
+    console.error('Failed to run Shopify test scenarios:', error);
+    return c.json(
+      {
+        error: error instanceof Error ? error.message : 'Failed to run Shopify test scenarios',
+      },
+      500
+    );
+  }
 });
 
-async function attachAiUsageSummary(serviceClient: ReturnType<typeof getSupabaseServiceClient>, merchants: any[], periodStartIso: string) {
-    const merchantIds = merchants.map((m: any) => m.id).filter(Boolean);
-    if (!merchantIds.length) return merchants;
-    const { data: usageRows, error } = await serviceClient
-        .from('ai_usage_events')
-        .select('merchant_id, model, feature, total_tokens, estimated_cost_usd')
-        .in('merchant_id', merchantIds)
-        .gte('created_at', periodStartIso);
+async function attachAiUsageSummary(
+  serviceClient: ReturnType<typeof getSupabaseServiceClient>,
+  merchants: any[],
+  periodStartIso: string
+) {
+  const merchantIds = merchants.map((m: any) => m.id).filter(Boolean);
+  if (!merchantIds.length) return merchants;
+  const { data: usageRows, error } = await serviceClient
+    .from('ai_usage_events')
+    .select('merchant_id, model, feature, total_tokens, estimated_cost_usd')
+    .in('merchant_id', merchantIds)
+    .gte('created_at', periodStartIso);
 
-    if (error) {
-        if (error.code !== '42P01' && error.code !== '42703') {
-            console.warn('Failed to load ai_usage_events for admin merchants:', error);
-        }
-        return merchants.map((m: any) => ({
-            ...m,
-            ai_usage_mtd: {
-                total_tokens: 0,
-                estimated_cost_usd: 0,
-                top_model: null,
-                by_model: [],
-                by_feature: [],
-            },
-        }));
+  if (error) {
+    if (error.code !== '42P01' && error.code !== '42703') {
+      console.warn('Failed to load ai_usage_events for admin merchants:', error);
     }
+    return merchants.map((m: any) => ({
+      ...m,
+      ai_usage_mtd: {
+        total_tokens: 0,
+        estimated_cost_usd: 0,
+        top_model: null,
+        by_model: [],
+        by_feature: [],
+      },
+    }));
+  }
 
-    const agg = new Map<string, {
-        totalTokens: number;
-        totalCostUsd: number;
-        byModel: Map<string, { tokens: number; costUsd: number }>;
-        byFeature: Map<string, { tokens: number; costUsd: number }>;
-    }>();
-
-    for (const row of (usageRows || []) as any[]) {
-        const merchantId = row.merchant_id as string;
-        const model = String(row.model || 'unknown');
-        const feature = String(row.feature || 'unknown');
-        const totalTokens = Number(row.total_tokens || 0);
-        const costUsd = Number(row.estimated_cost_usd || 0);
-        const entry = agg.get(merchantId) || { totalTokens: 0, totalCostUsd: 0, byModel: new Map(), byFeature: new Map() };
-        entry.totalTokens += totalTokens;
-        entry.totalCostUsd += costUsd;
-        const byModel = entry.byModel.get(model) || { tokens: 0, costUsd: 0 };
-        byModel.tokens += totalTokens;
-        byModel.costUsd += costUsd;
-        entry.byModel.set(model, byModel);
-        const byFeature = entry.byFeature.get(feature) || { tokens: 0, costUsd: 0 };
-        byFeature.tokens += totalTokens;
-        byFeature.costUsd += costUsd;
-        entry.byFeature.set(feature, byFeature);
-        agg.set(merchantId, entry);
+  const agg = new Map<
+    string,
+    {
+      totalTokens: number;
+      totalCostUsd: number;
+      byModel: Map<string, { tokens: number; costUsd: number }>;
+      byFeature: Map<string, { tokens: number; costUsd: number }>;
     }
+  >();
 
-    return merchants.map((m: any) => {
-        const a = agg.get(m.id);
-        if (!a) {
-            return {
-                ...m,
-                ai_usage_mtd: {
-                    total_tokens: 0,
-                    estimated_cost_usd: 0,
-                    top_model: null,
-                    by_model: [],
-                    by_feature: [],
-                },
-            };
-        }
-        const byModel = [...a.byModel.entries()]
-            .map(([model, v]) => ({ model, total_tokens: v.tokens, estimated_cost_usd: Number(v.costUsd.toFixed(6)) }))
-            .sort((x, y) => y.total_tokens - x.total_tokens);
-        const byFeature = [...a.byFeature.entries()]
-            .map(([feature, v]) => ({ feature, total_tokens: v.tokens, estimated_cost_usd: Number(v.costUsd.toFixed(6)) }))
-            .sort((x, y) => y.total_tokens - x.total_tokens);
-        return {
-            ...m,
-            ai_usage_mtd: {
-                total_tokens: a.totalTokens,
-                estimated_cost_usd: Number(a.totalCostUsd.toFixed(6)),
-                top_model: byModel[0]?.model || null,
-                by_model: byModel,
-                by_feature: byFeature,
-            },
-        };
-    });
+  for (const row of (usageRows || []) as any[]) {
+    const merchantId = row.merchant_id as string;
+    const model = String(row.model || 'unknown');
+    const feature = String(row.feature || 'unknown');
+    const totalTokens = Number(row.total_tokens || 0);
+    const costUsd = Number(row.estimated_cost_usd || 0);
+    const entry = agg.get(merchantId) || {
+      totalTokens: 0,
+      totalCostUsd: 0,
+      byModel: new Map(),
+      byFeature: new Map(),
+    };
+    entry.totalTokens += totalTokens;
+    entry.totalCostUsd += costUsd;
+    const byModel = entry.byModel.get(model) || { tokens: 0, costUsd: 0 };
+    byModel.tokens += totalTokens;
+    byModel.costUsd += costUsd;
+    entry.byModel.set(model, byModel);
+    const byFeature = entry.byFeature.get(feature) || { tokens: 0, costUsd: 0 };
+    byFeature.tokens += totalTokens;
+    byFeature.costUsd += costUsd;
+    entry.byFeature.set(feature, byFeature);
+    agg.set(merchantId, entry);
+  }
+
+  return merchants.map((m: any) => {
+    const a = agg.get(m.id);
+    if (!a) {
+      return {
+        ...m,
+        ai_usage_mtd: {
+          total_tokens: 0,
+          estimated_cost_usd: 0,
+          top_model: null,
+          by_model: [],
+          by_feature: [],
+        },
+      };
+    }
+    const byModel = [...a.byModel.entries()]
+      .map(([model, v]) => ({
+        model,
+        total_tokens: v.tokens,
+        estimated_cost_usd: Number(v.costUsd.toFixed(6)),
+      }))
+      .sort((x, y) => y.total_tokens - x.total_tokens);
+    const byFeature = [...a.byFeature.entries()]
+      .map(([feature, v]) => ({
+        feature,
+        total_tokens: v.tokens,
+        estimated_cost_usd: Number(v.costUsd.toFixed(6)),
+      }))
+      .sort((x, y) => y.total_tokens - x.total_tokens);
+    return {
+      ...m,
+      ai_usage_mtd: {
+        total_tokens: a.totalTokens,
+        estimated_cost_usd: Number(a.totalCostUsd.toFixed(6)),
+        top_model: byModel[0]?.model || null,
+        by_model: byModel,
+        by_feature: byFeature,
+      },
+    };
+  });
 }
 
 /**
@@ -849,106 +927,106 @@ async function attachAiUsageSummary(serviceClient: ReturnType<typeof getSupabase
  * GET /api/admin/system-health
  */
 admin.get('/system-health', async (c) => {
-    try {
-        const redisInfo = await getRedisClient().info('server');
-        const queueStats = await getQueueStats();
+  try {
+    const redisInfo = await getRedisClient().info('server');
+    const queueStats = await getQueueStats();
 
-        return c.json({
-            status: 'healthy',
-            redis: {
-                connected: getRedisClient().status === 'ready',
-                uptime: redisInfo.match(/uptime_in_seconds:(\d+)/)?.[1] || 'unknown'
-            },
-            queues: queueStats
-        });
-    } catch (error) {
-        console.error('Failed to fetch system health:', error);
-        return c.json({ error: 'Failed to fetch system health' }, 500);
-    }
+    return c.json({
+      status: 'healthy',
+      redis: {
+        connected: getRedisClient().status === 'ready',
+        uptime: redisInfo.match(/uptime_in_seconds:(\d+)/)?.[1] || 'unknown',
+      },
+      queues: queueStats,
+    });
+  } catch (error) {
+    console.error('Failed to fetch system health:', error);
+    return c.json({ error: 'Failed to fetch system health' }, 500);
+  }
 });
 
 /**
  * Get / Update global AI model settings (super admin)
  */
 admin.get('/ai-settings', async (c) => {
-    try {
-        const settings = await getPlatformAiSettings();
-        return c.json({ settings });
-    } catch (error) {
-        console.error('Failed to fetch AI settings:', error);
-        return c.json({ error: 'Failed to fetch AI settings' }, 500);
-    }
+  try {
+    const settings = await getPlatformAiSettings();
+    return c.json({ settings });
+  } catch (error) {
+    console.error('Failed to fetch AI settings:', error);
+    return c.json({ error: 'Failed to fetch AI settings' }, 500);
+  }
 });
 
 admin.put('/ai-settings', async (c) => {
-    try {
-        const body = await c.req.json();
-        const parseModelList = (value: unknown) =>
-            Array.isArray(value)
-                ? value.map((x: unknown) => String(x).trim()).filter(Boolean)
-                : typeof value === 'string'
-                    ? value.split(',').map((x) => x.trim()).filter(Boolean)
-                    : undefined;
-        const defaultLlmModel = typeof body.default_llm_model === 'string' ? body.default_llm_model.trim() : '';
-        const allowedLlmModels = parseModelList(body.allowed_llm_models);
-        const defaultEmbeddingModel = typeof body.default_embedding_model === 'string' ? body.default_embedding_model.trim() : '';
-        const allowedEmbeddingModels = parseModelList(body.allowed_embedding_models);
-        const defaultVisionModel = typeof body.default_vision_model === 'string' ? body.default_vision_model.trim() : '';
-        const allowedVisionModels = parseModelList(body.allowed_vision_models);
-        const corporateWhatsAppProvider =
-            typeof body.corporate_whatsapp_provider === 'string'
-                ? body.corporate_whatsapp_provider.trim().toLowerCase()
-                : 'twilio';
-        const corporateWhatsAppFromNumber =
-            typeof body.corporate_whatsapp_from_number === 'string'
-                ? body.corporate_whatsapp_from_number.trim()
-                : '';
-        const corporateWhatsAppPhoneNumberDisplay =
-            typeof body.corporate_whatsapp_phone_number_display === 'string'
-                ? body.corporate_whatsapp_phone_number_display.trim()
-                : '';
-        const forceCorporateWhatsAppForCustomerMessaging = body.force_corporate_whatsapp_for_customer_messaging === true;
-        const conversationMemoryMode = body.conversation_memory_mode === 'full' ? 'full' : 'last_n';
-        const conversationMemoryCount =
-            typeof body.conversation_memory_count === 'number' ? body.conversation_memory_count : 10;
-        const rawProductsCacheTtl = body.products_cache_ttl_seconds;
-        const productsCacheTtlSeconds =
-            typeof rawProductsCacheTtl === 'number'
-                ? rawProductsCacheTtl
-                : typeof rawProductsCacheTtl === 'string'
-                    ? Number(rawProductsCacheTtl)
-                    : undefined;
-        if (!defaultLlmModel) {
-            return c.json({ error: 'default_llm_model is required' }, 400);
-        }
-        if (!defaultEmbeddingModel) {
-            return c.json({ error: 'default_embedding_model is required' }, 400);
-        }
-        if (!defaultVisionModel) {
-            return c.json({ error: 'default_vision_model is required' }, 400);
-        }
-        const settings = await updatePlatformAiSettings({
-            default_llm_model: defaultLlmModel,
-            allowed_llm_models: allowedLlmModels,
-            default_embedding_model: defaultEmbeddingModel,
-            allowed_embedding_models: allowedEmbeddingModels,
-            default_vision_model: defaultVisionModel,
-            allowed_vision_models: allowedVisionModels,
-            corporate_whatsapp_provider: corporateWhatsAppProvider === 'meta' ? 'meta' : 'twilio',
-            corporate_whatsapp_from_number: corporateWhatsAppFromNumber || null,
-            corporate_whatsapp_phone_number_display: corporateWhatsAppPhoneNumberDisplay || null,
-            force_corporate_whatsapp_for_customer_messaging: forceCorporateWhatsAppForCustomerMessaging,
-            conversation_memory_mode: conversationMemoryMode,
-            conversation_memory_count: conversationMemoryCount,
-            products_cache_ttl_seconds: productsCacheTtlSeconds,
-        });
-        return c.json({ settings });
-    } catch (error) {
-        console.error('Failed to update AI settings:', error);
-        return c.json({
-            error: 'Failed to update AI settings',
-        }, 500);
+  try {
+    const body = await c.req.json();
+    const parseModelList = (value: unknown) =>
+      Array.isArray(value)
+        ? value.map((x: unknown) => String(x).trim()).filter(Boolean)
+        : typeof value === 'string'
+          ? value
+              .split(',')
+              .map((x) => x.trim())
+              .filter(Boolean)
+          : undefined;
+    const defaultLlmModel =
+      typeof body.default_llm_model === 'string' ? body.default_llm_model.trim() : '';
+    const allowedLlmModels = parseModelList(body.allowed_llm_models);
+    const defaultEmbeddingModel =
+      typeof body.default_embedding_model === 'string' ? body.default_embedding_model.trim() : '';
+    const allowedEmbeddingModels = parseModelList(body.allowed_embedding_models);
+    const defaultVisionModel =
+      typeof body.default_vision_model === 'string' ? body.default_vision_model.trim() : '';
+    const allowedVisionModels = parseModelList(body.allowed_vision_models);
+    const corporateWhatsAppPhoneNumberDisplay =
+      typeof body.corporate_whatsapp_phone_number_display === 'string'
+        ? body.corporate_whatsapp_phone_number_display.trim()
+        : '';
+    const forceCorporateWhatsAppForCustomerMessaging =
+      body.force_corporate_whatsapp_for_customer_messaging === true;
+    const conversationMemoryMode = body.conversation_memory_mode === 'full' ? 'full' : 'last_n';
+    const conversationMemoryCount =
+      typeof body.conversation_memory_count === 'number' ? body.conversation_memory_count : 10;
+    const rawProductsCacheTtl = body.products_cache_ttl_seconds;
+    const productsCacheTtlSeconds =
+      typeof rawProductsCacheTtl === 'number'
+        ? rawProductsCacheTtl
+        : typeof rawProductsCacheTtl === 'string'
+          ? Number(rawProductsCacheTtl)
+          : undefined;
+    if (!defaultLlmModel) {
+      return c.json({ error: 'default_llm_model is required' }, 400);
     }
+    if (!defaultEmbeddingModel) {
+      return c.json({ error: 'default_embedding_model is required' }, 400);
+    }
+    if (!defaultVisionModel) {
+      return c.json({ error: 'default_vision_model is required' }, 400);
+    }
+    const settings = await updatePlatformAiSettings({
+      default_llm_model: defaultLlmModel,
+      allowed_llm_models: allowedLlmModels,
+      default_embedding_model: defaultEmbeddingModel,
+      allowed_embedding_models: allowedEmbeddingModels,
+      default_vision_model: defaultVisionModel,
+      allowed_vision_models: allowedVisionModels,
+      corporate_whatsapp_phone_number_display: corporateWhatsAppPhoneNumberDisplay || null,
+      force_corporate_whatsapp_for_customer_messaging: forceCorporateWhatsAppForCustomerMessaging,
+      conversation_memory_mode: conversationMemoryMode,
+      conversation_memory_count: conversationMemoryCount,
+      products_cache_ttl_seconds: productsCacheTtlSeconds,
+    });
+    return c.json({ settings });
+  } catch (error) {
+    console.error('Failed to update AI settings:', error);
+    return c.json(
+      {
+        error: 'Failed to update AI settings',
+      },
+      500
+    );
+  }
 });
 
 /**
@@ -956,131 +1034,147 @@ admin.put('/ai-settings', async (c) => {
  * POST /api/admin/test-kit/order
  */
 admin.post('/test-kit/order', async (c) => {
-    const serviceClient = getSupabaseServiceClient();
+  const serviceClient = getSupabaseServiceClient();
 
-    try {
-        const body = await c.req.json();
-        const merchantId = typeof body.merchantId === 'string' ? body.merchantId.trim() : '';
-        const productIds = Array.isArray(body.productIds)
-            ? body.productIds.map((value: unknown) => String(value)).filter(Boolean)
-            : [];
-        const customerPhoneRaw = typeof body.customerPhone === 'string' ? body.customerPhone.trim() : '';
-        const customerName = typeof body.customerName === 'string' ? body.customerName.trim() : '';
-        const customerEmail = typeof body.customerEmail === 'string' ? body.customerEmail.trim().toLowerCase() : '';
-        const customerLocale = typeof body.customerLocale === 'string' ? body.customerLocale.trim().toLowerCase() : '';
-        const markDelivered = body.markDelivered !== false;
-        const externalOrderId =
-            typeof body.externalOrderId === 'string' && body.externalOrderId.trim()
-                ? body.externalOrderId.trim()
-                : makeTestOrderExternalId();
+  try {
+    const body = await c.req.json();
+    const merchantId = typeof body.merchantId === 'string' ? body.merchantId.trim() : '';
+    const productIds = Array.isArray(body.productIds)
+      ? body.productIds.map((value: unknown) => String(value)).filter(Boolean)
+      : [];
+    const customerPhoneRaw =
+      typeof body.customerPhone === 'string' ? body.customerPhone.trim() : '';
+    const customerName = typeof body.customerName === 'string' ? body.customerName.trim() : '';
+    const customerEmail =
+      typeof body.customerEmail === 'string' ? body.customerEmail.trim().toLowerCase() : '';
+    const customerLocale =
+      typeof body.customerLocale === 'string' ? body.customerLocale.trim().toLowerCase() : '';
+    const markDelivered = body.markDelivered !== false;
+    const externalOrderId =
+      typeof body.externalOrderId === 'string' && body.externalOrderId.trim()
+        ? body.externalOrderId.trim()
+        : makeTestOrderExternalId();
 
-        if (!merchantId) {
-            return c.json({ error: 'merchantId is required' }, 400);
-        }
-        if (productIds.length === 0) {
-            return c.json({ error: 'Select at least one product' }, 400);
-        }
-        if (!customerPhoneRaw) {
-            return c.json({ error: 'customerPhone is required' }, 400);
-        }
-
-        let normalizedPhone: string;
-        try {
-            normalizedPhone = normalizePhone(customerPhoneRaw);
-        } catch {
-            return c.json({ error: 'Enter a valid customer phone in E.164 or local format' }, 400);
-        }
-
-        const merchant = await getMerchantOr404(serviceClient, merchantId);
-        if (!merchant) {
-            return c.json({ error: 'Merchant not found' }, 404);
-        }
-
-        const { data: integration } = await serviceClient
-            .from('integrations')
-            .select('id')
-            .eq('merchant_id', merchantId)
-            .eq('provider', 'shopify')
-            .maybeSingle();
-
-        const products = await getMerchantProducts(serviceClient, merchantId, productIds);
-        if (products.length !== productIds.length) {
-            return c.json({ error: 'One or more selected products do not belong to the merchant' }, 400);
-        }
-
-        const createdEvent = buildNormalizedTestEvent({
-            merchantId,
-            integrationId: integration?.id ?? null,
-            eventType: 'order_created',
-            externalOrderId,
-            normalizedPhone,
-            customerName: customerName || undefined,
-            customerEmail: customerEmail || undefined,
-            customerLocale: customerLocale || undefined,
-            products: products as Array<{ id: string; name: string; external_id?: string | null; url?: string | null }>,
-        });
-
-        const createdResult = await processNormalizedEvent(createdEvent);
-
-        let deliveredResult: Awaited<ReturnType<typeof processNormalizedEvent>> | null = null;
-        let deliveredAt: string | null = null;
-
-        if (markDelivered) {
-            deliveredAt = new Date().toISOString();
-            const deliveredEvent = buildNormalizedTestEvent({
-                merchantId,
-                integrationId: integration?.id ?? null,
-                eventType: 'order_delivered',
-                externalOrderId,
-                normalizedPhone,
-                customerName: customerName || undefined,
-                customerEmail: customerEmail || undefined,
-                customerLocale: customerLocale || undefined,
-                products: products as Array<{ id: string; name: string; external_id?: string | null; url?: string | null }>,
-                deliveredAt,
-            });
-            deliveredResult = await processNormalizedEvent(deliveredEvent);
-        }
-
-        const { data: order } = await serviceClient
-            .from('orders')
-            .select('id, external_order_id, status, delivery_date, created_at')
-            .eq('merchant_id', merchantId)
-            .eq('external_order_id', externalOrderId)
-            .maybeSingle();
-
-        return c.json({
-            success: true,
-            merchant: {
-                id: merchant.id,
-                name: merchant.name,
-            },
-            order: {
-                id: order?.id || deliveredResult?.orderId || createdResult.orderId,
-                externalOrderId,
-                status: order?.status || (markDelivered ? 'delivered' : 'created'),
-                deliveryDate: order?.delivery_date || deliveredAt,
-                createdAt: order?.created_at || createdEvent.occurred_at,
-            },
-            user: {
-                id: deliveredResult?.userId || createdResult.userId,
-                phone: normalizedPhone,
-                name: customerName || null,
-                email: customerEmail || null,
-            },
-            products: products.map((product: any) => ({
-                id: product.id,
-                name: product.name,
-                externalId: product.external_id || null,
-            })),
-            queuedFollowUps: markDelivered,
-        });
-    } catch (error) {
-        console.error('Failed to create super admin test order:', error);
-        return c.json({
-            error: error instanceof Error ? error.message : 'Failed to create test order',
-        }, 500);
+    if (!merchantId) {
+      return c.json({ error: 'merchantId is required' }, 400);
     }
+    if (productIds.length === 0) {
+      return c.json({ error: 'Select at least one product' }, 400);
+    }
+    if (!customerPhoneRaw) {
+      return c.json({ error: 'customerPhone is required' }, 400);
+    }
+
+    let normalizedPhone: string;
+    try {
+      normalizedPhone = normalizePhone(customerPhoneRaw);
+    } catch {
+      return c.json({ error: 'Enter a valid customer phone in E.164 or local format' }, 400);
+    }
+
+    const merchant = await getMerchantOr404(serviceClient, merchantId);
+    if (!merchant) {
+      return c.json({ error: 'Merchant not found' }, 404);
+    }
+
+    const { data: integration } = await serviceClient
+      .from('integrations')
+      .select('id')
+      .eq('merchant_id', merchantId)
+      .eq('provider', 'shopify')
+      .maybeSingle();
+
+    const products = await getMerchantProducts(serviceClient, merchantId, productIds);
+    if (products.length !== productIds.length) {
+      return c.json({ error: 'One or more selected products do not belong to the merchant' }, 400);
+    }
+
+    const createdEvent = buildNormalizedTestEvent({
+      merchantId,
+      integrationId: integration?.id ?? null,
+      eventType: 'order_created',
+      externalOrderId,
+      normalizedPhone,
+      customerName: customerName || undefined,
+      customerEmail: customerEmail || undefined,
+      customerLocale: customerLocale || undefined,
+      products: products as Array<{
+        id: string;
+        name: string;
+        external_id?: string | null;
+        url?: string | null;
+      }>,
+    });
+
+    const createdResult = await processNormalizedEvent(createdEvent);
+
+    let deliveredResult: Awaited<ReturnType<typeof processNormalizedEvent>> | null = null;
+    let deliveredAt: string | null = null;
+
+    if (markDelivered) {
+      deliveredAt = new Date().toISOString();
+      const deliveredEvent = buildNormalizedTestEvent({
+        merchantId,
+        integrationId: integration?.id ?? null,
+        eventType: 'order_delivered',
+        externalOrderId,
+        normalizedPhone,
+        customerName: customerName || undefined,
+        customerEmail: customerEmail || undefined,
+        customerLocale: customerLocale || undefined,
+        products: products as Array<{
+          id: string;
+          name: string;
+          external_id?: string | null;
+          url?: string | null;
+        }>,
+        deliveredAt,
+      });
+      deliveredResult = await processNormalizedEvent(deliveredEvent);
+    }
+
+    const { data: order } = await serviceClient
+      .from('orders')
+      .select('id, external_order_id, status, delivery_date, created_at')
+      .eq('merchant_id', merchantId)
+      .eq('external_order_id', externalOrderId)
+      .maybeSingle();
+
+    return c.json({
+      success: true,
+      merchant: {
+        id: merchant.id,
+        name: merchant.name,
+      },
+      order: {
+        id: order?.id || deliveredResult?.orderId || createdResult.orderId,
+        externalOrderId,
+        status: order?.status || (markDelivered ? 'delivered' : 'created'),
+        deliveryDate: order?.delivery_date || deliveredAt,
+        createdAt: order?.created_at || createdEvent.occurred_at,
+      },
+      user: {
+        id: deliveredResult?.userId || createdResult.userId,
+        phone: normalizedPhone,
+        name: customerName || null,
+        email: customerEmail || null,
+      },
+      products: products.map((product: any) => ({
+        id: product.id,
+        name: product.name,
+        externalId: product.external_id || null,
+      })),
+      queuedFollowUps: markDelivered,
+    });
+  } catch (error) {
+    console.error('Failed to create super admin test order:', error);
+    return c.json(
+      {
+        error: error instanceof Error ? error.message : 'Failed to create test order',
+      },
+      500
+    );
+  }
 });
 
 /**
@@ -1088,114 +1182,122 @@ admin.post('/test-kit/order', async (c) => {
  * POST /api/admin/test-kit/whatsapp-reply
  */
 admin.post('/test-kit/whatsapp-reply', async (c) => {
-    const serviceClient = getSupabaseServiceClient();
+  const serviceClient = getSupabaseServiceClient();
 
-    try {
-        const body = await c.req.json();
-        const merchantId = typeof body.merchantId === 'string' ? body.merchantId.trim() : '';
-        const phoneRaw = typeof body.phone === 'string' ? body.phone.trim() : '';
-        const message = typeof body.message === 'string' ? body.message.trim() : '';
-        const requestedOrderId = typeof body.orderId === 'string' ? body.orderId.trim() : '';
-        const sendReplyLive = body.sendReplyLive === true;
+  try {
+    const body = await c.req.json();
+    const merchantId = typeof body.merchantId === 'string' ? body.merchantId.trim() : '';
+    const phoneRaw = typeof body.phone === 'string' ? body.phone.trim() : '';
+    const message = typeof body.message === 'string' ? body.message.trim() : '';
+    const requestedOrderId = typeof body.orderId === 'string' ? body.orderId.trim() : '';
+    const sendReplyLive = body.sendReplyLive === true;
 
-        if (!merchantId || !phoneRaw || !message) {
-            return c.json({ error: 'merchantId, phone, and message are required' }, 400);
-        }
-
-        let normalizedPhoneValue: string;
-        try {
-            normalizedPhoneValue = normalizePhone(phoneRaw);
-        } catch {
-            return c.json({ error: 'Enter a valid customer phone in E.164 or local format' }, 400);
-        }
-
-        const merchant = await getMerchantOr404(serviceClient, merchantId);
-        if (!merchant) {
-            return c.json({ error: 'Merchant not found' }, 404);
-        }
-
-        const user = await findUserByPhone(normalizedPhoneValue, merchantId);
-        if (!user) {
-            return c.json({ error: 'Customer not found. Create a test order first.' }, 404);
-        }
-
-        let orderId = requestedOrderId || undefined;
-        if (!orderId) {
-            const { data: latestOrder } = await serviceClient
-                .from('orders')
-                .select('id, status')
-                .eq('merchant_id', merchantId)
-                .eq('user_id', user.userId)
-                .order('updated_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-            orderId = latestOrder?.id || undefined;
-        }
-
-        const conversationId = await getOrCreateConversation(user.userId, orderId, merchantId);
-        await addMessageToConversation(conversationId, 'user', message);
-        const history = await getConversationHistory(conversationId);
-        const aiResponse = await generateAIResponse(
-            message,
-            merchantId,
-            user.userId,
-            conversationId,
-            orderId,
-            history
-        );
-        await addMessageToConversation(conversationId, 'assistant', aiResponse.response);
-
-        let liveSend: { attempted: boolean; success: boolean; error?: string | null; messageId?: string | null } | null = null;
-
-        if (sendReplyLive) {
-            const credentials = await getEffectiveWhatsAppCredentials(merchantId);
-            if (!credentials) {
-                liveSend = {
-                    attempted: true,
-                    success: false,
-                    error: 'WhatsApp is not configured for this merchant',
-                };
-            } else {
-                const result = await sendWhatsAppMessage(
-                    {
-                        to: normalizedPhoneValue,
-                        text: aiResponse.response,
-                        preview_url: false,
-                    },
-                    credentials
-                );
-
-                liveSend = {
-                    attempted: true,
-                    success: result.success,
-                    error: result.error || null,
-                    messageId: result.messageId || null,
-                };
-            }
-        }
-
-        return c.json({
-            success: true,
-            conversationId,
-            orderId: orderId || null,
-            user: {
-                id: user.userId,
-                name: user.userName || null,
-                phone: normalizedPhoneValue,
-            },
-            inboundMessage: message,
-            aiReply: aiResponse.response,
-            intent: aiResponse.intent,
-            guardrailBlocked: aiResponse.guardrailBlocked,
-            upsellTriggered: aiResponse.upsellTriggered,
-            liveSend,
-        });
-    } catch (error) {
-        console.error('Failed to simulate WhatsApp reply:', error);
-        return c.json({
-            error: error instanceof Error ? error.message : 'Failed to simulate WhatsApp reply',
-        }, 500);
+    if (!merchantId || !phoneRaw || !message) {
+      return c.json({ error: 'merchantId, phone, and message are required' }, 400);
     }
+
+    let normalizedPhoneValue: string;
+    try {
+      normalizedPhoneValue = normalizePhone(phoneRaw);
+    } catch {
+      return c.json({ error: 'Enter a valid customer phone in E.164 or local format' }, 400);
+    }
+
+    const merchant = await getMerchantOr404(serviceClient, merchantId);
+    if (!merchant) {
+      return c.json({ error: 'Merchant not found' }, 404);
+    }
+
+    const user = await findUserByPhone(normalizedPhoneValue, merchantId);
+    if (!user) {
+      return c.json({ error: 'Customer not found. Create a test order first.' }, 404);
+    }
+
+    let orderId = requestedOrderId || undefined;
+    if (!orderId) {
+      const { data: latestOrder } = await serviceClient
+        .from('orders')
+        .select('id, status')
+        .eq('merchant_id', merchantId)
+        .eq('user_id', user.userId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      orderId = latestOrder?.id || undefined;
+    }
+
+    const conversationId = await getOrCreateConversation(user.userId, orderId, merchantId);
+    await addMessageToConversation(conversationId, 'user', message);
+    const history = await getConversationHistory(conversationId);
+    const aiResponse = await generateAIResponse(
+      message,
+      merchantId,
+      user.userId,
+      conversationId,
+      orderId,
+      history
+    );
+    await addMessageToConversation(conversationId, 'assistant', aiResponse.response);
+
+    let liveSend: {
+      attempted: boolean;
+      success: boolean;
+      error?: string | null;
+      messageId?: string | null;
+    } | null = null;
+
+    if (sendReplyLive) {
+      const credentials = await getEffectiveWhatsAppCredentials(merchantId);
+      if (!credentials) {
+        liveSend = {
+          attempted: true,
+          success: false,
+          error: 'WhatsApp is not configured for this merchant',
+        };
+      } else {
+        const result = await sendWhatsAppMessage(
+          {
+            to: normalizedPhoneValue,
+            text: aiResponse.response,
+            preview_url: false,
+          },
+          credentials
+        );
+
+        liveSend = {
+          attempted: true,
+          success: result.success,
+          error: result.error || null,
+          messageId: result.messageId || null,
+        };
+      }
+    }
+
+    return c.json({
+      success: true,
+      conversationId,
+      orderId: orderId || null,
+      user: {
+        id: user.userId,
+        name: user.userName || null,
+        phone: normalizedPhoneValue,
+      },
+      inboundMessage: message,
+      aiReply: aiResponse.response,
+      intent: aiResponse.intent,
+      guardrailBlocked: aiResponse.guardrailBlocked,
+      upsellTriggered: aiResponse.upsellTriggered,
+      liveSend,
+    });
+  } catch (error) {
+    console.error('Failed to simulate WhatsApp reply:', error);
+    return c.json(
+      {
+        error: error instanceof Error ? error.message : 'Failed to simulate WhatsApp reply',
+      },
+      500
+    );
+  }
 });
 
 /**
@@ -1203,91 +1305,98 @@ admin.post('/test-kit/whatsapp-reply', async (c) => {
  * POST /api/admin/impersonate
  */
 admin.post('/impersonate', async (c) => {
-    const serviceClient = getSupabaseServiceClient();
+  const serviceClient = getSupabaseServiceClient();
 
-    try {
-        const body = await c.req.json();
-        const { targetUserId } = body;
+  try {
+    const body = await c.req.json();
+    const { targetUserId } = body;
 
-        if (!targetUserId) {
-            return c.json({ error: 'Target user ID is required' }, 400);
-        }
-
-        // We ensure the target actually exists
-        const { data: user, error: userError } = await serviceClient.auth.admin.getUserById(targetUserId);
-
-        if (userError || !user) {
-            return c.json({ error: 'Target user not found' }, 404);
-        }
-
-        // Use Supabase Admin API to generate a link or custom token.
-        // We capture the request Origin to properly redirect to the frontend callback
-        const origin = c.req.header('Origin') || c.req.header('Referer')?.split('/').slice(0, 3).join('/') || 'https://platform.recete.co.uk';
-        const redirectTo = `${origin}/auth/callback`;
-
-        const { data: linkData, error: linkError } = await serviceClient.auth.admin.generateLink({
-            type: 'magiclink',
-            email: user.user.email as string,
-            options: {
-                redirectTo,
-            }
-        });
-
-        if (linkError) {
-            console.error('Magic link generation failed:', linkError);
-            return c.json({ error: 'Failed to generate impersonation token' }, 500);
-        }
-
-        // Return the magic link to the frontend so it can redirect the current tab
-        return c.json({ impersonationUrl: linkData.properties.action_link });
-    } catch (error) {
-        console.error('Impersonation error:', error);
-        return c.json({ error: 'Failed to setup impersonation' }, 500);
+    if (!targetUserId) {
+      return c.json({ error: 'Target user ID is required' }, 400);
     }
+
+    // We ensure the target actually exists
+    const { data: user, error: userError } =
+      await serviceClient.auth.admin.getUserById(targetUserId);
+
+    if (userError || !user) {
+      return c.json({ error: 'Target user not found' }, 404);
+    }
+
+    // Use Supabase Admin API to generate a link or custom token.
+    // We capture the request Origin to properly redirect to the frontend callback
+    const origin =
+      c.req.header('Origin') ||
+      c.req.header('Referer')?.split('/').slice(0, 3).join('/') ||
+      'https://platform.recete.co.uk';
+    const redirectTo = `${origin}/auth/callback`;
+
+    const { data: linkData, error: linkError } = await serviceClient.auth.admin.generateLink({
+      type: 'magiclink',
+      email: user.user.email as string,
+      options: {
+        redirectTo,
+      },
+    });
+
+    if (linkError) {
+      console.error('Magic link generation failed:', linkError);
+      return c.json({ error: 'Failed to generate impersonation token' }, 500);
+    }
+
+    // Return the magic link to the frontend so it can redirect the current tab
+    return c.json({ impersonationUrl: linkData.properties.action_link });
+  } catch (error) {
+    console.error('Impersonation error:', error);
+    return c.json({ error: 'Failed to setup impersonation' }, 500);
+  }
 });
 /**
  * Set Merchant Capped Amount
  * POST /api/admin/set-capped-amount
  */
 admin.post('/set-capped-amount', async (c) => {
-    const serviceClient = getSupabaseServiceClient();
+  const serviceClient = getSupabaseServiceClient();
 
-    try {
-        const body = await c.req.json();
-        const { merchantId, cappedAmount } = body;
+  try {
+    const body = await c.req.json();
+    const { merchantId, cappedAmount } = body;
 
-        if (!merchantId || cappedAmount === undefined) {
-            return c.json({ error: 'merchantId and cappedAmount are required' }, 400);
-        }
-
-        // Validate cappedAmount is a positive number
-        if (typeof cappedAmount !== 'number' || cappedAmount <= 0) {
-            return c.json({ error: 'cappedAmount must be a positive number' }, 400);
-        }
-
-        const { error } = await serviceClient
-            .from('merchants')
-            .update({
-                // Assuming the db has a capped_amount column now, or store in a jsonb config.
-                // Default implementation stores it in metadata/config depending on your DB architecture.
-                // Or ideally, this triggers a logic to re-subscribe the user in Shopify with the new Cap.
-                // But usually, modifying Capped Amount requires user approval on Shopify!
-                // Let's store it locally and we'd trigger a billing flow.
-                settings: { capped_amount: cappedAmount } // Example fallback
-            })
-            // Realistically you should update the DB and then email/notify merchant to accept new charge!
-            .eq('id', merchantId);
-
-        if (error) {
-            console.error('Failed to update capped amount:', error);
-            return c.json({ error: 'Failed to update merchant' }, 500);
-        }
-
-        return c.json({ success: true, message: `Capped amount set to ${cappedAmount} for merchant ${merchantId}. They must approve the new charge.` });
-    } catch (error) {
-        console.error('Update capped amount error:', error);
-        return c.json({ error: 'Internal server error' }, 500);
+    if (!merchantId || cappedAmount === undefined) {
+      return c.json({ error: 'merchantId and cappedAmount are required' }, 400);
     }
+
+    // Validate cappedAmount is a positive number
+    if (typeof cappedAmount !== 'number' || cappedAmount <= 0) {
+      return c.json({ error: 'cappedAmount must be a positive number' }, 400);
+    }
+
+    const { error } = await serviceClient
+      .from('merchants')
+      .update({
+        // Assuming the db has a capped_amount column now, or store in a jsonb config.
+        // Default implementation stores it in metadata/config depending on your DB architecture.
+        // Or ideally, this triggers a logic to re-subscribe the user in Shopify with the new Cap.
+        // But usually, modifying Capped Amount requires user approval on Shopify!
+        // Let's store it locally and we'd trigger a billing flow.
+        settings: { capped_amount: cappedAmount }, // Example fallback
+      })
+      // Realistically you should update the DB and then email/notify merchant to accept new charge!
+      .eq('id', merchantId);
+
+    if (error) {
+      console.error('Failed to update capped amount:', error);
+      return c.json({ error: 'Failed to update merchant' }, 500);
+    }
+
+    return c.json({
+      success: true,
+      message: `Capped amount set to ${cappedAmount} for merchant ${merchantId}. They must approve the new charge.`,
+    });
+  } catch (error) {
+    console.error('Update capped amount error:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
 });
 
 /**
@@ -1295,39 +1404,39 @@ admin.post('/set-capped-amount', async (c) => {
  * GET /api/admin/pilot/diagnostics?merchant_id=<id>&limit=50
  */
 admin.get('/pilot/diagnostics', async (c) => {
-    try {
-        const serviceClient = getSupabaseServiceClient();
-        const merchantId = (c.req.query('merchant_id') || '').trim();
-        const limitRaw = Number.parseInt(c.req.query('limit') || '50', 10);
-        const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, limitRaw)) : 50;
+  try {
+    const serviceClient = getSupabaseServiceClient();
+    const merchantId = (c.req.query('merchant_id') || '').trim();
+    const limitRaw = Number.parseInt(c.req.query('limit') || '50', 10);
+    const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, limitRaw)) : 50;
 
-        let query = serviceClient
-            .from('ai_usage_events')
-            .select('id, merchant_id, created_at, metadata')
-            .eq('feature', 'assistant_pilot_diagnostic')
-            .order('created_at', { ascending: false })
-            .limit(limit);
+    let query = serviceClient
+      .from('ai_usage_events')
+      .select('id, merchant_id, created_at, metadata')
+      .eq('feature', 'assistant_pilot_diagnostic')
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
-        if (merchantId) {
-            query = query.eq('merchant_id', merchantId);
-        }
-
-        const { data, error } = await query;
-        if (error) {
-            return c.json({ error: 'Failed to load pilot diagnostics' }, 500);
-        }
-
-        return c.json({
-            diagnostics: (data || []).map((item: any) => ({
-                id: item.id,
-                merchantId: item.merchant_id,
-                createdAt: item.created_at,
-                metadata: item.metadata || {},
-            })),
-        });
-    } catch (error) {
-        return c.json({ error: 'Failed to load pilot diagnostics' }, 500);
+    if (merchantId) {
+      query = query.eq('merchant_id', merchantId);
     }
+
+    const { data, error } = await query;
+    if (error) {
+      return c.json({ error: 'Failed to load pilot diagnostics' }, 500);
+    }
+
+    return c.json({
+      diagnostics: (data || []).map((item: any) => ({
+        id: item.id,
+        merchantId: item.merchant_id,
+        createdAt: item.created_at,
+        metadata: item.metadata || {},
+      })),
+    });
+  } catch (error) {
+    return c.json({ error: 'Failed to load pilot diagnostics' }, 500);
+  }
 });
 
 /**
@@ -1335,30 +1444,30 @@ admin.get('/pilot/diagnostics', async (c) => {
  * GET /api/admin/pilot/review-template
  */
 admin.get('/pilot/review-template', async (c) => {
-    return c.json({
-        rubric: [
-            'Did the assistant understand the user goal?',
-            'Did it use conversation context correctly?',
-            'Did it sound natural and human-like?',
-            'Did it respect merchant settings (tone/length/emoji/language)?',
-            'Did it avoid unnecessary clarification?',
-            'Did it avoid false escalation?',
-        ],
-        scoring: {
-            scale: '0-2',
-            meaning: {
-                0: 'Poor',
-                1: 'Acceptable',
-                2: 'Strong',
-            },
-        },
-        noteTemplate: {
-            transcriptId: '',
-            scoreByCriterion: {},
-            issues: [],
-            suggestedImprovement: '',
-        },
-    });
+  return c.json({
+    rubric: [
+      'Did the assistant understand the user goal?',
+      'Did it use conversation context correctly?',
+      'Did it sound natural and human-like?',
+      'Did it respect merchant settings (tone/length/emoji/language)?',
+      'Did it avoid unnecessary clarification?',
+      'Did it avoid false escalation?',
+    ],
+    scoring: {
+      scale: '0-2',
+      meaning: {
+        0: 'Poor',
+        1: 'Acceptable',
+        2: 'Strong',
+      },
+    },
+    noteTemplate: {
+      transcriptId: '',
+      scoreByCriterion: {},
+      issues: [],
+      suggestedImprovement: '',
+    },
+  });
 });
 
 export default admin;

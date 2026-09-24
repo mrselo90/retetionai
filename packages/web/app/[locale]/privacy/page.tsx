@@ -154,13 +154,6 @@ export default function PrivacyPolicyPage() {
                   product information (United States)
                 </li>
                 <li>
-                  <strong>Meta Platforms (WhatsApp Business Platform):</strong> WhatsApp message
-                  delivery
-                </li>
-                <li>
-                  <strong>Twilio:</strong> WhatsApp message delivery
-                </li>
-                <li>
                   <strong>PostHog:</strong> Website and dashboard analytics, only after cookie
                   consent (European Union)
                 </li>

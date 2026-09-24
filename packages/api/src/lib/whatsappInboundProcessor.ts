@@ -22,7 +22,7 @@ type InboundStatus = 'received' | 'queued' | 'processing' | 'processed' | 'faile
 type InboundEventRow = {
   id: string;
   merchant_id: string;
-  provider: 'meta' | 'twilio';
+  provider: string;
   from_phone: string;
   phone_number_id?: string | null;
   message_type: string;

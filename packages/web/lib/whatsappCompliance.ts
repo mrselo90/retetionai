@@ -12,7 +12,7 @@ export const OPT_OUT_KEYWORDS_DISPLAY =
 export const PRIVACY_NOTICE_SNIPPET = `WhatsApp messages after your purchase
 If you agree to hear from us, we may message you on WhatsApp after your order is delivered — for example with tips on using your product, a check-in to see how it is going, or suggestions for your next order. You can reply to these messages with questions and get an answer straight away.
 
-To do this, we share your name, phone number and order details with Recete Ltd (London, UK), which runs this messaging for us as our data processor. Messages are delivered through WhatsApp (Meta) and Twilio, and replies are written with the help of an AI service (OpenAI, United States). We keep this information only as long as we need it for these messages and your support conversations.
+To do this, we share your name, phone number and order details with Recete Ltd (London, UK), which runs this messaging for us as our data processor. Replies are written with the help of an AI service (OpenAI, United States). We keep this information only as long as we need it for these messages and your support conversations.
 
 You can stop these messages at any time by replying STOP, or by contacting us.`;
 

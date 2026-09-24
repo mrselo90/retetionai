@@ -6,84 +6,8 @@
 import { Hono } from 'hono';
 import { getSupabaseServiceClient } from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
-import { getMerchantWhatsAppSenderMode } from '../lib/merchantPlanFeatures.js';
 
 const integrations = new Hono();
-
-type WhatsAppAuthDataInput = {
-  wa_provider?: 'meta' | 'twilio';
-  provider_type?: 'meta' | 'twilio';
-  phone_number_id?: string;
-  access_token?: string;
-  verify_token?: string;
-  account_sid?: string;
-  auth_token?: string;
-  from_number?: string;
-  phone_number_display?: string;
-};
-
-function getWhatsAppProviderType(auth: WhatsAppAuthDataInput): 'meta' | 'twilio' {
-  const declared = auth.wa_provider || auth.provider_type;
-  if (declared === 'meta' || declared === 'twilio') return declared;
-  if (auth.account_sid || auth.auth_token || auth.from_number) return 'twilio';
-  return 'meta';
-}
-
-function validateWhatsAppAuthData(
-  authData: unknown
-): { valid: true } | { valid: false; error: string } {
-  if (!authData || typeof authData !== 'object' || Array.isArray(authData)) {
-    return { valid: false, error: 'auth_data is required and must be an object' };
-  }
-
-  const wa = authData as WhatsAppAuthDataInput;
-  const providerType = getWhatsAppProviderType(wa);
-
-  if (providerType === 'twilio') {
-    if (!wa.account_sid || !wa.auth_token || !wa.from_number) {
-      return {
-        valid: false,
-        error:
-          'Twilio WhatsApp integration requires auth_data.account_sid, auth_data.auth_token, and auth_data.from_number',
-      };
-    }
-    return { valid: true };
-  }
-
-  if (!wa.phone_number_id || !wa.access_token || !wa.verify_token) {
-    return {
-      valid: false,
-      error:
-        'Meta WhatsApp integration requires auth_data.phone_number_id, auth_data.access_token, and auth_data.verify_token',
-    };
-  }
-
-  return { valid: true };
-}
-
-function sanitizeWhatsAppAuthData(authData: unknown): Record<string, unknown> {
-  if (!authData || typeof authData !== 'object' || Array.isArray(authData)) {
-    return {};
-  }
-
-  const wa = authData as WhatsAppAuthDataInput;
-  const providerType = getWhatsAppProviderType(wa);
-
-  if (providerType === 'twilio') {
-    return {
-      wa_provider: 'twilio',
-      phone_number_display: wa.phone_number_display,
-      from_number: wa.from_number,
-      account_sid: wa.account_sid,
-    };
-  }
-
-  return {
-    wa_provider: 'meta',
-    phone_number_display: wa.phone_number_display,
-    phone_number_id: wa.phone_number_id,
-  };
-}
 
 // All routes require authentication
 // integrations.use('/*', authMiddleware); // Removed global middleware to avoid affecting nested routes
@@ -122,21 +46,6 @@ integrations.get('/', authMiddleware, async (c) => {
         const { auth_data, ...rest } = row;
         const out = { ...rest };
         if (
-          row.provider === 'whatsapp' &&
-          auth_data &&
-          typeof auth_data === 'object' &&
-          'phone_number_display' in auth_data
-        ) {
-          (out as Record<string, unknown>).phone_number_display = (
-            auth_data as { phone_number_display?: string }
-          ).phone_number_display;
-          const waAuth = auth_data as WhatsAppAuthDataInput;
-          (out as Record<string, unknown>).whatsapp_provider = getWhatsAppProviderType(waAuth);
-          if (waAuth.from_number) {
-            (out as Record<string, unknown>).from_number = waAuth.from_number;
-          }
-        }
-        if (
           row.provider === 'shopify' &&
           auth_data &&
           typeof auth_data === 'object' &&
@@ -148,18 +57,7 @@ integrations.get('/', authMiddleware, async (c) => {
       }
     );
 
-    // Which number customer messages go from, so the screen can say whether
-    // there is anything to connect. Starter and Growth always send from
-    // Recete's shared number (see getEffectiveWhatsAppCredentials); only Pro
-    // can use its own. null when the plan can't be resolved right now.
-    let whatsappSenderMode: 'corporate' | 'merchant_own' | null = null;
-    try {
-      whatsappSenderMode = await getMerchantWhatsAppSenderMode(merchantId);
-    } catch {
-      whatsappSenderMode = null;
-    }
-
-    return c.json({ integrations: integrationList, whatsappSenderMode });
+    return c.json({ integrations: integrationList });
   } catch (error) {
     return c.json(
       {
@@ -191,13 +89,10 @@ integrations.get('/:id', authMiddleware, async (c) => {
       return c.json({ error: 'Integration not found' }, 404);
     }
 
-    // For WhatsApp, do not expose access_token or verify_token
-    if (
-      integration.provider === 'whatsapp' &&
-      integration.auth_data &&
-      typeof integration.auth_data === 'object'
-    ) {
-      integration.auth_data = sanitizeWhatsAppAuthData(integration.auth_data);
+    // Legacy WhatsApp rows (Twilio/Meta, removed 2026-09-24) held provider
+    // secrets; never return them.
+    if (integration.provider === 'whatsapp') {
+      integration.auth_data = {};
     }
 
     return c.json({ integration });
@@ -228,7 +123,8 @@ integrations.post('/', authMiddleware, async (c) => {
     }
 
     // Validate provider
-    const validProviders = ['shopify', 'woocommerce', 'ticimax', 'manual', 'whatsapp'];
+    // 'whatsapp' is gone with the Twilio/Meta integrations (2026-09-24).
+    const validProviders = ['shopify', 'woocommerce', 'ticimax', 'manual'];
     if (!validProviders.includes(provider)) {
       return c.json(
         {
@@ -255,14 +151,6 @@ integrations.post('/', authMiddleware, async (c) => {
 
     if (!auth_data || typeof auth_data !== 'object' || Array.isArray(auth_data)) {
       return c.json({ error: 'auth_data is required and must be an object' }, 400);
-    }
-
-    // WhatsApp: validate provider-specific credentials (Meta or Twilio)
-    if (provider === 'whatsapp') {
-      const validation = validateWhatsAppAuthData(auth_data);
-      if (!validation.valid) {
-        return c.json({ error: validation.error }, 400);
-      }
     }
 
     // Check if integration already exists for this provider
@@ -363,14 +251,8 @@ integrations.put('/:id', authMiddleware, async (c) => {
       return c.json({ error: 'Integration not found' }, 404);
     }
 
-    if (
-      body.auth_data !== undefined &&
-      (existing as { provider?: string }).provider === 'whatsapp'
-    ) {
-      const validation = validateWhatsAppAuthData(body.auth_data);
-      if (!validation.valid) {
-        return c.json({ error: validation.error }, 400);
-      }
+    if ((existing as { provider?: string }).provider === 'whatsapp') {
+      return c.json({ error: 'WhatsApp provider integrations are no longer supported' }, 410);
     }
 
     // Update integration
