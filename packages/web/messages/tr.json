@@ -58,14 +58,15 @@
     },
     "home": {
       "title": "Kontrol paneli",
-      "greeting": "Günaydın, {name}! 👋",
+      "greetingMorning": "Günaydın, {name}! 👋",
+      "greetingAfternoon": "İyi günler, {name}! 👋",
+      "greetingEvening": "İyi akşamlar, {name}! 👋",
+      "statsUnavailable": "Mağazanızın ilerlemesi yüklenemedi; kurulum adımları ve sayılar şimdilik gizlendi.",
       "summary": "Bugün <bold>{activeUsers}</bold> aktif müşteriniz var · Yanıt oranı: <bold>{responseRate}%</bold>",
       "setup": {
         "title": "Başlarken",
         "subtitle": "Tutma akışınızı yayına almak için bu adımları tamamlayın.",
         "progress": "{completed}/{total} tamamlandı",
-        "bannerTitle": "Kurulum gerekli",
-        "bannerMessage": "Sonraki adım: {step}. WhatsApp konuşmalarını başlatmak için onboarding’i tamamlayın.",
         "done": "Tamamlandı",
         "pending": "Beklemede",
         "steps": {
@@ -101,7 +102,7 @@
       },
       "knowledge": {
         "title": "Bilgi sağlığı",
-        "subtitle": "Recete’nin ürün kataloğunu ne kadar iyi anladığını ve yanıt kalitesinin nerede düşebileceğini gösterin.",
+        "subtitle": "Recete’nin ürün kataloğunuzu ne kadar iyi anladığı ve hangi ürünlerde yanıtların zayıflayabileceği.",
         "averageBadge": "Ort. skor {score}",
         "productsAtRisk": "Riskli ürünler",
         "productsAtRiskHint": "Bu ürünlerde müşteri yanıtları daha zayıf olabilir.",

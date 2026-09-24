@@ -58,14 +58,15 @@
     },
     "home": {
       "title": "Dashboard",
-      "greeting": "Good morning, {name}! 👋",
+      "greetingMorning": "Good morning, {name}! 👋",
+      "greetingAfternoon": "Good afternoon, {name}! 👋",
+      "greetingEvening": "Good evening, {name}! 👋",
+      "statsUnavailable": "We couldn't load your store's progress, so setup steps and numbers are hidden for now.",
       "summary": "You have <bold>{activeUsers}</bold> active customers today · Reply rate: <bold>{responseRate}%</bold>",
       "setup": {
         "title": "Getting Started",
         "subtitle": "Complete these steps to make your retention flow live.",
         "progress": "{completed}/{total} completed",
-        "bannerTitle": "Setup Required",
-        "bannerMessage": "Next step: {step}. Complete onboarding to start WhatsApp conversations.",
         "done": "Done",
         "pending": "Pending",
         "steps": {
@@ -101,7 +102,7 @@
       },
       "knowledge": {
         "title": "Knowledge Health",
-        "subtitle": "Show merchants how well Recete understands their product catalog and where answer quality may drop.",
+        "subtitle": "How well Recete understands your catalog, and which products may get weaker answers.",
         "averageBadge": "Avg. score {score}",
         "productsAtRisk": "Products at risk",
         "productsAtRiskHint": "These products may produce weaker customer answers.",
