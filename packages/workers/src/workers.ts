@@ -42,7 +42,8 @@ const WORKER_TEMPLATES: Record<WorkerLang, Record<string, string>> = {
     checkin_t3: 'Merhaba! Ürününüzü nasıl kullanıyorsunuz? Herhangi bir sorunuz var mı?',
     checkin_t14: 'Merhaba! Ürününüzden memnun musunuz? Size özel yeni ürünlerimiz var!',
     upsell: 'Size özel indirimli ürünlerimizi keşfetmek ister misiniz?',
-    welcome_with_instructions: 'Merhaba! Siparişiniz için teşekkür ederiz. Satın aldığınız ürünler için kullanım bilgileri:\n\n',
+    welcome_with_instructions:
+      'Merhaba! Siparişiniz için teşekkür ederiz. Satın aldığınız ürünler için kullanım bilgileri:\n\n',
     welcome_instructions_cta: '\n\nUygulama konusunda sorunuz var mı?',
   },
   en: {
@@ -50,7 +51,8 @@ const WORKER_TEMPLATES: Record<WorkerLang, Record<string, string>> = {
     checkin_t3: 'Hello! How are you using your product? Do you have any questions?',
     checkin_t14: 'Hello! Are you satisfied with your product? We have new products just for you!',
     upsell: 'Would you like to discover our special discounted products?',
-    welcome_with_instructions: 'Hello! Thank you for your order. Here are the usage instructions for your products:\n\n',
+    welcome_with_instructions:
+      'Hello! Thank you for your order. Here are the usage instructions for your products:\n\n',
     welcome_instructions_cta: '\n\nDo you have any questions about usage?',
   },
   hu: {
@@ -58,7 +60,8 @@ const WORKER_TEMPLATES: Record<WorkerLang, Record<string, string>> = {
     checkin_t3: 'Üdvözöljük! Hogyan használja a terméket? Van bármilyen kérdése?',
     checkin_t14: 'Üdvözöljük! Elégedett a termékkel? Különleges új termékeink vannak Önnek!',
     upsell: 'Szeretné felfedezni különleges kedvezményes termékeinket?',
-    welcome_with_instructions: 'Üdvözöljük! Köszönjük a rendelését. Íme a megvásárolt termékek használati útmutatója:\n\n',
+    welcome_with_instructions:
+      'Üdvözöljük! Köszönjük a rendelését. Íme a megvásárolt termékek használati útmutatója:\n\n',
     welcome_instructions_cta: '\n\nVan kérdése a használattal kapcsolatban?',
   },
 };
@@ -96,7 +99,10 @@ function getInternalApiBaseUrl(): string {
   if (process.env.NODE_ENV === 'production') {
     try {
       const parsed = new URL(configured);
-      if ((parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') && parsed.port === '3001') {
+      if (
+        (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') &&
+        parsed.port === '3001'
+      ) {
         return 'http://127.0.0.1:3002';
       }
     } catch {
@@ -109,10 +115,18 @@ function getInternalApiBaseUrl(): string {
 
 function getWelcomeTemplateContentSid(lang: WorkerLang): string | null {
   if (lang === 'hu') {
-    return process.env.TWILIO_TEMPLATE_WELCOME_HU?.trim() || process.env.TWILIO_TEMPLATE_WELCOME_EN?.trim() || null;
+    return (
+      process.env.TWILIO_TEMPLATE_WELCOME_HU?.trim() ||
+      process.env.TWILIO_TEMPLATE_WELCOME_EN?.trim() ||
+      null
+    );
   }
   if (lang === 'tr') {
-    return process.env.TWILIO_TEMPLATE_WELCOME_TR?.trim() || process.env.TWILIO_TEMPLATE_WELCOME_EN?.trim() || null;
+    return (
+      process.env.TWILIO_TEMPLATE_WELCOME_TR?.trim() ||
+      process.env.TWILIO_TEMPLATE_WELCOME_EN?.trim() ||
+      null
+    );
   }
   return process.env.TWILIO_TEMPLATE_WELCOME_EN?.trim() || null;
 }
@@ -132,7 +146,8 @@ function applyWelcomeTemplate(
   const orderNumber = context.orderNumber?.trim() || '-';
   const productList = context.productList?.trim() || '-';
   const productNames = context.productNames?.trim() || 'your products';
-  const productCount = typeof context.productCount === 'number' ? String(context.productCount) : '0';
+  const productCount =
+    typeof context.productCount === 'number' ? String(context.productCount) : '0';
   const botName = context.botName?.trim() || 'Recete';
 
   return template
@@ -289,9 +304,13 @@ function buildSendFailureError(sendResult: {
     sendResult.errorCode ? `code=${sendResult.errorCode}` : null,
     sendResult.failureCategory ? `category=${sendResult.failureCategory}` : null,
     sendResult.retryAfterMs ? `retryAfterMs=${sendResult.retryAfterMs}` : null,
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 
-  return new Error([sendResult.error || 'Failed to send message', details].filter(Boolean).join(' | '));
+  return new Error(
+    [sendResult.error || 'Failed to send message', details].filter(Boolean).join(' | ')
+  );
 }
 
 const defaultWorkerOptions: WorkerOptions = {
@@ -310,7 +329,17 @@ const defaultWorkerOptions: WorkerOptions = {
 export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
   QUEUE_NAMES.SCHEDULED_MESSAGES,
   async (job) => {
-    const { type, userId, orderId, merchantId, messageTemplate, to, scheduledFor, productIds, productNames: jobProductNames } = job.data;
+    const {
+      type,
+      userId,
+      orderId,
+      merchantId,
+      messageTemplate,
+      to,
+      scheduledFor,
+      productIds,
+      productNames: jobProductNames,
+    } = job.data;
 
     logger.info({ type, userId, orderId }, '[Scheduled Message] Processing job');
 
@@ -331,13 +360,51 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
         .maybeSingle();
 
       if (!integration || integration.status !== 'active') {
-        logger.warn({ merchantId, jobId: job.id }, '[Scheduled Message] Skipping inactive Shopify integration');
+        logger.warn(
+          { merchantId, jobId: job.id },
+          '[Scheduled Message] Skipping inactive Shopify integration'
+        );
         return { skipped: true, reason: 'inactive_integration' };
       }
 
-      if (merchant?.subscription_status && !['active', 'trial'].includes(merchant.subscription_status)) {
-        logger.warn({ merchantId, jobId: job.id, status: merchant.subscription_status }, '[Scheduled Message] Skipping inactive subscription');
+      if (
+        merchant?.subscription_status &&
+        !['active', 'trial'].includes(merchant.subscription_status)
+      ) {
+        logger.warn(
+          { merchantId, jobId: job.id, status: merchant.subscription_status },
+          '[Scheduled Message] Skipping inactive subscription'
+        );
         return { skipped: true, reason: 'inactive_subscription' };
+      }
+
+      // Every scheduled message needs the customer's opt-in when it is sent,
+      // not only when it was scheduled days earlier: they may have replied STOP
+      // in between. Nothing checked this, so an opt-out never stopped the
+      // day-3/day-14 check-ins or upsells already queued for that customer.
+      const { data: recipient, error: recipientError } = await serviceClient
+        .from('users')
+        .select('consent_status')
+        .eq('id', userId)
+        .eq('merchant_id', merchantId)
+        .maybeSingle();
+
+      if (recipientError) {
+        throw new Error(`Could not verify consent before sending: ${recipientError.message}`);
+      }
+
+      if (recipient?.consent_status !== 'opt_in') {
+        logger.info(
+          {
+            merchantId,
+            userId,
+            jobId: job.id,
+            type,
+            consent: recipient?.consent_status ?? 'missing',
+          },
+          '[Scheduled Message] Skipping: customer has not opted in'
+        );
+        return { skipped: true, reason: 'no_consent' };
       }
 
       // Get WhatsApp credentials (merchant's own or corporate per setting)
@@ -370,7 +437,8 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           personaSettings.whatsapp_welcome_template.trim().length > 0
             ? personaSettings.whatsapp_welcome_template.trim()
             : null;
-        botNameForWelcome = typeof personaSettings?.bot_name === 'string' ? personaSettings.bot_name : null;
+        botNameForWelcome =
+          typeof personaSettings?.bot_name === 'string' ? personaSettings.bot_name : null;
         welcomeTemplateContentSid =
           getWelcomeTemplateContentSid(lang) ||
           (typeof personaSettings?.whatsapp_welcome_template_content_sid === 'string' &&
@@ -386,7 +454,10 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           // When set to 'all_products_required', skip the message if any ordered product
           // is missing from Recete's knowledge base.
           const messageSendMode = (personaSettings as any)?.message_send_mode || 'always';
-          if (messageSendMode === 'all_products_required' && instructions.length < productIds.length) {
+          if (
+            messageSendMode === 'all_products_required' &&
+            instructions.length < productIds.length
+          ) {
             logger.info(
               { merchantId, jobId: job.id, productIds, instructionCount: instructions.length },
               '[Scheduled Message] Skipping: not all products have knowledge defined (message_send_mode=all_products_required)'
@@ -397,7 +468,10 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           const instructionProductNames = uniqueNonEmpty(
             instructions.map((row: ProductInstructionRow) => row.product_name)
           );
-          let productNames = instructionProductNames.length > 0 ? instructionProductNames : uniqueNonEmpty(jobProductNames || []);
+          let productNames =
+            instructionProductNames.length > 0
+              ? instructionProductNames
+              : uniqueNonEmpty(jobProductNames || []);
 
           if (productNames.length === 0) {
             const { data: products } = await serviceClient
@@ -415,7 +489,8 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
               .eq('id', orderId)
               .eq('merchant_id', merchantId)
               .single();
-            welcomeOrderNumber = (orderRow as { external_order_id?: string } | null)?.external_order_id || null;
+            welcomeOrderNumber =
+              (orderRow as { external_order_id?: string } | null)?.external_order_id || null;
           }
           const { data: userRow } = await serviceClient
             .from('users')
@@ -423,7 +498,9 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
             .eq('id', userId)
             .eq('merchant_id', merchantId)
             .maybeSingle();
-          welcomeCustomerFirstName = ((userRow as { name?: string | null } | null)?.name || '').trim().split(/\s+/)[0] || null;
+          welcomeCustomerFirstName =
+            ((userRow as { name?: string | null } | null)?.name || '').trim().split(/\s+/)[0] ||
+            null;
           welcomeProductNames = productNames;
 
           const welcomeContext = {
@@ -443,9 +520,7 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
                 `**${row.product_name ?? (lang === 'hu' ? 'Termék' : 'Ürün')}**\n${row.usage_instructions}${row.recipe_summary ? `\n${lang === 'hu' ? 'Összefoglaló' : 'Özet'}: ${row.recipe_summary}` : ''}`
             );
             message =
-              tpl.welcome_with_instructions +
-              parts.join('\n\n') +
-              tpl.welcome_instructions_cta;
+              tpl.welcome_with_instructions + parts.join('\n\n') + tpl.welcome_instructions_cta;
           } else {
             message = tpl.welcome;
           }
@@ -457,7 +532,8 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
               .eq('id', orderId)
               .eq('merchant_id', merchantId)
               .single();
-            welcomeOrderNumber = (orderRow as { external_order_id?: string } | null)?.external_order_id || null;
+            welcomeOrderNumber =
+              (orderRow as { external_order_id?: string } | null)?.external_order_id || null;
           }
           const { data: userRow } = await serviceClient
             .from('users')
@@ -465,7 +541,9 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
             .eq('id', userId)
             .eq('merchant_id', merchantId)
             .maybeSingle();
-          welcomeCustomerFirstName = ((userRow as { name?: string | null } | null)?.name || '').trim().split(/\s+/)[0] || null;
+          welcomeCustomerFirstName =
+            ((userRow as { name?: string | null } | null)?.name || '').trim().split(/\s+/)[0] ||
+            null;
           message = applyWelcomeTemplate(customWelcomeTemplate, {
             customerFirstName: welcomeCustomerFirstName,
             orderNumber: welcomeOrderNumber,
@@ -481,13 +559,18 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
 
       let sendResult;
       if (type === 'welcome' && credentials.provider === 'twilio') {
-        const activeWindow = await hasActiveWhatsAppConversationWindow(serviceClient, merchantId, to);
+        const activeWindow = await hasActiveWhatsAppConversationWindow(
+          serviceClient,
+          merchantId,
+          to
+        );
         if (!activeWindow) {
           if (!welcomeTemplateContentSid) {
             sendResult = {
               success: false,
               provider: 'twilio' as const,
-              error: 'Twilio welcome template requires a platform-managed Content SID when the 24-hour conversation window is closed',
+              error:
+                'Twilio welcome template requires a platform-managed Content SID when the 24-hour conversation window is closed',
               retryable: false,
               failureCategory: 'permanent' as const,
             };
@@ -530,16 +613,19 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           throw buildSendFailureError(sendResult);
         }
 
-        logger.warn({
-          jobId: job.id,
-          merchantId,
-          userId,
-          orderId,
-          provider: sendResult.provider,
-          httpStatus: sendResult.httpStatus,
-          errorCode: sendResult.errorCode,
-          category: sendResult.failureCategory,
-        }, '[Scheduled Message] Permanent provider failure; not retrying');
+        logger.warn(
+          {
+            jobId: job.id,
+            merchantId,
+            userId,
+            orderId,
+            provider: sendResult.provider,
+            httpStatus: sendResult.httpStatus,
+            errorCode: sendResult.errorCode,
+            category: sendResult.failureCategory,
+          },
+          '[Scheduled Message] Permanent provider failure; not retrying'
+        );
 
         const failQuery = serviceClient
           .from('scheduled_tasks')
@@ -560,7 +646,11 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
       // Best-effort: mirror outbound automated messages into conversations so they appear in the dashboard
       try {
         if (message && message.trim()) {
-          const conversationId = await getOrCreateConversationForWorker(serviceClient, userId, orderId);
+          const conversationId = await getOrCreateConversationForWorker(
+            serviceClient,
+            userId,
+            orderId
+          );
           await appendAssistantMessageToConversation(serviceClient, conversationId, message);
         }
       } catch (conversationLogError) {
@@ -610,7 +700,10 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
         messageId: sendResult.messageId,
       };
     } catch (error) {
-      logger.error(error instanceof Error ? error : new Error(String(error)), `[Scheduled Message] Job ${job.id} failed`);
+      logger.error(
+        error instanceof Error ? error : new Error(String(error)),
+        `[Scheduled Message] Job ${job.id} failed`
+      );
 
       // Update task status to failed
       try {
@@ -662,7 +755,9 @@ export const commerceEventsWorker = new Worker<CommerceEventJobData>(
 
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
-      throw new Error(`Commerce process API failed (${response.status}): ${errText || 'unknown error'}`);
+      throw new Error(
+        `Commerce process API failed (${response.status}): ${errText || 'unknown error'}`
+      );
     }
 
     return {
@@ -705,7 +800,9 @@ export const gdprJobsWorker = new Worker<GdprJobData>(
 
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
-      throw new Error(`GDPR job process API failed (${response.status}): ${errText || 'unknown error'}`);
+      throw new Error(
+        `GDPR job process API failed (${response.status}): ${errText || 'unknown error'}`
+      );
     }
 
     return {
@@ -770,7 +867,10 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
 
             if (handle) {
               try {
-                logger.info({ merchantId, productId, handle }, '[Scrape Job] Storefront blocked; trying Admin API fallback');
+                logger.info(
+                  { merchantId, productId, handle },
+                  '[Scrape Job] Storefront blocked; trying Admin API fallback'
+                );
                 const shopifyProduct = await fetchShopifyProductByHandle(
                   authData.shop,
                   authData.access_token,
@@ -784,10 +884,16 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
                 if (shopifyProduct && fallbackContent) {
                   rawContent = fallbackContent;
                   title = shopifyProduct.title || title;
-                  logger.info({ merchantId, productId }, '[Scrape Job] Admin API fallback successful');
+                  logger.info(
+                    { merchantId, productId },
+                    '[Scrape Job] Admin API fallback successful'
+                  );
                 }
               } catch (err) {
-                logger.error({ err, merchantId, productId }, '[Scrape Job] Admin API fallback failed');
+                logger.error(
+                  { err, merchantId, productId },
+                  '[Scrape Job] Admin API fallback failed'
+                );
               }
             }
           }
@@ -855,10 +961,17 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
         throw new Error(errJson.error || 'Embedding generation failed');
       }
 
-      const embeddingResult = (await embedRes.json()) as { chunksCreated: number; totalTokens: number };
+      const embeddingResult = (await embedRes.json()) as {
+        chunksCreated: number;
+        totalTokens: number;
+      };
 
       logger.info(
-        { productId, chunksCreated: embeddingResult.chunksCreated, totalTokens: embeddingResult.totalTokens },
+        {
+          productId,
+          chunksCreated: embeddingResult.chunksCreated,
+          totalTokens: embeddingResult.totalTokens,
+        },
         'Product processed successfully'
       );
 
@@ -869,7 +982,10 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
         totalTokens: embeddingResult.totalTokens,
       };
     } catch (error) {
-      logger.error(error instanceof Error ? error : new Error(String(error)), `Scrape job ${job.id} failed`);
+      logger.error(
+        error instanceof Error ? error : new Error(String(error)),
+        `Scrape job ${job.id} failed`
+      );
       throw error;
     }
   },
@@ -888,7 +1004,10 @@ export const analyticsWorker = new Worker<AnalyticsJobData>(
   async (job) => {
     const { merchantId, eventType, value, sentimentScore } = job.data;
 
-    logger.info({ eventType, merchantId, value, sentimentScore }, '[Analytics] Processing analytics event');
+    logger.info(
+      { eventType, merchantId, value, sentimentScore },
+      '[Analytics] Processing analytics event'
+    );
 
     // FUTURE: Implement analytics processing worker for aggregating metrics
     // 1. Insert into analytics_events table
@@ -918,20 +1037,25 @@ export const whatsappInboundWorker = new Worker<WhatsAppInboundJobData>(
       throw new Error('INTERNAL_SERVICE_SECRET is required for whatsapp inbound worker');
     }
 
-    const response = await fetch(`${apiUrl}/api/whatsapp/inbound-events/${inboundEventId}/process`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Internal-Secret': internalSecret,
-        'X-Internal-Merchant-Id': merchantId,
-      },
-      body: '{}',
-      signal: AbortSignal.timeout(30_000),
-    });
+    const response = await fetch(
+      `${apiUrl}/api/whatsapp/inbound-events/${inboundEventId}/process`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Secret': internalSecret,
+          'X-Internal-Merchant-Id': merchantId,
+        },
+        body: '{}',
+        signal: AbortSignal.timeout(30_000),
+      }
+    );
 
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
-      throw new Error(`Inbound process API failed (${response.status}): ${errText || 'unknown error'}`);
+      throw new Error(
+        `Inbound process API failed (${response.status}): ${errText || 'unknown error'}`
+      );
     }
 
     const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
@@ -957,7 +1081,14 @@ export const whatsappInboundWorker = new Worker<WhatsAppInboundJobData>(
  * Get all workers (for graceful shutdown, health check, etc.)
  */
 export function getAllWorkers() {
-  return [scheduledMessagesWorker, scrapeJobsWorker, analyticsWorker, commerceEventsWorker, gdprJobsWorker, whatsappInboundWorker];
+  return [
+    scheduledMessagesWorker,
+    scrapeJobsWorker,
+    analyticsWorker,
+    commerceEventsWorker,
+    gdprJobsWorker,
+    whatsappInboundWorker,
+  ];
 }
 
 /**
@@ -981,7 +1112,10 @@ scheduledMessagesWorker.on('completed', (job) => {
 });
 
 scheduledMessagesWorker.on('failed', (job, err) => {
-  logger.error(err instanceof Error ? err : new Error(String(err)), `[Scheduled Message] Job ${job?.id} failed`);
+  logger.error(
+    err instanceof Error ? err : new Error(String(err)),
+    `[Scheduled Message] Job ${job?.id} failed`
+  );
   trackWorkerJob({ queue: 'scheduled-messages', jobId: job?.id ?? '', status: 'failed' });
 });
 
@@ -991,7 +1125,10 @@ scrapeJobsWorker.on('completed', (job) => {
 });
 
 scrapeJobsWorker.on('failed', (job, err) => {
-  logger.error(err instanceof Error ? err : new Error(String(err)), `[Scrape] Job ${job?.id} failed`);
+  logger.error(
+    err instanceof Error ? err : new Error(String(err)),
+    `[Scrape] Job ${job?.id} failed`
+  );
   trackWorkerJob({ queue: 'scrape-jobs', jobId: job?.id ?? '', status: 'failed' });
 });
 
@@ -1001,7 +1138,10 @@ analyticsWorker.on('completed', (job) => {
 });
 
 analyticsWorker.on('failed', (job, err) => {
-  logger.error(err instanceof Error ? err : new Error(String(err)), `[Analytics] Job ${job?.id} failed`);
+  logger.error(
+    err instanceof Error ? err : new Error(String(err)),
+    `[Analytics] Job ${job?.id} failed`
+  );
   trackWorkerJob({ queue: 'analytics', jobId: job?.id ?? '', status: 'failed' });
 });
 
@@ -1011,7 +1151,10 @@ commerceEventsWorker.on('completed', (job) => {
 });
 
 commerceEventsWorker.on('failed', (job, err) => {
-  logger.error(err instanceof Error ? err : new Error(String(err)), `[Commerce Event] Job ${job?.id} failed`);
+  logger.error(
+    err instanceof Error ? err : new Error(String(err)),
+    `[Commerce Event] Job ${job?.id} failed`
+  );
   trackWorkerJob({ queue: 'commerce-events', jobId: job?.id ?? '', status: 'failed' });
 });
 
@@ -1021,7 +1164,10 @@ gdprJobsWorker.on('completed', (job) => {
 });
 
 gdprJobsWorker.on('failed', (job, err) => {
-  logger.error(err instanceof Error ? err : new Error(String(err)), `[GDPR Job] Job ${job?.id} failed`);
+  logger.error(
+    err instanceof Error ? err : new Error(String(err)),
+    `[GDPR Job] Job ${job?.id} failed`
+  );
   trackWorkerJob({ queue: 'gdpr-jobs', jobId: job?.id ?? '', status: 'failed' });
 });
 
@@ -1031,6 +1177,9 @@ whatsappInboundWorker.on('completed', (job) => {
 });
 
 whatsappInboundWorker.on('failed', (job, err) => {
-  logger.error(err instanceof Error ? err : new Error(String(err)), `[WhatsApp Inbound] Job ${job?.id} failed`);
+  logger.error(
+    err instanceof Error ? err : new Error(String(err)),
+    `[WhatsApp Inbound] Job ${job?.id} failed`
+  );
   trackWorkerJob({ queue: 'whatsapp-inbound', jobId: job?.id ?? '', status: 'failed' });
 });

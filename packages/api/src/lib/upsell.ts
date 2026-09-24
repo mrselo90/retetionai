@@ -25,9 +25,7 @@ export interface ProductRecommendation {
 /**
  * Detect satisfaction from user message
  */
-export async function detectSatisfaction(
-  message: string
-): Promise<SatisfactionResult> {
+export async function detectSatisfaction(message: string): Promise<SatisfactionResult> {
   try {
     const openai = getOpenAIClient();
     const model = await getDefaultLlmModel();
@@ -48,9 +46,7 @@ Respond with JSON: { "satisfied": true/false, "confidence": 0.0-1.0, "sentiment"
       response_format: { type: 'json_object' },
     });
 
-    const result = JSON.parse(
-      response.choices[0]?.message?.content || '{}'
-    ) as SatisfactionResult;
+    const result = JSON.parse(response.choices[0]?.message?.content || '{}') as SatisfactionResult;
 
     return result;
   } catch (error) {
@@ -93,8 +89,9 @@ export async function getComplementaryProducts(
 
   // For MVP, return top products with generic reasons
   // In production, use product categories, tags, or ML-based recommendations
-  const recommendations: ProductRecommendation[] = products.slice(0, limit).map(
-    (product, index) => ({
+  const recommendations: ProductRecommendation[] = products
+    .slice(0, limit)
+    .map((product, index) => ({
       productId: product.id,
       productName: product.name,
       productUrl: product.url,
@@ -102,10 +99,9 @@ export async function getComplementaryProducts(
         index === 0
           ? 'Size özel önerilen ürünümüz'
           : index === 1
-          ? 'Bu ürünle birlikte kullanabileceğiniz tamamlayıcı ürün'
-          : 'Sizin için seçtiğimiz özel ürün',
-    })
-  );
+            ? 'Bu ürünle birlikte kullanabileceğiniz tamamlayıcı ürün'
+            : 'Sizin için seçtiğimiz özel ürün',
+    }));
 
   return recommendations;
 }
@@ -188,7 +184,10 @@ async function isUpsellEligible(
     .eq('id', userId)
     .single();
 
-  if (user?.consent_status === 'opt_out') {
+  // An upsell is marketing, so it needs an explicit opt-in. This used to block
+  // only 'opt_out', which let customers who never consented ('pending') get
+  // product offers.
+  if (user?.consent_status !== 'opt_in') {
     return false;
   }
 
@@ -219,8 +218,7 @@ async function isUpsellEligible(
 
   // Check if enough time has passed (T+14)
   const deliveryDate = new Date(order.delivery_date);
-  const daysSinceDelivery =
-    (Date.now() - deliveryDate.getTime()) / (1000 * 60 * 60 * 24);
+  const daysSinceDelivery = (Date.now() - deliveryDate.getTime()) / (1000 * 60 * 60 * 24);
 
   if (daysSinceDelivery < 14) {
     return false; // Too early
@@ -334,11 +332,7 @@ export async function processSatisfactionCheck(
   }
 
   // Get complementary products
-  const recommendations = await getComplementaryProducts(
-    orderId,
-    merchantId,
-    2
-  );
+  const recommendations = await getComplementaryProducts(orderId, merchantId, 2);
 
   if (recommendations.length === 0) {
     return {

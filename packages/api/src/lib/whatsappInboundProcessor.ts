@@ -7,14 +7,15 @@ import {
   updateConversationState,
 } from './conversation.js';
 import { generateAIResponse } from './aiAgent.js';
-import {
-  canMerchantUseAiVision,
-  recordMerchantPhotoAnalysis,
-} from './merchantPlanFeatures.js';
+import { canMerchantUseAiVision, recordMerchantPhotoAnalysis } from './merchantPlanFeatures.js';
 import { analyzeCustomerImage } from './aiVision.js';
 import { getEffectiveWhatsAppCredentials, type WhatsAppWebhookMessage } from './whatsapp.js';
 import { sendTrackedWhatsAppMessage } from './whatsappOutbox.js';
-import { findPendingTemplateEvent, handleDeliveryTemplateReply } from './deliveryTemplateService.js';
+import { isOptOutKeyword, recordCustomerOptOut } from './customerOptOut.js';
+import {
+  findPendingTemplateEvent,
+  handleDeliveryTemplateReply,
+} from './deliveryTemplateService.js';
 
 type InboundStatus = 'received' | 'queued' | 'processing' | 'processed' | 'failed' | 'ignored';
 
@@ -54,11 +55,9 @@ async function setInboundStatus(
   };
   if (status === 'processed' && payload.processed_at === undefined) payload.processed_at = nowIso;
   if (status === 'failed' && payload.failed_at === undefined) payload.failed_at = nowIso;
-  if (status === 'processing' && payload.processing_started_at === undefined) payload.processing_started_at = nowIso;
-  await serviceClient
-    .from('whatsapp_inbound_events')
-    .update(payload)
-    .eq('id', inboundEventId);
+  if (status === 'processing' && payload.processing_started_at === undefined)
+    payload.processing_started_at = nowIso;
+  await serviceClient.from('whatsapp_inbound_events').update(payload).eq('id', inboundEventId);
 }
 
 function buildUnknownUserMessage(input: string): string {
@@ -81,9 +80,7 @@ function buildInboundConversationMessage(inbound: InboundEventRow, fallbackText:
   }
 
   const caption = inbound.payload?.message?.image?.caption || fallbackText;
-  return caption
-    ? `[Customer image] ${caption}`
-    : '[Customer image received with no caption]';
+  return caption ? `[Customer image] ${caption}` : '[Customer image received with no caption]';
 }
 
 export async function processWhatsAppInboundEvent(
@@ -93,7 +90,9 @@ export async function processWhatsAppInboundEvent(
   const serviceClient = getSupabaseServiceClient();
   const { data: row, error } = await serviceClient
     .from('whatsapp_inbound_events')
-    .select('id, merchant_id, provider, from_phone, phone_number_id, message_type, message_text, payload, status, attempts')
+    .select(
+      'id, merchant_id, provider, from_phone, phone_number_id, message_type, message_text, payload, status, attempts'
+    )
     .eq('id', inboundEventId)
     .single();
 
@@ -134,7 +133,9 @@ export async function processWhatsAppInboundEvent(
 
     const credentials = await getEffectiveWhatsAppCredentials(merchantId);
     if (!credentials) {
-      await setInboundStatus(inbound.id, 'failed', { last_error: 'WhatsApp credentials not configured' });
+      await setInboundStatus(inbound.id, 'failed', {
+        last_error: 'WhatsApp credentials not configured',
+      });
       return { result: 'failed_missing_credentials' };
     }
 
@@ -282,7 +283,8 @@ export async function processWhatsAppInboundEvent(
         }
 
         await setInboundStatus(inbound.id, 'failed', {
-          last_error: fallbackSend.error || 'Vision analysis failed and fallback message send failed',
+          last_error:
+            fallbackSend.error || 'Vision analysis failed and fallback message send failed',
         });
         return { result: 'failed_image_ai_and_fallback' };
       }
@@ -337,7 +339,10 @@ export async function processWhatsAppInboundEvent(
         history
       );
     } catch (llmError) {
-      logger.error({ llmError, conversationId, merchantId, inboundEventId: inbound.id }, 'LLM generation failed');
+      logger.error(
+        { llmError, conversationId, merchantId, inboundEventId: inbound.id },
+        'LLM generation failed'
+      );
       const fallbackText = buildAiFallbackMessage(messageText);
       const fallbackSend = await sendTrackedWhatsAppMessage({
         merchantId,
@@ -396,7 +401,18 @@ export async function processWhatsAppInboundEvent(
 
     await addMessageToConversation(conversationId, 'assistant', aiResponse.response);
 
-    if (aiResponse.upsellTriggered && aiResponse.upsellMessage) {
+    // The reply above confirms the opt-out; this makes it stick, so nothing
+    // already scheduled for the customer goes out afterwards.
+    const optedOut = aiResponse.intent === 'opt_out' || isOptOutKeyword(messageText);
+    if (optedOut) {
+      await recordCustomerOptOut(serviceClient, {
+        merchantId,
+        userId: user.userId,
+        source: aiResponse.intent === 'opt_out' ? 'ai_intent' : 'keyword',
+      });
+    }
+
+    if (!optedOut && aiResponse.upsellTriggered && aiResponse.upsellMessage) {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       const upsellSend = await sendTrackedWhatsAppMessage({
         merchantId,
@@ -411,15 +427,13 @@ export async function processWhatsAppInboundEvent(
       });
 
       if (upsellSend.success) {
-        await serviceClient
-          .from('scheduled_tasks')
-          .insert({
-            user_id: user.userId,
-            order_id: orderId ?? null,
-            task_type: 'upsell',
-            execute_at: new Date().toISOString(),
-            status: 'completed',
-          });
+        await serviceClient.from('scheduled_tasks').insert({
+          user_id: user.userId,
+          order_id: orderId ?? null,
+          task_type: 'upsell',
+          execute_at: new Date().toISOString(),
+          status: 'completed',
+        });
       }
     }
 
