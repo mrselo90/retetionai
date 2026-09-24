@@ -17,6 +17,7 @@ import { AppProvider } from '@shopify/shopify-app-react-router/react';
 import { NavMenu } from '@shopify/app-bridge-react';
 import {
   AppProvider as PolarisAppProvider,
+  Banner,
   BlockStack,
   Box,
   Card,
@@ -49,7 +50,7 @@ const AppLink = forwardRef<
 });
 import { EmbeddedSessionTokenBoundary } from '../components/EmbeddedSessionTokenBoundary';
 import { isBillingReady } from '../lib/billingStatus';
-import { getSetupProgress } from '../lib/setupProgress';
+import { getSetupProgress, REQUIRED_STEP_INFO } from '../lib/setupProgress';
 import type { ShopifyMerchantOverview } from '../platform.server';
 
 const navItems = [
@@ -242,6 +243,15 @@ function AppShell() {
               </InlineStack>
             ) : null}
 
+            {setupProgress && !setupProgress.setupComplete && location.pathname !== '/app' ? (
+              <SetupTrail
+                pathname={location.pathname}
+                done={setupProgress.completedCount}
+                total={setupProgress.totalSteps}
+                nextStep={setupProgress.nextStep}
+              />
+            ) : null}
+
             {shellLoading && location.pathname === '/app' ? (
               <Card padding="500">
                 <BlockStack gap="300">
@@ -262,6 +272,51 @@ function AppShell() {
         </div>
       </Box>
     </Frame>
+  );
+}
+
+/**
+ * Keeps the merchant on the setup path from any page. The Overview checklist was
+ * the only place that said what comes next, so a merchant who opened Products
+ * or Settings had no way back but the nav. On the next step's own page it says
+ * which step this is; anywhere else it points at that step.
+ */
+function SetupTrail({
+  pathname,
+  done,
+  total,
+  nextStep,
+}: {
+  pathname: string;
+  done: number;
+  total: number;
+  nextStep: string | null;
+}) {
+  const info =
+    nextStep && nextStep in REQUIRED_STEP_INFO
+      ? REQUIRED_STEP_INFO[nextStep as keyof typeof REQUIRED_STEP_INFO]
+      : null;
+  if (!info) return null;
+
+  const onNextStep = pathname === info.path || pathname.startsWith(`${info.path}/`);
+
+  return onNextStep ? (
+    <Banner
+      tone="info"
+      title={`Setup step ${done + 1} of ${total}: ${info.title}`}
+      action={{ content: 'Back to setup', url: '/app' }}
+    >
+      <p>When you&apos;re done here, go back to setup for the next step.</p>
+    </Banner>
+  ) : (
+    <Banner
+      tone="info"
+      title={`Setup ${done} of ${total} done`}
+      action={{ content: `Continue: ${info.title}`, url: info.path }}
+      secondaryAction={{ content: 'Back to setup', url: '/app' }}
+    >
+      <p>{`Next step: ${info.title.toLowerCase()}.`}</p>
+    </Banner>
   );
 }
 

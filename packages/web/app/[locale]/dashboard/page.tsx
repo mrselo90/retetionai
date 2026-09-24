@@ -20,6 +20,7 @@ import {
 import { useTranslations, useLocale } from 'next-intl';
 import { Badge, Button, EmptyState } from '@/components/recete';
 import type { BadgeTone } from '@/components/recete';
+import { computeSetupSteps } from '@/lib/setupSteps';
 
 interface Merchant {
   id: string;
@@ -238,32 +239,12 @@ export default function DashboardPage() {
     (displayStats.kpis.messagesSent ?? 0) > 0 ||
     displayStats.recentActivity.conversations.length > 0;
 
-  const setupSteps = [
-    {
-      id: 'connectShopify',
-      title: t('setup.steps.connectShopify.title'),
-      description: t('setup.steps.connectShopify.description'),
-      actionLabel: t('setup.steps.connectShopify.action'),
-      actionUrl: '/dashboard/integrations',
-      completed: !hasIntegrationIssue,
-    },
-    {
-      id: 'addProduct',
-      title: t('setup.steps.addProduct.title'),
-      description: t('setup.steps.addProduct.description'),
-      actionLabel: t('setup.steps.addProduct.action'),
-      actionUrl: '/dashboard/products',
-      completed: hasProducts,
-    },
-    {
-      id: 'sendFirstWhatsApp',
-      title: t('setup.steps.sendFirstWhatsApp.title'),
-      description: t('setup.steps.sendFirstWhatsApp.description'),
-      actionLabel: t('setup.steps.sendFirstWhatsApp.action'),
-      actionUrl: '/dashboard/settings',
-      completed: hasConversationActivity,
-    },
-  ] as const;
+  const setupSteps = computeSetupSteps(displayStats).map((step) => ({
+    ...step,
+    title: t(`setup.steps.${step.id}.title`),
+    description: t(`setup.steps.${step.id}.description`),
+    actionLabel: t(`setup.steps.${step.id}.action`),
+  }));
   const completedSteps = setupSteps.filter((step) => step.completed).length;
   const nextStep = setupSteps.find((step) => !step.completed);
   // "No integration" and "no products" are exactly what the setup card's steps

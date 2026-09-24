@@ -20,7 +20,7 @@
  * would restyle the chrome and unstyle those pages in the same commit.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, usePathname } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
 import {
@@ -39,13 +39,19 @@ import { cn } from '@/lib/utils';
 import { useLocale, useTranslations } from 'next-intl';
 import { useDashboardAuth } from '@/hooks/useDashboardAuth';
 import { useShopify } from '@/components/ShopifyProvider';
-import { Avatar } from '@/components/recete';
+import { Avatar, ProgressBar } from '@/components/recete';
+import { authenticatedRequest } from '@/lib/api';
+import { computeSetupSteps, type SetupStats, type SetupStep } from '@/lib/setupSteps';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
 const SUPPORTED_LOCALES = ['en', 'tr'] as const;
+
+// How stale the sidebar's setup card may get. It refreshes on navigation, so
+// finishing a step and moving on shows the next one without hammering stats.
+const SETUP_REFRESH_MS = 15_000;
 
 /**
  * With localePrefix: 'never' the URL never carries a locale, so switching is
@@ -61,6 +67,7 @@ function setLocaleCookie(next: string) {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const t = useTranslations('Dashboard.sidebar');
+  const tSetup = useTranslations('Dashboard.home.setup');
   const locale = useLocale();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -82,6 +89,43 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
    * the viewport *behind* the URL bar.
    */
   const isFullBleed = /\/dashboard\/conversations(\/|$)/.test(pathname);
+
+  /*
+   * The next setup step, on every screen. Until now only Dashboard home said
+   * what to do next, so a merchant who went to Products or Settings lost the
+   * thread. Hidden on Dashboard home itself, where the full card already is.
+   */
+  const [setupSteps, setSetupSteps] = useState<SetupStep[] | null>(null);
+  const lastSetupFetchRef = useRef(0);
+  useEffect(() => {
+    if (loading || isEmbedded) return;
+    if (Date.now() - lastSetupFetchRef.current < SETUP_REFRESH_MS) return;
+    lastSetupFetchRef.current = Date.now();
+    let cancelled = false;
+    void (async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) return;
+        const stats = await authenticatedRequest<SetupStats>(
+          '/api/merchants/me/stats',
+          session.access_token
+        );
+        if (!cancelled) setSetupSteps(computeSetupSteps(stats));
+      } catch {
+        // No card rather than a wrong one; Dashboard home reports the failure.
+        if (!cancelled) setSetupSteps(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, loading, isEmbedded]);
+
+  const setupDone = setupSteps?.filter((step) => step.completed).length ?? 0;
+  const nextSetupStep = setupSteps?.find((step) => !step.completed) ?? null;
+  const showSetupCard = Boolean(setupSteps && nextSetupStep) && pathname !== '/dashboard';
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -207,6 +251,27 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         ))}
 
         <div className="r-sidebar-foot">
+          {showSetupCard && setupSteps && nextSetupStep ? (
+            <Link
+              href={nextSetupStep.actionUrl}
+              className="r-setup-card"
+              style={{ marginBottom: 12 }}
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <div className="r-setup-title">
+                {t('setupProgress', { done: setupDone, total: setupSteps.length })}
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <ProgressBar
+                  value={(setupDone / setupSteps.length) * 100}
+                  label={t('setupProgress', { done: setupDone, total: setupSteps.length })}
+                />
+              </div>
+              <div className="r-setup-next">
+                {t('setupNext', { step: tSetup(`steps.${nextSetupStep.id}.title`) })}
+              </div>
+            </Link>
+          ) : null}
           <div
             className="r-segmented"
             role="group"

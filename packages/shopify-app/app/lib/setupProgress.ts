@@ -1,15 +1,31 @@
-import { isBillingReady } from "./billingStatus";
-import type { ShopifyMerchantOverview } from "../platform.server";
+import { isBillingReady } from './billingStatus';
+import type { ShopifyMerchantOverview } from '../platform.server';
 
-type PersonaSettings = NonNullable<ShopifyMerchantOverview["settings"]["personaSettings"]>;
+type PersonaSettings = NonNullable<ShopifyMerchantOverview['settings']['personaSettings']>;
 
-export type SetupStepKey = "billing" | "products" | "messaging" | "orders" | "themeEmbed";
+export type SetupStepKey = 'billing' | 'products' | 'messaging' | 'orders' | 'themeEmbed';
 
 // Required steps: gate the activation metric. Setup is "complete" once all of these are done.
-export const REQUIRED_SETUP_STEPS: ReadonlyArray<SetupStepKey> = ["billing", "products", "messaging"] as const;
+export const REQUIRED_SETUP_STEPS: ReadonlyArray<SetupStepKey> = [
+  'billing',
+  'products',
+  'messaging',
+] as const;
+
+// Title and page of each required step. The Overview checklist and the
+// setup banner shown on every other page both read these, so they always name
+// the same step and send the merchant to the same place.
+export const REQUIRED_STEP_INFO: Record<
+  'billing' | 'products' | 'messaging',
+  { title: string; path: string }
+> = {
+  billing: { title: 'Pick a plan', path: '/app/billing' },
+  products: { title: 'Add product instructions', path: '/app/products' },
+  messaging: { title: 'Set up welcome message', path: '/app/setup/messaging' },
+};
 
 // Optional steps: shown in a separate "Polish your setup" section. Don't gate dashboard access.
-export const OPTIONAL_SETUP_STEPS: ReadonlyArray<SetupStepKey> = ["orders", "themeEmbed"] as const;
+export const OPTIONAL_SETUP_STEPS: ReadonlyArray<SetupStepKey> = ['orders', 'themeEmbed'] as const;
 
 export type SetupProgress = {
   hasBilling: boolean;
@@ -18,38 +34,46 @@ export type SetupProgress = {
   hasOrders: boolean;
   hasThemeEmbed: boolean;
   productCount: number;
-  completedCount: number;       // completed REQUIRED steps only
-  totalSteps: number;            // total REQUIRED steps only
-  setupComplete: boolean;        // all REQUIRED steps complete
-  postLaunchComplete: boolean;   // all OPTIONAL steps complete (informational)
+  completedCount: number; // completed REQUIRED steps only
+  totalSteps: number; // total REQUIRED steps only
+  setupComplete: boolean; // all REQUIRED steps complete
+  postLaunchComplete: boolean; // all OPTIONAL steps complete (informational)
   nextStep: SetupStepKey | null; // next REQUIRED step that's not done
   nextOptionalStep: SetupStepKey | null; // next OPTIONAL step that's not done
 };
 
 function hasNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
+  return typeof value === 'string' && value.trim().length > 0;
 }
 
-function hasSavedMessagingConfiguration(settings?: PersonaSettings | null, notificationPhone?: string | null) {
+function hasSavedMessagingConfiguration(
+  settings?: PersonaSettings | null,
+  notificationPhone?: string | null
+) {
   return Boolean(
     hasNonEmptyString(settings?.onboarding_settings_configured_at) ||
-      hasNonEmptyString(settings?.bot_name) ||
-      hasNonEmptyString(settings?.whatsapp_welcome_template) ||
-      hasNonEmptyString(notificationPhone),
+    hasNonEmptyString(settings?.bot_name) ||
+    hasNonEmptyString(settings?.whatsapp_welcome_template) ||
+    hasNonEmptyString(notificationPhone)
   );
 }
 
 export function getSetupProgress(
   overview: ShopifyMerchantOverview,
   billingApproved?: boolean,
-  themeEmbedEnabled?: boolean,
+  themeEmbedEnabled?: boolean
 ): SetupProgress {
-  const productCount = Math.max(overview.metrics.totalProducts || 0, overview.products?.length || 0);
-  const hasBilling = billingApproved ?? isBillingReady(overview.subscription?.status || overview.merchant.subscription_status);
+  const productCount = Math.max(
+    overview.metrics.totalProducts || 0,
+    overview.products?.length || 0
+  );
+  const hasBilling =
+    billingApproved ??
+    isBillingReady(overview.subscription?.status || overview.merchant.subscription_status);
   const hasProducts = productCount > 0;
   const hasMessagingConfigured = hasSavedMessagingConfiguration(
     overview.settings?.personaSettings,
-    overview.settings?.notificationPhone,
+    overview.settings?.notificationPhone
   );
   const hasOrders = (overview.metrics.totalOrders || 0) > 0;
   const hasThemeEmbed = themeEmbedEnabled ?? false;

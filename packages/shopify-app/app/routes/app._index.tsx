@@ -24,7 +24,7 @@ import {
   TextField,
 } from '@shopify/polaris';
 import { ShellPage } from '../components/shell-ui';
-import { getSetupProgress, type SetupStepKey } from '../lib/setupProgress';
+import { getSetupProgress, REQUIRED_STEP_INFO, type SetupStepKey } from '../lib/setupProgress';
 import type { ShopifyMerchantOverview } from '../platform.server';
 import { extractPlatformErrorMessage, triggerTestOrderFlow } from '../platform.server';
 import { useAppBootstrapData } from './app';
@@ -179,27 +179,27 @@ function SetupOverview({
   const requiredSteps: SetupStep[] = [
     {
       id: 'billing',
-      title: 'Pick a plan',
+      title: REQUIRED_STEP_INFO.billing.title,
       description: 'Choose a plan and approve billing in Shopify.',
-      to: '/app/billing',
+      to: REQUIRED_STEP_INFO.billing.path,
       icon: CartIcon,
       status: statusFor(progress.hasBilling, progress.nextStep === 'billing'),
       estimateMinutes: STEP_ESTIMATES.billing,
     },
     {
       id: 'products',
-      title: 'Add product instructions',
+      title: REQUIRED_STEP_INFO.products.title,
       description: `Add usage instructions for ${productCountLabel} products so Recete can answer customer questions.`,
-      to: '/app/products',
+      to: REQUIRED_STEP_INFO.products.path,
       icon: CatalogIcon,
       status: statusFor(progress.hasProducts, progress.nextStep === 'products'),
       estimateMinutes: STEP_ESTIMATES.products,
     },
     {
       id: 'messaging',
-      title: 'Set up welcome message',
+      title: REQUIRED_STEP_INFO.messaging.title,
       description: 'Pick a bot name, language, and the message customers receive after delivery.',
-      to: '/app/setup/messaging',
+      to: REQUIRED_STEP_INFO.messaging.path,
       icon: SettingsIcon,
       status: statusFor(progress.hasMessagingConfigured, progress.nextStep === 'messaging'),
       estimateMinutes: STEP_ESTIMATES.messaging,
