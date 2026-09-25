@@ -785,6 +785,30 @@ export async function updateMerchantProductInstruction(
   });
 }
 
+export type ProductInstructionDraft = {
+  key: string;
+  usage_instructions: string;
+  prevention_tips: string;
+  recipe_summary: string;
+};
+
+/** AI-drafted customer guidance from each product's title and description (max 10). */
+export async function draftMerchantProductInstructions(
+  request: Request,
+  products: Array<{
+    key: string;
+    title: string;
+    description?: string;
+    productType?: string;
+    vendor?: string;
+  }>
+) {
+  return (await internalMerchantRequest(request, '/api/products/instructions/draft', {
+    method: 'POST',
+    body: JSON.stringify({ products }),
+  })) as { drafts: ProductInstructionDraft[] };
+}
+
 export async function fetchMerchantGuardrails(request: Request) {
   return (await internalMerchantRequest(request, '/api/merchants/me/guardrails')) as {
     system_guardrails: SystemGuardrail[];

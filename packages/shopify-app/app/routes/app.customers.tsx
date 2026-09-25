@@ -4,7 +4,7 @@ import { boundary } from '@shopify/shopify-app-react-router/server';
 import { ChatIcon, PersonIcon } from '@shopify/polaris-icons';
 import { Banner, BlockStack, InlineGrid, Layout, Page, Text } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
-import { getSetupProgress } from '../lib/setupProgress';
+import { shellSetupProgress, useAppBootstrapData } from './app';
 import {
   extractPlatformErrorMessage,
   fetchMerchantCustomers,
@@ -71,6 +71,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function CustomersPage() {
+  const { bootstrapData: shellBootstrap } = useAppBootstrapData();
   const data = useLoaderData<typeof loader>();
   const customers = data.customers || [];
   const sortedCustomers = [...customers].sort(
@@ -107,7 +108,7 @@ export default function CustomersPage() {
     );
   }
 
-  const progress = getSetupProgress(data.overview);
+  const progress = shellSetupProgress(data.overview, shellBootstrap);
   const hasBilling = progress.hasBilling;
   const hasProducts = progress.hasProducts;
   const hasMessagingConfigured = progress.hasMessagingConfigured;

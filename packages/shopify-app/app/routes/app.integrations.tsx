@@ -4,6 +4,7 @@ import { boundary } from '@shopify/shopify-app-react-router/server';
 import { ConnectIcon, CreditCardIcon, SettingsIcon, ViewIcon } from '@shopify/polaris-icons';
 import { Banner, BlockStack, Button, InlineGrid, InlineStack, Text } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
+import { isBillingReady } from '../lib/billingStatus';
 import {
   fetchMerchantOverviewFromRequest,
   fetchWhatsAppConnection,
@@ -108,7 +109,11 @@ export default function IntegrationsPage() {
           <ActionCard
             title="Billing"
             description="Billing approval should be visible here because it directly gates feature availability."
-            status={data.subscription?.status || 'inactive'}
+            status={
+              isBillingReady(data.subscription?.status || data.merchant.subscription_status)
+                ? 'active'
+                : 'No plan yet'
+            }
             action={{ content: 'Open billing', url: '/app/billing', icon: CreditCardIcon }}
           />
           <ActionCard
@@ -123,7 +128,7 @@ export default function IntegrationsPage() {
       <SectionCard
         id="orders-flow"
         title="Orders flow setup"
-        subtitle="Complete this to finish the checklist step named Orders flowing."
+        subtitle="Recete starts messaging customers once their orders reach it."
         badge={
           <StatusBadge status={hasOrdersFlow ? 'active' : 'pending'}>
             {hasOrdersFlow ? 'active' : 'pending'}

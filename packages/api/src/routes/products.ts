@@ -7,12 +7,21 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
-import { buildShopifyProductFallbackContent, getSupabaseServiceClient, logger } from '@recete/shared';
+import {
+  buildShopifyProductFallbackContent,
+  getSupabaseServiceClient,
+  logger,
+} from '@recete/shared';
 import { scrapeProductPage } from '../lib/scraper.js';
 import { fetchShopifyProductByHandle } from '../lib/shopify.js';
 import { addScrapeJob } from '../queues.js';
-import { processProductForRAG, batchProcessProducts, getProductChunkCount } from '../lib/knowledgeBase.js';
+import {
+  processProductForRAG,
+  batchProcessProducts,
+  getProductChunkCount,
+} from '../lib/knowledgeBase.js';
 import { enrichProductDataDetailed } from '../lib/llm/enrichProduct.js';
+import { draftProductInstructions, MAX_DRAFTS_PER_REQUEST } from '../lib/llm/draftInstructions.js';
 import { persistProductFactsSnapshot } from '../lib/productFactsStore.js';
 import { validateBody, validateParams } from '../middleware/validation.js';
 import {
@@ -66,7 +75,7 @@ function buildStepOutcome(
     updatedAt?: string | null;
     delta?: Record<string, unknown>;
     error?: string;
-  },
+  }
 ) {
   return {
     step,
@@ -102,7 +111,8 @@ function buildProductLifecycle(options: {
       status: 'needs_ai_answers',
       label: 'Needs AI answers',
       nextActionLabel: 'Prepare answers',
-      message: 'The guidance is saved. Recete still needs product knowledge before it can answer customers well.',
+      message:
+        'The guidance is saved. Recete still needs product knowledge before it can answer customers well.',
     };
   }
 
@@ -110,17 +120,14 @@ function buildProductLifecycle(options: {
     status: 'ready',
     label: 'Ready',
     nextActionLabel: 'Review',
-    message: options.languageWorkflowEnabled && options.languageCoverage < 100
-      ? 'Setup is complete. Extra language coverage will keep improving in the background.'
-      : 'Setup is complete and this product is ready to answer customer questions.',
+    message:
+      options.languageWorkflowEnabled && options.languageCoverage < 100
+        ? 'Setup is complete. Extra language coverage will keep improving in the background.'
+        : 'Setup is complete and this product is ready to answer customer questions.',
   };
 }
 
-async function runInternalProductRequest(
-  merchantId: string,
-  path: string,
-  init?: RequestInit,
-) {
+async function runInternalProductRequest(merchantId: string, path: string, init?: RequestInit) {
   const baseUrl = (process.env.API_URL || 'http://localhost:3001').replace(/\/$/, '');
   const internalSecret = process.env.INTERNAL_SERVICE_SECRET?.trim();
 
@@ -151,8 +158,8 @@ async function runInternalProductRequest(
   if (!response.ok) {
     const error = new Error(
       (parsed?.details as string) ||
-      (parsed?.error as string) ||
-      `Internal product request failed for ${path}`,
+        (parsed?.error as string) ||
+        `Internal product request failed for ${path}`
     ) as Error & { payload?: any; status?: number };
     error.payload = parsed;
     error.status = response.status;
@@ -192,7 +199,7 @@ function buildMergedLayerText(
   existing: string | null | undefined,
   incoming: string,
   sourceUrl: string,
-  label: 'RAW' | 'ENRICHED',
+  label: 'RAW' | 'ENRICHED'
 ): string {
   const incomingTrimmed = incoming.trim();
   const existingTrimmed = (existing || '').trim();
@@ -207,11 +214,13 @@ function buildMergedLayerText(
 async function invalidateProductKnowledgeCaches(
   merchantId: string,
   productId?: string,
-  options?: { invalidateProductDetails?: boolean },
+  options?: { invalidateProductDetails?: boolean }
 ) {
   await Promise.all([
     invalidateMerchantRagCaches(String(merchantId)),
-    options?.invalidateProductDetails && productId ? invalidateProductCache(productId) : Promise.resolve(true),
+    options?.invalidateProductDetails && productId
+      ? invalidateProductCache(productId)
+      : Promise.resolve(true),
     invalidateApiCache(`products:${merchantId}`),
     invalidateMerchantOverviewCache(String(merchantId)),
   ]);
@@ -256,7 +265,7 @@ products.get('/', async (c) => {
 
   const settings = await new ShopSettingsService().getOrCreate(String(merchantId));
   const instructionByProductId = new Map(
-    (instructionRows || []).map((row) => [row.product_id as string, row.usage_instructions || '']),
+    (instructionRows || []).map((row) => [row.product_id as string, row.usage_instructions || ''])
   );
   const [knowledgeHealthMap, languageHealthMap] = await Promise.all([
     buildProductKnowledgeHealthMap(serviceClient, String(merchantId), products || []),
@@ -271,7 +280,7 @@ products.get('/', async (c) => {
       const hasGuidance = Boolean(String(instructionByProductId.get(product.id) || '').trim());
       const languageWorkflowEnabled = settings.enabled_langs.length > 1;
       const languageCoverage = languageWorkflowEnabled
-        ? languageHealth?.answerCoverage ?? 0
+        ? (languageHealth?.answerCoverage ?? 0)
         : (knowledgeHealth?.metrics.chunkCount || 0) > 0
           ? 100
           : 0;
@@ -306,16 +315,16 @@ products.get('/mapping-index', async (c) => {
   const merchantId = c.get('merchantId');
   const serviceClient = getSupabaseServiceClient();
 
-  const [{ data: products, error: productsError }, { data: rows, error: instructionsError }] = await Promise.all([
-    serviceClient
-      .from('products')
-      .select('id, external_id')
-      .eq('merchant_id', merchantId),
-    serviceClient
-      .from('product_instructions')
-      .select('product_id, usage_instructions, recipe_summary, video_url, prevention_tips, products(id, name, external_id)')
-      .eq('merchant_id', merchantId),
-  ]);
+  const [{ data: products, error: productsError }, { data: rows, error: instructionsError }] =
+    await Promise.all([
+      serviceClient.from('products').select('id, external_id').eq('merchant_id', merchantId),
+      serviceClient
+        .from('product_instructions')
+        .select(
+          'product_id, usage_instructions, recipe_summary, video_url, prevention_tips, products(id, name, external_id)'
+        )
+        .eq('merchant_id', merchantId),
+    ]);
 
   if (productsError || instructionsError) {
     return c.json({ error: 'Failed to fetch mapping index' }, 500);
@@ -347,7 +356,9 @@ products.get('/instructions/list', async (c) => {
 
   const { data: rows, error } = await serviceClient
     .from('product_instructions')
-    .select('product_id, usage_instructions, recipe_summary, video_url, prevention_tips, created_at, updated_at, products(id, name, external_id)')
+    .select(
+      'product_id, usage_instructions, recipe_summary, video_url, prevention_tips, created_at, updated_at, products(id, name, external_id)'
+    )
     .eq('merchant_id', merchantId);
 
   if (error) {
@@ -373,6 +384,40 @@ products.get('/instructions/list', async (c) => {
  * List active product facts snapshots for merchant (for UI insights)
  * GET /api/products/facts?product_ids=...
  */
+/**
+ * Draft customer guidance for products from their title and description.
+ * POST /api/products/instructions/draft
+ * Body: { products: [{ key, title, description?, productType?, vendor? }] } (max 10)
+ * Stateless: returns drafts, saves nothing. The caller shows them for review or
+ * saves them through PUT /:id/instruction.
+ */
+const draftInstructionsSchema = z.object({
+  products: z
+    .array(
+      z.object({
+        key: z.string().min(1).max(100),
+        title: z.string().min(1).max(300),
+        description: z.string().max(20000).optional(),
+        productType: z.string().max(200).optional(),
+        vendor: z.string().max(200).optional(),
+      })
+    )
+    .min(1)
+    .max(MAX_DRAFTS_PER_REQUEST),
+});
+
+products.post('/instructions/draft', validateBody(draftInstructionsSchema), async (c) => {
+  const merchantId = c.get('merchantId') as string;
+  const { products: input } = c.get('validatedBody') as z.infer<typeof draftInstructionsSchema>;
+  try {
+    const drafts = await draftProductInstructions(merchantId, input);
+    return c.json({ drafts });
+  } catch (error) {
+    logger.error({ error, merchantId }, 'Failed to draft product instructions');
+    return c.json({ error: 'Could not draft instructions right now. Try again.' }, 502);
+  }
+});
+
 products.get('/facts', async (c) => {
   const merchantId = c.get('merchantId');
   const serviceClient = getSupabaseServiceClient();
@@ -430,7 +475,9 @@ products.get('/:id/instruction', validateParams(productIdSchema), async (c) => {
 
   const { data: instruction, error } = await serviceClient
     .from('product_instructions')
-    .select('id, usage_instructions, recipe_summary, video_url, prevention_tips, created_at, updated_at')
+    .select(
+      'id, usage_instructions, recipe_summary, video_url, prevention_tips, created_at, updated_at'
+    )
     .eq('merchant_id', merchantId)
     .eq('product_id', productId)
     .maybeSingle();
@@ -450,48 +497,53 @@ products.get('/:id/instruction', validateParams(productIdSchema), async (c) => {
  * Create or update product instruction (recipe & usage)
  * PUT /api/products/:id/instruction
  */
-products.put('/:id/instruction', validateParams(productIdSchema), validateBody(productInstructionSchema), async (c) => {
-  const merchantId = c.get('merchantId');
-  const { id: productId } = c.get('validatedParams') as ProductIdParams;
-  const body = c.get('validatedBody') as ProductInstructionInput;
-  const serviceClient = getSupabaseServiceClient();
+products.put(
+  '/:id/instruction',
+  validateParams(productIdSchema),
+  validateBody(productInstructionSchema),
+  async (c) => {
+    const merchantId = c.get('merchantId');
+    const { id: productId } = c.get('validatedParams') as ProductIdParams;
+    const body = c.get('validatedBody') as ProductInstructionInput;
+    const serviceClient = getSupabaseServiceClient();
 
-  const { data: product, error: productError } = await serviceClient
-    .from('products')
-    .select('id')
-    .eq('id', productId)
-    .eq('merchant_id', merchantId)
-    .single();
+    const { data: product, error: productError } = await serviceClient
+      .from('products')
+      .select('id')
+      .eq('id', productId)
+      .eq('merchant_id', merchantId)
+      .single();
 
-  if (productError || !product) {
-    return c.json({ error: 'Product not found' }, 404);
+    if (productError || !product) {
+      return c.json({ error: 'Product not found' }, 404);
+    }
+
+    const { data: instruction, error } = await serviceClient
+      .from('product_instructions')
+      .upsert(
+        {
+          merchant_id: merchantId,
+          product_id: productId,
+          usage_instructions: body.usage_instructions,
+          recipe_summary: body.recipe_summary ?? null,
+          video_url: body.video_url || null,
+          prevention_tips: body.prevention_tips ?? null,
+        },
+        { onConflict: 'merchant_id,product_id', ignoreDuplicates: false }
+      )
+      .select()
+      .single();
+
+    if (error) {
+      return c.json({ error: 'Failed to save instruction' }, 500);
+    }
+
+    await invalidateProductKnowledgeCaches(String(merchantId), productId);
+    shadowSyncProductKnowledge(String(merchantId), productId, 'instruction save');
+
+    return c.json({ instruction });
   }
-
-  const { data: instruction, error } = await serviceClient
-    .from('product_instructions')
-    .upsert(
-      {
-        merchant_id: merchantId,
-        product_id: productId,
-        usage_instructions: body.usage_instructions,
-        recipe_summary: body.recipe_summary ?? null,
-        video_url: body.video_url || null,
-        prevention_tips: body.prevention_tips ?? null,
-      },
-      { onConflict: 'merchant_id,product_id', ignoreDuplicates: false }
-    )
-    .select()
-    .single();
-
-  if (error) {
-    return c.json({ error: 'Failed to save instruction' }, 500);
-  }
-
-  await invalidateProductKnowledgeCaches(String(merchantId), productId);
-  shadowSyncProductKnowledge(String(merchantId), productId, 'instruction save');
-
-  return c.json({ instruction });
-});
+);
 
 /**
  * Get single product
@@ -503,11 +555,15 @@ products.get('/:id', async (c) => {
   const serviceClient = getSupabaseServiceClient();
 
   // Try cache first
-  const cached = await getCachedProduct(productId) as any;
+  const cached = (await getCachedProduct(productId)) as any;
   if (cached && cached.merchant_id) {
     // Verify it belongs to this merchant
     if (cached.merchant_id === merchantId) {
-      const knowledgeHealthMap = await buildProductKnowledgeHealthMap(serviceClient, String(merchantId), [cached]);
+      const knowledgeHealthMap = await buildProductKnowledgeHealthMap(
+        serviceClient,
+        String(merchantId),
+        [cached]
+      );
       return c.json({
         product: {
           ...cached,
@@ -531,7 +587,11 @@ products.get('/:id', async (c) => {
   // Cache product (10 minutes)
   await setCachedProduct(productId, product, 600);
 
-  const knowledgeHealthMap = await buildProductKnowledgeHealthMap(serviceClient, String(merchantId), [product]);
+  const knowledgeHealthMap = await buildProductKnowledgeHealthMap(
+    serviceClient,
+    String(merchantId),
+    [product]
+  );
 
   return c.json({
     product: {
@@ -567,7 +627,7 @@ products.post('/', validateBody(createProductSchema), async (c) => {
         error: 'Product limit exceeded',
         message: `Your current plan allows ${capacity.limit} recipes/products. Upgrade before creating more.`,
       },
-      403,
+      403
     );
   }
 
@@ -599,66 +659,74 @@ products.post('/', validateBody(createProductSchema), async (c) => {
  * Update product
  * PUT /api/products/:id
  */
-products.put('/:id', validateParams(productIdSchema), validateBody(updateProductSchema), async (c) => {
-  const merchantId = c.get('merchantId');
-  const validatedParams = c.get('validatedParams') as ProductIdParams;
-  const { id: productId } = validatedParams;
-  const validatedBody = c.get('validatedBody') as UpdateProductInput;
-  const serviceClient = getSupabaseServiceClient();
+products.put(
+  '/:id',
+  validateParams(productIdSchema),
+  validateBody(updateProductSchema),
+  async (c) => {
+    const merchantId = c.get('merchantId');
+    const validatedParams = c.get('validatedParams') as ProductIdParams;
+    const { id: productId } = validatedParams;
+    const validatedBody = c.get('validatedBody') as UpdateProductInput;
+    const serviceClient = getSupabaseServiceClient();
 
-  // Verify ownership
-  const { data: existing } = await serviceClient
-    .from('products')
-    .select('id')
-    .eq('id', productId)
-    .eq('merchant_id', merchantId)
-    .single();
+    // Verify ownership
+    const { data: existing } = await serviceClient
+      .from('products')
+      .select('id')
+      .eq('id', productId)
+      .eq('merchant_id', merchantId)
+      .single();
 
-  if (!existing) {
-    return c.json({ error: 'Product not found' }, 404);
+    if (!existing) {
+      return c.json({ error: 'Product not found' }, 404);
+    }
+
+    // Build update data from validated body
+    const updateData: Record<string, any> = {};
+    if (validatedBody.name !== undefined) updateData.name = validatedBody.name;
+    if (validatedBody.url !== undefined) updateData.url = validatedBody.url;
+    if (validatedBody.external_id !== undefined) updateData.external_id = validatedBody.external_id;
+    if (validatedBody.raw_text !== undefined) updateData.raw_text = validatedBody.raw_text;
+
+    // Check if there's anything to update
+    if (Object.keys(updateData).length === 0) {
+      return c.json({ error: 'No fields to update' }, 400);
+    }
+
+    // Always update the updated_at timestamp
+    updateData.updated_at = new Date().toISOString();
+
+    console.log('Updating product:', productId, 'with data:', updateData);
+
+    const { data: product, error } = await serviceClient
+      .from('products')
+      .update(updateData)
+      .eq('id', productId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Product update error:', error);
+      return c.json(
+        {
+          error: 'Failed to update product',
+          details: error.message,
+          code: error.code,
+          hint: error.hint,
+        },
+        500
+      );
+    }
+
+    // Update cache
+    await setCachedProduct(productId, product, 600);
+    await invalidateProductKnowledgeCaches(String(merchantId), productId);
+    shadowSyncProductKnowledge(String(merchantId), productId, 'update product');
+
+    return c.json({ product });
   }
-
-  // Build update data from validated body
-  const updateData: Record<string, any> = {};
-  if (validatedBody.name !== undefined) updateData.name = validatedBody.name;
-  if (validatedBody.url !== undefined) updateData.url = validatedBody.url;
-  if (validatedBody.external_id !== undefined) updateData.external_id = validatedBody.external_id;
-  if (validatedBody.raw_text !== undefined) updateData.raw_text = validatedBody.raw_text;
-
-  // Check if there's anything to update
-  if (Object.keys(updateData).length === 0) {
-    return c.json({ error: 'No fields to update' }, 400);
-  }
-
-  // Always update the updated_at timestamp
-  updateData.updated_at = new Date().toISOString();
-
-  console.log('Updating product:', productId, 'with data:', updateData);
-
-  const { data: product, error } = await serviceClient
-    .from('products')
-    .update(updateData)
-    .eq('id', productId)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Product update error:', error);
-    return c.json({
-      error: 'Failed to update product',
-      details: error.message,
-      code: error.code,
-      hint: error.hint
-    }, 500);
-  }
-
-  // Update cache
-  await setCachedProduct(productId, product, 600);
-  await invalidateProductKnowledgeCaches(String(merchantId), productId);
-  shadowSyncProductKnowledge(String(merchantId), productId, 'update product');
-
-  return c.json({ product });
-});
+);
 
 /**
  * Delete product
@@ -681,10 +749,7 @@ products.delete('/:id', async (c) => {
     return c.json({ error: 'Product not found' }, 404);
   }
 
-  const { error } = await serviceClient
-    .from('products')
-    .delete()
-    .eq('id', productId);
+  const { error } = await serviceClient.from('products').delete().eq('id', productId);
 
   if (error) {
     console.error('Failed to delete product:', error);
@@ -692,7 +757,9 @@ products.delete('/:id', async (c) => {
   }
 
   // Remove product from cache
-  await invalidateProductKnowledgeCaches(String(merchantId), productId, { invalidateProductDetails: true });
+  await invalidateProductKnowledgeCaches(String(merchantId), productId, {
+    invalidateProductDetails: true,
+  });
 
   return c.json({ message: 'Product deleted' });
 });
@@ -759,14 +826,17 @@ products.post('/:id/scrape', async (c) => {
   const scrapeResult = await scrapeProductPage(product.url);
 
   if (!scrapeResult.success) {
-    return c.json({
-      error: 'Scraping failed',
-      details: scrapeResult.error,
-      stepOutcome: buildStepOutcome('collect_sources', 'error', {
-        error: scrapeResult.error || 'Scrape failed',
-        delta: { source: 'product_url' },
-      }),
-    }, 500);
+    return c.json(
+      {
+        error: 'Scraping failed',
+        details: scrapeResult.error,
+        stepOutcome: buildStepOutcome('collect_sources', 'error', {
+          error: scrapeResult.error || 'Scrape failed',
+          delta: { source: 'product_url' },
+        }),
+      },
+      500
+    );
   }
 
   let rawContent = scrapeResult.product!.rawContent;
@@ -774,8 +844,9 @@ products.post('/:id/scrape', async (c) => {
   // Detect Shopify password protection
   if (rawContent && rawContent.toLowerCase().includes('password protected')) {
     // FALLBACK: If it's a Shopify store, try Admin API
-    const isShopifyUrl = product.url.includes('.myshopify.com') || product.url.includes('/products/');
-    
+    const isShopifyUrl =
+      product.url.includes('.myshopify.com') || product.url.includes('/products/');
+
     if (isShopifyUrl) {
       const { data: integration } = await serviceClient
         .from('integrations')
@@ -793,7 +864,10 @@ products.post('/:id/scrape', async (c) => {
 
         if (handle) {
           try {
-            logger.info({ merchantId, productId, handle }, 'Storefront blocked by password; attempting Shopify Admin API fallback');
+            logger.info(
+              { merchantId, productId, handle },
+              'Storefront blocked by password; attempting Shopify Admin API fallback'
+            );
             const shopifyProduct = await fetchShopifyProductByHandle(
               authData.shop,
               authData.access_token,
@@ -821,14 +895,18 @@ products.post('/:id/scrape', async (c) => {
 
     // If fallback didn't help (still password page content), return 403
     if (rawContent.toLowerCase().includes('password protected')) {
-      return c.json({
-        error: 'Store is password protected',
-        details: 'Please disable the Shopify storefront password to allow scraping, or manually enter product details.',
-        stepOutcome: buildStepOutcome('collect_sources', 'error', {
-          error: 'Storefront is password protected',
-          delta: { source: 'product_url' },
-        }),
-      }, 403);
+      return c.json(
+        {
+          error: 'Store is password protected',
+          details:
+            'Please disable the Shopify storefront password to allow scraping, or manually enter product details.',
+          stepOutcome: buildStepOutcome('collect_sources', 'error', {
+            error: 'Storefront is password protected',
+            delta: { source: 'product_url' },
+          }),
+        },
+        403
+      );
     }
   }
 
@@ -875,16 +953,19 @@ products.post('/:id/scrape', async (c) => {
 
   if (updateError) {
     console.error('Product scrape update error:', updateError);
-    return c.json({
-      error: 'Failed to update product',
-      details: updateError.message,
-      code: updateError.code,
-      hint: updateError.hint,
-      stepOutcome: buildStepOutcome('collect_sources', 'error', {
-        error: updateError.message,
-        delta: { source: 'product_url' },
-      }),
-    }, 500);
+    return c.json(
+      {
+        error: 'Failed to update product',
+        details: updateError.message,
+        code: updateError.code,
+        hint: updateError.hint,
+        stepOutcome: buildStepOutcome('collect_sources', 'error', {
+          error: updateError.message,
+          delta: { source: 'product_url' },
+        }),
+      },
+      500
+    );
   }
 
   // Update cache
@@ -894,19 +975,21 @@ products.post('/:id/scrape', async (c) => {
   // Auto-generate embeddings after scrape (backend guarantee — frontend also calls this, but this ensures consistency)
   let embeddingResult: { chunksCreated: number; totalTokens: number } | null = null;
   try {
-    const result = await processProductForRAG(
-      productId,
-      rawContent,
-      enrichedText || undefined
-    );
+    const result = await processProductForRAG(productId, rawContent, enrichedText || undefined);
     if (result?.success) {
       embeddingResult = { chunksCreated: result.chunksCreated, totalTokens: result.totalTokens };
       await invalidateProductKnowledgeCaches(String(merchantId), productId);
       shadowSyncProductKnowledge(String(merchantId), productId, 'scrape');
     } else if (result) {
-      logger.warn({ merchantId, productId, error: result.error || 'unknown' }, 'Auto embedding generation after scrape did not succeed');
+      logger.warn(
+        { merchantId, productId, error: result.error || 'unknown' },
+        'Auto embedding generation after scrape did not succeed'
+      );
     } else {
-      logger.warn({ merchantId, productId }, 'Auto embedding generation after scrape returned no result');
+      logger.warn(
+        { merchantId, productId },
+        'Auto embedding generation after scrape returned no result'
+      );
     }
   } catch (embedErr) {
     console.error('Auto embedding generation after scrape failed:', embedErr);
@@ -964,7 +1047,7 @@ products.post(
             delta: { source: 'workflow_url', sourceUrl },
           }),
         },
-        500,
+        500
       );
     }
 
@@ -988,11 +1071,20 @@ products.post(
           const handle = handleMatch ? handleMatch[1] : null;
           if (handle) {
             try {
-              const shopifyProduct = await fetchShopifyProductByHandle(authData.shop, authData.access_token, handle);
-              const fallbackContent = shopifyProduct ? buildShopifyProductFallbackContent(shopifyProduct) : '';
+              const shopifyProduct = await fetchShopifyProductByHandle(
+                authData.shop,
+                authData.access_token,
+                handle
+              );
+              const fallbackContent = shopifyProduct
+                ? buildShopifyProductFallbackContent(shopifyProduct)
+                : '';
               if (fallbackContent) rawContent = fallbackContent;
             } catch (error) {
-              logger.warn({ error, merchantId, productId, sourceUrl }, 'Shopify fallback failed for enrich-from-url');
+              logger.warn(
+                { error, merchantId, productId, sourceUrl },
+                'Shopify fallback failed for enrich-from-url'
+              );
             }
           }
         }
@@ -1008,7 +1100,7 @@ products.post(
               delta: { source: 'workflow_url', sourceUrl },
             }),
           },
-          403,
+          403
         );
       }
     }
@@ -1023,7 +1115,7 @@ products.post(
           merchantId: String(merchantId),
           productId,
           sourceType: 'scrape_enrich_additional_url',
-        },
+        }
       );
       if (enrichResult.enrichedText) enrichedText = enrichResult.enrichedText;
       if (enrichResult.facts) {
@@ -1038,11 +1130,19 @@ products.post(
         });
       }
     } catch (error) {
-      logger.warn({ error, merchantId, productId, sourceUrl }, 'Additional URL enrichment failed; using raw scrape output');
+      logger.warn(
+        { error, merchantId, productId, sourceUrl },
+        'Additional URL enrichment failed; using raw scrape output'
+      );
     }
 
     const mergedRawText = buildMergedLayerText(product.raw_text, rawContent, sourceUrl, 'RAW');
-    const mergedEnrichedText = buildMergedLayerText(product.enriched_text, enrichedText, sourceUrl, 'ENRICHED');
+    const mergedEnrichedText = buildMergedLayerText(
+      product.enriched_text,
+      enrichedText,
+      sourceUrl,
+      'ENRICHED'
+    );
 
     const { data: updatedProduct, error: updateError } = await serviceClient
       .from('products')
@@ -1067,7 +1167,7 @@ products.post(
             delta: { source: 'workflow_url', sourceUrl },
           }),
         },
-        500,
+        500
       );
     }
 
@@ -1076,14 +1176,21 @@ products.post(
 
     let embeddingResult: { chunksCreated: number; totalTokens: number } | null = null;
     try {
-      const result = await processProductForRAG(productId, mergedRawText, mergedEnrichedText || undefined);
+      const result = await processProductForRAG(
+        productId,
+        mergedRawText,
+        mergedEnrichedText || undefined
+      );
       if (result?.success) {
         embeddingResult = { chunksCreated: result.chunksCreated, totalTokens: result.totalTokens };
         await invalidateProductKnowledgeCaches(String(merchantId), productId);
         shadowSyncProductKnowledge(String(merchantId), productId, 'additional url enrichment');
       }
     } catch (error) {
-      logger.warn({ error, merchantId, productId, sourceUrl }, 'Embedding generation after enrich-from-url failed');
+      logger.warn(
+        { error, merchantId, productId, sourceUrl },
+        'Embedding generation after enrich-from-url failed'
+      );
     }
 
     return c.json({
@@ -1101,7 +1208,7 @@ products.post(
         },
       }),
     });
-  },
+  }
 );
 
 /**
@@ -1209,7 +1316,9 @@ products.post('/:id/generate-embeddings', async (c) => {
     return c.json({ error: 'Product not found' }, 404);
   }
 
-  const merchantId = isInternal ? (product as { merchant_id?: string }).merchant_id : c.get('merchantId');
+  const merchantId = isInternal
+    ? (product as { merchant_id?: string }).merchant_id
+    : c.get('merchantId');
   if (!merchantId) {
     return c.json({ error: 'Product has no merchant_id' }, 400);
   }
@@ -1222,7 +1331,7 @@ products.post('/:id/generate-embeddings', async (c) => {
           error: 'No content available for embedding generation',
         }),
       },
-      400,
+      400
     );
   }
 
@@ -1232,13 +1341,19 @@ products.post('/:id/generate-embeddings', async (c) => {
   try {
     await enforceStorageLimit(merchantId, estimatedBytes);
   } catch (limitError) {
-    return c.json({
-      error: 'Storage limit exceeded',
-      message: limitError instanceof Error ? limitError.message : 'You have reached your storage limit. Please upgrade your plan.',
-      stepOutcome: buildStepOutcome('generate_ai_knowledge', 'error', {
-        error: limitError instanceof Error ? limitError.message : 'Storage limit exceeded',
-      }),
-    }, 403);
+    return c.json(
+      {
+        error: 'Storage limit exceeded',
+        message:
+          limitError instanceof Error
+            ? limitError.message
+            : 'You have reached your storage limit. Please upgrade your plan.',
+        stepOutcome: buildStepOutcome('generate_ai_knowledge', 'error', {
+          error: limitError instanceof Error ? limitError.message : 'Storage limit exceeded',
+        }),
+      },
+      403
+    );
   }
 
   // Process product
@@ -1249,13 +1364,16 @@ products.post('/:id/generate-embeddings', async (c) => {
   );
 
   if (!result.success) {
-    return c.json({
-      error: 'Failed to generate embeddings',
-      details: result.error,
-      stepOutcome: buildStepOutcome('generate_ai_knowledge', 'error', {
-        error: result.error || 'Embedding generation failed',
-      }),
-    }, 500);
+    return c.json(
+      {
+        error: 'Failed to generate embeddings',
+        details: result.error,
+        stepOutcome: buildStepOutcome('generate_ai_knowledge', 'error', {
+          error: result.error || 'Embedding generation failed',
+        }),
+      },
+      500
+    );
   }
 
   await invalidateProductKnowledgeCaches(String(merchantId), productId);
@@ -1288,7 +1406,7 @@ products.post(
     const scrapeResult = await runInternalProductRequest(
       merchantId,
       `/api/products/${productId}/scrape`,
-      { method: 'POST' },
+      { method: 'POST' }
     );
     if (scrapeResult?.stepOutcome) stepOutcomes.push(scrapeResult.stepOutcome);
 
@@ -1300,7 +1418,7 @@ products.post(
         {
           method: 'POST',
           body: JSON.stringify({ source_url: sourceUrl }),
-        },
+        }
       );
       if (enrichResult?.stepOutcome) stepOutcomes.push(enrichResult.stepOutcome);
     }
@@ -1313,7 +1431,7 @@ products.post(
       scrape: scrapeResult || null,
       enrich: enrichResult || null,
     });
-  },
+  }
 );
 
 /**
@@ -1351,22 +1469,25 @@ products.post('/enrich', async (c) => {
 
     // Internal worker may send productId so we can persist structured facts centrally in API package
     if (typeof productId === 'string' && productId.trim() && enrichResult.facts) {
-      const p = productForInternal ?? await (async () => {
-        const serviceClient = getSupabaseServiceClient();
-        const { data } = await serviceClient
-          .from('products')
-          .select('id, merchant_id, url')
-          .eq('id', productId)
-          .single();
-        return data as any;
-      })();
+      const p =
+        productForInternal ??
+        (await (async () => {
+          const serviceClient = getSupabaseServiceClient();
+          const { data } = await serviceClient
+            .from('products')
+            .select('id, merchant_id, url')
+            .eq('id', productId)
+            .single();
+          return data as any;
+        })());
       if (p?.merchant_id) {
         await persistProductFactsSnapshot({
           productId: p.id,
           merchantId: p.merchant_id,
           facts: enrichResult.facts,
           sourceUrl: typeof sourceUrl === 'string' && sourceUrl ? sourceUrl : p.url || undefined,
-          sourceType: typeof sourceType === 'string' && sourceType ? sourceType : 'scrape_enrich_internal',
+          sourceType:
+            typeof sourceType === 'string' && sourceType ? sourceType : 'scrape_enrich_internal',
           extractionModel: 'gpt-4o-mini',
           validationErrors: enrichResult.factsValidationErrors,
         });
@@ -1477,7 +1598,10 @@ products.post('/chunks/batch', async (c) => {
     const raw = await c.req.text();
     body = raw?.trim() ? JSON.parse(raw) : {};
   } catch (err) {
-    return c.json({ error: 'Invalid JSON body', message: 'Expected { productIds: string[] }' }, 400);
+    return c.json(
+      { error: 'Invalid JSON body', message: 'Expected { productIds: string[] }' },
+      400
+    );
   }
   const { productIds } = body;
 
@@ -1498,7 +1622,7 @@ products.post('/chunks/batch', async (c) => {
     return c.json({ error: 'Failed to verify products' }, 500);
   }
 
-  const validProductIds = products?.map(p => p.id) || [];
+  const validProductIds = products?.map((p) => p.id) || [];
 
   // Get chunk counts in parallel (but limit concurrency to avoid overwhelming DB)
   const chunkCounts = await Promise.all(

@@ -5,7 +5,7 @@ import { ChartVerticalIcon, ChatIcon, SettingsIcon } from '@shopify/polaris-icon
 import { Banner, BlockStack, Card, InlineGrid, Layout, Page, Text } from '@shopify/polaris';
 import { useNavigate } from 'react-router';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
-import { getSetupProgress } from '../lib/setupProgress';
+import { shellSetupProgress, useAppBootstrapData } from './app';
 import {
   fetchMerchantOverviewFromRequest,
   settle,
@@ -59,6 +59,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function AnalyticsPage() {
+  const { bootstrapData: shellBootstrap } = useAppBootstrapData();
   const data = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
@@ -82,7 +83,7 @@ export default function AnalyticsPage() {
     );
   }
 
-  const progress = getSetupProgress(data);
+  const progress = shellSetupProgress(data, shellBootstrap);
   const hasBilling = progress.hasBilling;
   const hasProducts = progress.hasProducts;
   const hasMessagingConfigured = progress.hasMessagingConfigured;

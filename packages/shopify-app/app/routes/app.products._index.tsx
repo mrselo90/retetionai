@@ -2,6 +2,7 @@ import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from 're
 import {
   Form,
   useActionData,
+  useFetcher,
   useLoaderData,
   useNavigation,
   useSearchParams,
@@ -37,6 +38,7 @@ import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import {
   createMerchantProduct,
   deleteMerchantProduct,
+  draftMerchantProductInstructions,
   enrichMerchantProductFromUrl,
   fetchMerchantMappingData,
   fetchMerchantMultiLangSettings,
@@ -87,7 +89,12 @@ type ActionResult = {
   savedDraft?: MappingDraft;
   previewAnswer?: string;
   previewQuestion?: string;
+  draft?: { usage_instructions: string; prevention_tips: string; recipe_summary: string };
 };
+
+// Products drafted per "Draft all with AI" click. Each needs an AI call and a
+// few platform writes; this keeps one request well inside timeouts.
+const BULK_DRAFT_LIMIT = 30;
 
 type SetupState = 'needs_setup' | 'needs_ai_answers' | 'ready';
 type JourneyStep = 'guidance' | 'improve' | 'ready';
@@ -988,6 +995,156 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           stepOutcomes,
         } satisfies ActionResult;
       }
+      case 'draft-instructions': {
+        // "Write it for me": a draft for the merchant to review. Saves nothing.
+        const selectedProductId = String(formData.get('selected_product_id') || '').trim();
+        try {
+          const { drafts } = await draftMerchantProductInstructions(request, [
+            {
+              key: selectedProductId,
+              title: String(formData.get('title') || '').trim(),
+              description: String(formData.get('description_html') || ''),
+              productType: String(formData.get('product_type') || '') || undefined,
+              vendor: String(formData.get('vendor') || '') || undefined,
+            },
+          ]);
+          const draft = drafts[0];
+          if (!draft) {
+            return {
+              ok: false,
+              intent,
+              selectedProductId,
+              error:
+                'Recete could not draft instructions for this product. Write them in a few words instead.',
+            } satisfies ActionResult;
+          }
+          return {
+            ok: true,
+            intent,
+            selectedProductId,
+            draft: {
+              usage_instructions: draft.usage_instructions,
+              prevention_tips: draft.prevention_tips,
+              recipe_summary: draft.recipe_summary,
+            },
+          } satisfies ActionResult;
+        } catch (error) {
+          return {
+            ok: false,
+            intent,
+            selectedProductId,
+            error: await getActionErrorMessage(error, 'Could not draft instructions right now.'),
+          } satisfies ActionResult;
+        }
+      }
+      case 'bulk-draft': {
+        // "Draft all with AI": draft guidance for every product that has none,
+        // save it, and start the AI knowledge step, so setup is a review
+        // instead of writing a dozen texts by hand.
+        const requestedIds = new Set(
+          String(formData.get('shopifyProductIds') || '')
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean)
+        );
+        if (!requestedIds.size) {
+          return {
+            ok: false,
+            intent,
+            error: 'No products need instructions.',
+          } satisfies ActionResult;
+        }
+
+        const catalog = await fetchShopifyCatalog(request, { first: 100 });
+        const targets = catalog.products
+          .filter((product) => requestedIds.has(product.id))
+          .slice(0, BULK_DRAFT_LIMIT);
+
+        let saved = 0;
+        let failed = 0;
+        let limitReached = false;
+        for (let i = 0; i < targets.length && !limitReached; i += 10) {
+          const chunk = targets.slice(i, i + 10);
+          let drafts: Awaited<ReturnType<typeof draftMerchantProductInstructions>>['drafts'] = [];
+          try {
+            ({ drafts } = await draftMerchantProductInstructions(
+              request,
+              chunk.map((product) => ({
+                key: product.id,
+                title: product.title,
+                description: product.descriptionHtml || '',
+                productType: product.productType || undefined,
+                vendor: product.vendor || undefined,
+              }))
+            ));
+          } catch (error) {
+            console.warn('[bulk-draft] draft request failed', error);
+            failed += chunk.length;
+            continue;
+          }
+          const byKey = new Map(drafts.map((draft) => [draft.key, draft]));
+          for (const product of chunk) {
+            const draft = byKey.get(product.id);
+            if (!draft) {
+              failed += 1;
+              continue;
+            }
+            const result = await persistProductSetup({
+              request,
+              shopDomain: session.shop,
+              selectedProductId: product.id,
+              title: product.title,
+              handle: product.handle,
+              externalId: product.id,
+              descriptionHtml: product.descriptionHtml || '',
+              usageInstructions: draft.usage_instructions,
+              recipeSummary: draft.recipe_summary,
+              preventionTips: draft.prevention_tips,
+              videoUrl: '',
+              existingProductId: '',
+            }).catch(async (error) => ({
+              ok: false as const,
+              error: await getActionErrorMessage(error, 'save failed'),
+            }));
+            if (!result.ok) {
+              if (String(result.error || '').startsWith('Product limit reached')) {
+                limitReached = true;
+                break;
+              }
+              failed += 1;
+              continue;
+            }
+            saved += 1;
+            if (result.productId) {
+              await prepareMerchantProductKnowledge(request, result.productId).catch((error) => {
+                console.warn('[bulk-draft] prepare knowledge failed', error);
+              });
+            }
+          }
+        }
+
+        const remaining = requestedIds.size - targets.length;
+        const notes = [
+          failed ? `${failed} could not be drafted; open them to write a few words.` : '',
+          limitReached ? 'Your plan’s product limit was reached; upgrade to set up more.' : '',
+          remaining > 0 ? `${remaining} more left — run it again to continue.` : '',
+        ].filter(Boolean);
+        if (!saved) {
+          return {
+            ok: false,
+            intent,
+            error: notes.join(' ') || 'No instructions could be drafted. Try again in a moment.',
+          } satisfies ActionResult;
+        }
+        return {
+          ok: true,
+          intent,
+          message: [
+            `Recete drafted and saved instructions for ${saved} product${saved === 1 ? '' : 's'}. Open any product to review or edit what it says.`,
+            ...notes,
+          ].join(' '),
+        } satisfies ActionResult;
+      }
       case 'bulk-prepare': {
         const shopifyProductIds = String(formData.get('shopifyProductIds') || '')
           .split(',')
@@ -1399,6 +1556,9 @@ export default function ProductsPage() {
     currentSelectedProductId === selectedRow?.shopify.id &&
     currentIntent === 'preview-answer';
   const isBulkPreparing = navigation.state === 'submitting' && currentIntent === 'bulk-prepare';
+  const isBulkDrafting = navigation.state === 'submitting' && currentIntent === 'bulk-draft';
+  // Products with no customer guidance yet: what "Draft all with AI" works on.
+  const rowsWithoutGuidance = rows.filter((row) => !row.instruction?.usage_instructions?.trim());
   const selectedBulkCount = bulkSelectedProductIds.length;
 
   function replaceProductSearchParam(productId: string | null) {
@@ -1458,6 +1618,14 @@ export default function ProductsPage() {
 
   function setBulkSelectionFromRows(nextRows: WorkspaceRow[]) {
     setBulkSelectedProductIds(nextRows.map((row) => row.shopify.id));
+  }
+
+  function submitBulkDraft() {
+    if (!rowsWithoutGuidance.length) return;
+    const formData = new FormData();
+    formData.set('intent', 'bulk-draft');
+    formData.set('shopifyProductIds', rowsWithoutGuidance.map((row) => row.shopify.id).join(','));
+    submit(formData, { method: 'post' });
   }
 
   function submitBulkPrepare() {
@@ -1522,6 +1690,45 @@ export default function ProductsPage() {
                 Refresh in a moment.
               </p>
             </Banner>
+          </Layout.Section>
+        ) : null}
+
+        {actionData?.ok &&
+        actionData.message &&
+        (actionData.intent === 'bulk-draft' || actionData.intent === 'bulk-prepare') ? (
+          <Layout.Section>
+            <Banner tone="success">
+              <Text as="p" variant="bodyMd">
+                {actionData.message}
+              </Text>
+            </Banner>
+          </Layout.Section>
+        ) : null}
+
+        {!selectedRow && rowsWithoutGuidance.length > 0 ? (
+          <Layout.Section>
+            <Card padding="400">
+              <InlineStack align="space-between" blockAlign="center" gap="300" wrap>
+                <BlockStack gap="100">
+                  <Text as="h2" variant="headingMd">
+                    {`Let Recete write the instructions for ${rowsWithoutGuidance.length} product${rowsWithoutGuidance.length === 1 ? '' : 's'}`}
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    {isBulkDrafting
+                      ? 'Drafting from your product descriptions. This can take a minute — keep this page open.'
+                      : 'Drafted from your product descriptions and saved. You can open any product later to edit what it says.'}
+                  </Text>
+                </BlockStack>
+                <Button
+                  variant="primary"
+                  onClick={submitBulkDraft}
+                  loading={isBulkDrafting}
+                  disabled={isBulkDrafting || isBulkPreparing}
+                >
+                  Draft all with AI
+                </Button>
+              </InlineStack>
+            </Card>
           </Layout.Section>
         ) : null}
 
@@ -1885,6 +2092,10 @@ function SetupPanel({
   onBackToProducts?: () => void;
 }) {
   const submit = useSubmit();
+  // Separate from the page's main form so a draft never replaces the page's
+  // action result (save messages, errors) and never saves anything by itself.
+  const draftFetcher = useFetcher<ActionResult>();
+  const [aiDrafted, setAiDrafted] = useState(false);
   const [knowledgeOpen, setKnowledgeOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [showDangerZone, setShowDangerZone] = useState(false);
@@ -1920,7 +2131,39 @@ function SetupPanel({
     setPreviewOpen(false);
     setShowDangerZone(false);
     setConfirmDelete(false);
+    setAiDrafted(false);
   }, [row.shopify.id]);
+
+  // Fill the form with the AI draft; the merchant reviews it and saves.
+  useEffect(() => {
+    const result = draftFetcher.data;
+    if (!result?.ok || !result.draft || result.selectedProductId !== row.shopify.id) return;
+    onChangeDraft('usage_instructions', result.draft.usage_instructions);
+    if (result.draft.prevention_tips)
+      onChangeDraft('prevention_tips', result.draft.prevention_tips);
+    if (result.draft.recipe_summary) onChangeDraft('recipe_summary', result.draft.recipe_summary);
+    setAiDrafted(true);
+    // onChangeDraft is recreated by the parent on every render.
+  }, [draftFetcher.data, row.shopify.id]);
+
+  const isDrafting = draftFetcher.state !== 'idle';
+  const draftError =
+    draftFetcher.data &&
+    !draftFetcher.data.ok &&
+    draftFetcher.data.selectedProductId === row.shopify.id
+      ? draftFetcher.data.error
+      : null;
+
+  function requestAiDraft() {
+    const formData = new FormData();
+    formData.set('intent', 'draft-instructions');
+    formData.set('selected_product_id', row.shopify.id);
+    formData.set('title', row.shopify.title);
+    formData.set('description_html', row.shopify.descriptionHtml || '');
+    formData.set('product_type', row.shopify.productType || '');
+    formData.set('vendor', row.shopify.vendor || '');
+    draftFetcher.submit(formData, { method: 'post' });
+  }
 
   function submitSaveDraft() {
     if (!canSubmitSave) return;
@@ -2072,28 +2315,32 @@ function SetupPanel({
       <Card padding="500">
         <BlockStack gap="400">
           <BlockStack gap="300">
-            <Text as="h2" variant="headingMd">
-              Customer instructions
-            </Text>
-            <Text as="p" variant="bodySm" tone="subdued">
-              Clear instructions define what customers should do after delivery.
-            </Text>
-            <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-              <BlockStack gap="100">
-                <Text as="p" variant="bodySm" fontWeight="semibold">
-                  Good examples:
+            <InlineStack align="space-between" blockAlign="center" gap="200" wrap>
+              <BlockStack gap="050">
+                <Text as="h2" variant="headingMd">
+                  Customer instructions
                 </Text>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Use twice daily on clean skin, morning and evening.
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Avoid direct contact with eyes. Stop use if irritation appears.
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Keep away from children and store below 25C.
+                  What customers should do after delivery: first use or setup, care, what to avoid.
                 </Text>
               </BlockStack>
-            </Box>
+              <Button onClick={requestAiDraft} loading={isDrafting} disabled={processRunning}>
+                {draft.usage_instructions.trim() ? 'Rewrite with AI' : 'Write it for me'}
+              </Button>
+            </InlineStack>
+            {aiDrafted ? (
+              <Banner tone="info">
+                <p>
+                  Drafted from this product&apos;s description. Check it says what you would tell a
+                  customer, then save.
+                </p>
+              </Banner>
+            ) : null}
+            {draftError ? (
+              <Banner tone="warning">
+                <p>{draftError}</p>
+              </Banner>
+            ) : null}
 
             <TextField
               label="Customer instructions"

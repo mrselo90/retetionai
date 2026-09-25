@@ -16,7 +16,7 @@ import {
   Text,
 } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
-import { getSetupProgress } from '../lib/setupProgress';
+import { shellSetupProgress, useAppBootstrapData } from './app';
 import { fetchMerchantConversations } from '../platform.server';
 import {
   fetchMerchantOverviewFromRequest,
@@ -59,10 +59,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function DashboardPage() {
+  const { bootstrapData: shellBootstrap } = useAppBootstrapData();
   const { overview: data, overviewUnavailable, conversations } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
-  const progress = getSetupProgress(data);
+  const progress = shellSetupProgress(data, shellBootstrap);
   const { setupComplete } = progress;
 
   // A platform outage zeroes the overview, which getSetupProgress reads as
@@ -93,34 +94,22 @@ export default function DashboardPage() {
   const responseValue = data.metrics.responseRate > 0 ? `${data.metrics.responseRate}%` : '—';
 
   if (!setupComplete) {
+    // One call to action on this page: the setup banner above it already says
+    // "Next: <step>". The page used to add "Continue setup" and "Back to setup"
+    // on top of that, three buttons for one destination.
+    const remaining = progress.totalSteps - progress.completedCount;
     return (
-      <Page
-        title="Dashboard"
-        subtitle="Complete setup to unlock daily operations."
-        primaryAction={{
-          content: 'Continue setup',
-          onAction: () => navigate('/app'),
-          icon: CartIcon as never,
-        }}
-      >
+      <Page title="Dashboard">
         <Layout>
           <Layout.Section>
             <Card>
-              <BlockStack gap="400">
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    Setup is not finished yet
-                  </Text>
-                  <Text as="p" variant="bodyMd" tone="subdued">
-                    Dashboard, Conversations, and Analytics unlock once the 3 required setup steps
-                    are done.
-                  </Text>
-                </BlockStack>
-                <InlineStack>
-                  <Button url="/app" variant="primary" icon={CartIcon as never}>
-                    Back to setup
-                  </Button>
-                </InlineStack>
+              <BlockStack gap="200">
+                <Text as="h2" variant="headingMd">
+                  Finish setup to open the dashboard
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  {`Dashboard, Conversations and Analytics open once setup is done. ${remaining} of ${progress.totalSteps} steps left.`}
+                </Text>
               </BlockStack>
             </Card>
           </Layout.Section>

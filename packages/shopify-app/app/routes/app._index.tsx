@@ -280,14 +280,12 @@ function SetupOverview({
           ? 'Setup is complete. You can now run daily operations.'
           : `${totalRequired === 4 ? 'Four' : 'Three'} quick steps to start helping customers after delivery.`
       }
+      // During setup the progress card's "Continue: <step>" is the one call to
+      // action; a header button to the same place only doubled it.
       primaryAction={
         setupComplete
           ? { content: 'Open dashboard', url: '/app/dashboard', icon: ViewIcon }
-          : {
-              content: 'Continue setup',
-              url: nextRequiredStep?.to || '/app/billing',
-              icon: nextRequiredStep?.icon || CartIcon,
-            }
+          : undefined
       }
     >
       {/* A fresh install can open before the platform has finished creating the

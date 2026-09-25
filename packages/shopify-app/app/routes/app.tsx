@@ -138,6 +138,25 @@ export function useAppBootstrapData() {
   return useOutletContext<AppBootstrapContext>();
 }
 
+/**
+ * Setup progress exactly as the shell computes it (billing approval from
+ * Shopify, WhatsApp step, theme embed). Pages used to call getSetupProgress
+ * with the overview alone, which skipped billing approval and the WhatsApp
+ * step: the Dashboard said "3 required steps" while Overview listed 4, and a
+ * page could unlock while the checklist still showed work left.
+ */
+export function shellSetupProgress(
+  overview: ShopifyMerchantOverview,
+  bootstrapData: AppBootstrapData | null | undefined
+) {
+  return getSetupProgress(
+    overview,
+    bootstrapData?.billingApproved,
+    bootstrapData?.themeEmbedEnabled,
+    bootstrapData?.whatsapp
+  );
+}
+
 const BOOTSTRAP_POLL_MS = 3_000;
 
 export default function App() {
@@ -320,11 +339,8 @@ function SetupTrail({
     <Banner
       tone="info"
       title={`Setup ${done} of ${total} done`}
-      action={{ content: `Continue: ${info.title}`, url: info.path }}
-      secondaryAction={{ content: 'Back to setup', url: '/app' }}
-    >
-      <p>{`Next step: ${info.title.toLowerCase()}.`}</p>
-    </Banner>
+      action={{ content: `Next: ${info.title}`, url: info.path }}
+    />
   );
 }
 

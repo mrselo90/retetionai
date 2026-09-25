@@ -174,6 +174,8 @@ const INTERNAL_MERCHANT_PATHS: Array<string | RegExp> = [
   /^\/api\/conversations\/[^/]+\/status$/,
   '/api/customers',
   '/api/products/instructions/list',
+  // "Write it for me" / "Draft all with AI" on the Shopify app's Products page.
+  '/api/products/instructions/draft',
   /^\/api\/products\/[^/]+\/instruction$/,
   // Merchant-initiated from the Shopify app's product detail panel. Both were
   // unreachable before: the shell drops the bearer token on the internal path,

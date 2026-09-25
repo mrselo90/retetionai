@@ -23,7 +23,7 @@ import {
   TextField,
 } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
-import { getSetupProgress } from '../lib/setupProgress';
+import { shellSetupProgress, useAppBootstrapData } from './app';
 import { PlanGate } from '../components/PlanGate';
 import {
   cancelMerchantAddon,
@@ -402,6 +402,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function SettingsPage() {
+  const { bootstrapData: shellBootstrap } = useAppBootstrapData();
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
@@ -474,7 +475,7 @@ export default function SettingsPage() {
   const guardrailNameMissing = !guardrailDraft.name.trim();
   const guardrailValueMissing = !guardrailDraft.value.trim();
   const guardrailDraftIncomplete = guardrailNameMissing || guardrailValueMissing;
-  const setupProgress = getSetupProgress(data.overview);
+  const setupProgress = shellSetupProgress(data.overview, shellBootstrap);
   const setupBlocker = !setupProgress.hasBilling
     ? {
         title: 'Choose a plan before launch',
