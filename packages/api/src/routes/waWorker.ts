@@ -6,9 +6,10 @@
  * The worker knows nothing about customers or orders. It reports what happened
  * on the line and this route turns it into Recete's own records:
  *
- *   inbound      a customer wrote -> whatsapp_inbound_events + inbound queue
- *                (the same path the Meta webhook used, so the assistant,
- *                opt-out handling and delivery-template replies are unchanged)
+ *   inbound      a known customer wrote -> whatsapp_inbound_events + inbound
+ *                queue (the same path the Meta webhook used, so the assistant,
+ *                opt-out handling and delivery-template replies are unchanged).
+ *                Anyone else writing to the linked number is ignored.
  *   own_message  the merchant typed on their own phone -> the conversation,
  *                and the thread is handed to the human like a dashboard reply
  *   receipt      delivered / read -> whatsapp_outbound_events
@@ -75,11 +76,16 @@ async function handleInbound(ev: WorkerEvent): Promise<{ status: number; result:
     return { status: 400, result: 'messageId and body (or an image) required' };
   }
 
-  // The number when WhatsApp disclosed it, otherwise the exact chat JID (an
-  // @lid). A LID is never stored as if it were a phone number; replies to it
-  // go back to the JID, which the worker accepts as a recipient.
-  const from = ev.phone || ev.chatJid;
-  if (!from) return { status: 400, result: 'phone or chatJid required' };
+  // Only the store's own customers. A linked number is also the owner's
+  // everyday WhatsApp: friends, family and suppliers write to it too. Those
+  // messages are not Recete's business — they are not stored, and nobody gets
+  // an automatic reply. A customer is someone Recete already knows by phone
+  // from an order; a sender WhatsApp shows only as an @lid cannot be matched
+  // and is skipped the same way.
+  if (!ev.phone) return { status: 200, result: 'ignored_unknown_sender' };
+  const customer = await findUserByPhone(ev.phone, ev.merchantId);
+  if (!customer) return { status: 200, result: 'ignored_not_a_customer' };
+  const from = ev.phone;
 
   const serviceClient = getSupabaseServiceClient();
   const timestamp = isoOrNow(ev.timestamp);

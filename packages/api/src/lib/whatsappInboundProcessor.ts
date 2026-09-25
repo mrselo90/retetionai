@@ -151,6 +151,16 @@ export async function processWhatsAppInboundEvent(
     }
 
     const user = await findUserByPhone(phone, merchantId);
+    // A linked-device number is the owner's own WhatsApp, so an unknown sender
+    // is usually a friend or supplier, not a customer: never auto-reply there.
+    // (waWorker.ts already drops these; this holds if one gets through.)
+    if (!user && inbound.provider === 'whatsmeow') {
+      await setInboundStatus(inbound.id, 'ignored', {
+        last_error: null,
+        processed_at: new Date().toISOString(),
+      });
+      return { result: 'ignored_unknown_sender_linked_device' };
+    }
     if (!user) {
       const defaultText = buildUnknownUserMessage(userMessageForConversation);
       const sendResult = await sendTrackedWhatsAppMessage({

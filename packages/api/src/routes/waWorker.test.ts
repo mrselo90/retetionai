@@ -140,7 +140,8 @@ describe('wa-worker events', () => {
       existingInbound: null,
       outboundById: [],
       outboundRecentSame: [],
-      user: null,
+      // A known customer by default; the tests about strangers clear it.
+      user: { userId: 'user-1' },
       conversation: null,
       jobs: [],
       queueFails: false,
@@ -170,9 +171,25 @@ describe('wa-worker events', () => {
     expect(state.jobs).toEqual([{ inboundEventId: 'inbound-1', merchantId: MERCHANT }]);
   });
 
-  it('keys a sender WhatsApp withheld the number for by the chat JID, never a fake phone', async () => {
-    await post({ ...inbound, phone: null, lid: '123456789012345', chatJid: '123456789012345@lid' });
-    expect(inserts()[0].value.from_phone).toBe('123456789012345@lid');
+  it('ignores someone who is not a customer: nothing stored, nothing queued, no reply', async () => {
+    state.user = null;
+    const res = await post(inbound);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ result: 'ignored_not_a_customer' });
+    expect(inserts()).toHaveLength(0);
+    expect(state.jobs).toHaveLength(0);
+  });
+
+  it('ignores a sender WhatsApp shows only by @lid, since no customer can be matched', async () => {
+    const res = await post({
+      ...inbound,
+      phone: null,
+      lid: '123456789012345',
+      chatJid: '123456789012345@lid',
+    });
+    expect(await res.json()).toMatchObject({ result: 'ignored_unknown_sender' });
+    expect(inserts()).toHaveLength(0);
+    expect(state.jobs).toHaveLength(0);
   });
 
   it('stores a photo with its download keys, captioned or not, for AI vision', async () => {
