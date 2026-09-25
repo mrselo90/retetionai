@@ -176,7 +176,6 @@ function SetupOverview({
     externalOrderId?: string;
   }>();
   const themeEditorUrl = getThemeEditorUrl(shop);
-  const notificationPhone = data.settings?.notificationPhone || '';
   const firstProduct = data.products?.[0] ?? null;
 
   const productCountLabel = progress.productCount > 0 ? progress.productCount : 'your';
@@ -381,6 +380,12 @@ function SetupOverview({
         </BlockStack>
       </Card>
 
+      {/* Once WhatsApp is linked a store can try the real message at any point
+          of setup; the optional "Run a test order" step covers it otherwise. */}
+      {whatsapp?.connected && !(setupComplete && !progress.hasOrders) ? (
+        <TestWhatsAppCard fetcher={fetcher} firstProduct={firstProduct} />
+      ) : null}
+
       {/* ── Optional steps: only once the required ones are done. Shown earlier,
           their green "All done" read as if setup were finished. ── */}
       {setupComplete ? (
@@ -407,7 +412,6 @@ function SetupOverview({
                   key={step.id}
                   step={step}
                   fetcher={fetcher}
-                  notificationPhone={step.id === 'orders' ? notificationPhone : undefined}
                   firstProduct={step.id === 'orders' ? firstProduct : undefined}
                 />
               ))}
@@ -460,25 +464,113 @@ function SetupStepCard({ step, stepNumber }: { step: SetupStep; stepNumber: numb
   );
 }
 
+type TestOrderFetcher = ReturnType<
+  typeof useFetcher<{ ok?: boolean; error?: string; intent?: string; externalOrderId?: string }>
+>;
+
+/**
+ * Simulates a delivered order for a phone number, so the store sees the exact
+ * welcome message a customer gets, from its own linked number, and can reply to
+ * try the assistant.
+ */
+function TestWhatsAppForm({
+  fetcher,
+  firstProduct,
+}: {
+  fetcher: TestOrderFetcher;
+  firstProduct?: { id: string; name: string; external_id?: string | null } | null;
+}) {
+  // Empty on purpose: the store's own linked number would land in WhatsApp's
+  // "message yourself" chat, where a reply is not a customer message.
+  const [phone, setPhone] = useState('');
+  const testOrderResult = fetcher.data?.intent === 'runTestOrder' ? fetcher.data : null;
+  const testOrderBusy = fetcher.state !== 'idle';
+
+  return (
+    <BlockStack gap="200">
+      <Text as="p" variant="bodySm" tone="subdued">
+        Enter a phone number other than your linked WhatsApp. It gets the message a customer
+        receives after delivery, sent from your number. Reply to it to see Recete answer.
+      </Text>
+      {testOrderResult?.ok ? (
+        <Banner tone="success">
+          <Text as="p" variant="bodySm">
+            Test order sent. The message should arrive on that phone within a minute or two.
+          </Text>
+        </Banner>
+      ) : testOrderResult?.error ? (
+        <Banner tone="critical">
+          <Text as="p" variant="bodySm">
+            {testOrderResult.error}
+          </Text>
+        </Banner>
+      ) : null}
+      <fetcher.Form method="post">
+        <BlockStack gap="200">
+          <input type="hidden" name="intent" value="runTestOrder" />
+          <input
+            type="hidden"
+            name="product_id"
+            value={firstProduct?.external_id || firstProduct?.id || ''}
+          />
+          <input type="hidden" name="product_name" value={firstProduct?.name || 'Test Product'} />
+          <TextField
+            label="Test phone number"
+            name="phone"
+            value={phone}
+            onChange={setPhone}
+            placeholder="+90 555 000 0000"
+            helpText="Use international format with country code, e.g. +1 555 000 1234 or +44 7911 123456."
+            autoComplete="tel"
+            type="tel"
+          />
+          <Button
+            submit
+            variant="primary"
+            icon={ConnectIcon}
+            loading={testOrderBusy}
+            disabled={!phone.trim()}
+          >
+            Send test WhatsApp
+          </Button>
+        </BlockStack>
+      </fetcher.Form>
+    </BlockStack>
+  );
+}
+
+/** Stand-alone card on Overview once WhatsApp is linked. */
+function TestWhatsAppCard({
+  fetcher,
+  firstProduct,
+}: {
+  fetcher: TestOrderFetcher;
+  firstProduct?: { id: string; name: string; external_id?: string | null } | null;
+}) {
+  return (
+    <Card padding="500" roundedAbove="sm">
+      <BlockStack gap="300">
+        <Text as="h2" variant="headingMd">
+          Send a test message
+        </Text>
+        <TestWhatsAppForm fetcher={fetcher} firstProduct={firstProduct} />
+      </BlockStack>
+    </Card>
+  );
+}
+
 function OptionalStepCard({
   step,
   fetcher,
-  notificationPhone,
   firstProduct,
 }: {
   step: SetupStep;
   fetcher: ReturnType<
     typeof useFetcher<{ ok?: boolean; error?: string; intent?: string; externalOrderId?: string }>
   >;
-  notificationPhone?: string;
   firstProduct?: { id: string; name: string; external_id?: string | null } | null;
 }) {
   const done = step.status === 'done';
-  const [phone, setPhone] = useState(notificationPhone || '');
-
-  // Test order result (only relevant for orders step)
-  const testOrderResult = fetcher.data?.intent === 'runTestOrder' ? fetcher.data : null;
-  const testOrderBusy = fetcher.state !== 'idle' && !testOrderResult;
 
   if (step.id === 'orders' && !done) {
     return (
@@ -490,57 +582,7 @@ function OptionalStepCard({
             </Text>
             <Badge tone="info">Optional</Badge>
           </InlineStack>
-          <Text as="p" variant="bodySm" tone="subdued">
-            Enter your WhatsApp number and we&apos;ll simulate a real delivery — you&apos;ll receive
-            the actual message Recete sends to customers.
-          </Text>
-          {testOrderResult?.ok ? (
-            <Banner tone="success">
-              <Text as="p" variant="bodySm">
-                Test order sent! Check your WhatsApp — the message should arrive within a minute.
-              </Text>
-            </Banner>
-          ) : testOrderResult?.error ? (
-            <Banner tone="critical">
-              <Text as="p" variant="bodySm">
-                {testOrderResult.error}
-              </Text>
-            </Banner>
-          ) : null}
-          <fetcher.Form method="post">
-            <BlockStack gap="200">
-              <input type="hidden" name="intent" value="runTestOrder" />
-              <input
-                type="hidden"
-                name="product_id"
-                value={firstProduct?.external_id || firstProduct?.id || ''}
-              />
-              <input
-                type="hidden"
-                name="product_name"
-                value={firstProduct?.name || 'Test Product'}
-              />
-              <TextField
-                label="Your WhatsApp number"
-                name="phone"
-                value={phone}
-                onChange={setPhone}
-                placeholder="+90 555 000 0000"
-                helpText="Use international format with country code, e.g. +1 555 000 1234 or +44 7911 123456."
-                autoComplete="tel"
-                type="tel"
-              />
-              <Button
-                submit
-                variant="primary"
-                icon={ConnectIcon}
-                loading={testOrderBusy}
-                disabled={done}
-              >
-                Send test WhatsApp
-              </Button>
-            </BlockStack>
-          </fetcher.Form>
+          <TestWhatsAppForm fetcher={fetcher} firstProduct={firstProduct} />
         </BlockStack>
       </Card>
     );
