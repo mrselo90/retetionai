@@ -1,10 +1,9 @@
 import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
 import { useLoaderData } from 'react-router';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { ConnectIcon, CreditCardIcon, SettingsIcon, ViewIcon } from '@shopify/polaris-icons';
-import { Banner, BlockStack, Button, InlineGrid, InlineStack, Text } from '@shopify/polaris';
+import { ViewIcon } from '@shopify/polaris-icons';
+import { Banner, BlockStack, Button, InlineStack, Text } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
-import { isBillingReady } from '../lib/billingStatus';
 import {
   fetchMerchantOverviewFromRequest,
   fetchWhatsAppConnection,
@@ -13,14 +12,8 @@ import {
   type WhatsAppConnectionStatus,
 } from '../platform.server';
 import { WhatsAppConnectCard } from '../components/WhatsAppConnectCard';
-import {
-  ActionCard,
-  EmptyCard,
-  MetricCard,
-  SectionCard,
-  ShellPage,
-  StatusBadge,
-} from '../components/shell-ui';
+import { SectionCard, ShellPage, StatusBadge } from '../components/shell-ui';
+import { shellSetupProgress, useAppBootstrapData } from './app';
 
 const EMPTY_OVERVIEW: ShopifyMerchantOverview = {
   merchant: { id: '', name: '' },
@@ -50,154 +43,57 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return { ...result.value, overviewUnavailable: !result.ok, whatsapp: whatsapp.value };
 };
 
+/**
+ * Two connections matter to a store: its WhatsApp number and its Shopify
+ * orders. This page used to add four counter cards, an "Operator guidance"
+ * section and a provider list written for the Recete team; none of it helped a
+ * merchant decide anything, and its "Open dashboard" links led to a locked page
+ * during setup.
+ */
 export default function IntegrationsPage() {
+  const { bootstrapData: shellBootstrap } = useAppBootstrapData();
   const data = useLoaderData<typeof loader>();
-  const hasOrdersFlow = data.metrics.totalOrders > 0;
-  const activeCount = data.integrations.filter((integration) =>
-    ['active', 'connected', 'approved'].includes((integration.status || '').toLowerCase())
-  ).length;
-  const pendingCount = data.integrations.filter((integration) =>
-    ['pending', 'trialing'].includes((integration.status || '').toLowerCase())
-  ).length;
-  const failedCount = data.integrations.length - activeCount - pendingCount;
+  const { setupComplete } = shellSetupProgress(data, shellBootstrap);
+  const orderCount = data.metrics.totalOrders;
+  const shopify = data.integrations.find((integration) => integration.provider === 'shopify');
+  const shopifyActive = ['active', 'connected', 'approved'].includes(
+    String(shopify?.status || data.integration.status || '').toLowerCase()
+  );
 
   return (
-    <ShellPage
-      title="Integrations"
-      subtitle="Connection health across Shopify and the merchant’s adjacent service stack."
-    >
+    <ShellPage title="Integrations" subtitle="Your WhatsApp number and your Shopify store.">
       {data.overviewUnavailable ? (
         <Banner tone="warning" title="Couldn't reach Recete">
-          <p>
-            Integration status below may be stale — we couldn't load current data. Refresh in a
-            moment.
-          </p>
+          <p>What you see below may be out of date. Refresh in a moment.</p>
         </Banner>
       ) : null}
 
       {/* The store's own number, linked by QR. Nothing reaches customers without it. */}
       <WhatsAppConnectCard initial={data.whatsapp} />
 
-      <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
-        <MetricCard
-          label="Connected"
-          value={activeCount}
-          hint="Integrations in a healthy active state."
-        />
-        <MetricCard
-          label="Pending"
-          value={pendingCount}
-          hint="Connections awaiting approval or completion."
-        />
-        <MetricCard
-          label="Attention needed"
-          value={failedCount}
-          hint="Broken or inactive providers requiring merchant review."
-        />
-        <MetricCard
-          label="Total"
-          value={data.integrations.length}
-          hint="Integration records currently visible."
-        />
-      </InlineGrid>
-
       <SectionCard
-        title="Operator guidance"
-        subtitle="Connection status should tell the merchant what is healthy and where to go next."
-      >
-        <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-          <ActionCard
-            title="Billing"
-            description="Billing approval should be visible here because it directly gates feature availability."
-            status={
-              isBillingReady(data.subscription?.status || data.merchant.subscription_status)
-                ? 'active'
-                : 'No plan yet'
-            }
-            action={{ content: 'Open billing', url: '/app/billing', icon: CreditCardIcon }}
-          />
-          <ActionCard
-            title="Settings"
-            description="If delivery or bot behavior feels wrong, settings should be the next merchant stop."
-            status="info"
-            action={{ content: 'Open settings', url: '/app/settings', icon: SettingsIcon }}
-          />
-        </InlineGrid>
-      </SectionCard>
-
-      <SectionCard
-        id="orders-flow"
-        title="Orders flow setup"
-        subtitle="Recete starts messaging customers once their orders reach it."
+        title="Shopify orders"
+        subtitle="Recete messages customers after their order is delivered."
         badge={
-          <StatusBadge status={hasOrdersFlow ? 'active' : 'pending'}>
-            {hasOrdersFlow ? 'active' : 'pending'}
+          <StatusBadge status={shopifyActive ? 'active' : 'pending'}>
+            {shopifyActive ? 'Connected' : 'Not connected'}
           </StatusBadge>
         }
       >
-        {hasOrdersFlow ? (
-          <ActionCard
-            title="Order flow is active"
-            description={`${data.metrics.totalOrders} order(s) are already visible in Recete. You can continue daily operations from Dashboard.`}
-            status="active"
-            action={{ content: 'Open dashboard', url: '/app/dashboard', icon: ViewIcon }}
-          />
-        ) : (
-          <BlockStack gap="300">
-            <Text as="p" variant="bodySm" tone="subdued">
-              No order activity is visible yet. To complete this step, follow these actions:
-            </Text>
-            <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-              <ActionCard
-                title="1) Create a test order in Shopify"
-                description="In Shopify Admin, create a real test order for this store so Recete can receive order data."
-                status="pending"
-              />
-              <ActionCard
-                title="2) Mark it fulfilled/delivered"
-                description="Fulfillment status should progress so post-purchase flows can start."
-                status="pending"
-              />
-            </InlineGrid>
-            <InlineStack gap="200" wrap>
-              <Button url="/app/dashboard" icon={ViewIcon} variant="primary">
-                Go to dashboard
-              </Button>
-              <Button url="/app/integrations" icon={ConnectIcon} variant="tertiary">
-                Refresh order flow status
+        <BlockStack gap="300">
+          <Text as="p" variant="bodyMd">
+            {orderCount > 0
+              ? `${orderCount} order${orderCount === 1 ? '' : 's'} received so far.`
+              : 'No orders yet. Recete starts with your next delivered order — nothing else to set up here.'}
+          </Text>
+          {setupComplete && orderCount > 0 ? (
+            <InlineStack>
+              <Button url="/app/dashboard" icon={ViewIcon}>
+                Open dashboard
               </Button>
             </InlineStack>
-          </BlockStack>
-        )}
-      </SectionCard>
-
-      <SectionCard
-        title="Live connections"
-        subtitle="Each provider should show recency and a plain-language state."
-      >
-        {data.integrations.length > 0 ? (
-          <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-            {data.integrations.map((integration) => (
-              <ActionCard
-                key={integration.id}
-                title={integration.provider}
-                description={
-                  integration.updated_at
-                    ? `Updated ${new Date(integration.updated_at).toLocaleString()}`
-                    : 'No update timestamp available.'
-                }
-                status={integration.status}
-                action={{ content: 'View activity', url: '/app/dashboard', icon: ViewIcon }}
-              />
-            ))}
-          </InlineGrid>
-        ) : (
-          <EmptyCard
-            heading="No integrations connected"
-            description="Connect your Shopify store or other services to start syncing data."
-            action={{ content: 'Open settings', url: '/app/settings' }}
-          />
-        )}
+          ) : null}
+        </BlockStack>
       </SectionCard>
     </ShellPage>
   );

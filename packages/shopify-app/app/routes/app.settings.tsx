@@ -376,7 +376,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         intent,
         message:
           result?.message ||
-          'Merchant operational data has been deleted. Merchant identity is preserved. This action is irreversible.',
+          "Your store's data has been deleted from Recete. Your account stays, so you can set up again.",
       } satisfies ActionResult;
     }
 
@@ -432,6 +432,9 @@ export default function SettingsPage() {
     suggested_response: '',
   });
   const [wipeConfirmation, setWipeConfirmation] = useState('');
+  // Collapsed by default: a store adjusting a setting should not scroll past
+  // an irreversible delete form to get there.
+  const [showDataDeletion, setShowDataDeletion] = useState(false);
   const [lastCoreSettingsSavedAt, setLastCoreSettingsSavedAt] = useState<string | null>(null);
 
   const loaderState = useMemo(
@@ -674,7 +677,7 @@ export default function SettingsPage() {
 
         {showWipeSuccess ? (
           <Layout.Section>
-            <Banner tone="success" title="Merchant data deleted">
+            <Banner tone="success" title="Store data deleted">
               <Text as="p" variant="bodyMd">
                 {actionData?.message}
               </Text>
@@ -684,7 +687,7 @@ export default function SettingsPage() {
 
         {showWipeError ? (
           <Layout.Section>
-            <Banner tone="critical" title="Could not delete merchant data">
+            <Banner tone="critical" title="Could not delete store data">
               <Text as="p" variant="bodyMd">
                 {actionData?.error}
               </Text>
@@ -760,7 +763,7 @@ export default function SettingsPage() {
           <SectionCard
             id="core-settings"
             title="Bot behavior"
-            subtitle="Keep this focused on the few settings merchants actually change."
+            subtitle="How your assistant introduces itself and talks to customers."
             badge={
               <StatusBadge status={data.overview.subscription?.status}>
                 {data.overview.subscription?.status || 'inactive'}
@@ -963,7 +966,7 @@ export default function SettingsPage() {
                   upgradePlan={GROWTH_MONTHLY_PLAN}
                   upgradeUrl={data.managedPricingUrl}
                   title="AI Vision"
-                  message="Starter merchants cannot enable buyer photo analysis. Upgrade to Growth to allow customer photo submissions in the embedded workflow."
+                  message="Photo analysis is part of the Growth plan. Upgrade to let customers send a photo of their product and get an answer about it."
                 >
                   <Box padding="300" background="bg-surface-secondary" borderRadius="200">
                     <BlockStack gap="300">
@@ -977,7 +980,7 @@ export default function SettingsPage() {
                         onChange={(checked) =>
                           setFormState((current) => ({ ...current, ai_vision_enabled: checked }))
                         }
-                        helpText="When enabled, Growth and Pro merchants can accept photo-based support flows once backend image processing is available."
+                        helpText="Customers can send a photo on WhatsApp (for example of a damaged item) and Recete answers about what it shows."
                       />
                       <Text as="p" variant="bodyMd" tone="subdued">
                         {aiVisionEnabled
@@ -996,7 +999,7 @@ export default function SettingsPage() {
           <SectionCard
             id="guardrails"
             title="Safety rules"
-            subtitle="Add only the rules you actually need. Overuse will reduce answer quality."
+            subtitle="Add only the rules you need. Too many make answers worse."
             badge={
               <StatusBadge
                 status={data.guardrails.custom_guardrails.length > 0 ? 'active' : 'pending'}
@@ -1179,7 +1182,7 @@ export default function SettingsPage() {
         <Layout.Section>
           <SectionCard
             title="Add-ons"
-            subtitle="Enable only the features the merchant will actually use."
+            subtitle="Turn on only what you will use."
             badge={
               <StatusBadge status={activeAddonCount > 0 ? 'active' : 'pending'}>
                 {activeAddonCount > 0 ? `${activeAddonCount} active` : 'No add-ons active'}
@@ -1260,41 +1263,48 @@ export default function SettingsPage() {
 
         <Layout.Section>
           <SectionCard
-            title="Danger zone"
-            subtitle="Use only when you intentionally want to permanently clear merchant data from Recete."
+            title="Delete store data"
+            subtitle="Permanently remove your store's data from Recete. Rarely needed."
           >
-            <BlockStack gap="300">
-              <Banner tone="critical">
-                This permanently deletes merchant data including products, knowledge, conversations,
-                orders, users, analytics, billing/add-ons, settings, integrations, and WhatsApp
-                event records while keeping the merchant creation record. This action cannot be
-                undone.
-              </Banner>
-              <Form method="post">
-                <input type="hidden" name="intent" value="wipe-merchant-data" />
-                <BlockStack gap="300">
-                  <TextField
-                    label={`Type "${MERCHANT_RESET_CONFIRM_PHRASE}" to confirm`}
-                    name="wipe_confirmation"
-                    value={wipeConfirmation}
-                    onChange={setWipeConfirmation}
-                    autoComplete="off"
-                    helpText="This protects against accidental data deletion."
-                  />
-                  <InlineStack>
-                    <Button
-                      submit
-                      tone="critical"
-                      variant="primary"
-                      loading={busy}
-                      disabled={wipeConfirmation.trim() !== MERCHANT_RESET_CONFIRM_PHRASE}
-                    >
-                      Delete all merchant data
-                    </Button>
-                  </InlineStack>
-                </BlockStack>
-              </Form>
-            </BlockStack>
+            {!showDataDeletion ? (
+              <InlineStack>
+                <Button variant="plain" tone="critical" onClick={() => setShowDataDeletion(true)}>
+                  Show data deletion
+                </Button>
+              </InlineStack>
+            ) : (
+              <BlockStack gap="300">
+                <Banner tone="critical">
+                  This deletes your products, product knowledge, conversations, orders, customers,
+                  analytics, add-ons, settings, integrations and WhatsApp records from Recete. Your
+                  account itself stays. This cannot be undone.
+                </Banner>
+                <Form method="post">
+                  <input type="hidden" name="intent" value="wipe-merchant-data" />
+                  <BlockStack gap="300">
+                    <TextField
+                      label={`Type "${MERCHANT_RESET_CONFIRM_PHRASE}" to confirm`}
+                      name="wipe_confirmation"
+                      value={wipeConfirmation}
+                      onChange={setWipeConfirmation}
+                      autoComplete="off"
+                      helpText="This protects against accidental data deletion."
+                    />
+                    <InlineStack>
+                      <Button
+                        submit
+                        tone="critical"
+                        variant="primary"
+                        loading={busy}
+                        disabled={wipeConfirmation.trim() !== MERCHANT_RESET_CONFIRM_PHRASE}
+                      >
+                        Delete all store data
+                      </Button>
+                    </InlineStack>
+                  </BlockStack>
+                </Form>
+              </BlockStack>
+            )}
           </SectionCard>
         </Layout.Section>
       </Layout>

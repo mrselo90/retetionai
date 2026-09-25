@@ -249,6 +249,12 @@ function AppShell() {
   // done, only the pages that setup needs are listed.
   const visibleNavItems = setupProgress?.setupComplete ? navItems : setupNavItems;
 
+  // Moving to another page: show a skeleton in its place at once. A small
+  // spinner above the old page read as "nothing happened" when the next page
+  // took a second to load.
+  const nextPathname = navigation.state === 'loading' ? navigation.location?.pathname : undefined;
+  const changingPage = Boolean(nextPathname) && nextPathname !== location.pathname;
+
   return (
     <Frame>
       <EmbeddedSessionTokenBoundary />
@@ -264,7 +270,7 @@ function AppShell() {
       <Box background="bg-surface" minHeight="100vh" padding={{ xs: '200', sm: '300', md: '400' }}>
         <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
           <BlockStack gap="400">
-            {navigation.state === 'loading' ? (
+            {navigation.state === 'loading' && !changingPage ? (
               <InlineStack align="center">
                 <Spinner accessibilityLabel="Loading page" size="small" />
               </InlineStack>
@@ -279,7 +285,7 @@ function AppShell() {
               />
             ) : null}
 
-            {shellLoading && location.pathname === '/app' ? (
+            {(shellLoading && location.pathname === '/app') || changingPage ? (
               <Card padding="500">
                 <BlockStack gap="300">
                   <SkeletonDisplayText size="small" />

@@ -35,6 +35,7 @@ import {
   TextField,
 } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
+import { shellSetupProgress, useAppBootstrapData } from './app';
 import {
   createMerchantProduct,
   deleteMerchantProduct,
@@ -362,7 +363,7 @@ function buildKnowledgeSummary(row: WorkspaceRow): KnowledgeSummary {
 
   const sources: string[] = [];
   if (row.localProduct?.url) sources.push('Product page');
-  if (row.hasGuidance) sources.push('Merchant guidance');
+  if (row.hasGuidance) sources.push('Your guidance');
   if (row.hasOptionalDetails) sources.push('Optional details');
   if (row.factsSnapshot?.source_url) sources.push('Structured product facts');
 
@@ -1313,6 +1314,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function ProductsPage() {
+  const { bootstrapData: shellBootstrap } = useAppBootstrapData();
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
@@ -1762,14 +1764,19 @@ export default function ProductsPage() {
                 <Text as="p" variant="bodyMd">
                   All products are ready. Recete can now answer customer questions after delivery.
                 </Text>
-                <InlineStack gap="200" wrap>
-                  <Button url="/app/dashboard" variant="primary">
-                    Go to dashboard
-                  </Button>
-                  <Button url="/app/conversations" variant="secondary">
-                    View conversations
-                  </Button>
-                </InlineStack>
+                {/* Dashboard and Conversations stay locked until setup is done;
+                    the setup banner points at the next step until then. */}
+                {shellBootstrap?.overview &&
+                shellSetupProgress(shellBootstrap.overview, shellBootstrap).setupComplete ? (
+                  <InlineStack gap="200" wrap>
+                    <Button url="/app/dashboard" variant="primary">
+                      Go to dashboard
+                    </Button>
+                    <Button url="/app/conversations" variant="secondary">
+                      View conversations
+                    </Button>
+                  </InlineStack>
+                ) : null}
               </BlockStack>
             </Box>
           </Layout.Section>

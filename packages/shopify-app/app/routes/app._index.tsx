@@ -381,8 +381,9 @@ function SetupOverview({
         </BlockStack>
       </Card>
 
-      {/* ── Optional steps (only render once required are done OR billing exists) ── */}
-      {progress.hasBilling ? (
+      {/* ── Optional steps: only once the required ones are done. Shown earlier,
+          their green "All done" read as if setup were finished. ── */}
+      {setupComplete ? (
         <Card padding="500" roundedAbove="sm">
           <BlockStack gap="300">
             <InlineStack align="space-between" blockAlign="center" wrap>
