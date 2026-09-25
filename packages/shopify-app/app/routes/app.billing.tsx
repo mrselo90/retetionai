@@ -120,10 +120,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       url.searchParams.get('plan') || url.searchParams.get('upgradePlan') || ''
     ).trim();
     const { billing, session } = await authenticateEmbeddedAdmin(request);
-    const billingState = await billing.check({
-      plans: [...ALL_PLAN_KEYS],
-      isTest: process.env.NODE_ENV !== 'production',
-    });
+    // Any active subscription counts. Plans are sold through Shopify Managed
+    // Pricing, whose subscription names ("Growth", ...) never matched the
+    // "growth-monthly" keys this filtered on, and development stores only get
+    // test charges, which isTest:false dropped. Both made a paid plan read as
+    // "No plan" right after approval. Real stores cannot hold test charges.
+    const billingState = await billing.check({ isTest: true });
 
     const subscriptions = billingState.appSubscriptions.map((subscription) => ({
       id: subscription.id,

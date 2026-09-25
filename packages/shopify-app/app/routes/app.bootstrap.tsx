@@ -8,24 +8,6 @@ import {
   syncShopInstall,
 } from '../platform.server';
 import prisma from '../db.server';
-import {
-  GROWTH_MONTHLY_PLAN,
-  GROWTH_YEARLY_PLAN,
-  PRO_MONTHLY_PLAN,
-  PRO_YEARLY_PLAN,
-  STARTER_MONTHLY_PLAN,
-  STARTER_YEARLY_PLAN,
-} from '../services/planDefinitions';
-
-const ALL_PLAN_KEYS = [
-  STARTER_MONTHLY_PLAN,
-  STARTER_YEARLY_PLAN,
-  GROWTH_MONTHLY_PLAN,
-  GROWTH_YEARLY_PLAN,
-  PRO_MONTHLY_PLAN,
-  PRO_YEARLY_PLAN,
-] as const;
-
 /**
  * For the setup checklist: whether connecting a WhatsApp number is available
  * yet, and whether this store has connected one. null when it can't be read,
@@ -88,10 +70,12 @@ function buildPendingOverview(shop: string) {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const requestUrl = new URL(request.url);
   const { billing, session } = await authenticateEmbeddedAdmin(request);
-  const billingState = await billing.check({
-    plans: [...ALL_PLAN_KEYS],
-    isTest: process.env.NODE_ENV !== 'production',
-  });
+  // Any active subscription counts. Plans are sold through Shopify Managed
+  // Pricing, whose subscription names ("Growth", ...) never matched the
+  // "growth-monthly" keys this filtered on, and development stores only get
+  // test charges, which isTest:false dropped. Both made a paid plan read as
+  // "No plan" right after approval. Real stores cannot hold test charges.
+  const billingState = await billing.check({ isTest: true });
 
   try {
     const overview = await fetchMerchantOverviewFromRequest(request);
