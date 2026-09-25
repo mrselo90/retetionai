@@ -131,12 +131,17 @@ func getConnection(ctx context.Context, merchantID string) (*connRow, error) {
 // merchantOwningPhone returns another merchant already linked to this number, or
 // "". One WhatsApp number answering for two stores would route one store's
 // customers into the other's inbox.
+//
+// Only a live link counts. A row left in "qr"/"connecting" with an old number
+// (an unlinked phone, a pairing interrupted by a restart) used to block the
+// number forever: the owner could not link it anywhere else and only saw
+// "couldn't link device" on the phone.
 func merchantOwningPhone(ctx context.Context, phone, exceptMerchantID string) (string, error) {
 	var id string
 	err := db.QueryRowContext(ctx,
 		`select merchant_id from public.whatsapp_connections
 		  where phone_e164 = $1 and merchant_id <> $2
-		    and status in ('connecting', 'qr', 'connected')
+		    and status = 'connected'
 		  limit 1`, phone, exceptMerchantID).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil

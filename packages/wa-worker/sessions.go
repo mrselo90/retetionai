@@ -492,6 +492,20 @@ func (m *manager) Restore(ctx context.Context) {
 		return
 	}
 	for _, merchantID := range merchants {
+		// Only bring back sessions that still have their device keys. Starting
+		// one without them begins a fresh pairing nobody is looking at: a QR in
+		// the background, the row stuck on "qr" and the old number held.
+		row, err := getConnection(ctx, merchantID)
+		if err != nil || row == nil || row.WMJid == nil {
+			continue
+		}
+		jid, parseErr := types.ParseJID(*row.WMJid)
+		device, devErr := m.container.GetDevice(ctx, jid)
+		if parseErr != nil || devErr != nil || device == nil {
+			slog.Warn("restore: device keys gone, clearing the link", "merchant", merchantID)
+			m.wipe(ctx, merchantID, nil)
+			continue
+		}
 		if err := m.Start(ctx, merchantID, false); err != nil {
 			slog.Warn("restore failed", "merchant", merchantID, "err", err)
 			continue
