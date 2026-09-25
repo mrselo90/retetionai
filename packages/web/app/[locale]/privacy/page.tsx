@@ -9,7 +9,7 @@ export default function PrivacyPolicyPage() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-zinc-900 mb-8">Privacy Policy</h1>
-          <p className="text-sm text-zinc-600 mb-8">Last updated: September 24, 2026</p>
+          <p className="text-sm text-zinc-600 mb-8">Last updated: September 25, 2026</p>
 
           <div className="prose prose-zinc max-w-none">
             <section className="mb-8">
@@ -154,8 +154,9 @@ export default function PrivacyPolicyPage() {
                   product information (United States)
                 </li>
                 <li>
-                  <strong>Meta Platforms (WhatsApp Business Platform):</strong> Delivers WhatsApp
-                  messages from the merchant&apos;s own connected number
+                  <strong>WhatsApp (Meta Platforms):</strong> Carries messages, end-to-end
+                  encrypted, between the merchant&apos;s own linked WhatsApp account and their
+                  customers
                 </li>
                 <li>
                   <strong>PostHog:</strong> Website and dashboard analytics, only after cookie
@@ -172,8 +173,11 @@ export default function PrivacyPolicyPage() {
               <p className="text-zinc-700 mb-4">
                 Recete sends scheduled WhatsApp messages only to customers whose merchant has
                 recorded marketing consent for them, and checks that consent again before each
-                message. Customers can stop messages at any time by replying STOP. Merchants can
-                find a checklist and a privacy-notice paragraph on our{' '}
+                message. Customers can stop messages at any time by replying STOP. Messages are sent
+                from the merchant&apos;s own WhatsApp number, which the merchant links to Recete as
+                a device (like WhatsApp Web); the keys for that link are stored in our London
+                database and deleted when the merchant unlinks the number or removes the app.
+                Merchants can find a checklist and a privacy-notice paragraph on our{' '}
                 <Link href="/whatsapp-gdpr" className="text-blue-600 hover:underline">
                   WhatsApp &amp; GDPR page
                 </Link>

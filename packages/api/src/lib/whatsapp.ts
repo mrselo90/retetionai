@@ -1,12 +1,13 @@
 /**
- * WhatsApp messaging goes through Meta's Cloud API with numbers each merchant
- * connects via Embedded Signup. The implementation lives in @recete/shared
- * (whatsappCloud.ts) so the API and the workers send the same way.
+ * WhatsApp sends go through each store's linked device (packages/wa-worker).
+ * The implementation lives in @recete/shared (whatsappWorker.ts) so the API
+ * and the workers send, and classify failures, the same way.
  */
 export {
   sendWhatsAppMessage,
   getEffectiveWhatsAppCredentials,
   getCorporateWhatsAppCredentials,
+  WHATSAPP_NOT_CONFIGURED,
   type WhatsAppMessage,
   type WhatsAppSendResponse,
   type WhatsAppCredentials,

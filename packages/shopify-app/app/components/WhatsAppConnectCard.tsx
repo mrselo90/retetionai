@@ -1,36 +1,82 @@
 /**
- * Connect the store's own WhatsApp Business number (Meta Embedded Signup),
- * inside the Shopify admin. The popup runs in the browser; the route action
- * (intent connectWhatsApp / disconnectWhatsApp) finishes it on the platform.
+ * Link the store's own WhatsApp number by QR code, inside the Shopify admin.
+ * Talks to the /app/whatsapp resource route: polls its loader while a QR is
+ * showing, posts connect / disconnect to its action.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
-import {
-  Badge,
-  Banner,
-  BlockStack,
-  Button,
-  Card,
-  Checkbox,
-  InlineStack,
-  Text,
-} from '@shopify/polaris';
-import { runEmbeddedSignup } from '../lib/metaEmbeddedSignup.client';
-import type { WhatsAppConnection } from '../platform.server';
+import { Badge, Banner, BlockStack, Box, Button, Card, InlineStack, Text } from '@shopify/polaris';
+import type { WhatsAppConnectionStatus } from '../platform.server';
 
-type ActionResult = { ok?: boolean; error?: string; intent?: string };
+type LoaderResult = { ok: true; status: WhatsAppConnectionStatus } | { ok: false; error: string };
+type ActionResult =
+  | { ok: true; intent: string; status: WhatsAppConnectionStatus }
+  | { ok: false; intent: string; error: string };
 
-export function WhatsAppConnectCard({ connection }: { connection: WhatsAppConnection | null }) {
-  const fetcher = useFetcher<ActionResult>();
-  const [coexistence, setCoexistence] = useState(false);
-  const [popupBusy, setPopupBusy] = useState(false);
-  const [popupMessage, setPopupMessage] = useState<string | null>(null);
+const POLL_MS = 2000;
 
-  const busy = popupBusy || fetcher.state !== 'idle';
-  const result = fetcher.data;
+const ERROR_TEXT: Record<string, string> = {
+  qr_timeout: 'The code expired before it was scanned. Start again when your phone is at hand.',
+  pair_refused:
+    'WhatsApp refused to link a new device. Check that fewer than four devices are linked, wait a few minutes, and try again.',
+  number_taken: 'This number is already linked to another store.',
+  stream_replaced: 'The session was opened somewhere else. Link again to continue.',
+  client_outdated:
+    'WhatsApp needs a newer connection version. We have been notified; please try again later.',
+  unreachable: 'We lost the connection to WhatsApp. Link again to continue.',
+};
 
-  if (!connection) {
+function errorText(status: WhatsAppConnectionStatus): string | null {
+  if (status.status === 'connected' || status.status === 'qr' || status.status === 'connecting') {
+    return null;
+  }
+  if (status.lastError) {
+    return ERROR_TEXT[status.lastError] ?? 'The last connection attempt failed. Try again.';
+  }
+  if (status.status === 'logged_out') {
+    return 'The number was unlinked from the phone. Link it again to continue.';
+  }
+  return null;
+}
+
+export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionStatus | null }) {
+  const poller = useFetcher<LoaderResult>();
+  const actor = useFetcher<ActionResult>();
+  const [status, setStatus] = useState<WhatsAppConnectionStatus | null>(initial);
+  const [justLinked, setJustLinked] = useState(false);
+  const pairingRef = useRef(false);
+
+  // The page loader revalidates after navigation and focus; take its answer.
+  useEffect(() => {
+    if (initial) setStatus(initial);
+  }, [initial]);
+  useEffect(() => {
+    if (poller.data?.ok) setStatus(poller.data.status);
+  }, [poller.data]);
+  useEffect(() => {
+    if (actor.data?.ok) setStatus(actor.data.status);
+  }, [actor.data]);
+
+  const pairing = status?.status === 'qr' || status?.status === 'connecting';
+
+  useEffect(() => {
+    if (!pairing) return;
+    const timer = window.setInterval(() => {
+      if (poller.state === 'idle') poller.load('/app/whatsapp');
+    }, POLL_MS);
+    return () => window.clearInterval(timer);
+    // poller is stable across renders; its state is read inside the tick.
+  }, [pairing]);
+
+  useEffect(() => {
+    if (status?.status === 'connected' && pairingRef.current) {
+      pairingRef.current = false;
+      setJustLinked(true);
+    }
+  }, [status?.status]);
+
+  if (!status) {
     return (
       <Card padding="400">
         <Text as="p" tone="subdued">
@@ -40,106 +86,127 @@ export function WhatsAppConnectCard({ connection }: { connection: WhatsAppConnec
     );
   }
 
-  const { config, status } = connection;
-
-  const connect = async () => {
-    if (!config.enabled) return;
-    setPopupMessage(null);
-    setPopupBusy(true);
-    try {
-      const signup = await runEmbeddedSignup(config, { coexistence });
-      if (signup.status === 'cancelled') {
-        setPopupMessage('Connection cancelled. Nothing was changed.');
-        return;
-      }
-      if (signup.status === 'error') {
-        setPopupMessage(signup.message);
-        return;
-      }
-      fetcher.submit(
-        {
-          intent: 'connectWhatsApp',
-          code: signup.code,
-          wabaId: signup.wabaId,
-          phoneNumberId: signup.phoneNumberId,
-          coexistence: coexistence ? '1' : '0',
-        },
-        { method: 'post' }
-      );
-    } catch (error) {
-      setPopupMessage(
-        error instanceof Error ? error.message : 'Could not open the Facebook sign-in.'
-      );
-    } finally {
-      setPopupBusy(false);
-    }
+  const busy = actor.state !== 'idle';
+  const submit = (intent: 'connect' | 'disconnect') => {
+    pairingRef.current = intent === 'connect';
+    setJustLinked(false);
+    actor.submit({ intent }, { method: 'post', action: '/app/whatsapp' });
   };
+  const connected = status.status === 'connected';
+  const problem = errorText(status);
+  const actionError = actor.data && !actor.data.ok ? actor.data.error : null;
 
   return (
-    <Card padding="500" roundedAbove="sm">
+    <Card padding="400">
       <BlockStack gap="300">
-        <InlineStack align="space-between" blockAlign="center" wrap>
-          <InlineStack gap="200" blockAlign="center">
-            <Text as="h2" variant="headingMd">
-              WhatsApp Business
+        <InlineStack align="space-between" blockAlign="center" gap="300" wrap>
+          <BlockStack gap="100">
+            <InlineStack gap="200" blockAlign="center">
+              <Text as="h3" variant="headingMd">
+                WhatsApp
+              </Text>
+              {connected ? <Badge tone="success">Connected</Badge> : null}
+              {status.status === 'qr' ? <Badge tone="attention">Waiting for scan</Badge> : null}
+              {status.status === 'connecting' && status.phone ? (
+                <Badge tone="attention">Reconnecting</Badge>
+              ) : null}
+              {!status.available ? <Badge>Not available yet</Badge> : null}
+            </InlineStack>
+            <Text as="p" tone="subdued">
+              {connected
+                ? `Messages go from ${status.phone ?? 'your linked number'}.`
+                : status.available
+                  ? "Link your store's own WhatsApp number by scanning a QR code, the way you link WhatsApp Web. Customers get messages from the number they already know."
+                  : 'Linking a WhatsApp number is not available yet. Until then Recete cannot send WhatsApp messages.'}
             </Text>
-            {status.connected ? <Badge tone="success">Connected</Badge> : null}
-            {!config.enabled ? <Badge>Coming soon</Badge> : null}
-          </InlineStack>
-          {status.connected ? (
-            <fetcher.Form method="post">
-              <input type="hidden" name="intent" value="disconnectWhatsApp" />
-              <Button submit loading={fetcher.state !== 'idle'} tone="critical" variant="plain">
-                Disconnect
-              </Button>
-            </fetcher.Form>
-          ) : config.enabled ? (
-            <Button variant="primary" onClick={connect} loading={busy}>
-              Connect WhatsApp
+          </BlockStack>
+          {connected ? (
+            <Button
+              onClick={() => {
+                if (
+                  window.confirm(
+                    'Unlink this WhatsApp number? Recete will stop sending and receiving messages for your store.'
+                  )
+                ) {
+                  submit('disconnect');
+                }
+              }}
+              loading={busy}
+            >
+              Unlink
+            </Button>
+          ) : pairing ? (
+            <Button variant="tertiary" onClick={() => submit('disconnect')} loading={busy}>
+              Cancel
+            </Button>
+          ) : status.available ? (
+            <Button variant="primary" onClick={() => submit('connect')} loading={busy}>
+              Link WhatsApp
             </Button>
           ) : null}
         </InlineStack>
 
-        <Text as="p" tone="subdued">
-          {status.connected
-            ? `Customer messages go from ${status.phoneNumberDisplay || 'your number'}${
-                status.verifiedName ? ` (${status.verifiedName})` : ''
-              }.`
-            : config.enabled
-              ? "Connect your store's own WhatsApp Business number. You sign in with Facebook and pick your number — no API keys, about two minutes."
-              : 'Connecting your own WhatsApp number with a Facebook sign-in is coming soon. Until then Recete cannot send WhatsApp messages.'}
-        </Text>
-
-        {!status.connected && config.enabled ? (
-          <BlockStack gap="150">
-            <Checkbox
-              label="I already use this number in the WhatsApp Business app"
-              helpText="Keep using the app: you confirm the move with a QR code in WhatsApp Business, and your chats stay there too."
-              checked={coexistence}
-              onChange={setCoexistence}
-              disabled={busy}
-            />
-            <Text as="p" variant="bodySm" tone="subdued">
-              A Facebook window opens: sign in, choose or create your business account, pick the
-              number, and confirm.
-            </Text>
-          </BlockStack>
-        ) : null}
-
-        {popupMessage ? (
-          <Banner tone="warning">
-            <p>{popupMessage}</p>
+        {justLinked ? (
+          <Banner tone="success" onDismiss={() => setJustLinked(false)}>
+            <p>WhatsApp linked. Recete will now message your customers from this number.</p>
           </Banner>
         ) : null}
-        {result?.error ? (
+        {actionError ? (
           <Banner tone="critical">
-            <p>{result.error}</p>
+            <p>{actionError}</p>
           </Banner>
         ) : null}
-        {result?.ok && result.intent === 'connectWhatsApp' ? (
-          <Banner tone="success">
-            <p>WhatsApp connected. Recete will now message your customers from this number.</p>
+        {problem ? (
+          <Banner tone="warning">
+            <p>{problem}</p>
           </Banner>
+        ) : null}
+
+        {pairing ? (
+          <InlineStack gap="400" blockAlign="center" wrap>
+            <Box
+              background="bg-surface"
+              borderRadius="200"
+              borderWidth="025"
+              borderColor="border"
+              padding="200"
+              minWidth="224px"
+              minHeight="224px"
+            >
+              {status.qr ? (
+                <img
+                  src={status.qr}
+                  alt="WhatsApp link QR code"
+                  width={208}
+                  height={208}
+                  style={{ display: 'block' }}
+                />
+              ) : (
+                <Text as="p" tone="subdued" alignment="center">
+                  Starting the connection…
+                </Text>
+              )}
+            </Box>
+            <BlockStack gap="100">
+              <Text as="p" fontWeight="semibold">
+                Scan with the phone that has this number
+              </Text>
+              <Text as="p" tone="subdued">
+                Open WhatsApp → Settings → Linked devices → Link a device, then point the camera at
+                this code. It refreshes on its own.
+              </Text>
+            </BlockStack>
+          </InlineStack>
+        ) : null}
+
+        {!connected && status.available ? (
+          <Text as="p" variant="bodySm" tone="subdued">
+            <strong>Before you link:</strong> this links your number as a device, like WhatsApp Web.
+            It is not WhatsApp&apos;s official Business API, and WhatsApp can restrict numbers that
+            send automated messages. Use a number that belongs to your store, not a personal one.
+            Recete paces messages, caps how many first messages a new link sends per day, and only
+            messages customers who opted in.
+          </Text>
         ) : null}
       </BlockStack>
     </Card>

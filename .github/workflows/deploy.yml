@@ -79,14 +79,31 @@ jobs:
             
             echo "🔨 Building the application..."
             pnpm build
-            
+
+            # WhatsApp linked-device worker (Go). Never fails the deploy: a
+            # broken Go build keeps the previous binary running rather than
+            # blocking every other service. Skipped until Go is installed on
+            # the server (see packages/wa-worker/README.md).
+            export PATH="$PATH:/usr/local/go/bin"
+            if command -v go >/dev/null 2>&1; then
+              echo "🔨 Building wa-worker..."
+              if (cd packages/wa-worker && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o wa-worker.new . && mv wa-worker.new wa-worker); then
+                echo "✔ wa-worker built"
+              else
+                echo "⚠️  wa-worker build failed; keeping the previous binary"
+              fi
+            else
+              echo "   go not installed; wa-worker not built"
+            fi
+
             # Reload from ecosystem.config.cjs rather than `pm2 restart all`.
             # Two reasons: this PM2 instance also runs unrelated projects
             # (matchcountdown, eralp-*), and `all` bounced those on every deploy —
             # once even starting one that had been deliberately stopped. And per
             # DEPLOY_INSTRUCTIONS.md, a plain restart reuses PM2's saved process
             # definitions, which can keep stale ports and env and break routing.
-            # The config names exactly Recete's four services, so the scope stays
+            # The config names exactly Recete's services (four, plus wa-worker once
+            # it is set up), so the scope stays
             # correct without a list to keep in sync here.
             # Output redirected and stdin closed on purpose. The action was
             # reporting "Process exited with status 1" mid-stream — its own line

@@ -941,50 +941,33 @@ export async function fetchMerchantCustomers(
 }
 
 // ---------------------------------------------------------------------------
-// WhatsApp (the store's own number, via Meta Embedded Signup)
+// WhatsApp (the store's own number, linked by QR through packages/wa-worker)
 // ---------------------------------------------------------------------------
 
-export type WhatsAppConnectConfig =
-  | { enabled: true; appId: string; configId: string; graphVersion: string }
-  | { enabled: false };
+export type WhatsAppConnectionStatus = {
+  available: boolean;
+  status: 'disconnected' | 'connecting' | 'qr' | 'connected' | 'logged_out';
+  phone: string | null;
+  qr: string | null;
+  lastError: string | null;
+  connectedAt: string | null;
+};
 
-export type WhatsAppConnectStatus =
-  | { connected: false }
-  | {
-      connected: true;
-      phoneNumberDisplay: string | null;
-      verifiedName: string | null;
-      coexistence: boolean;
-    };
-
-export type WhatsAppConnection = { config: WhatsAppConnectConfig; status: WhatsAppConnectStatus };
-
-export async function fetchWhatsAppConnection(request: Request): Promise<WhatsAppConnection> {
-  const [config, status] = await Promise.all([
-    internalMerchantRequest(
-      request,
-      '/api/integrations/whatsapp/embedded-signup/config'
-    ) as Promise<WhatsAppConnectConfig>,
-    internalMerchantRequest(
-      request,
-      '/api/integrations/whatsapp/status'
-    ) as Promise<WhatsAppConnectStatus>,
-  ]);
-  return { config, status };
+export async function fetchWhatsAppConnection(request: Request) {
+  return (await internalMerchantRequest(
+    request,
+    '/api/integrations/whatsapp/status'
+  )) as WhatsAppConnectionStatus;
 }
 
-export async function completeWhatsAppSignup(
-  request: Request,
-  input: { code: string; wabaId: string; phoneNumberId: string; coexistence: boolean }
-) {
-  return (await internalMerchantRequest(request, '/api/integrations/whatsapp/embedded-signup', {
+export async function connectWhatsApp(request: Request) {
+  return (await internalMerchantRequest(request, '/api/integrations/whatsapp/connect', {
     method: 'POST',
-    body: JSON.stringify(input),
-  })) as WhatsAppConnectStatus;
+  })) as WhatsAppConnectionStatus;
 }
 
 export async function disconnectWhatsApp(request: Request) {
-  return (await internalMerchantRequest(request, '/api/integrations/whatsapp', {
-    method: 'DELETE',
-  })) as WhatsAppConnectStatus;
+  return (await internalMerchantRequest(request, '/api/integrations/whatsapp/disconnect', {
+    method: 'POST',
+  })) as WhatsAppConnectionStatus;
 }

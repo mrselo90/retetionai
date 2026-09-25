@@ -1,18 +1,15 @@
-import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from 'react-router';
+import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
 import { useLoaderData } from 'react-router';
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { ConnectIcon, CreditCardIcon, SettingsIcon, ViewIcon } from '@shopify/polaris-icons';
 import { Banner, BlockStack, Button, InlineGrid, InlineStack, Text } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import {
-  completeWhatsAppSignup,
-  disconnectWhatsApp,
-  extractPlatformErrorMessage,
   fetchMerchantOverviewFromRequest,
   fetchWhatsAppConnection,
   settle,
   type ShopifyMerchantOverview,
-  type WhatsAppConnection,
+  type WhatsAppConnectionStatus,
 } from '../platform.server';
 import { WhatsAppConnectCard } from '../components/WhatsAppConnectCard';
 import {
@@ -47,39 +44,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
   const [result, whatsapp] = await Promise.all([
     settle(fetchMerchantOverviewFromRequest(request), EMPTY_OVERVIEW),
-    settle<WhatsAppConnection | null>(fetchWhatsAppConnection(request), null),
+    settle<WhatsAppConnectionStatus | null>(fetchWhatsAppConnection(request), null),
   ]);
   return { ...result.value, overviewUnavailable: !result.ok, whatsapp: whatsapp.value };
-};
-
-export const action = async ({ request }: ActionFunctionArgs) => {
-  await authenticateEmbeddedAdmin(request);
-  const formData = await request.formData();
-  const intent = String(formData.get('intent') || '');
-
-  try {
-    if (intent === 'connectWhatsApp') {
-      await completeWhatsAppSignup(request, {
-        code: String(formData.get('code') || ''),
-        wabaId: String(formData.get('wabaId') || ''),
-        phoneNumberId: String(formData.get('phoneNumberId') || ''),
-        coexistence: formData.get('coexistence') === '1',
-      });
-      return { ok: true, intent };
-    }
-    if (intent === 'disconnectWhatsApp') {
-      await disconnectWhatsApp(request);
-      return { ok: true, intent };
-    }
-  } catch (error) {
-    return {
-      ok: false,
-      intent,
-      error: await extractPlatformErrorMessage(error, 'Could not update the WhatsApp connection.'),
-    };
-  }
-
-  return { ok: false, intent, error: 'Unknown action' };
 };
 
 export default function IntegrationsPage() {
@@ -107,7 +74,8 @@ export default function IntegrationsPage() {
         </Banner>
       ) : null}
 
-      <WhatsAppConnectCard connection={data.whatsapp} />
+      {/* The store's own number, linked by QR. Nothing reaches customers without it. */}
+      <WhatsAppConnectCard initial={data.whatsapp} />
 
       <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
         <MetricCard

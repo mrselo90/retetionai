@@ -493,7 +493,7 @@ export default function IntegrationsPage() {
               </button>
             </div>
 
-            {/* WhatsApp: the store's own number via Meta Embedded Signup */}
+            {/* WhatsApp: the store's own number, linked by QR (packages/wa-worker) */}
             <WhatsAppConnectCard />
 
             {/* CSV Import */}

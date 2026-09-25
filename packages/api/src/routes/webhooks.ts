@@ -5,7 +5,7 @@
 
 import { Hono } from 'hono';
 import { findShopifyIntegration } from '../lib/shopifyIntegrationLookup.js';
-import { getSupabaseServiceClient, logger } from '@recete/shared';
+import { getSupabaseServiceClient, logger, unlinkWhatsAppBestEffort } from '@recete/shared';
 import { verifyShopifyHmac } from '../lib/shopify.js';
 import { addCommerceEventJob } from '../queues.js';
 import {
@@ -142,6 +142,11 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
               '[Uninstall] Scheduled tasks could not be cancelled.'
             );
           }
+        }
+
+        // A store that removed the app keeps no linked WhatsApp session with us.
+        if (!(await unlinkWhatsAppBestEffort(merchantId))) {
+          logger.warn({ shop, merchantId }, '[Uninstall] WhatsApp session could not be unlinked.');
         }
 
         logger.info({ shop, merchantId }, '[Uninstall] Mağaza başarıyla deaktive edildi.');

@@ -43,6 +43,37 @@ const nrEnv = {
   NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: 'true',
 };
 
+// WhatsApp linked-device worker (packages/wa-worker, a Go binary). Only
+// declared once it is set up — binary built and WA_PG_DSN / WA_WORKER_SECRET in
+// the root .env — so a deploy before that point restarts the other four
+// services exactly as before instead of failing on a missing script.
+const waEnv = (key, fallback = '') => process.env[key] || rootEnv[key] || fallback;
+const waWorkerBinary = path.join(__dirname, 'packages/wa-worker/wa-worker');
+const waWorkerApps =
+  fs.existsSync(waWorkerBinary) && waEnv('WA_PG_DSN') && waEnv('WA_WORKER_SECRET')
+    ? [
+        {
+          name: 'wa-worker',
+          cwd: './packages/wa-worker',
+          script: './wa-worker',
+          interpreter: 'none',
+          env: {
+            WA_PG_DSN: waEnv('WA_PG_DSN'),
+            WA_WORKER_SECRET: waEnv('WA_WORKER_SECRET'),
+            RECETE_API_URL: 'http://127.0.0.1:3002',
+            // Loopback only; WA_WORKER_URL in the root .env must point here.
+            WA_LISTEN_ADDR: waEnv('WA_LISTEN_ADDR', '127.0.0.1:3005'),
+          },
+          instances: 1,
+          exec_mode: 'fork',
+          autorestart: true,
+          watch: false,
+          // Let whatsmeow close sessions cleanly on restart.
+          kill_timeout: 10000,
+        },
+      ]
+    : [];
+
 /**
  * PM2 ecosystem config for production.
  * Run from repo root: pm2 startOrRestart ecosystem.config.cjs --update-env
@@ -128,5 +159,6 @@ module.exports = {
       autorestart: true,
       watch: false,
     },
+    ...waWorkerApps,
   ],
 };

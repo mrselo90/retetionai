@@ -33,8 +33,8 @@ const ALL_PLAN_KEYS = [
  */
 async function loadSetupWhatsApp(request: Request) {
   try {
-    const { config, status } = await fetchWhatsAppConnection(request);
-    return { enabled: config.enabled, connected: status.connected };
+    const status = await fetchWhatsAppConnection(request);
+    return { enabled: status.available, connected: status.status === 'connected' };
   } catch {
     return null;
   }

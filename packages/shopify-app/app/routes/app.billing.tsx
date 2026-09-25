@@ -64,7 +64,7 @@ const PLAN_TIERS: ReadonlyArray<{
     features: [
       '150 included chats per month',
       'Up to 20 recipes',
-      'Your own WhatsApp Business number',
+      'Your own WhatsApp number',
       'Basic analytics',
     ],
   },
@@ -80,7 +80,7 @@ const PLAN_TIERS: ReadonlyArray<{
     features: [
       '1,000 included chats per month',
       'Up to 500 recipes',
-      'Your own WhatsApp Business number',
+      'Your own WhatsApp number',
       'AI vision for product photos',
       'Upsell links in conversations',
     ],
@@ -96,9 +96,9 @@ const PLAN_TIERS: ReadonlyArray<{
     features: [
       '3,000 included chats per month',
       'Unlimited recipes',
+      'Your own WhatsApp number',
       'Advanced analytics',
       'Smart re-order engine',
-      'Your own WhatsApp Business number',
     ],
   },
 ] as const;

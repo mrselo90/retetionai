@@ -3,7 +3,7 @@
  * Background job processors for queues
  */
 
-import { Worker, WorkerOptions } from 'bullmq';
+import { DelayedError, Worker, WorkerOptions } from 'bullmq';
 import { getRedisClient, getSupabaseServiceClient, logger } from '@recete/shared';
 import { trackWorkerJob } from './lib/nrEvents.js';
 import {
@@ -275,7 +275,7 @@ const defaultWorkerOptions: WorkerOptions = {
  */
 export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
   QUEUE_NAMES.SCHEDULED_MESSAGES,
-  async (job) => {
+  async (job, token) => {
     const {
       type,
       userId,
@@ -509,6 +509,18 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
       );
 
       if (!sendResult.success) {
+        // The linked number's daily allowance is used up (wa-worker caps.go).
+        // Retrying in seconds would burn the job's attempts and fail it; wait
+        // for the allowance to reset instead, without spending an attempt.
+        if (sendResult.rateLimited && sendResult.retryAfterMs && token) {
+          const jitterMs = Math.floor(Math.random() * 30 * 60_000);
+          await job.moveToDelayed(Date.now() + sendResult.retryAfterMs + jitterMs, token);
+          logger.info(
+            { jobId: job.id, merchantId, retryAfterMs: sendResult.retryAfterMs },
+            '[Scheduled Message] Daily WhatsApp cap reached; deferred'
+          );
+          throw new DelayedError();
+        }
         if (sendResult.retryable) {
           throw buildSendFailureError(sendResult);
         }
@@ -600,6 +612,9 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
         messageId: sendResult.messageId,
       };
     } catch (error) {
+      // Deferred, not failed: the task stays pending until it runs again.
+      if (error instanceof DelayedError) throw error;
+
       logger.error(
         error instanceof Error ? error : new Error(String(error)),
         `[Scheduled Message] Job ${job.id} failed`

@@ -35,7 +35,7 @@ export function computeSetupSteps(stats: SetupStats): SetupStep[] {
     {
       id: 'sendFirstWhatsApp',
       completed: hasConversationActivity,
-      // The number is connected on Integrations; nothing is sent without it.
+      // The number is linked on Integrations; nothing is sent without it.
       actionUrl: '/dashboard/integrations',
     },
   ];

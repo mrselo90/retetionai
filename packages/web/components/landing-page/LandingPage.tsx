@@ -457,7 +457,7 @@ function Hero() {
 // "Trusted by Shopify stores across the UK & EU" — none of them were customers.
 const PROOF_FACTS = [
   'Shopify App Store app',
-  'Your own WhatsApp Business number',
+  'Your own WhatsApp number',
   'Consent checked before every message',
   'UK company · data hosted in London',
 ];
@@ -535,8 +535,8 @@ const FEATURES = [
   {
     icon: 'bolt' as IconName,
     title: 'One-click install',
-    body: 'Install from the Shopify App Store and connect your own WhatsApp Business number with a Facebook sign-in — no API keys. Templates ready out of the box, zero coding required.',
-    tags: ['App Store', 'Facebook sign-in', 'Shopify billing'],
+    body: 'Install from the Shopify App Store, approve a plan in Shopify, and link your store’s WhatsApp number by scanning a QR code — no API keys. Templates ready out of the box, zero coding required.',
+    tags: ['App Store', 'QR link', 'Shopify billing'],
   },
   {
     icon: 'shield' as IconName,
@@ -858,14 +858,13 @@ function HowItWorks() {
                 maxWidth: 320,
               }}
             >
-              Approve the plan in Shopify, then connect your WhatsApp Business number with a
-              Facebook sign-in. Recete reads your catalog and new orders through the official
-              Shopify API.
+              Approve the plan in Shopify, then link your WhatsApp number by scanning a QR code.
+              Recete reads your catalog and new orders through the official Shopify API.
             </p>
             <div className="lhow-visual" style={{ display: 'grid', gap: 8 }}>
               <div style={{ color: 'var(--link-3)' }}>$ shopify install recete</div>
               <div style={{ color: 'var(--laccent-ink)' }}>→ plan approved in Shopify</div>
-              <div style={{ color: 'var(--laccent-ink)' }}>→ WhatsApp · your number connected</div>
+              <div style={{ color: 'var(--laccent-ink)' }}>→ WhatsApp · your number linked</div>
               <div style={{ color: 'var(--laccent-ink)' }}>→ products · synced</div>
             </div>
           </div>
@@ -1061,7 +1060,7 @@ const PLANS = [
       '150 included chats / month',
       '20 recipes',
       '$0.18 per overage chat',
-      'Your own WhatsApp Business number',
+      'Your own WhatsApp number',
       'Basic analytics',
     ],
     cta: 'Install on Shopify',
@@ -1077,7 +1076,7 @@ const PLANS = [
       '500 recipes',
       '$0.12 per overage chat',
       'Customer photo analysis',
-      'Your own WhatsApp Business number',
+      'Your own WhatsApp number',
     ],
     cta: 'Install on Shopify',
   },
@@ -1093,7 +1092,7 @@ const PLANS = [
       '$0.08 per overage chat',
       'Smart Re-order',
       'Advanced analytics',
-      'Your own WhatsApp Business number',
+      'Your own WhatsApp number',
     ],
     cta: 'Talk to sales',
   },
@@ -1424,7 +1423,7 @@ function ROICalc() {
 const FAQS: Array<{ q: string; a: React.ReactNode }> = [
   {
     q: 'How do I get started?',
-    a: 'Install Recete from the Shopify App Store and approve a plan in Shopify. The app then walks you through the rest — connect your WhatsApp number, add product instructions, set your welcome message — with a checklist that shows what is left. Most merchants finish in about fifteen minutes.',
+    a: 'Install Recete from the Shopify App Store and approve a plan in Shopify. The app then walks you through the rest — product instructions, welcome message — with a checklist that shows what is left. Most merchants finish in about fifteen minutes.',
   },
   {
     q: 'Which customers will Recete message?',
@@ -1470,10 +1469,6 @@ const FAQS: Array<{ q: string; a: React.ReactNode }> = [
         .
       </>
     ),
-  },
-  {
-    q: 'Which WhatsApp number do messages come from?',
-    a: "Your own, on every plan. You connect your store's WhatsApp Business number with a Facebook sign-in — no API keys, about two minutes. Already using the number in the WhatsApp Business app? You can keep using the app: you confirm the move with a QR code, and your chats stay there too.",
   },
   {
     q: 'Which languages does the AI support?',

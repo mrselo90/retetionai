@@ -11,4 +11,4 @@ export * from './productInstructions.js';
 export * from './auth.js';
 export * from './logger.js';
 export * from './shopify.js';
-export * from './whatsappCloud.js';
+export * from './whatsappWorker.js';

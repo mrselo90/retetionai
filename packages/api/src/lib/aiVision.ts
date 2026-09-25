@@ -1,14 +1,17 @@
-import { downloadMetaImageDataUrl, logger } from '@recete/shared';
+import { fetchWhatsAppImageDataUrl, logger } from '@recete/shared';
 import { getOpenAIClient } from './openaiClient.js';
 import { getDefaultVisionModel } from './runtimeModelSettings.js';
 import { trackAiUsageEvent } from './aiUsageEvents.js';
 import type { WhatsAppCredentials, WhatsAppWebhookMessage } from './whatsapp.js';
 
+/** The customer's photo, fetched from WhatsApp by the store's linked device. */
 async function resolveImageDataUrl(
   message: WhatsAppWebhookMessage,
   credentials: WhatsAppCredentials
 ): Promise<string> {
-  return downloadMetaImageDataUrl(message, credentials);
+  const media = message.image?.providerMediaId?.trim();
+  if (!media) throw new Error('Image message is missing its download descriptor');
+  return fetchWhatsAppImageDataUrl(credentials.merchantId, media);
 }
 
 function buildVisionPrompt(params: { customerCaption?: string; merchantName?: string | null }) {

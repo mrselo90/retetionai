@@ -198,7 +198,7 @@ function SetupOverview({
             id: 'whatsapp' as const,
             title: REQUIRED_STEP_INFO.whatsapp.title,
             description:
-              "Connect your store's own WhatsApp Business number with a Facebook sign-in. Customer messages are sent from it.",
+              "Link your store's own WhatsApp number by scanning a QR code, like WhatsApp Web. Customer messages are sent from it.",
             to: REQUIRED_STEP_INFO.whatsapp.path,
             icon: ChatIcon,
             status: statusFor(progress.hasWhatsApp, progress.nextStep === 'whatsapp'),

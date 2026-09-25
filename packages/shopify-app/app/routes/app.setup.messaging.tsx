@@ -190,9 +190,8 @@ export default function MessagingSetupPage() {
               ) : null}
 
               <Banner tone="info">
-                With your WhatsApp number connected (Integrations), these three settings are enough
-                to start messaging customers after delivery. Advanced behavior (tone, guardrails,
-                languages) lives in Settings.
+                These three settings shape what customers receive after delivery. Advanced behavior
+                (tone, guardrails, languages) lives in Settings.
               </Banner>
 
               {/* Recete only messages customers with marketing consent, so the

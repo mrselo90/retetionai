@@ -30,7 +30,7 @@ conversations.get('/', async (c) => {
     const merchantId = c.get('merchantId') as string;
     const authMethod = c.get('authMethod') as 'jwt' | 'shopify' | 'internal' | undefined;
     const cacheKey = `conversations:${merchantId}`;
-    const cached = await getCachedApiResponse(cacheKey) as { conversations: any[] } | null;
+    const cached = (await getCachedApiResponse(cacheKey)) as { conversations: any[] } | null;
 
     if (cached) {
       logPersonalDataAccess({
@@ -118,9 +118,25 @@ conversations.get('/', async (c) => {
       let sentiment: 'positive' | 'neutral' | 'negative' = 'neutral';
       if (lastMessage) {
         const content = lastMessage.content?.toLowerCase() || '';
-        if (content.includes('teşekkür') || content.includes('harika') || content.includes('mükemmel') || content.includes('thanks') || content.includes('great') || content.includes('perfect') || content.includes('awesome')) {
+        if (
+          content.includes('teşekkür') ||
+          content.includes('harika') ||
+          content.includes('mükemmel') ||
+          content.includes('thanks') ||
+          content.includes('great') ||
+          content.includes('perfect') ||
+          content.includes('awesome')
+        ) {
           sentiment = 'positive';
-        } else if (content.includes('kötü') || content.includes('şikayet') || content.includes('problem') || content.includes('bad') || content.includes('complain') || content.includes('issue') || content.includes('wrong')) {
+        } else if (
+          content.includes('kötü') ||
+          content.includes('şikayet') ||
+          content.includes('problem') ||
+          content.includes('bad') ||
+          content.includes('complain') ||
+          content.includes('issue') ||
+          content.includes('wrong')
+        ) {
           sentiment = 'negative';
         }
       }
@@ -133,20 +149,21 @@ conversations.get('/', async (c) => {
         phone: phoneDisplay,
         lastMessage: lastMessage
           ? {
-            role: lastMessage.role,
-            content: lastMessage.content,
-            timestamp: lastMessage.timestamp,
-          }
+              role: lastMessage.role,
+              content: lastMessage.content,
+              timestamp: lastMessage.timestamp,
+            }
           : null,
         messageCount: history.length,
         lastMessageAt: conv.updated_at,
-        order: conv.order_id && ordersMap.has(conv.order_id)
-          ? {
-            id: conv.order_id,
-            external_order_id: ordersMap.get(conv.order_id)?.external_order_id ?? null,
-            status: ordersMap.get(conv.order_id)?.status ?? null,
-          }
-          : null,
+        order:
+          conv.order_id && ordersMap.has(conv.order_id)
+            ? {
+                id: conv.order_id,
+                external_order_id: ordersMap.get(conv.order_id)?.external_order_id ?? null,
+                status: ordersMap.get(conv.order_id)?.status ?? null,
+              }
+            : null,
         status: conv.current_state || 'active',
         conversationStatus: conv.conversation_status || 'ai',
         sentiment,
@@ -167,9 +184,12 @@ conversations.get('/', async (c) => {
     await setCachedApiResponse(cacheKey, payload, CONVERSATIONS_CACHE_TTL_SECONDS);
     return c.json(payload);
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+      },
+      500
+    );
   }
 });
 
@@ -184,7 +204,7 @@ conversations.get('/:id', async (c) => {
     const authMethod = c.get('authMethod') as 'jwt' | 'shopify' | 'internal' | undefined;
     const conversationId = c.req.param('id');
     const cacheKey = `conversation:${merchantId}:${conversationId}`;
-    const cached = await getCachedApiResponse(cacheKey) as { conversation: any } | null;
+    const cached = (await getCachedApiResponse(cacheKey)) as { conversation: any } | null;
 
     if (cached) {
       logPersonalDataAccess({
@@ -206,7 +226,8 @@ conversations.get('/:id', async (c) => {
     // Get conversation with user info
     const { data: conversation, error } = await serviceClient
       .from('conversations')
-      .select(`
+      .select(
+        `
         id,
         user_id,
         order_id,
@@ -223,7 +244,8 @@ conversations.get('/:id', async (c) => {
           phone,
           merchant_id
         )
-      `)
+      `
+      )
       .eq('id', conversationId)
       .single();
 
@@ -328,9 +350,12 @@ conversations.get('/:id', async (c) => {
     await setCachedApiResponse(cacheKey, payload, CONVERSATIONS_CACHE_TTL_SECONDS);
     return c.json(payload);
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+      },
+      500
+    );
   }
 });
 
@@ -387,8 +412,10 @@ conversations.post('/:id/reply', async (c) => {
       return c.json({ error: 'WhatsApp not configured' }, 400);
     }
 
+    // The merchant typed this, so it is not paced or counted like the
+    // assistant's messages (wa-worker caps.go).
     const result = await sendWhatsAppMessage(
-      { to: userPhone, text },
+      { to: userPhone, text, typedByPerson: true },
       credentials
     );
 
@@ -415,9 +442,12 @@ conversations.post('/:id/reply', async (c) => {
     await invalidateApiCache(`customer:${merchantId}:${conversation.user_id}`);
     return c.json({ success: true, messageId: result.messageId });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+      },
+      500
+    );
   }
 });
 
@@ -490,9 +520,12 @@ conversations.put('/:id/status', async (c) => {
     await invalidateApiCache(`customer:${merchantId}:${conversation.user_id}`);
     return c.json({ success: true, status });
   } catch (error) {
-    return c.json({
-      error: 'Internal server error',
-    }, 500);
+    return c.json(
+      {
+        error: 'Internal server error',
+      },
+      500
+    );
   }
 });
 

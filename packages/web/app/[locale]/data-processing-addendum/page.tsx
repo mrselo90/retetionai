@@ -9,7 +9,7 @@ export default function DataProcessingAddendumPage() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-zinc-900 mb-8">Data Processing Addendum</h1>
-          <p className="text-sm text-zinc-600 mb-8">Last updated: September 24, 2026</p>
+          <p className="text-sm text-zinc-600 mb-8">Last updated: September 25, 2026</p>
 
           <div className="prose prose-zinc max-w-none">
             <section className="mb-8">
@@ -93,7 +93,8 @@ export default function DataProcessingAddendumPage() {
                 <Link href="/privacy#sub-processors" className="text-blue-600 hover:underline">
                   Privacy Policy
                 </Link>
-                , including Meta Platforms for WhatsApp delivery and OpenAI for AI replies.
+                , including WhatsApp (Meta Platforms), which carries messages from the
+                merchant&apos;s linked WhatsApp account, and OpenAI for AI replies.
               </p>
             </section>
 

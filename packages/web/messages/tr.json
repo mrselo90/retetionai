@@ -83,9 +83,9 @@
             "action": "Ürün ekleyin"
           },
           "sendFirstWhatsApp": {
-            "title": "WhatsApp’ı bağlayın ve ilk mesajı gönderin",
-            "description": "Mağazanızın WhatsApp Business numarasını Facebook girişiyle bağlayın, sonra karşılama mesajınızı ayarlayın.",
-            "action": "WhatsApp’ı bağla"
+            "title": "WhatsApp'ı bağlayın ve mesajlaşmaya başlayın",
+            "description": "Mağazanızın WhatsApp numarasını Entegrasyonlar sayfasından bağlayın. İlk müşteri konuşmanız bu adımı tamamlar.",
+            "action": "Entegrasyonları aç"
           }
         }
       },
@@ -1582,37 +1582,48 @@
     "copied": "Kopyalandı"
   },
   "WhatsAppConnect": {
-    "title": "WhatsApp Business",
-    "description": "Mağazanızın kendi WhatsApp Business numarasını bağlayın. Facebook ile giriş yapıp numaranızı seçersiniz; API anahtarı yok, yaklaşık iki dakika.",
-    "comingSoonDescription": "Kendi WhatsApp numaranızı Facebook girişiyle bağlama çok yakında. O zamana kadar Recete WhatsApp mesajı gönderemez.",
-    "connectedDescription": "Mesajlar {number} ({name}) numarasından gider.",
-    "coexistenceLabel": "Bu numarayı zaten WhatsApp Business uygulamasında kullanıyorum",
-    "coexistenceHelp": "Uygulamayı kullanmaya devam edin: taşımayı WhatsApp Business’ta bir QR kodla onaylarsınız, sohbetleriniz de orada kalır.",
-    "steps": "Bir Facebook penceresi açılır: giriş yapın, işletme hesabınızı seçin ya da oluşturun, numarayı seçip onaylayın.",
-    "disconnectConfirm": "Bu WhatsApp numarasının bağlantısı kesilsin mi? Recete mağazanız için mesaj göndermeyi ve almayı durdurur.",
+    "title": "WhatsApp",
+    "description": "Mağazanızın kendi WhatsApp numarasını, WhatsApp Web'i bağlar gibi QR kod okutarak bağlayın. Müşterileriniz mesajları zaten tanıdıkları numaradan alır.",
+    "unavailableDescription": "WhatsApp numarası bağlama henüz kullanılamıyor. O zamana kadar Recete WhatsApp mesajı gönderemez.",
+    "connectedDescription": "Mesajlar {number} numarasından gidiyor.",
+    "disclosureTitle": "Bağlamadan önce",
+    "disclosure": "Numaranız WhatsApp Web gibi bağlı cihaz olarak eklenir. Bu, WhatsApp'ın resmi Business API'si değildir ve WhatsApp otomatik mesaj gönderen numaraları kısıtlayabilir. Kişisel değil, mağazanıza ait bir numara kullanın. Recete mesajları insan hızında gönderir, yeni bağlanan numaranın günlük ilk mesaj sayısını sınırlar ve yalnızca izin veren müşterilere yazar.",
+    "scanTitle": "Bu numaranın olduğu telefonla okutun",
+    "scanSteps": "WhatsApp → Ayarlar → Bağlı cihazlar → Cihaz bağla yolunu izleyin ve kamerayı bu koda tutun. Kod kendiliğinden yenilenir.",
+    "waiting": "Bağlantı başlatılıyor…",
+    "disconnectConfirm": "Bu WhatsApp numarasının bağlantısı kaldırılsın mı? Recete mağazanız için mesaj göndermeyi ve almayı durdurur.",
     "loadFailed": "WhatsApp bağlantınız yüklenemedi.",
+    "errors": {
+      "qr_timeout": "Kod okutulmadan süresi doldu. Telefonunuz yanınızdayken tekrar başlatın.",
+      "pair_refused": "WhatsApp yeni cihaz bağlamayı reddetti. Dörtten az cihaz bağlı olduğundan emin olun, birkaç dakika bekleyip tekrar deneyin.",
+      "number_taken": "Bu numara başka bir mağazaya bağlı.",
+      "stream_replaced": "Oturum başka bir yerde açıldı. Devam etmek için tekrar bağlayın.",
+      "client_outdated": "WhatsApp daha yeni bir bağlantı sürümü istiyor. Bilgilendirildik, lütfen daha sonra tekrar deneyin.",
+      "unreachable": "WhatsApp bağlantısı koptu. Devam etmek için tekrar bağlayın.",
+      "logged_out": "Numaranın bağlantısı telefondan kaldırıldı. Devam etmek için tekrar bağlayın.",
+      "generic": "Son bağlantı denemesi başarısız oldu. Tekrar deneyin."
+    },
     "badges": {
       "connected": "Bağlı",
-      "comingSoon": "Yakında"
+      "pairing": "Okutma bekleniyor",
+      "unavailable": "Henüz kullanılamıyor",
+      "reconnecting": "Yeniden bağlanıyor"
     },
     "actions": {
-      "connect": "WhatsApp’ı bağla",
-      "connecting": "Bağlanıyor…",
-      "disconnect": "Bağlantıyı kes",
+      "connect": "WhatsApp'ı bağla",
+      "connecting": "Başlatılıyor…",
+      "cancel": "Vazgeç",
+      "disconnect": "Bağlantıyı kaldır",
       "retry": "Tekrar dene"
     },
     "toasts": {
       "connected": {
         "title": "WhatsApp bağlandı",
-        "message": "Recete artık müşterilerinize bu numaradan mesaj gönderecek."
+        "message": "Recete artık müşterilerinize bu numaradan yazacak."
       },
       "disconnected": {
-        "title": "WhatsApp bağlantısı kesildi",
+        "title": "WhatsApp bağlantısı kaldırıldı",
         "message": "Recete artık bu numaradan mesaj göndermiyor."
-      },
-      "cancelled": {
-        "title": "Bağlantı iptal edildi",
-        "message": "Hiçbir şey değişmedi. İstediğiniz zaman tekrar deneyebilirsiniz."
       },
       "failed": {
         "title": "WhatsApp bağlanamadı",

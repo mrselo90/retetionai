@@ -190,12 +190,11 @@ const INTERNAL_MERCHANT_PATHS: Array<string | RegExp> = [
   // Onboarding's "Run a test order" step (triggerTestOrderFlow), same
   // shell-drops-the-bearer-token situation as the routes above.
   '/api/test/events',
-  // Connecting the store's WhatsApp number from the Shopify app's
-  // Integrations page and the setup checklist (whatsappConnect.ts).
-  '/api/integrations/whatsapp',
+  // Linking the store's WhatsApp number by QR from the Shopify app's
+  // Integrations page (whatsappConnection.ts).
   '/api/integrations/whatsapp/status',
-  '/api/integrations/whatsapp/embedded-signup',
-  '/api/integrations/whatsapp/embedded-signup/config',
+  '/api/integrations/whatsapp/connect',
+  '/api/integrations/whatsapp/disconnect',
 ];
 
 function isInternalProductPath(path: string): boolean {

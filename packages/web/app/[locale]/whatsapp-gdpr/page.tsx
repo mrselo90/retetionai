@@ -33,7 +33,7 @@ export default function WhatsAppGdprPage() {
             What you, as a merchant, need to have in place before Recete messages your customers on
             WhatsApp — and what Recete does for you.
           </p>
-          <p className="text-sm text-zinc-600 mb-8">Last updated: September 24, 2026</p>
+          <p className="text-sm text-zinc-600 mb-8">Last updated: September 25, 2026</p>
 
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 mb-8 text-sm text-amber-900">
             This page explains how the service works and what the law and WhatsApp&apos;s rules
@@ -48,9 +48,12 @@ export default function WhatsAppGdprPage() {
               </h2>
               <ol className="list-decimal pl-6 text-zinc-700 mb-4 space-y-2">
                 <li>
-                  <strong>Connect your own WhatsApp Business number.</strong> In Recete, go to
-                  Integrations and sign in with Facebook. Messages to your customers come from this
-                  number.
+                  <strong>Link your store&apos;s own WhatsApp number.</strong> In Recete, go to
+                  Integrations, choose Link WhatsApp and scan the QR code with the phone that has
+                  the number (WhatsApp → Settings → Linked devices). Messages to your customers come
+                  from this number. Use a number that belongs to your business: this is a linked
+                  device, not WhatsApp&apos;s official Business API, and WhatsApp can restrict
+                  numbers that send automated messages.
                 </li>
                 <li>
                   <strong>Ask for consent at checkout, and mention WhatsApp.</strong> Recete only
@@ -92,8 +95,9 @@ export default function WhatsAppGdprPage() {
                   messaging and support you configure.
                 </li>
                 <li>
-                  <strong>Meta (WhatsApp)</strong> delivers the messages from your own connected
-                  number. The providers Recete relies on are listed in our{' '}
+                  <strong>WhatsApp (Meta)</strong> carries the messages, end-to-end encrypted,
+                  between your own WhatsApp account and your customers. Recete connects to your
+                  account as a linked device. The providers Recete relies on are listed in our{' '}
                   <Link href="/privacy#sub-processors" className="text-blue-600 hover:underline">
                     Privacy Policy
                   </Link>
@@ -150,8 +154,10 @@ export default function WhatsAppGdprPage() {
                   OpenAI in the United States.
                 </li>
                 <li>
-                  Messages are delivered through Meta&apos;s WhatsApp Business Platform, from the
-                  WhatsApp Business number you connected.
+                  Messages travel through WhatsApp from the number you linked. The keys for that
+                  link are stored in our database in London and deleted when you unlink the number
+                  or remove the app. Photos customers send are fetched from WhatsApp only when the
+                  AI needs to look at them, and are not stored.
                 </li>
               </ul>
             </section>
