@@ -764,11 +764,6 @@ export default function SettingsPage() {
             id="core-settings"
             title="Bot behavior"
             subtitle="How your assistant introduces itself and talks to customers."
-            badge={
-              <StatusBadge status={data.overview.subscription?.status}>
-                {data.overview.subscription?.status || 'inactive'}
-              </StatusBadge>
-            }
           >
             <Form method="post" ref={formRef}>
               <input type="hidden" name="intent" value="save-core" />
