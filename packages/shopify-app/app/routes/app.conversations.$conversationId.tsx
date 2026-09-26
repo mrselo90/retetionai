@@ -199,52 +199,50 @@ export default function ConversationDetailPage() {
                     const label = isBuyer ? 'Buyer' : isMerchant ? 'You' : 'AI';
 
                     return (
-                      <div
+                      <InlineStack
                         key={`${message.timestamp}-${index}`}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: isBuyer ? 'flex-start' : 'flex-end',
-                        }}
+                        align={isBuyer ? 'start' : 'end'}
                       >
-                        <div
-                          style={{
-                            maxWidth: '75%',
-                            background: isBuyer
-                              ? 'var(--p-color-bg-surface-secondary)'
-                              : isMerchant
-                                ? 'var(--p-color-bg-fill-success-secondary)'
-                                : 'var(--p-color-bg-fill-info-secondary)',
-                            borderRadius: isBuyer ? '4px 12px 12px 12px' : '12px 4px 12px 12px',
-                            padding: '10px 14px',
-                          }}
-                        >
-                          <BlockStack gap="100">
-                            <InlineStack align="space-between" gap="300">
-                              <Text as="p" variant="bodyXs" fontWeight="semibold" tone="subdued">
-                                {label}
+                        <Box maxWidth="75%">
+                          <Box
+                            background={
+                              isBuyer
+                                ? 'bg-surface-secondary'
+                                : isMerchant
+                                  ? 'bg-fill-success-secondary'
+                                  : 'bg-fill-info-secondary'
+                            }
+                            borderRadius="300"
+                            paddingBlock="200"
+                            paddingInline="300"
+                          >
+                            <BlockStack gap="100">
+                              <InlineStack align="space-between" gap="300">
+                                <Text as="p" variant="bodyXs" fontWeight="semibold" tone="subdued">
+                                  {label}
+                                </Text>
+                                <Text as="p" variant="bodyXs" tone="subdued">
+                                  {new Date(message.timestamp).toLocaleTimeString('en-GB', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </Text>
+                              </InlineStack>
+                              <Text as="p" variant="bodyMd">
+                                {message.content}
                               </Text>
-                              <Text as="p" variant="bodyXs" tone="subdued">
-                                {new Date(message.timestamp).toLocaleTimeString('en-GB', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </Text>
-                            </InlineStack>
-                            <Text as="p" variant="bodyMd">
-                              {message.content}
+                            </BlockStack>
+                          </Box>
+                          <Box paddingBlockStart="050">
+                            <Text as="p" variant="bodyXs" tone="subdued">
+                              {new Date(message.timestamp).toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: 'short',
+                              })}
                             </Text>
-                          </BlockStack>
-                        </div>
-                        <Box paddingBlockStart="050">
-                          <Text as="p" variant="bodyXs" tone="subdued">
-                            {new Date(message.timestamp).toLocaleDateString('en-GB', {
-                              day: '2-digit',
-                              month: 'short',
-                            })}
-                          </Text>
+                          </Box>
                         </Box>
-                      </div>
+                      </InlineStack>
                     );
                   })}
                 </BlockStack>

@@ -7,7 +7,8 @@ import {
   useLoaderData,
   useNavigation,
 } from 'react-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { SaveBar } from '@shopify/app-bridge-react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import {
   Banner,
@@ -159,6 +160,23 @@ export default function MessagingSetupPage() {
   const [botName, setBotName] = useState(data.botName || 'Recete');
   const [defaultLanguage, setDefaultLanguage] = useState(data.defaultLanguage || 'en');
   const [welcomeTemplate, setWelcomeTemplate] = useState(data.welcomeTemplate || '');
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const initial = {
+    botName: data.botName || 'Recete',
+    defaultLanguage: data.defaultLanguage || 'en',
+    welcomeTemplate: data.welcomeTemplate || '',
+  };
+  const dirty =
+    botName !== initial.botName ||
+    defaultLanguage !== initial.defaultLanguage ||
+    welcomeTemplate !== initial.welcomeTemplate;
+
+  const discard = () => {
+    setBotName(initial.botName);
+    setDefaultLanguage(initial.defaultLanguage);
+    setWelcomeTemplate(initial.welcomeTemplate);
+  };
 
   const preview = useMemo(() => buildPreview(welcomeTemplate, botName), [welcomeTemplate, botName]);
 
@@ -168,9 +186,25 @@ export default function MessagingSetupPage() {
       subtitle="Three quick fields. You can fine-tune everything else from Settings later."
       backAction={{ content: 'Back to setup', url: '/app' }}
     >
+      {/* Shopify's save bar while there are unsaved edits; "Save and continue"
+          below stays, since a merchant happy with the defaults still moves on. */}
+      {/* Closed while the post-save redirect loads, so it never hangs over the
+          next page. */}
+      <SaveBar id="messaging-save-bar" open={dirty && navigation.state !== 'loading'}>
+        <button
+          variant="primary"
+          onClick={() => formRef.current?.requestSubmit()}
+          loading={busy ? '' : undefined}
+        >
+          Save
+        </button>
+        <button onClick={discard} disabled={busy}>
+          Discard
+        </button>
+      </SaveBar>
       <BlockStack gap="400">
         <Card padding="400" roundedAbove="sm">
-          <Form method="post">
+          <Form method="post" ref={formRef}>
             <BlockStack gap="400">
               {data.settingsUnavailable ? (
                 <Banner tone="warning" title="Couldn't reach Recete">

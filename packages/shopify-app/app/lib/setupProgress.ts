@@ -3,13 +3,7 @@ import type { ShopifyMerchantOverview } from '../platform.server';
 
 type PersonaSettings = NonNullable<ShopifyMerchantOverview['settings']['personaSettings']>;
 
-export type SetupStepKey =
-  | 'billing'
-  | 'whatsapp'
-  | 'products'
-  | 'messaging'
-  | 'orders'
-  | 'themeEmbed';
+export type SetupStepKey = 'billing' | 'whatsapp' | 'products' | 'messaging' | 'orders';
 
 // Required steps: gate the activation metric. Setup is "complete" once all of these are done.
 // 'whatsapp' joins them (second) only while connecting a number is available —
@@ -35,7 +29,7 @@ export const REQUIRED_STEP_INFO: Record<
 };
 
 // Optional steps: shown in a separate "Polish your setup" section. Don't gate dashboard access.
-export const OPTIONAL_SETUP_STEPS: ReadonlyArray<SetupStepKey> = ['orders', 'themeEmbed'] as const;
+export const OPTIONAL_SETUP_STEPS: ReadonlyArray<SetupStepKey> = ['orders'] as const;
 
 /** From /app/bootstrap: whether connecting is available, and whether it is done. */
 export type SetupWhatsApp = { enabled: boolean; connected: boolean } | null | undefined;
@@ -47,7 +41,6 @@ export type SetupProgress = {
   hasProducts: boolean;
   hasMessagingConfigured: boolean;
   hasOrders: boolean;
-  hasThemeEmbed: boolean;
   productCount: number;
   completedCount: number; // completed REQUIRED steps only
   totalSteps: number; // total REQUIRED steps only
@@ -76,7 +69,6 @@ function hasSavedMessagingConfiguration(
 export function getSetupProgress(
   overview: ShopifyMerchantOverview,
   billingApproved?: boolean,
-  themeEmbedEnabled?: boolean,
   whatsapp?: SetupWhatsApp
 ): SetupProgress {
   const productCount = Math.max(
@@ -92,7 +84,6 @@ export function getSetupProgress(
     overview.settings?.notificationPhone
   );
   const hasOrders = (overview.metrics.totalOrders || 0) > 0;
-  const hasThemeEmbed = themeEmbedEnabled ?? false;
 
   const whatsappRequired = Boolean(whatsapp?.enabled);
   const hasWhatsApp = Boolean(whatsapp?.connected);
@@ -103,7 +94,6 @@ export function getSetupProgress(
     products: hasProducts,
     messaging: hasMessagingConfigured,
     orders: hasOrders,
-    themeEmbed: hasThemeEmbed,
   };
 
   const requiredKeys: SetupStepKey[] = whatsappRequired
@@ -119,7 +109,6 @@ export function getSetupProgress(
     hasProducts,
     hasMessagingConfigured,
     hasOrders,
-    hasThemeEmbed,
     productCount,
     completedCount: requiredPairs.filter(([, complete]) => complete).length,
     totalSteps: requiredPairs.length,

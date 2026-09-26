@@ -1,26 +1,22 @@
-import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
-import type { BillingInterval, PlanType } from "@prisma/client";
-import prisma from "../db.server";
+import type { AdminApiContext } from '@shopify/shopify-app-react-router/server';
+import type { BillingInterval, PlanType } from '@prisma/client';
+import prisma from '../db.server';
 import {
   getPlanDefinition,
   getPlanDefinitionByKey,
   getUsageTerms,
   isPlanKey,
   type PlanKey,
-} from "./planDefinitions";
-import {
-  ensureShop,
-  getPlanSnapshotByDomain,
-  syncShopBillingState,
-} from "./planService.server";
+} from './planDefinitions';
+import { ensureShop, getPlanSnapshotByDomain, syncShopBillingState } from './planService.server';
 
-const SHOPIFY_ADMIN_API_VERSION = "2026-01";
-const INTERNAL_EVENT_TYPE_CHAT = "BILLABLE_CHAT";
-const INTERNAL_EVENT_TYPE_PHOTO = "PHOTO_ANALYSIS";
+const SHOPIFY_ADMIN_API_VERSION = '2026-01';
+const INTERNAL_EVENT_TYPE_CHAT = 'BILLABLE_CHAT';
+const INTERNAL_EVENT_TYPE_PHOTO = 'PHOTO_ANALYSIS';
 
 type ActiveSubscriptionPricingDetails =
   | {
-      interval: "EVERY_30_DAYS" | "ANNUAL";
+      interval: 'EVERY_30_DAYS' | 'ANNUAL';
       price: { amount: number; currencyCode: string };
     }
   | {
@@ -31,7 +27,7 @@ type ActiveSubscriptionPricingDetails =
 type ActiveSubscription = {
   id: string;
   name: string;
-  status: "ACTIVE" | "CANCELLED" | "PENDING" | "DECLINED" | "EXPIRED" | "FROZEN" | "ACCEPTED";
+  status: 'ACTIVE' | 'CANCELLED' | 'PENDING' | 'DECLINED' | 'EXPIRED' | 'FROZEN' | 'ACCEPTED';
   trialDays: number;
   currentPeriodEnd: string;
   lineItems: Array<{
@@ -51,22 +47,22 @@ type CurrentInstallationResponse = {
 };
 
 function isUsagePricingDetails(
-  details: ActiveSubscriptionPricingDetails,
+  details: ActiveSubscriptionPricingDetails
 ): details is { cappedAmount: { amount: number; currencyCode: string }; terms: string } {
-  return "cappedAmount" in details;
+  return 'cappedAmount' in details;
 }
 
 function mapPricingIntervalToBillingInterval(
-  interval: "EVERY_30_DAYS" | "ANNUAL",
+  interval: 'EVERY_30_DAYS' | 'ANNUAL'
 ): BillingInterval {
-  return interval === "ANNUAL" ? "ANNUAL" : "MONTHLY";
+  return interval === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY';
 }
 
 function mapPlanNameToPlanType(planName: string): PlanType {
   const lower = planName.toLowerCase();
-  if (lower.includes("starter")) return "STARTER";
-  if (lower.includes("growth")) return "GROWTH";
-  return "PRO";
+  if (lower.includes('starter')) return 'STARTER';
+  if (lower.includes('growth')) return 'GROWTH';
+  return 'PRO';
 }
 
 export async function syncShopAfterAuth(shopDomain: string) {
@@ -84,10 +80,7 @@ export async function syncRequestedPlanSelection(shopDomain: string, planKey: Pl
   });
 }
 
-export async function syncShopSubscriptionFromAdmin(
-  shopDomain: string,
-  admin: AdminApiContext,
-) {
+export async function syncShopSubscriptionFromAdmin(shopDomain: string, admin: AdminApiContext) {
   const response = await admin.graphql(
     `#graphql
       query CurrentInstallationSubscriptions {
@@ -121,20 +114,19 @@ export async function syncShopSubscriptionFromAdmin(
             }
           }
         }
-      }`,
+      }`
   );
   const payload = (await response.json()) as CurrentInstallationResponse;
-  const activeSubscriptions =
-    payload.data?.currentAppInstallation?.activeSubscriptions ?? [];
-  const activeSubscription = activeSubscriptions.find((subscription) =>
-    subscription.status === "ACTIVE" || subscription.status === "ACCEPTED",
+  const activeSubscriptions = payload.data?.currentAppInstallation?.activeSubscriptions ?? [];
+  const activeSubscription = activeSubscriptions.find(
+    (subscription) => subscription.status === 'ACTIVE' || subscription.status === 'ACCEPTED'
   );
 
   if (!activeSubscription) {
     return syncShopBillingState({
       shopDomain,
-      planType: "STARTER",
-      billingInterval: "MONTHLY",
+      planType: 'STARTER',
+      billingInterval: 'MONTHLY',
       subscriptionId: null,
       subscriptionName: null,
       subscriptionLineItemId: null,
@@ -144,10 +136,10 @@ export async function syncShopSubscriptionFromAdmin(
   }
 
   const recurringLineItem = activeSubscription.lineItems.find(
-    (lineItem) => !isUsagePricingDetails(lineItem.plan.pricingDetails),
+    (lineItem) => !isUsagePricingDetails(lineItem.plan.pricingDetails)
   );
   const usageLineItem = activeSubscription.lineItems.find((lineItem) =>
-    isUsagePricingDetails(lineItem.plan.pricingDetails),
+    isUsagePricingDetails(lineItem.plan.pricingDetails)
   );
 
   const recurringPricing = recurringLineItem?.plan.pricingDetails;
@@ -166,14 +158,6 @@ export async function syncShopSubscriptionFromAdmin(
     currentPeriodEnd: activeSubscription.currentPeriodEnd
       ? new Date(activeSubscription.currentPeriodEnd)
       : null,
-  });
-}
-
-export async function markThemeEmbedEnabled(shopDomain: string) {
-  const shop = await ensureShop(shopDomain);
-  await prisma.shop.update({
-    where: { id: shop.id },
-    data: { themeEmbedEnabled: true },
   });
 }
 
@@ -201,10 +185,10 @@ async function createUsageRecord(params: {
   const response = await fetch(
     `https://${params.shopDomain}/admin/api/${SHOPIFY_ADMIN_API_VERSION}/graphql.json`,
     {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": params.accessToken,
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': params.accessToken,
       },
       body: JSON.stringify({
         query: `#graphql
@@ -233,19 +217,19 @@ async function createUsageRecord(params: {
           subscriptionLineItemId: params.subscriptionLineItemId,
           price: {
             amount: params.amount,
-            currencyCode: "USD",
+            currencyCode: 'USD',
           },
           description: params.description,
           idempotencyKey: params.idempotencyKey,
         },
       }),
-    },
+    }
   );
 
   if (!response.ok) {
     const body = await response.text();
     throw new Error(
-      `Usage record request failed for ${params.shopDomain} with ${response.status}: ${body}`,
+      `Usage record request failed for ${params.shopDomain} with ${response.status}: ${body}`
     );
   }
 
@@ -262,7 +246,7 @@ async function createUsageRecord(params: {
 
   const userErrors = payload.data?.appUsageRecordCreate?.userErrors ?? [];
   if (userErrors.length > 0) {
-    throw new Error(userErrors.map((error) => error.message).join(", "));
+    throw new Error(userErrors.map((error) => error.message).join(', '));
   }
 
   return payload.data?.appUsageRecordCreate?.appUsageRecord?.id ?? null;
@@ -275,7 +259,7 @@ async function getOfflineAccessToken(shopDomain: string) {
       isOnline: false,
     },
     orderBy: {
-      expires: "desc",
+      expires: 'desc',
     },
   });
 
@@ -298,7 +282,9 @@ async function applyUsageEvent(params: {
   const snapshotBefore = await getPlanSnapshotByDomain(params.shopDomain);
   const definition = getPlanDefinition(snapshotBefore.planType, snapshotBefore.billingInterval);
   const accessToken =
-    params.eventType === INTERNAL_EVENT_TYPE_CHAT ? await getOfflineAccessToken(params.shopDomain) : null;
+    params.eventType === INTERNAL_EVENT_TYPE_CHAT
+      ? await getOfflineAccessToken(params.shopDomain)
+      : null;
 
   const receipt = await prisma.usageEventReceipt.upsert({
     where: {
@@ -360,7 +346,10 @@ async function applyUsageEvent(params: {
 
   if (params.eventType === INTERNAL_EVENT_TYPE_CHAT) {
     const snapshotAfter = await getPlanSnapshotByDomain(params.shopDomain);
-    const billableBefore = Math.max(0, snapshotBefore.chatsSentThisMonth - definition.includedChats);
+    const billableBefore = Math.max(
+      0,
+      snapshotBefore.chatsSentThisMonth - definition.includedChats
+    );
     const billableAfter = Math.max(0, snapshotAfter.chatsSentThisMonth - definition.includedChats);
     chargedUnits = Math.max(0, billableAfter - billableBefore);
 

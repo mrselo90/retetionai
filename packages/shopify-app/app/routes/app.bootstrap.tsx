@@ -7,7 +7,6 @@ import {
   fetchWhatsAppConnection,
   syncShopInstall,
 } from '../platform.server';
-import prisma from '../db.server';
 /**
  * For the setup checklist: whether connecting a WhatsApp number is available
  * yet, and whether this store has connected one. null when it can't be read,
@@ -82,10 +81,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const shop = requestUrl.searchParams.get('shop') || overview.shop;
     const billingApproved =
       billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
-    const shopRecord = await prisma.shop.findUnique({
-      where: { shopDomain: session.shop },
-      select: { themeEmbedEnabled: true },
-    });
 
     const activeSubscription = billingState.appSubscriptions.find(
       (s) => String(s.status).toUpperCase() === 'ACTIVE'
@@ -100,7 +95,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         ? 'active'
         : overview.merchant.subscription_status || 'inactive',
       billingApproved,
-      themeEmbedEnabled: shopRecord?.themeEmbedEnabled ?? false,
       activePlanName,
       whatsapp: await loadSetupWhatsApp(request),
     });
@@ -124,10 +118,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const shop = requestUrl.searchParams.get('shop') || overview.shop;
         const billingApproved =
           billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
-        const shopRecord2 = await prisma.shop.findUnique({
-          where: { shopDomain: session.shop },
-          select: { themeEmbedEnabled: true },
-        });
         const activeSubscription2 = billingState.appSubscriptions.find(
           (s) => String(s.status).toUpperCase() === 'ACTIVE'
         );
@@ -142,7 +132,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             ? 'active'
             : overview.merchant.subscription_status || 'inactive',
           billingApproved,
-          themeEmbedEnabled: shopRecord2?.themeEmbedEnabled ?? false,
           activePlanName: activePlanName2,
           whatsapp: await loadSetupWhatsApp(request),
         });

@@ -6,7 +6,18 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
-import { Badge, Banner, BlockStack, Box, Button, Card, InlineStack, Text } from '@shopify/polaris';
+import {
+  Badge,
+  Banner,
+  BlockStack,
+  Box,
+  Button,
+  Card,
+  Image,
+  InlineStack,
+  Modal,
+  Text,
+} from '@shopify/polaris';
 import type { WhatsAppConnectionStatus } from '../platform.server';
 
 type LoaderResult = { ok: true; status: WhatsAppConnectionStatus } | { ok: false; error: string };
@@ -46,6 +57,7 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
   const [status, setStatus] = useState<WhatsAppConnectionStatus | null>(initial);
   const [justLinked, setJustLinked] = useState(false);
   const pairingRef = useRef(false);
+  const [confirmUnlink, setConfirmUnlink] = useState(false);
 
   // The page loader revalidates after navigation and focus; take its answer.
   useEffect(() => {
@@ -121,18 +133,7 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
             </Text>
           </BlockStack>
           {connected ? (
-            <Button
-              onClick={() => {
-                if (
-                  window.confirm(
-                    'Unlink this WhatsApp number? Recete will stop sending and receiving messages for your store.'
-                  )
-                ) {
-                  submit('disconnect');
-                }
-              }}
-              loading={busy}
-            >
+            <Button onClick={() => setConfirmUnlink(true)} loading={busy}>
               Unlink
             </Button>
           ) : pairing ? (
@@ -174,13 +175,7 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
               minHeight="224px"
             >
               {status.qr ? (
-                <img
-                  src={status.qr}
-                  alt="WhatsApp link QR code"
-                  width={208}
-                  height={208}
-                  style={{ display: 'block' }}
-                />
+                <Image source={status.qr} alt="WhatsApp link QR code" width={208} height={208} />
               ) : (
                 <Text as="p" tone="subdued" alignment="center">
                   Starting the connection…
@@ -209,6 +204,28 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
           </Text>
         ) : null}
       </BlockStack>
+      <Modal
+        open={confirmUnlink}
+        onClose={() => setConfirmUnlink(false)}
+        title="Unlink this WhatsApp number?"
+        primaryAction={{
+          content: 'Unlink',
+          destructive: true,
+          loading: busy,
+          onAction: () => {
+            setConfirmUnlink(false);
+            submit('disconnect');
+          },
+        }}
+        secondaryActions={[{ content: 'Keep linked', onAction: () => setConfirmUnlink(false) }]}
+      >
+        <Modal.Section>
+          <Text as="p">
+            Recete will stop sending and receiving WhatsApp messages for your store. You can link a
+            number again at any time.
+          </Text>
+        </Modal.Section>
+      </Modal>
     </Card>
   );
 }

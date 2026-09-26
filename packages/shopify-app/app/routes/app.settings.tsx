@@ -1,15 +1,15 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 'react-router';
+import { SaveBar } from '@shopify/app-bridge-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { AlertCircleIcon, LockIcon, SettingsIcon } from '@shopify/polaris-icons';
+import { AlertCircleIcon, LockIcon } from '@shopify/polaris-icons';
 import {
   Banner,
   BlockStack,
   Box,
   Button,
   Checkbox,
-  ContextualSaveBar,
   InlineGrid,
   InlineStack,
   Layout,
@@ -568,20 +568,18 @@ export default function SettingsPage() {
       fullWidth
       title="Settings"
       subtitle="Adjust bot behavior, welcome messaging, languages, and safety rules."
-      primaryAction={{
-        content: 'Save changes',
-        onAction: saveCoreSettings,
-        icon: SettingsIcon,
-        disabled: !dirty,
-      }}
     >
-      {dirty ? (
-        <ContextualSaveBar
-          message="Unsaved settings"
-          saveAction={{ onAction: saveCoreSettings, loading: busy, disabled: !dirty }}
-          discardAction={{ onAction: discardCoreSettings, disabled: busy }}
-        />
-      ) : null}
+      {/* Shopify's own save bar in the admin frame, not one drawn inside the
+          app: it is what merchants know from every other admin page, and it
+          warns them before they navigate away with unsaved changes. */}
+      <SaveBar id="settings-save-bar" open={dirty}>
+        <button variant="primary" onClick={saveCoreSettings} loading={busy ? '' : undefined}>
+          Save
+        </button>
+        <button onClick={discardCoreSettings} disabled={busy}>
+          Discard
+        </button>
+      </SaveBar>
 
       <Layout>
         <Layout.Section>

@@ -23,6 +23,7 @@ import {
   Card,
   Frame,
   InlineStack,
+  Page,
   SkeletonBodyText,
   SkeletonDisplayText,
   Spinner,
@@ -121,7 +122,6 @@ export type AppBootstrapData = {
   shop: string;
   subscriptionStatus: string;
   billingApproved?: boolean;
-  themeEmbedEnabled?: boolean;
   activePlanName?: string | null;
   // Set by /app/bootstrap while the platform is still provisioning a fresh install.
   pending?: boolean;
@@ -140,7 +140,7 @@ export function useAppBootstrapData() {
 
 /**
  * Setup progress exactly as the shell computes it (billing approval from
- * Shopify, WhatsApp step, theme embed). Pages used to call getSetupProgress
+ * Shopify, WhatsApp step). Pages used to call getSetupProgress
  * with the overview alone, which skipped billing approval and the WhatsApp
  * step: the Dashboard said "3 required steps" while Overview listed 4, and a
  * page could unlock while the checklist still showed work left.
@@ -149,12 +149,7 @@ export function shellSetupProgress(
   overview: ShopifyMerchantOverview,
   bootstrapData: AppBootstrapData | null | undefined
 ) {
-  return getSetupProgress(
-    overview,
-    bootstrapData?.billingApproved,
-    bootstrapData?.themeEmbedEnabled,
-    bootstrapData?.whatsapp
-  );
+  return getSetupProgress(overview, bootstrapData?.billingApproved, bootstrapData?.whatsapp);
 }
 
 const BOOTSTRAP_POLL_MS = 3_000;
@@ -237,9 +232,8 @@ function AppShell() {
   const hasBillingApproved = bootstrapData?.billingApproved ?? isBillingReady(subscriptionStatus);
   const shellLoading = !bootstrapData && !bootstrapError;
   const overview = bootstrapData?.overview;
-  const themeEmbedEnabled = bootstrapData?.themeEmbedEnabled ?? false;
   const setupProgress = overview
-    ? getSetupProgress(overview, hasBillingApproved, themeEmbedEnabled, bootstrapData?.whatsapp)
+    ? getSetupProgress(overview, hasBillingApproved, bootstrapData?.whatsapp)
     : null;
 
   // Navigation lives in the Shopify admin's own sidebar (App Bridge nav menu),
@@ -268,41 +262,43 @@ function AppShell() {
         </NavMenu>
       ) : null}
       <Box background="bg-surface" minHeight="100vh" padding={{ xs: '200', sm: '300', md: '400' }}>
-        <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
-          <BlockStack gap="400">
-            {navigation.state === 'loading' && !changingPage ? (
-              <InlineStack align="center">
-                <Spinner accessibilityLabel="Loading page" size="small" />
-              </InlineStack>
-            ) : null}
+        <InlineStack align="center">
+          <Box width="100%" maxWidth="1080px">
+            <BlockStack gap="400">
+              {navigation.state === 'loading' && !changingPage ? (
+                <InlineStack align="center">
+                  <Spinner accessibilityLabel="Loading page" size="small" />
+                </InlineStack>
+              ) : null}
 
-            {setupProgress && !setupProgress.setupComplete && location.pathname !== '/app' ? (
-              <SetupTrail
-                pathname={location.pathname}
-                done={setupProgress.completedCount}
-                total={setupProgress.totalSteps}
-                nextStep={setupProgress.nextStep}
-              />
-            ) : null}
+              {setupProgress && !setupProgress.setupComplete && location.pathname !== '/app' ? (
+                <SetupTrail
+                  pathname={location.pathname}
+                  done={setupProgress.completedCount}
+                  total={setupProgress.totalSteps}
+                  nextStep={setupProgress.nextStep}
+                />
+              ) : null}
 
-            {(shellLoading && location.pathname === '/app') || changingPage ? (
-              <Card padding="500">
-                <BlockStack gap="300">
-                  <SkeletonDisplayText size="small" />
-                  <SkeletonBodyText lines={4} />
-                </BlockStack>
-              </Card>
-            ) : (
-              <Outlet
-                context={{
-                  bootstrapData,
-                  bootstrapError,
-                  shellLoading,
-                }}
-              />
-            )}
-          </BlockStack>
-        </div>
+              {(shellLoading && location.pathname === '/app') || changingPage ? (
+                <Card padding="500">
+                  <BlockStack gap="300">
+                    <SkeletonDisplayText size="small" />
+                    <SkeletonBodyText lines={4} />
+                  </BlockStack>
+                </Card>
+              ) : (
+                <Outlet
+                  context={{
+                    bootstrapData,
+                    bootstrapError,
+                    shellLoading,
+                  }}
+                />
+              )}
+            </BlockStack>
+          </Box>
+        </InlineStack>
       </Box>
     </Frame>
   );
@@ -367,20 +363,18 @@ export function ErrorBoundary() {
       <AppProvider embedded apiKey="">
         <PolarisAppProvider i18n={enPolarisTranslations} linkComponent={AppLink}>
           <Frame>
-            <Box background="bg-surface-secondary" minHeight="100vh" padding="400">
-              <div style={{ maxWidth: '840px', margin: '0 auto' }}>
-                <Card padding="500">
-                  <BlockStack gap="300">
-                    <Text as="h1" variant="headingLg">
-                      {`Request failed (${error.status})`}
-                    </Text>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      {message}
-                    </Text>
-                  </BlockStack>
-                </Card>
-              </div>
-            </Box>
+            <Page narrowWidth title="Something went wrong">
+              <Card padding="500">
+                <BlockStack gap="300">
+                  <Text as="p" variant="bodyMd">
+                    {`This page could not be loaded (${error.status}). Reload to try again.`}
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    {message}
+                  </Text>
+                </BlockStack>
+              </Card>
+            </Page>
           </Frame>
         </PolarisAppProvider>
       </AppProvider>

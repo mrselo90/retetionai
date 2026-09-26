@@ -4,7 +4,11 @@
  */
 
 import crypto from 'crypto';
-import { ShopifyProduct, ShopifyProductVariant, fetchShopifyProductByHandle as sharedFetchByHandle } from '@recete/shared';
+import {
+  ShopifyProduct,
+  ShopifyProductVariant,
+  fetchShopifyProductByHandle as sharedFetchByHandle,
+} from '@recete/shared';
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
@@ -22,7 +26,8 @@ export function getShopifyAuthUrl(shop: string, scopes: string[], state: string)
     throw new Error('SHOPIFY_API_KEY is not configured');
   }
 
-  const FRONTEND_URL = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const FRONTEND_URL =
+    process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const redirectUri = `${FRONTEND_URL}/api/integrations/shopify/oauth/callback`;
   const scope = scopes.join(',');
 
@@ -114,7 +119,7 @@ export async function exchangeSessionToken(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      Accept: 'application/json',
     },
     body: JSON.stringify({
       client_id: SHOPIFY_API_KEY,
@@ -134,71 +139,6 @@ export async function exchangeSessionToken(
   const data = await response.json();
   console.log('Shopify Session Token Exchange Successful');
   return data as { access_token: string; scope: string };
-}
-
-/**
- * Shopify API client (authenticated requests)
- */
-export async function shopifyApiRequest<T>(
-  shop: string,
-  accessToken: string,
-  endpoint: string,
-  options?: RequestInit
-): Promise<T> {
-  const url = `https://${shop}/admin/api/2026-01${endpoint}`;
-
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'X-Shopify-Access-Token': accessToken,
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Shopify API error: ${error}`);
-  }
-
-  return (await response.json()) as T;
-}
-
-/**
- * Create webhook subscription
- */
-export async function createWebhook(
-  shop: string,
-  accessToken: string,
-  topic: string,
-  address: string
-): Promise<any> {
-  return shopifyApiRequest(shop, accessToken, '/webhooks.json', {
-    method: 'POST',
-    body: JSON.stringify({
-      webhook: {
-        topic,
-        address,
-        format: 'json',
-      },
-    }),
-  });
-}
-
-/**
- * List webhook subscriptions
- */
-export async function listWebhooks(shop: string, accessToken: string): Promise<any> {
-  return shopifyApiRequest(shop, accessToken, '/webhooks.json');
-}
-
-/**
- * Delete webhook subscription
- */
-export async function deleteWebhook(shop: string, accessToken: string, webhookId: string): Promise<void> {
-  await shopifyApiRequest(shop, accessToken, `/webhooks/${webhookId}.json`, {
-    method: 'DELETE',
-  });
 }
 
 export interface ShopifyLiveProductQuote {
@@ -282,7 +222,9 @@ export async function fetchShopifyProducts(
       return res;
     } catch (error) {
       console.error('Fetch error:', error);
-      throw new Error(`Network error fetching from Shopify: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Network error fetching from Shopify: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   };
 
@@ -290,7 +232,8 @@ export async function fetchShopifyProducts(
   const rawText = await res.text();
 
   if (!res.ok) {
-    const isPermissionError = res.status === 403 || /access denied|read_products|required access/i.test(rawText);
+    const isPermissionError =
+      res.status === 403 || /access denied|read_products|required access/i.test(rawText);
     const err = new Error(rawText || `Shopify API error: ${res.status}`);
     if (isPermissionError) {
       (err as Error & { code?: string }).code = 'SHOPIFY_SCOPE_REQUIRED';
@@ -366,8 +309,8 @@ export async function fetchShopifyLiveProductQuotes(
 ): Promise<ShopifyLiveProductQuote[]> {
   const cleanShop = shop.replace(/^https?:\/\//, '').replace(/\/$/, '');
   const url = `https://${cleanShop}/admin/api/2026-01/graphql.json`;
-  const gids = [...new Set(productIds.map((id) => String(id).trim()).filter(Boolean))].map(
-    (id) => (id.startsWith('gid://') ? id : `gid://shopify/Product/${id}`)
+  const gids = [...new Set(productIds.map((id) => String(id).trim()).filter(Boolean))].map((id) =>
+    id.startsWith('gid://') ? id : `gid://shopify/Product/${id}`
   );
   if (!gids.length) return [];
 
@@ -425,15 +368,16 @@ export async function fetchShopifyLiveProductQuotes(
       status: n.status || '',
       variants: Array.isArray(n.variants?.edges)
         ? n.variants.edges.map((ve: any) => {
-          const v = ve?.node || {};
-          return {
-            id: String(v.id || '').replace('gid://shopify/ProductVariant/', ''),
-            title: v.title || '',
-            price: v.price || '',
-            sku: v.sku ?? null,
-            inventoryQuantity: typeof v.inventoryQuantity === 'number' ? v.inventoryQuantity : null,
-          };
-        })
+            const v = ve?.node || {};
+            return {
+              id: String(v.id || '').replace('gid://shopify/ProductVariant/', ''),
+              title: v.title || '',
+              price: v.price || '',
+              sku: v.sku ?? null,
+              inventoryQuantity:
+                typeof v.inventoryQuantity === 'number' ? v.inventoryQuantity : null,
+            };
+          })
         : [],
     }));
 }

@@ -6,7 +6,6 @@ import {
   CartIcon,
   CatalogIcon,
   ChatIcon,
-  CodeIcon,
   ConnectIcon,
   SettingsIcon,
   ViewIcon,
@@ -30,7 +29,6 @@ import type { ShopifyMerchantOverview } from '../platform.server';
 import { extractPlatformErrorMessage, triggerTestOrderFlow } from '../platform.server';
 import { useAppBootstrapData } from './app';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
-import { markThemeEmbedEnabled } from '../services/billingUsage.server';
 
 type SetupStepStatus = 'done' | 'in_progress' | 'not_started';
 
@@ -42,8 +40,6 @@ type SetupStep = {
   icon: typeof CartIcon;
   status: SetupStepStatus;
   estimateMinutes: number;
-  markAsDoneAction?: boolean;
-  openInNewTab?: boolean;
 };
 
 // Per-step time estimates (minutes). Used for "X minutes left" hint.
@@ -53,18 +49,12 @@ const STEP_ESTIMATES: Record<SetupStepKey, number> = {
   products: 5,
   messaging: 3,
   orders: 5,
-  themeEmbed: 3,
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticateEmbeddedAdmin(request);
   const formData = await request.formData();
   const intent = String(formData.get('intent') || '');
-
-  if (intent === 'markThemeEmbedDone') {
-    await markThemeEmbedEnabled(session.shop);
-    return Response.json({ ok: true, intent: 'markThemeEmbedDone' });
-  }
 
   if (intent === 'runTestOrder') {
     const phone = String(formData.get('phone') || '').trim();
@@ -129,18 +119,11 @@ export default function Index() {
       data={data}
       storePending={Boolean(bootstrapData?.pending)}
       billingApproved={bootstrapData?.billingApproved}
-      themeEmbedEnabled={bootstrapData?.themeEmbedEnabled}
       whatsapp={bootstrapData?.whatsapp}
-      shop={bootstrapData?.shop || ''}
       merchantName={bootstrapData?.merchantName || ''}
       justSavedMessaging={justSavedMessaging}
     />
   );
-}
-
-function getThemeEditorUrl(shop: string): string {
-  const storeHandle = shop.replace(/\.myshopify\.com$/i, '');
-  return `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?context=apps`;
 }
 
 function statusFor(done: boolean, isNext: boolean): SetupStepStatus {
@@ -152,9 +135,7 @@ function statusFor(done: boolean, isNext: boolean): SetupStepStatus {
 function SetupOverview({
   data,
   billingApproved,
-  themeEmbedEnabled,
   whatsapp,
-  shop,
   merchantName,
   justSavedMessaging,
   storePending,
@@ -162,20 +143,17 @@ function SetupOverview({
   data: ShopifyMerchantOverview;
   storePending?: boolean;
   billingApproved?: boolean;
-  themeEmbedEnabled?: boolean;
   whatsapp?: { enabled: boolean; connected: boolean } | null;
-  shop: string;
   merchantName: string;
   justSavedMessaging?: boolean;
 }) {
-  const progress = getSetupProgress(data, billingApproved, themeEmbedEnabled, whatsapp);
+  const progress = getSetupProgress(data, billingApproved, whatsapp);
   const fetcher = useFetcher<{
     ok?: boolean;
     error?: string;
     intent?: string;
     externalOrderId?: string;
   }>();
-  const themeEditorUrl = getThemeEditorUrl(shop);
   const firstProduct = data.products?.[0] ?? null;
 
   const productCountLabel = progress.productCount > 0 ? progress.productCount : 'your';
@@ -237,20 +215,6 @@ function SetupOverview({
         progress.nextOptionalStep === 'orders' && progress.setupComplete
       ),
       estimateMinutes: STEP_ESTIMATES.orders,
-    },
-    {
-      id: 'themeEmbed',
-      title: 'Enable on-site widget',
-      description: 'Activate the Recete embed block in your Shopify theme editor.',
-      to: themeEditorUrl,
-      icon: CodeIcon,
-      status: statusFor(
-        progress.hasThemeEmbed,
-        progress.nextOptionalStep === 'themeEmbed' && progress.setupComplete
-      ),
-      estimateMinutes: STEP_ESTIMATES.themeEmbed,
-      markAsDoneAction: true,
-      openInNewTab: true,
     },
   ];
 
@@ -601,23 +565,9 @@ function OptionalStepCard({
           {step.description}
         </Text>
         <InlineStack gap="200">
-          <Button
-            url={step.to}
-            variant="tertiary"
-            icon={step.icon}
-            target={step.openInNewTab ? '_blank' : undefined}
-            disabled={done}
-          >
-            {step.id === 'themeEmbed' ? 'Open theme editor' : 'Open step'}
+          <Button url={step.to} variant="tertiary" icon={step.icon} disabled={done}>
+            Open step
           </Button>
-          {step.markAsDoneAction && !done ? (
-            <fetcher.Form method="post">
-              <input type="hidden" name="intent" value="markThemeEmbedDone" />
-              <Button submit variant="plain" loading={fetcher.state !== 'idle'}>
-                Mark as done
-              </Button>
-            </fetcher.Form>
-          ) : null}
         </InlineStack>
       </BlockStack>
     </Card>

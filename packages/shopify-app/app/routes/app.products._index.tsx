@@ -10,7 +10,7 @@ import {
 } from 'react-router';
 import { useEffect, useMemo, useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { DeleteIcon } from '@shopify/polaris-icons';
+import { DeleteIcon, ImageIcon } from '@shopify/polaris-icons';
 import {
   Badge,
   Banner,
@@ -33,6 +33,7 @@ import {
   Spinner,
   Text,
   TextField,
+  Thumbnail,
 } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import { shellSetupProgress, useAppBootstrapData } from './app';
@@ -2237,16 +2238,11 @@ function SetupPanel({
 
   const content = (
     <BlockStack gap="500">
-      <div
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          background: 'var(--p-color-bg-surface)',
-          paddingBottom: '16px',
-          paddingTop: '8px',
-          borderBottom: '1px solid var(--p-color-border)',
-        }}
+      <Box
+        paddingBlockStart="200"
+        paddingBlockEnd="400"
+        borderBlockEndWidth="025"
+        borderColor="border"
       >
         <BlockStack gap="200">
           <InlineStack align="start">
@@ -2257,31 +2253,11 @@ function SetupPanel({
 
           <InlineStack align="space-between" blockAlign="center" wrap>
             <InlineStack gap="200" blockAlign="center" wrap>
-              {row.shopify.featuredImageUrl ? (
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 6,
-                    overflow: 'hidden',
-                    border: '1px solid var(--p-color-border)',
-                    background: 'var(--p-color-bg-surface-secondary)',
-                  }}
-                >
-                  <img
-                    src={row.shopify.featuredImageUrl}
-                    alt={row.shopify.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
-                </div>
-              ) : (
-                <Box
-                  minWidth="48px"
-                  minHeight="48px"
-                  borderRadius="100"
-                  background="bg-surface-secondary"
-                />
-              )}
+              <Thumbnail
+                source={row.shopify.featuredImageUrl || ImageIcon}
+                alt={row.shopify.title}
+                size="small"
+              />
               <BlockStack gap="050">
                 <Text as="h1" variant="headingLg">
                   {row.shopify.title}
@@ -2294,7 +2270,7 @@ function SetupPanel({
             <Badge tone={statusTone}>{statusLabel}</Badge>
           </InlineStack>
         </BlockStack>
-      </div>
+      </Box>
 
       {processRunning ? (
         <Banner tone="info" title="Updating">
@@ -2652,32 +2628,11 @@ function ProductBrowserItem({
         gap="200"
         alignItems="center"
       >
-        {row.shopify.featuredImageUrl ? (
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 4,
-              overflow: 'hidden',
-              border: '1px solid var(--p-color-border)',
-              background: 'var(--p-color-bg-surface-secondary)',
-              flexShrink: 0,
-            }}
-          >
-            <img
-              src={row.shopify.featuredImageUrl}
-              alt={row.shopify.title}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
-          </div>
-        ) : (
-          <Box
-            minWidth="40px"
-            minHeight="40px"
-            borderRadius="100"
-            background="bg-surface-secondary"
-          />
-        )}
+        <Thumbnail
+          source={row.shopify.featuredImageUrl || ImageIcon}
+          alt={row.shopify.title}
+          size="small"
+        />
         <BlockStack gap="100">
           <InlineStack gap="150" wrap blockAlign="center">
             <Checkbox label="" labelHidden checked={bulkSelected} onChange={onBulkSelectChange} />
@@ -2790,7 +2745,6 @@ function InlineActionForm({
   loading = false,
   variant = 'secondary',
   onActionStart,
-  confirmMessage,
 }: {
   productId: string;
   shopifyProductId: string;
@@ -2805,13 +2759,11 @@ function InlineActionForm({
   loading?: boolean;
   variant?: 'primary' | 'secondary' | 'tertiary';
   onActionStart?: () => void;
-  confirmMessage?: string;
 }) {
   const submit = useSubmit();
 
   function submitAction() {
     if (disabled || loading) return;
-    if (confirmMessage && !window.confirm(confirmMessage)) return;
     onActionStart?.();
 
     const formData = new FormData();

@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { useNavigate } from "react-router";
+import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router';
 import {
   Badge,
   BlockStack,
@@ -13,31 +13,25 @@ import {
   Layout,
   Page,
   Text,
-} from "@shopify/polaris";
+} from '@shopify/polaris';
 
 export function statusTone(
-  status?: string | null,
-): "success" | "attention" | "critical" | "info" | undefined {
-  const value = (status || "").toLowerCase();
-  if (["active", "connected", "approved", "resolved", "positive"].includes(value)) {
-    return "success";
+  status?: string | null
+): 'success' | 'attention' | 'critical' | 'info' | undefined {
+  const value = (status || '').toLowerCase();
+  if (['active', 'connected', 'approved', 'resolved', 'positive'].includes(value)) {
+    return 'success';
   }
-  if (["pending", "trialing", "neutral", "ai"].includes(value)) {
-    return "attention";
+  if (['pending', 'trialing', 'neutral', 'ai'].includes(value)) {
+    return 'attention';
   }
-  if (["inactive", "failed", "error", "negative", "human"].includes(value)) {
-    return "critical";
+  if (['inactive', 'failed', 'error', 'negative', 'human'].includes(value)) {
+    return 'critical';
   }
-  return "info";
+  return 'info';
 }
 
-export function StatusBadge({
-  children,
-  status,
-}: {
-  children: string;
-  status?: string | null;
-}) {
+export function StatusBadge({ children, status }: { children: string; status?: string | null }) {
   return <Badge tone={statusTone(status)}>{children}</Badge>;
 }
 
@@ -95,28 +89,28 @@ export function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <div id={id}>
+    <Box id={id}>
       <Card padding="400" roundedAbove="sm">
-      <BlockStack gap="300">
-        <InlineStack align="space-between" blockAlign="start" gap="400">
-          <BlockStack gap="100">
-            <Text as="h2" variant="headingMd">
-              {title}
-            </Text>
-            {subtitle ? (
-              <Box maxWidth="36rem">
-                <Text as="p" variant="bodySm">
-                  {subtitle}
-                </Text>
-              </Box>
-            ) : null}
-          </BlockStack>
-          {badge}
-        </InlineStack>
-        {children}
-      </BlockStack>
+        <BlockStack gap="300">
+          <InlineStack align="space-between" blockAlign="start" gap="400">
+            <BlockStack gap="100">
+              <Text as="h2" variant="headingMd">
+                {title}
+              </Text>
+              {subtitle ? (
+                <Box maxWidth="36rem">
+                  <Text as="p" variant="bodySm">
+                    {subtitle}
+                  </Text>
+                </Box>
+              ) : null}
+            </BlockStack>
+            {badge}
+          </InlineStack>
+          {children}
+        </BlockStack>
       </Card>
-    </div>
+    </Box>
   );
 }
 
@@ -156,11 +150,7 @@ export function MetricCard({
   );
 }
 
-export function DetailRows({
-  rows,
-}: {
-  rows: Array<{ label: string; value: ReactNode }>;
-}) {
+export function DetailRows({ rows }: { rows: Array<{ label: string; value: ReactNode }> }) {
   return (
     <BlockStack gap="300">
       {rows.map((row) => (
@@ -237,7 +227,11 @@ export function ActionCard({
         </Box>
         {action ? (
           <InlineStack>
-            <Button onClick={() => navigate(action.url)} icon={action.icon as never} variant="tertiary">
+            <Button
+              onClick={() => navigate(action.url)}
+              icon={action.icon as never}
+              variant="tertiary"
+            >
               {action.content}
             </Button>
           </InlineStack>
@@ -250,13 +244,13 @@ export function ActionCard({
 export function StatePanel({
   title,
   description,
-  tone = "info",
+  tone = 'info',
   statusLabel,
   action,
 }: {
   title: string;
   description: string;
-  tone?: "success" | "attention" | "critical" | "info";
+  tone?: 'success' | 'attention' | 'critical' | 'info';
   statusLabel?: string;
   action?: { content: string; url: string; icon?: IconSource };
 }) {
@@ -267,13 +261,13 @@ export function StatePanel({
         <Text as="p" variant="bodySm" tone="subdued">
           {statusLabel
             ? statusLabel
-            : tone === "critical"
-              ? "Needs attention"
-              : tone === "attention"
-                ? "In progress"
-                : tone === "success"
-                  ? "Healthy"
-                  : "Overview"}
+            : tone === 'critical'
+              ? 'Needs attention'
+              : tone === 'attention'
+                ? 'In progress'
+                : tone === 'success'
+                  ? 'Healthy'
+                  : 'Overview'}
         </Text>
         <InlineStack align="space-between" blockAlign="end" gap="300" wrap>
           <Box maxWidth="42rem">
@@ -287,7 +281,11 @@ export function StatePanel({
             </BlockStack>
           </Box>
           {action ? (
-            <Button onClick={() => navigate(action.url)} icon={action.icon as never} variant="primary">
+            <Button
+              onClick={() => navigate(action.url)}
+              icon={action.icon as never}
+              variant="primary"
+            >
               {action.content}
             </Button>
           ) : null}
@@ -299,29 +297,29 @@ export function StatePanel({
 
 export type SetupDependencyItem = {
   label: string;
-  state: "completed" | "current" | "locked";
+  state: 'completed' | 'current' | 'locked';
   hint: string;
 };
 
-export function SetupDependencyList({
-  items,
-}: {
-  items: SetupDependencyItem[];
-}) {
+export function SetupDependencyList({ items }: { items: SetupDependencyItem[] }) {
   return (
     <BlockStack gap="200">
       {items.map((item) => (
         <InlineStack key={item.label} align="space-between" blockAlign="start" gap="400">
-          <Text as="p" variant="bodyMd">{item.label}</Text>
+          <Text as="p" variant="bodyMd">
+            {item.label}
+          </Text>
           <BlockStack gap="100" inlineAlign="end">
             <Text as="p" variant="bodySm" fontWeight="semibold">
-              {item.state === "completed"
-                ? "Completed"
-                : item.state === "current"
-                  ? "Current step"
-                  : "Locked"}
+              {item.state === 'completed'
+                ? 'Completed'
+                : item.state === 'current'
+                  ? 'Current step'
+                  : 'Locked'}
             </Text>
-            <Text as="p" variant="bodySm" tone="subdued">{item.hint}</Text>
+            <Text as="p" variant="bodySm" tone="subdued">
+              {item.hint}
+            </Text>
           </BlockStack>
         </InlineStack>
       ))}
@@ -329,18 +327,18 @@ export function SetupDependencyList({
   );
 }
 
-export function ValuePreview({
-  items,
-}: {
-  items: Array<{ title: string; description: string }>;
-}) {
+export function ValuePreview({ items }: { items: Array<{ title: string; description: string }> }) {
   return (
     <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
       {items.map((item) => (
         <Card key={item.title} padding="400" roundedAbove="sm">
           <BlockStack gap="200">
-            <Text as="h3" variant="headingMd">{item.title}</Text>
-            <Text as="p" variant="bodySm" tone="subdued">{item.description}</Text>
+            <Text as="h3" variant="headingMd">
+              {item.title}
+            </Text>
+            <Text as="p" variant="bodySm" tone="subdued">
+              {item.description}
+            </Text>
           </BlockStack>
         </Card>
       ))}
