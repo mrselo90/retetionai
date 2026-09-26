@@ -262,43 +262,44 @@ function AppShell() {
         </NavMenu>
       ) : null}
       <Box background="bg-surface" minHeight="100vh" padding={{ xs: '200', sm: '300', md: '400' }}>
-        <InlineStack align="center">
-          <Box width="100%" maxWidth="1080px">
-            <BlockStack gap="400">
-              {navigation.state === 'loading' && !changingPage ? (
-                <InlineStack align="center">
-                  <Spinner accessibilityLabel="Loading page" size="small" />
-                </InlineStack>
-              ) : null}
+        {/* A plain wrapper on purpose. An InlineStack align="center" here set
+            --pc-inline-stack-align for the whole app, and every nested
+            InlineStack without its own align inherited it and centered. */}
+        <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
+          <BlockStack gap="400">
+            {navigation.state === 'loading' && !changingPage ? (
+              <InlineStack align="center">
+                <Spinner accessibilityLabel="Loading page" size="small" />
+              </InlineStack>
+            ) : null}
 
-              {setupProgress && !setupProgress.setupComplete && location.pathname !== '/app' ? (
-                <SetupTrail
-                  pathname={location.pathname}
-                  done={setupProgress.completedCount}
-                  total={setupProgress.totalSteps}
-                  nextStep={setupProgress.nextStep}
-                />
-              ) : null}
+            {setupProgress && !setupProgress.setupComplete && location.pathname !== '/app' ? (
+              <SetupTrail
+                pathname={location.pathname}
+                done={setupProgress.completedCount}
+                total={setupProgress.totalSteps}
+                nextStep={setupProgress.nextStep}
+              />
+            ) : null}
 
-              {(shellLoading && location.pathname === '/app') || changingPage ? (
-                <Card padding="500">
-                  <BlockStack gap="300">
-                    <SkeletonDisplayText size="small" />
-                    <SkeletonBodyText lines={4} />
-                  </BlockStack>
-                </Card>
-              ) : (
-                <Outlet
-                  context={{
-                    bootstrapData,
-                    bootstrapError,
-                    shellLoading,
-                  }}
-                />
-              )}
-            </BlockStack>
-          </Box>
-        </InlineStack>
+            {(shellLoading && location.pathname === '/app') || changingPage ? (
+              <Card padding="500">
+                <BlockStack gap="300">
+                  <SkeletonDisplayText size="small" />
+                  <SkeletonBodyText lines={4} />
+                </BlockStack>
+              </Card>
+            ) : (
+              <Outlet
+                context={{
+                  bootstrapData,
+                  bootstrapError,
+                  shellLoading,
+                }}
+              />
+            )}
+          </BlockStack>
+        </div>
       </Box>
     </Frame>
   );
