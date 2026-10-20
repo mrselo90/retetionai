@@ -130,6 +130,52 @@ describe('POST /api/integrations', () => {
     expect(response.status).toBe(400);
     expect(response.data).toHaveProperty('error');
   });
+
+  it('should refuse to create a shopify integration, so a shop cannot be pre-claimed', async () => {
+    const insertSpy = (mockSupabaseClient.from('integrations') as any).insert;
+    insertSpy.mockClear();
+
+    const response = await testRequest(app, 'POST', '/api/integrations', {
+      body: {
+        provider: 'shopify',
+        auth_type: 'oauth',
+        auth_data: { shop: 'victim.myshopify.com' },
+      },
+      merchantId: 'test-merchant-id',
+    });
+
+    expect(response.status).toBe(400);
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('PUT /api/integrations/:id', () => {
+  let app: Hono;
+
+  beforeEach(() => {
+    app = new Hono();
+    app.route('/api/integrations', integrationsRoutes);
+    vi.clearAllMocks();
+    (getSupabaseServiceClient as any).mockReturnValue(mockSupabaseClient);
+    setupAuthenticatedContext();
+  });
+
+  it('should refuse auth_data changes on a shopify integration', async () => {
+    const merchantId = 'test-merchant-id';
+    const integration = createTestIntegration(merchantId, { provider: 'shopify' });
+
+    const integrationsQ = mockSupabaseClient.from('integrations') as any;
+    integrationsQ.__pushResult({ data: { id: integration.id, provider: 'shopify' }, error: null });
+    integrationsQ.update.mockClear();
+
+    const response = await testRequest(app, 'PUT', `/api/integrations/${integration.id}`, {
+      body: { auth_data: { shop: 'victim.myshopify.com' } },
+      merchantId,
+    });
+
+    expect(response.status).toBe(400);
+    expect(integrationsQ.update).not.toHaveBeenCalled();
+  });
 });
 
 describe('GET /api/integrations/:id', () => {

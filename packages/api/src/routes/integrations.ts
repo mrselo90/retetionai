@@ -134,6 +134,13 @@ integrations.post('/', authMiddleware, async (c) => {
       );
     }
 
+    // A Shopify integration binds a shop domain to this merchant, and install-sync
+    // later writes that shop's access token into the row it finds. Only the OAuth
+    // callback and install-sync, which prove control of the shop, may create one.
+    if (provider === 'shopify') {
+      return c.json({ error: 'Shopify integrations are created by installing the Shopify app' }, 400);
+    }
+
     if (!auth_type || typeof auth_type !== 'string') {
       return c.json({ error: 'auth_type is required and must be a string' }, 400);
     }
@@ -253,6 +260,12 @@ integrations.put('/:id', authMiddleware, async (c) => {
 
     if ((existing as { provider?: string }).provider === 'whatsapp') {
       return c.json({ error: 'WhatsApp provider integrations are no longer supported' }, 410);
+    }
+
+    // auth_data on a Shopify row holds the shop domain and its access token; only
+    // OAuth and install-sync may set it (see POST above).
+    if ((existing as { provider?: string }).provider === 'shopify' && updates.auth_data) {
+      return c.json({ error: 'Shopify credentials are managed by the Shopify app install' }, 400);
     }
 
     // Update integration

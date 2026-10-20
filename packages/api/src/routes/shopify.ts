@@ -13,6 +13,7 @@ import {
   exchangeCodeForToken,
 } from '../lib/shopify.js';
 import { verifyShopifySessionToken } from '../lib/shopifySession.js';
+import { createShopifyOAuthState, verifyShopifyOAuthState } from '../lib/shopifyOAuthState.js';
 import { findShopifyIntegration } from '../lib/shopifyIntegrationLookup.js';
 import { getMerchantSubscription } from '../lib/billing.js';
 import { getCachedApiResponse, setCachedApiResponse } from '../lib/cache.js';
@@ -477,12 +478,14 @@ shopify.post('/auth', authMiddleware, async (c) => {
     if (!shopRaw) {
       return c.json({ error: 'shop is required' }, 400);
     }
-    const shop = shopRaw.includes('.myshopify.com') ? shopRaw : `${shopRaw}.myshopify.com`;
+    const shopLower = shopRaw.toLowerCase();
+    const shop = shopLower.includes('.myshopify.com') ? shopLower : `${shopLower}.myshopify.com`;
+    // The state is bound to this exact domain, which must match the `shop` Shopify sends back.
+    if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(shop)) {
+      return c.json({ error: 'shop must be a *.myshopify.com domain' }, 400);
+    }
     const merchantId = c.get('merchantId') as string;
-    const state = Buffer.from(
-      JSON.stringify({ merchantId, n: crypto.randomBytes(8).toString('hex') }),
-      'utf8'
-    ).toString('base64url');
+    const state = createShopifyOAuthState(merchantId, shop);
     const authUrl = getShopifyAuthUrl(shop, SHOPIFY_OAUTH_SCOPES, state);
     return c.json({ authUrl });
   } catch (err) {
@@ -519,11 +522,8 @@ shopify.get('/oauth/callback', async (c) => {
         `${redirectBase}/shopify/callback?error=${encodeURIComponent('Invalid HMAC')}`
       );
     }
-    let merchantId: string;
-    try {
-      const decoded = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
-      merchantId = decoded.merchantId;
-    } catch {
+    const merchantId = verifyShopifyOAuthState(state, shop);
+    if (!merchantId) {
       return c.redirect(
         `${redirectBase}/shopify/callback?error=${encodeURIComponent('Invalid state')}`
       );
