@@ -3,6 +3,8 @@
  * Extracts product information (title, description, usage instructions)
  */
 
+import { safeFetch } from '@recete/shared';
+
 export interface ScrapedProduct {
   title: string;
   description?: string;
@@ -46,14 +48,8 @@ export interface ScrapeResult {
  */
 export async function scrapeProductPage(url: string): Promise<ScrapeResult> {
   try {
-    // Validate URL
-    const parsedUrl = new URL(url);
-    if (!parsedUrl.protocol.startsWith('http')) {
-      return { success: false, error: 'Invalid URL protocol' };
-    }
-
-    // Fetch page
-    const response = await fetch(url, {
+    // Fetch page; safeFetch rejects non-http(s) URLs and private/internal targets on every hop
+    const response = await safeFetch(url, {
       headers: {
         'User-Agent': 'Recete-Bot/1.0 (Product Knowledge Scraper)',
       },

@@ -311,7 +311,8 @@ app.get('/health', async (c) => {
   // Database check
   try {
     const supabase = getSupabaseClient();
-    const { error } = await supabase.from('merchants').select('count').limit(1);
+    // subscription_plans is the one table anon may read (migration 036); merchants is service-role only (047).
+    const { error } = await supabase.from('subscription_plans').select('id').limit(1);
     health.services.database = error ? 'error' : 'connected';
   } catch (error) {
     health.services.database = 'error';

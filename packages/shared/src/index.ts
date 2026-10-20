@@ -12,3 +12,4 @@ export * from './auth.js';
 export * from './logger.js';
 export * from './shopify.js';
 export * from './whatsappWorker.js';
+export * from './safeFetch.js';

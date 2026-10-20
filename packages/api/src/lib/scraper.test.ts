@@ -4,7 +4,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { lookup } from 'node:dns/promises';
 import { scrapeProductPage } from './scraper';
+
+// safeFetch resolves the host before fetching; keep tests off the real network.
+vi.mock('node:dns/promises', () => ({
+  lookup: vi.fn(async () => [{ address: '93.184.216.34', family: 4 }]),
+}));
 
 describe('scrapeProductPage', () => {
   beforeEach(() => {
@@ -108,5 +114,42 @@ describe('scrapeProductPage', () => {
     expect(result.product?.rawContent).not.toContain('<script>');
     expect(result.product?.rawContent).not.toContain('<style>');
     expect(result.product?.rawContent).toContain('Clean Content');
+  });
+
+  it('refuses cloud metadata and other internal addresses without fetching', async () => {
+    for (const url of [
+      'http://169.254.169.254/latest/meta-data/',
+      'http://127.0.0.1:3001/api/admin',
+      'http://[::1]/',
+      'http://[::ffff:10.0.0.1]/',
+      'file:///etc/passwd',
+    ]) {
+      const result = await scrapeProductPage(url);
+      expect(result.success, url).toBe(false);
+    }
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('refuses a public hostname that resolves to a private address', async () => {
+    (lookup as any).mockResolvedValueOnce([{ address: '10.0.0.5', family: 4 }]);
+
+    const result = await scrapeProductPage('https://internal.example.com/product');
+
+    expect(result.success).toBe(false);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('refuses a redirect to an internal address', async () => {
+    (global.fetch as any).mockResolvedValueOnce(
+      new Response(null, {
+        status: 302,
+        headers: { location: 'http://169.254.169.254/latest/meta-data/' },
+      })
+    );
+
+    const result = await scrapeProductPage('https://example.com/product');
+
+    expect(result.success).toBe(false);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 });
