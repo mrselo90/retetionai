@@ -22,6 +22,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           shop: session.shop,
           accessToken: session.accessToken,
           scope: current.toString(),
+          expires: session.expires ?? null,
         });
     }
     return new Response();

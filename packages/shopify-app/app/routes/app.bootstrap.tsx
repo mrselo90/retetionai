@@ -112,6 +112,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           shop: session.shop,
           accessToken: session.accessToken,
           scope: session.scope ?? null,
+          expires: session.expires ?? null,
         });
 
         const overview = await fetchMerchantOverviewFromRequest(request);

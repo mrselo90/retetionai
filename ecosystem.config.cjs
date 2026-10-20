@@ -98,6 +98,9 @@ module.exports = {
         API_URL: 'https://api.recete.co.uk',
         FRONTEND_URL: 'https://recete.co.uk',
         ALLOWED_ORIGINS: 'https://recete.co.uk,https://shop.recete.co.uk,https://admin.shopify.com',
+        // Shopify app (shopify-shell) on this host: owner of the shops' expiring
+        // offline tokens, served at /internal/offline-token (shared/shopifyToken.ts).
+        SHOPIFY_SHELL_INTERNAL_URL: 'http://127.0.0.1:3003',
         NEW_RELIC_APP_NAME: 'recete-api',
         ...nrEnv,
       },
@@ -151,6 +154,7 @@ module.exports = {
       node_args: '-r newrelic',
       env: {
         NODE_ENV: 'production',
+        SHOPIFY_SHELL_INTERNAL_URL: 'http://127.0.0.1:3003',
         NEW_RELIC_APP_NAME: 'recete-workers',
         ...nrEnv,
       },

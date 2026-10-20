@@ -9,6 +9,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
 import {
   buildShopifyProductFallbackContent,
+  getShopifyAccessToken,
   getSupabaseServiceClient,
   logger,
 } from '@recete/shared';
@@ -850,14 +851,13 @@ products.post('/:id/scrape', async (c) => {
     if (isShopifyUrl) {
       const { data: integration } = await serviceClient
         .from('integrations')
-        .select('auth_data')
+        .select('id, auth_data')
         .eq('merchant_id', merchantId)
         .eq('provider', 'shopify')
         .eq('status', 'active')
         .maybeSingle();
 
       if (integration) {
-        const authData = integration.auth_data as { shop: string; access_token: string };
         const url = new URL(product.url);
         const handleMatch = url.pathname.match(/\/products\/([^/?]+)/);
         const handle = handleMatch ? handleMatch[1] : null;
@@ -868,11 +868,8 @@ products.post('/:id/scrape', async (c) => {
               { merchantId, productId, handle },
               'Storefront blocked by password; attempting Shopify Admin API fallback'
             );
-            const shopifyProduct = await fetchShopifyProductByHandle(
-              authData.shop,
-              authData.access_token,
-              handle
-            );
+            const { shop, accessToken } = await getShopifyAccessToken(integration);
+            const shopifyProduct = await fetchShopifyProductByHandle(shop, accessToken, handle);
 
             const fallbackContent = shopifyProduct
               ? buildShopifyProductFallbackContent(shopifyProduct)
@@ -1058,24 +1055,20 @@ products.post(
       if (isShopifyUrl) {
         const { data: integration } = await serviceClient
           .from('integrations')
-          .select('auth_data')
+          .select('id, auth_data')
           .eq('merchant_id', merchantId)
           .eq('provider', 'shopify')
           .eq('status', 'active')
           .maybeSingle();
 
         if (integration) {
-          const authData = integration.auth_data as { shop: string; access_token: string };
           const parsed = new URL(sourceUrl);
           const handleMatch = parsed.pathname.match(/\/products\/([^/?]+)/);
           const handle = handleMatch ? handleMatch[1] : null;
           if (handle) {
             try {
-              const shopifyProduct = await fetchShopifyProductByHandle(
-                authData.shop,
-                authData.access_token,
-                handle
-              );
+              const { shop, accessToken } = await getShopifyAccessToken(integration);
+              const shopifyProduct = await fetchShopifyProductByHandle(shop, accessToken, handle);
               const fallbackContent = shopifyProduct
                 ? buildShopifyProductFallbackContent(shopifyProduct)
                 : '';

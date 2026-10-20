@@ -5,6 +5,7 @@
 
 import crypto from 'crypto';
 import {
+  type ShopifyTokenResponse,
   ShopifyProduct,
   ShopifyProductVariant,
   fetchShopifyProductByHandle as sharedFetchByHandle,
@@ -75,7 +76,7 @@ export function verifyShopifyHmac(query: Record<string, string>): boolean {
 export async function exchangeCodeForToken(
   shop: string,
   code: string
-): Promise<{ access_token: string; scope: string }> {
+): Promise<ShopifyTokenResponse> {
   if (!SHOPIFY_API_KEY || !SHOPIFY_API_SECRET) {
     throw new Error('Shopify API credentials not configured');
   }
@@ -89,6 +90,9 @@ export async function exchangeCodeForToken(
       client_id: SHOPIFY_API_KEY,
       client_secret: SHOPIFY_API_SECRET,
       code,
+      // Expiring offline token + refresh token; public apps must use these for
+      // GraphQL Admin API calls from 2027-01-01. Stored as an API-owned chain.
+      expiring: '1',
     }),
   });
 
@@ -99,7 +103,7 @@ export async function exchangeCodeForToken(
 
   // Never log `data`: it is the shop's offline access token.
   const data = await response.json();
-  return data as { access_token: string; scope: string };
+  return data as ShopifyTokenResponse;
 }
 
 /**
@@ -108,7 +112,7 @@ export async function exchangeCodeForToken(
 export async function exchangeSessionToken(
   shop: string,
   sessionToken: string
-): Promise<{ access_token: string; scope: string }> {
+): Promise<ShopifyTokenResponse> {
   if (!SHOPIFY_API_KEY || !SHOPIFY_API_SECRET) {
     throw new Error('Shopify API credentials not configured');
   }
@@ -128,6 +132,7 @@ export async function exchangeSessionToken(
       subject_token: sessionToken,
       subject_token_type: 'urn:ietf:params:oauth:token-type:id_token',
       requested_token_type: 'urn:shopify:params:oauth:token-type:offline-access-token',
+      expiring: '1',
     }),
   });
 
@@ -138,7 +143,7 @@ export async function exchangeSessionToken(
 
   const data = await response.json();
   console.log('Shopify Session Token Exchange Successful');
-  return data as { access_token: string; scope: string };
+  return data as ShopifyTokenResponse;
 }
 
 export interface ShopifyLiveProductQuote {
