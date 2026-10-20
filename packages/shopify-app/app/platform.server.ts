@@ -463,6 +463,9 @@ export async function syncShopInstall(session: {
   shop: string;
   accessToken?: string;
   scope?: string | null;
+  // Expiring offline token: lets the API cache it until then and come back to
+  // /internal/offline-token for a refreshed one instead of using a dead token.
+  expires?: Date | null;
 }) {
   if (!session.accessToken) {
     throw new Error(`Missing offline access token for shop ${session.shop}`);
@@ -484,6 +487,7 @@ export async function syncShopInstall(session: {
         shop: session.shop,
         accessToken: session.accessToken,
         scope: session.scope ?? null,
+        expires: session.expires ? session.expires.toISOString() : null,
       }),
       signal: platformSignal(),
     }

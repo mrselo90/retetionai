@@ -4,7 +4,7 @@
  */
 
 import { DelayedError, Worker, WorkerOptions } from 'bullmq';
-import { getRedisClient, getSupabaseServiceClient, logger } from '@recete/shared';
+import { getRedisClient, getShopifyAccessToken, getSupabaseServiceClient, logger } from '@recete/shared';
 import { trackWorkerJob } from './lib/nrEvents.js';
 import {
   buildShopifyProductFallbackContent,
@@ -768,14 +768,13 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
           const serviceClient = getSupabaseServiceClient();
           const { data: integration } = await serviceClient
             .from('integrations')
-            .select('auth_data')
+            .select('id, auth_data')
             .eq('merchant_id', merchantId)
             .eq('provider', 'shopify')
             .eq('status', 'active')
             .maybeSingle();
 
           if (integration) {
-            const authData = integration.auth_data as { shop: string; access_token: string };
             const parsedUrl = new URL(url);
             const handleMatch = parsedUrl.pathname.match(/\/products\/([^/?]+)/);
             const handle = handleMatch ? handleMatch[1] : null;
@@ -786,9 +785,10 @@ export const scrapeJobsWorker = new Worker<ScrapeJobData>(
                   { merchantId, productId, handle },
                   '[Scrape Job] Storefront blocked; trying Admin API fallback'
                 );
+                const { shop, accessToken } = await getShopifyAccessToken(integration);
                 const shopifyProduct = await fetchShopifyProductByHandle(
-                  authData.shop,
-                  authData.access_token,
+                  shop,
+                  accessToken,
                   handle
                 );
 

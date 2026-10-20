@@ -9,10 +9,26 @@ import { getMerchantSubscription, getPlanLimits, getAvailablePlans, updateMercha
 import { getCurrentUsage, getUsageHistory } from '../lib/usageTracking.js';
 import { createShopifyRecurringCharge, cancelShopifyRecurringCharge, getShopifyRecurringCharge, getPlanPrice, handleShopifyBillingWebhook } from '../lib/shopifyBilling.js';
 import { ADDON_DEFINITIONS, getMerchantAddons, activateAddon, deactivateAddon } from '../lib/addons.js';
-import { getSupabaseServiceClient } from '@recete/shared';
+import { getSupabaseServiceClient, getShopifyAccessToken } from '@recete/shared';
 import { logger } from '@recete/shared';
 import { validateBody } from '../middleware/validation.js';
 import { z } from 'zod';
+
+/**
+ * Shop and a working access token, or nothing when the shop must re-authorize.
+ * Callers already answer "reconnect your Shopify store" when either is missing.
+ */
+async function resolveShopifyCredentials(integration: {
+  id: string;
+  auth_data: unknown;
+}): Promise<{ shop?: string; accessToken?: string }> {
+  try {
+    return await getShopifyAccessToken(integration);
+  } catch (error) {
+    logger.warn({ error }, 'Shopify access token unavailable for billing');
+    return {};
+  }
+}
 
 const billing = new Hono();
 
@@ -124,9 +140,7 @@ billing.post('/subscribe', validateBody(subscribeSchema), async (c) => {
     }, 400);
   }
 
-  const authData = integration.auth_data as any;
-  const shop = authData?.shop;
-  const accessToken = authData?.access_token;
+  const { shop, accessToken } = await resolveShopifyCredentials(integration);
 
   if (!shop || !accessToken) {
     return c.json({
@@ -195,16 +209,14 @@ billing.post('/cancel', async (c) => {
     const serviceClient = getSupabaseServiceClient();
     const { data: integration } = await serviceClient
       .from('integrations')
-      .select('auth_data')
+      .select('id, auth_data')
       .eq('merchant_id', merchantId)
       .eq('provider', 'shopify')
       .eq('status', 'active')
       .single();
 
     if (integration) {
-      const authData = integration.auth_data as any;
-      const shop = authData?.shop;
-      const accessToken = authData?.access_token;
+      const { shop, accessToken } = await resolveShopifyCredentials(integration);
 
       if (shop && accessToken) {
         // Cancel main subscription charge
@@ -306,7 +318,7 @@ billing.post('/addons/:key/subscribe', async (c) => {
   const serviceClient = getSupabaseServiceClient();
   const { data: integration } = await serviceClient
     .from('integrations')
-    .select('auth_data')
+    .select('id, auth_data')
     .eq('merchant_id', merchantId)
     .eq('provider', 'shopify')
     .eq('status', 'active')
@@ -316,9 +328,7 @@ billing.post('/addons/:key/subscribe', async (c) => {
     return c.json({ error: 'Shopify integration not found' }, 400);
   }
 
-  const authData = integration.auth_data as any;
-  const shop = authData?.shop;
-  const accessToken = authData?.access_token;
+  const { shop, accessToken } = await resolveShopifyCredentials(integration);
 
   if (!shop || !accessToken) {
     return c.json({ error: 'Shopify credentials not found' }, 400);
@@ -367,7 +377,7 @@ billing.get('/addons/:key/confirm', async (c) => {
   const serviceClient = getSupabaseServiceClient();
   const { data: integration } = await serviceClient
     .from('integrations')
-    .select('auth_data')
+    .select('id, auth_data')
     .eq('merchant_id', merchantId)
     .eq('provider', 'shopify')
     .eq('status', 'active')
@@ -377,9 +387,7 @@ billing.get('/addons/:key/confirm', async (c) => {
     return c.json({ error: 'Shopify integration not found' }, 400);
   }
 
-  const authData = integration.auth_data as any;
-  const shop = authData?.shop;
-  const accessToken = authData?.access_token;
+  const { shop, accessToken } = await resolveShopifyCredentials(integration);
 
   if (!shop || !accessToken) {
     return c.json({ error: 'Shopify credentials not found' }, 400);
@@ -427,20 +435,16 @@ billing.post('/addons/:key/cancel', async (c) => {
     const serviceClient = getSupabaseServiceClient();
     const { data: integration } = await serviceClient
       .from('integrations')
-      .select('auth_data')
+      .select('id, auth_data')
       .eq('merchant_id', merchantId)
       .eq('provider', 'shopify')
       .eq('status', 'active')
       .single();
 
     if (integration) {
-      const authData = integration.auth_data as any;
-      if (authData?.shop && authData?.access_token) {
-        await cancelShopifyRecurringCharge(
-          authData.shop,
-          authData.access_token,
-          parseInt(addon.billing_charge_id)
-        );
+      const { shop, accessToken } = await resolveShopifyCredentials(integration);
+      if (shop && accessToken) {
+        await cancelShopifyRecurringCharge(shop, accessToken, parseInt(addon.billing_charge_id));
       }
     }
   }

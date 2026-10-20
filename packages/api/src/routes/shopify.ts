@@ -3,7 +3,14 @@
  */
 
 import { Hono } from 'hono';
-import { getSupabaseServiceClient } from '@recete/shared';
+import {
+  getSupabaseServiceClient,
+  getShopifyAccessToken,
+  buildApiOwnedShopifyAuthData,
+  buildShellOwnedShopifyAuthData,
+  ShopifyReauthRequiredError,
+  type ShopifyAuthData,
+} from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
 import {
   fetchShopifyProducts,
@@ -108,10 +115,9 @@ class ShopifyInstallError extends Error {}
  */
 async function ensureShopifyInstall(
   serviceClient: ReturnType<typeof getSupabaseServiceClient>,
-  params: { shop: string; accessToken: string; scope: string | null }
+  authData: ShopifyAuthData
 ): Promise<{ merchantId: string; created: boolean }> {
-  const { shop, accessToken, scope } = params;
-  const authData = { shop, access_token: accessToken, scope };
+  const { shop } = authData;
 
   const adopt = async (integrationId: string, merchantId: string) => {
     const { error: updateError } = await serviceClient
@@ -198,11 +204,16 @@ shopify.post('/install-sync', async (c) => {
       shop?: string;
       accessToken?: string;
       scope?: string | null;
+      expires?: string | null;
     };
 
     const shopRaw = body.shop?.trim();
     const accessToken = body.accessToken?.trim();
     const scope = body.scope?.trim() || null;
+    const expires =
+      typeof body.expires === 'string' && Number.isFinite(Date.parse(body.expires))
+        ? body.expires
+        : null;
 
     if (!shopRaw || !accessToken) {
       return c.json({ error: 'shop and accessToken are required' }, 400);
@@ -211,11 +222,11 @@ shopify.post('/install-sync', async (c) => {
     const shop = shopRaw.includes('.myshopify.com') ? shopRaw : `${shopRaw}.myshopify.com`;
     const serviceClient = getSupabaseServiceClient();
 
-    const { merchantId, created } = await ensureShopifyInstall(serviceClient, {
-      shop,
-      accessToken,
-      scope,
-    });
+    // The Shopify app owns this token chain (it holds the refresh token); see shopifyToken.ts.
+    const { merchantId, created } = await ensureShopifyInstall(
+      serviceClient,
+      buildShellOwnedShopifyAuthData(shop, accessToken, scope, expires)
+    );
 
     return c.json({ ok: true, created, merchantId });
   } catch (err) {
@@ -536,7 +547,7 @@ shopify.get('/oauth/callback', async (c) => {
       .eq('merchant_id', merchantId)
       .eq('provider', 'shopify')
       .maybeSingle();
-    const authData = { shop, access_token: tokenData.access_token, scope: tokenData.scope };
+    const authData = buildApiOwnedShopifyAuthData(shop, tokenData);
     if (existing) {
       await serviceClient
         .from('integrations')
@@ -596,15 +607,15 @@ shopify.get('/products', authMiddleware, async (c) => {
       return c.json({ error: 'Shopify integration not found or inactive' }, 404);
     }
 
-    const authData = integration.auth_data as {
-      shop: string;
-      access_token: string;
-      scope?: string;
-    };
-    const shopDomain = authData?.shop;
-    const accessToken = authData?.access_token;
-    if (!shopDomain || !accessToken) {
-      return c.json({ error: 'Invalid integration auth data' }, 400);
+    let shopDomain: string;
+    let accessToken: string;
+    try {
+      ({ shop: shopDomain, accessToken } = await getShopifyAccessToken(integration));
+    } catch (error) {
+      if (error instanceof ShopifyReauthRequiredError) {
+        return c.json({ error: 'Shopify needs to be reconnected', code: 'shopify_reauth_required' }, 409);
+      }
+      throw error;
     }
 
     const result = await fetchShopifyProducts(shopDomain, accessToken, first, after || undefined);
@@ -685,11 +696,10 @@ shopify.post('/verify-session', async (c) => {
       // session verification only matches active rows. ensureShopifyInstall finds
       // it regardless of status and reactivates it instead of making a new one.
       try {
-        const result = await ensureShopifyInstall(serviceClient, {
-          shop,
-          accessToken: tokenData.access_token,
-          scope: tokenData.scope ?? null,
-        });
+        const result = await ensureShopifyInstall(
+          serviceClient,
+          buildApiOwnedShopifyAuthData(shop, tokenData)
+        );
         merchantId = result.merchantId;
         if (result.created) {
           logger.info({ shop, merchantId }, 'Provisioned new merchant for Shopify shop');

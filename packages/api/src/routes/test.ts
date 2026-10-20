@@ -846,9 +846,14 @@ test.get('/debug-shopify', async (c) => {
 
     // Mask sensitive data
     const authData = integration.auth_data as any;
+    // Token metadata only: the spread used to carry refresh_token through unmasked.
     const maskedAuthData = {
-      ...authData,
-      access_token: authData?.access_token ? `${authData.access_token.substring(0, 10)}...` : null,
+      shop: authData?.shop ?? null,
+      has_access_token: Boolean(authData?.access_token),
+      has_refresh_token: Boolean(authData?.refresh_token),
+      token_owner: authData?.token_owner ?? 'legacy',
+      expires_at: authData?.expires_at ?? null,
+      refresh_token_expires_at: authData?.refresh_token_expires_at ?? null,
       scope: authData?.scope || 'MISSING',
     };
 

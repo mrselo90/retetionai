@@ -13,3 +13,4 @@ export * from './logger.js';
 export * from './shopify.js';
 export * from './whatsappWorker.js';
 export * from './safeFetch.js';
+export * from './shopifyToken.js';
