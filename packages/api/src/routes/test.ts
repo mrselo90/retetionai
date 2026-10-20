@@ -1,11 +1,15 @@
 /**
  * Test & Development Interface routes
  * Mock event simulation, WhatsApp testing, RAG testing, etc.
- * NOTE: In production, these should be protected or disabled
+ *
+ * Production callers: the Shopify app's onboarding "Run a test order" step
+ * (/events, over the internal secret) and the super-admin System page (/rag,
+ * /rag/answer). Everything else is super-admin debug tooling.
  */
 
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
+import { adminAuthMiddleware } from '../middleware/adminAuth.js';
 import { getSupabaseServiceClient } from '@recete/shared';
 import { normalizePhone } from '../lib/events.js';
 import { processNormalizedEvent } from '../lib/orderProcessor.js';
@@ -33,6 +37,17 @@ const test = new Hono();
 
 // All routes require authentication
 test.use('/*', authMiddleware);
+
+// Any signed-up merchant used to reach these with a plain JWT: unmetered LLM
+// calls (/rag, /rag/answer), WhatsApp sends to arbitrary numbers, and fake
+// opted-in orders (/events). Only the Shopify app's internal call may use
+// /events; the rest is super-admin only.
+test.use('/*', async (c, next) => {
+  if (c.req.path === '/api/test/events' && c.get('authMethod') === 'internal') {
+    return next();
+  }
+  return adminAuthMiddleware(c, next);
+});
 
 /**
  * Mock Event Simulation

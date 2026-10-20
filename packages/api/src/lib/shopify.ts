@@ -97,8 +97,8 @@ export async function exchangeCodeForToken(
     throw new Error(`Failed to exchange code for token: ${error}`);
   }
 
+  // Never log `data`: it is the shop's offline access token.
   const data = await response.json();
-  console.log('Shopify Token Exchange Response:', JSON.stringify(data, null, 2));
   return data as { access_token: string; scope: string };
 }
 

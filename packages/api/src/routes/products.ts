@@ -1439,6 +1439,13 @@ products.post(
  * POST /api/products/enrich
  */
 products.post('/enrich', async (c) => {
+  // Worker-only. With a merchant JWT this let any merchant overwrite another
+  // merchant's product facts (and bill them the LLM call) by product id.
+  if (c.get('internalCall') !== true) {
+    return c.json({ error: 'Forbidden: internal route' }, 403);
+  }
+  const merchantId = c.get('merchantId') as string;
+
   const body = await c.req.json();
   const { rawText, title, rawSections, productId, sourceUrl, sourceType } = body;
 
@@ -1454,10 +1461,12 @@ products.post('/enrich', async (c) => {
         .from('products')
         .select('id, merchant_id, url')
         .eq('id', productId)
+        .eq('merchant_id', merchantId)
         .maybeSingle();
-      if (p?.merchant_id) {
-        productForInternal = p as any;
+      if (!p) {
+        return c.json({ error: 'Product not found' }, 404);
       }
+      productForInternal = p as any;
     }
 
     const enrichResult = await enrichProductDataDetailed(rawText, title || 'Unknown Product', {
@@ -1468,30 +1477,18 @@ products.post('/enrich', async (c) => {
     });
 
     // Internal worker may send productId so we can persist structured facts centrally in API package
-    if (typeof productId === 'string' && productId.trim() && enrichResult.facts) {
-      const p =
-        productForInternal ??
-        (await (async () => {
-          const serviceClient = getSupabaseServiceClient();
-          const { data } = await serviceClient
-            .from('products')
-            .select('id, merchant_id, url')
-            .eq('id', productId)
-            .single();
-          return data as any;
-        })());
-      if (p?.merchant_id) {
-        await persistProductFactsSnapshot({
-          productId: p.id,
-          merchantId: p.merchant_id,
-          facts: enrichResult.facts,
-          sourceUrl: typeof sourceUrl === 'string' && sourceUrl ? sourceUrl : p.url || undefined,
-          sourceType:
-            typeof sourceType === 'string' && sourceType ? sourceType : 'scrape_enrich_internal',
-          extractionModel: 'gpt-4o-mini',
-          validationErrors: enrichResult.factsValidationErrors,
-        });
-      }
+    if (productForInternal && enrichResult.facts) {
+      const p = productForInternal;
+      await persistProductFactsSnapshot({
+        productId: p.id,
+        merchantId: p.merchant_id,
+        facts: enrichResult.facts,
+        sourceUrl: typeof sourceUrl === 'string' && sourceUrl ? sourceUrl : p.url || undefined,
+        sourceType:
+          typeof sourceType === 'string' && sourceType ? sourceType : 'scrape_enrich_internal',
+        extractionModel: 'gpt-4o-mini',
+        validationErrors: enrichResult.factsValidationErrors,
+      });
     }
 
     return c.json({

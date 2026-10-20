@@ -132,4 +132,65 @@ describe('rateLimitMiddleware', () => {
     expect(context.header).toHaveBeenCalledWith('X-RateLimit-Remaining', expect.any(String));
     expect(context.header).toHaveBeenCalledWith('X-RateLimit-Reset', expect.any(String));
   });
+
+  function contextWith(headers: Record<string, string>, peer?: string) {
+    return createMockContext({
+      req: {
+        header: vi.fn((name: string) => headers[name]),
+        method: 'POST',
+        path: '/api/auth/login',
+      } as any,
+      ...(peer ? { env: { incoming: { socket: { remoteAddress: peer } } } } : {}),
+    } as any);
+  }
+
+  function emptyWindow() {
+    mockRedisClient.zrangebyscore.mockResolvedValue([]);
+    mockRedisClient.zadd.mockResolvedValue(1);
+    mockRedisClient.pexpire.mockResolvedValue(1);
+    mockRedisClient.zremrangebyscore.mockResolvedValue(0);
+  }
+
+  it('keys on the nginx-set X-Real-IP, not a client-chosen X-Forwarded-For entry', async () => {
+    emptyWindow();
+    const context = contextWith(
+      { 'x-forwarded-for': '1.2.3.4, 203.0.113.9', 'x-real-ip': '203.0.113.9' },
+      '127.0.0.1'
+    );
+
+    await rateLimitMiddleware(context as any, vi.fn());
+
+    const redisKey = (mockRedisClient.zrangebyscore as any).mock.calls[0][0];
+    expect(redisKey).toContain('203.0.113.9');
+    expect(redisKey).not.toContain('1.2.3.4');
+  });
+
+  it('ignores proxy headers from a peer that is not this host', async () => {
+    emptyWindow();
+    const context = contextWith({ 'x-real-ip': '1.2.3.4' }, '198.51.100.7');
+
+    await rateLimitMiddleware(context as any, vi.fn());
+
+    const redisKey = (mockRedisClient.zrangebyscore as any).mock.calls[0][0];
+    expect(redisKey).toContain('198.51.100.7');
+  });
+
+  it('does not bypass limits because the Host header says localhost', async () => {
+    emptyWindow();
+    const context = contextWith({ host: 'localhost', 'x-real-ip': '203.0.113.9' }, '127.0.0.1');
+
+    await rateLimitMiddleware(context as any, vi.fn());
+
+    expect(mockRedisClient.zrangebyscore).toHaveBeenCalled();
+  });
+
+  it('bypasses limits for a direct same-host call with no proxy headers', async () => {
+    const context = contextWith({ host: 'localhost:3002' }, '127.0.0.1');
+    const next = vi.fn();
+
+    await rateLimitMiddleware(context as any, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(mockRedisClient.zrangebyscore).not.toHaveBeenCalled();
+  });
 });
