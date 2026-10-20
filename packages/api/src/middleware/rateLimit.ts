@@ -153,12 +153,59 @@ function getClientIdentifier(c: Context): {
   }
 
   // Fall back to IP address
-  const ip =
-    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
-    c.req.header('x-real-ip') ||
-    'unknown';
+  return { type: 'ip', identifier: getClientIp(c) };
+}
 
-  return { type: 'ip', identifier: ip };
+function isLoopback(address: string): boolean {
+  return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';
+}
+
+/** TCP peer of the request, when the Node server exposes it (undefined in tests). */
+function getSocketPeer(c: Context): string | undefined {
+  const env = c.env as { incoming?: { socket?: { remoteAddress?: string } } } | undefined;
+  return env?.incoming?.socket?.remoteAddress || undefined;
+}
+
+/**
+ * Client IP for rate limiting.
+ *
+ * Proxy headers are only trusted when the TCP peer is this host (nginx). nginx
+ * overwrites X-Real-IP with $remote_addr, while X-Forwarded-For keeps whatever
+ * the client sent and appends the real address last. Keying on the *first*
+ * X-Forwarded-For entry let every request pick its own bucket, so login brute
+ * force was never limited.
+ */
+export function getClientIp(c: Context): string {
+  const peer = getSocketPeer(c);
+  if (peer && !isLoopback(peer)) return peer;
+
+  const realIp = c.req.header('x-real-ip')?.trim();
+  if (realIp) return realIp;
+
+  const forwarded = c.req
+    .header('x-forwarded-for')
+    ?.split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (forwarded && forwarded.length > 0) return forwarded[forwarded.length - 1];
+
+  return peer || 'unknown';
+}
+
+/**
+ * Same-host service calls (Shopify shell, workers) reach the API on
+ * localhost:3002 with no proxy headers. Anything that came through nginx carries
+ * X-Real-IP. The bypass used to key on the Host header, which any client can set
+ * to "localhost".
+ */
+function isDirectLocalCall(c: Context): boolean {
+  const peer = getSocketPeer(c);
+  return (
+    !!peer &&
+    isLoopback(peer) &&
+    !c.req.header('x-real-ip') &&
+    !c.req.header('x-forwarded-for')
+  );
 }
 
 /**
@@ -166,11 +213,11 @@ function getClientIdentifier(c: Context): {
  * Applies rate limiting based on client type (IP or merchant)
  */
 export async function rateLimitMiddleware(c: Context, next: Next) {
-  // Bypass rate limiting for internal localhost requests
+  // Bypass rate limiting for same-host service calls
   const host = c.req.header('host') || '';
   const xff = c.req.header('x-forwarded-for');
-  
-  if (host.includes('localhost') || host.includes('127.0.0.1')) {
+
+  if (isDirectLocalCall(c)) {
     return await next();
   }
 
@@ -238,16 +285,12 @@ export async function optionalRateLimitMiddleware(c: Context, next: Next) {
  * High enough for legitimate Shopify bursts, low enough to block floods
  */
 export async function webhookRateLimitMiddleware(c: Context, next: Next) {
-  // Bypass rate limiting for internal localhost requests
-  const host = c.req.header('host') || '';
-  if (host.includes('localhost') || host.includes('127.0.0.1')) {
+  // Bypass rate limiting for same-host service calls
+  if (isDirectLocalCall(c)) {
     return await next();
   }
 
-  const ip =
-    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
-    c.req.header('x-real-ip') ||
-    'unknown';
+  const ip = getClientIp(c);
 
   const config = RATE_LIMITS.webhookIp;
   const result = await checkRateLimit(ip, config);
@@ -275,16 +318,12 @@ export async function webhookRateLimitMiddleware(c: Context, next: Next) {
  * 10 req/min per IP for login/signup to prevent credential stuffing
  */
 export async function authRateLimitMiddleware(c: Context, next: Next) {
-  // Bypass rate limiting for internal localhost requests
-  const host = c.req.header('host') || '';
-  if (host.includes('localhost') || host.includes('127.0.0.1')) {
+  // Bypass rate limiting for same-host service calls
+  if (isDirectLocalCall(c)) {
     return await next();
   }
 
-  const ip =
-    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
-    c.req.header('x-real-ip') ||
-    'unknown';
+  const ip = getClientIp(c);
 
   const config = RATE_LIMITS.auth;
   const result = await checkRateLimit(ip, config);

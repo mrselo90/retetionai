@@ -398,4 +398,54 @@ describe('Products Endpoints', () => {
       expect(response.data.instruction.usage_instructions).toBe('New Instructions');
     });
   });
+
+  describe('POST /api/products/enrich (worker-only)', () => {
+    it('should refuse a merchant JWT call', async () => {
+      const response = await testRequest(app, 'POST', '/api/products/enrich', {
+        merchantId: 'attacker-merchant-id',
+        body: { rawText: 'poisoned facts', productId: 'victim-product-id' },
+      });
+
+      expect(response.status).toBe(403);
+      expect(enrichProductDataDetailed).not.toHaveBeenCalled();
+      expect(persistProductFactsSnapshot).not.toHaveBeenCalled();
+    });
+
+    it("should refuse a product that is not the internal caller's merchant's", async () => {
+      (mockSupabaseClient.from('products') as any).__pushResult({ data: null, error: null });
+
+      const response = await testRequest(app, 'POST', '/api/products/enrich', {
+        merchantId: 'test-merchant-id',
+        headers: { 'X-Test-Internal-Call': 'true' },
+        body: { rawText: 'scraped text', productId: 'other-merchant-product-id' },
+      });
+
+      expect(response.status).toBe(404);
+      expect(enrichProductDataDetailed).not.toHaveBeenCalled();
+      expect(persistProductFactsSnapshot).not.toHaveBeenCalled();
+    });
+
+    it('should enrich and persist facts for an internal call on its own product', async () => {
+      (mockSupabaseClient.from('products') as any).__pushResult({
+        data: { id: 'own-product-id', merchant_id: 'test-merchant-id', url: null },
+        error: null,
+      });
+      (enrichProductDataDetailed as any).mockResolvedValue({
+        enrichedText: 'Enriched',
+        facts: { benefits: ['hydration'] },
+        factsValidationErrors: [],
+      });
+
+      const response = await testRequest(app, 'POST', '/api/products/enrich', {
+        merchantId: 'test-merchant-id',
+        headers: { 'X-Test-Internal-Call': 'true' },
+        body: { rawText: 'scraped text', productId: 'own-product-id' },
+      });
+
+      expect(response.status).toBe(200);
+      expect(persistProductFactsSnapshot).toHaveBeenCalledWith(
+        expect.objectContaining({ productId: 'own-product-id', merchantId: 'test-merchant-id' })
+      );
+    });
+  });
 });

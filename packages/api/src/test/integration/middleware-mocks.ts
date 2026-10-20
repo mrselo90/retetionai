@@ -20,6 +20,8 @@ vi.mock('../../middleware/auth', async () => {
         // Use test merchant ID from header
         c.set('merchantId', testMerchantId);
         c.set('authMethod', testAuthMethod);
+        // Mirrors authenticateInternalSecret on an INTERNAL_PRODUCT_PATHS route
+        if (c.req.header('X-Test-Internal-Call') === 'true') c.set('internalCall', true);
         await next();
         return;
       }
