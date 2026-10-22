@@ -16,6 +16,7 @@ import {
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { AppProvider } from '@shopify/shopify-app-react-router/react';
 import { useAdminLoadingBar } from '../lib/appBridge';
+import { POLARIS_URL } from '../lib/polaris';
 import { PageBannerContext } from '../components/shell-ui';
 import { EmbeddedSessionTokenBoundary } from '../components/EmbeddedSessionTokenBoundary';
 import { isBillingReady } from '../lib/billingStatus';
@@ -126,7 +127,7 @@ export default function App() {
   const { apiKey } = useLoaderData<typeof loader>();
 
   return (
-    <AppProvider embedded apiKey={apiKey}>
+    <AppProvider apiKey={apiKey} polarisUrl={POLARIS_URL}>
       <AppShell />
     </AppProvider>
   );
@@ -339,7 +340,7 @@ export function ErrorBoundary() {
         : error.statusText || 'Unexpected route error';
 
     return (
-      <AppProvider embedded apiKey="">
+      <AppProvider apiKey="" polarisUrl={POLARIS_URL}>
         <s-page heading="Something went wrong" inlineSize="small">
           <s-banner tone="critical" heading={`This page could not be loaded (${error.status})`}>
             <s-paragraph>Reload to try again.</s-paragraph>

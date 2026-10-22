@@ -19,6 +19,7 @@ import {
   getUsageTerms,
 } from "./services/planDefinitions";
 import { syncShopAfterAuth } from "./services/billingUsage.server";
+import { POLARIS_URL } from "./lib/polaris";
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -130,9 +131,8 @@ const shopify = shopifyApp({
   future: {
     expiringOfflineAccessTokens: true,
   },
-  ...(process.env.SHOP_CUSTOM_DOMAIN
-    ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
-    : {}),
+  // Same URL as AppProvider, so the preload Link header and the script match.
+  polarisUrl: POLARIS_URL,
 });
 
 export default shopify;
