@@ -59,8 +59,12 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: [
     {
+      // The API defaults to 3002 (production), but the web app looks for it on
+      // 3001. Wait on `/`: /health answers 503 until the database is reachable,
+      // and Playwright only counts 2xx-403 as up.
       command: 'cd packages/api && pnpm dev',
-      url: 'http://localhost:3001/health',
+      url: 'http://localhost:3001/',
+      env: { PORT: '3001' },
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
     },
