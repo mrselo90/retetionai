@@ -32,5 +32,6 @@ export function toCsvCell(value: string): string {
  */
 export function buildCsv(header: string[], rows: string[][]): string {
   const lines = [header, ...rows].map((row) => row.map(toCsvCell).join(','));
-  return `﻿${lines.join('\r\n')}\r\n`;
+  // UTF-8 BOM so Excel opens the file as UTF-8; escaped, since a literal one is invisible.
+  return `\uFEFF${lines.join('\r\n')}\r\n`;
 }
