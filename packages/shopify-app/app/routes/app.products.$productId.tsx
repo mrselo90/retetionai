@@ -2,7 +2,6 @@ import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from 're
 import { useActionData, useLoaderData, useNavigate, useNavigation } from 'react-router';
 import { useEffect, useMemo, useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { Banner, BlockStack } from '@shopify/polaris';
 import type { ProductStepOutcome } from '../platform.server';
 import { AppPage } from '../components/shell-ui';
 import { ProductSetupPanel } from '../components/ProductSetupPanel';
@@ -99,10 +98,15 @@ export default function ProductDetailPage() {
 
   if (!row) {
     return (
-      <AppPage heading="Product not found" backAction={{ content: 'Products', url: '/app/products' }}>
-        <Banner tone="warning" title="This product isn't in your catalog">
-          <p>It may have been deleted in Shopify. Go back to Products to pick another one.</p>
-        </Banner>
+      <AppPage
+        heading="Product not found"
+        backAction={{ content: 'Products', url: '/app/products' }}
+      >
+        <s-banner tone="warning" heading="This product isn't in your catalog">
+          <s-paragraph>
+            It may have been deleted in Shopify. Go back to Products to pick another one.
+          </s-paragraph>
+        </s-banner>
       </AppPage>
     );
   }
@@ -123,11 +127,11 @@ export default function ProductDetailPage() {
           : [{ content: 'Edit in Shopify', onAction: () => editInShopify(row.shopify.id) }]
       }
     >
-      <BlockStack gap="400">
+      <s-stack gap="base">
         {data.dataUnavailable ? (
-          <Banner tone="warning" title="Couldn't reach Recete">
-            <p>Some product data may be stale. Refresh in a moment.</p>
-          </Banner>
+          <s-banner tone="warning" heading="Couldn't reach Recete">
+            <s-paragraph>Some product data may be stale. Refresh in a moment.</s-paragraph>
+          </s-banner>
         ) : null}
         <ProductSetupPanel
           row={row}
@@ -151,7 +155,7 @@ export default function ProductDetailPage() {
           onWorkflowUrlChange={setWorkflowUrl}
           onBackToProducts={() => navigate('/app/products')}
         />
-      </BlockStack>
+      </s-stack>
     </AppPage>
   );
 }

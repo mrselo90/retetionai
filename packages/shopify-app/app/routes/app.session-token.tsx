@@ -1,5 +1,4 @@
 import type { ActionFunctionArgs } from "react-router";
-import { Banner, Page, Layout, Text, BlockStack } from "@shopify/polaris";
 
 import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 import { fetchMerchantSettings } from "../platform.server";
@@ -40,18 +39,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function AppSessionTokenRoute() {
   return (
-    <Page title="Session Token">
-      <Layout>
-        <Layout.Section>
-          <Banner title="Session token endpoint" tone="info">
-            <BlockStack gap="200">
-              <Text as="p" variant="bodyMd">
-                This page validates your Shopify session. If you arrived here directly, return to the app dashboard.
-              </Text>
-            </BlockStack>
-          </Banner>
-        </Layout.Section>
-      </Layout>
-    </Page>
+    <s-page heading="Session Token">
+      <s-banner heading="Session token endpoint" tone="info">
+        <s-paragraph>
+          This page validates your Shopify session. If you arrived here directly, return to the app dashboard.
+        </s-paragraph>
+      </s-banner>
+    </s-page>
   );
 }

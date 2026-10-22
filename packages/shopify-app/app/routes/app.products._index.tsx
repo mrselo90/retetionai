@@ -11,7 +11,7 @@ import {
 } from 'react-router';
 import { useEffect, useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { Banner, BlockStack, Checkbox, Modal, Text, TextField } from '@shopify/polaris';
+import { useAppBridge } from '@shopify/app-bridge-react';
 import { AppPage } from '../components/shell-ui';
 import { shellSetupProgress, useAppBootstrapData } from './app';
 import { useActionToast } from '../lib/appBridge';
@@ -37,12 +37,13 @@ import {
  * catalog (lib/productCatalog.server.ts) so counts cover every product, not
  * one page. A product opens on its own route, /app/products/:productId.
  *
- * React 18 note: Polaris web components need React 19 for controlled fields and
- * custom events, so selection checkboxes and the search field stay Polaris
- * React, and paging uses buttons instead of s-table's page events.
+ * Everything is Polaris web components: React 19 drives the controlled
+ * s-search-field and s-checkbox fields. Paging uses buttons so the page number
+ * stays in the URL.
  */
 
 const PAGE_SIZE = 25;
+const MANUAL_SOURCE_MODAL_ID = 'manual-source-modal';
 
 const BADGE_TONE = { attention: 'warning', info: 'info', success: 'success', critical: 'critical' } as const;
 
@@ -115,13 +116,13 @@ export default function ProductsPage() {
   const navigation = useNavigation();
   const navigate = useNavigate();
   const submit = useSubmit();
+  const shopify = useAppBridge();
   const [searchParams, setSearchParams] = useSearchParams();
   const { bootstrapData: shellBootstrap } = useAppBootstrapData();
   useActionToast(actionData?.ok && actionData.message ? actionData.message : null, actionData);
 
   const [searchInput, setSearchInput] = useState(data.query);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [showManualEntryModal, setShowManualEntryModal] = useState(false);
   const [manualSourceDraft, setManualSourceDraft] = useState({ name: '', url: '', enrichmentUrl: '' });
 
   const busy = navigation.state === 'submitting';
@@ -154,10 +155,10 @@ export default function ProductsPage() {
     if (!actionData?.ok) return;
     if (actionData.intent === 'bulk-draft' || actionData.intent === 'bulk-prepare') setSelectedIds([]);
     if (actionData.intent === 'create') {
-      setShowManualEntryModal(false);
+      shopify.modal.hide(MANUAL_SOURCE_MODAL_ID);
       setManualSourceDraft({ name: '', url: '', enrichmentUrl: '' });
     }
-  }, [actionData]);
+  }, [actionData, shopify]);
 
   const pageIds = data.items.map((item) => item.id);
   const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
@@ -210,49 +211,55 @@ export default function ProductsPage() {
             }
           : undefined
       }
-      secondaryActions={[{ content: 'Add manual source', onAction: () => setShowManualEntryModal(true) }]}
+      secondaryActions={[{ content: 'Add manual source', onAction: () => shopify.modal.show(MANUAL_SOURCE_MODAL_ID) }]}
     >
       {data.catalogTruncated ? (
-        <Banner tone="warning" title="Showing your first products only">
-          <p>
+        <s-banner tone="warning" heading="Showing your first products only">
+          <s-paragraph>
             {`Recete loads up to ${data.catalogLimit.toLocaleString('en')} products from Shopify. Products beyond that are not listed here yet.`}
-          </p>
-        </Banner>
+          </s-paragraph>
+        </s-banner>
       ) : null}
 
       {data.dataUnavailable ? (
-        <Banner tone="warning" title="Couldn't reach Recete">
-          <p>
+        <s-banner tone="warning" heading="Couldn't reach Recete">
+          <s-paragraph>
             Some product data below may be stale or missing — we couldn&apos;t load current data.
             Refresh in a moment.
-          </p>
-        </Banner>
+          </s-paragraph>
+        </s-banner>
       ) : null}
 
       {isBulkDrafting ? (
-        <Banner tone="info" title="Drafting instructions">
-          <p>Drafting from your product descriptions. This can take a minute — keep this page open.</p>
-        </Banner>
+        <s-banner tone="info" heading="Drafting instructions">
+          <s-paragraph>
+            Drafting from your product descriptions. This can take a minute — keep this page open.
+          </s-paragraph>
+        </s-banner>
       ) : null}
 
       {actionData && !actionData.ok && actionData.error ? (
-        <Banner tone="critical" title="Product action failed">
-          <p>{actionData.error}</p>
-        </Banner>
+        <s-banner tone="critical" heading="Product action failed">
+          <s-paragraph>{actionData.error}</s-paragraph>
+        </s-banner>
       ) : null}
 
       {allReady ? (
-        <Banner tone="success" title="You're all set">
-          <p>All products are ready. Recete can now answer customer questions after delivery.</p>
+        <s-banner tone="success" heading="You're all set">
+          <s-paragraph>
+            All products are ready. Recete can now answer customer questions after delivery.
+          </s-paragraph>
           {setupComplete ? (
-            <s-stack direction="inline" gap="small-200">
-              <s-button variant="primary" onClick={() => navigate('/app/dashboard')}>
+            <>
+              <s-button slot="secondary-actions" onClick={() => navigate('/app/dashboard')}>
                 Go to dashboard
               </s-button>
-              <s-button onClick={() => navigate('/app/conversations')}>View conversations</s-button>
-            </s-stack>
+              <s-button slot="secondary-actions" onClick={() => navigate('/app/conversations')}>
+                View conversations
+              </s-button>
+            </>
           ) : null}
-        </Banner>
+        </s-banner>
       ) : null}
 
       <s-section padding="none" accessibilityLabel="Products">
@@ -270,15 +277,13 @@ export default function ProductsPage() {
               </s-button>
             ))}
           </s-stack>
-          <TextField
+          <s-search-field
             label="Search products"
-            labelHidden
-            autoComplete="off"
+            labelAccessibilityVisibility="exclusive"
+            autocomplete="off"
             placeholder="Search by product title, handle, or vendor"
             value={searchInput}
-            onChange={setSearchInput}
-            clearButton
-            onClearButtonClick={() => setSearchInput('')}
+            onInput={(event) => setSearchInput(event.currentTarget.value)}
           />
           {selectedIds.length > 0 ? (
             <s-box padding="small" background="subdued" borderRadius="base">
@@ -319,11 +324,11 @@ export default function ProductsPage() {
             <s-table-header-row>
               <s-table-header listSlot="primary">
                 <s-stack direction="inline" gap="small-200" alignItems="center">
-                  <Checkbox
-                    label="Select all products on this page"
-                    labelHidden
-                    checked={allOnPageSelected ? true : someOnPageSelected ? 'indeterminate' : false}
-                    onChange={togglePage}
+                  <s-checkbox
+                    accessibilityLabel="Select all products on this page"
+                    checked={allOnPageSelected}
+                    indeterminate={!allOnPageSelected && someOnPageSelected}
+                    onChange={(event) => togglePage(event.currentTarget.checked)}
                   />
                   <s-text>Product</s-text>
                 </s-stack>
@@ -337,11 +342,10 @@ export default function ProductsPage() {
                 <s-table-row key={item.id}>
                   <s-table-cell>
                     <s-stack direction="inline" gap="small-300" alignItems="center">
-                      <Checkbox
-                        label={`Select ${item.title}`}
-                        labelHidden
+                      <s-checkbox
+                        accessibilityLabel={`Select ${item.title}`}
                         checked={selectedIds.includes(item.id)}
-                        onChange={(checked) => toggleRow(item.id, checked)}
+                        onChange={(event) => toggleRow(item.id, event.currentTarget.checked)}
                       />
                       <s-thumbnail src={item.imageUrl || undefined} alt={item.title} size="small" />
                       <s-stack gap="none">
@@ -402,83 +406,74 @@ export default function ProductsPage() {
         ) : null}
       </s-section>
 
-      <Modal
-        open={showManualEntryModal}
-        onClose={() => setShowManualEntryModal(false)}
-        title="Add manual source"
-        primaryAction={{
-          content: 'Create manual source',
-          onAction: () => {
+      <s-modal id={MANUAL_SOURCE_MODAL_ID} heading="Add manual source">
+        <s-stack gap="base">
+          <s-banner tone="info">
+            <s-paragraph>
+              Use this only when a product does not exist in Shopify and still needs response
+              content.
+            </s-paragraph>
+          </s-banner>
+          <Form method="post" id="manual-source-form">
+            <input type="hidden" name="intent" value="create" />
+            <s-stack gap="base">
+              <s-text-field
+                label="Product name"
+                name="name"
+                value={manualSourceDraft.name}
+                onInput={(event) => {
+                  const value = event.currentTarget.value;
+                  setManualSourceDraft((current) => ({ ...current, name: value }));
+                }}
+                autocomplete="off"
+                placeholder="Hydrating cleanser"
+              />
+              <s-text-field
+                label="Product URL"
+                name="url"
+                value={manualSourceDraft.url}
+                onInput={(event) => {
+                  const value = event.currentTarget.value;
+                  setManualSourceDraft((current) => ({ ...current, url: value }));
+                }}
+                autocomplete="off"
+                placeholder="https://example.com/products/hydrating-cleanser"
+              />
+              <s-text-field
+                label="Extra source URL"
+                name="enrichmentUrl"
+                value={manualSourceDraft.enrichmentUrl}
+                onInput={(event) => {
+                  const value = event.currentTarget.value;
+                  setManualSourceDraft((current) => ({ ...current, enrichmentUrl: value }));
+                }}
+                autocomplete="off"
+                details="Optional second source to add more context right after creation."
+                placeholder="https://example.com/blog/how-to-use-product"
+              />
+            </s-stack>
+          </Form>
+        </s-stack>
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          loading={busy}
+          disabled={busy}
+          onClick={() => {
             const form = document.getElementById('manual-source-form') as HTMLFormElement | null;
             if (form) form.requestSubmit();
-          },
-          loading: busy,
-          disabled: busy,
-        }}
-        secondaryActions={[
-          {
-            content: 'Cancel',
-            onAction: () => setShowManualEntryModal(false),
-            disabled: busy,
-          },
-        ]}
-      >
-        <Modal.Section>
-          <BlockStack gap="300">
-            <Banner tone="info">
-              <Text as="p" variant="bodySm">
-                Use this only when a product does not exist in Shopify and still needs response
-                content.
-              </Text>
-            </Banner>
-            <Form method="post" id="manual-source-form">
-              <input type="hidden" name="intent" value="create" />
-              <BlockStack gap="300">
-                <TextField
-                  label="Product name"
-                  name="name"
-                  value={manualSourceDraft.name}
-                  onChange={(value) =>
-                    setManualSourceDraft((current) => ({
-                      ...current,
-                      name: value,
-                    }))
-                  }
-                  autoComplete="off"
-                  placeholder="Hydrating cleanser"
-                />
-                <TextField
-                  label="Product URL"
-                  name="url"
-                  value={manualSourceDraft.url}
-                  onChange={(value) =>
-                    setManualSourceDraft((current) => ({
-                      ...current,
-                      url: value,
-                    }))
-                  }
-                  autoComplete="off"
-                  placeholder="https://example.com/products/hydrating-cleanser"
-                />
-                <TextField
-                  label="Extra source URL"
-                  name="enrichmentUrl"
-                  value={manualSourceDraft.enrichmentUrl}
-                  onChange={(value) =>
-                    setManualSourceDraft((current) => ({
-                      ...current,
-                      enrichmentUrl: value,
-                    }))
-                  }
-                  autoComplete="off"
-                  helpText="Optional second source to add more context right after creation."
-                  placeholder="https://example.com/blog/how-to-use-product"
-                />
-              </BlockStack>
-            </Form>
-          </BlockStack>
-        </Modal.Section>
-      </Modal>
+          }}
+        >
+          Create manual source
+        </s-button>
+        <s-button
+          slot="secondary-actions"
+          disabled={busy}
+          onClick={() => shopify.modal.hide(MANUAL_SOURCE_MODAL_ID)}
+        >
+          Cancel
+        </s-button>
+      </s-modal>
     </AppPage>
   );
 }
