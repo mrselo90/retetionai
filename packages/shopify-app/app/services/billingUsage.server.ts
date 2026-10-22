@@ -253,21 +253,18 @@ async function createUsageRecord(params: {
 }
 
 async function getOfflineAccessToken(shopDomain: string) {
-  const offlineSession = await prisma.session.findFirst({
-    where: {
-      shop: shopDomain,
-      isOnline: false,
-    },
-    orderBy: {
-      expires: 'desc',
-    },
-  });
+  // Offline tokens expire after an hour. Reading the Session row directly handed
+  // appUsageRecordCreate a dead token most of the time, so overage charges failed
+  // with 401. unauthenticated.admin refreshes the token when it is near expiry.
+  // Imported here: shopify.server imports this module, a static import would cycle.
+  const { unauthenticated } = await import('../shopify.server');
+  const { session } = await unauthenticated.admin(shopDomain);
 
-  if (!offlineSession?.accessToken) {
+  if (!session.accessToken) {
     throw new Error(`Offline session missing for ${shopDomain}`);
   }
 
-  return offlineSession.accessToken;
+  return session.accessToken;
 }
 
 async function applyUsageEvent(params: {
