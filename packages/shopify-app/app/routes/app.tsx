@@ -16,6 +16,7 @@ import {
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { AppProvider } from '@shopify/shopify-app-react-router/react';
 import { useAdminLoadingBar } from '../lib/appBridge';
+import { PageBannerContext } from '../components/shell-ui';
 import { EmbeddedSessionTokenBoundary } from '../components/EmbeddedSessionTokenBoundary';
 import { isBillingReady } from '../lib/billingStatus';
 import { getSetupProgress, REQUIRED_STEP_INFO } from '../lib/setupProgress';
@@ -240,17 +241,6 @@ function AppShell() {
           ))}
         </s-app-nav>
       ) : null}
-      {showSetupTrail ? (
-        <s-box paddingInline="base" paddingBlockStart="base">
-          <SetupTrail
-            pathname={location.pathname}
-            done={setupProgress.completedCount}
-            total={setupProgress.totalSteps}
-            nextStep={setupProgress.nextStep}
-          />
-        </s-box>
-      ) : null}
-
       {(shellLoading && location.pathname === '/app') || changingPage ? (
         <s-page heading={pageHeading(nextPathname ?? location.pathname)}>
           <s-section>
@@ -260,13 +250,26 @@ function AppShell() {
           </s-section>
         </s-page>
       ) : (
-        <Outlet
-          context={{
-            bootstrapData,
-            bootstrapError,
-            shellLoading,
-          }}
-        />
+        <PageBannerContext.Provider
+          value={
+            showSetupTrail ? (
+              <SetupTrail
+                pathname={location.pathname}
+                done={setupProgress.completedCount}
+                total={setupProgress.totalSteps}
+                nextStep={setupProgress.nextStep}
+              />
+            ) : null
+          }
+        >
+          <Outlet
+            context={{
+              bootstrapData,
+              bootstrapError,
+              shellLoading,
+            }}
+          />
+        </PageBannerContext.Provider>
       )}
     </>
   );
