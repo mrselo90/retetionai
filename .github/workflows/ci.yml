@@ -35,7 +35,8 @@ jobs:
         run: pnpm -r lint
       
       - name: Type check
-        run: pnpm -r typecheck
+        # api and workers resolve @recete/shared through its built types, so build it first.
+        run: pnpm --filter @recete/shared build && pnpm -r typecheck
 
   build:
     name: Build
