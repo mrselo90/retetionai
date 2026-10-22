@@ -117,7 +117,7 @@ export default function ProductDetailPage() {
     }
   }, [productId]);
 
-  const loadProduct = async () => {
+  async function loadProduct() {
     try {
       const {
         data: { session },
@@ -154,7 +154,7 @@ export default function ProductDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleSave = async () => {
     if (!product) return;

@@ -52,11 +52,7 @@ export default function CustomerDetailPage() {
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadCustomer();
-  }, [customerId]);
-
-  const loadCustomer = async () => {
+  async function loadCustomer() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -70,7 +66,11 @@ export default function CustomerDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    loadCustomer();
+  }, [customerId]);
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
