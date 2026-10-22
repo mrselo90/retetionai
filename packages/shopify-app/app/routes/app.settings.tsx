@@ -3,25 +3,8 @@ import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 're
 import { SaveBar } from '@shopify/app-bridge-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { AlertCircleIcon, LockIcon } from '@shopify/polaris-icons';
-import {
-  Banner,
-  BlockStack,
-  Box,
-  Button,
-  Checkbox,
-  InlineGrid,
-  InlineStack,
-  Layout,
-  Page,
-  Spinner,
-  Select,
-  SkeletonBodyText,
-  SkeletonDisplayText,
-  SkeletonPage,
-  Text,
-  TextField,
-} from '@shopify/polaris';
+import { LockIcon } from '@shopify/polaris-icons';
+import { Button, Checkbox, Select, TextField } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import { shellSetupProgress, useAppBootstrapData } from './app';
 import { PlanGate } from '../components/PlanGate';
@@ -41,7 +24,7 @@ import {
   type MerchantSettingsRecord,
   type ShopifyMerchantOverview,
 } from '../platform.server';
-import { SectionCard, StatusBadge } from '../components/shell-ui';
+import { AppPage, SectionCard, StatusBadge } from '../components/shell-ui';
 import { getPlanSnapshotByDomain } from '../services/planService.server';
 import { GROWTH_MONTHLY_PLAN } from '../services/planDefinitions';
 import { persistMessagingSetup } from '../lib/persistMessagingSetup';
@@ -556,23 +539,22 @@ export default function SettingsPage() {
 
   if (navigation.state === 'loading') {
     return (
-      <SkeletonPage title="Settings" primaryAction>
-        <Layout>
-          <Layout.Section>
-            <Box padding="500" borderWidth="025" borderColor="border" borderRadius="200">
-              <SkeletonDisplayText size="small" />
-              <SkeletonBodyText lines={4} />
-            </Box>
-          </Layout.Section>
-        </Layout>
-      </SkeletonPage>
+      <AppPage
+        heading="Settings"
+        subtitle="Adjust bot behavior, welcome messaging, languages, and safety rules."
+      >
+        <s-section>
+          <s-stack alignItems="center" padding="large">
+            <s-spinner accessibilityLabel="Loading settings" size="large" />
+          </s-stack>
+        </s-section>
+      </AppPage>
     );
   }
 
   return (
-    <Page
-      fullWidth
-      title="Settings"
+    <AppPage
+      heading="Settings"
       subtitle="Adjust bot behavior, welcome messaging, languages, and safety rules."
     >
       {/* Shopify's own save bar in the admin frame, not one drawn inside the
@@ -587,703 +569,609 @@ export default function SettingsPage() {
         </button>
       </SaveBar>
 
-      <Layout>
-        <Layout.Section>
-          {busy ? <Spinner accessibilityLabel="Saving" size="small" /> : null}
-        </Layout.Section>
+      {busy ? <s-spinner accessibilityLabel="Saving" size="base" /> : null}
 
-        {data.dataUnavailable ? (
-          <Layout.Section>
-            <Banner tone="warning" title="Couldn't reach Recete">
-              <p>
-                Some fields below may be blank even if you've already configured them, because we
-                couldn't load your current settings. Refresh before saving, or you risk overwriting
-                real settings with these blanks.
-              </p>
-            </Banner>
-          </Layout.Section>
-        ) : null}
+      {data.dataUnavailable ? (
+        <s-banner tone="warning" heading="Couldn't reach Recete">
+          <s-paragraph>
+            Some fields below may be blank even if you&apos;ve already configured them, because we
+            couldn&apos;t load your current settings. Refresh before saving, or you risk overwriting
+            real settings with these blanks.
+          </s-paragraph>
+        </s-banner>
+      ) : null}
 
-        {setupBlocker ? (
-          <Layout.Section>
-            <Banner tone={setupBlocker.tone} title={setupBlocker.title}>
-              {setupBlocker.body}
-            </Banner>
-          </Layout.Section>
-        ) : null}
+      {setupBlocker ? (
+        <s-banner tone={setupBlocker.tone} heading={setupBlocker.title}>
+          <s-paragraph>{setupBlocker.body}</s-paragraph>
+        </s-banner>
+      ) : null}
 
-        {showCoreError ? (
-          <Layout.Section>
-            <Banner tone="critical" title="Could not save core settings">
-              <Text as="p" variant="bodyMd">
-                {actionData?.error || 'Settings action failed.'}
-              </Text>
-            </Banner>
-          </Layout.Section>
-        ) : null}
+      {showCoreError ? (
+        <s-banner tone="critical" heading="Could not save core settings">
+          <s-paragraph>{actionData?.error || 'Settings action failed.'}</s-paragraph>
+        </s-banner>
+      ) : null}
 
-        {showGuardrailError ? (
-          <Layout.Section>
-            <Banner tone="critical" title="Could not update guardrails">
-              <Text as="p" variant="bodyMd">
-                {actionData?.error || 'Settings action failed.'}
-              </Text>
-            </Banner>
-          </Layout.Section>
-        ) : null}
+      {showGuardrailError ? (
+        <s-banner tone="critical" heading="Could not update guardrails">
+          <s-paragraph>{actionData?.error || 'Settings action failed.'}</s-paragraph>
+        </s-banner>
+      ) : null}
 
-        {showAddonSuccess && actionData?.confirmationUrl ? (
-          <Layout.Section>
-            <Banner tone="success" title="Add-on updated">
-              <Text as="p" variant="bodyMd">
-                {actionData?.message || 'Add-on status updated.'}
-              </Text>
-              {actionData?.confirmationUrl ? (
-                <Box paddingBlockStart="300">
-                  <Button url={actionData.confirmationUrl} target="_top" variant="primary">
-                    Open approval in Shopify
-                  </Button>
-                </Box>
-              ) : null}
-            </Banner>
-          </Layout.Section>
-        ) : null}
+      {showAddonSuccess && actionData?.confirmationUrl ? (
+        <s-banner tone="success" heading="Add-on updated">
+          <s-paragraph>{actionData?.message || 'Add-on status updated.'}</s-paragraph>
+          {actionData?.confirmationUrl ? (
+            <s-button
+              slot="secondary-actions"
+              variant="primary"
+              href={actionData.confirmationUrl}
+              target="_top"
+            >
+              Open approval in Shopify
+            </s-button>
+          ) : null}
+        </s-banner>
+      ) : null}
 
-        {showAddonError ? (
-          <Layout.Section>
-            <Banner tone="critical" title="Could not update add-on">
-              <Text as="p" variant="bodyMd">
-                {actionData?.error || 'Settings action failed.'}
-              </Text>
-            </Banner>
-          </Layout.Section>
-        ) : null}
+      {showAddonError ? (
+        <s-banner tone="critical" heading="Could not update add-on">
+          <s-paragraph>{actionData?.error || 'Settings action failed.'}</s-paragraph>
+        </s-banner>
+      ) : null}
 
-        {showWipeError ? (
-          <Layout.Section>
-            <Banner tone="critical" title="Could not delete store data">
-              <Text as="p" variant="bodyMd">
-                {actionData?.error}
-              </Text>
-            </Banner>
-          </Layout.Section>
-        ) : null}
+      {showWipeError ? (
+        <s-banner tone="critical" heading="Could not delete store data">
+          <s-paragraph>{actionData?.error}</s-paragraph>
+        </s-banner>
+      ) : null}
 
-        {actionData?.error &&
-        !['save-core', 'save-guardrails', 'toggle-addon', 'wipe-merchant-data'].includes(
-          actionData.intent || ''
-        ) ? (
-          <Layout.Section>
-            <Banner tone="critical" icon={AlertCircleIcon}>
-              <Text as="p" variant="bodyMd">
-                {actionData.error}
-              </Text>
-            </Banner>
-          </Layout.Section>
-        ) : null}
+      {actionData?.error &&
+      !['save-core', 'save-guardrails', 'toggle-addon', 'wipe-merchant-data'].includes(
+        actionData.intent || ''
+      ) ? (
+        <s-banner tone="critical">
+          <s-paragraph>{actionData.error}</s-paragraph>
+        </s-banner>
+      ) : null}
 
-        {actionData?.message &&
-        actionData.confirmationUrl &&
-        !['save-core', 'save-guardrails', 'toggle-addon', 'wipe-merchant-data'].includes(
-          actionData.intent || ''
-        ) ? (
-          <Layout.Section>
-            <Banner tone="success">
-              <Text as="p" variant="bodyMd">
-                {actionData.message}
-              </Text>
-              <Box paddingBlockStart="300">
-                <Button url={actionData.confirmationUrl} target="_top" variant="primary">
-                  Approve add-on in Shopify
-                </Button>
-              </Box>
-            </Banner>
-          </Layout.Section>
-        ) : null}
+      {actionData?.message &&
+      actionData.confirmationUrl &&
+      !['save-core', 'save-guardrails', 'toggle-addon', 'wipe-merchant-data'].includes(
+        actionData.intent || ''
+      ) ? (
+        <s-banner tone="success">
+          <s-paragraph>{actionData.message}</s-paragraph>
+          <s-button
+            slot="secondary-actions"
+            variant="primary"
+            href={actionData.confirmationUrl}
+            target="_top"
+          >
+            Approve add-on in Shopify
+          </s-button>
+        </s-banner>
+      ) : null}
 
-        <Layout.Section>
-          <Box padding="300" borderWidth="025" borderColor="border" borderRadius="200">
-            <InlineGrid columns={{ xs: 2, md: 4 }} gap="200">
-              <SettingsSummaryStat
+      <s-section>
+        <s-grid gridTemplateColumns="repeat(auto-fit, minmax(160px, 1fr))" gap="base">
+          <SettingsSummaryStat
+            label="Bot name"
+            value={formState.bot_name || 'Recete'}
+            hint="Customer-facing assistant"
+          />
+          <SettingsSummaryStat
+            label="Languages"
+            value={enabledLanguageCount || 1}
+            hint="Customer reply languages"
+          />
+          <SettingsSummaryStat
+            label="Guardrails"
+            value={data.guardrails.custom_guardrails.length}
+            hint={
+              data.guardrails.custom_guardrails.length > 0
+                ? 'Custom rules added'
+                : 'No custom rules yet'
+            }
+          />
+          <SettingsSummaryStat
+            label="Add-ons"
+            value={activeAddonCount}
+            hint={activeAddonCount > 0 ? 'Active features' : 'No active add-ons'}
+          />
+        </s-grid>
+      </s-section>
+
+      <SectionCard
+        id="core-settings"
+        title="Bot behavior"
+        subtitle="How your assistant introduces itself and talks to customers."
+      >
+        <Form method="post" ref={formRef}>
+          <input type="hidden" name="intent" value="save-core" />
+          <s-stack gap="base">
+            <s-grid gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))" gap="base">
+              <TextField
                 label="Bot name"
-                value={formState.bot_name || 'Recete'}
-                hint="Customer-facing assistant"
+                name="bot_name"
+                value={formState.bot_name}
+                onChange={(value) => setFormState((current) => ({ ...current, bot_name: value }))}
+                autoComplete="off"
               />
-              <SettingsSummaryStat
-                label="Languages"
-                value={enabledLanguageCount || 1}
-                hint="Customer reply languages"
+              <TextField
+                label="Notification phone"
+                name="notification_phone"
+                value={formState.notification_phone}
+                onChange={(value) =>
+                  setFormState((current) => ({ ...current, notification_phone: value }))
+                }
+                autoComplete="off"
               />
-              <SettingsSummaryStat
-                label="Guardrails"
-                value={data.guardrails.custom_guardrails.length}
-                hint={
-                  data.guardrails.custom_guardrails.length > 0
-                    ? 'Custom rules added'
-                    : 'No custom rules yet'
+              <Select
+                label="Tone"
+                name="tone"
+                value={formState.tone}
+                options={[
+                  { label: 'Friendly', value: 'friendly' },
+                  { label: 'Professional', value: 'professional' },
+                  { label: 'Casual', value: 'casual' },
+                  { label: 'Formal', value: 'formal' },
+                ]}
+                onChange={(value) =>
+                  setFormState((current) => ({
+                    ...current,
+                    tone: value as typeof current.tone,
+                  }))
                 }
               />
-              <SettingsSummaryStat
-                label="Add-ons"
-                value={activeAddonCount}
-                hint={activeAddonCount > 0 ? 'Active features' : 'No active add-ons'}
+              <Select
+                label="Response length"
+                name="response_length"
+                value={formState.response_length}
+                options={[
+                  { label: 'Short', value: 'short' },
+                  { label: 'Medium', value: 'medium' },
+                  { label: 'Long', value: 'long' },
+                ]}
+                onChange={(value) =>
+                  setFormState((current) => ({
+                    ...current,
+                    response_length: value as typeof current.response_length,
+                  }))
+                }
               />
-            </InlineGrid>
-          </Box>
-        </Layout.Section>
-
-        <Layout.Section>
-          <SectionCard
-            id="core-settings"
-            title="Bot behavior"
-            subtitle="How your assistant introduces itself and talks to customers."
-          >
-            <Form method="post" ref={formRef}>
-              <input type="hidden" name="intent" value="save-core" />
-              <BlockStack gap="400">
-                <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">
-                  <TextField
-                    label="Bot name"
-                    name="bot_name"
-                    value={formState.bot_name}
-                    onChange={(value) =>
-                      setFormState((current) => ({ ...current, bot_name: value }))
-                    }
-                    autoComplete="off"
-                  />
-                  <TextField
-                    label="Notification phone"
-                    name="notification_phone"
-                    value={formState.notification_phone}
-                    onChange={(value) =>
-                      setFormState((current) => ({ ...current, notification_phone: value }))
-                    }
-                    autoComplete="off"
-                  />
-                  <Select
-                    label="Tone"
-                    name="tone"
-                    value={formState.tone}
-                    options={[
-                      { label: 'Friendly', value: 'friendly' },
-                      { label: 'Professional', value: 'professional' },
-                      { label: 'Casual', value: 'casual' },
-                      { label: 'Formal', value: 'formal' },
-                    ]}
-                    onChange={(value) =>
-                      setFormState((current) => ({
-                        ...current,
-                        tone: value as typeof current.tone,
-                      }))
-                    }
-                  />
-                  <Select
-                    label="Response length"
-                    name="response_length"
-                    value={formState.response_length}
-                    options={[
-                      { label: 'Short', value: 'short' },
-                      { label: 'Medium', value: 'medium' },
-                      { label: 'Long', value: 'long' },
-                    ]}
-                    onChange={(value) =>
-                      setFormState((current) => ({
-                        ...current,
-                        response_length: value as typeof current.response_length,
-                      }))
-                    }
-                  />
-                </InlineGrid>
-                <InlineStack gap="300" wrap>
-                  {/* Polaris Checkbox draws its tick from the `checked` prop, but a
-                      form submit reads the DOM input, and the two drifted: a
-                      ticked box was saved as off. Submit what the merchant sees. */}
-                  <input type="hidden" name="emoji" value={formState.emoji ? 'on' : 'off'} />
-                  <Checkbox
-                    label="Allow emoji in responses"
-                    checked={formState.emoji}
-                    onChange={(checked) =>
-                      setFormState((current) => ({ ...current, emoji: checked }))
-                    }
-                  />
-                </InlineStack>
-
-                <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                  <BlockStack gap="300">
-                    <BlockStack gap="050">
-                      <Text as="h3" variant="headingSm">
-                        Customer reply languages
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        Choose the languages Recete can use when replying to customers. Recete will
-                        detect source content language automatically.
-                      </Text>
-                    </BlockStack>
-                    <input type="hidden" name="enabled_langs" value={formState.enabled_langs} />
-                    <InlineGrid columns={{ xs: 1, md: 2, lg: 3 }} gap="200">
-                      {SERVICE_LANGUAGE_OPTIONS.map((option) => (
-                        <Checkbox
-                          key={option.value}
-                          label={option.label}
-                          checked={selectedServiceLanguages.includes(option.value)}
-                          onChange={(checked) => toggleServiceLanguage(option.value, checked)}
-                          disabled={
-                            selectedServiceLanguages.length === 1 &&
-                            selectedServiceLanguages.includes(option.value)
-                          }
-                        />
-                      ))}
-                    </InlineGrid>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      When you add a new customer reply language, Recete must rebuild product
-                      knowledge for that language before answers are fully ready.
-                    </Text>
-                  </BlockStack>
-                </Box>
-
-                <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                  <BlockStack gap="300">
-                    <BlockStack gap="050">
-                      <Text as="h3" variant="headingSm">
-                        Welcome message
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        Recete uses this as the default post-delivery message. Customer and order
-                        details are inserted automatically.
-                      </Text>
-                    </BlockStack>
-                    <Select
-                      label="WhatsApp message send rule"
-                      name="message_send_mode"
-                      value={formState.message_send_mode}
-                      options={[
-                        { label: 'Always send', value: 'always' },
-                        {
-                          label: 'Send only if all products are defined in Recete',
-                          value: 'all_products_required',
-                        },
-                      ]}
-                      onChange={(value) =>
-                        setFormState((current) => ({
-                          ...current,
-                          message_send_mode: value as CoreSettingsFormState['message_send_mode'],
-                        }))
-                      }
-                      helpText="Always send: a welcome message is sent for every delivery, even if some products are not defined in Recete. All products defined: the message is only sent when every product in the order has usage instructions in Recete."
-                    />
-                    <Banner tone="info">
-                      Recete sends this text as a normal WhatsApp message inside the 24-hour window.
-                      Outside that window, the platform handles template delivery automatically.
-                    </Banner>
-                    <TextField
-                      label="Welcome template body"
-                      name="whatsapp_welcome_template"
-                      value={formState.whatsapp_welcome_template}
-                      onChange={(value) =>
-                        setFormState((current) => ({
-                          ...current,
-                          whatsapp_welcome_template: value,
-                        }))
-                      }
-                      autoComplete="off"
-                      multiline={6}
-                      helpText="Supported placeholders are listed below."
-                    />
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodyMd" fontWeight="medium">
-                        Insert variables
-                      </Text>
-                      <InlineStack gap="200" wrap>
-                        {WELCOME_TEMPLATE_TOKENS.map((item) => (
-                          <Button
-                            key={item.token}
-                            onClick={() =>
-                              setFormState((current) => ({
-                                ...current,
-                                whatsapp_welcome_template: appendWelcomeTemplateToken(
-                                  current.whatsapp_welcome_template,
-                                  item.token
-                                ),
-                              }))
-                            }
-                          >
-                            {item.label}
-                          </Button>
-                        ))}
-                      </InlineStack>
-                      <BlockStack gap="050">
-                        {WELCOME_TEMPLATE_TOKENS.map((item) => (
-                          <Text key={item.token} as="p" variant="bodySm" tone="subdued">
-                            <strong>{item.token}</strong> {item.help}
-                          </Text>
-                        ))}
-                      </BlockStack>
-                    </BlockStack>
-                    <Box padding="300" background="bg-surface" borderRadius="200">
-                      <BlockStack gap="200">
-                        <Text as="h3" variant="headingSm">
-                          Preview
-                        </Text>
-                        <Text as="p" variant="bodyMd">
-                          {welcomeTemplatePreview}
-                        </Text>
-                      </BlockStack>
-                    </Box>
-                  </BlockStack>
-                </Box>
-                <PlanGate
-                  blocked={onStarter}
-                  requiredPlan="GROWTH"
-                  upgradePlan={GROWTH_MONTHLY_PLAN}
-                  upgradeUrl={data.managedPricingUrl}
-                  title="AI Vision"
-                  message="Photo analysis is part of the Growth plan. Upgrade to let customers send a photo of their product and get an answer about it."
-                >
-                  <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                    <BlockStack gap="300">
-                      <Text as="h3" variant="headingSm">
-                        AI Vision
-                      </Text>
-                      <input
-                        type="hidden"
-                        name="ai_vision_enabled"
-                        value={formState.ai_vision_enabled ? 'on' : 'off'}
-                      />
-                      <Checkbox
-                        label="Enable AI Vision for customer photos (Growth or Pro plan required)"
-                        checked={formState.ai_vision_enabled}
-                        onChange={(checked) =>
-                          setFormState((current) => ({ ...current, ai_vision_enabled: checked }))
-                        }
-                        helpText="Customers can send a photo on WhatsApp (for example of a damaged item) and Recete answers about what it shows."
-                      />
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        {aiVisionEnabled
-                          ? 'AI Vision is enabled for this shop.'
-                          : 'AI Vision is off for this shop. Turn it on when you want to allow customer photo analysis.'}
-                      </Text>
-                    </BlockStack>
-                  </Box>
-                </PlanGate>
-              </BlockStack>
-            </Form>
-          </SectionCard>
-        </Layout.Section>
-
-        <Layout.Section>
-          <SectionCard
-            id="guardrails"
-            title="Safety rules"
-            subtitle="Add only the rules you need. Too many make answers worse."
-            badge={
-              <StatusBadge
-                status={data.guardrails.custom_guardrails.length > 0 ? 'active' : 'pending'}
-              >
-                {data.guardrails.custom_guardrails.length > 0 ? 'Configured' : 'Not configured'}
-              </StatusBadge>
-            }
-          >
-            <Form method="post">
-              <input type="hidden" name="intent" value="save-guardrails" />
-              <input
-                type="hidden"
-                name="guardrails_json"
-                value={JSON.stringify(data.guardrails.custom_guardrails)}
+            </s-grid>
+            <s-box>
+              {/* Polaris Checkbox draws its tick from the `checked` prop, but a
+                  form submit reads the DOM input, and the two drifted: a
+                  ticked box was saved as off. Submit what the merchant sees. */}
+              <input type="hidden" name="emoji" value={formState.emoji ? 'on' : 'off'} />
+              <Checkbox
+                label="Allow emoji in responses"
+                checked={formState.emoji}
+                onChange={(checked) => setFormState((current) => ({ ...current, emoji: checked }))}
               />
-              <BlockStack gap="400">
-                <Banner tone="info">
-                  Add a short internal name and at least one keyword or phrase before saving.
-                </Banner>
-                <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">
-                  <TextField
-                    label="Guardrail name"
-                    name="guardrail_name"
-                    value={guardrailDraft.name}
-                    onChange={(value) =>
-                      setGuardrailDraft((current) => ({ ...current, name: value }))
-                    }
-                    autoComplete="off"
-                    requiredIndicator
-                    helpText="Required. Use a short internal label such as Refund abuse or VIP escalation."
-                    error={
-                      showGuardrailError && guardrailNameMissing
-                        ? 'Enter a guardrail name.'
-                        : undefined
-                    }
-                  />
-                  <TextField
-                    label="Match keywords or phrase"
-                    name="guardrail_value"
-                    value={guardrailDraft.value}
-                    onChange={(value) => setGuardrailDraft((current) => ({ ...current, value }))}
-                    autoComplete="off"
-                    requiredIndicator
-                    helpText="Required. Enter comma-separated keywords or one exact phrase."
-                    error={
-                      showGuardrailError && guardrailValueMissing
-                        ? 'Enter keywords or a phrase to match.'
-                        : undefined
-                    }
-                  />
-                  <Select
-                    label="Apply to"
-                    name="guardrail_apply_to"
-                    value={guardrailDraft.apply_to}
-                    options={[
-                      { label: 'Both user and AI', value: 'both' },
-                      { label: 'User message', value: 'user_message' },
-                      { label: 'AI response', value: 'ai_response' },
-                    ]}
-                    onChange={(value) =>
-                      setGuardrailDraft((current) => ({
-                        ...current,
-                        apply_to: value as GuardrailDraft['apply_to'],
-                      }))
-                    }
-                  />
-                  <Select
-                    label="Match type"
-                    name="guardrail_match_type"
-                    value={guardrailDraft.match_type}
-                    options={[
-                      { label: 'Keywords (comma-separated words)', value: 'keywords' },
-                      { label: 'Exact phrase (full match)', value: 'phrase' },
-                    ]}
-                    helpText="Keywords: triggers if any listed word appears. Exact phrase: triggers only on the complete phrase."
-                    onChange={(value) =>
-                      setGuardrailDraft((current) => ({
-                        ...current,
-                        match_type: value as GuardrailDraft['match_type'],
-                      }))
-                    }
-                  />
-                  <Select
-                    label="Action"
-                    name="guardrail_action"
-                    value={guardrailDraft.action}
-                    options={[
-                      { label: 'Block answer', value: 'block' },
-                      { label: 'Escalate to human', value: 'escalate' },
-                    ]}
-                    onChange={(value) =>
-                      setGuardrailDraft((current) => ({
-                        ...current,
-                        action: value as GuardrailDraft['action'],
-                      }))
-                    }
-                  />
-                </InlineGrid>
-                <TextField
-                  label="Suggested response"
-                  name="guardrail_suggested_response"
-                  value={guardrailDraft.suggested_response}
+            </s-box>
+
+            <s-box padding="base" background="subdued" borderRadius="base">
+              <s-stack gap="base">
+                <s-stack gap="small-300">
+                  <s-heading>Customer reply languages</s-heading>
+                  <s-paragraph color="subdued">
+                    Choose the languages Recete can use when replying to customers. Recete will
+                    detect source content language automatically.
+                  </s-paragraph>
+                </s-stack>
+                <input type="hidden" name="enabled_langs" value={formState.enabled_langs} />
+                <s-grid gridTemplateColumns="repeat(auto-fit, minmax(160px, 1fr))" gap="small">
+                  {SERVICE_LANGUAGE_OPTIONS.map((option) => (
+                    <Checkbox
+                      key={option.value}
+                      label={option.label}
+                      checked={selectedServiceLanguages.includes(option.value)}
+                      onChange={(checked) => toggleServiceLanguage(option.value, checked)}
+                      disabled={
+                        selectedServiceLanguages.length === 1 &&
+                        selectedServiceLanguages.includes(option.value)
+                      }
+                    />
+                  ))}
+                </s-grid>
+                <s-paragraph color="subdued">
+                  When you add a new customer reply language, Recete must rebuild product knowledge
+                  for that language before answers are fully ready.
+                </s-paragraph>
+              </s-stack>
+            </s-box>
+
+            <s-box padding="base" background="subdued" borderRadius="base">
+              <s-stack gap="base">
+                <s-stack gap="small-300">
+                  <s-heading>Welcome message</s-heading>
+                  <s-paragraph color="subdued">
+                    Recete uses this as the default post-delivery message. Customer and order
+                    details are inserted automatically.
+                  </s-paragraph>
+                </s-stack>
+                <Select
+                  label="WhatsApp message send rule"
+                  name="message_send_mode"
+                  value={formState.message_send_mode}
+                  options={[
+                    { label: 'Always send', value: 'always' },
+                    {
+                      label: 'Send only if all products are defined in Recete',
+                      value: 'all_products_required',
+                    },
+                  ]}
                   onChange={(value) =>
-                    setGuardrailDraft((current) => ({ ...current, suggested_response: value }))
+                    setFormState((current) => ({
+                      ...current,
+                      message_send_mode: value as CoreSettingsFormState['message_send_mode'],
+                    }))
+                  }
+                  helpText="Always send: a welcome message is sent for every delivery, even if some products are not defined in Recete. All products defined: the message is only sent when every product in the order has usage instructions in Recete."
+                />
+                <s-banner tone="info">
+                  <s-paragraph>
+                    Recete sends this text as a normal WhatsApp message inside the 24-hour window.
+                    Outside that window, the platform handles template delivery automatically.
+                  </s-paragraph>
+                </s-banner>
+                <TextField
+                  label="Welcome template body"
+                  name="whatsapp_welcome_template"
+                  value={formState.whatsapp_welcome_template}
+                  onChange={(value) =>
+                    setFormState((current) => ({
+                      ...current,
+                      whatsapp_welcome_template: value,
+                    }))
                   }
                   autoComplete="off"
-                  multiline={4}
+                  multiline={6}
+                  helpText="Supported placeholders are listed below."
                 />
-                <InlineStack>
+                <s-stack gap="small">
+                  <s-text type="strong">Insert variables</s-text>
+                  <s-stack direction="inline" gap="small-200">
+                    {WELCOME_TEMPLATE_TOKENS.map((item) => (
+                      <s-button
+                        key={item.token}
+                        onClick={() =>
+                          setFormState((current) => ({
+                            ...current,
+                            whatsapp_welcome_template: appendWelcomeTemplateToken(
+                              current.whatsapp_welcome_template,
+                              item.token
+                            ),
+                          }))
+                        }
+                      >
+                        {item.label}
+                      </s-button>
+                    ))}
+                  </s-stack>
+                  <s-stack gap="small-500">
+                    {WELCOME_TEMPLATE_TOKENS.map((item) => (
+                      <s-paragraph key={item.token} color="subdued">
+                        <s-text type="strong">{item.token}</s-text> {item.help}
+                      </s-paragraph>
+                    ))}
+                  </s-stack>
+                </s-stack>
+                <s-box padding="base" background="base" borderRadius="base">
+                  <s-stack gap="small">
+                    <s-heading>Preview</s-heading>
+                    <s-paragraph>{welcomeTemplatePreview}</s-paragraph>
+                  </s-stack>
+                </s-box>
+              </s-stack>
+            </s-box>
+            <PlanGate
+              blocked={onStarter}
+              requiredPlan="GROWTH"
+              upgradePlan={GROWTH_MONTHLY_PLAN}
+              upgradeUrl={data.managedPricingUrl}
+              title="AI Vision"
+              message="Photo analysis is part of the Growth plan. Upgrade to let customers send a photo of their product and get an answer about it."
+            >
+              <s-box padding="base" background="subdued" borderRadius="base">
+                <s-stack gap="base">
+                  <s-heading>AI Vision</s-heading>
+                  <input
+                    type="hidden"
+                    name="ai_vision_enabled"
+                    value={formState.ai_vision_enabled ? 'on' : 'off'}
+                  />
+                  <Checkbox
+                    label="Enable AI Vision for customer photos (Growth or Pro plan required)"
+                    checked={formState.ai_vision_enabled}
+                    onChange={(checked) =>
+                      setFormState((current) => ({ ...current, ai_vision_enabled: checked }))
+                    }
+                    helpText="Customers can send a photo on WhatsApp (for example of a damaged item) and Recete answers about what it shows."
+                  />
+                  <s-paragraph color="subdued">
+                    {aiVisionEnabled
+                      ? 'AI Vision is enabled for this shop.'
+                      : 'AI Vision is off for this shop. Turn it on when you want to allow customer photo analysis.'}
+                  </s-paragraph>
+                </s-stack>
+              </s-box>
+            </PlanGate>
+          </s-stack>
+        </Form>
+      </SectionCard>
+
+      <SectionCard
+        id="guardrails"
+        title="Safety rules"
+        subtitle="Add only the rules you need. Too many make answers worse."
+        badge={
+          <StatusBadge status={data.guardrails.custom_guardrails.length > 0 ? 'active' : 'pending'}>
+            {data.guardrails.custom_guardrails.length > 0 ? 'Configured' : 'Not configured'}
+          </StatusBadge>
+        }
+      >
+        <Form method="post">
+          <input type="hidden" name="intent" value="save-guardrails" />
+          <input
+            type="hidden"
+            name="guardrails_json"
+            value={JSON.stringify(data.guardrails.custom_guardrails)}
+          />
+          <s-stack gap="base">
+            <s-banner tone="info">
+              <s-paragraph>
+                Add a short internal name and at least one keyword or phrase before saving.
+              </s-paragraph>
+            </s-banner>
+            <s-grid gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))" gap="base">
+              <TextField
+                label="Guardrail name"
+                name="guardrail_name"
+                value={guardrailDraft.name}
+                onChange={(value) => setGuardrailDraft((current) => ({ ...current, name: value }))}
+                autoComplete="off"
+                requiredIndicator
+                helpText="Required. Use a short internal label such as Refund abuse or VIP escalation."
+                error={
+                  showGuardrailError && guardrailNameMissing ? 'Enter a guardrail name.' : undefined
+                }
+              />
+              <TextField
+                label="Match keywords or phrase"
+                name="guardrail_value"
+                value={guardrailDraft.value}
+                onChange={(value) => setGuardrailDraft((current) => ({ ...current, value }))}
+                autoComplete="off"
+                requiredIndicator
+                helpText="Required. Enter comma-separated keywords or one exact phrase."
+                error={
+                  showGuardrailError && guardrailValueMissing
+                    ? 'Enter keywords or a phrase to match.'
+                    : undefined
+                }
+              />
+              <Select
+                label="Apply to"
+                name="guardrail_apply_to"
+                value={guardrailDraft.apply_to}
+                options={[
+                  { label: 'Both user and AI', value: 'both' },
+                  { label: 'User message', value: 'user_message' },
+                  { label: 'AI response', value: 'ai_response' },
+                ]}
+                onChange={(value) =>
+                  setGuardrailDraft((current) => ({
+                    ...current,
+                    apply_to: value as GuardrailDraft['apply_to'],
+                  }))
+                }
+              />
+              <Select
+                label="Match type"
+                name="guardrail_match_type"
+                value={guardrailDraft.match_type}
+                options={[
+                  { label: 'Keywords (comma-separated words)', value: 'keywords' },
+                  { label: 'Exact phrase (full match)', value: 'phrase' },
+                ]}
+                helpText="Keywords: triggers if any listed word appears. Exact phrase: triggers only on the complete phrase."
+                onChange={(value) =>
+                  setGuardrailDraft((current) => ({
+                    ...current,
+                    match_type: value as GuardrailDraft['match_type'],
+                  }))
+                }
+              />
+              <Select
+                label="Action"
+                name="guardrail_action"
+                value={guardrailDraft.action}
+                options={[
+                  { label: 'Block answer', value: 'block' },
+                  { label: 'Escalate to human', value: 'escalate' },
+                ]}
+                onChange={(value) =>
+                  setGuardrailDraft((current) => ({
+                    ...current,
+                    action: value as GuardrailDraft['action'],
+                  }))
+                }
+              />
+            </s-grid>
+            <TextField
+              label="Suggested response"
+              name="guardrail_suggested_response"
+              value={guardrailDraft.suggested_response}
+              onChange={(value) =>
+                setGuardrailDraft((current) => ({ ...current, suggested_response: value }))
+              }
+              autoComplete="off"
+              multiline={4}
+            />
+            <s-stack direction="inline">
+              <Button
+                submit
+                variant="primary"
+                icon={LockIcon}
+                loading={busy}
+                disabled={guardrailDraftIncomplete}
+              >
+                Add guardrail
+              </Button>
+            </s-stack>
+          </s-stack>
+        </Form>
+
+        <s-stack gap="small">
+          {data.guardrails.system_guardrails.map((guardrail) => (
+            <s-box key={guardrail.id} padding="base" border="base" borderRadius="base">
+              <s-grid gridTemplateColumns="1fr auto" gap="small" alignItems="start">
+                <s-stack gap="small-400">
+                  <s-heading>{guardrail.name}</s-heading>
+                  <s-paragraph color="subdued">{guardrail.description}</s-paragraph>
+                </s-stack>
+                <StatusBadge status="active">System</StatusBadge>
+              </s-grid>
+            </s-box>
+          ))}
+          {data.guardrails.custom_guardrails.map((guardrail) => (
+            <s-box key={guardrail.id} padding="base" border="base" borderRadius="base">
+              <s-grid gridTemplateColumns="1fr auto" gap="small" alignItems="start">
+                <s-stack gap="small-400">
+                  <s-heading>{guardrail.name}</s-heading>
+                  <s-paragraph color="subdued">
+                    {Array.isArray(guardrail.value) ? guardrail.value.join(', ') : guardrail.value}
+                  </s-paragraph>
+                </s-stack>
+                <StatusBadge status={guardrail.action === 'block' ? 'failed' : 'pending'}>
+                  {guardrail.action}
+                </StatusBadge>
+              </s-grid>
+            </s-box>
+          ))}
+        </s-stack>
+      </SectionCard>
+
+      <SectionCard
+        title="Add-ons"
+        subtitle="Turn on only what you will use."
+        badge={
+          <StatusBadge status={activeAddonCount > 0 ? 'active' : 'pending'}>
+            {activeAddonCount > 0 ? `${activeAddonCount} active` : 'No add-ons active'}
+          </StatusBadge>
+        }
+      >
+        <s-banner tone="info">
+          <s-paragraph>
+            {onStarter
+              ? 'Growth unlocks AI Vision. Pro unlocks the advanced add-ons.'
+              : data.plan.planType === 'GROWTH'
+                ? 'Pro unlocks the advanced add-ons listed below.'
+                : 'Your current plan can use any compatible add-on below.'}
+          </s-paragraph>
+        </s-banner>
+        {data.plan.planType !== 'PRO' ? (
+          <s-stack direction="inline">
+            <s-button href={data.managedPricingUrl} target="_top">
+              View plan options
+            </s-button>
+          </s-stack>
+        ) : null}
+        {data.addons.length > 0 ? (
+          <s-stack gap="small">
+            {data.addons.map((addon) => (
+              <s-box key={addon.key} padding="base" border="base" borderRadius="base">
+                <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="center">
+                  <s-stack gap="small-400">
+                    <s-stack direction="inline" gap="small-300" alignItems="center">
+                      <s-heading>{addon.name}</s-heading>
+                      <StatusBadge status={addon.status}>{addon.status}</StatusBadge>
+                    </s-stack>
+                    <s-paragraph color="subdued">{addon.description}</s-paragraph>
+                    <s-paragraph color="subdued">
+                      ${addon.priceMonthly}/month{' '}
+                      {addon.planAllowed ? 'for this plan' : 'after a plan upgrade'}
+                    </s-paragraph>
+                  </s-stack>
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="toggle-addon" />
+                    <input type="hidden" name="addon_key" value={addon.key} />
+                    <input type="hidden" name="addon_status" value={addon.status} />
+                    <Button
+                      submit
+                      variant={addon.status === 'active' ? 'secondary' : 'primary'}
+                      disabled={!addon.planAllowed && addon.status !== 'active'}
+                    >
+                      {addon.status === 'active'
+                        ? 'Disable add-on'
+                        : addon.planAllowed
+                          ? 'Enable add-on'
+                          : 'Upgrade required'}
+                    </Button>
+                  </Form>
+                </s-grid>
+              </s-box>
+            ))}
+          </s-stack>
+        ) : (
+          <s-paragraph color="subdued">
+            No add-ons are configured for this merchant yet.
+          </s-paragraph>
+        )}
+      </SectionCard>
+
+      <SectionCard
+        title="Delete store data"
+        subtitle="Permanently remove your store's data from Recete. Rarely needed."
+      >
+        {!showDataDeletion ? (
+          <s-stack direction="inline">
+            <s-button variant="tertiary" tone="critical" onClick={() => setShowDataDeletion(true)}>
+              Show data deletion
+            </s-button>
+          </s-stack>
+        ) : (
+          <s-stack gap="base">
+            <s-banner tone="critical">
+              <s-paragraph>
+                This deletes your products, product knowledge, conversations, orders, customers,
+                analytics, add-ons, settings, integrations and WhatsApp records from Recete. Your
+                account itself stays. This cannot be undone.
+              </s-paragraph>
+            </s-banner>
+            <Form method="post">
+              <input type="hidden" name="intent" value="wipe-merchant-data" />
+              <s-stack gap="base">
+                <TextField
+                  label={`Type "${MERCHANT_RESET_CONFIRM_PHRASE}" to confirm`}
+                  name="wipe_confirmation"
+                  value={wipeConfirmation}
+                  onChange={setWipeConfirmation}
+                  autoComplete="off"
+                  helpText="This protects against accidental data deletion."
+                />
+                <s-stack direction="inline">
                   <Button
                     submit
+                    tone="critical"
                     variant="primary"
-                    icon={LockIcon}
                     loading={busy}
-                    disabled={guardrailDraftIncomplete}
+                    disabled={wipeConfirmation.trim() !== MERCHANT_RESET_CONFIRM_PHRASE}
                   >
-                    Add guardrail
+                    Delete all store data
                   </Button>
-                </InlineStack>
-              </BlockStack>
+                </s-stack>
+              </s-stack>
             </Form>
-
-            <Box paddingBlockStart="400">
-              <BlockStack gap="200">
-                {data.guardrails.system_guardrails.map((guardrail) => (
-                  <Box
-                    key={guardrail.id}
-                    padding="300"
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="200"
-                  >
-                    <InlineGrid columns={{ xs: 1, md: '2fr auto' }} gap="200">
-                      <BlockStack gap="100">
-                        <Text as="h3" variant="headingSm">
-                          {guardrail.name}
-                        </Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {guardrail.description}
-                        </Text>
-                      </BlockStack>
-                      <InlineStack align="end">
-                        <StatusBadge status="active">System</StatusBadge>
-                      </InlineStack>
-                    </InlineGrid>
-                  </Box>
-                ))}
-                {data.guardrails.custom_guardrails.map((guardrail) => (
-                  <Box
-                    key={guardrail.id}
-                    padding="300"
-                    borderWidth="025"
-                    borderColor="border"
-                    borderRadius="200"
-                  >
-                    <InlineGrid columns={{ xs: 1, md: '2fr auto' }} gap="200">
-                      <BlockStack gap="100">
-                        <Text as="h3" variant="headingSm">
-                          {guardrail.name}
-                        </Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {Array.isArray(guardrail.value)
-                            ? guardrail.value.join(', ')
-                            : guardrail.value}
-                        </Text>
-                      </BlockStack>
-                      <InlineStack align="end">
-                        <StatusBadge status={guardrail.action === 'block' ? 'failed' : 'pending'}>
-                          {guardrail.action}
-                        </StatusBadge>
-                      </InlineStack>
-                    </InlineGrid>
-                  </Box>
-                ))}
-              </BlockStack>
-            </Box>
-          </SectionCard>
-        </Layout.Section>
-
-        <Layout.Section>
-          <SectionCard
-            title="Add-ons"
-            subtitle="Turn on only what you will use."
-            badge={
-              <StatusBadge status={activeAddonCount > 0 ? 'active' : 'pending'}>
-                {activeAddonCount > 0 ? `${activeAddonCount} active` : 'No add-ons active'}
-              </StatusBadge>
-            }
-          >
-            <BlockStack gap="300">
-              <Banner tone="info">
-                {onStarter
-                  ? 'Growth unlocks AI Vision. Pro unlocks the advanced add-ons.'
-                  : data.plan.planType === 'GROWTH'
-                    ? 'Pro unlocks the advanced add-ons listed below.'
-                    : 'Your current plan can use any compatible add-on below.'}
-              </Banner>
-              {data.plan.planType !== 'PRO' ? (
-                <InlineStack>
-                  <Button url={data.managedPricingUrl} target="_top">
-                    View plan options
-                  </Button>
-                </InlineStack>
-              ) : null}
-              {data.addons.length > 0 ? (
-                <BlockStack gap="200">
-                  {data.addons.map((addon) => (
-                    <Box
-                      key={addon.key}
-                      padding="300"
-                      borderWidth="025"
-                      borderColor="border"
-                      borderRadius="200"
-                    >
-                      <InlineGrid columns={{ xs: 1, md: '2fr auto' }} gap="300">
-                        <BlockStack gap="100">
-                          <InlineStack gap="150" wrap blockAlign="center">
-                            <Text as="h3" variant="headingSm">
-                              {addon.name}
-                            </Text>
-                            <StatusBadge status={addon.status}>{addon.status}</StatusBadge>
-                          </InlineStack>
-                          <Text as="p" variant="bodySm" tone="subdued">
-                            {addon.description}
-                          </Text>
-                          <Text as="p" variant="bodySm" tone="subdued">
-                            ${addon.priceMonthly}/month{' '}
-                            {addon.planAllowed ? 'for this plan' : 'after a plan upgrade'}
-                          </Text>
-                        </BlockStack>
-                        <InlineStack align="end">
-                          <Form method="post">
-                            <input type="hidden" name="intent" value="toggle-addon" />
-                            <input type="hidden" name="addon_key" value={addon.key} />
-                            <input type="hidden" name="addon_status" value={addon.status} />
-                            <Button
-                              submit
-                              variant={addon.status === 'active' ? 'secondary' : 'primary'}
-                              disabled={!addon.planAllowed && addon.status !== 'active'}
-                            >
-                              {addon.status === 'active'
-                                ? 'Disable add-on'
-                                : addon.planAllowed
-                                  ? 'Enable add-on'
-                                  : 'Upgrade required'}
-                            </Button>
-                          </Form>
-                        </InlineStack>
-                      </InlineGrid>
-                    </Box>
-                  ))}
-                </BlockStack>
-              ) : (
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  No add-ons are configured for this merchant yet.
-                </Text>
-              )}
-            </BlockStack>
-          </SectionCard>
-        </Layout.Section>
-
-        <Layout.Section>
-          <SectionCard
-            title="Delete store data"
-            subtitle="Permanently remove your store's data from Recete. Rarely needed."
-          >
-            {!showDataDeletion ? (
-              <InlineStack>
-                <Button variant="plain" tone="critical" onClick={() => setShowDataDeletion(true)}>
-                  Show data deletion
-                </Button>
-              </InlineStack>
-            ) : (
-              <BlockStack gap="300">
-                <Banner tone="critical">
-                  This deletes your products, product knowledge, conversations, orders, customers,
-                  analytics, add-ons, settings, integrations and WhatsApp records from Recete. Your
-                  account itself stays. This cannot be undone.
-                </Banner>
-                <Form method="post">
-                  <input type="hidden" name="intent" value="wipe-merchant-data" />
-                  <BlockStack gap="300">
-                    <TextField
-                      label={`Type "${MERCHANT_RESET_CONFIRM_PHRASE}" to confirm`}
-                      name="wipe_confirmation"
-                      value={wipeConfirmation}
-                      onChange={setWipeConfirmation}
-                      autoComplete="off"
-                      helpText="This protects against accidental data deletion."
-                    />
-                    <InlineStack>
-                      <Button
-                        submit
-                        tone="critical"
-                        variant="primary"
-                        loading={busy}
-                        disabled={wipeConfirmation.trim() !== MERCHANT_RESET_CONFIRM_PHRASE}
-                      >
-                        Delete all store data
-                      </Button>
-                    </InlineStack>
-                  </BlockStack>
-                </Form>
-              </BlockStack>
-            )}
-          </SectionCard>
-        </Layout.Section>
-      </Layout>
-    </Page>
+          </s-stack>
+        )}
+      </SectionCard>
+    </AppPage>
   );
 }
 
@@ -1297,19 +1185,11 @@ function SettingsSummaryStat({
   hint: string;
 }) {
   return (
-    <Box padding="150">
-      <BlockStack gap="050">
-        <Text as="p" variant="bodySm" tone="subdued">
-          {label}
-        </Text>
-        <Text as="p" variant="headingMd">
-          {value}
-        </Text>
-        <Text as="p" variant="bodySm" tone="subdued">
-          {hint}
-        </Text>
-      </BlockStack>
-    </Box>
+    <s-stack gap="small-400">
+      <s-text color="subdued">{label}</s-text>
+      <s-heading>{value}</s-heading>
+      <s-text color="subdued">{hint}</s-text>
+    </s-stack>
   );
 }
 

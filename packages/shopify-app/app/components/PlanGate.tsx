@@ -1,4 +1,3 @@
-import { Banner, BlockStack, Box, Button, Card, Text } from "@shopify/polaris";
 import type { PlanType } from "@prisma/client";
 import type { PlanKey } from "../services/planDefinitions";
 
@@ -29,31 +28,27 @@ export function PlanGate({
   }
 
   return (
-    <BlockStack gap="300">
-      <Banner
-        tone="warning"
-        title={`${title} requires the ${requiredPlan} plan`}
-        action={{ content: `Upgrade to ${requiredPlan}`, onAction: requestUpgrade }}
-      >
-        <Text as="p" variant="bodyMd">
-          {message}
-        </Text>
-      </Banner>
-      <Card padding="500">
-        <Box opacity="0.55">
-          <BlockStack gap="300">
+    <s-stack gap="base">
+      <s-banner tone="warning" heading={`${title} requires the ${requiredPlan} plan`}>
+        <s-paragraph>{message}</s-paragraph>
+        <s-button slot="secondary-actions" onClick={requestUpgrade}>
+          Upgrade to {requiredPlan}
+        </s-button>
+      </s-banner>
+      <s-section>
+        {/* s-box has no opacity; dim the locked preview with a plain wrapper. */}
+        <div style={{ opacity: 0.55 }}>
+          <s-stack gap="base">
             {children}
-            <Button
-              onClick={requestUpgrade}
-              url={upgradeUrl}
-              target="_top"
-              variant="secondary"
-            >
-              Upgrade to {requiredPlan}
-            </Button>
-          </BlockStack>
-        </Box>
-      </Card>
-    </BlockStack>
+            {/* requestUpgrade opens upgradeUrl (or billing) in _top, as the old url+target did. */}
+            <s-stack direction="inline">
+              <s-button variant="secondary" onClick={requestUpgrade}>
+                Upgrade to {requiredPlan}
+              </s-button>
+            </s-stack>
+          </s-stack>
+        </div>
+      </s-section>
+    </s-stack>
   );
 }

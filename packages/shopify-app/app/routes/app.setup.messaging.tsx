@@ -1,28 +1,16 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from 'react-router';
 import {
   Form,
-  Link as RemixLink,
   redirect,
   useActionData,
   useLoaderData,
+  useNavigate,
   useNavigation,
 } from 'react-router';
 import { useMemo, useRef, useState } from 'react';
 import { SaveBar } from '@shopify/app-bridge-react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import {
-  Banner,
-  BlockStack,
-  Box,
-  Button,
-  Card,
-  InlineGrid,
-  InlineStack,
-  Link,
-  Select,
-  Text,
-  TextField,
-} from '@shopify/polaris';
+import { Button, Select, TextField } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import {
   extractPlatformErrorMessage,
@@ -155,6 +143,7 @@ export default function MessagingSetupPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
+  const navigate = useNavigate();
   const busy = navigation.state !== 'idle';
 
   const [botName, setBotName] = useState(data.botName || 'Recete');
@@ -202,129 +191,127 @@ export default function MessagingSetupPage() {
           Discard
         </button>
       </SaveBar>
-      <BlockStack gap="400">
-        <Card padding="400" roundedAbove="sm">
-          <Form method="post" ref={formRef}>
-            <BlockStack gap="400">
-              {data.settingsUnavailable ? (
-                <Banner tone="warning" title="Couldn't reach Recete">
-                  <p>
-                    We couldn't load your current settings — the fields below may be blank even if
-                    you've already configured this. Refresh before saving.
-                  </p>
-                </Banner>
-              ) : null}
+      <s-section>
+        <Form method="post" ref={formRef}>
+          <s-stack gap="base">
+            {data.settingsUnavailable ? (
+              <s-banner tone="warning" heading="Couldn't reach Recete">
+                <s-paragraph>
+                  We couldn&apos;t load your current settings — the fields below may be blank even
+                  if you&apos;ve already configured this. Refresh before saving.
+                </s-paragraph>
+              </s-banner>
+            ) : null}
 
-              {actionData?.error ? (
-                <Banner tone="critical">
-                  <Text as="p" variant="bodyMd">
-                    {actionData.error}
-                  </Text>
-                </Banner>
-              ) : null}
+            {actionData?.error ? (
+              <s-banner tone="critical">
+                <s-paragraph>{actionData.error}</s-paragraph>
+              </s-banner>
+            ) : null}
 
-              <Banner tone="info">
+            <s-banner tone="info">
+              <s-paragraph>
                 These three settings shape what customers receive after delivery. Advanced behavior
                 (tone, guardrails, languages) lives in Settings.
-              </Banner>
+              </s-paragraph>
+            </s-banner>
 
-              {/* Recete only messages customers with marketing consent, so the
-                  merchant's checkout wording and privacy notice must cover
-                  WhatsApp. This is the moment they set up what customers get. */}
-              <Banner tone="warning" title="Before you go live: customer consent">
-                <BlockStack gap="200">
-                  <p>
-                    Recete only messages customers who accepted marketing at your checkout, and
-                    checks again before every scheduled message. Make sure your checkout&apos;s
-                    consent wording mentions WhatsApp and your privacy policy says you use it.
-                    Customers can reply STOP at any time.
-                  </p>
-                  <p>
-                    <Link url={WHATSAPP_GDPR_URL} target="_blank">
-                      Open the WhatsApp &amp; GDPR checklist (with a privacy policy paragraph)
-                    </Link>
-                  </p>
-                </BlockStack>
-              </Banner>
+            {/* Recete only messages customers with marketing consent, so the
+                merchant's checkout wording and privacy notice must cover
+                WhatsApp. This is the moment they set up what customers get. */}
+            <s-banner tone="warning" heading="Before you go live: customer consent">
+              <s-stack gap="small">
+                <s-paragraph>
+                  Recete only messages customers who accepted marketing at your checkout, and checks
+                  again before every scheduled message. Make sure your checkout&apos;s consent
+                  wording mentions WhatsApp and your privacy policy says you use it. Customers can
+                  reply STOP at any time.
+                </s-paragraph>
+                <s-paragraph>
+                  <s-link href={WHATSAPP_GDPR_URL} target="_blank">
+                    Open the WhatsApp &amp; GDPR checklist (with a privacy policy paragraph)
+                  </s-link>
+                </s-paragraph>
+              </s-stack>
+            </s-banner>
 
-              <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-                <TextField
-                  label="Bot name"
-                  name="bot_name"
-                  value={botName}
-                  onChange={setBotName}
-                  helpText="Shown to customers as the assistant signature."
-                  autoComplete="off"
-                />
-                <Select
-                  label="Default language"
-                  name="default_language"
-                  value={defaultLanguage}
-                  options={LANGUAGE_OPTIONS.map((opt) => ({ label: opt.label, value: opt.value }))}
-                  onChange={setDefaultLanguage}
-                  helpText="Primary language Recete uses when replying."
-                />
-              </InlineGrid>
-
+            <s-grid gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))" gap="base">
               <TextField
-                label="Welcome message"
-                name="welcome_template"
-                value={welcomeTemplate}
-                onChange={setWelcomeTemplate}
-                multiline={5}
+                label="Bot name"
+                name="bot_name"
+                value={botName}
+                onChange={setBotName}
+                helpText="Shown to customers as the assistant signature."
                 autoComplete="off"
-                helpText="Sent on the day delivery is confirmed. Use the tokens below to insert order details."
-                placeholder='Hi {{customer_first_name}}, your order "{{order_number}}" with {{product_names}} should have arrived. Need help using it?'
               />
+              <Select
+                label="Default language"
+                name="default_language"
+                value={defaultLanguage}
+                options={LANGUAGE_OPTIONS.map((opt) => ({ label: opt.label, value: opt.value }))}
+                onChange={setDefaultLanguage}
+                helpText="Primary language Recete uses when replying."
+              />
+            </s-grid>
 
-              <BlockStack gap="200">
-                <Text as="p" variant="bodyMd" fontWeight="medium">
-                  Insert variables
-                </Text>
-                <InlineStack gap="200" wrap>
-                  {WELCOME_TEMPLATE_TOKENS.map((item) => (
-                    <Button
-                      key={item.token}
-                      onClick={() =>
-                        setWelcomeTemplate((current) => appendToken(current, item.token))
-                      }
-                    >
-                      {item.label}
-                    </Button>
-                  ))}
-                </InlineStack>
-              </BlockStack>
+            <TextField
+              label="Welcome message"
+              name="welcome_template"
+              value={welcomeTemplate}
+              onChange={setWelcomeTemplate}
+              multiline={5}
+              autoComplete="off"
+              helpText="Sent on the day delivery is confirmed. Use the tokens below to insert order details."
+              placeholder='Hi {{customer_first_name}}, your order "{{order_number}}" with {{product_names}} should have arrived. Need help using it?'
+            />
 
-              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                <BlockStack gap="150">
-                  <Text as="p" variant="bodySm" fontWeight="medium">
-                    Preview
-                  </Text>
-                  <Text as="p" variant="bodyMd">
-                    {preview}
-                  </Text>
-                </BlockStack>
-              </Box>
+            <s-stack gap="small">
+              <s-text type="strong">Insert variables</s-text>
+              <s-stack direction="inline" gap="small-200">
+                {WELCOME_TEMPLATE_TOKENS.map((item) => (
+                  <s-button
+                    key={item.token}
+                    onClick={() =>
+                      setWelcomeTemplate((current) => appendToken(current, item.token))
+                    }
+                  >
+                    {item.label}
+                  </s-button>
+                ))}
+              </s-stack>
+            </s-stack>
 
-              <InlineStack align="end" gap="200">
-                <Button url="/app" disabled={busy}>
-                  Cancel
-                </Button>
-                <Button submit variant="primary" loading={busy}>
-                  Save and continue
-                </Button>
-              </InlineStack>
+            <s-box padding="base" background="subdued" borderRadius="base">
+              <s-stack gap="small-200">
+                <s-text type="strong">Preview</s-text>
+                <s-paragraph>{preview}</s-paragraph>
+              </s-stack>
+            </s-box>
 
-              <Box paddingBlockStart="200">
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Need tone, response length, guardrails, or add-ons?{' '}
-                  <RemixLink to="/app/settings">Open full settings</RemixLink>
-                </Text>
-              </Box>
-            </BlockStack>
-          </Form>
-        </Card>
-      </BlockStack>
+            <s-stack direction="inline" justifyContent="end" gap="small-200">
+              <s-button disabled={busy || undefined} onClick={() => navigate('/app')}>
+                Cancel
+              </s-button>
+              <Button submit variant="primary" loading={busy}>
+                Save and continue
+              </Button>
+            </s-stack>
+
+            <s-paragraph color="subdued">
+              Need tone, response length, guardrails, or add-ons?{' '}
+              <s-link
+                href="/app/settings"
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigate('/app/settings');
+                }}
+              >
+                Open full settings
+              </s-link>
+            </s-paragraph>
+          </s-stack>
+        </Form>
+      </s-section>
     </AppPage>
   );
 }

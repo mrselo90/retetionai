@@ -51,7 +51,7 @@ const STEP_ESTIMATES: Record<SetupStepKey, number> = {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticateEmbeddedAdmin(request);
+  await authenticateEmbeddedAdmin(request);
   const formData = await request.formData();
   const intent = String(formData.get('intent') || '');
 

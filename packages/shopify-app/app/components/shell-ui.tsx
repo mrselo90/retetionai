@@ -1,17 +1,13 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  Badge,
-  BlockStack,
-  Box,
-  Button,
-  Card,
-  EmptyState,
-  InlineGrid,
-  InlineStack,
-  type IconSource,
-  Text,
-} from '@shopify/polaris';
+
+/*
+ * Shared page pieces, on Polaris web components and App Home compositions.
+ * Display only: React 18 can't drive controlled s-* fields or custom events,
+ * so these take plain props and use click handlers (which React 18 supports).
+ * Pass `cond || undefined` for boolean attributes: React 18 writes `false` as
+ * the string "false", which a custom element reads as set.
+ */
 
 export function statusTone(
   status?: string | null
@@ -29,8 +25,15 @@ export function statusTone(
   return 'info';
 }
 
+const BADGE_TONE = {
+  success: 'success',
+  attention: 'warning',
+  critical: 'critical',
+  info: 'info',
+} as const;
+
 export function StatusBadge({ children, status }: { children: string; status?: string | null }) {
-  return <Badge tone={statusTone(status)}>{children}</Badge>;
+  return <s-badge tone={BADGE_TONE[statusTone(status) || 'info']}>{children}</s-badge>;
 }
 
 export interface PageAction {
@@ -88,8 +91,8 @@ export function AppPage({
         <s-button
           slot="primary-action"
           variant="primary"
-          loading={primaryAction.loading}
-          disabled={primaryAction.disabled}
+          loading={primaryAction.loading || undefined}
+          disabled={primaryAction.disabled || undefined}
           onClick={() => run(primaryAction)}
         >
           {primaryAction.content}
@@ -99,23 +102,17 @@ export function AppPage({
         <s-button
           key={action.content}
           slot="secondary-actions"
-          loading={action.loading}
-          disabled={action.disabled}
+          loading={action.loading || undefined}
+          disabled={action.disabled || undefined}
           onClick={() => run(action)}
         >
           {action.content}
         </s-button>
       ))}
-      <BlockStack gap="500">
-        {typeof subtitle === 'string' ? (
-          <Text as="p" tone="subdued">
-            {subtitle}
-          </Text>
-        ) : (
-          subtitle
-        )}
+      <s-stack gap="large">
+        {typeof subtitle === 'string' ? <s-paragraph color="subdued">{subtitle}</s-paragraph> : subtitle}
         {children}
-      </BlockStack>
+      </s-stack>
     </s-page>
   );
 }
@@ -152,36 +149,27 @@ export function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <Box id={id}>
-      <Card padding="400" roundedAbove="sm">
-        <BlockStack gap="300">
-          <InlineStack align="space-between" blockAlign="start" gap="400">
-            <BlockStack gap="100">
-              <Text as="h2" variant="headingMd">
-                {title}
-              </Text>
-              {subtitle ? (
-                <Box maxWidth="36rem">
-                  <Text as="p" variant="bodySm">
-                    {subtitle}
-                  </Text>
-                </Box>
-              ) : null}
-            </BlockStack>
-            {badge}
-          </InlineStack>
-          {children}
-        </BlockStack>
-      </Card>
-    </Box>
+    <s-section id={id}>
+      <s-stack gap="base">
+        <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="start">
+          <s-stack gap="small-300">
+            <s-heading>{title}</s-heading>
+            {subtitle ? <s-paragraph color="subdued">{subtitle}</s-paragraph> : null}
+          </s-stack>
+          {badge ? <s-box>{badge}</s-box> : null}
+        </s-grid>
+        {children}
+      </s-stack>
+    </s-section>
   );
 }
 
+/** Metrics card composition: the numbers merchants check at a glance. */
 export function MetricGrid({ children }: { children: ReactNode }) {
   return (
-    <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
+    <s-grid gridTemplateColumns="repeat(auto-fit, minmax(200px, 1fr))" gap="base">
       {children}
-    </InlineGrid>
+    </s-grid>
   );
 }
 
@@ -195,41 +183,30 @@ export function MetricCard({
   hint: string;
 }) {
   return (
-    <Card padding="400" roundedAbove="sm">
-      <BlockStack gap="200">
-        <Text as="p" variant="bodySm" tone="subdued">
-          {label}
-        </Text>
-        <Text as="p" variant="headingLg">
-          {value}
-        </Text>
-        <Box maxWidth="18rem">
-          <Text as="p" variant="bodySm">
-            {hint}
-          </Text>
-        </Box>
-      </BlockStack>
-    </Card>
+    <s-section>
+      <s-stack gap="small-200">
+        <s-text color="subdued">{label}</s-text>
+        <s-heading>{value}</s-heading>
+        <s-paragraph color="subdued">{hint}</s-paragraph>
+      </s-stack>
+    </s-section>
   );
 }
 
 export function DetailRows({ rows }: { rows: Array<{ label: string; value: ReactNode }> }) {
   return (
-    <BlockStack gap="300">
+    <s-stack gap="small-300">
       {rows.map((row) => (
-        <InlineStack key={row.label} align="space-between" gap="400">
-          <Text as="span" variant="bodyMd" tone="subdued">
-            {row.label}
-          </Text>
-          <Text as="span" variant="bodyMd" fontWeight="semibold">
-            {row.value}
-          </Text>
-        </InlineStack>
+        <s-grid key={row.label} gridTemplateColumns="1fr auto" gap="base">
+          <s-text color="subdued">{row.label}</s-text>
+          <s-text type="strong">{row.value}</s-text>
+        </s-grid>
       ))}
-    </BlockStack>
+    </s-stack>
   );
 }
 
+/** Empty state composition. */
 export function EmptyCard({
   heading,
   description,
@@ -241,24 +218,26 @@ export function EmptyCard({
 }) {
   const navigate = useNavigate();
   return (
-    <Card padding="500">
-      <EmptyState
-        heading={heading}
-        action={
-          action
-            ? {
-                content: action.content,
-                onAction: () => navigate(action.url),
-              }
-            : undefined
-        }
-        image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-      >
-        <Text as="p" variant="bodyMd" tone="subdued">
-          {description}
-        </Text>
-      </EmptyState>
-    </Card>
+    <s-section>
+      <s-grid gap="base" justifyItems="center" paddingBlock="large-400">
+        <s-box maxInlineSize="200px" maxBlockSize="200px">
+          <s-image
+            aspectRatio="1/0.5"
+            src="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+            alt=""
+          />
+        </s-box>
+        <s-grid justifyItems="center" maxInlineSize="450px" gap="small-300">
+          <s-heading>{heading}</s-heading>
+          <s-paragraph color="subdued">{description}</s-paragraph>
+          {action ? (
+            <s-button variant="primary" onClick={() => navigate(action.url)}>
+              {action.content}
+            </s-button>
+          ) : null}
+        </s-grid>
+      </s-grid>
+    </s-section>
   );
 }
 
@@ -271,39 +250,30 @@ export function ActionCard({
   title: string;
   description: string;
   status?: string | null;
-  action?: { content: string; url: string; icon?: IconSource };
+  action?: { content: string; url: string };
 }) {
   const navigate = useNavigate();
   return (
-    <Card padding="400" roundedAbove="sm">
-      <BlockStack gap="300">
-        <InlineStack align="space-between" blockAlign="start" gap="300">
-          <Text as="h3" variant="headingMd">
-            {title}
-          </Text>
+    <s-section>
+      <s-stack gap="small-300">
+        <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="start">
+          <s-heading>{title}</s-heading>
           {status ? <StatusBadge status={status}>{status}</StatusBadge> : null}
-        </InlineStack>
-        <Box maxWidth="24rem">
-          <Text as="p" variant="bodySm">
-            {description}
-          </Text>
-        </Box>
+        </s-grid>
+        <s-paragraph color="subdued">{description}</s-paragraph>
         {action ? (
-          <InlineStack>
-            <Button
-              onClick={() => navigate(action.url)}
-              icon={action.icon as never}
-              variant="tertiary"
-            >
+          <s-stack direction="inline">
+            <s-button variant="tertiary" onClick={() => navigate(action.url)}>
               {action.content}
-            </Button>
-          </InlineStack>
+            </s-button>
+          </s-stack>
         ) : null}
-      </BlockStack>
-    </Card>
+      </s-stack>
+    </s-section>
   );
 }
 
+/** Callout card composition: where a screen stands and the one next step. */
 export function StatePanel({
   title,
   description,
@@ -315,46 +285,33 @@ export function StatePanel({
   description: string;
   tone?: 'success' | 'attention' | 'critical' | 'info';
   statusLabel?: string;
-  action?: { content: string; url: string; icon?: IconSource };
+  action?: { content: string; url: string };
 }) {
   const navigate = useNavigate();
+  const label =
+    statusLabel ||
+    (tone === 'critical'
+      ? 'Needs attention'
+      : tone === 'attention'
+        ? 'In progress'
+        : tone === 'success'
+          ? 'Healthy'
+          : 'Overview');
   return (
-    <Card padding="500" roundedAbove="sm">
-      <BlockStack gap="200">
-        <Text as="p" variant="bodySm" tone="subdued">
-          {statusLabel
-            ? statusLabel
-            : tone === 'critical'
-              ? 'Needs attention'
-              : tone === 'attention'
-                ? 'In progress'
-                : tone === 'success'
-                  ? 'Healthy'
-                  : 'Overview'}
-        </Text>
-        <InlineStack align="space-between" blockAlign="end" gap="300" wrap>
-          <Box maxWidth="42rem">
-            <BlockStack gap="150">
-              <Text as="h2" variant="headingLg">
-                {title}
-              </Text>
-              <Text as="p" variant="bodyMd">
-                {description}
-              </Text>
-            </BlockStack>
-          </Box>
-          {action ? (
-            <Button
-              onClick={() => navigate(action.url)}
-              icon={action.icon as never}
-              variant="primary"
-            >
-              {action.content}
-            </Button>
-          ) : null}
-        </InlineStack>
-      </BlockStack>
-    </Card>
+    <s-section>
+      <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="end">
+        <s-stack gap="small-200">
+          <s-text color="subdued">{label}</s-text>
+          <s-heading>{title}</s-heading>
+          <s-paragraph>{description}</s-paragraph>
+        </s-stack>
+        {action ? (
+          <s-button variant="primary" onClick={() => navigate(action.url)}>
+            {action.content}
+          </s-button>
+        ) : null}
+      </s-grid>
+    </s-section>
   );
 }
 
@@ -366,45 +323,37 @@ export type SetupDependencyItem = {
 
 export function SetupDependencyList({ items }: { items: SetupDependencyItem[] }) {
   return (
-    <BlockStack gap="200">
+    <s-stack gap="small-300">
       {items.map((item) => (
-        <InlineStack key={item.label} align="space-between" blockAlign="start" gap="400">
-          <Text as="p" variant="bodyMd">
-            {item.label}
-          </Text>
-          <BlockStack gap="100" inlineAlign="end">
-            <Text as="p" variant="bodySm" fontWeight="semibold">
+        <s-grid key={item.label} gridTemplateColumns="1fr auto" gap="base" alignItems="start">
+          <s-text>{item.label}</s-text>
+          <s-stack gap="none" alignItems="end">
+            <s-text type="strong">
               {item.state === 'completed'
                 ? 'Completed'
                 : item.state === 'current'
                   ? 'Current step'
                   : 'Locked'}
-            </Text>
-            <Text as="p" variant="bodySm" tone="subdued">
-              {item.hint}
-            </Text>
-          </BlockStack>
-        </InlineStack>
+            </s-text>
+            <s-text color="subdued">{item.hint}</s-text>
+          </s-stack>
+        </s-grid>
       ))}
-    </BlockStack>
+    </s-stack>
   );
 }
 
 export function ValuePreview({ items }: { items: Array<{ title: string; description: string }> }) {
   return (
-    <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
+    <s-grid gridTemplateColumns="repeat(auto-fit, minmax(220px, 1fr))" gap="base">
       {items.map((item) => (
-        <Card key={item.title} padding="400" roundedAbove="sm">
-          <BlockStack gap="200">
-            <Text as="h3" variant="headingMd">
-              {item.title}
-            </Text>
-            <Text as="p" variant="bodySm" tone="subdued">
-              {item.description}
-            </Text>
-          </BlockStack>
-        </Card>
+        <s-section key={item.title}>
+          <s-stack gap="small-200">
+            <s-heading>{item.title}</s-heading>
+            <s-paragraph color="subdued">{item.description}</s-paragraph>
+          </s-stack>
+        </s-section>
       ))}
-    </InlineGrid>
+    </s-grid>
   );
 }

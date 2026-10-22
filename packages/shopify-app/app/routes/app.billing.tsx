@@ -1,17 +1,6 @@
 import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
-import { redirect, useLoaderData } from 'react-router';
+import { redirect, useLoaderData, useNavigate } from 'react-router';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import {
-  Badge,
-  Banner,
-  BlockStack,
-  Button,
-  Card,
-  InlineGrid,
-  InlineStack,
-  List,
-  Text,
-} from '@shopify/polaris';
 import { isPlanKey } from '../services/planDefinitions';
 import { SectionCard, ShellPage } from '../components/shell-ui';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
@@ -171,6 +160,7 @@ export const action = async ({ request }: { request: Request }) => {
 
 export default function BillingPage() {
   const data = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
 
   const activePlanName = data.subscriptions.find(
     (s) => s.status === 'ACTIVE' || s.status === 'ACCEPTED'
@@ -182,120 +172,111 @@ export default function BillingPage() {
       subtitle="Choose the plan that matches your monthly support volume to activate Recete."
     >
       {data.error ? (
-        <Card padding="300">
-          <Text as="p" variant="bodySm" tone="critical">
+        <s-section>
+          <s-paragraph tone="critical">
             Unable to load billing status: {data.error}
-          </Text>
-        </Card>
+          </s-paragraph>
+        </s-section>
       ) : null}
 
-      <Card padding="300">
-        <InlineStack align="space-between" blockAlign="center" wrap>
-          <Text as="p" variant="bodySm" tone="subdued">
-            Current Status
-          </Text>
-          <Badge tone={data.hasActivePayment ? 'success' : 'attention'}>
+      <s-section>
+        <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="center">
+          <s-text color="subdued">Current Status</s-text>
+          <s-badge tone={data.hasActivePayment ? 'success' : 'warning'}>
             {data.hasActivePayment
               ? `Active${activePlanName ? ` · ${activePlanName}` : ''}`
               : 'Free / No Plan'}
-          </Badge>
-        </InlineStack>
-      </Card>
+          </s-badge>
+        </s-grid>
+      </s-section>
 
       {data.hasDeclinedSubscription ? (
-        <Banner
-          tone="critical"
-          title="Billing requires attention"
-          action={
-            data.managedPricingUrl
-              ? { content: 'Reactivate billing', url: data.managedPricingUrl, target: '_top' }
-              : undefined
-          }
-        >
-          <p>
-            Your previous subscription was declined or expired. Choose a plan below to reactivate
-            Recete.
-          </p>
-        </Banner>
+        <s-banner tone="critical" heading="Billing requires attention">
+          Your previous subscription was declined or expired. Choose a plan below to reactivate
+          Recete.
+          {data.managedPricingUrl ? (
+            <s-button slot="secondary-actions" href={data.managedPricingUrl} target="_top">
+              Reactivate billing
+            </s-button>
+          ) : null}
+        </s-banner>
       ) : null}
 
       <SectionCard
         title="Compare plans"
         subtitle="Pick based on chat volume and feature depth. You will confirm billing inside Shopify on the next screen."
       >
-        <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
+        <s-grid gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))" gap="base">
           {PLAN_TIERS.map((plan) => {
             const isCurrentTier = activePlanName?.toLowerCase().includes(plan.tier.toLowerCase());
             const planSelectionUrl = data.managedPricingUrl
               ? `${data.managedPricingUrl}?plan=${encodeURIComponent(plan.planKey)}`
               : undefined;
             return (
-              <Card
+              <s-box
                 key={plan.tier}
-                padding="500"
-                background={isCurrentTier ? 'bg-surface-success' : undefined}
+                padding="large"
+                border="base"
+                borderRadius="base"
+                background={isCurrentTier ? 'subdued' : 'base'}
               >
-                <BlockStack gap="400">
-                  <BlockStack gap="200">
-                    <InlineStack gap="200" align="space-between" blockAlign="center">
-                      <Text as="h3" variant="headingLg">
-                        {plan.tier}
-                      </Text>
-                      {plan.recommended ? <Badge tone="success">Recommended</Badge> : null}
-                      {isCurrentTier ? <Badge tone="info">Current</Badge> : null}
-                    </InlineStack>
-                    <InlineStack gap="200" blockAlign="center">
-                      <Badge tone="info">{plan.monthly}</Badge>
-                      <Badge>{plan.yearly}</Badge>
-                    </InlineStack>
-                    <Text as="p" variant="bodySm" tone="subdued">
+                <s-stack gap="base">
+                  <s-stack gap="small-200">
+                    <s-grid gridTemplateColumns="1fr auto auto" gap="small-200" alignItems="center">
+                      <s-heading>{plan.tier}</s-heading>
+                      {plan.recommended ? <s-badge tone="success">Recommended</s-badge> : null}
+                      {isCurrentTier ? <s-badge tone="info">Current</s-badge> : null}
+                    </s-grid>
+                    <s-stack direction="inline" gap="small-200" alignItems="center">
+                      <s-badge tone="info">{plan.monthly}</s-badge>
+                      <s-badge>{plan.yearly}</s-badge>
+                    </s-stack>
+                    <s-paragraph color="subdued">
                       {plan.audience}
-                    </Text>
-                  </BlockStack>
+                    </s-paragraph>
+                  </s-stack>
 
-                  <List>
+                  <s-unordered-list>
                     {plan.features.map((feature) => (
-                      <List.Item key={feature}>{feature}</List.Item>
+                      <s-list-item key={feature}>{feature}</s-list-item>
                     ))}
-                  </List>
+                  </s-unordered-list>
 
-                  <Card background="bg-surface-secondary" padding="200">
-                    <Text as="p" variant="bodySm" tone="subdued">
+                  <s-box background="subdued" padding="small" borderRadius="base">
+                    <s-paragraph color="subdued">
                       {plan.yearlySavings}
-                    </Text>
-                  </Card>
+                    </s-paragraph>
+                  </s-box>
 
-                  <Button
+                  <s-button
                     variant="primary"
-                    fullWidth
-                    disabled={!planSelectionUrl}
-                    url={planSelectionUrl}
+                    inlineSize="fill"
+                    disabled={!planSelectionUrl || undefined}
+                    href={planSelectionUrl}
                     target="_top"
                   >
                     {plan.ctaLabel}
-                  </Button>
-                  <Text as="p" variant="bodySm" tone="subdued">
+                  </s-button>
+                  <s-paragraph color="subdued">
                     {planSelectionUrl
                       ? 'Redirects to Shopify billing approval.'
                       : 'Billing is temporarily unavailable. Refresh the page or contact support if this continues.'}
-                  </Text>
-                </BlockStack>
-              </Card>
+                  </s-paragraph>
+                </s-stack>
+              </s-box>
             );
           })}
-        </InlineGrid>
+        </s-grid>
       </SectionCard>
 
-      <Card padding="300">
-        <InlineStack align="space-between" blockAlign="center" wrap>
-          <Text as="p" variant="bodySm" tone="subdued">
-            Need help choosing the right plan?
-          </Text>
-          <Button variant="plain" url="/app/integrations">
+      <s-section>
+        <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="center">
+          <s-text color="subdued">Need help choosing the right plan?</s-text>
+          <s-button variant="tertiary" onClick={() => navigate('/app/integrations')}>
             Billing support
-          </Button>
-        </InlineStack>
-      </Card>
+          </s-button>
+        </s-grid>
+      </s-section>
     </ShellPage>
   );
 }
