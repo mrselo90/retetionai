@@ -5,7 +5,7 @@ import { authenticateEmbeddedAdmin } from "../lib/embeddedAuth.server";
 
 function buildProductsUrl(productId?: string) {
   return productId
-    ? `/app/products?product=${encodeURIComponent(productId)}`
+    ? `/app/products/${encodeURIComponent(productId)}`
     : "/app/products";
 }
 
