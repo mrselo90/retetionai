@@ -1265,7 +1265,7 @@
 
 /* ============================ Legal pages ============================ */
 /*
- * Polaris's stylesheet is loaded app-wide (components/ShopifyProvider.tsx) and
+ * app/base.css (the base styles Polaris React's stylesheet used to provide)
  * resets h1-h6 and p to font-size: 1em and regular weight. It is unlayered, so
  * it beats every Tailwind utility: the headings on Privacy, Terms, DPA and the
  * other legal pages rendered at body size, with no hierarchy at all. These

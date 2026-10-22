@@ -2,8 +2,10 @@
 
 import { useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Banner, Box, Button, Card, Layout, Page, Spinner, Text } from '@shopify/polaris';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Button, Card } from '@/components/recete';
+import { Spinner } from '@/components/ui/spinner';
 
 function ShopifyCallbackContent() {
   const t = useTranslations('ShopifyCallback');
@@ -37,77 +39,78 @@ function ShopifyCallbackContent() {
   }, [status, router]);
 
   return (
-    <Page title={t('connecting')}>
-      <Layout>
-        <Layout.Section>
-      <Box paddingBlockStart="400">
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="max-w-md w-full mx-4">
-          <Card>
-            <div className="p-8">
-          {status === 'success' && (
-            <div className="text-center">
-              <Banner tone="success">
-                <p>{message}</p>
-              </Banner>
-              <div className="mt-4">
-                <Text as="h2" variant="headingLg">{t('success')}</Text>
-              </div>
-              <div className="mt-2">
-                <Text as="p" tone="subdued">{t('redirecting')}</Text>
-              </div>
-            </div>
-          )}
+    <div className="d-page">
+      <div className="d-page-header">
+        <h1 className="r-page-title">{t('connecting')}</h1>
+      </div>
+      <div className="pt-4">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="max-w-md w-full mx-4">
+            <Card padding="flush">
+              <div className="p-8">
+                {status === 'success' && (
+                  <div className="text-center">
+                    <div className="r-alert r-alert-success text-left" role="status">
+                      <CheckCircle2 size={16} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+                      <p className="r-alert-body" style={{ margin: 0 }}>{message}</p>
+                    </div>
+                    <div className="mt-4">
+                      <h2 className="r-page-title" style={{ fontSize: 'var(--r-text-2xl)' }}>{t('success')}</h2>
+                    </div>
+                    <div className="mt-2">
+                      <p className="r-hint">{t('redirecting')}</p>
+                    </div>
+                  </div>
+                )}
 
-          {status === 'error' && (
-            <div className="text-center">
-              <Banner tone="critical">
-                <p>{message}</p>
-              </Banner>
-              <div className="mt-4">
-                <Text as="h2" variant="headingLg">{t('error')}</Text>
+                {status === 'error' && (
+                  <div className="text-center">
+                    <div className="r-alert r-alert-error text-left" role="alert">
+                      <AlertCircle size={16} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+                      <p className="r-alert-body" style={{ margin: 0 }}>{message}</p>
+                    </div>
+                    <div className="mt-4">
+                      <h2 className="r-page-title" style={{ fontSize: 'var(--r-text-2xl)' }}>{t('error')}</h2>
+                    </div>
+                    <div className="mt-4">
+                      <Button onClick={() => router.push('/dashboard/integrations')} variant="primary">
+                        {t('backToIntegrations')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="mt-4">
-                <Button onClick={() => router.push('/dashboard/integrations')} variant="primary">
-                {t('backToIntegrations')}
-                </Button>
-              </div>
-            </div>
-          )}
-            </div>
-          </Card>
+            </Card>
+          </div>
         </div>
       </div>
-      </Box>
-        </Layout.Section>
-      </Layout>
-    </Page>
+    </div>
   );
 }
 
 export default function ShopifyCallbackPage() {
   return (
     <Suspense fallback={
-      <Page title="Connecting">
-        <Layout>
-          <Layout.Section>
-        <Box paddingBlockStart="400">
+      <div className="d-page">
+        <div className="d-page-header">
+          <h1 className="r-page-title">Connecting</h1>
+        </div>
+        <div className="pt-4">
           <div className="flex items-center justify-center min-h-[50vh]">
             <div className="max-w-md w-full mx-4">
-              <Card>
+              <Card padding="flush">
                 <div className="p-8 text-center">
-                  <div className="flex justify-center mb-4">
-                    <Spinner accessibilityLabel="Connecting to Shopify" size="large" />
+                  <div className="flex justify-center mb-4" role="status">
+                    <Spinner size="xl" />
+                    <span className="sr-only">Connecting to Shopify</span>
                   </div>
-                  <Text as="h2" variant="headingLg">Connecting</Text>
+                  <h2 className="r-page-title" style={{ fontSize: 'var(--r-text-2xl)' }}>Connecting</h2>
                 </div>
               </Card>
             </div>
           </div>
-        </Box>
-          </Layout.Section>
-        </Layout>
-      </Page>
+        </div>
+      </div>
     }>
       <ShopifyCallbackContent />
     </Suspense>

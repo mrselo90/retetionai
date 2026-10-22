@@ -1,6 +1,8 @@
 import "../app/globals.css";
 import "./design-tokens.css";
 import "./recete-ui.css";
+// Last, as Polaris React's stylesheet was: the base styles it used to provide.
+import "./base.css";
 import { Geist, Geist_Mono, IBM_Plex_Sans, Instrument_Serif } from 'next/font/google';
 
 const geistSans = Geist({

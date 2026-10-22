@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
-import { Banner, BlockStack, Box, Card, InlineGrid, InlineStack, Layout, Page, SkeletonBodyText, SkeletonDisplayText, SkeletonPage, Text } from '@shopify/polaris';
-import { Users, ShoppingBag, MessageSquare, BarChart3, TrendingUp } from 'lucide-react';
+import { Users, ShoppingBag, MessageSquare, BarChart3, TrendingUp, Info } from 'lucide-react';
 
 interface GlobalStats {
     totalMerchants: number;
@@ -12,6 +11,8 @@ interface GlobalStats {
     totalOrders: number;
     totalConversations: number;
 }
+
+const PAGE_TITLE = 'Platform Overview';
 
 export default function AdminDashboardPage() {
     const [stats, setStats] = useState<GlobalStats | null>(null);
@@ -37,29 +38,21 @@ export default function AdminDashboardPage() {
 
     if (loading || !stats) {
         return (
-            <SkeletonPage title="Platform Overview">
-                <Layout>
-                    <Layout.Section>
-                        <BlockStack gap="500">
-                            <Card>
-                                <Box padding="400">
-                                    <BlockStack gap="300">
-                                        <SkeletonDisplayText size="small" />
-                                        <SkeletonBodyText lines={2} />
-                                    </BlockStack>
-                                </Box>
-                            </Card>
-                            <InlineGrid columns={{ xs: '1fr', md: '1fr 1fr', lg: 'repeat(4, minmax(0, 1fr))' }} gap="400">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <Card key={i}>
-                                        <Box padding="400"><div className="h-24 animate-pulse rounded bg-zinc-100" /></Box>
-                                    </Card>
-                                ))}
-                            </InlineGrid>
-                        </BlockStack>
-                    </Layout.Section>
-                </Layout>
-            </SkeletonPage>
+            <div className="flex flex-col gap-5">
+                <h1 className="r-page-title">{PAGE_TITLE}</h1>
+                <div className="flex flex-col gap-5" role="status" aria-label="Loading platform overview">
+                    <div className="r-card flex flex-col gap-3" aria-hidden="true">
+                        <div className="r-skeleton" style={{ height: 20, width: 160 }} />
+                        <div className="r-skeleton" style={{ height: 12 }} />
+                        <div className="r-skeleton" style={{ height: 12, width: '66%' }} />
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4" aria-hidden="true">
+                        {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="r-skeleton" style={{ height: 110 }} />
+                        ))}
+                    </div>
+                </div>
+            </div>
         );
     }
 
@@ -91,62 +84,57 @@ export default function AdminDashboardPage() {
     ];
 
     return (
-        <Page title="Platform Overview" subtitle="Global metrics across all merchants on Recete AI." fullWidth>
-            <Layout>
-                <Layout.Section>
-                    <BlockStack gap="500">
-                        <InlineGrid columns={{ xs: '1fr', md: '1fr 1fr', lg: 'repeat(4, minmax(0, 1fr))' }} gap="400">
-                            {statCards.map((card) => {
-                                const Icon = card.icon;
-                                return (
-                                    <Card key={card.title}>
-                                        <Box padding="400">
-                                            <BlockStack gap="300">
-                                                <InlineStack align="space-between" blockAlign="center">
-                                                    <Text as="p" variant="bodySm" tone="subdued">{card.title}</Text>
-                                                    <Box borderRadius="300" padding="200" background="bg-surface-secondary">
-                                                        <Icon className={`h-5 w-5 ${card.color}`} />
-                                                    </Box>
-                                                </InlineStack>
-                                                <InlineStack gap="200" blockAlign="center">
-                                                    <Text as="h2" variant="headingLg">{card.value}</Text>
-                                                    <InlineStack gap="100" blockAlign="center">
-                                                        <TrendingUp className="w-3 h-3 text-emerald-600" />
-                                                        <Text as="span" variant="bodySm" tone="success">Live</Text>
-                                                    </InlineStack>
-                                                </InlineStack>
-                                            </BlockStack>
-                                        </Box>
-                                    </Card>
-                                );
-                            })}
-                        </InlineGrid>
+        <div className="flex flex-col gap-5">
+            <div>
+                <h1 className="r-page-title">{PAGE_TITLE}</h1>
+                <p className="r-page-sub">Global metrics across all merchants on Recete AI.</p>
+            </div>
 
-                        <Card>
-                            <Box padding="400">
-                                <BlockStack gap="300">
-                                    <BlockStack gap="100">
-                                        <Text as="h2" variant="headingMd">Recent Platform Activity</Text>
-                                        <Text as="p" tone="subdued">System events and new signups across the platform.</Text>
-                                    </BlockStack>
-                                    <Box padding="800" borderWidth="025" borderColor="border" borderRadius="300" background="bg-surface-secondary">
-                                        <BlockStack gap="300" inlineAlign="center">
-                                            <BarChart3 className="w-12 h-12 text-zinc-400" />
-                                            <Text as="p" tone="subdued" alignment="center">
-                                                Activity feed feature not yet implemented. Coming in v1.1.
-                                            </Text>
-                                        </BlockStack>
-                                    </Box>
-                                </BlockStack>
-                            </Box>
-                        </Card>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {statCards.map((card) => {
+                    const Icon = card.icon;
+                    return (
+                        <div key={card.title} className="r-card r-card-tight flex flex-col gap-3">
+                            <div className="flex items-center justify-between gap-3">
+                                <p className="r-hint">{card.title}</p>
+                                <span className="r-kpi-icon" style={{ background: 'var(--r-surface-muted)' }} aria-hidden="true">
+                                    <Icon className={`h-5 w-5 ${card.color}`} />
+                                </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <p className="r-kpi-value" style={{ fontSize: 'var(--r-text-2xl)' }}>{card.value}</p>
+                                <span className="flex items-center gap-1">
+                                    <TrendingUp className="h-3 w-3 text-emerald-600" aria-hidden="true" />
+                                    <span className="text-xs font-medium" style={{ color: 'var(--r-success)' }}>Live</span>
+                                </span>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
 
-                        <Banner tone="info">
-                            Platform admin dashboards are Polaris-standardized for operations, while merchant-facing screens remain the primary UX priority.
-                        </Banner>
-                    </BlockStack>
-                </Layout.Section>
-            </Layout>
-        </Page>
+            <section className="r-card flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                    <h2 className="r-card-title">Recent Platform Activity</h2>
+                    <p className="r-hint">System events and new signups across the platform.</p>
+                </div>
+                <div
+                    className="flex flex-col items-center gap-3 rounded-lg border p-8"
+                    style={{ borderColor: 'var(--r-border)', background: 'var(--r-surface-subtle)' }}
+                >
+                    <BarChart3 className="h-12 w-12 text-zinc-400" aria-hidden="true" />
+                    <p className="r-hint text-center">
+                        Activity feed feature not yet implemented. Coming in v1.1.
+                    </p>
+                </div>
+            </section>
+
+            <div className="r-alert r-alert-info">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                <p style={{ margin: 0, fontSize: 'var(--r-text-base-plus)' }}>
+                    Platform admin dashboards are Polaris-standardized for operations, while merchant-facing screens remain the primary UX priority.
+                </p>
+            </div>
+        </div>
     );
 }

@@ -1,8 +1,5 @@
 'use client';
 
-import { AppProvider as PolarisProvider } from '@shopify/polaris';
-import '@shopify/polaris/build/esm/styles.css';
-import enTranslations from '@shopify/polaris/locales/en.json';
 import { useSearchParams } from 'next/navigation';
 import { createContext, useContext, useEffect, useState, Suspense } from 'react';
 
@@ -48,16 +45,14 @@ function ShopifyProviderContent({ children }: ShopifyProviderProps) {
 
   return (
     <ShopifyContext.Provider value={{ isEmbedded, host, shop }}>
-      <PolarisProvider i18n={enTranslations}>
-        {children}
-      </PolarisProvider>
+      {children}
     </ShopifyContext.Provider>
   );
 }
 
 export function ShopifyProvider({ children }: ShopifyProviderProps) {
   return (
-    <Suspense fallback={<PolarisProvider i18n={enTranslations}>{children}</PolarisProvider>}>
+    <Suspense fallback={children}>
       <ShopifyProviderContent>
         {children}
       </ShopifyProviderContent>

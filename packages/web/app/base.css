@@ -1,0 +1,122 @@
+/*
+ * Site-wide base styles that used to come from Polaris React's stylesheet.
+ *
+ * components/ShopifyProvider.tsx loaded @shopify/polaris/build/esm/styles.css on
+ * every page, and besides component styles it set the page font (13px / 20px,
+ * weight 450, Inter), text colour, the body background, box-sizing, scrollbars
+ * and a heading/paragraph reset. The app's look was built on top of that, so
+ * when Polaris React was removed these rules moved here unchanged, values
+ * inlined from Polaris' tokens.
+ *
+ * They stay unlayered and load after the app's other stylesheets (see
+ * app/layout.tsx), as Polaris' did, so they keep winning in the same places. That
+ * includes the h1-h6/p reset beating Tailwind text utilities on those elements
+ * (the reason .legal-page in recete-ui.css restates heading sizes). Moving the
+ * reset into @layer base would let utilities apply, which changes how existing
+ * pages look; do that as its own change.
+ */
+
+html,
+body {
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  font-weight: 450;
+  font-feature-settings: 'calt' 0;
+  letter-spacing: initial;
+  color: rgba(48, 48, 48, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+button {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'San Francisco', 'Segoe UI', Roboto,
+    'Helvetica Neue', sans-serif;
+}
+
+html {
+  position: relative;
+  font-size: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(241, 241, 241, 1) rgba(241, 241, 241, 1);
+  transition: scrollbar-color 100ms cubic-bezier(0.42, 0, 1, 1);
+}
+
+html::-webkit-scrollbar {
+  width: 0.6875rem;
+  background-color: rgba(241, 241, 241, 1);
+}
+
+html::-webkit-scrollbar-thumb {
+  background-color: rgba(241, 241, 241, 1);
+  border: 0.125rem solid transparent;
+  border-radius: 0.75rem;
+  background-clip: content-box;
+}
+
+html:hover {
+  scrollbar-color: rgba(138, 138, 138, 1) rgba(241, 241, 241, 1);
+}
+
+html:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(138, 138, 138, 1);
+}
+
+@supports (font: -apple-system-body) {
+  @media (max-width: 30.6225em) {
+    html {
+      font: -apple-system-body;
+    }
+  }
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: rgba(241, 242, 244, 1);
+  scrollbar-color: rgba(138, 138, 138, 1) transparent;
+}
+
+@media print {
+  body {
+    background-color: transparent !important;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
+  font-size: 1em;
+  font-weight: 450;
+}
+
+button::-moz-focus-inner,
+[type='button']::-moz-focus-inner,
+[type='reset']::-moz-focus-inner,
+[type='submit']::-moz-focus-inner {
+  border-style: none;
+}
+
+html,
+body {
+  min-height: 100%;
+  height: 100%;
+}
