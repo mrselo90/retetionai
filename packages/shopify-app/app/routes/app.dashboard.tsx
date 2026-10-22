@@ -1,7 +1,7 @@
 import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
 import { useLoaderData, useNavigate } from 'react-router';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { CartIcon, ChatIcon, ViewIcon } from '@shopify/polaris-icons';
+import { CartIcon } from '@shopify/polaris-icons';
 import {
   Badge,
   Banner,
@@ -23,7 +23,7 @@ import {
   settle,
   type ShopifyMerchantOverview,
 } from '../platform.server';
-import { MetricCard, SectionCard } from '../components/shell-ui';
+import { AppPage, MetricCard, SectionCard } from '../components/shell-ui';
 
 const EMPTY_OVERVIEW: ShopifyMerchantOverview = {
   merchant: { id: '', name: '' },
@@ -119,21 +119,16 @@ export default function DashboardPage() {
   }
 
   return (
-    <Page
-      title="Dashboard"
+    <AppPage
+      heading="Dashboard"
       subtitle="Daily view of Recete activity."
       primaryAction={
         humanCount > 0
           ? {
               content: `Handle ${humanCount} escalation${humanCount === 1 ? '' : 's'}`,
-              onAction: () => navigate(`/app/conversations/${manualQueue[0].id}`),
-              icon: ChatIcon as never,
+              url: `/app/conversations/${manualQueue[0].id}`,
             }
-          : {
-              content: 'View conversations',
-              onAction: () => navigate('/app/conversations'),
-              icon: ViewIcon as never,
-            }
+          : { content: 'View conversations', url: '/app/conversations' }
       }
     >
       <Layout>
@@ -287,7 +282,7 @@ export default function DashboardPage() {
           </BlockStack>
         </Layout.Section>
       </Layout>
-    </Page>
+    </AppPage>
   );
 }
 

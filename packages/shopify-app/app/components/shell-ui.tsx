@@ -7,11 +7,9 @@ import {
   Button,
   Card,
   EmptyState,
-  type IconSource,
   InlineGrid,
   InlineStack,
-  Layout,
-  Page,
+  type IconSource,
   Text,
 } from '@shopify/polaris';
 
@@ -35,6 +33,93 @@ export function StatusBadge({ children, status }: { children: string; status?: s
   return <Badge tone={statusTone(status)}>{children}</Badge>;
 }
 
+export interface PageAction {
+  content: string;
+  url?: string;
+  onAction?: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+}
+
+/**
+ * Page shell on Polaris web components. `s-page` hands its heading, back link
+ * and actions to the Shopify admin title bar; Polaris React's `Page` could only
+ * draw them inside the iframe. `s-page` has no subtitle, so it opens the content.
+ * Children can still be Polaris React while routes migrate.
+ */
+export function AppPage({
+  heading,
+  subtitle,
+  primaryAction,
+  secondaryActions,
+  backAction,
+  inlineSize = 'base',
+  children,
+}: {
+  heading: string;
+  subtitle?: ReactNode;
+  primaryAction?: PageAction;
+  secondaryActions?: PageAction[];
+  backAction?: { content: string; url: string };
+  inlineSize?: 'small' | 'base' | 'large';
+  children: ReactNode;
+}) {
+  const navigate = useNavigate();
+  const run = (action: PageAction) => {
+    if (action.onAction) action.onAction();
+    else if (action.url) navigate(action.url);
+  };
+
+  return (
+    <s-page heading={heading} inlineSize={inlineSize}>
+      {backAction ? (
+        <s-link
+          slot="breadcrumb-actions"
+          href={backAction.url}
+          onClick={(event) => {
+            event.preventDefault();
+            navigate(backAction.url);
+          }}
+        >
+          {backAction.content}
+        </s-link>
+      ) : null}
+      {primaryAction ? (
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          loading={primaryAction.loading}
+          disabled={primaryAction.disabled}
+          onClick={() => run(primaryAction)}
+        >
+          {primaryAction.content}
+        </s-button>
+      ) : null}
+      {secondaryActions?.map((action) => (
+        <s-button
+          key={action.content}
+          slot="secondary-actions"
+          loading={action.loading}
+          disabled={action.disabled}
+          onClick={() => run(action)}
+        >
+          {action.content}
+        </s-button>
+      ))}
+      <BlockStack gap="500">
+        {typeof subtitle === 'string' ? (
+          <Text as="p" tone="subdued">
+            {subtitle}
+          </Text>
+        ) : (
+          subtitle
+        )}
+        {children}
+      </BlockStack>
+    </s-page>
+  );
+}
+
 export function ShellPage({
   title,
   subtitle,
@@ -43,35 +128,13 @@ export function ShellPage({
 }: {
   title: string;
   subtitle: string;
-  primaryAction?: {
-    content: string;
-    url?: string;
-    icon?: IconSource;
-  };
+  primaryAction?: { content: string; url?: string };
   children: ReactNode;
 }) {
-  const navigate = useNavigate();
   return (
-    <Page
-      fullWidth
-      title={title}
-      subtitle={subtitle}
-      primaryAction={
-        primaryAction
-          ? {
-              content: primaryAction.content,
-              onAction: primaryAction.url ? () => navigate(primaryAction.url!) : undefined,
-              icon: primaryAction.icon as never,
-            }
-          : undefined
-      }
-    >
-      <Layout>
-        <Layout.Section>
-          <BlockStack gap="500">{children}</BlockStack>
-        </Layout.Section>
-      </Layout>
-    </Page>
+    <AppPage heading={title} subtitle={subtitle} primaryAction={primaryAction} inlineSize="large">
+      {children}
+    </AppPage>
   );
 }
 

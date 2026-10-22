@@ -44,7 +44,8 @@
   },
   "devDependencies": {
     "@shopify/api-codegen-preset": "^1.2.0",
-    "@shopify/polaris-types": "^1.0.1",
+    "@shopify/app-bridge-types": "0.7.2",
+    "@shopify/polaris-types": "^1.1.0",
     "@types/eslint": "^9.6.1",
     "@types/node": "^22.18.8",
     "@types/react": "^19.2.8",

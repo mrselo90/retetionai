@@ -19,7 +19,6 @@ import {
   InlineGrid,
   InlineStack,
   Link,
-  Page,
   Select,
   Text,
   TextField,
@@ -33,6 +32,7 @@ import {
   type MerchantSettingsRecord,
 } from '../platform.server';
 import { persistMessagingSetup } from '../lib/persistMessagingSetup';
+import { AppPage } from '../components/shell-ui';
 
 const WHATSAPP_GDPR_URL = 'https://recete.co.uk/whatsapp-gdpr';
 
@@ -181,8 +181,8 @@ export default function MessagingSetupPage() {
   const preview = useMemo(() => buildPreview(welcomeTemplate, botName), [welcomeTemplate, botName]);
 
   return (
-    <Page
-      title="Set up your welcome message"
+    <AppPage
+      heading="Set up your welcome message"
       subtitle="Three quick fields. You can fine-tune everything else from Settings later."
       backAction={{ content: 'Back to setup', url: '/app' }}
     >
@@ -325,7 +325,7 @@ export default function MessagingSetupPage() {
           </Form>
         </Card>
       </BlockStack>
-    </Page>
+    </AppPage>
   );
 }
 

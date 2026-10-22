@@ -22,6 +22,10 @@ export default function App() {
             data-api-key={apiKey}
           />
         ) : null}
+        {/* Polaris web components (s-page, s-section, ...), stable 1.x channel. Keep
+            @shopify/polaris-types on ^1.1 with it. Coexists with Polaris React while
+            routes migrate (docs/ux/shopify-embedded-ui-analysis-2026-10.md). */}
+        <script src="https://cdn.shopify.com/shopifycloud/polaris-1.js" />
         <link rel="preconnect" href="https://cdn.shopify.com/" />
         <link
           rel="stylesheet"

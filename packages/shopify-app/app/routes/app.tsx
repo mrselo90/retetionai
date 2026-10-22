@@ -6,6 +6,7 @@ import {
   isRouteErrorResponse,
   redirect,
   useFetcher,
+  useFetchers,
   useLoaderData,
   useLocation,
   useNavigation,
@@ -15,6 +16,7 @@ import {
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { AppProvider } from '@shopify/shopify-app-react-router/react';
 import { NavMenu } from '@shopify/app-bridge-react';
+import { useAdminLoadingBar } from '../lib/appBridge';
 import {
   AppProvider as PolarisAppProvider,
   Banner,
@@ -22,11 +24,9 @@ import {
   Box,
   Card,
   Frame,
-  InlineStack,
   Page,
   SkeletonBodyText,
   SkeletonDisplayText,
-  Spinner,
   Text,
 } from '@shopify/polaris';
 import enPolarisTranslations from '@shopify/polaris/locales/en.json';
@@ -249,6 +249,13 @@ function AppShell() {
   const nextPathname = navigation.state === 'loading' ? navigation.location?.pathname : undefined;
   const changingPage = Boolean(nextPathname) && nextPathname !== location.pathname;
 
+  // Admin header loading bar for navigation and merchant-started submissions.
+  // Fetcher *loads* are left out: the bootstrap poll would flash it every 3s.
+  const fetchers = useFetchers();
+  useAdminLoadingBar(
+    navigation.state !== 'idle' || fetchers.some((item) => item.state === 'submitting')
+  );
+
   return (
     <Frame>
       <EmbeddedSessionTokenBoundary />
@@ -267,12 +274,6 @@ function AppShell() {
             InlineStack without its own align inherited it and centered. */}
         <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
           <BlockStack gap="400">
-            {navigation.state === 'loading' && !changingPage ? (
-              <InlineStack align="center">
-                <Spinner accessibilityLabel="Loading page" size="small" />
-              </InlineStack>
-            ) : null}
-
             {setupProgress && !setupProgress.setupComplete && location.pathname !== '/app' ? (
               <SetupTrail
                 pathname={location.pathname}

@@ -37,6 +37,7 @@ import {
 } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import { shellSetupProgress, useAppBootstrapData } from './app';
+import { useActionToast, useEditProductInShopify } from '../lib/appBridge';
 import {
   createMerchantProduct,
   deleteMerchantProduct,
@@ -1318,6 +1319,9 @@ export default function ProductsPage() {
   const { bootstrapData: shellBootstrap } = useAppBootstrapData();
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  // Every successful action (bulk draft/prepare, manual source, product setup
+  // steps) confirms with one admin toast instead of a Banner in the page.
+  useActionToast(actionData?.ok && actionData.message ? actionData.message : null, actionData);
   const navigation = useNavigation();
   const submit = useSubmit();
   const [searchParams] = useSearchParams();
@@ -1696,18 +1700,6 @@ export default function ProductsPage() {
           </Layout.Section>
         ) : null}
 
-        {actionData?.ok &&
-        actionData.message &&
-        (actionData.intent === 'bulk-draft' || actionData.intent === 'bulk-prepare') ? (
-          <Layout.Section>
-            <Banner tone="success">
-              <Text as="p" variant="bodyMd">
-                {actionData.message}
-              </Text>
-            </Banner>
-          </Layout.Section>
-        ) : null}
-
         {!selectedRow && rowsWithoutGuidance.length > 0 ? (
           <Layout.Section>
             <Card padding="400">
@@ -1732,16 +1724,6 @@ export default function ProductsPage() {
                 </Button>
               </InlineStack>
             </Card>
-          </Layout.Section>
-        ) : null}
-
-        {actionData?.message && actionData.intent === 'create' ? (
-          <Layout.Section>
-            <Banner tone="success" title="Manual source added">
-              <Text as="p" variant="bodyMd">
-                {actionData.message}
-              </Text>
-            </Banner>
           </Layout.Section>
         ) : null}
 
@@ -1793,13 +1775,6 @@ export default function ProductsPage() {
               actionError={
                 actionData?.error && actionData.selectedProductId === selectedRow.shopify.id
                   ? actionData.error
-                  : null
-              }
-              actionMessage={
-                actionData?.ok &&
-                actionData.selectedProductId === selectedRow.shopify.id &&
-                actionData.message
-                  ? actionData.message
                   : null
               }
               previewQuestion={previewQuestion}
@@ -2066,7 +2041,6 @@ function SetupPanel({
   dirty,
   workflowUrl,
   actionError,
-  actionMessage,
   previewQuestion,
   previewAnswer,
   onPreviewQuestionChange,
@@ -2085,7 +2059,6 @@ function SetupPanel({
   dirty: boolean;
   workflowUrl: string;
   actionError: string | null;
-  actionMessage: string | null;
   previewQuestion: string;
   previewAnswer: string;
   onPreviewQuestionChange: (value: string) => void;
@@ -2155,6 +2128,7 @@ function SetupPanel({
   }, [draftFetcher.data, row.shopify.id]);
 
   const isDrafting = draftFetcher.state !== 'idle';
+  const editInShopify = useEditProductInShopify();
   const draftError =
     draftFetcher.data &&
     !draftFetcher.data.ok &&
@@ -2267,7 +2241,10 @@ function SetupPanel({
                 </Text>
               </BlockStack>
             </InlineStack>
-            <Badge tone={statusTone}>{statusLabel}</Badge>
+            <InlineStack gap="200" blockAlign="center">
+              <Badge tone={statusTone}>{statusLabel}</Badge>
+              <Button onClick={() => editInShopify(row.shopify.id)}>Edit in Shopify</Button>
+            </InlineStack>
           </InlineStack>
         </BlockStack>
       </Box>
@@ -2284,13 +2261,6 @@ function SetupPanel({
         <Banner tone="critical" title="Action failed">
           <Text as="p" variant="bodyMd">
             {actionError}
-          </Text>
-        </Banner>
-      ) : null}
-      {actionMessage && !actionError && !processRunning ? (
-        <Banner tone="success" title="Success">
-          <Text as="p" variant="bodyMd">
-            {actionMessage}
           </Text>
         </Banner>
       ) : null}
