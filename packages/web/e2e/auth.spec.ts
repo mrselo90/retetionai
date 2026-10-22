@@ -9,7 +9,8 @@ test.describe('Authentication Flow', () => {
   test('should display login page', async ({ page }) => {
     await page.goto('/login');
     
-    await expect(page).toHaveTitle(/Login|Giriş/);
+    // The login page keeps the site-wide <title>, so check the route instead.
+    await expect(page).toHaveURL(/\/login$/);
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toBeVisible();
