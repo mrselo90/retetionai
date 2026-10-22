@@ -101,6 +101,10 @@ module.exports = {
         // Shopify app (shopify-shell) on this host: owner of the shops' expiring
         // offline tokens, served at /internal/offline-token (shared/shopifyToken.ts).
         SHOPIFY_SHELL_INTERNAL_URL: 'http://127.0.0.1:3003',
+        // Plan features from the shop's real Shopify plan (/internal/plan) and chat
+        // usage reporting (/internal/billing/usage, overage charges above the plan's
+        // included chats). Without it the API fell back to merchants.subscription_plan.
+        SHOPIFY_SHELL_URL: 'http://127.0.0.1:3003',
         NEW_RELIC_APP_NAME: 'recete-api',
         ...nrEnv,
       },
