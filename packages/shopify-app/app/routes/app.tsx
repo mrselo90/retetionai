@@ -15,7 +15,6 @@ import {
 } from 'react-router';
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { AppProvider } from '@shopify/shopify-app-react-router/react';
-import { NavMenu } from '@shopify/app-bridge-react';
 import { useAdminLoadingBar } from '../lib/appBridge';
 import {
   AppProvider as PolarisAppProvider,
@@ -260,13 +259,15 @@ function AppShell() {
     <Frame>
       <EmbeddedSessionTokenBoundary />
       {bootstrapData ? (
-        <NavMenu>
+        // App Bridge's s-app-nav (replaces the React NavMenu). Clicks fire
+        // shopify:navigate, which AppProvider hands to React Router.
+        <s-app-nav>
           {visibleNavItems.map((item) => (
-            <RemixLink key={item.to} to={item.to} rel={item.to === '/app' ? 'home' : undefined}>
+            <a key={item.to} href={item.to} rel={item.to === '/app' ? 'home' : undefined}>
               {item.label}
-            </RemixLink>
+            </a>
           ))}
-        </NavMenu>
+        </s-app-nav>
       ) : null}
       <Box background="bg-surface" minHeight="100vh" padding={{ xs: '200', sm: '300', md: '400' }}>
         {/* A plain wrapper on purpose. An InlineStack align="center" here set

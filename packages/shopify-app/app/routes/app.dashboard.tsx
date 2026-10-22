@@ -1,20 +1,6 @@
 import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
 import { useLoaderData, useNavigate } from 'react-router';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { CartIcon } from '@shopify/polaris-icons';
-import {
-  Badge,
-  Banner,
-  BlockStack,
-  Box,
-  Button,
-  Card,
-  InlineGrid,
-  InlineStack,
-  Layout,
-  Page,
-  Text,
-} from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import { shellSetupProgress, useAppBootstrapData } from './app';
 import { fetchMerchantConversations } from '../platform.server';
@@ -23,7 +9,7 @@ import {
   settle,
   type ShopifyMerchantOverview,
 } from '../platform.server';
-import { AppPage, MetricCard, SectionCard } from '../components/shell-ui';
+import { AppPage, MetricCard, MetricGrid, SectionCard } from '../components/shell-ui';
 
 const EMPTY_OVERVIEW: ShopifyMerchantOverview = {
   merchant: { id: '', name: '' },
@@ -71,18 +57,14 @@ export default function DashboardPage() {
   // the setup wizard again during an outage, not their real dashboard.
   if (overviewUnavailable) {
     return (
-      <Page title="Dashboard">
-        <Layout>
-          <Layout.Section>
-            <Banner tone="warning" title="Couldn't reach Recete">
-              <p>
-                We couldn't load your dashboard data right now. This isn't your real setup or
-                activity status — refresh in a moment.
-              </p>
-            </Banner>
-          </Layout.Section>
-        </Layout>
-      </Page>
+      <AppPage heading="Dashboard">
+        <s-banner tone="warning" heading="Couldn't reach Recete">
+          <s-paragraph>
+            We couldn&apos;t load your dashboard data right now. This isn&apos;t your real setup or
+            activity status — refresh in a moment.
+          </s-paragraph>
+        </s-banner>
+      </AppPage>
     );
   }
 
@@ -99,22 +81,16 @@ export default function DashboardPage() {
     // on top of that, three buttons for one destination.
     const remaining = progress.totalSteps - progress.completedCount;
     return (
-      <Page title="Dashboard">
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <BlockStack gap="200">
-                <Text as="h2" variant="headingMd">
-                  Finish setup to open the dashboard
-                </Text>
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  {`Dashboard, Conversations and Analytics open once setup is done. ${remaining} of ${progress.totalSteps} steps left.`}
-                </Text>
-              </BlockStack>
-            </Card>
-          </Layout.Section>
-        </Layout>
-      </Page>
+      <AppPage heading="Dashboard">
+        <s-section>
+          <s-stack gap="small-200">
+            <s-heading>Finish setup to open the dashboard</s-heading>
+            <s-paragraph color="subdued">
+              {`Dashboard, Conversations and Analytics open once setup is done. ${remaining} of ${progress.totalSteps} steps left.`}
+            </s-paragraph>
+          </s-stack>
+        </s-section>
+      </AppPage>
     );
   }
 
@@ -131,157 +107,132 @@ export default function DashboardPage() {
           : { content: 'View conversations', url: '/app/conversations' }
       }
     >
-      <Layout>
-        <Layout.Section>
-          <BlockStack gap="400">
-            {/* ── Escalation alert ────────────────────────────────────────── */}
-            {humanCount > 0 ? (
-              <Banner
-                title={`${humanCount} conversation${humanCount === 1 ? '' : 's'} need${humanCount === 1 ? 's' : ''} your attention`}
-                tone="warning"
-                action={{
-                  content: 'Handle next',
-                  onAction: () => navigate(`/app/conversations/${manualQueue[0].id}`),
-                }}
-              >
-                <Text as="p" variant="bodyMd">
-                  These threads have been escalated to human review.
-                </Text>
-              </Banner>
-            ) : null}
+      {/* ── Escalation alert ────────────────────────────────────────── */}
+      {humanCount > 0 ? (
+        <s-banner
+          heading={`${humanCount} conversation${humanCount === 1 ? '' : 's'} need${humanCount === 1 ? 's' : ''} your attention`}
+          tone="warning"
+        >
+          <s-paragraph>These threads have been escalated to human review.</s-paragraph>
+          <s-button
+            slot="secondary-actions"
+            onClick={() => navigate(`/app/conversations/${manualQueue[0].id}`)}
+          >
+            Handle next
+          </s-button>
+        </s-banner>
+      ) : null}
 
-            {/* ── Key metrics ─────────────────────────────────────────────── */}
-            <InlineGrid columns={{ xs: 2, sm: 2, lg: 4 }} gap="400">
-              <MetricCard
-                label="Orders"
-                value={data.metrics.totalOrders}
-                hint={data.metrics.totalOrders > 0 ? 'Orders tracked by Recete.' : 'No orders yet.'}
-              />
-              <MetricCard
-                label="Opted-in customers"
-                value={data.metrics.activeUsers}
-                hint={
-                  data.metrics.activeUsers > 0
-                    ? 'Customers ready for messaging.'
-                    : 'No consented customers yet.'
-                }
-              />
-              <MetricCard
-                label="Reply rate"
-                value={responseValue}
-                hint={
-                  data.metrics.responseRate > 0
-                    ? 'Replies vs. total buyer threads.'
-                    : 'Not available yet.'
-                }
-              />
-              <MetricCard
-                label="Conversations"
-                value={conversations.length}
-                hint={
-                  humanCount > 0
-                    ? `${humanCount} need${humanCount === 1 ? 's' : ''} manual attention.`
-                    : aiCount > 0
-                      ? `${aiCount} AI-owned, ${resolvedCount} resolved.`
-                      : 'No conversations yet.'
-                }
-              />
-            </InlineGrid>
+      {/* ── Key metrics ─────────────────────────────────────────────── */}
+      <MetricGrid>
+        <MetricCard
+          label="Orders"
+          value={data.metrics.totalOrders}
+          hint={data.metrics.totalOrders > 0 ? 'Orders tracked by Recete.' : 'No orders yet.'}
+        />
+        <MetricCard
+          label="Opted-in customers"
+          value={data.metrics.activeUsers}
+          hint={
+            data.metrics.activeUsers > 0
+              ? 'Customers ready for messaging.'
+              : 'No consented customers yet.'
+          }
+        />
+        <MetricCard
+          label="Reply rate"
+          value={responseValue}
+          hint={
+            data.metrics.responseRate > 0
+              ? 'Replies vs. total buyer threads.'
+              : 'Not available yet.'
+          }
+        />
+        <MetricCard
+          label="Conversations"
+          value={conversations.length}
+          hint={
+            humanCount > 0
+              ? `${humanCount} need${humanCount === 1 ? 's' : ''} manual attention.`
+              : aiCount > 0
+                ? `${aiCount} AI-owned, ${resolvedCount} resolved.`
+                : 'No conversations yet.'
+          }
+        />
+      </MetricGrid>
 
-            {/* ── Conversation queue ──────────────────────────────────────── */}
-            {conversations.length > 0 ? (
-              <SectionCard
-                title="Conversation queue"
-                subtitle="Live status across all buyer threads."
+      {/* ── Conversation queue ──────────────────────────────────────── */}
+      {conversations.length > 0 ? (
+        <SectionCard title="Conversation queue" subtitle="Live status across all buyer threads.">
+          <s-grid gridTemplateColumns="repeat(auto-fit, minmax(160px, 1fr))" gap="base">
+            {[
+              // s-box has no caution surface; "strong" keeps a pending manual
+              // queue visually distinct from the other tiles.
+              { label: 'Manual queue', count: humanCount, emphasis: humanCount > 0 },
+              { label: 'AI-owned', count: aiCount, emphasis: false },
+              { label: 'Resolved', count: resolvedCount, emphasis: false },
+            ].map((tile) => (
+              <s-box
+                key={tile.label}
+                padding="base"
+                borderRadius="base"
+                background={tile.emphasis ? 'strong' : 'subdued'}
               >
-                <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
-                  <Box
-                    padding="300"
-                    borderRadius="200"
-                    background={humanCount > 0 ? 'bg-surface-caution' : 'bg-surface-secondary'}
+                <s-stack gap="small-300">
+                  <s-heading>{tile.count}</s-heading>
+                  <s-text color="subdued">{tile.label}</s-text>
+                </s-stack>
+              </s-box>
+            ))}
+          </s-grid>
+        </SectionCard>
+      ) : null}
+
+      {/* ── Recent orders ────────────────────────────────────────────── */}
+      <SectionCard title="Recent orders" subtitle="Latest order events seen by Recete.">
+        {data.recentOrders.length > 0 ? (
+          <s-stack gap="none">
+            {data.recentOrders.slice(0, 8).map((order, index) => (
+              <s-box key={order.id}>
+                {index > 0 ? <s-divider /> : null}
+                <s-grid
+                  gridTemplateColumns="1fr auto"
+                  gap="base"
+                  alignItems="center"
+                  paddingBlock="small"
+                >
+                  <s-stack gap="none">
+                    <s-text type="strong">{order.external_order_id || order.id}</s-text>
+                    <s-text color="subdued">
+                      {new Intl.DateTimeFormat('en', {
+                        month: 'short',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      }).format(new Date(order.created_at))}
+                    </s-text>
+                  </s-stack>
+                  <s-badge
+                    tone={
+                      order.status === 'delivered'
+                        ? 'success'
+                        : order.status === 'created'
+                          ? 'info'
+                          : 'warning'
+                    }
                   >
-                    <BlockStack gap="100">
-                      <Text as="p" variant="headingLg">
-                        {humanCount}
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        Manual queue
-                      </Text>
-                    </BlockStack>
-                  </Box>
-                  <Box padding="300" borderRadius="200" background="bg-surface-secondary">
-                    <BlockStack gap="100">
-                      <Text as="p" variant="headingLg">
-                        {aiCount}
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        AI-owned
-                      </Text>
-                    </BlockStack>
-                  </Box>
-                  <Box padding="300" borderRadius="200" background="bg-surface-secondary">
-                    <BlockStack gap="100">
-                      <Text as="p" variant="headingLg">
-                        {resolvedCount}
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        Resolved
-                      </Text>
-                    </BlockStack>
-                  </Box>
-                </InlineGrid>
-              </SectionCard>
-            ) : null}
-
-            {/* ── Recent orders ────────────────────────────────────────────── */}
-            <SectionCard title="Recent orders" subtitle="Latest order events seen by Recete.">
-              {data.recentOrders.length > 0 ? (
-                <BlockStack gap="0">
-                  {data.recentOrders.slice(0, 8).map((order, index) => (
-                    <Box
-                      key={order.id}
-                      paddingBlock="300"
-                      borderBlockStartWidth={index > 0 ? '025' : undefined}
-                      borderColor="border-secondary"
-                    >
-                      <InlineStack align="space-between" blockAlign="center" wrap>
-                        <BlockStack gap="025">
-                          <Text as="p" variant="bodyMd" fontWeight="medium">
-                            {order.external_order_id || order.id}
-                          </Text>
-                          <Text as="p" variant="bodyXs" tone="subdued">
-                            {new Intl.DateTimeFormat('en', {
-                              month: 'short',
-                              day: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            }).format(new Date(order.created_at))}
-                          </Text>
-                        </BlockStack>
-                        <Badge
-                          tone={
-                            order.status === 'delivered'
-                              ? 'success'
-                              : order.status === 'created'
-                                ? 'info'
-                                : 'attention'
-                          }
-                        >
-                          {order.status}
-                        </Badge>
-                      </InlineStack>
-                    </Box>
-                  ))}
-                </BlockStack>
-              ) : (
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  No orders visible yet. Once orders flow through Recete, they appear here.
-                </Text>
-              )}
-            </SectionCard>
-          </BlockStack>
-        </Layout.Section>
-      </Layout>
+                    {order.status}
+                  </s-badge>
+                </s-grid>
+              </s-box>
+            ))}
+          </s-stack>
+        ) : (
+          <s-paragraph color="subdued">
+            No orders visible yet. Once orders flow through Recete, they appear here.
+          </s-paragraph>
+        )}
+      </SectionCard>
     </AppPage>
   );
 }

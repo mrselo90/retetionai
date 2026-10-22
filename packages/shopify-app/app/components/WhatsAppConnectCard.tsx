@@ -7,18 +7,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
 import { useAppBridge } from '@shopify/app-bridge-react';
-import {
-  Badge,
-  Banner,
-  BlockStack,
-  Box,
-  Button,
-  Card,
-  Image,
-  InlineStack,
-  Modal,
-  Text,
-} from '@shopify/polaris';
+import { Modal, Text } from '@shopify/polaris';
 import type { WhatsAppConnectionStatus } from '../platform.server';
 
 type LoaderResult = { ok: true; status: WhatsAppConnectionStatus } | { ok: false; error: string };
@@ -93,11 +82,11 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
 
   if (!status) {
     return (
-      <Card padding="400">
-        <Text as="p" tone="subdued">
+      <s-section>
+        <s-paragraph color="subdued">
           We couldn&apos;t load your WhatsApp connection. Refresh the page to try again.
-        </Text>
-      </Card>
+        </s-paragraph>
+      </s-section>
     );
   }
 
@@ -110,97 +99,101 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
   const problem = errorText(status);
   const actionError = actor.data && !actor.data.ok ? actor.data.error : null;
 
+  // Account connection composition: the service, its status, a short
+  // description and the one Connect / Disconnect action.
   return (
-    <Card padding="400">
-      <BlockStack gap="300">
-        <InlineStack align="space-between" blockAlign="center" gap="300" wrap>
-          <BlockStack gap="100">
-            <InlineStack gap="200" blockAlign="center">
-              <Text as="h3" variant="headingMd">
-                WhatsApp
-              </Text>
-              {connected ? <Badge tone="success">Connected</Badge> : null}
-              {status.status === 'qr' ? <Badge tone="attention">Waiting for scan</Badge> : null}
+    <s-section>
+      <s-stack gap="base">
+        <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="center">
+          <s-stack gap="small-300">
+            <s-stack direction="inline" gap="small-200" alignItems="center">
+              <s-heading>WhatsApp</s-heading>
+              {connected ? <s-badge tone="success">Connected</s-badge> : null}
+              {status.status === 'qr' ? <s-badge tone="warning">Waiting for scan</s-badge> : null}
               {status.status === 'connecting' && status.phone ? (
-                <Badge tone="attention">Reconnecting</Badge>
+                <s-badge tone="warning">Reconnecting</s-badge>
               ) : null}
-              {!status.available ? <Badge>Not available yet</Badge> : null}
-            </InlineStack>
-            <Text as="p" tone="subdued">
+              {!status.available ? <s-badge>Not available yet</s-badge> : null}
+            </s-stack>
+            <s-paragraph color="subdued">
               {connected
                 ? `Messages go from ${status.phone ?? 'your linked number'}.`
                 : status.available
                   ? "Link your store's own WhatsApp number by scanning a QR code, the way you link WhatsApp Web. Customers get messages from the number they already know."
                   : 'Linking a WhatsApp number is not available yet. Until then Recete cannot send WhatsApp messages.'}
-            </Text>
-          </BlockStack>
+            </s-paragraph>
+          </s-stack>
           {connected ? (
-            <Button onClick={() => setConfirmUnlink(true)} loading={busy}>
+            <s-button onClick={() => setConfirmUnlink(true)} loading={busy || undefined}>
               Unlink
-            </Button>
+            </s-button>
           ) : pairing ? (
-            <Button variant="tertiary" onClick={() => submit('disconnect')} loading={busy}>
+            <s-button
+              variant="tertiary"
+              onClick={() => submit('disconnect')}
+              loading={busy || undefined}
+            >
               Cancel
-            </Button>
+            </s-button>
           ) : status.available ? (
-            <Button variant="primary" onClick={() => submit('connect')} loading={busy}>
+            <s-button
+              variant="primary"
+              onClick={() => submit('connect')}
+              loading={busy || undefined}
+            >
               Link WhatsApp
-            </Button>
+            </s-button>
           ) : null}
-        </InlineStack>
+        </s-grid>
 
-        {actionError ? (
-          <Banner tone="critical">
-            <p>{actionError}</p>
-          </Banner>
-        ) : null}
-        {problem ? (
-          <Banner tone="warning">
-            <p>{problem}</p>
-          </Banner>
-        ) : null}
+        {actionError ? <s-banner tone="critical">{actionError}</s-banner> : null}
+        {problem ? <s-banner tone="warning">{problem}</s-banner> : null}
 
         {pairing ? (
-          <InlineStack gap="400" blockAlign="center" wrap>
-            <Box
-              background="bg-surface"
-              borderRadius="200"
-              borderWidth="025"
-              borderColor="border"
-              padding="200"
-              minWidth="224px"
-              minHeight="224px"
+          <s-stack direction="inline" gap="base" alignItems="center">
+            <s-box
+              background="base"
+              borderRadius="base"
+              border="base"
+              padding="small"
+              minInlineSize="224px"
+              minBlockSize="224px"
             >
               {status.qr ? (
-                <Image source={status.qr} alt="WhatsApp link QR code" width={208} height={208} />
+                <s-box inlineSize="208px" blockSize="208px">
+                  <s-image src={status.qr} alt="WhatsApp link QR code" aspectRatio="1/1" />
+                </s-box>
               ) : (
-                <Text as="p" tone="subdued" alignment="center">
-                  Starting the connection…
-                </Text>
+                <s-grid
+                  justifyItems="center"
+                  alignItems="center"
+                  inlineSize="208px"
+                  blockSize="208px"
+                >
+                  <s-paragraph color="subdued">Starting the connection…</s-paragraph>
+                </s-grid>
               )}
-            </Box>
-            <BlockStack gap="100">
-              <Text as="p" fontWeight="semibold">
-                Scan with the phone that has this number
-              </Text>
-              <Text as="p" tone="subdued">
+            </s-box>
+            <s-stack gap="small-300">
+              <s-text type="strong">Scan with the phone that has this number</s-text>
+              <s-paragraph color="subdued">
                 Open WhatsApp → Settings → Linked devices → Link a device, then point the camera at
                 this code. It refreshes on its own.
-              </Text>
-            </BlockStack>
-          </InlineStack>
+              </s-paragraph>
+            </s-stack>
+          </s-stack>
         ) : null}
 
         {!connected && status.available ? (
-          <Text as="p" variant="bodySm" tone="subdued">
-            <strong>Before you link:</strong> this links your number as a device, like WhatsApp Web.
-            It is not WhatsApp&apos;s official Business API, and WhatsApp can restrict numbers that
-            send automated messages. Use a number that belongs to your store, not a personal one.
-            Recete paces messages, caps how many first messages a new link sends per day, and only
-            messages customers who opted in.
-          </Text>
+          <s-paragraph color="subdued">
+            <s-text type="strong">Before you link:</s-text> this links your number as a device, like
+            WhatsApp Web. It is not WhatsApp&apos;s official Business API, and WhatsApp can restrict
+            numbers that send automated messages. Use a number that belongs to your store, not a
+            personal one. Recete paces messages, caps how many first messages a new link sends per
+            day, and only messages customers who opted in.
+          </s-paragraph>
         ) : null}
-      </BlockStack>
+      </s-stack>
       <Modal
         open={confirmUnlink}
         onClose={() => setConfirmUnlink(false)}
@@ -223,6 +216,6 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
           </Text>
         </Modal.Section>
       </Modal>
-    </Card>
+    </s-section>
   );
 }

@@ -4,22 +4,7 @@ import { Form, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { useEffect, useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { ChatIcon } from '@shopify/polaris-icons';
-import {
-  Badge,
-  Banner,
-  BlockStack,
-  Box,
-  Button,
-  Card,
-  InlineStack,
-  Layout,
-  Spinner,
-  SkeletonBodyText,
-  SkeletonDisplayText,
-  SkeletonPage,
-  Text,
-  TextField,
-} from '@shopify/polaris';
+import { Button, TextField } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import { useActionToast } from '../lib/appBridge';
 import { AppPage } from '../components/shell-ui';
@@ -108,23 +93,21 @@ export default function ConversationDetailPage() {
 
   if (navigation.state === 'loading') {
     return (
-      <SkeletonPage title="Conversation" primaryAction>
-        <Layout>
-          <Layout.Section>
-            <Card padding="500">
-              <SkeletonDisplayText size="small" />
-              <SkeletonBodyText lines={6} />
-            </Card>
-          </Layout.Section>
-        </Layout>
-      </SkeletonPage>
+      <AppPage heading="Conversation">
+        <s-section>
+          <s-stack direction="inline" gap="small-200" alignItems="center">
+            <s-spinner accessibilityLabel="Loading conversation" size="base" />
+            <s-text color="subdued">Loading…</s-text>
+          </s-stack>
+        </s-section>
+      </AppPage>
     );
   }
 
   const statusBadge = (status: string) => {
-    if (status === 'human') return <Badge tone="attention">Needs reply</Badge>;
-    if (status === 'resolved') return <Badge tone="success">Resolved</Badge>;
-    return <Badge tone="info">AI handling</Badge>;
+    if (status === 'human') return <s-badge tone="warning">Needs reply</s-badge>;
+    if (status === 'resolved') return <s-badge tone="success">Resolved</s-badge>;
+    return <s-badge tone="info">AI handling</s-badge>;
   };
 
   return (
@@ -133,130 +116,106 @@ export default function ConversationDetailPage() {
       heading={conversation.userName || 'Buyer'}
       // s-page has no title-metadata slot, so status sits with the phone number.
       subtitle={
-        <InlineStack gap="200" blockAlign="center">
+        <s-stack direction="inline" gap="small-200" alignItems="center">
           {statusBadge(conversation.conversationStatus)}
-          <Text as="span" tone="subdued">
-            {conversation.phone}
-          </Text>
-        </InlineStack>
+          <s-text color="subdued">{conversation.phone}</s-text>
+        </s-stack>
       }
     >
       {busy ? (
-        <Box paddingBlockEnd="400">
-          <InlineStack gap="200" blockAlign="center">
-            <Spinner accessibilityLabel="Loading" size="small" />
-            <Text as="p" variant="bodySm" tone="subdued">
-              Saving…
-            </Text>
-          </InlineStack>
-        </Box>
+        <s-stack direction="inline" gap="small-200" alignItems="center">
+          <s-spinner accessibilityLabel="Loading" size="base" />
+          <s-text color="subdued">Saving…</s-text>
+        </s-stack>
       ) : null}
 
-      <Layout>
-        {/* ── Main column: alerts + history + reply ─────────────────────── */}
-        <Layout.Section>
-          <BlockStack gap="400">
+      <s-query-container>
+        <s-grid gridTemplateColumns="@container (inline-size > 768px) 2fr 1fr, 1fr" gap="base">
+          {/* ── Main column: alerts + history + reply ─────────────────────── */}
+          <s-stack gap="base">
             {needsAttention ? (
-              <Banner
-                title={
+              <s-banner
+                heading={
                   conversation.conversationStatus === 'human'
                     ? 'This thread needs your reply'
                     : 'Review before leaving'
                 }
                 tone={conversation.conversationStatus === 'human' ? 'warning' : 'info'}
               >
-                <Text as="p" variant="bodyMd">
+                <s-paragraph>
                   {conversation.conversationStatus === 'human'
                     ? 'Escalated to human queue. Send a reply or hand back to AI.'
                     : 'Use the controls on the right to manage ownership or send a reply.'}
-                </Text>
-              </Banner>
+                </s-paragraph>
+              </s-banner>
             ) : null}
 
             {actionData?.error ? (
-              <Banner title="Action failed" tone="critical">
-                <Text as="p" variant="bodyMd">
-                  {actionData.error}
-                </Text>
-              </Banner>
+              <s-banner heading="Action failed" tone="critical">
+                <s-paragraph>{actionData.error}</s-paragraph>
+              </s-banner>
             ) : null}
 
             {/* ── Chat history ──────────────────────────────────────────── */}
-            <Card>
-              <BlockStack gap="400">
-                <Text as="h2" variant="headingMd">
-                  Message history
-                </Text>
-                <BlockStack gap="300">
-                  {conversation.history.length === 0 ? (
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      No messages yet.
-                    </Text>
-                  ) : null}
-                  {conversation.history.map((message, index) => {
-                    const isBuyer = message.role === 'user';
-                    const isMerchant = message.role === 'merchant';
-                    const label = isBuyer ? 'Buyer' : isMerchant ? 'You' : 'AI';
+            <s-section heading="Message history">
+              <s-stack gap="small-100">
+                {conversation.history.length === 0 ? (
+                  <s-paragraph color="subdued">No messages yet.</s-paragraph>
+                ) : null}
+                {conversation.history.map((message, index) => {
+                  const isBuyer = message.role === 'user';
+                  const isMerchant = message.role === 'merchant';
+                  const label = isBuyer ? 'Buyer' : isMerchant ? 'You' : 'AI';
 
-                    return (
-                      <InlineStack
-                        key={`${message.timestamp}-${index}`}
-                        align={isBuyer ? 'start' : 'end'}
-                      >
-                        <Box maxWidth="75%">
-                          <Box
-                            background={
-                              isBuyer
-                                ? 'bg-surface-secondary'
-                                : isMerchant
-                                  ? 'bg-fill-success-secondary'
-                                  : 'bg-fill-info-secondary'
-                            }
-                            borderRadius="300"
-                            paddingBlock="200"
-                            paddingInline="300"
-                          >
-                            <BlockStack gap="100">
-                              <InlineStack align="space-between" gap="300">
-                                <Text as="p" variant="bodyXs" fontWeight="semibold" tone="subdued">
-                                  {label}
-                                </Text>
-                                <Text as="p" variant="bodyXs" tone="subdued">
-                                  {new Date(message.timestamp).toLocaleTimeString('en-GB', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </Text>
-                              </InlineStack>
-                              <Text as="p" variant="bodyMd">
-                                {message.content}
-                              </Text>
-                            </BlockStack>
-                          </Box>
-                          <Box paddingBlockStart="050">
-                            <Text as="p" variant="bodyXs" tone="subdued">
-                              {new Date(message.timestamp).toLocaleDateString('en-GB', {
-                                day: '2-digit',
-                                month: 'short',
-                              })}
-                            </Text>
-                          </Box>
-                        </Box>
-                      </InlineStack>
-                    );
-                  })}
-                </BlockStack>
-              </BlockStack>
-            </Card>
+                  return (
+                    <s-grid
+                      key={`${message.timestamp}-${index}`}
+                      justifyItems={isBuyer ? 'start' : 'end'}
+                    >
+                      <s-box maxInlineSize="75%">
+                        <s-box
+                          background={isBuyer ? 'subdued' : 'base'}
+                          border={isBuyer ? undefined : 'base'}
+                          borderRadius="base"
+                          paddingBlock="small-200"
+                          paddingInline="small"
+                        >
+                          <s-stack gap="small-300">
+                            <s-grid gridTemplateColumns="1fr auto" gap="base">
+                              <s-text type="strong" color="subdued">
+                                {label}
+                              </s-text>
+                              <s-text color="subdued">
+                                {new Date(message.timestamp).toLocaleTimeString('en-GB', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </s-text>
+                            </s-grid>
+                            <s-paragraph>{message.content}</s-paragraph>
+                          </s-stack>
+                        </s-box>
+                        <s-box paddingBlockStart="small-500">
+                          <s-text color="subdued">
+                            {new Date(message.timestamp).toLocaleDateString('en-GB', {
+                              day: '2-digit',
+                              month: 'short',
+                            })}
+                          </s-text>
+                        </s-box>
+                      </s-box>
+                    </s-grid>
+                  );
+                })}
+              </s-stack>
+            </s-section>
 
             {/* ── Reply form ────────────────────────────────────────────── */}
-            <Card>
+            {/* The composer stays Polaris React: React 18 can't drive a controlled s-text-area. */}
+            <s-section heading="Send a reply">
               <Form method="post">
                 <input type="hidden" name="intent" value="reply" />
-                <BlockStack gap="300">
-                  <Text as="h2" variant="headingMd">
-                    Send a reply
-                  </Text>
+                <s-stack gap="small">
                   <TextField
                     label="Message"
                     name="text"
@@ -267,7 +226,7 @@ export default function ConversationDetailPage() {
                     placeholder="Type your WhatsApp message…"
                     helpText="Sends directly to the buyer via WhatsApp."
                   />
-                  <InlineStack>
+                  <s-stack direction="inline">
                     <Button
                       submit
                       variant="primary"
@@ -277,68 +236,56 @@ export default function ConversationDetailPage() {
                     >
                       Send reply
                     </Button>
-                  </InlineStack>
-                </BlockStack>
+                  </s-stack>
+                </s-stack>
               </Form>
-            </Card>
-          </BlockStack>
-        </Layout.Section>
+            </s-section>
+          </s-stack>
 
-        {/* ── Sidebar: summary + ownership ──────────────────────────────── */}
-        <Layout.Section variant="oneThird">
-          <BlockStack gap="400">
+          {/* ── Sidebar: summary + ownership ──────────────────────────────── */}
+          <s-stack gap="base">
             {/* Thread summary */}
-            <Card>
-              <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">
-                  Thread details
-                </Text>
-                <BlockStack gap="200">
-                  <SummaryRow label="Buyer" value={conversation.userName || 'Unknown'} />
-                  <SummaryRow label="Phone" value={conversation.phone || '—'} />
-                  {conversation.order?.externalOrderId ? (
-                    <SummaryRow label="Order" value={conversation.order.externalOrderId} />
-                  ) : null}
-                  <SummaryRow label="Messages" value={String(conversation.history.length)} />
-                  {conversation.returnPreventionAttempt ? (
-                    <SummaryRow
-                      label="Return outcome"
-                      value={
-                        <Badge
-                          tone={
-                            conversation.returnPreventionAttempt.outcome === 'prevented'
-                              ? 'success'
-                              : conversation.returnPreventionAttempt.outcome === 'escalated'
-                                ? 'attention'
-                                : 'info'
-                          }
-                        >
-                          {conversation.returnPreventionAttempt.outcome}
-                        </Badge>
-                      }
-                    />
-                  ) : null}
-                </BlockStack>
-              </BlockStack>
-            </Card>
+            <s-section heading="Thread details">
+              <s-stack gap="small-200">
+                <SummaryRow label="Buyer" value={conversation.userName || 'Unknown'} />
+                <SummaryRow label="Phone" value={conversation.phone || '—'} />
+                {conversation.order?.externalOrderId ? (
+                  <SummaryRow label="Order" value={conversation.order.externalOrderId} />
+                ) : null}
+                <SummaryRow label="Messages" value={String(conversation.history.length)} />
+                {conversation.returnPreventionAttempt ? (
+                  <SummaryRow
+                    label="Return outcome"
+                    value={
+                      <s-badge
+                        tone={
+                          conversation.returnPreventionAttempt.outcome === 'prevented'
+                            ? 'success'
+                            : conversation.returnPreventionAttempt.outcome === 'escalated'
+                              ? 'warning'
+                              : 'info'
+                        }
+                      >
+                        {conversation.returnPreventionAttempt.outcome}
+                      </s-badge>
+                    }
+                  />
+                ) : null}
+              </s-stack>
+            </s-section>
 
             {/* Ownership controls */}
-            <Card>
-              <BlockStack gap="300">
-                <BlockStack gap="100">
-                  <Text as="h2" variant="headingMd">
-                    Ownership
-                  </Text>
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Current:{' '}
-                    {conversation.conversationStatus === 'human'
-                      ? 'Human'
-                      : conversation.conversationStatus === 'resolved'
-                        ? 'Resolved'
-                        : 'AI'}
-                  </Text>
-                </BlockStack>
-                <BlockStack gap="200">
+            <s-section heading="Ownership">
+              <s-stack gap="small">
+                <s-paragraph color="subdued">
+                  Current:{' '}
+                  {conversation.conversationStatus === 'human'
+                    ? 'Human'
+                    : conversation.conversationStatus === 'resolved'
+                      ? 'Resolved'
+                      : 'AI'}
+                </s-paragraph>
+                <s-stack gap="small-200">
                   <OwnershipButton
                     current={conversation.conversationStatus}
                     next="ai"
@@ -357,30 +304,22 @@ export default function ConversationDetailPage() {
                     label="Mark resolved"
                     description="Close the thread."
                   />
-                </BlockStack>
-              </BlockStack>
-            </Card>
-          </BlockStack>
-        </Layout.Section>
-      </Layout>
+                </s-stack>
+              </s-stack>
+            </s-section>
+          </s-stack>
+        </s-grid>
+      </s-query-container>
     </AppPage>
   );
 }
 
 function SummaryRow({ label, value }: { label: string; value: string | ReactNode }) {
   return (
-    <InlineStack align="space-between" blockAlign="start" gap="300" wrap>
-      <Text as="p" variant="bodySm" tone="subdued">
-        {label}
-      </Text>
-      {typeof value === 'string' ? (
-        <Text as="p" variant="bodySm" fontWeight="semibold">
-          {value}
-        </Text>
-      ) : (
-        value
-      )}
-    </InlineStack>
+    <s-grid gridTemplateColumns="1fr auto" gap="small" alignItems="start">
+      <s-text color="subdued">{label}</s-text>
+      {typeof value === 'string' ? <s-text type="strong">{value}</s-text> : value}
+    </s-grid>
   );
 }
 
@@ -400,7 +339,8 @@ function OwnershipButton({
     <Form method="post">
       <input type="hidden" name="intent" value="status" />
       <input type="hidden" name="status" value={next} />
-      <BlockStack gap="050">
+      {/* Polaris Button so `submit` posts this react-router Form natively. */}
+      <s-stack gap="small-500">
         <Button
           submit
           variant={isActive ? 'secondary' : 'tertiary'}
@@ -410,10 +350,8 @@ function OwnershipButton({
         >
           {label}
         </Button>
-        <Text as="p" variant="bodyXs" tone="subdued">
-          {description}
-        </Text>
-      </BlockStack>
+        <s-text color="subdued">{description}</s-text>
+      </s-stack>
     </Form>
   );
 }

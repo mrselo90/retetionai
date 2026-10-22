@@ -1,8 +1,6 @@
 import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
 import { useLoaderData } from 'react-router';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { ChatIcon, PersonIcon } from '@shopify/polaris-icons';
-import { Banner, BlockStack, InlineGrid, Layout, Page, Text } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import { shellSetupProgress, useAppBootstrapData } from './app';
 import {
@@ -14,8 +12,10 @@ import {
 } from '../platform.server';
 import {
   ActionCard,
+  AppPage,
   EmptyCard,
   MetricCard,
+  MetricGrid,
   SectionCard,
   SetupDependencyList,
   type SetupDependencyItem,
@@ -93,18 +93,14 @@ export default function CustomersPage() {
   // see the setup checklist here instead of their real customer data.
   if (data.overviewUnavailable) {
     return (
-      <Page title="Customers">
-        <Layout>
-          <Layout.Section>
-            <Banner tone="warning" title="Couldn't reach Recete">
-              <p>
-                We couldn't load your customer data right now. This isn't your real setup or
-                activity status — refresh in a moment.
-              </p>
-            </Banner>
-          </Layout.Section>
-        </Layout>
-      </Page>
+      <AppPage heading="Customers">
+        <s-banner tone="warning" heading="Couldn't reach Recete">
+          <s-paragraph>
+            We couldn&apos;t load your customer data right now. This isn&apos;t your real setup or
+            activity status — refresh in a moment.
+          </s-paragraph>
+        </s-banner>
+      </AppPage>
     );
   }
 
@@ -193,11 +189,13 @@ export default function CustomersPage() {
       }
       primaryAction={primaryCta}
     >
-      <Banner tone="info">
-        Customer insights shown here (churn risk, segments, conversation history) are derived from
-        WhatsApp post-purchase conversations handled by Recete — not collected via Shopify&apos;s
-        storefront or checkout. No customer data is modified in your Shopify admin.
-      </Banner>
+      <s-banner tone="info">
+        <s-paragraph>
+          Customer insights shown here (churn risk, segments, conversation history) are derived from
+          WhatsApp post-purchase conversations handled by Recete — not collected via Shopify&apos;s
+          storefront or checkout. No customer data is modified in your Shopify admin.
+        </s-paragraph>
+      </s-banner>
 
       {uiState === 'onboarding_incomplete' ? (
         <>
@@ -260,21 +258,21 @@ export default function CustomersPage() {
             title="What to do now"
             subtitle="The system is ready. Trigger first live data to activate customer insights."
           >
-            <BlockStack gap="200">
-              <Text as="p" variant="bodyMd">
+            <s-stack gap="small-200">
+              <s-paragraph>
                 Create a test order in Shopify to generate the first customer record.
-              </Text>
-              <Text as="p" variant="bodyMd">
+              </s-paragraph>
+              <s-paragraph>
                 Start a conversation to unlock churn risk and engagement segments.
-              </Text>
-            </BlockStack>
+              </s-paragraph>
+            </s-stack>
           </SectionCard>
 
           <SectionCard
             title="Preview after first data"
             subtitle="These sections will fill automatically."
           >
-            <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
+            <MetricGrid>
               <MetricCard
                 label="Visible customers"
                 value="—"
@@ -295,7 +293,7 @@ export default function CustomersPage() {
                 value="—"
                 hint="Will appear when customer profiles are scored."
               />
-            </InlineGrid>
+            </MetricGrid>
           </SectionCard>
         </>
       ) : null}
@@ -321,7 +319,7 @@ export default function CustomersPage() {
             statusLabel="Live"
           />
 
-          <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="400">
+          <MetricGrid>
             <MetricCard
               label="Visible customers"
               value={data.total || customers.length}
@@ -342,13 +340,13 @@ export default function CustomersPage() {
               value={data.limit || 20}
               hint="Customer records loaded for the current shell view."
             />
-          </InlineGrid>
+          </MetricGrid>
 
           <SectionCard
             title="Recommended customer actions"
             subtitle="Prioritize action queues with the strongest expected impact."
           >
-            <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
+            <s-grid gridTemplateColumns="repeat(auto-fit, minmax(220px, 1fr))" gap="base">
               <ActionCard
                 title="At-risk buyers"
                 description={
@@ -363,7 +361,6 @@ export default function CustomersPage() {
                       ? 'Review risky conversations'
                       : 'Open conversations',
                   url: '/app/conversations',
-                  icon: ChatIcon,
                 }}
               />
               <ActionCard
@@ -377,10 +374,9 @@ export default function CustomersPage() {
                 action={{
                   content: 'Inspect conversation health',
                   url: '/app/conversations',
-                  icon: ChatIcon,
                 }}
               />
-            </InlineGrid>
+            </s-grid>
           </SectionCard>
 
           <SectionCard
@@ -388,7 +384,7 @@ export default function CustomersPage() {
             subtitle="Prioritize buyers with the strongest churn signals first."
           >
             {highRiskCustomers.length > 0 ? (
-              <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+              <s-grid gridTemplateColumns="repeat(auto-fit, minmax(260px, 1fr))" gap="base">
                 {highRiskCustomers.map((customer) => (
                   <ActionCard
                     key={customer.id}
@@ -398,11 +394,10 @@ export default function CustomersPage() {
                     action={{
                       content: 'Review buyer thread',
                       url: '/app/conversations',
-                      icon: ChatIcon,
                     }}
                   />
                 ))}
-              </InlineGrid>
+              </s-grid>
             ) : (
               <EmptyCard
                 heading="No high-risk customers"
@@ -416,7 +411,7 @@ export default function CustomersPage() {
             title="Customer board"
             subtitle="Segments and risk should be legible enough for daily decisions."
           >
-            <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+            <s-grid gridTemplateColumns="repeat(auto-fit, minmax(260px, 1fr))" gap="base">
               {sortedCustomers.map((customer) => (
                 <ActionCard
                   key={customer.id}
@@ -431,11 +426,10 @@ export default function CustomersPage() {
                         ? 'Review buyer thread'
                         : 'View conversation context',
                     url: '/app/conversations',
-                    icon: PersonIcon,
                   }}
                 />
               ))}
-            </InlineGrid>
+            </s-grid>
           </SectionCard>
         </>
       ) : null}

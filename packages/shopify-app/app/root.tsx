@@ -22,10 +22,11 @@ export default function App() {
             data-api-key={apiKey}
           />
         ) : null}
-        {/* Polaris web components (s-page, s-section, ...), stable 1.x channel. Keep
-            @shopify/polaris-types on ^1.1 with it. Coexists with Polaris React while
-            routes migrate (docs/ux/shopify-embedded-ui-analysis-2026-10.md). */}
-        <script src="https://cdn.shopify.com/shopifycloud/polaris-1.js" />
+        {/* Polaris web components (s-*) come from the AppProvider in routes/app.tsx,
+            which loads https://cdn.shopify.com/shopifycloud/polaris.js. Loading a
+            second copy here downloaded ~740 KB twice and registered every element
+            twice. That URL is Shopify's latest channel, while @shopify/polaris-types
+            is pinned to ^1.1: check types when Shopify moves polaris.js to 2.x. */}
         <link rel="preconnect" href="https://cdn.shopify.com/" />
         <link
           rel="stylesheet"

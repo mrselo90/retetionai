@@ -1,8 +1,6 @@
 import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
-import { useLoaderData } from 'react-router';
+import { useLoaderData, useNavigate } from 'react-router';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { ViewIcon } from '@shopify/polaris-icons';
-import { Banner, BlockStack, Button, InlineStack, Text } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import {
   fetchMerchantOverviewFromRequest,
@@ -53,6 +51,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function IntegrationsPage() {
   const { bootstrapData: shellBootstrap } = useAppBootstrapData();
   const data = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
   const { setupComplete } = shellSetupProgress(data, shellBootstrap);
   const orderCount = data.metrics.totalOrders;
   const shopify = data.integrations.find((integration) => integration.provider === 'shopify');
@@ -63,9 +62,9 @@ export default function IntegrationsPage() {
   return (
     <ShellPage title="Integrations" subtitle="Your WhatsApp number and your Shopify store.">
       {data.overviewUnavailable ? (
-        <Banner tone="warning" title="Couldn't reach Recete">
-          <p>What you see below may be out of date. Refresh in a moment.</p>
-        </Banner>
+        <s-banner tone="warning" heading="Couldn't reach Recete">
+          What you see below may be out of date. Refresh in a moment.
+        </s-banner>
       ) : null}
 
       {/* The store's own number, linked by QR. Nothing reaches customers without it. */}
@@ -80,20 +79,20 @@ export default function IntegrationsPage() {
           </StatusBadge>
         }
       >
-        <BlockStack gap="300">
-          <Text as="p" variant="bodyMd">
+        <s-stack gap="base">
+          <s-paragraph>
             {orderCount > 0
               ? `${orderCount} order${orderCount === 1 ? '' : 's'} received so far.`
               : 'No orders yet. Recete starts with your next delivered order — nothing else to set up here.'}
-          </Text>
+          </s-paragraph>
           {setupComplete && orderCount > 0 ? (
-            <InlineStack>
-              <Button url="/app/dashboard" icon={ViewIcon}>
+            <s-stack direction="inline">
+              <s-button icon="view" onClick={() => navigate('/app/dashboard')}>
                 Open dashboard
-              </Button>
-            </InlineStack>
+              </s-button>
+            </s-stack>
           ) : null}
-        </BlockStack>
+        </s-stack>
       </SectionCard>
     </ShellPage>
   );
