@@ -52,6 +52,8 @@ export default function ConversationsLayout({ children }: { children: React.Reac
   const t = useTranslations('Conversations');
   const pathname = usePathname();
   const [conversations, setConversations] = useState<ApiConversation[]>([]);
+  // When the list was fetched: relative times count from here, so render stays pure.
+  const [listedAt, setListedAt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<InboxFilter>('all');
   const [sentiment, setSentiment] = useState<SentimentFilter>('all');
@@ -80,6 +82,7 @@ export default function ConversationsLayout({ children }: { children: React.Reac
         session.access_token,
       );
       setConversations(response.conversations);
+      setListedAt(Date.now());
 
       const humanCount = response.conversations.filter((c) => c.conversationStatus === 'human').length;
       document.title = humanCount > 0 ? `(${humanCount}) ${t('title')}` : t('title');
@@ -140,7 +143,7 @@ export default function ConversationsLayout({ children }: { children: React.Reac
     if (!iso) return '–';
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return '–';
-    const minutes = Math.floor((Date.now() - date.getTime()) / 60_000);
+    const minutes = Math.floor((listedAt - date.getTime()) / 60_000);
     if (minutes < 1) return t('list.time.now');
     if (minutes < 60) return t('list.time.minutesAgo', { m: minutes });
     const hours = Math.floor(minutes / 60);

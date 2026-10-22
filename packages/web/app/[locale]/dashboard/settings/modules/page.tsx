@@ -94,7 +94,7 @@ export default function ModulesPage() {
         );
         if (response.confirmationUrl) {
           // Shopify's approval screen — leaving the page is the happy path.
-          window.location.href = response.confirmationUrl;
+          window.location.assign(response.confirmationUrl);
           return;
         }
       } else {

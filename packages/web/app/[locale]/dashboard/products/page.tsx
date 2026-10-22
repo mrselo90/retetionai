@@ -269,7 +269,7 @@ export default function ProductsPage() {
     }
   };
 
-  const loadProducts = async () => {
+  async function loadProducts() {
     try {
       let { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -317,7 +317,7 @@ export default function ProductsPage() {
       // loading is cleared once base list arrives (or on error)
       setLoading(false);
     }
-  };
+  }
 
   const handleAddProduct = async () => {
     if (!newProductUrl || !newProductName) {

@@ -68,7 +68,7 @@ export default function IntegrationsPage() {
     return () => window.removeEventListener('focus', onFocus);
   }, []);
 
-  const loadPlatformContact = async () => {
+  async function loadPlatformContact() {
     try {
       const res = await fetch(getApiUrl('/api/config/platform-contact'));
       if (res.ok) {
@@ -78,9 +78,9 @@ export default function IntegrationsPage() {
     } catch {
       setPlatformWhatsApp('+905545736900');
     }
-  };
+  }
 
-  const loadIntegrations = async () => {
+  async function loadIntegrations() {
     try {
       const {
         data: { session },
@@ -106,7 +106,7 @@ export default function IntegrationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleConnectShopify = async () => {
     if (!shopifyShop) {

@@ -87,6 +87,94 @@ interface RagSuiteRunResult {
   cases: RagSuiteCaseResult[];
 }
 
+// Module level so it isn't a new component type on every render.
+const QueueCard = ({
+  title,
+  stats,
+  icon: Icon,
+  colorClass,
+}: {
+  title: string;
+  stats: QueueStats | undefined;
+  icon: LucideIcon;
+  colorClass: string;
+}) => {
+  if (!stats) return null;
+
+  const hasFailed = stats.failed > 0;
+  const hasBacklog = stats.waiting > 1000;
+
+  return (
+    <Card>
+      {/* Status indicator bar */}
+      <div
+        className={`absolute top-0 left-0 w-full h-1 ${hasFailed ? 'bg-red-500' : hasBacklog ? 'bg-amber-500' : 'bg-emerald-500'}`}
+      />
+      <Box padding="400">
+        <BlockStack gap="300">
+          <InlineStack align="space-between" blockAlign="center" gap="200">
+            <InlineStack gap="200" blockAlign="center">
+              <Box padding="200" borderRadius="200" background="bg-surface-secondary">
+                <Icon className={`w-4 h-4 ${colorClass}`} />
+              </Box>
+              <Text as="h3" variant="headingSm">
+                {title}
+              </Text>
+            </InlineStack>
+            {hasFailed && <Badge tone="critical">{`${stats.failed} Errors`}</Badge>}
+          </InlineStack>
+          <InlineGrid columns={{ xs: '1fr', sm: '1fr 1fr' }} gap="300">
+            <Box
+              background="bg-surface-secondary"
+              borderRadius="300"
+              borderWidth="025"
+              borderColor="border"
+              padding="300"
+            >
+              <Text as="p" variant="bodySm" tone="subdued">
+                Active / Pending
+              </Text>
+              <Text as="p" variant="headingLg">
+                {stats.active.toLocaleString()}{' '}
+                <span className="text-zinc-300 font-light mx-1">/</span>{' '}
+                <span className={`${hasBacklog ? 'text-amber-500' : 'text-zinc-600'}`}>
+                  {stats.waiting.toLocaleString()}
+                </span>
+              </Text>
+            </Box>
+            <Box
+              background="bg-surface-secondary"
+              borderRadius="300"
+              borderWidth="025"
+              borderColor="border"
+              padding="300"
+            >
+              <BlockStack gap="200">
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text as="span" variant="bodySm" tone="subdued">
+                    Processed
+                  </Text>
+                  <Text as="span" variant="bodyMd" fontWeight="semibold">
+                    {stats.completed.toLocaleString()}
+                  </Text>
+                </InlineStack>
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text as="span" variant="bodySm" tone="subdued">
+                    Delayed
+                  </Text>
+                  <Text as="span" variant="bodyMd" fontWeight="semibold">
+                    {stats.delayed.toLocaleString()}
+                  </Text>
+                </InlineStack>
+              </BlockStack>
+            </Box>
+          </InlineGrid>
+        </BlockStack>
+      </Box>
+    </Card>
+  );
+};
+
 export default function SystemHealthPage() {
   const defaultLlmModels = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'];
   const defaultEmbeddingModels = ['text-embedding-3-small'];
@@ -525,92 +613,6 @@ export default function SystemHealthPage() {
     );
   }
 
-  const QueueCard = ({
-    title,
-    stats,
-    icon: Icon,
-    colorClass,
-  }: {
-    title: string;
-    stats: QueueStats | undefined;
-    icon: LucideIcon;
-    colorClass: string;
-  }) => {
-    if (!stats) return null;
-
-    const hasFailed = stats.failed > 0;
-    const hasBacklog = stats.waiting > 1000;
-
-    return (
-      <Card>
-        {/* Status indicator bar */}
-        <div
-          className={`absolute top-0 left-0 w-full h-1 ${hasFailed ? 'bg-red-500' : hasBacklog ? 'bg-amber-500' : 'bg-emerald-500'}`}
-        />
-        <Box padding="400">
-          <BlockStack gap="300">
-            <InlineStack align="space-between" blockAlign="center" gap="200">
-              <InlineStack gap="200" blockAlign="center">
-                <Box padding="200" borderRadius="200" background="bg-surface-secondary">
-                  <Icon className={`w-4 h-4 ${colorClass}`} />
-                </Box>
-                <Text as="h3" variant="headingSm">
-                  {title}
-                </Text>
-              </InlineStack>
-              {hasFailed && <Badge tone="critical">{`${stats.failed} Errors`}</Badge>}
-            </InlineStack>
-            <InlineGrid columns={{ xs: '1fr', sm: '1fr 1fr' }} gap="300">
-              <Box
-                background="bg-surface-secondary"
-                borderRadius="300"
-                borderWidth="025"
-                borderColor="border"
-                padding="300"
-              >
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Active / Pending
-                </Text>
-                <Text as="p" variant="headingLg">
-                  {stats.active.toLocaleString()}{' '}
-                  <span className="text-zinc-300 font-light mx-1">/</span>{' '}
-                  <span className={`${hasBacklog ? 'text-amber-500' : 'text-zinc-600'}`}>
-                    {stats.waiting.toLocaleString()}
-                  </span>
-                </Text>
-              </Box>
-              <Box
-                background="bg-surface-secondary"
-                borderRadius="300"
-                borderWidth="025"
-                borderColor="border"
-                padding="300"
-              >
-                <BlockStack gap="200">
-                  <InlineStack align="space-between" blockAlign="center">
-                    <Text as="span" variant="bodySm" tone="subdued">
-                      Processed
-                    </Text>
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      {stats.completed.toLocaleString()}
-                    </Text>
-                  </InlineStack>
-                  <InlineStack align="space-between" blockAlign="center">
-                    <Text as="span" variant="bodySm" tone="subdued">
-                      Delayed
-                    </Text>
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      {stats.delayed.toLocaleString()}
-                    </Text>
-                  </InlineStack>
-                </BlockStack>
-              </Box>
-            </InlineGrid>
-          </BlockStack>
-        </Box>
-      </Card>
-    );
-  };
 
   return (
     <Page
