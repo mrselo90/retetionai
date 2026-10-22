@@ -532,15 +532,20 @@ export default function SettingsPage() {
     }));
   };
 
+  // Mark the form clean once per successful save. This used to depend on
+  // showCoreSuccess, the message string, which is identical on every save: the
+  // second save in a visit never re-ran it, so the Save bar stayed open and
+  // blocked leaving the page.
+  const handledSaveRef = useRef<unknown>(null);
   useEffect(() => {
-    if (showCoreSuccess) {
-      setFormState((current) => {
-        const normalized = normalizeCoreFormState(current, data.plan.planType);
-        setSavedCoreStateJson(JSON.stringify(normalized));
-        return normalized;
-      });
-    }
-  }, [data.plan.planType, showCoreSuccess]);
+    if (!showCoreSuccess || handledSaveRef.current === actionData) return;
+    handledSaveRef.current = actionData;
+    setFormState((current) => {
+      const normalized = normalizeCoreFormState(current, data.plan.planType);
+      setSavedCoreStateJson(JSON.stringify(normalized));
+      return normalized;
+    });
+  }, [actionData, data.plan.planType, showCoreSuccess]);
 
   useEffect(() => {
     if (!dirty && savedCoreStateJson !== loaderStateJson) {
@@ -790,9 +795,12 @@ export default function SettingsPage() {
                   />
                 </InlineGrid>
                 <InlineStack gap="300" wrap>
+                  {/* Polaris Checkbox draws its tick from the `checked` prop, but a
+                      form submit reads the DOM input, and the two drifted: a
+                      ticked box was saved as off. Submit what the merchant sees. */}
+                  <input type="hidden" name="emoji" value={formState.emoji ? 'on' : 'off'} />
                   <Checkbox
                     label="Allow emoji in responses"
-                    name="emoji"
                     checked={formState.emoji}
                     onChange={(checked) =>
                       setFormState((current) => ({ ...current, emoji: checked }))
@@ -936,9 +944,13 @@ export default function SettingsPage() {
                       <Text as="h3" variant="headingSm">
                         AI Vision
                       </Text>
+                      <input
+                        type="hidden"
+                        name="ai_vision_enabled"
+                        value={formState.ai_vision_enabled ? 'on' : 'off'}
+                      />
                       <Checkbox
                         label="Enable AI Vision for customer photos (Growth or Pro plan required)"
-                        name="ai_vision_enabled"
                         checked={formState.ai_vision_enabled}
                         onChange={(checked) =>
                           setFormState((current) => ({ ...current, ai_vision_enabled: checked }))
