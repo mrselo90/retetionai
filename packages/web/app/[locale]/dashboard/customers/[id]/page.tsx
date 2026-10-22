@@ -5,21 +5,22 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { Badge, BlockStack, Box, Button, Card as PolarisCard, InlineGrid, InlineStack, Layout, Page, SkeletonPage, Text } from '@shopify/polaris';
+import { Badge, Button, EmptyState } from '@/components/recete';
+import type { BadgeTone } from '@/components/recete';
 import { Link } from '@/i18n/routing';
 import {
   Users, ShoppingBag, MessageSquare, TrendingUp, Calendar,
-  ArrowLeft, AlertTriangle, Star,
+  ArrowLeft, Star,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-const SEGMENT_TONES: Record<string, Parameters<typeof Badge>[0]['tone']> = {
+const SEGMENT_TONES: Record<string, BadgeTone> = {
   champions: 'success',
-  loyal: 'info',
-  promising: 'attention',
+  loyal: 'brand',
+  promising: 'caution',
   at_risk: 'warning',
-  lost: 'critical',
-  new: 'enabled',
+  lost: 'danger',
+  new: 'neutral',
 };
 
 interface CustomerDetail {
@@ -77,215 +78,176 @@ export default function CustomerDetailPage() {
 
   if (loading) {
     return (
-      <SkeletonPage title={t('backToCustomers')}>
-        <Layout>
-          <Layout.Section>
-            <PolarisCard>
-              <Box padding="400">
-                <div className="space-y-4 animate-pulse">
-                  <div className="h-8 w-48 bg-zinc-200 rounded" />
-                  <div className="h-96 bg-zinc-200 rounded" />
-                </div>
-              </Box>
-            </PolarisCard>
-          </Layout.Section>
-        </Layout>
-      </SkeletonPage>
+      <div className="d-page">
+        <div
+          className="d-page-header"
+          role="status"
+          aria-live="polite"
+          aria-label={t('backToCustomers')}
+        >
+          <div className="r-skeleton" style={{ height: 26, width: 200, marginBottom: 8 }} />
+          <div className="r-skeleton" style={{ height: 16, width: 300 }} />
+        </div>
+        <div className="r-card space-y-4">
+          <div className="r-skeleton" style={{ height: 32, width: 192 }} aria-hidden="true" />
+          <div className="r-skeleton" style={{ height: 384 }} aria-hidden="true" />
+        </div>
+      </div>
     );
   }
 
   if (!customer) {
     return (
-      <Page title={t('backToCustomers')}>
-        <Layout>
-          <Layout.Section>
-            <PolarisCard>
-              <Box padding="800">
-              <div className="text-center">
-                <Text as="p" tone="subdued">{t('notFound')}</Text>
-              </div>
-              </Box>
-            </PolarisCard>
-          </Layout.Section>
-        </Layout>
-      </Page>
+      <div className="d-page">
+        <div className="d-page-header">
+          <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/customers')}>
+            <ArrowLeft size={14} aria-hidden="true" />
+            {t('backToCustomers')}
+          </Button>
+        </div>
+        <div className="r-card">
+          <EmptyState title={t('notFound')} />
+        </div>
+      </div>
     );
   }
 
   const rfm = customer.rfmScore || { recency: 0, frequency: 0, monetary: 0 };
 
   return (
-    <Page title={customer.name} subtitle={customer.phone} fullWidth>
-      <Layout>
-        <Layout.Section>
-    <BlockStack gap="500">
+    <div className="d-page">
       {/* Header */}
-      <PolarisCard>
-        <Box padding="400">
-          <BlockStack gap="300">
-            <InlineStack align="start">
-              <Button variant="plain" onClick={() => router.push('/dashboard/customers')}>
-                {t('backToCustomers')}
-              </Button>
-            </InlineStack>
-            <InlineStack gap="400" blockAlign="center">
-              <Box background="bg-surface-secondary" borderRadius="full" padding="400">
-                <Users className="w-8 h-8 text-zinc-700" />
-              </Box>
-              <BlockStack gap="100">
-                <InlineStack gap="200" blockAlign="center" wrap>
-                  <Text as="h1" variant="headingLg">{customer.name}</Text>
-                  <Badge tone={SEGMENT_TONES[customer.segment] || 'enabled'}>
-                    {t(`segment.${customer.segment}`) || customer.segment}
-                  </Badge>
-                  {customer.churnProbability > 0.6 && (
-                    <Badge tone="critical">{`${t('churnRisk')} ${Math.round(customer.churnProbability * 100)}%`}</Badge>
-                  )}
-                </InlineStack>
-                <Text as="p" tone="subdued">{customer.phone}{customer.email ? ` • ${customer.email}` : ''}</Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  {t('registered')}: {formatDate(customer.createdAt)} • {t('consent')}: {customer.consent}
-                </Text>
-              </BlockStack>
-            </InlineStack>
-          </BlockStack>
-        </Box>
-      </PolarisCard>
+      <div className="d-page-header">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push('/dashboard/customers')}
+          style={{ marginBottom: 10 }}
+        >
+          <ArrowLeft size={14} aria-hidden="true" />
+          {t('backToCustomers')}
+        </Button>
+        <div className="flex items-center gap-4">
+          <span className="r-avatar r-avatar-xl" aria-hidden="true">
+            <Users size={24} />
+          </span>
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="r-page-title">{customer.name}</h1>
+              <Badge tone={SEGMENT_TONES[customer.segment] || 'neutral'}>
+                {t(`segment.${customer.segment}`) || customer.segment}
+              </Badge>
+              {customer.churnProbability > 0.6 && (
+                <Badge tone="danger">{`${t('churnRisk')} ${Math.round(customer.churnProbability * 100)}%`}</Badge>
+              )}
+            </div>
+            <p className="r-page-sub" style={{ margin: 0 }}>
+              {customer.phone}{customer.email ? ` • ${customer.email}` : ''}
+            </p>
+            <p className="r-hint">
+              {t('registered')}: {formatDate(customer.createdAt)} • {t('consent')}: {customer.consent}
+            </p>
+          </div>
+        </div>
+      </div>
 
-      {/* Metrics Cards */}
-      <InlineGrid columns={{ xs: '1fr 1fr', md: 'repeat(5, minmax(0, 1fr))' }} gap="300">
-        <PolarisCard>
-          <Box padding="300">
-            <BlockStack gap="100" inlineAlign="center">
-            <ShoppingBag className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
-            <Text as="p" variant="headingMd">{String(customer.metrics.orderCount)}</Text>
-            <Text as="p" variant="bodySm" tone="subdued">Orders</Text>
-            </BlockStack>
-          </Box>
-        </PolarisCard>
-        <PolarisCard>
-          <Box padding="300">
-            <BlockStack gap="100" inlineAlign="center">
-            <MessageSquare className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
-            <Text as="p" variant="headingMd">{String(customer.metrics.totalConversations)}</Text>
-            <Text as="p" variant="bodySm" tone="subdued">Conversations</Text>
-            </BlockStack>
-          </Box>
-        </PolarisCard>
-        <PolarisCard>
-          <Box padding="300">
-            <BlockStack gap="100" inlineAlign="center">
-            <Star className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
-            <Text as="p" variant="headingMd">{String(customer.metrics.avgSentiment || '—')}</Text>
-            <Text as="p" variant="bodySm" tone="subdued">Avg. Sentiment</Text>
-            </BlockStack>
-          </Box>
-        </PolarisCard>
-        <PolarisCard>
-          <Box padding="300">
-            <BlockStack gap="100" inlineAlign="center">
-            <TrendingUp className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
-            <Text as="p" variant="headingMd">{`${rfm.recency}/${rfm.frequency}/${rfm.monetary}`}</Text>
-            <Text as="p" variant="bodySm" tone="subdued">RFM</Text>
-            </BlockStack>
-          </Box>
-        </PolarisCard>
-        <PolarisCard>
-          <Box padding="300">
-            <BlockStack gap="100" inlineAlign="center">
-            <Calendar className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
-            <Text as="p" variant="headingMd">{customer.metrics.lastOrderDate ? formatDate(customer.metrics.lastOrderDate) : '—'}</Text>
-            <Text as="p" variant="bodySm" tone="subdued">{t('lastOrder')}</Text>
-            </BlockStack>
-          </Box>
-        </PolarisCard>
-      </InlineGrid>
+      <div className="flex flex-col gap-5">
+        {/* Metrics Cards */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+          <div className="r-card r-card-tight flex flex-col items-center gap-1 text-center">
+            <ShoppingBag className="w-5 h-5 mb-1 text-muted-foreground" aria-hidden="true" />
+            <p className="r-table-strong" style={{ fontSize: 'var(--r-text-lg)' }}>{String(customer.metrics.orderCount)}</p>
+            <p className="r-hint">Orders</p>
+          </div>
+          <div className="r-card r-card-tight flex flex-col items-center gap-1 text-center">
+            <MessageSquare className="w-5 h-5 mb-1 text-muted-foreground" aria-hidden="true" />
+            <p className="r-table-strong" style={{ fontSize: 'var(--r-text-lg)' }}>{String(customer.metrics.totalConversations)}</p>
+            <p className="r-hint">Conversations</p>
+          </div>
+          <div className="r-card r-card-tight flex flex-col items-center gap-1 text-center">
+            <Star className="w-5 h-5 mb-1 text-muted-foreground" aria-hidden="true" />
+            <p className="r-table-strong" style={{ fontSize: 'var(--r-text-lg)' }}>{String(customer.metrics.avgSentiment || '—')}</p>
+            <p className="r-hint">Avg. Sentiment</p>
+          </div>
+          <div className="r-card r-card-tight flex flex-col items-center gap-1 text-center">
+            <TrendingUp className="w-5 h-5 mb-1 text-muted-foreground" aria-hidden="true" />
+            <p className="r-table-strong" style={{ fontSize: 'var(--r-text-lg)' }}>{`${rfm.recency}/${rfm.frequency}/${rfm.monetary}`}</p>
+            <p className="r-hint">RFM</p>
+          </div>
+          <div className="r-card r-card-tight flex flex-col items-center gap-1 text-center">
+            <Calendar className="w-5 h-5 mb-1 text-muted-foreground" aria-hidden="true" />
+            <p className="r-table-strong" style={{ fontSize: 'var(--r-text-lg)' }}>{customer.metrics.lastOrderDate ? formatDate(customer.metrics.lastOrderDate) : '—'}</p>
+            <p className="r-hint">{t('lastOrder')}</p>
+          </div>
+        </div>
 
-      <InlineGrid columns={{ xs: '1fr', lg: '1fr 1fr' }} gap="400">
-        {/* Orders */}
-        <PolarisCard>
-          <Box padding="400">
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">{t('ordersCount', { count: customer.orders.length })}</Text>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* Orders */}
+          <section className="r-card flex flex-col gap-3">
+            <h2 className="r-card-title">{t('ordersCount', { count: customer.orders.length })}</h2>
             {customer.orders.length === 0 ? (
-              <Text as="p" variant="bodySm" tone="subdued">{t('noOrders')}</Text>
+              <p className="r-hint">{t('noOrders')}</p>
             ) : (
               <div className="space-y-3">
                 {customer.orders.slice(0, 10).map((order) => (
-                  <Box key={order.id} padding="300" borderRadius="300" background="bg-surface-secondary">
-                    <InlineStack align="space-between" blockAlign="center">
-                      <BlockStack gap="100">
-                        <Text as="p" variant="bodyMd" fontWeight="medium">{`#${order.externalOrderId}`}</Text>
-                        <Text as="p" variant="bodySm" tone="subdued">{formatDate(order.createdAt)}</Text>
-                      </BlockStack>
-                      <Badge tone={order.status === 'delivered' ? 'success' : 'enabled'}>{order.status}</Badge>
-                    </InlineStack>
-                  </Box>
+                  <div key={order.id} className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 p-3">
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <p className="r-table-strong">{`#${order.externalOrderId}`}</p>
+                      <p className="r-hint">{formatDate(order.createdAt)}</p>
+                    </div>
+                    <Badge tone={order.status === 'delivered' ? 'success' : 'neutral'}>{order.status}</Badge>
+                  </div>
                 ))}
               </div>
             )}
-            </BlockStack>
-          </Box>
-        </PolarisCard>
+          </section>
 
-        {/* Conversations */}
-        <PolarisCard>
-          <Box padding="400">
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">{t('conversationsCount', { count: customer.conversations.length })}</Text>
+          {/* Conversations */}
+          <section className="r-card flex flex-col gap-3">
+            <h2 className="r-card-title">{t('conversationsCount', { count: customer.conversations.length })}</h2>
             {customer.conversations.length === 0 ? (
-              <Text as="p" variant="bodySm" tone="subdued">{t('noConversations')}</Text>
+              <p className="r-hint">{t('noConversations')}</p>
             ) : (
               <div className="space-y-3">
                 {customer.conversations.slice(0, 10).map((conv) => (
                   <Link key={conv.id} href={`/dashboard/conversations/${conv.id}`} className="block p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
-                    <InlineStack align="space-between" blockAlign="center">
-                      <BlockStack gap="100">
-                        <Text as="p" variant="bodyMd" fontWeight="medium">{`${conv.messageCount} messages`}</Text>
-                        <Text as="p" variant="bodySm" tone="subdued">{formatDate(conv.updatedAt)}</Text>
-                      </BlockStack>
-                      <Badge tone={conv.status === 'human' ? 'critical' : conv.status === 'resolved' ? 'success' : 'enabled'}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 flex-col gap-1">
+                        <p className="r-table-strong">{`${conv.messageCount} messages`}</p>
+                        <p className="r-hint">{formatDate(conv.updatedAt)}</p>
+                      </div>
+                      <Badge tone={conv.status === 'human' ? 'danger' : conv.status === 'resolved' ? 'success' : 'neutral'}>
                         {conv.status === 'human' ? t('statusHuman') : conv.status === 'resolved' ? t('statusResolved') : t('statusAi')}
                       </Badge>
-                    </InlineStack>
+                    </div>
                   </Link>
                 ))}
               </div>
             )}
-            </BlockStack>
-          </Box>
-        </PolarisCard>
-      </InlineGrid>
+          </section>
+        </div>
 
-      {/* Feedback */}
-      {customer.feedback.length > 0 && (
-        <PolarisCard>
-          <Box padding="400">
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">Feedback</Text>
+        {/* Feedback */}
+        {customer.feedback.length > 0 && (
+          <section className="r-card flex flex-col gap-3">
+            <h2 className="r-card-title">Feedback</h2>
             <div className="space-y-3">
               {customer.feedback.map((fb) => (
-                <Box key={fb.id} padding="300" borderRadius="300" background="bg-surface-secondary">
-                  <InlineStack align="space-between" blockAlign="center">
-                    <BlockStack gap="100">
-                      <Text as="p" variant="bodyMd" fontWeight="medium">{fb.type === 'nps' ? t('feedbackNps') : t('feedbackReview')}</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">{formatDate(fb.createdAt)}</Text>
-                    </BlockStack>
-                    <InlineStack gap="200" blockAlign="center">
-                      {fb.rating && <Text as="span" variant="bodyMd" fontWeight="medium">{`${fb.rating}/10`}</Text>}
-                      <Badge tone={fb.status === 'completed' ? 'success' : 'enabled'}>{fb.status}</Badge>
-                    </InlineStack>
-                  </InlineStack>
-                </Box>
+                <div key={fb.id} className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 p-3">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <p className="r-table-strong">{fb.type === 'nps' ? t('feedbackNps') : t('feedbackReview')}</p>
+                    <p className="r-hint">{formatDate(fb.createdAt)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {fb.rating && <span className="r-table-strong">{`${fb.rating}/10`}</span>}
+                    <Badge tone={fb.status === 'completed' ? 'success' : 'neutral'}>{fb.status}</Badge>
+                  </div>
+                </div>
               ))}
             </div>
-            </BlockStack>
-          </Box>
-        </PolarisCard>
-      )}
-    </BlockStack>
-        </Layout.Section>
-      </Layout>
-    </Page>
+          </section>
+        )}
+      </div>
+    </div>
   );
 }

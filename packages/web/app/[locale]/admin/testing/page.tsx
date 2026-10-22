@@ -1,30 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
-import {
-    Badge,
-    Banner,
-    BlockStack,
-    Box,
-    Button,
-    Card,
-    Checkbox,
-    Divider,
-    InlineGrid,
-    InlineStack,
-    Layout,
-    Page,
-    Scrollable,
-    Select,
-    SkeletonBodyText,
-    SkeletonDisplayText,
-    SkeletonPage,
-    Text,
-    TextField,
-} from '@shopify/polaris';
-import { FlaskConical, ListChecks, MessageSquareReply, PackageCheck, Store } from 'lucide-react';
+import { Badge, Button, Card, Input, Select, Textarea } from '@/components/recete';
+import { FlaskConical, ListChecks, Loader2, MessageSquareReply, PackageCheck, Store } from 'lucide-react';
 import { getErrorMessage } from '@/lib/errors';
 
 interface MerchantOption {
@@ -144,6 +125,108 @@ interface ShopifyScenarioRunResponse {
         failed: number;
     };
     results: ShopifyScenarioResult[];
+}
+
+/* Typography roles, built on the design tokens (app/design-tokens.css). */
+const BODY = 'text-[length:var(--r-text-base-plus)] text-[color:var(--r-text)]';
+const BODY_SUBDUED = 'text-[length:var(--r-text-base-plus)] text-[color:var(--r-text-muted)]';
+const BODY_SM = 'text-[length:var(--r-text-sm-plus)] text-[color:var(--r-text-secondary)]';
+const HEADING_SM = 'text-[length:var(--r-text-md)] font-semibold text-[color:var(--r-text)]';
+const SECTION_ICON = 'h-5 w-5 shrink-0 text-[color:var(--r-text-subtle)]';
+const DIVIDER_STYLE = { border: 0, borderTop: '1px solid var(--r-border)', margin: 0 } as const;
+
+type CalloutTone = 'info' | 'success' | 'warning' | 'critical';
+
+const CALLOUT_CLASS: Record<CalloutTone, string> = {
+    info: 'r-alert-info',
+    success: 'r-alert-success',
+    warning: 'r-alert-warning',
+    critical: 'r-alert-error',
+};
+
+function Callout({
+    tone,
+    onDismiss,
+    children,
+}: {
+    tone: CalloutTone;
+    onDismiss?: () => void;
+    children: ReactNode;
+}) {
+    return (
+        <div
+            className={`r-alert ${CALLOUT_CLASS[tone]}`}
+            role={tone === 'critical' || tone === 'warning' ? 'alert' : 'status'}
+        >
+            <div className="min-w-0 flex-1 text-[length:var(--r-text-base-plus)]">{children}</div>
+            {onDismiss ? (
+                <Button size="sm" onClick={onDismiss}>
+                    Dismiss
+                </Button>
+            ) : null}
+        </div>
+    );
+}
+
+function CheckboxField({
+    label,
+    checked,
+    onChange,
+    help,
+}: {
+    label: string;
+    checked: boolean;
+    onChange: (checked: boolean) => void;
+    help?: string;
+}) {
+    const id = useId();
+    const helpId = help ? `${id}-help` : undefined;
+    return (
+        <div className="flex items-start gap-2">
+            <input
+                id={id}
+                type="checkbox"
+                checked={checked}
+                onChange={(event) => onChange(event.target.checked)}
+                aria-describedby={helpId}
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer"
+                style={{ accentColor: 'var(--r-brand)' }}
+            />
+            <div className="min-w-0">
+                <label htmlFor={id} className={`block cursor-pointer font-medium ${BODY}`}>
+                    {label}
+                </label>
+                {help ? (
+                    <p id={helpId} className="r-field-help">
+                        {help}
+                    </p>
+                ) : null}
+            </div>
+        </div>
+    );
+}
+
+function SkeletonLines({ lines, label }: { lines: number; label?: string }) {
+    return (
+        <div
+            className="flex flex-col gap-2"
+            role={label ? 'status' : undefined}
+            aria-label={label}
+        >
+            {Array.from({ length: lines }, (_, index) => (
+                <div
+                    key={index}
+                    className="r-skeleton"
+                    style={{ height: 12, width: index === lines - 1 ? '60%' : '100%' }}
+                    aria-hidden="true"
+                />
+            ))}
+        </div>
+    );
+}
+
+function ButtonSpinner({ loading }: { loading: boolean }) {
+    return loading ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : null;
 }
 
 export default function AdminTestingPage() {
@@ -395,464 +478,405 @@ export default function AdminTestingPage() {
 
     if (loading) {
         return (
-            <SkeletonPage title="Merchant Test Kit">
-                <Layout>
-                    <Layout.Section>
-                        <BlockStack gap="400">
-                            <Card>
-                                <Box padding="400">
-                                    <BlockStack gap="200">
-                                        <SkeletonDisplayText size="small" />
-                                        <SkeletonBodyText lines={3} />
-                                    </BlockStack>
-                                </Box>
-                            </Card>
-                        </BlockStack>
-                    </Layout.Section>
-                </Layout>
-            </SkeletonPage>
+            <div className="flex flex-col gap-4">
+                <h1 className="r-page-title">Merchant Test Kit</h1>
+                <Card role="status" aria-label="Loading merchant test kit" className="flex flex-col gap-3">
+                    <div className="r-skeleton" style={{ height: 18, width: 200 }} aria-hidden="true" />
+                    <SkeletonLines lines={3} />
+                </Card>
+            </div>
         );
     }
 
     return (
-        <Page
-            title="Merchant Test Kit"
-            subtitle="Create real test orders, simulate customer replies, and run full Shopify scenario suites from Super Admin."
-            fullWidth
-        >
-            <Layout>
-                <Layout.Section>
-                    <BlockStack gap="400">
-                        <Banner tone="info">
-                            <p>
-                                This page includes an automated Shopify scenario runner. It creates a delivered test
-                                order, reuses the real AI pipeline, and validates scenario assertions for each flow.
+        <div className="flex flex-col gap-4">
+            <header>
+                <h1 className="r-page-title">Merchant Test Kit</h1>
+                <p className="r-page-sub">
+                    Create real test orders, simulate customer replies, and run full Shopify scenario suites from Super Admin.
+                </p>
+            </header>
+
+            <Callout tone="info">
+                <p>
+                    This page includes an automated Shopify scenario runner. It creates a delivered test
+                    order, reuses the real AI pipeline, and validates scenario assertions for each flow.
+                </p>
+            </Callout>
+
+            {error ? (
+                <Callout tone="critical" onDismiss={() => setError('')}>
+                    <p>{error}</p>
+                </Callout>
+            ) : null}
+
+            <Card className="flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                    <Store className={SECTION_ICON} aria-hidden="true" />
+                    <h2 className="r-card-title">1. Choose merchant</h2>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr]">
+                    <Select
+                        label="Merchant"
+                        value={selectedMerchantId}
+                        onChange={(event) => setSelectedMerchantId(event.target.value)}
+                    >
+                        {merchantOptions.map((option) => (
+                            <option key={option.value || 'none'} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </Select>
+                    <Select
+                        label="Customer locale"
+                        value={customerLocale}
+                        onChange={(event) => setCustomerLocale(event.target.value)}
+                    >
+                        <option value="tr">Turkish (tr)</option>
+                        <option value="en">English (en)</option>
+                        <option value="hu">Hungarian (hu)</option>
+                        <option value="de">German (de)</option>
+                    </Select>
+                </div>
+
+                {merchantLoading ? (
+                    <SkeletonLines lines={3} label="Loading merchant test data" />
+                ) : merchantData ? (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                        <Card padding="tight" className="flex flex-col gap-1">
+                            <p className="r-hint">Plan</p>
+                            <p className={HEADING_SM}>
+                                {merchantData.merchant.subscription_plan || 'Unknown'}
                             </p>
-                        </Banner>
-
-                        {error ? (
-                            <Banner tone="critical" onDismiss={() => setError('')}>
-                                <p>{error}</p>
-                            </Banner>
-                        ) : null}
-
-                        <Card>
-                            <Box padding="400">
-                                <BlockStack gap="400">
-                                    <InlineStack gap="300" blockAlign="center">
-                                        <Store className="h-5 w-5 text-zinc-500" />
-                                        <Text as="h2" variant="headingMd">1. Choose merchant</Text>
-                                    </InlineStack>
-
-                                    <InlineGrid columns={{ xs: '1fr', md: '2fr 1fr' }} gap="400">
-                                        <Select
-                                            label="Merchant"
-                                            options={merchantOptions}
-                                            value={selectedMerchantId}
-                                            onChange={setSelectedMerchantId}
-                                        />
-                                        <Select
-                                            label="Customer locale"
-                                            options={[
-                                                { label: 'Turkish (tr)', value: 'tr' },
-                                                { label: 'English (en)', value: 'en' },
-                                                { label: 'Hungarian (hu)', value: 'hu' },
-                                                { label: 'German (de)', value: 'de' },
-                                            ]}
-                                            value={customerLocale}
-                                            onChange={setCustomerLocale}
-                                        />
-                                    </InlineGrid>
-
-                                    {merchantLoading ? (
-                                        <SkeletonBodyText lines={3} />
-                                    ) : merchantData ? (
-                                        <InlineGrid columns={{ xs: '1fr', md: '1fr 1fr 1fr' }} gap="300">
-                                            <Card>
-                                                <Box padding="300">
-                                                    <BlockStack gap="100">
-                                                        <Text as="p" variant="bodySm" tone="subdued">Plan</Text>
-                                                        <Text as="p" variant="headingSm">
-                                                            {merchantData.merchant.subscription_plan || 'Unknown'}
-                                                        </Text>
-                                                        <Badge tone={merchantData.merchant.subscription_status === 'active' ? 'success' : 'warning'}>
-                                                            {merchantData.merchant.subscription_status || 'unknown'}
-                                                        </Badge>
-                                                    </BlockStack>
-                                                </Box>
-                                            </Card>
-                                            <Card>
-                                                <Box padding="300">
-                                                    <BlockStack gap="100">
-                                                        <Text as="p" variant="bodySm" tone="subdued">WhatsApp</Text>
-                                                        <InlineStack gap="200" wrap>
-                                                            <Badge tone={merchantData.whatsapp.configured ? 'success' : 'attention'}>
-                                                                {merchantData.whatsapp.configured ? 'Configured' : 'Missing config'}
-                                                            </Badge>
-                                                            {merchantData.whatsapp.provider ? (
-                                                                <Badge>{merchantData.whatsapp.provider}</Badge>
-                                                            ) : null}
-                                                        </InlineStack>
-                                                        <Text as="p" variant="bodySm">
-                                                            {merchantData.whatsapp.from || 'No sender resolved yet'}
-                                                        </Text>
-                                                    </BlockStack>
-                                                </Box>
-                                            </Card>
-                                            <Card>
-                                                <Box padding="300">
-                                                    <BlockStack gap="100">
-                                                        <Text as="p" variant="bodySm" tone="subdued">Catalog</Text>
-                                                        <Text as="p" variant="headingSm">
-                                                            {merchantData.products.length} products available
-                                                        </Text>
-                                                        <InlineStack gap="200" wrap>
-                                                            {merchantData.integrations.map((integration) => (
-                                                                <Badge
-                                                                    key={`${integration.provider}-${integration.status}`}
-                                                                    tone={integration.status === 'active' ? 'success' : 'warning'}
-                                                                >
-                                                                    {integration.provider}
-                                                                </Badge>
-                                                            ))}
-                                                        </InlineStack>
-                                                    </BlockStack>
-                                                </Box>
-                                            </Card>
-                                        </InlineGrid>
-                                    ) : null}
-                                </BlockStack>
-                            </Box>
+                            <div>
+                                <Badge tone={merchantData.merchant.subscription_status === 'active' ? 'success' : 'warning'}>
+                                    {merchantData.merchant.subscription_status || 'unknown'}
+                                </Badge>
+                            </div>
                         </Card>
-
-                        <InlineGrid columns={{ xs: '1fr', md: '1fr 1fr' }} gap="400">
-                            <Card>
-                                <Box padding="400">
-                                    <BlockStack gap="400">
-                                        <InlineStack gap="300" blockAlign="center">
-                                            <PackageCheck className="h-5 w-5 text-zinc-500" />
-                                            <Text as="h2" variant="headingMd">2. Create delivered order</Text>
-                                        </InlineStack>
-
-                                        <TextField
-                                            label="Customer phone"
-                                            value={customerPhone}
-                                            onChange={setCustomerPhone}
-                                            autoComplete="tel"
-                                            helpText="Use E.164 format for predictable test behavior."
-                                        />
-                                        <InlineGrid columns={{ xs: '1fr', md: '1fr 1fr' }} gap="300">
-                                            <TextField
-                                                label="Customer name"
-                                                value={customerName}
-                                                onChange={setCustomerName}
-                                                autoComplete="name"
-                                            />
-                                            <TextField
-                                                label="Customer email"
-                                                value={customerEmail}
-                                                onChange={setCustomerEmail}
-                                                autoComplete="email"
-                                            />
-                                        </InlineGrid>
-                                        <Checkbox
-                                            label="Mark order as delivered immediately"
-                                            checked={markDelivered}
-                                            onChange={setMarkDelivered}
-                                            helpText="Triggers delivered-event flow and follow-up scheduling right away."
-                                        />
-                                        <Button
-                                            variant="primary"
-                                            onClick={createTestOrder}
-                                            loading={creatingOrder}
-                                            disabled={!canCreateOrder}
-                                        >
-                                            Create test order
-                                        </Button>
-
-                                        {orderResult ? (
-                                            <>
-                                                <Divider />
-                                                <Banner tone="success">
-                                                    <p>
-                                                        Test order <strong>{orderResult.order.externalOrderId}</strong> is now <strong>{orderResult.order.status}</strong>.
-                                                    </p>
-                                                </Banner>
-                                                <BlockStack gap="100">
-                                                    <Text as="p" variant="bodySm">
-                                                        Order ID: {orderResult.order.id}
-                                                    </Text>
-                                                    <Text as="p" variant="bodySm">
-                                                        Delivery date: {orderResult.order.deliveryDate || 'Not delivered'}
-                                                    </Text>
-                                                    <Text as="p" variant="bodySm">
-                                                        Follow-up queue: {orderResult.queuedFollowUps ? 'Triggered' : 'Not triggered'}
-                                                    </Text>
-                                                </BlockStack>
-                                            </>
-                                        ) : null}
-                                    </BlockStack>
-                                </Box>
-                            </Card>
-
-                            <Card>
-                                <Box padding="400">
-                                    <BlockStack gap="400">
-                                        <InlineStack gap="300" blockAlign="center">
-                                            <FlaskConical className="h-5 w-5 text-zinc-500" />
-                                            <Text as="h2" variant="headingMd">Selected products</Text>
-                                        </InlineStack>
-                                        <TextField
-                                            label="Filter products"
-                                            value={productQuery}
-                                            onChange={setProductQuery}
-                                            autoComplete="off"
-                                            placeholder="Search by product name or external id"
-                                        />
-                                        <Scrollable shadow style={{ maxHeight: '380px' }}>
-                                            <BlockStack gap="200">
-                                                {filteredProducts.map((product) => (
-                                                    <Card key={product.id}>
-                                                        <Box padding="300">
-                                                            <Checkbox
-                                                                label={product.name}
-                                                                checked={selectedProductIds.includes(product.id)}
-                                                                onChange={(checked) => toggleProduct(product.id, checked)}
-                                                                helpText={product.externalId || 'No external id'}
-                                                            />
-                                                        </Box>
-                                                    </Card>
-                                                ))}
-                                                {!filteredProducts.length ? (
-                                                    <Text as="p" tone="subdued">No products matched the current filter.</Text>
-                                                ) : null}
-                                            </BlockStack>
-                                        </Scrollable>
-                                    </BlockStack>
-                                </Box>
-                            </Card>
-                        </InlineGrid>
-
-                        <Card>
-                            <Box padding="400">
-                                <BlockStack gap="400">
-                                    <InlineStack gap="300" blockAlign="center">
-                                        <MessageSquareReply className="h-5 w-5 text-zinc-500" />
-                                        <Text as="h2" variant="headingMd">3. Simulate customer reply</Text>
-                                    </InlineStack>
-
-                                    <Text as="p" tone="subdued">
-                                        This runs one inbound message through the same AI pipeline used in production.
-                                        Enable live send only for safe test numbers.
-                                    </Text>
-
-                                    <TextField
-                                        label="Inbound customer message"
-                                        value={replyMessage}
-                                        onChange={setReplyMessage}
-                                        multiline={4}
-                                        autoComplete="off"
-                                    />
-                                    <Checkbox
-                                        label="Send AI reply to customer as a live WhatsApp message"
-                                        checked={sendReplyLive}
-                                        onChange={setSendReplyLive}
-                                        helpText="Keep disabled for dry-run validation."
-                                    />
-                                    <Button
-                                        variant="primary"
-                                        onClick={simulateReply}
-                                        loading={simulatingReply}
-                                        disabled={!canSimulateReply}
+                        <Card padding="tight" className="flex flex-col gap-1">
+                            <p className="r-hint">WhatsApp</p>
+                            <div className="flex flex-wrap gap-2">
+                                <Badge tone={merchantData.whatsapp.configured ? 'success' : 'caution'}>
+                                    {merchantData.whatsapp.configured ? 'Configured' : 'Missing config'}
+                                </Badge>
+                                {merchantData.whatsapp.provider ? (
+                                    <Badge>{merchantData.whatsapp.provider}</Badge>
+                                ) : null}
+                            </div>
+                            <p className={BODY_SM}>
+                                {merchantData.whatsapp.from || 'No sender resolved yet'}
+                            </p>
+                        </Card>
+                        <Card padding="tight" className="flex flex-col gap-1">
+                            <p className="r-hint">Catalog</p>
+                            <p className={HEADING_SM}>
+                                {merchantData.products.length} products available
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {merchantData.integrations.map((integration) => (
+                                    <Badge
+                                        key={`${integration.provider}-${integration.status}`}
+                                        tone={integration.status === 'active' ? 'success' : 'warning'}
                                     >
-                                        Simulate reply
-                                    </Button>
-
-                                    {replyResult ? (
-                                        <>
-                                            <Divider />
-                                            <InlineGrid columns={{ xs: '1fr', md: '1fr 1fr' }} gap="300">
-                                                <Card>
-                                                    <Box padding="300">
-                                                        <BlockStack gap="200">
-                                                            <Text as="h3" variant="headingSm">Inbound</Text>
-                                                            <Text as="p">{replyResult.inboundMessage}</Text>
-                                                            <InlineStack gap="200" wrap>
-                                                                {replyResult.intent ? <Badge>{replyResult.intent}</Badge> : null}
-                                                                {replyResult.guardrailBlocked ? <Badge tone="critical">Guardrail blocked</Badge> : null}
-                                                                {replyResult.upsellTriggered ? <Badge tone="success">Upsell triggered</Badge> : null}
-                                                            </InlineStack>
-                                                        </BlockStack>
-                                                    </Box>
-                                                </Card>
-                                                <Card>
-                                                    <Box padding="300">
-                                                        <BlockStack gap="200">
-                                                            <Text as="h3" variant="headingSm">AI reply</Text>
-                                                            <Text as="p">{replyResult.aiReply}</Text>
-                                                            {replyResult.liveSend ? (
-                                                                <Badge tone={replyResult.liveSend.success ? 'success' : 'attention'}>
-                                                                    {replyResult.liveSend.success ? 'Live reply sent' : replyResult.liveSend.error || 'Live send failed'}
-                                                                </Badge>
-                                                            ) : null}
-                                                        </BlockStack>
-                                                    </Box>
-                                                </Card>
-                                            </InlineGrid>
-                                        </>
-                                    ) : null}
-                                </BlockStack>
-                            </Box>
+                                        {integration.provider}
+                                    </Badge>
+                                ))}
+                            </div>
                         </Card>
+                    </div>
+                ) : null}
+            </Card>
 
-                        <Card>
-                            <Box padding="400">
-                                <BlockStack gap="400">
-                                    <InlineStack align="space-between" blockAlign="center">
-                                        <InlineStack gap="300" blockAlign="center">
-                                            <ListChecks className="h-5 w-5 text-zinc-500" />
-                                            <Text as="h2" variant="headingMd">4. Run Shopify scenario suite</Text>
-                                        </InlineStack>
-                                        <InlineStack gap="200">
-                                            <Button
-                                                onClick={() => {
-                                                    if (allScenariosSelected) {
-                                                        setSelectedScenarioIds([]);
-                                                    } else {
-                                                        setSelectedScenarioIds(scenarioCatalog.map((scenario) => scenario.id));
-                                                    }
-                                                }}
-                                                disabled={scenariosLoading || scenarioCatalog.length === 0}
-                                            >
-                                                {allScenariosSelected ? 'Clear all' : 'Select all'}
-                                            </Button>
-                                            <Button
-                                                variant="primary"
-                                                loading={runningScenarios}
-                                                onClick={runShopifyScenarioSuite}
-                                                disabled={!canRunScenarioSuite}
-                                            >
-                                                {`Run selected (${selectedScenarioIds.length})`}
-                                            </Button>
-                                        </InlineStack>
-                                    </InlineStack>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Card className="flex flex-col gap-4">
+                    <div className="flex items-center gap-3">
+                        <PackageCheck className={SECTION_ICON} aria-hidden="true" />
+                        <h2 className="r-card-title">2. Create delivered order</h2>
+                    </div>
 
-                                    <Text as="p" tone="subdued">
-                                        Covers Shopify order lifecycle, conversation intent handling, numeric product
-                                        selection, routine requests, return and opt-out flows, and multilingual guidance.
-                                    </Text>
+                    <Input
+                        label="Customer phone"
+                        value={customerPhone}
+                        onChange={(event) => setCustomerPhone(event.target.value)}
+                        autoComplete="tel"
+                        help="Use E.164 format for predictable test behavior."
+                    />
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <Input
+                            label="Customer name"
+                            value={customerName}
+                            onChange={(event) => setCustomerName(event.target.value)}
+                            autoComplete="name"
+                        />
+                        <Input
+                            label="Customer email"
+                            value={customerEmail}
+                            onChange={(event) => setCustomerEmail(event.target.value)}
+                            autoComplete="email"
+                        />
+                    </div>
+                    <CheckboxField
+                        label="Mark order as delivered immediately"
+                        checked={markDelivered}
+                        onChange={setMarkDelivered}
+                        help="Triggers delivered-event flow and follow-up scheduling right away."
+                    />
+                    <div>
+                        <Button
+                            variant="primary"
+                            onClick={createTestOrder}
+                            loading={creatingOrder}
+                            disabled={!canCreateOrder}
+                        >
+                            <ButtonSpinner loading={creatingOrder} />
+                            Create test order
+                        </Button>
+                    </div>
 
-                                    {scenariosLoading ? <SkeletonBodyText lines={4} /> : null}
+                    {orderResult ? (
+                        <>
+                            <hr style={DIVIDER_STYLE} />
+                            <Callout tone="success">
+                                <p>
+                                    Test order <strong>{orderResult.order.externalOrderId}</strong> is now <strong>{orderResult.order.status}</strong>.
+                                </p>
+                            </Callout>
+                            <div className="flex flex-col gap-1">
+                                <p className={BODY_SM}>
+                                    Order ID: {orderResult.order.id}
+                                </p>
+                                <p className={BODY_SM}>
+                                    Delivery date: {orderResult.order.deliveryDate || 'Not delivered'}
+                                </p>
+                                <p className={BODY_SM}>
+                                    Follow-up queue: {orderResult.queuedFollowUps ? 'Triggered' : 'Not triggered'}
+                                </p>
+                            </div>
+                        </>
+                    ) : null}
+                </Card>
 
-                                    {!scenariosLoading && scenarioCatalog.length > 0 ? (
-                                        <Scrollable shadow style={{ maxHeight: '360px' }}>
-                                            <BlockStack gap="200">
-                                                {scenarioCatalog.map((scenario) => (
-                                                    <Card key={scenario.id}>
-                                                        <Box padding="300">
-                                                            <BlockStack gap="200">
-                                                                <Checkbox
-                                                                    label={scenario.title}
-                                                                    checked={selectedScenarioIds.includes(scenario.id)}
-                                                                    onChange={(checked) => toggleScenario(scenario.id, checked)}
-                                                                    helpText={scenario.description}
-                                                                />
-                                                                <InlineStack gap="200" wrap>
-                                                                    <Badge>{scenario.feature}</Badge>
-                                                                    <Badge tone="info">{scenario.id}</Badge>
-                                                                </InlineStack>
-                                                            </BlockStack>
-                                                        </Box>
-                                                    </Card>
-                                                ))}
-                                            </BlockStack>
-                                        </Scrollable>
-                                    ) : null}
+                <Card className="flex flex-col gap-4">
+                    <div className="flex items-center gap-3">
+                        <FlaskConical className={SECTION_ICON} aria-hidden="true" />
+                        <h2 className="r-card-title">Selected products</h2>
+                    </div>
+                    <Input
+                        label="Filter products"
+                        value={productQuery}
+                        onChange={(event) => setProductQuery(event.target.value)}
+                        autoComplete="off"
+                        placeholder="Search by product name or external id"
+                    />
+                    <div className="max-h-[380px] overflow-y-auto pr-1">
+                        <div className="flex flex-col gap-2">
+                            {filteredProducts.map((product) => (
+                                <Card key={product.id} padding="tight">
+                                    <CheckboxField
+                                        label={product.name}
+                                        checked={selectedProductIds.includes(product.id)}
+                                        onChange={(checked) => toggleProduct(product.id, checked)}
+                                        help={product.externalId || 'No external id'}
+                                    />
+                                </Card>
+                            ))}
+                            {!filteredProducts.length ? (
+                                <p className={BODY_SUBDUED}>No products matched the current filter.</p>
+                            ) : null}
+                        </div>
+                    </div>
+                </Card>
+            </div>
 
-                                    {scenarioRunResult ? (
-                                        <>
-                                            <Divider />
-                                            <Banner tone={scenarioRunResult.summary.failed === 0 ? 'success' : 'warning'}>
-                                                <p>
-                                                    Suite completed for <strong>{scenarioRunResult.merchant.name}</strong>:
-                                                    {' '}{scenarioRunResult.summary.passed}/{scenarioRunResult.summary.total} passed,
-                                                    {' '}{scenarioRunResult.summary.failed} failed.
-                                                </p>
-                                            </Banner>
+            <Card className="flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                    <MessageSquareReply className={SECTION_ICON} aria-hidden="true" />
+                    <h2 className="r-card-title">3. Simulate customer reply</h2>
+                </div>
 
-                                            <InlineGrid columns={{ xs: '1fr', md: '1fr 1fr 1fr' }} gap="300">
-                                                <Card>
-                                                    <Box padding="300">
-                                                        <BlockStack gap="100">
-                                                            <Text as="p" variant="bodySm" tone="subdued">Test order</Text>
-                                                            <Text as="p" variant="headingSm">{scenarioRunResult.order.externalOrderId}</Text>
-                                                            <Text as="p" variant="bodySm">{scenarioRunResult.order.status}</Text>
-                                                        </BlockStack>
-                                                    </Box>
-                                                </Card>
-                                                <Card>
-                                                    <Box padding="300">
-                                                        <BlockStack gap="100">
-                                                            <Text as="p" variant="bodySm" tone="subdued">Customer</Text>
-                                                            <Text as="p" variant="headingSm">{scenarioRunResult.user.phone}</Text>
-                                                            <Text as="p" variant="bodySm">
-                                                                {scenarioRunResult.user.name || 'Unnamed test user'}
-                                                            </Text>
-                                                        </BlockStack>
-                                                    </Box>
-                                                </Card>
-                                                <Card>
-                                                    <Box padding="300">
-                                                        <BlockStack gap="100">
-                                                            <Text as="p" variant="bodySm" tone="subdued">Products</Text>
-                                                            <Text as="p" variant="headingSm">{scenarioRunResult.products.length} selected</Text>
-                                                        </BlockStack>
-                                                    </Box>
-                                                </Card>
-                                            </InlineGrid>
+                <p className={BODY_SUBDUED}>
+                    This runs one inbound message through the same AI pipeline used in production.
+                    Enable live send only for safe test numbers.
+                </p>
 
-                                            <BlockStack gap="300">
-                                                {scenarioRunResult.results.map((result) => (
-                                                    <Card key={result.id}>
-                                                        <Box padding="300">
-                                                            <BlockStack gap="200">
-                                                                <InlineStack align="space-between" blockAlign="center" wrap>
-                                                                    <InlineStack gap="200" blockAlign="center" wrap>
-                                                                        <Text as="h3" variant="headingSm">{result.title}</Text>
-                                                                        <Badge tone={result.passed ? 'success' : 'critical'}>
-                                                                            {result.passed ? 'Passed' : 'Failed'}
-                                                                        </Badge>
-                                                                        <Badge>{result.intent}</Badge>
-                                                                        {result.guardrailBlocked ? <Badge tone="critical">Guardrail</Badge> : null}
-                                                                        {result.upsellTriggered ? <Badge tone="success">Upsell</Badge> : null}
-                                                                    </InlineStack>
-                                                                    <Badge tone="info">{result.feature}</Badge>
-                                                                </InlineStack>
-                                                                <Text as="p" variant="bodySm" tone="subdued">Inbound: {result.inboundMessage}</Text>
-                                                                <Text as="p">{result.aiReply}</Text>
-                                                                <BlockStack gap="100">
-                                                                    {result.assertions.map((assertion) => (
-                                                                        <InlineStack key={`${result.id}-${assertion.id}`} gap="200" blockAlign="start">
-                                                                            <Badge tone={assertion.passed ? 'success' : 'critical'}>
-                                                                                {assertion.passed ? 'PASS' : 'FAIL'}
-                                                                            </Badge>
-                                                                            <Text as="p" variant="bodySm">{assertion.message}</Text>
-                                                                        </InlineStack>
-                                                                    ))}
-                                                                </BlockStack>
-                                                            </BlockStack>
-                                                        </Box>
-                                                    </Card>
-                                                ))}
-                                            </BlockStack>
-                                        </>
-                                    ) : null}
-                                </BlockStack>
-                            </Box>
-                        </Card>
-                    </BlockStack>
-                </Layout.Section>
-            </Layout>
-        </Page>
+                <Textarea
+                    label="Inbound customer message"
+                    value={replyMessage}
+                    onChange={(event) => setReplyMessage(event.target.value)}
+                    rows={4}
+                    autoComplete="off"
+                />
+                <CheckboxField
+                    label="Send AI reply to customer as a live WhatsApp message"
+                    checked={sendReplyLive}
+                    onChange={setSendReplyLive}
+                    help="Keep disabled for dry-run validation."
+                />
+                <div>
+                    <Button
+                        variant="primary"
+                        onClick={simulateReply}
+                        loading={simulatingReply}
+                        disabled={!canSimulateReply}
+                    >
+                        <ButtonSpinner loading={simulatingReply} />
+                        Simulate reply
+                    </Button>
+                </div>
+
+                {replyResult ? (
+                    <>
+                        <hr style={DIVIDER_STYLE} />
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <Card padding="tight" className="flex flex-col gap-2">
+                                <h3 className={HEADING_SM}>Inbound</h3>
+                                <p className={BODY}>{replyResult.inboundMessage}</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {replyResult.intent ? <Badge>{replyResult.intent}</Badge> : null}
+                                    {replyResult.guardrailBlocked ? <Badge tone="danger">Guardrail blocked</Badge> : null}
+                                    {replyResult.upsellTriggered ? <Badge tone="success">Upsell triggered</Badge> : null}
+                                </div>
+                            </Card>
+                            <Card padding="tight" className="flex flex-col gap-2">
+                                <h3 className={HEADING_SM}>AI reply</h3>
+                                <p className={BODY}>{replyResult.aiReply}</p>
+                                {replyResult.liveSend ? (
+                                    <div>
+                                        <Badge tone={replyResult.liveSend.success ? 'success' : 'caution'}>
+                                            {replyResult.liveSend.success ? 'Live reply sent' : replyResult.liveSend.error || 'Live send failed'}
+                                        </Badge>
+                                    </div>
+                                ) : null}
+                            </Card>
+                        </div>
+                    </>
+                ) : null}
+            </Card>
+
+            <Card className="flex flex-col gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <ListChecks className={SECTION_ICON} aria-hidden="true" />
+                        <h2 className="r-card-title">4. Run Shopify scenario suite</h2>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            onClick={() => {
+                                if (allScenariosSelected) {
+                                    setSelectedScenarioIds([]);
+                                } else {
+                                    setSelectedScenarioIds(scenarioCatalog.map((scenario) => scenario.id));
+                                }
+                            }}
+                            disabled={scenariosLoading || scenarioCatalog.length === 0}
+                        >
+                            {allScenariosSelected ? 'Clear all' : 'Select all'}
+                        </Button>
+                        <Button
+                            variant="primary"
+                            loading={runningScenarios}
+                            onClick={runShopifyScenarioSuite}
+                            disabled={!canRunScenarioSuite}
+                        >
+                            <ButtonSpinner loading={runningScenarios} />
+                            {`Run selected (${selectedScenarioIds.length})`}
+                        </Button>
+                    </div>
+                </div>
+
+                <p className={BODY_SUBDUED}>
+                    Covers Shopify order lifecycle, conversation intent handling, numeric product
+                    selection, routine requests, return and opt-out flows, and multilingual guidance.
+                </p>
+
+                {scenariosLoading ? <SkeletonLines lines={4} label="Loading Shopify scenarios" /> : null}
+
+                {!scenariosLoading && scenarioCatalog.length > 0 ? (
+                    <div className="max-h-[360px] overflow-y-auto pr-1">
+                        <div className="flex flex-col gap-2">
+                            {scenarioCatalog.map((scenario) => (
+                                <Card key={scenario.id} padding="tight" className="flex flex-col gap-2">
+                                    <CheckboxField
+                                        label={scenario.title}
+                                        checked={selectedScenarioIds.includes(scenario.id)}
+                                        onChange={(checked) => toggleScenario(scenario.id, checked)}
+                                        help={scenario.description}
+                                    />
+                                    <div className="flex flex-wrap gap-2">
+                                        <Badge>{scenario.feature}</Badge>
+                                        <Badge tone="brand">{scenario.id}</Badge>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                ) : null}
+
+                {scenarioRunResult ? (
+                    <>
+                        <hr style={DIVIDER_STYLE} />
+                        <Callout tone={scenarioRunResult.summary.failed === 0 ? 'success' : 'warning'}>
+                            <p>
+                                Suite completed for <strong>{scenarioRunResult.merchant.name}</strong>:
+                                {' '}{scenarioRunResult.summary.passed}/{scenarioRunResult.summary.total} passed,
+                                {' '}{scenarioRunResult.summary.failed} failed.
+                            </p>
+                        </Callout>
+
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                            <Card padding="tight" className="flex flex-col gap-1">
+                                <p className="r-hint">Test order</p>
+                                <p className={HEADING_SM}>{scenarioRunResult.order.externalOrderId}</p>
+                                <p className={BODY_SM}>{scenarioRunResult.order.status}</p>
+                            </Card>
+                            <Card padding="tight" className="flex flex-col gap-1">
+                                <p className="r-hint">Customer</p>
+                                <p className={HEADING_SM}>{scenarioRunResult.user.phone}</p>
+                                <p className={BODY_SM}>
+                                    {scenarioRunResult.user.name || 'Unnamed test user'}
+                                </p>
+                            </Card>
+                            <Card padding="tight" className="flex flex-col gap-1">
+                                <p className="r-hint">Products</p>
+                                <p className={HEADING_SM}>{scenarioRunResult.products.length} selected</p>
+                            </Card>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            {scenarioRunResult.results.map((result) => (
+                                <Card key={result.id} padding="tight" className="flex flex-col gap-2">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h3 className={HEADING_SM}>{result.title}</h3>
+                                            <Badge tone={result.passed ? 'success' : 'danger'}>
+                                                {result.passed ? 'Passed' : 'Failed'}
+                                            </Badge>
+                                            <Badge>{result.intent}</Badge>
+                                            {result.guardrailBlocked ? <Badge tone="danger">Guardrail</Badge> : null}
+                                            {result.upsellTriggered ? <Badge tone="success">Upsell</Badge> : null}
+                                        </div>
+                                        <Badge tone="brand">{result.feature}</Badge>
+                                    </div>
+                                    <p className="r-hint">Inbound: {result.inboundMessage}</p>
+                                    <p className={BODY}>{result.aiReply}</p>
+                                    <div className="flex flex-col gap-1">
+                                        {result.assertions.map((assertion) => (
+                                            <div key={`${result.id}-${assertion.id}`} className="flex items-start gap-2">
+                                                <Badge tone={assertion.passed ? 'success' : 'danger'}>
+                                                    {assertion.passed ? 'PASS' : 'FAIL'}
+                                                </Badge>
+                                                <p className={BODY_SM}>{assertion.message}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    </>
+                ) : null}
+            </Card>
+        </div>
     );
 }

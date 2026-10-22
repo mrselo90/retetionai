@@ -1,27 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
+import { Badge, Button, Card, Input, Select } from '@/components/recete';
 import {
-  Badge,
-  Banner,
-  BlockStack,
-  Box,
-  Button,
-  Card,
-  InlineGrid,
-  InlineStack,
-  Layout,
-  Page,
-  Select,
-  SkeletonBodyText,
-  SkeletonDisplayText,
-  SkeletonPage,
-  Text,
-  TextField,
-} from '@shopify/polaris';
-import { Database, Server, Activity, AlertCircle, type LucideIcon } from 'lucide-react';
+  Database,
+  Server,
+  Activity,
+  AlertCircle,
+  Info,
+  Loader2,
+  type LucideIcon,
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { getErrorMessage } from '@/lib/errors';
 
@@ -87,6 +78,32 @@ interface RagSuiteRunResult {
   cases: RagSuiteCaseResult[];
 }
 
+/** Inset panel inside a card (stat tiles, result blocks). */
+const insetPanelStyle: CSSProperties = {
+  background: 'var(--r-surface-subtle)',
+  borderRadius: 'var(--r-radius-lg)',
+};
+
+const insetPanelBorderedStyle: CSSProperties = {
+  ...insetPanelStyle,
+  border: '1px solid var(--r-border)',
+};
+
+/** Sub-section heading inside a card, one step below .r-card-title. */
+const subheadingStyle: CSSProperties = {
+  margin: 0,
+  fontSize: 'var(--r-text-base-plus)',
+  fontWeight: 'var(--r-weight-semibold)',
+  color: 'var(--r-text)',
+};
+
+const statValueStyle: CSSProperties = {
+  margin: 0,
+  fontSize: 'var(--r-text-lg)',
+  fontWeight: 'var(--r-weight-semibold)',
+  color: 'var(--r-text)',
+};
+
 // Module level so it isn't a new component type on every render.
 const QueueCard = ({
   title,
@@ -105,72 +122,46 @@ const QueueCard = ({
   const hasBacklog = stats.waiting > 1000;
 
   return (
-    <Card>
+    <Card className="relative overflow-hidden">
       {/* Status indicator bar */}
       <div
         className={`absolute top-0 left-0 w-full h-1 ${hasFailed ? 'bg-red-500' : hasBacklog ? 'bg-amber-500' : 'bg-emerald-500'}`}
       />
-      <Box padding="400">
-        <BlockStack gap="300">
-          <InlineStack align="space-between" blockAlign="center" gap="200">
-            <InlineStack gap="200" blockAlign="center">
-              <Box padding="200" borderRadius="200" background="bg-surface-secondary">
-                <Icon className={`w-4 h-4 ${colorClass}`} />
-              </Box>
-              <Text as="h3" variant="headingSm">
-                {title}
-              </Text>
-            </InlineStack>
-            {hasFailed && <Badge tone="critical">{`${stats.failed} Errors`}</Badge>}
-          </InlineStack>
-          <InlineGrid columns={{ xs: '1fr', sm: '1fr 1fr' }} gap="300">
-            <Box
-              background="bg-surface-secondary"
-              borderRadius="300"
-              borderWidth="025"
-              borderColor="border"
-              padding="300"
-            >
-              <Text as="p" variant="bodySm" tone="subdued">
-                Active / Pending
-              </Text>
-              <Text as="p" variant="headingLg">
-                {stats.active.toLocaleString()}{' '}
-                <span className="text-zinc-300 font-light mx-1">/</span>{' '}
-                <span className={`${hasBacklog ? 'text-amber-500' : 'text-zinc-600'}`}>
-                  {stats.waiting.toLocaleString()}
-                </span>
-              </Text>
-            </Box>
-            <Box
-              background="bg-surface-secondary"
-              borderRadius="300"
-              borderWidth="025"
-              borderColor="border"
-              padding="300"
-            >
-              <BlockStack gap="200">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="span" variant="bodySm" tone="subdued">
-                    Processed
-                  </Text>
-                  <Text as="span" variant="bodyMd" fontWeight="semibold">
-                    {stats.completed.toLocaleString()}
-                  </Text>
-                </InlineStack>
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="span" variant="bodySm" tone="subdued">
-                    Delayed
-                  </Text>
-                  <Text as="span" variant="bodyMd" fontWeight="semibold">
-                    {stats.delayed.toLocaleString()}
-                  </Text>
-                </InlineStack>
-              </BlockStack>
-            </Box>
-          </InlineGrid>
-        </BlockStack>
-      </Box>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="r-kpi-icon" aria-hidden="true">
+              <Icon className={`w-4 h-4 ${colorClass}`} />
+            </span>
+            <h3 style={subheadingStyle}>{title}</h3>
+          </div>
+          {hasFailed && <Badge tone="danger">{`${stats.failed} Errors`}</Badge>}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="p-3" style={insetPanelBorderedStyle}>
+            <p className="r-hint" style={{ margin: 0 }}>
+              Active / Pending
+            </p>
+            <p className="r-kpi-value" style={{ fontSize: 'var(--r-text-2xl)', margin: 0 }}>
+              {stats.active.toLocaleString()}{' '}
+              <span className="text-zinc-300 font-light mx-1">/</span>{' '}
+              <span className={`${hasBacklog ? 'text-amber-500' : 'text-zinc-600'}`}>
+                {stats.waiting.toLocaleString()}
+              </span>
+            </p>
+          </div>
+          <div className="p-3 flex flex-col gap-2" style={insetPanelBorderedStyle}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="r-hint">Processed</span>
+              <span className="r-table-strong">{stats.completed.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="r-hint">Delayed</span>
+              <span className="r-table-strong">{stats.delayed.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </Card>
   );
 };
@@ -549,516 +540,464 @@ export default function SystemHealthPage() {
 
   if (loading && !health) {
     return (
-      <SkeletonPage title="System Health">
-        <Layout>
-          <Layout.Section>
-            <BlockStack gap="500">
-              <Card>
-                <Box padding="400">
-                  <BlockStack gap="200">
-                    <SkeletonDisplayText size="small" />
-                    <SkeletonBodyText lines={2} />
-                  </BlockStack>
-                </Box>
+      <div className="flex flex-col gap-5">
+        <h1 className="r-page-title">System Health</h1>
+        <div className="flex flex-col gap-5" role="status" aria-label="Loading system health">
+          <Card>
+            <div className="flex flex-col gap-2" aria-hidden="true">
+              <div className="r-skeleton" style={{ height: 22, width: '40%' }} />
+              <div className="r-skeleton" style={{ height: 12 }} />
+              <div className="r-skeleton" style={{ height: 12, width: '70%' }} />
+            </div>
+          </Card>
+          <Card>
+            <div className="r-skeleton h-32" aria-hidden="true" />
+          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <div className="r-skeleton h-56" aria-hidden="true" />
               </Card>
-              <Card>
-                <Box padding="400">
-                  <div className="h-32 rounded bg-zinc-100 animate-pulse" />
-                </Box>
-              </Card>
-              <InlineGrid columns={{ xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }} gap="400">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i}>
-                    <Box padding="400">
-                      <div className="h-56 rounded bg-zinc-100 animate-pulse" />
-                    </Box>
-                  </Card>
-                ))}
-              </InlineGrid>
-            </BlockStack>
-          </Layout.Section>
-        </Layout>
-      </SkeletonPage>
+            ))}
+          </div>
+        </div>
+      </div>
     );
   }
 
   if (error && !health) {
     return (
-      <Page title="System Health">
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <Box padding="400">
-                <InlineStack gap="200" blockAlign="start">
-                  <AlertCircle className="w-5 h-5 mt-0.5 text-red-600" />
-                  <BlockStack gap="200">
-                    <Text as="h3" variant="headingMd" tone="critical">
-                      System connection failed
-                    </Text>
-                    <Text as="p" tone="critical">
-                      {error}
-                    </Text>
-                    <InlineStack align="start">
-                      <Button variant="secondary" size="slim" onClick={fetchHealth}>
-                        Try Again
-                      </Button>
-                    </InlineStack>
-                  </BlockStack>
-                </InlineStack>
-              </Box>
-            </Card>
-          </Layout.Section>
-        </Layout>
-      </Page>
+      <div className="flex flex-col gap-5">
+        <h1 className="r-page-title">System Health</h1>
+        <Card>
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 mt-0.5 text-red-600 shrink-0" aria-hidden="true" />
+            <div className="flex flex-col gap-2">
+              <h2 className="r-card-title" style={{ margin: 0, color: 'var(--r-danger)' }}>
+                System connection failed
+              </h2>
+              <p style={{ margin: 0, fontSize: 'var(--r-text-base-plus)', color: 'var(--r-danger)' }}>
+                {error}
+              </p>
+              <div>
+                <Button variant="secondary" size="sm" onClick={fetchHealth}>
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
     );
   }
 
 
   return (
-    <Page
-      title="System Health"
-      subtitle="Monitoring background workers and infrastructure"
-      fullWidth
-    >
-      <Layout>
-        <Layout.Section>
-          <BlockStack gap="500">
-            <InlineGrid columns={{ xs: '1fr', md: '1fr auto' }} gap="300" alignItems="center">
-              <InlineStack gap="200" blockAlign="center">
-                {health && <Badge tone="success">Live</Badge>}
-              </InlineStack>
-              <InlineStack align="end" gap="300" blockAlign="center">
-                <Text as="span" variant="bodySm" tone="subdued">
-                  Last checked: {formatDistanceToNow(lastUpdated)} ago
-                </Text>
-                <Button
-                  variant="secondary"
-                  size="slim"
-                  onClick={fetchHealth}
-                  disabled={isRefreshing}
-                >
-                  Refresh
-                </Button>
-              </InlineStack>
-            </InlineGrid>
+    <div className="flex flex-col gap-5">
+      <div>
+        <h1 className="r-page-title">System Health</h1>
+        <p className="r-page-sub">Monitoring background workers and infrastructure</p>
+      </div>
 
-            {/* Core Infrastructure */}
-            {health && (
-              <Card>
-                <Box padding="400">
-                  <InlineGrid
-                    columns={{ xs: '1fr', md: 'minmax(0,1fr) auto' }}
-                    gap="400"
-                    alignItems="center"
-                  >
-                    <InlineStack gap="400" blockAlign="center">
-                      <Box padding="300" borderRadius="300" background="bg-surface-secondary">
-                        <Database className="w-6 h-6 text-zinc-300" />
-                      </Box>
-                      <BlockStack gap="100">
-                        <InlineStack gap="200" blockAlign="center">
-                          <Text as="h2" variant="headingMd">
-                            Redis Message Broker
-                          </Text>
-                          {health.redis.connected ? (
-                            <Badge tone="success">Connected</Badge>
-                          ) : (
-                            <Badge tone="critical">Disconnected</Badge>
-                          )}
-                        </InlineStack>
-                        <Text as="p" tone="subdued">
-                          Used for BullMQ job queues and rate limiting across instances.
-                        </Text>
-                      </BlockStack>
-                    </InlineStack>
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {health && <Badge tone="success">Live</Badge>}
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <span className="r-hint">Last checked: {formatDistanceToNow(lastUpdated)} ago</span>
+          <Button variant="secondary" size="sm" onClick={fetchHealth} disabled={isRefreshing}>
+            Refresh
+          </Button>
+        </div>
+      </div>
 
-                    <InlineStack gap="600" blockAlign="start">
-                      <BlockStack gap="100">
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          Uptime
-                        </Text>
-                        <Text as="p" variant="headingMd">
-                          {formatUptime(health.redis.uptime)}
-                        </Text>
-                      </BlockStack>
-                      <BlockStack gap="100">
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          State
-                        </Text>
-                        <Text as="p" variant="headingMd">
-                          {health.status === 'healthy' ? 'OK' : 'DEGRADED'}
-                        </Text>
-                      </BlockStack>
-                    </InlineStack>
-                  </InlineGrid>
-                </Box>
-              </Card>
-            )}
-
-            {/* Global AI Model Settings */}
-            <Card>
-              <Box padding="400">
-                <BlockStack gap="300">
-                  <InlineStack align="space-between" blockAlign="center" gap="200">
-                    <BlockStack gap="100">
-                      <Text as="h2" variant="headingMd">
-                        Global AI Model
-                      </Text>
-                      <Text as="p" tone="subdued">
-                        Super admin runtime defaults for chat answers, embeddings, WhatsApp AI
-                        vision, and the Recete corporate WhatsApp sender.
-                      </Text>
-                    </BlockStack>
-                    {aiSettings && <Badge tone="info">Runtime configurable</Badge>}
-                  </InlineStack>
-                  <InlineGrid
-                    columns={{ xs: '1fr', md: 'minmax(0,1fr) auto' }}
-                    gap="300"
-                    alignItems="end"
-                  >
-                    <BlockStack gap="300">
-                      <Select
-                        label="Default LLM model"
-                        options={parseCommaList(allowedLlmModelsInput || '', defaultLlmModels).map(
-                          (m) => ({
-                            label: m,
-                            value: m,
-                          })
-                        )}
-                        value={selectedLlmModel}
-                        onChange={setSelectedLlmModel}
-                      />
-                      <TextField
-                        label="Allowed LLM models"
-                        autoComplete="off"
-                        value={allowedLlmModelsInput}
-                        onChange={setAllowedLlmModelsInput}
-                        helpText="Comma-separated list of chat models available in the super admin runtime config."
-                      />
-                      <Select
-                        label="Default embedding model"
-                        options={parseCommaList(
-                          allowedEmbeddingModelsInput || '',
-                          defaultEmbeddingModels
-                        ).map((m) => ({
-                          label: m,
-                          value: m,
-                        }))}
-                        value={selectedEmbeddingModel}
-                        onChange={setSelectedEmbeddingModel}
-                        helpText="Used for multilingual chunk indexing and retrieval embeddings. Keep this aligned with the vector dimension schema."
-                      />
-                      <TextField
-                        label="Allowed embedding models"
-                        autoComplete="off"
-                        value={allowedEmbeddingModelsInput}
-                        onChange={setAllowedEmbeddingModelsInput}
-                        helpText="Comma-separated list. Current production schema is configured for 1536-dimension embeddings, so only compatible models should be listed."
-                      />
-                      <Select
-                        label="Default vision model"
-                        options={parseCommaList(
-                          allowedVisionModelsInput || '',
-                          defaultVisionModels
-                        ).map((m) => ({
-                          label: m,
-                          value: m,
-                        }))}
-                        value={selectedVisionModel}
-                        onChange={setSelectedVisionModel}
-                        helpText="Used for customer photo analysis in WhatsApp AI vision flows."
-                      />
-                      <TextField
-                        label="Allowed vision models"
-                        autoComplete="off"
-                        value={allowedVisionModelsInput}
-                        onChange={setAllowedVisionModelsInput}
-                        helpText="Comma-separated list of models allowed for WhatsApp AI vision."
-                      />
-                      <TextField
-                        label="Corporate WhatsApp display number"
-                        autoComplete="off"
-                        value={corporateWhatsAppPhoneDisplay}
-                        onChange={setCorporateWhatsAppPhoneDisplay}
-                        helpText="Optional human-readable display value used in platform contact surfaces."
-                      />
-                      <Select
-                        label="Conversation memory mode"
-                        options={[
-                          { label: 'Last N messages', value: 'last_n' },
-                          { label: 'Full conversation', value: 'full' },
-                        ]}
-                        value={conversationMemoryMode}
-                        onChange={(value) =>
-                          setConversationMemoryMode(value === 'full' ? 'full' : 'last_n')
-                        }
-                        helpText="Controls how much conversation history is sent to the model for customer chat responses."
-                      />
-                      {conversationMemoryMode === 'last_n' && (
-                        <TextField
-                          label="Conversation memory count"
-                          type="number"
-                          min={1}
-                          max={200}
-                          autoComplete="off"
-                          value={conversationMemoryCount}
-                          onChange={setConversationMemoryCount}
-                          helpText="Number of latest messages to include in model context (1-200)."
-                        />
-                      )}
-                      <TextField
-                        label="Products list cache TTL (seconds)"
-                        type="number"
-                        min={30}
-                        max={3600}
-                        autoComplete="off"
-                        value={productsCacheTtlSeconds}
-                        onChange={setProductsCacheTtlSeconds}
-                        helpText="Controls Redis cache duration for /api/products (30-3600 seconds)."
-                      />
-                    </BlockStack>
-                    <Button
-                      variant="primary"
-                      onClick={saveAiSettings}
-                      loading={savingAiSettings}
-                      disabled={savingAiSettings}
-                    >
-                      Save AI Settings
-                    </Button>
-                  </InlineGrid>
-                </BlockStack>
-              </Box>
-            </Card>
-
-            <Card>
-              <Box padding="400">
-                <BlockStack gap="300">
-                  <InlineStack align="space-between" blockAlign="center" gap="200">
-                    <BlockStack gap="100">
-                      <Text as="h2" variant="headingMd">
-                        RAG Test Suite (Super Admin)
-                      </Text>
-                      <Text as="p" tone="subdued">
-                        Selects the first 10 products with chunks for the current merchant and runs
-                        predefined RAG + Answer smoke tests.
-                      </Text>
-                    </BlockStack>
-                    <Badge tone="attention">Predefined</Badge>
-                  </InlineStack>
-
-                  <InlineGrid
-                    columns={{ xs: '1fr', md: 'repeat(3, minmax(0,1fr)) auto' }}
-                    gap="300"
-                    alignItems="end"
-                  >
-                    <BlockStack gap="100">
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        Suite ID
-                      </Text>
-                      <Text as="p" variant="bodyMd" fontWeight="medium">
-                        rag_superadmin_10_products_smoke
-                      </Text>
-                    </BlockStack>
-                    <Select
-                      label="Query set"
-                      options={[
-                        { label: 'Short (4 queries)', value: 'short' },
-                        { label: 'Medium (8 queries)', value: 'medium' },
-                        { label: 'Wide (12 queries)', value: 'wide' },
-                        { label: 'Hungarian (12 queries)', value: 'hungarian' },
-                      ]}
-                      value={ragSuiteQueryPreset}
-                      onChange={(value) =>
-                        setRagSuiteQueryPreset(
-                          value === 'medium' || value === 'wide' || value === 'hungarian'
-                            ? value
-                            : 'short'
-                        )
-                      }
-                    />
-                    <Select
-                      label="Run mode"
-                      options={[
-                        { label: 'RAG + Answer', value: 'rag_and_answer' },
-                        { label: 'RAG Only', value: 'rag_only' },
-                      ]}
-                      value={ragSuiteMode}
-                      onChange={(value) =>
-                        setRagSuiteMode(value === 'rag_only' ? 'rag_only' : 'rag_and_answer')
-                      }
-                    />
-                    <Box paddingBlockStart="500">
-                      <Button
-                        variant="primary"
-                        onClick={runSuperAdminRagSuite}
-                        loading={ragSuiteRunning}
-                        disabled={ragSuiteRunning}
-                      >
-                        Run Suite
-                      </Button>
-                    </Box>
-                  </InlineGrid>
-
-                  {ragSuiteExcludedProductIds.length > 0 && (
-                    <InlineStack gap="200" blockAlign="center">
-                      <Badge tone="warning">{`${ragSuiteExcludedProductIds.length} excluded`}</Badge>
-                      <Button
-                        size="slim"
-                        variant="tertiary"
-                        onClick={() => setRagSuiteExcludedProductIds([])}
-                      >
-                        Clear exclusions
-                      </Button>
-                    </InlineStack>
+      {/* Core Infrastructure */}
+      {health && (
+        <Card>
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="r-kpi-icon" style={{ width: 48, height: 48 }} aria-hidden="true">
+                <Database className="w-6 h-6 text-zinc-300" />
+              </span>
+              <div className="flex flex-col gap-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="r-card-title" style={{ margin: 0 }}>
+                    Redis Message Broker
+                  </h2>
+                  {health.redis.connected ? (
+                    <Badge tone="success">Connected</Badge>
+                  ) : (
+                    <Badge tone="danger">Disconnected</Badge>
                   )}
-
-                  {ragSuiteError && (
-                    <Banner tone="critical">
-                      <p>{ragSuiteError}</p>
-                    </Banner>
-                  )}
-
-                  {ragSuiteResult && (
-                    <BlockStack gap="300">
-                      <InlineStack gap="200" blockAlign="center">
-                        <Badge
-                          tone={ragSuitePassedCases === ragSuiteTotalCases ? 'success' : 'warning'}
-                        >
-                          {`${ragSuitePassedCases}/${ragSuiteTotalCases} cases passed`}
-                        </Badge>
-                        <Badge tone="info">
-                          {`${ragSuiteResult.selectedProducts.length} products selected`}
-                        </Badge>
-                        <Text as="span" variant="bodySm" tone="subdued">
-                          {new Date(ragSuiteResult.finishedAt).toLocaleString()}
-                        </Text>
-                      </InlineStack>
-
-                      <Box background="bg-surface-secondary" borderRadius="300" padding="300">
-                        <BlockStack gap="200">
-                          <Text as="h3" variant="headingSm">
-                            Selected products (first 10 with chunks)
-                          </Text>
-                          <Text as="p" variant="bodySm" tone="subdued">
-                            Use the button on each card to exclude products from the next run.
-                          </Text>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {ragSuiteResult.selectedProducts.map((product) => (
-                              <div
-                                key={product.id}
-                                className="rounded border border-zinc-200 bg-white px-3 py-2"
-                              >
-                                <div className="text-sm font-medium text-zinc-800 truncate">
-                                  {product.name || product.id}
-                                </div>
-                                <div className="text-xs text-zinc-500 truncate">{product.id}</div>
-                                <div className="text-xs text-zinc-600 mb-2">
-                                  chunks: {product.chunkCount}
-                                </div>
-                                <Button
-                                  size="slim"
-                                  variant={
-                                    ragSuiteExcludedProductIds.includes(product.id)
-                                      ? 'primary'
-                                      : 'tertiary'
-                                  }
-                                  onClick={() => toggleRagSuiteExcludedProduct(product.id)}
-                                >
-                                  {ragSuiteExcludedProductIds.includes(product.id)
-                                    ? 'Include next run'
-                                    : 'Exclude next run'}
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </BlockStack>
-                      </Box>
-
-                      <Box background="bg-surface-secondary" borderRadius="300" padding="300">
-                        <BlockStack gap="200">
-                          <Text as="h3" variant="headingSm">
-                            Case results
-                          </Text>
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="text-left text-zinc-500">
-                                  <th className="py-2 pr-3">Query</th>
-                                  <th className="py-2 pr-3">RAG</th>
-                                  <th className="py-2 pr-3">Count</th>
-                                  <th className="py-2 pr-3">RAG ms</th>
-                                  <th className="py-2 pr-3">Answer</th>
-                                  <th className="py-2 pr-3">Answer ms</th>
-                                  <th className="py-2">Error</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {ragSuiteResult.cases.map((row) => (
-                                  <tr key={row.query} className="border-t border-zinc-200">
-                                    <td className="py-2 pr-3 text-zinc-800">{row.query}</td>
-                                    <td className="py-2 pr-3">{row.ragOk ? 'PASS' : 'FAIL'}</td>
-                                    <td className="py-2 pr-3">{row.ragCount}</td>
-                                    <td className="py-2 pr-3">{row.ragLatencyMs}</td>
-                                    <td className="py-2 pr-3">
-                                      {row.answerSkipped ? 'SKIP' : row.answerOk ? 'PASS' : 'FAIL'}
-                                    </td>
-                                    <td className="py-2 pr-3">
-                                      {row.answerSkipped ? '-' : row.answerLatencyMs}
-                                    </td>
-                                    <td className="py-2 text-zinc-600">{row.error || '-'}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </BlockStack>
-                      </Box>
-                    </BlockStack>
-                  )}
-                </BlockStack>
-              </Box>
-            </Card>
-
-            {/* Background Worker Queues */}
-            <BlockStack gap="300">
-              <InlineStack gap="200" blockAlign="center">
-                <Activity className="w-5 h-5 text-zinc-500" />
-                <Text as="h3" variant="headingMd">
-                  Distributed Queues (BullMQ)
-                </Text>
-              </InlineStack>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <QueueCard
-                  title="Scheduled Messages"
-                  stats={health?.queues.scheduledMessages}
-                  icon={Server}
-                  colorClass="text-blue-500"
-                />
-                <QueueCard
-                  title="Web Scraper Jobs"
-                  stats={health?.queues.scrapeJobs}
-                  icon={Server}
-                  colorClass="text-emerald-500"
-                />
-                <QueueCard
-                  title="Analytics Pipeline"
-                  stats={health?.queues.analytics}
-                  icon={Server}
-                  colorClass="text-purple-500"
-                />
+                </div>
+                <p className="r-hint" style={{ margin: 0 }}>
+                  Used for BullMQ job queues and rate limiting across instances.
+                </p>
               </div>
-            </BlockStack>
+            </div>
 
-            <Banner tone="info">
-              <p className="font-semibold mb-1">Queue Management (Coming Soon)</p>
-              <p>
-                In a future update, you will be able to pause queues, retry failed jobs in bulk, and
-                clear backlogs directly from this dashboard.
+            <div className="flex flex-wrap items-start gap-6">
+              <div className="flex flex-col gap-1">
+                <p className="r-hint" style={{ margin: 0 }}>
+                  Uptime
+                </p>
+                <p style={statValueStyle}>{formatUptime(health.redis.uptime)}</p>
+              </div>
+              <div className="flex flex-col gap-1">
+                <p className="r-hint" style={{ margin: 0 }}>
+                  State
+                </p>
+                <p style={statValueStyle}>{health.status === 'healthy' ? 'OK' : 'DEGRADED'}</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Global AI Model Settings */}
+      <Card>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-col gap-1">
+              <h2 className="r-card-title" style={{ margin: 0 }}>
+                Global AI Model
+              </h2>
+              <p className="r-hint" style={{ margin: 0 }}>
+                Super admin runtime defaults for chat answers, embeddings, WhatsApp AI vision, and
+                the Recete corporate WhatsApp sender.
               </p>
-            </Banner>
-          </BlockStack>
-        </Layout.Section>
-      </Layout>
-    </Page>
+            </div>
+            {aiSettings && <Badge tone="brand">Runtime configurable</Badge>}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+            <div className="flex flex-col gap-3">
+              <Select
+                label="Default LLM model"
+                value={selectedLlmModel}
+                onChange={(e) => setSelectedLlmModel(e.target.value)}
+              >
+                {parseCommaList(allowedLlmModelsInput || '', defaultLlmModels).map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </Select>
+              <Input
+                label="Allowed LLM models"
+                autoComplete="off"
+                value={allowedLlmModelsInput}
+                onChange={(e) => setAllowedLlmModelsInput(e.target.value)}
+                help="Comma-separated list of chat models available in the super admin runtime config."
+              />
+              <Select
+                label="Default embedding model"
+                value={selectedEmbeddingModel}
+                onChange={(e) => setSelectedEmbeddingModel(e.target.value)}
+                help="Used for multilingual chunk indexing and retrieval embeddings. Keep this aligned with the vector dimension schema."
+              >
+                {parseCommaList(allowedEmbeddingModelsInput || '', defaultEmbeddingModels).map(
+                  (m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  )
+                )}
+              </Select>
+              <Input
+                label="Allowed embedding models"
+                autoComplete="off"
+                value={allowedEmbeddingModelsInput}
+                onChange={(e) => setAllowedEmbeddingModelsInput(e.target.value)}
+                help="Comma-separated list. Current production schema is configured for 1536-dimension embeddings, so only compatible models should be listed."
+              />
+              <Select
+                label="Default vision model"
+                value={selectedVisionModel}
+                onChange={(e) => setSelectedVisionModel(e.target.value)}
+                help="Used for customer photo analysis in WhatsApp AI vision flows."
+              >
+                {parseCommaList(allowedVisionModelsInput || '', defaultVisionModels).map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </Select>
+              <Input
+                label="Allowed vision models"
+                autoComplete="off"
+                value={allowedVisionModelsInput}
+                onChange={(e) => setAllowedVisionModelsInput(e.target.value)}
+                help="Comma-separated list of models allowed for WhatsApp AI vision."
+              />
+              <Input
+                label="Corporate WhatsApp display number"
+                autoComplete="off"
+                value={corporateWhatsAppPhoneDisplay}
+                onChange={(e) => setCorporateWhatsAppPhoneDisplay(e.target.value)}
+                help="Optional human-readable display value used in platform contact surfaces."
+              />
+              <Select
+                label="Conversation memory mode"
+                value={conversationMemoryMode}
+                onChange={(e) =>
+                  setConversationMemoryMode(e.target.value === 'full' ? 'full' : 'last_n')
+                }
+                help="Controls how much conversation history is sent to the model for customer chat responses."
+              >
+                <option value="last_n">Last N messages</option>
+                <option value="full">Full conversation</option>
+              </Select>
+              {conversationMemoryMode === 'last_n' && (
+                <Input
+                  label="Conversation memory count"
+                  type="number"
+                  min={1}
+                  max={200}
+                  autoComplete="off"
+                  value={conversationMemoryCount}
+                  onChange={(e) => setConversationMemoryCount(e.target.value)}
+                  help="Number of latest messages to include in model context (1-200)."
+                />
+              )}
+              <Input
+                label="Products list cache TTL (seconds)"
+                type="number"
+                min={30}
+                max={3600}
+                autoComplete="off"
+                value={productsCacheTtlSeconds}
+                onChange={(e) => setProductsCacheTtlSeconds(e.target.value)}
+                help="Controls Redis cache duration for /api/products (30-3600 seconds)."
+              />
+            </div>
+            <Button
+              variant="primary"
+              onClick={saveAiSettings}
+              loading={savingAiSettings}
+              disabled={savingAiSettings}
+            >
+              {savingAiSettings && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
+              Save AI Settings
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-col gap-1">
+              <h2 className="r-card-title" style={{ margin: 0 }}>
+                RAG Test Suite (Super Admin)
+              </h2>
+              <p className="r-hint" style={{ margin: 0 }}>
+                Selects the first 10 products with chunks for the current merchant and runs
+                predefined RAG + Answer smoke tests.
+              </p>
+            </div>
+            <Badge tone="caution">Predefined</Badge>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-[repeat(3,minmax(0,1fr))_auto] items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <p className="r-hint" style={{ margin: 0 }}>
+                Suite ID
+              </p>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 'var(--r-text-base-plus)',
+                  fontWeight: 'var(--r-weight-medium)',
+                  color: 'var(--r-text)',
+                }}
+              >
+                rag_superadmin_10_products_smoke
+              </p>
+            </div>
+            <Select
+              label="Query set"
+              value={ragSuiteQueryPreset}
+              onChange={(e) => {
+                const value = e.target.value;
+                setRagSuiteQueryPreset(
+                  value === 'medium' || value === 'wide' || value === 'hungarian' ? value : 'short'
+                );
+              }}
+            >
+              <option value="short">Short (4 queries)</option>
+              <option value="medium">Medium (8 queries)</option>
+              <option value="wide">Wide (12 queries)</option>
+              <option value="hungarian">Hungarian (12 queries)</option>
+            </Select>
+            <Select
+              label="Run mode"
+              value={ragSuiteMode}
+              onChange={(e) =>
+                setRagSuiteMode(e.target.value === 'rag_only' ? 'rag_only' : 'rag_and_answer')
+              }
+            >
+              <option value="rag_and_answer">RAG + Answer</option>
+              <option value="rag_only">RAG Only</option>
+            </Select>
+            <div className="pt-5">
+              <Button
+                variant="primary"
+                onClick={runSuperAdminRagSuite}
+                loading={ragSuiteRunning}
+                disabled={ragSuiteRunning}
+              >
+                {ragSuiteRunning && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
+                Run Suite
+              </Button>
+            </div>
+          </div>
+
+          {ragSuiteExcludedProductIds.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="warning">{`${ragSuiteExcludedProductIds.length} excluded`}</Badge>
+              <Button size="sm" variant="ghost" onClick={() => setRagSuiteExcludedProductIds([])}>
+                Clear exclusions
+              </Button>
+            </div>
+          )}
+
+          {ragSuiteError && (
+            <div className="r-alert r-alert-error" role="alert">
+              <AlertCircle size={16} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+              <p className="r-alert-body" style={{ margin: 0, flex: 1 }}>
+                {ragSuiteError}
+              </p>
+            </div>
+          )}
+
+          {ragSuiteResult && (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone={ragSuitePassedCases === ragSuiteTotalCases ? 'success' : 'warning'}>
+                  {`${ragSuitePassedCases}/${ragSuiteTotalCases} cases passed`}
+                </Badge>
+                <Badge tone="brand">
+                  {`${ragSuiteResult.selectedProducts.length} products selected`}
+                </Badge>
+                <span className="r-hint">
+                  {new Date(ragSuiteResult.finishedAt).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="p-3 flex flex-col gap-2" style={insetPanelStyle}>
+                <h3 style={subheadingStyle}>Selected products (first 10 with chunks)</h3>
+                <p className="r-hint" style={{ margin: 0 }}>
+                  Use the button on each card to exclude products from the next run.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {ragSuiteResult.selectedProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      className="rounded border border-zinc-200 bg-white px-3 py-2"
+                    >
+                      <div className="text-sm font-medium text-zinc-800 truncate">
+                        {product.name || product.id}
+                      </div>
+                      <div className="text-xs text-zinc-500 truncate">{product.id}</div>
+                      <div className="text-xs text-zinc-600 mb-2">
+                        chunks: {product.chunkCount}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={
+                          ragSuiteExcludedProductIds.includes(product.id) ? 'primary' : 'ghost'
+                        }
+                        onClick={() => toggleRagSuiteExcludedProduct(product.id)}
+                      >
+                        {ragSuiteExcludedProductIds.includes(product.id)
+                          ? 'Include next run'
+                          : 'Exclude next run'}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 flex flex-col gap-2" style={insetPanelStyle}>
+                <h3 style={subheadingStyle}>Case results</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-zinc-500">
+                        <th className="py-2 pr-3">Query</th>
+                        <th className="py-2 pr-3">RAG</th>
+                        <th className="py-2 pr-3">Count</th>
+                        <th className="py-2 pr-3">RAG ms</th>
+                        <th className="py-2 pr-3">Answer</th>
+                        <th className="py-2 pr-3">Answer ms</th>
+                        <th className="py-2">Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ragSuiteResult.cases.map((row) => (
+                        <tr key={row.query} className="border-t border-zinc-200">
+                          <td className="py-2 pr-3 text-zinc-800">{row.query}</td>
+                          <td className="py-2 pr-3">{row.ragOk ? 'PASS' : 'FAIL'}</td>
+                          <td className="py-2 pr-3">{row.ragCount}</td>
+                          <td className="py-2 pr-3">{row.ragLatencyMs}</td>
+                          <td className="py-2 pr-3">
+                            {row.answerSkipped ? 'SKIP' : row.answerOk ? 'PASS' : 'FAIL'}
+                          </td>
+                          <td className="py-2 pr-3">
+                            {row.answerSkipped ? '-' : row.answerLatencyMs}
+                          </td>
+                          <td className="py-2 text-zinc-600">{row.error || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Background Worker Queues */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Activity className="w-5 h-5 text-zinc-500" aria-hidden="true" />
+          <h2 className="r-card-title" style={{ margin: 0 }}>
+            Distributed Queues (BullMQ)
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <QueueCard
+            title="Scheduled Messages"
+            stats={health?.queues.scheduledMessages}
+            icon={Server}
+            colorClass="text-blue-500"
+          />
+          <QueueCard
+            title="Web Scraper Jobs"
+            stats={health?.queues.scrapeJobs}
+            icon={Server}
+            colorClass="text-emerald-500"
+          />
+          <QueueCard
+            title="Analytics Pipeline"
+            stats={health?.queues.analytics}
+            icon={Server}
+            colorClass="text-purple-500"
+          />
+        </div>
+      </section>
+
+      <div className="r-alert r-alert-info">
+        <Info size={16} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+        <div style={{ flex: 1 }}>
+          <p className="r-alert-title">Queue Management (Coming Soon)</p>
+          <p className="r-alert-body" style={{ marginBottom: 0 }}>
+            In a future update, you will be able to pause queues, retry failed jobs in bulk, and
+            clear backlogs directly from this dashboard.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

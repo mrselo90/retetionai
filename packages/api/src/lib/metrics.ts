@@ -3,13 +3,13 @@
  * Prometheus metrics for monitoring API performance
  */
 
-import { Registry, Counter, Histogram, Gauge } from 'prom-client';
+import { Registry, Counter, Histogram, Gauge } from '@prometheus-io/client';
 
 // Create a registry for metrics
 export const register = new Registry();
 
 // Default metrics (CPU, memory, etc.)
-// Note: prom-client doesn't have built-in default metrics, we'll create custom ones
+// Note: we don't call collectDefaultMetrics; the custom metrics below cover what we use
 
 /**
  * HTTP Request Metrics
