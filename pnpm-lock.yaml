@@ -168,16 +168,10 @@ importers:
         version: 7.13.1(react-router@7.13.1)(typescript@5.9.3)
       '@shopify/app-bridge-react':
         specifier: ^4.2.4
-        version: 4.2.10(react-dom@18.3.1)(react@18.3.1)
-      '@shopify/polaris':
-        specifier: ^13.9.5
-        version: 13.9.5(react-dom@18.3.1)(react@18.3.1)
-      '@shopify/polaris-icons':
-        specifier: ^9.3.1
-        version: 9.3.1(react@18.3.1)
+        version: 4.2.10(react-dom@19.2.3)(react@19.2.3)
       '@shopify/shopify-app-react-router':
         specifier: ^1.1.0
-        version: 1.1.1(react-dom@18.3.1)(react-router@7.13.1)(react@18.3.1)
+        version: 1.1.1(react-dom@19.2.3)(react-router@7.13.1)(react@19.2.3)
       '@shopify/shopify-app-session-storage-prisma':
         specifier: ^8.0.0
         version: 8.0.1(@prisma/client@6.19.2)(@shopify/shopify-api@12.3.0)(@shopify/shopify-app-session-storage@4.0.5)(prisma@6.19.2)
@@ -188,14 +182,14 @@ importers:
         specifier: ^6.16.3
         version: 6.19.2(typescript@5.9.3)
       react:
-        specifier: ^18.3.1
-        version: 18.3.1
+        specifier: 19.2.3
+        version: 19.2.3
       react-dom:
-        specifier: ^18.3.1
-        version: 18.3.1(react@18.3.1)
+        specifier: 19.2.3
+        version: 19.2.3(react@19.2.3)
       react-router:
         specifier: ^7.12.0
-        version: 7.13.1(react-dom@18.3.1)(react@18.3.1)
+        version: 7.13.1(react-dom@19.2.3)(react@19.2.3)
       vite-tsconfig-paths:
         specifier: ^5.1.4
         version: 5.1.4(typescript@5.9.3)(vite@6.4.1)
@@ -4614,7 +4608,7 @@ packages:
       pkg-types: 2.3.0
       prettier: 3.8.0
       react-refresh: 0.14.2
-      react-router: 7.13.1(react-dom@18.3.1)(react@18.3.1)
+      react-router: 7.13.1(react-dom@19.2.3)(react@19.2.3)
       semver: 7.7.3
       tinyglobby: 0.2.15
       typescript: 5.9.3
@@ -4650,7 +4644,7 @@ packages:
     dependencies:
       '@react-router/node': 7.13.1(react-router@7.13.1)(typescript@5.9.3)
       express: 4.22.1
-      react-router: 7.13.1(react-dom@18.3.1)(react@18.3.1)
+      react-router: 7.13.1(react-dom@19.2.3)(react@19.2.3)
       typescript: 5.9.3
     dev: false
 
@@ -4680,7 +4674,7 @@ packages:
         optional: true
     dependencies:
       '@mjackson/node-fetch-server': 0.2.0
-      react-router: 7.13.1(react-dom@18.3.1)(react@18.3.1)
+      react-router: 7.13.1(react-dom@19.2.3)(react@19.2.3)
       typescript: 5.9.3
     dev: false
 
@@ -4698,7 +4692,7 @@ packages:
       express: 4.22.1
       get-port: 5.1.1
       morgan: 1.10.1
-      react-router: 7.13.1(react-dom@18.3.1)(react@18.3.1)
+      react-router: 7.13.1(react-dom@19.2.3)(react@19.2.3)
       source-map-support: 0.5.21
     transitivePeerDependencies:
       - supports-color
@@ -5319,17 +5313,6 @@ packages:
     resolution: {integrity: sha512-bMbiGTivxS8hY86eLUe9xdO+BsZPkMZDPXiGmGYfnvXnInr01w9w/UcD02oU4zbA49GO09aCYYcJlo7pQu6VBA==}
     dev: false
 
-  /@shopify/app-bridge-react@4.2.10(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-/VhfsxIvWcK7w5rBY97WdSTApLEg+Z2dT9Zc+idAUiAi48R64nYalXDUG8ar5xRoINHFC/w+9WxYViAazpgfew==}
-    peerDependencies:
-      react: '*'
-      react-dom: '*'
-    dependencies:
-      '@shopify/app-bridge-types': 0.7.0
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-    dev: false
-
   /@shopify/app-bridge-react@4.2.10(react-dom@19.2.3)(react@19.2.3):
     resolution: {integrity: sha512-/VhfsxIvWcK7w5rBY97WdSTApLEg+Z2dT9Zc+idAUiAi48R64nYalXDUG8ar5xRoINHFC/w+9WxYViAazpgfew==}
     peerDependencies:
@@ -5391,15 +5374,6 @@ packages:
       - graphql-sock
     dev: true
 
-  /@shopify/polaris-icons@9.3.1(react@18.3.1):
-    resolution: {integrity: sha512-16BIFAT93LJ8X4YRXz5cR9ZPHeErMg3DYS0gyTPNPkd0E5IBPoTxPINjn2b4Mr9Sc1x4RfI4AqPcV8ut0D1J5w==}
-    engines: {node: '>=20.10.0'}
-    peerDependencies:
-      react: '*'
-    dependencies:
-      react: 18.3.1
-    dev: false
-
   /@shopify/polaris-icons@9.3.1(react@19.2.3):
     resolution: {integrity: sha512-16BIFAT93LJ8X4YRXz5cR9ZPHeErMg3DYS0gyTPNPkd0E5IBPoTxPINjn2b4Mr9Sc1x4RfI4AqPcV8ut0D1J5w==}
     engines: {node: '>=20.10.0'}
@@ -5419,24 +5393,6 @@ packages:
   /@shopify/polaris-types@1.1.0:
     resolution: {integrity: sha512-hqd+58XbpsShQmTiMakiUraLL9yjeqcFkaEfiajdxAArQJGREsnNBxY1+cN0egWHFQ7/1Xsqjx0RObd3V0Fy1w==}
     dev: true
-
-  /@shopify/polaris@13.9.5(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-UN+rT2q1r/uF0Xia8MaCl2nDxatuzbjunS5WYcv4qw8VBvThTxDVURgpwOuvutSrvu138pwScOAah933vqlYkg==}
-    engines: {node: '>=20.10.0'}
-    peerDependencies:
-      react: ^18.0.0
-      react-dom: ^18.0.0
-    dependencies:
-      '@shopify/polaris-icons': 9.3.1(react@18.3.1)
-      '@shopify/polaris-tokens': 9.4.2
-      '@types/react': 19.2.8
-      '@types/react-dom': 19.2.3(@types/react@19.2.8)
-      '@types/react-transition-group': 4.4.12(@types/react@19.2.8)
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      react-fast-compare: 3.2.2
-      react-transition-group: 4.4.5(react-dom@18.3.1)(react@18.3.1)
-    dev: false
 
   /@shopify/polaris@13.9.5(react-dom@19.2.3)(react@19.2.3):
     resolution: {integrity: sha512-UN+rT2q1r/uF0Xia8MaCl2nDxatuzbjunS5WYcv4qw8VBvThTxDVURgpwOuvutSrvu138pwScOAah933vqlYkg==}
@@ -5470,7 +5426,7 @@ packages:
       tslib: 2.8.1
     dev: false
 
-  /@shopify/shopify-app-react-router@1.1.1(react-dom@18.3.1)(react-router@7.13.1)(react@18.3.1):
+  /@shopify/shopify-app-react-router@1.1.1(react-dom@19.2.3)(react-router@7.13.1)(react@19.2.3):
     resolution: {integrity: sha512-yDowhntq1D2Iq3eHcOuG/lNPjFl51t1CYcKM/cdI+oqIGsaW7SG7Fu6Tm9trpkTcf81XxILZA8JSi+98kEvcCA==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
@@ -5484,9 +5440,9 @@ packages:
       '@shopify/storefront-api-client': 1.0.9
       compare-versions: 6.1.1
       isbot: 5.1.35
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      react-router: 7.13.1(react-dom@18.3.1)(react@18.3.1)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+      react-router: 7.13.1(react-dom@19.2.3)(react@19.2.3)
     dev: false
 
   /@shopify/shopify-app-session-storage-prisma@8.0.1(@prisma/client@6.19.2)(@shopify/shopify-api@12.3.0)(@shopify/shopify-app-session-storage@4.0.5)(prisma@6.19.2):
@@ -6680,7 +6636,7 @@ packages:
       '@vitest/spy': 4.0.17
       estree-walker: 3.0.3
       magic-string: 0.30.21
-      vite: 6.4.1(@types/node@22.19.15)
+      vite: 6.4.1(@types/node@20.19.30)
     dev: true
 
   /@vitest/mocker@4.0.17(vite@7.3.1):
@@ -11847,16 +11803,6 @@ packages:
       destr: 2.0.5
     dev: false
 
-  /react-dom@18.3.1(react@18.3.1):
-    resolution: {integrity: sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw==}
-    peerDependencies:
-      react: ^18.3.1
-    dependencies:
-      loose-envify: 1.4.0
-      react: 18.3.1
-      scheduler: 0.23.2
-    dev: false
-
   /react-dom@19.2.3(react@19.2.3):
     resolution: {integrity: sha512-yELu4WmLPw5Mr/lmeEpox5rw3RETacE++JgHqQzd2dg+YbJuat3jH4ingc+WPZhxaoFzdv9y33G+F7Nl5O0GBg==}
     peerDependencies:
@@ -11932,7 +11878,7 @@ packages:
       use-sidecar: 1.1.3(@types/react@19.2.8)(react@19.2.3)
     dev: false
 
-  /react-router@7.13.1(react-dom@18.3.1)(react@18.3.1):
+  /react-router@7.13.1(react-dom@19.2.3)(react@19.2.3):
     resolution: {integrity: sha512-td+xP4X2/6BJvZoX6xw++A2DdEi++YypA69bJUV5oVvqf6/9/9nNlD70YO1e9d3MyamJEBQFEzk6mbfDYbqrSA==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
@@ -11943,8 +11889,8 @@ packages:
         optional: true
     dependencies:
       cookie: 1.1.1
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
       set-cookie-parser: 2.7.2
     dev: false
 
@@ -11964,20 +11910,6 @@ packages:
       tslib: 2.8.1
     dev: false
 
-  /react-transition-group@4.4.5(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-pZcd1MCJoiKiBR2NRxeCRg13uCXbydPnmB4EOeRrY7480qNWO8IIgQG6zlDkm6uRMsURXPuKq0GWtiM59a5Q6g==}
-    peerDependencies:
-      react: '>=16.6.0'
-      react-dom: '>=16.6.0'
-    dependencies:
-      '@babel/runtime': 7.28.6
-      dom-helpers: 5.2.1
-      loose-envify: 1.4.0
-      prop-types: 15.8.1
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-    dev: false
-
   /react-transition-group@4.4.5(react-dom@19.2.3)(react@19.2.3):
     resolution: {integrity: sha512-pZcd1MCJoiKiBR2NRxeCRg13uCXbydPnmB4EOeRrY7480qNWO8IIgQG6zlDkm6uRMsURXPuKq0GWtiM59a5Q6g==}
     peerDependencies:
@@ -11990,13 +11922,6 @@ packages:
       prop-types: 15.8.1
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-    dev: false
-
-  /react@18.3.1:
-    resolution: {integrity: sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==}
-    engines: {node: '>=0.10.0'}
-    dependencies:
-      loose-envify: 1.4.0
     dev: false
 
   /react@19.2.3:
@@ -12329,12 +12254,6 @@ packages:
 
   /safer-buffer@2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
-
-  /scheduler@0.23.2:
-    resolution: {integrity: sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==}
-    dependencies:
-      loose-envify: 1.4.0
-    dev: false
 
   /scheduler@0.27.0:
     resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}

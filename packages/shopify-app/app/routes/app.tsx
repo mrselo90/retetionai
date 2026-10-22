@@ -1,7 +1,6 @@
-import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
 import {
-  Link as RemixLink,
   Outlet,
   isRouteErrorResponse,
   redirect,
@@ -9,6 +8,7 @@ import {
   useFetchers,
   useLoaderData,
   useLocation,
+  useNavigate,
   useNavigation,
   useOutletContext,
   useRouteError,
@@ -16,38 +16,6 @@ import {
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { AppProvider } from '@shopify/shopify-app-react-router/react';
 import { useAdminLoadingBar } from '../lib/appBridge';
-import {
-  AppProvider as PolarisAppProvider,
-  Banner,
-  BlockStack,
-  Box,
-  Card,
-  Frame,
-  Page,
-  SkeletonBodyText,
-  SkeletonDisplayText,
-  Text,
-} from '@shopify/polaris';
-import enPolarisTranslations from '@shopify/polaris/locales/en.json';
-
-const AppLink = forwardRef<
-  HTMLAnchorElement,
-  React.AnchorHTMLAttributes<HTMLAnchorElement> & { url?: string }
->(function AppLink({ url, href, children, ...rest }, ref) {
-  const to = url ?? href ?? '';
-  if (to.startsWith('http') || to.startsWith('//')) {
-    return (
-      <a ref={ref} href={to} {...rest}>
-        {children}
-      </a>
-    );
-  }
-  return (
-    <RemixLink ref={ref} to={to} {...rest}>
-      {children}
-    </RemixLink>
-  );
-});
 import { EmbeddedSessionTokenBoundary } from '../components/EmbeddedSessionTokenBoundary';
 import { isBillingReady } from '../lib/billingStatus';
 import { getSetupProgress, REQUIRED_STEP_INFO } from '../lib/setupProgress';
@@ -158,9 +126,7 @@ export default function App() {
 
   return (
     <AppProvider embedded apiKey={apiKey}>
-      <PolarisAppProvider i18n={enPolarisTranslations} linkComponent={AppLink}>
-        <AppShell />
-      </PolarisAppProvider>
+      <AppShell />
     </AppProvider>
   );
 }
@@ -255,8 +221,13 @@ function AppShell() {
     navigation.state !== 'idle' || fetchers.some((item) => item.state === 'submitting')
   );
 
+  const showSetupTrail =
+    setupProgress && !setupProgress.setupComplete && location.pathname !== '/app';
+
+  // No Polaris React Frame or in-iframe wrapper: each route owns its s-page,
+  // which handles the page width, padding and admin title bar.
   return (
-    <Frame>
+    <>
       <EmbeddedSessionTokenBoundary />
       {bootstrapData ? (
         // App Bridge's s-app-nav (replaces the React NavMenu). Clicks fire
@@ -269,42 +240,44 @@ function AppShell() {
           ))}
         </s-app-nav>
       ) : null}
-      <Box background="bg-surface" minHeight="100vh" padding={{ xs: '200', sm: '300', md: '400' }}>
-        {/* A plain wrapper on purpose. An InlineStack align="center" here set
-            --pc-inline-stack-align for the whole app, and every nested
-            InlineStack without its own align inherited it and centered. */}
-        <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
-          <BlockStack gap="400">
-            {setupProgress && !setupProgress.setupComplete && location.pathname !== '/app' ? (
-              <SetupTrail
-                pathname={location.pathname}
-                done={setupProgress.completedCount}
-                total={setupProgress.totalSteps}
-                nextStep={setupProgress.nextStep}
-              />
-            ) : null}
+      {showSetupTrail ? (
+        <s-box paddingInline="base" paddingBlockStart="base">
+          <SetupTrail
+            pathname={location.pathname}
+            done={setupProgress.completedCount}
+            total={setupProgress.totalSteps}
+            nextStep={setupProgress.nextStep}
+          />
+        </s-box>
+      ) : null}
 
-            {(shellLoading && location.pathname === '/app') || changingPage ? (
-              <Card padding="500">
-                <BlockStack gap="300">
-                  <SkeletonDisplayText size="small" />
-                  <SkeletonBodyText lines={4} />
-                </BlockStack>
-              </Card>
-            ) : (
-              <Outlet
-                context={{
-                  bootstrapData,
-                  bootstrapError,
-                  shellLoading,
-                }}
-              />
-            )}
-          </BlockStack>
-        </div>
-      </Box>
-    </Frame>
+      {(shellLoading && location.pathname === '/app') || changingPage ? (
+        <s-page heading={pageHeading(nextPathname ?? location.pathname)}>
+          <s-section>
+            <s-stack alignItems="center" paddingBlock="large-400">
+              <s-spinner size="large" accessibilityLabel="Loading page" />
+            </s-stack>
+          </s-section>
+        </s-page>
+      ) : (
+        <Outlet
+          context={{
+            bootstrapData,
+            bootstrapError,
+            shellLoading,
+          }}
+        />
+      )}
+    </>
   );
+}
+
+/** Title-bar heading while a page loads: the nav label of the page being opened. */
+function pageHeading(pathname: string) {
+  const match = navItems
+    .filter((item) => pathname === item.to || pathname.startsWith(`${item.to}/`))
+    .sort((a, b) => b.to.length - a.to.length)[0];
+  return match?.label ?? 'Recete';
 }
 
 /**
@@ -324,6 +297,7 @@ function SetupTrail({
   total: number;
   nextStep: string | null;
 }) {
+  const navigate = useNavigate();
   const info =
     nextStep && nextStep in REQUIRED_STEP_INFO
       ? REQUIRED_STEP_INFO[nextStep as keyof typeof REQUIRED_STEP_INFO]
@@ -333,19 +307,18 @@ function SetupTrail({
   const onNextStep = pathname === info.path || pathname.startsWith(`${info.path}/`);
 
   return onNextStep ? (
-    <Banner
-      tone="info"
-      title={`Setup step ${done + 1} of ${total}: ${info.title}`}
-      action={{ content: 'Back to setup', url: '/app' }}
-    >
-      <p>When you&apos;re done here, go back to setup for the next step.</p>
-    </Banner>
+    <s-banner tone="info" heading={`Setup step ${done + 1} of ${total}: ${info.title}`}>
+      <s-paragraph>When you&apos;re done here, go back to setup for the next step.</s-paragraph>
+      <s-button slot="secondary-actions" onClick={() => navigate('/app')}>
+        Back to setup
+      </s-button>
+    </s-banner>
   ) : (
-    <Banner
-      tone="info"
-      title={`Setup ${done} of ${total} done`}
-      action={{ content: `Next: ${info.title}`, url: info.path }}
-    />
+    <s-banner tone="info" heading={`Setup ${done} of ${total} done`}>
+      <s-button slot="secondary-actions" onClick={() => navigate(info.path)}>
+        {`Next: ${info.title}`}
+      </s-button>
+    </s-banner>
   );
 }
 
@@ -364,22 +337,12 @@ export function ErrorBoundary() {
 
     return (
       <AppProvider embedded apiKey="">
-        <PolarisAppProvider i18n={enPolarisTranslations} linkComponent={AppLink}>
-          <Frame>
-            <Page narrowWidth title="Something went wrong">
-              <Card padding="500">
-                <BlockStack gap="300">
-                  <Text as="p" variant="bodyMd">
-                    {`This page could not be loaded (${error.status}). Reload to try again.`}
-                  </Text>
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    {message}
-                  </Text>
-                </BlockStack>
-              </Card>
-            </Page>
-          </Frame>
-        </PolarisAppProvider>
+        <s-page heading="Something went wrong" inlineSize="small">
+          <s-banner tone="critical" heading={`This page could not be loaded (${error.status})`}>
+            <s-paragraph>Reload to try again.</s-paragraph>
+            <s-paragraph color="subdued">{message}</s-paragraph>
+          </s-banner>
+        </s-page>
       </AppProvider>
     );
   }

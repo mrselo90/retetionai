@@ -2,26 +2,7 @@ import type { ActionFunctionArgs, HeadersFunction } from 'react-router';
 import { useFetcher, useLocation, useNavigate } from 'react-router';
 import { useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import {
-  CartIcon,
-  CatalogIcon,
-  ChatIcon,
-  ConnectIcon,
-  SettingsIcon,
-  ViewIcon,
-} from '@shopify/polaris-icons';
-import {
-  Badge,
-  Banner,
-  BlockStack,
-  Button,
-  Card,
-  InlineGrid,
-  InlineStack,
-  Text,
-  TextField,
-} from '@shopify/polaris';
-import { ShellPage } from '../components/shell-ui';
+import { SectionCard, ShellPage } from '../components/shell-ui';
 import { getSetupProgress, REQUIRED_STEP_INFO, type SetupStepKey } from '../lib/setupProgress';
 import type { ShopifyMerchantOverview } from '../platform.server';
 import { extractPlatformErrorMessage, triggerTestOrderFlow } from '../platform.server';
@@ -31,12 +12,14 @@ import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 
 type SetupStepStatus = 'done' | 'in_progress' | 'not_started';
 
+type StepIcon = 'cart' | 'chat' | 'catalog-product' | 'settings' | 'connect';
+
 type SetupStep = {
   id: SetupStepKey;
   title: string;
   description: string;
   to: string;
-  icon: typeof CartIcon;
+  icon: StepIcon;
   status: SetupStepStatus;
   estimateMinutes: number;
 };
@@ -97,15 +80,15 @@ export default function Index() {
   if (!data) {
     return (
       <ShellPage title="Welcome to Recete" subtitle="Complete setup to start using Recete.">
-        <Card padding="500">
-          <Text as="p" variant="bodyMd" tone="subdued">
+        <s-section>
+          <s-paragraph color="subdued">
             {bootstrapError
               ? "We couldn't load your store data. Please refresh the page to try again."
               : shellLoading
                 ? 'Preparing your setup workspace…'
                 : 'Setup data is not ready yet. Refresh if this persists.'}
-          </Text>
-        </Card>
+          </s-paragraph>
+        </s-section>
       </ShellPage>
     );
   }
@@ -147,6 +130,7 @@ function SetupOverview({
   justSavedMessaging?: boolean;
 }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const progress = getSetupProgress(data, billingApproved, whatsapp);
   const fetcher = useFetcher<{
     ok?: boolean;
@@ -164,7 +148,7 @@ function SetupOverview({
       title: REQUIRED_STEP_INFO.billing.title,
       description: 'Choose a plan and approve billing in Shopify.',
       to: REQUIRED_STEP_INFO.billing.path,
-      icon: CartIcon,
+      icon: 'cart' as const,
       status: statusFor(progress.hasBilling, progress.nextStep === 'billing'),
       estimateMinutes: STEP_ESTIMATES.billing,
     },
@@ -177,7 +161,7 @@ function SetupOverview({
             description:
               "Link your store's own WhatsApp number by scanning a QR code, like WhatsApp Web. Customer messages are sent from it.",
             to: REQUIRED_STEP_INFO.whatsapp.path,
-            icon: ChatIcon,
+            icon: 'chat' as const,
             status: statusFor(progress.hasWhatsApp, progress.nextStep === 'whatsapp'),
             estimateMinutes: STEP_ESTIMATES.whatsapp,
           },
@@ -188,7 +172,7 @@ function SetupOverview({
       title: REQUIRED_STEP_INFO.products.title,
       description: `Add usage instructions for ${productCountLabel} products so Recete can answer customer questions.`,
       to: REQUIRED_STEP_INFO.products.path,
-      icon: CatalogIcon,
+      icon: 'catalog-product' as const,
       status: statusFor(progress.hasProducts, progress.nextStep === 'products'),
       estimateMinutes: STEP_ESTIMATES.products,
     },
@@ -197,7 +181,7 @@ function SetupOverview({
       title: REQUIRED_STEP_INFO.messaging.title,
       description: 'Pick a bot name, language, and the message customers receive after delivery.',
       to: REQUIRED_STEP_INFO.messaging.path,
-      icon: SettingsIcon,
+      icon: 'settings' as const,
       status: statusFor(progress.hasMessagingConfigured, progress.nextStep === 'messaging'),
       estimateMinutes: STEP_ESTIMATES.messaging,
     },
@@ -209,7 +193,7 @@ function SetupOverview({
       title: 'Run a test order',
       description: 'Create and fulfill a Shopify test order to verify the live flow.',
       to: '/app/integrations#orders-flow',
-      icon: ConnectIcon,
+      icon: 'connect' as const,
       status: statusFor(
         progress.hasOrders,
         progress.nextOptionalStep === 'orders' && progress.setupComplete
@@ -256,57 +240,49 @@ function SetupOverview({
       // During setup the progress card's "Continue: <step>" is the one call to
       // action; a header button to the same place only doubled it.
       primaryAction={
-        setupComplete
-          ? { content: 'Open dashboard', url: '/app/dashboard' }
-          : undefined
+        setupComplete ? { content: 'Open dashboard', url: '/app/dashboard' } : undefined
       }
     >
       {/* A fresh install can open before the platform has finished creating the
           store's records. The page below is all zeros until then, so say why. */}
       {storePending ? (
-        <Banner tone="info" title="Preparing your store">
-          <p>
+        <s-banner tone="info" heading="Preparing your store">
+          <s-paragraph>
             Recete is still setting up your store. This usually takes a few seconds, and this page
             updates by itself.
-          </p>
-        </Banner>
+          </s-paragraph>
+        </s-banner>
       ) : null}
 
       {/* ── Save feedback, after returning from the welcome-message step ── */}
       {justSavedMessaging && setupComplete ? (
-        <Banner tone="success">
-          <Text as="p" variant="bodyMd" fontWeight="semibold">
-            🎉 Setup complete — Recete is live! Your customers will now receive a WhatsApp message
-            after delivery.
-          </Text>
-        </Banner>
+        <s-banner tone="success">
+          <s-paragraph>
+            <s-text type="strong">
+              🎉 Setup complete — Recete is live! Your customers will now receive a WhatsApp message
+              after delivery.
+            </s-text>
+          </s-paragraph>
+        </s-banner>
       ) : null}
 
       {/* Until the required steps are done this is Shopify's Setup guide pattern
           (App Home composition); afterwards the live summary card. */}
       {setupComplete ? (
-        <Card padding="500" roundedAbove="sm">
-          <BlockStack gap="400">
-            <InlineStack align="space-between" blockAlign="center" wrap>
-              <BlockStack gap="100">
-                <Text as="h2" variant="headingLg">
-                  🎉 Recete is live
-                </Text>
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  Ready to send your first customer message.
-                </Text>
-              </BlockStack>
-              <Badge tone="success">Ready to go live</Badge>
-            </InlineStack>
-
-            <InlineStack gap="200">
-              <Button url="/app/dashboard" variant="primary" icon={ViewIcon}>
-                Open dashboard
-              </Button>
-              <Button url="/app/setup/messaging">Preview welcome message</Button>
-            </InlineStack>
-          </BlockStack>
-        </Card>
+        <SectionCard
+          title="🎉 Recete is live"
+          subtitle="Ready to send your first customer message."
+          badge={<s-badge tone="success">Ready to go live</s-badge>}
+        >
+          <s-stack direction="inline" gap="small-200">
+            <s-button variant="primary" icon="view" onClick={() => navigate('/app/dashboard')}>
+              Open dashboard
+            </s-button>
+            <s-button onClick={() => navigate('/app/setup/messaging')}>
+              Preview welcome message
+            </s-button>
+          </s-stack>
+        </SectionCard>
       ) : (
         <SetupGuide
           heading={personalizedHeading}
@@ -325,35 +301,26 @@ function SetupOverview({
       {/* ── Optional steps: only once the required ones are done. Shown earlier,
           their green "All done" read as if setup were finished. ── */}
       {setupComplete ? (
-        <Card padding="500" roundedAbove="sm">
-          <BlockStack gap="300">
-            <InlineStack align="space-between" blockAlign="center" wrap>
-              <BlockStack gap="050">
-                <Text as="h2" variant="headingMd">
-                  Polish your setup
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Optional. You can run Recete fully without these, but they make the experience
-                  better.
-                </Text>
-              </BlockStack>
-              <Badge tone={progress.postLaunchComplete ? 'success' : 'info'}>
-                {progress.postLaunchComplete ? 'All done' : 'Optional'}
-              </Badge>
-            </InlineStack>
-
-            <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">
-              {optionalSteps.map((step) => (
-                <OptionalStepCard
-                  key={step.id}
-                  step={step}
-                  fetcher={fetcher}
-                  firstProduct={step.id === 'orders' ? firstProduct : undefined}
-                />
-              ))}
-            </InlineGrid>
-          </BlockStack>
-        </Card>
+        <SectionCard
+          title="Polish your setup"
+          subtitle="Optional. You can run Recete fully without these, but they make the experience better."
+          badge={
+            <s-badge tone={progress.postLaunchComplete ? 'success' : 'info'}>
+              {progress.postLaunchComplete ? 'All done' : 'Optional'}
+            </s-badge>
+          }
+        >
+          <s-grid gridTemplateColumns="repeat(auto-fit, minmax(280px, 1fr))" gap="base">
+            {optionalSteps.map((step) => (
+              <OptionalStepCard
+                key={step.id}
+                step={step}
+                fetcher={fetcher}
+                firstProduct={step.id === 'orders' ? firstProduct : undefined}
+              />
+            ))}
+          </s-grid>
+        </SectionCard>
       ) : null}
     </ShellPage>
   );
@@ -434,7 +401,11 @@ function SetupGuide({
                     onClick={toggle}
                   />
                 </s-grid>
-                <s-box padding="small" paddingBlockStart="none" display={expanded ? 'auto' : 'none'}>
+                <s-box
+                  padding="small"
+                  paddingBlockStart="none"
+                  display={expanded ? 'auto' : 'none'}
+                >
                   <s-box padding="base" background="subdued" borderRadius="base">
                     <s-grid gap="small-300">
                       <s-paragraph>{step.description}</s-paragraph>
@@ -493,20 +464,18 @@ function TestWhatsAppForm({
   );
 
   return (
-    <BlockStack gap="200">
-      <Text as="p" variant="bodySm" tone="subdued">
+    <s-stack gap="small-200">
+      <s-paragraph color="subdued">
         Enter a phone number other than your linked WhatsApp. It gets the message a customer
         receives after delivery, sent from your number. Reply to it to see Recete answer.
-      </Text>
+      </s-paragraph>
       {testOrderResult?.error ? (
-        <Banner tone="critical">
-          <Text as="p" variant="bodySm">
-            {testOrderResult.error}
-          </Text>
-        </Banner>
+        <s-banner tone="critical">
+          <s-paragraph>{testOrderResult.error}</s-paragraph>
+        </s-banner>
       ) : null}
       <fetcher.Form method="post">
-        <BlockStack gap="200">
+        <s-stack gap="small-200">
           <input type="hidden" name="intent" value="runTestOrder" />
           <input
             type="hidden"
@@ -514,28 +483,30 @@ function TestWhatsAppForm({
             value={firstProduct?.external_id || firstProduct?.id || ''}
           />
           <input type="hidden" name="product_name" value={firstProduct?.name || 'Test Product'} />
-          <TextField
+          {/* Polaris 1.1 has no phone field, and s-text-field's types don't
+              allow autocomplete="tel"; the format hint carries the guidance. */}
+          <s-text-field
             label="Test phone number"
             name="phone"
             value={phone}
-            onChange={setPhone}
+            onInput={(event) => setPhone(event.currentTarget.value)}
             placeholder="+90 555 000 0000"
-            helpText="Use international format with country code, e.g. +1 555 000 1234 or +44 7911 123456."
-            autoComplete="tel"
-            type="tel"
+            details="Use international format with country code, e.g. +1 555 000 1234 or +44 7911 123456."
           />
-          <Button
-            submit
-            variant="primary"
-            icon={ConnectIcon}
-            loading={testOrderBusy}
-            disabled={!phone.trim()}
-          >
-            Send test WhatsApp
-          </Button>
-        </BlockStack>
+          <s-stack direction="inline">
+            <s-button
+              type="submit"
+              variant="primary"
+              icon="connect"
+              loading={testOrderBusy}
+              disabled={!phone.trim()}
+            >
+              Send test WhatsApp
+            </s-button>
+          </s-stack>
+        </s-stack>
       </fetcher.Form>
-    </BlockStack>
+    </s-stack>
   );
 }
 
@@ -548,14 +519,9 @@ function TestWhatsAppCard({
   firstProduct?: { id: string; name: string; external_id?: string | null } | null;
 }) {
   return (
-    <Card padding="500" roundedAbove="sm">
-      <BlockStack gap="300">
-        <Text as="h2" variant="headingMd">
-          Send a test message
-        </Text>
-        <TestWhatsAppForm fetcher={fetcher} firstProduct={firstProduct} />
-      </BlockStack>
-    </Card>
+    <SectionCard title="Send a test message">
+      <TestWhatsAppForm fetcher={fetcher} firstProduct={firstProduct} />
+    </SectionCard>
   );
 }
 
@@ -570,43 +536,44 @@ function OptionalStepCard({
   >;
   firstProduct?: { id: string; name: string; external_id?: string | null } | null;
 }) {
+  const navigate = useNavigate();
   const done = step.status === 'done';
 
+  // A bordered tile inside the parent section (a nested s-section draws no card).
   if (step.id === 'orders' && !done) {
     return (
-      <Card padding="300" roundedAbove="sm">
-        <BlockStack gap="200">
-          <InlineStack align="space-between" blockAlign="center">
-            <Text as="h3" variant="headingSm">
-              {step.title}
-            </Text>
-            <Badge tone="info">Optional</Badge>
-          </InlineStack>
+      <s-box padding="base" border="base" borderRadius="base">
+        <s-stack gap="small-200">
+          <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="center">
+            <s-heading>{step.title}</s-heading>
+            <s-badge tone="info">Optional</s-badge>
+          </s-grid>
           <TestWhatsAppForm fetcher={fetcher} firstProduct={firstProduct} />
-        </BlockStack>
-      </Card>
+        </s-stack>
+      </s-box>
     );
   }
 
   return (
-    <Card padding="300" roundedAbove="sm" background={done ? 'bg-surface-success' : undefined}>
-      <BlockStack gap="200">
-        <InlineStack align="space-between" blockAlign="center">
-          <Text as="h3" variant="headingSm">
-            {step.title}
-          </Text>
-          <Badge tone={done ? 'success' : 'info'}>{done ? 'Done' : 'Optional'}</Badge>
-        </InlineStack>
-        <Text as="p" variant="bodySm" tone="subdued">
-          {step.description}
-        </Text>
-        <InlineStack gap="200">
-          <Button url={step.to} variant="tertiary" icon={step.icon} disabled={done}>
+    <s-box padding="base" border="base" borderRadius="base" background={done ? 'subdued' : 'base'}>
+      <s-stack gap="small-200">
+        <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="center">
+          <s-heading>{step.title}</s-heading>
+          <s-badge tone={done ? 'success' : 'info'}>{done ? 'Done' : 'Optional'}</s-badge>
+        </s-grid>
+        <s-paragraph color="subdued">{step.description}</s-paragraph>
+        <s-stack direction="inline">
+          <s-button
+            variant="tertiary"
+            icon={step.icon}
+            disabled={done}
+            onClick={() => navigate(step.to)}
+          >
             Open step
-          </Button>
-        </InlineStack>
-      </BlockStack>
-    </Card>
+          </s-button>
+        </s-stack>
+      </s-stack>
+    </s-box>
   );
 }
 

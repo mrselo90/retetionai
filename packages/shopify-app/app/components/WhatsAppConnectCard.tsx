@@ -7,7 +7,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
 import { useAppBridge } from '@shopify/app-bridge-react';
-import { Modal, Text } from '@shopify/polaris';
 import type { WhatsAppConnectionStatus } from '../platform.server';
 
 type LoaderResult = { ok: true; status: WhatsAppConnectionStatus } | { ok: false; error: string };
@@ -16,6 +15,7 @@ type ActionResult =
   | { ok: false; intent: string; error: string };
 
 const POLL_MS = 2000;
+const UNLINK_MODAL_ID = 'whatsapp-unlink-modal';
 
 const ERROR_TEXT: Record<string, string> = {
   qr_timeout: 'The code expired before it was scanned. Start again when your phone is at hand.',
@@ -47,7 +47,9 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
   const [status, setStatus] = useState<WhatsAppConnectionStatus | null>(initial);
   const shopify = useAppBridge();
   const pairingRef = useRef(false);
-  const [confirmUnlink, setConfirmUnlink] = useState(false);
+  // Set while the unlink confirmation's request is in flight, so the modal
+  // closes only once that request succeeds.
+  const unlinkingRef = useRef(false);
 
   // The page loader revalidates after navigation and focus; take its answer.
   useEffect(() => {
@@ -59,6 +61,12 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
   useEffect(() => {
     if (actor.data?.ok) setStatus(actor.data.status);
   }, [actor.data]);
+  useEffect(() => {
+    if (!unlinkingRef.current || actor.state !== 'idle' || !actor.data) return;
+    unlinkingRef.current = false;
+    // On failure the modal stays open and shows the error so the merchant can retry.
+    if (actor.data.ok) void shopify.modal.hide(UNLINK_MODAL_ID);
+  }, [actor.state, actor.data, shopify]);
 
   const pairing = status?.status === 'qr' || status?.status === 'connecting';
 
@@ -98,6 +106,7 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
   const connected = status.status === 'connected';
   const problem = errorText(status);
   const actionError = actor.data && !actor.data.ok ? actor.data.error : null;
+  const unlinkError = actor.data?.intent === 'disconnect' ? actionError : null;
 
   // Account connection composition: the service, its status, a short
   // description and the one Connect / Disconnect action.
@@ -124,7 +133,7 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
             </s-paragraph>
           </s-stack>
           {connected ? (
-            <s-button onClick={() => setConfirmUnlink(true)} loading={busy || undefined}>
+            <s-button commandFor={UNLINK_MODAL_ID} command="--show" loading={busy || undefined}>
               Unlink
             </s-button>
           ) : pairing ? (
@@ -194,28 +203,36 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
           </s-paragraph>
         ) : null}
       </s-stack>
-      <Modal
-        open={confirmUnlink}
-        onClose={() => setConfirmUnlink(false)}
-        title="Unlink this WhatsApp number?"
-        primaryAction={{
-          content: 'Unlink',
-          destructive: true,
-          loading: busy,
-          onAction: () => {
-            setConfirmUnlink(false);
-            submit('disconnect');
-          },
-        }}
-        secondaryActions={[{ content: 'Keep linked', onAction: () => setConfirmUnlink(false) }]}
-      >
-        <Modal.Section>
-          <Text as="p">
+      <s-modal id={UNLINK_MODAL_ID} heading="Unlink this WhatsApp number?">
+        <s-stack gap="small">
+          <s-paragraph>
             Recete will stop sending and receiving WhatsApp messages for your store. You can link a
             number again at any time.
-          </Text>
-        </Modal.Section>
-      </Modal>
+          </s-paragraph>
+          {unlinkError ? <s-banner tone="critical">{unlinkError}</s-banner> : null}
+        </s-stack>
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          tone="critical"
+          loading={busy || undefined}
+          onClick={() => {
+            if (busy) return;
+            unlinkingRef.current = true;
+            submit('disconnect');
+          }}
+        >
+          Unlink
+        </s-button>
+        <s-button
+          slot="secondary-actions"
+          commandFor={UNLINK_MODAL_ID}
+          command="--hide"
+          disabled={busy || undefined}
+        >
+          Keep linked
+        </s-button>
+      </s-modal>
     </s-section>
   );
 }

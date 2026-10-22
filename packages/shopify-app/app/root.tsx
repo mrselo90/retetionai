@@ -1,5 +1,4 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router";
-import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 export const loader = async () => {
   return {
@@ -22,18 +21,18 @@ export default function App() {
             data-api-key={apiKey}
           />
         ) : null}
-        {/* Polaris web components (s-*) come from the AppProvider in routes/app.tsx,
-            which loads https://cdn.shopify.com/shopifycloud/polaris.js. Loading a
-            second copy here downloaded ~740 KB twice and registered every element
-            twice. That URL is Shopify's latest channel, while @shopify/polaris-types
-            is pinned to ^1.1: check types when Shopify moves polaris.js to 2.x. */}
+        {/* Polaris web components (s-*) come from the AppProvider in each route,
+            which loads https://cdn.shopify.com/shopifycloud/polaris.js; loading it
+            here too would register every element twice. Unversioned polaris.js
+            follows Polaris 1.x and never serves 2.x, matching
+            @shopify/polaris-types ^1.1. Polaris 2 needs polaris-2.js via polarisUrl
+            in AppProvider and shopify.server.ts (shopify-app-react-router >= 2.1). */}
         <link rel="preconnect" href="https://cdn.shopify.com/" />
         <link
           rel="stylesheet"
           href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css"
         />
         <Meta />
-        <link rel="stylesheet" href={polarisStyles} />
         <Links />
       </head>
       <body>

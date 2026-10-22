@@ -3,8 +3,6 @@ import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 're
 import { SaveBar } from '@shopify/app-bridge-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { LockIcon } from '@shopify/polaris-icons';
-import { Button, Checkbox, Select, TextField } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import { shellSetupProgress, useAppBootstrapData } from './app';
 import { PlanGate } from '../components/PlanGate';
@@ -147,6 +145,16 @@ function normalizeCoreFormState(
     ai_vision_enabled: planType === 'STARTER' ? false : state.ai_vision_enabled,
     message_send_mode: state.message_send_mode || 'always',
   };
+}
+
+/** The current value of an s-* field, read from its input/change event. */
+function fieldValue(event: Event) {
+  return (event.currentTarget as HTMLInputElement).value;
+}
+
+/** The checked state of an s-checkbox, read from its change event. */
+function fieldChecked(event: Event) {
+  return (event.currentTarget as HTMLInputElement).checked;
 }
 
 function appendWelcomeTemplateToken(template: string, token: string) {
@@ -692,65 +700,68 @@ export default function SettingsPage() {
           <input type="hidden" name="intent" value="save-core" />
           <s-stack gap="base">
             <s-grid gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))" gap="base">
-              <TextField
+              <s-text-field
                 label="Bot name"
                 name="bot_name"
                 value={formState.bot_name}
-                onChange={(value) => setFormState((current) => ({ ...current, bot_name: value }))}
-                autoComplete="off"
+                onInput={(event) => {
+                  const value = fieldValue(event);
+                  setFormState((current) => ({ ...current, bot_name: value }));
+                }}
+                autocomplete="off"
               />
-              <TextField
+              {/* No phone field in Polaris web components 1.1; a text field
+                  keeps the free-form format the platform already accepts. */}
+              <s-text-field
                 label="Notification phone"
                 name="notification_phone"
                 value={formState.notification_phone}
-                onChange={(value) =>
-                  setFormState((current) => ({ ...current, notification_phone: value }))
-                }
-                autoComplete="off"
+                onInput={(event) => {
+                  const value = fieldValue(event);
+                  setFormState((current) => ({ ...current, notification_phone: value }));
+                }}
+                autocomplete="off"
               />
-              <Select
+              <s-select
                 label="Tone"
                 name="tone"
                 value={formState.tone}
-                options={[
-                  { label: 'Friendly', value: 'friendly' },
-                  { label: 'Professional', value: 'professional' },
-                  { label: 'Casual', value: 'casual' },
-                  { label: 'Formal', value: 'formal' },
-                ]}
-                onChange={(value) =>
-                  setFormState((current) => ({
-                    ...current,
-                    tone: value as typeof current.tone,
-                  }))
-                }
-              />
-              <Select
+                onChange={(event) => {
+                  const value = fieldValue(event) as CoreSettingsFormState['tone'];
+                  setFormState((current) => ({ ...current, tone: value }));
+                }}
+              >
+                <s-option value="friendly">Friendly</s-option>
+                <s-option value="professional">Professional</s-option>
+                <s-option value="casual">Casual</s-option>
+                <s-option value="formal">Formal</s-option>
+              </s-select>
+              <s-select
                 label="Response length"
                 name="response_length"
                 value={formState.response_length}
-                options={[
-                  { label: 'Short', value: 'short' },
-                  { label: 'Medium', value: 'medium' },
-                  { label: 'Long', value: 'long' },
-                ]}
-                onChange={(value) =>
-                  setFormState((current) => ({
-                    ...current,
-                    response_length: value as typeof current.response_length,
-                  }))
-                }
-              />
+                onChange={(event) => {
+                  const value = fieldValue(event) as CoreSettingsFormState['response_length'];
+                  setFormState((current) => ({ ...current, response_length: value }));
+                }}
+              >
+                <s-option value="short">Short</s-option>
+                <s-option value="medium">Medium</s-option>
+                <s-option value="long">Long</s-option>
+              </s-select>
             </s-grid>
             <s-box>
-              {/* Polaris Checkbox draws its tick from the `checked` prop, but a
-                  form submit reads the DOM input, and the two drifted: a
-                  ticked box was saved as off. Submit what the merchant sees. */}
+              {/* The hidden input is what gets submitted: an unchecked box sends
+                  nothing, and the action needs an explicit off. The checkbox has
+                  no name so FormData never carries a second `emoji` key. */}
               <input type="hidden" name="emoji" value={formState.emoji ? 'on' : 'off'} />
-              <Checkbox
+              <s-checkbox
                 label="Allow emoji in responses"
                 checked={formState.emoji}
-                onChange={(checked) => setFormState((current) => ({ ...current, emoji: checked }))}
+                onChange={(event) => {
+                  const checked = fieldChecked(event);
+                  setFormState((current) => ({ ...current, emoji: checked }));
+                }}
               />
             </s-box>
 
@@ -766,11 +777,11 @@ export default function SettingsPage() {
                 <input type="hidden" name="enabled_langs" value={formState.enabled_langs} />
                 <s-grid gridTemplateColumns="repeat(auto-fit, minmax(160px, 1fr))" gap="small">
                   {SERVICE_LANGUAGE_OPTIONS.map((option) => (
-                    <Checkbox
+                    <s-checkbox
                       key={option.value}
                       label={option.label}
                       checked={selectedServiceLanguages.includes(option.value)}
-                      onChange={(checked) => toggleServiceLanguage(option.value, checked)}
+                      onChange={(event) => toggleServiceLanguage(option.value, fieldChecked(event))}
                       disabled={
                         selectedServiceLanguages.length === 1 &&
                         selectedServiceLanguages.includes(option.value)
@@ -794,44 +805,38 @@ export default function SettingsPage() {
                     details are inserted automatically.
                   </s-paragraph>
                 </s-stack>
-                <Select
+                <s-select
                   label="WhatsApp message send rule"
                   name="message_send_mode"
                   value={formState.message_send_mode}
-                  options={[
-                    { label: 'Always send', value: 'always' },
-                    {
-                      label: 'Send only if all products are defined in Recete',
-                      value: 'all_products_required',
-                    },
-                  ]}
-                  onChange={(value) =>
-                    setFormState((current) => ({
-                      ...current,
-                      message_send_mode: value as CoreSettingsFormState['message_send_mode'],
-                    }))
-                  }
-                  helpText="Always send: a welcome message is sent for every delivery, even if some products are not defined in Recete. All products defined: the message is only sent when every product in the order has usage instructions in Recete."
-                />
+                  onChange={(event) => {
+                    const value = fieldValue(event) as CoreSettingsFormState['message_send_mode'];
+                    setFormState((current) => ({ ...current, message_send_mode: value }));
+                  }}
+                  details="Always send: a welcome message is sent for every delivery, even if some products are not defined in Recete. All products defined: the message is only sent when every product in the order has usage instructions in Recete."
+                >
+                  <s-option value="always">Always send</s-option>
+                  <s-option value="all_products_required">
+                    Send only if all products are defined in Recete
+                  </s-option>
+                </s-select>
                 <s-banner tone="info">
                   <s-paragraph>
                     Recete sends this text as a normal WhatsApp message inside the 24-hour window.
                     Outside that window, the platform handles template delivery automatically.
                   </s-paragraph>
                 </s-banner>
-                <TextField
+                <s-text-area
                   label="Welcome template body"
                   name="whatsapp_welcome_template"
                   value={formState.whatsapp_welcome_template}
-                  onChange={(value) =>
-                    setFormState((current) => ({
-                      ...current,
-                      whatsapp_welcome_template: value,
-                    }))
-                  }
-                  autoComplete="off"
-                  multiline={6}
-                  helpText="Supported placeholders are listed below."
+                  onInput={(event) => {
+                    const value = fieldValue(event);
+                    setFormState((current) => ({ ...current, whatsapp_welcome_template: value }));
+                  }}
+                  autocomplete="off"
+                  rows={6}
+                  details="Supported placeholders are listed below."
                 />
                 <s-stack gap="small">
                   <s-text type="strong">Insert variables</s-text>
@@ -885,13 +890,15 @@ export default function SettingsPage() {
                     name="ai_vision_enabled"
                     value={formState.ai_vision_enabled ? 'on' : 'off'}
                   />
-                  <Checkbox
+                  {/* No name: the hidden input above is the submitted value. */}
+                  <s-checkbox
                     label="Enable AI Vision for customer photos (Growth or Pro plan required)"
                     checked={formState.ai_vision_enabled}
-                    onChange={(checked) =>
-                      setFormState((current) => ({ ...current, ai_vision_enabled: checked }))
-                    }
-                    helpText="Customers can send a photo on WhatsApp (for example of a damaged item) and Recete answers about what it shows."
+                    onChange={(event) => {
+                      const checked = fieldChecked(event);
+                      setFormState((current) => ({ ...current, ai_vision_enabled: checked }));
+                    }}
+                    details="Customers can send a photo on WhatsApp (for example of a damaged item) and Recete answers about what it shows."
                   />
                   <s-paragraph color="subdued">
                     {aiVisionEnabled
@@ -929,100 +936,98 @@ export default function SettingsPage() {
               </s-paragraph>
             </s-banner>
             <s-grid gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))" gap="base">
-              <TextField
+              <s-text-field
                 label="Guardrail name"
                 name="guardrail_name"
                 value={guardrailDraft.name}
-                onChange={(value) => setGuardrailDraft((current) => ({ ...current, name: value }))}
-                autoComplete="off"
-                requiredIndicator
-                helpText="Required. Use a short internal label such as Refund abuse or VIP escalation."
+                onInput={(event) => {
+                  const value = fieldValue(event);
+                  setGuardrailDraft((current) => ({ ...current, name: value }));
+                }}
+                autocomplete="off"
+                required
+                details="Required. Use a short internal label such as Refund abuse or VIP escalation."
                 error={
                   showGuardrailError && guardrailNameMissing ? 'Enter a guardrail name.' : undefined
                 }
               />
-              <TextField
+              <s-text-field
                 label="Match keywords or phrase"
                 name="guardrail_value"
                 value={guardrailDraft.value}
-                onChange={(value) => setGuardrailDraft((current) => ({ ...current, value }))}
-                autoComplete="off"
-                requiredIndicator
-                helpText="Required. Enter comma-separated keywords or one exact phrase."
+                onInput={(event) => {
+                  const value = fieldValue(event);
+                  setGuardrailDraft((current) => ({ ...current, value }));
+                }}
+                autocomplete="off"
+                required
+                details="Required. Enter comma-separated keywords or one exact phrase."
                 error={
                   showGuardrailError && guardrailValueMissing
                     ? 'Enter keywords or a phrase to match.'
                     : undefined
                 }
               />
-              <Select
+              <s-select
                 label="Apply to"
                 name="guardrail_apply_to"
                 value={guardrailDraft.apply_to}
-                options={[
-                  { label: 'Both user and AI', value: 'both' },
-                  { label: 'User message', value: 'user_message' },
-                  { label: 'AI response', value: 'ai_response' },
-                ]}
-                onChange={(value) =>
-                  setGuardrailDraft((current) => ({
-                    ...current,
-                    apply_to: value as GuardrailDraft['apply_to'],
-                  }))
-                }
-              />
-              <Select
+                onChange={(event) => {
+                  const value = fieldValue(event) as GuardrailDraft['apply_to'];
+                  setGuardrailDraft((current) => ({ ...current, apply_to: value }));
+                }}
+              >
+                <s-option value="both">Both user and AI</s-option>
+                <s-option value="user_message">User message</s-option>
+                <s-option value="ai_response">AI response</s-option>
+              </s-select>
+              <s-select
                 label="Match type"
                 name="guardrail_match_type"
                 value={guardrailDraft.match_type}
-                options={[
-                  { label: 'Keywords (comma-separated words)', value: 'keywords' },
-                  { label: 'Exact phrase (full match)', value: 'phrase' },
-                ]}
-                helpText="Keywords: triggers if any listed word appears. Exact phrase: triggers only on the complete phrase."
-                onChange={(value) =>
-                  setGuardrailDraft((current) => ({
-                    ...current,
-                    match_type: value as GuardrailDraft['match_type'],
-                  }))
-                }
-              />
-              <Select
+                details="Keywords: triggers if any listed word appears. Exact phrase: triggers only on the complete phrase."
+                onChange={(event) => {
+                  const value = fieldValue(event) as GuardrailDraft['match_type'];
+                  setGuardrailDraft((current) => ({ ...current, match_type: value }));
+                }}
+              >
+                <s-option value="keywords">Keywords (comma-separated words)</s-option>
+                <s-option value="phrase">Exact phrase (full match)</s-option>
+              </s-select>
+              <s-select
                 label="Action"
                 name="guardrail_action"
                 value={guardrailDraft.action}
-                options={[
-                  { label: 'Block answer', value: 'block' },
-                  { label: 'Escalate to human', value: 'escalate' },
-                ]}
-                onChange={(value) =>
-                  setGuardrailDraft((current) => ({
-                    ...current,
-                    action: value as GuardrailDraft['action'],
-                  }))
-                }
-              />
+                onChange={(event) => {
+                  const value = fieldValue(event) as GuardrailDraft['action'];
+                  setGuardrailDraft((current) => ({ ...current, action: value }));
+                }}
+              >
+                <s-option value="block">Block answer</s-option>
+                <s-option value="escalate">Escalate to human</s-option>
+              </s-select>
             </s-grid>
-            <TextField
+            <s-text-area
               label="Suggested response"
               name="guardrail_suggested_response"
               value={guardrailDraft.suggested_response}
-              onChange={(value) =>
-                setGuardrailDraft((current) => ({ ...current, suggested_response: value }))
-              }
-              autoComplete="off"
-              multiline={4}
+              onInput={(event) => {
+                const value = fieldValue(event);
+                setGuardrailDraft((current) => ({ ...current, suggested_response: value }));
+              }}
+              autocomplete="off"
+              rows={4}
             />
             <s-stack direction="inline">
-              <Button
-                submit
+              <s-button
+                type="submit"
                 variant="primary"
-                icon={LockIcon}
+                icon="lock"
                 loading={busy}
                 disabled={guardrailDraftIncomplete}
               >
                 Add guardrail
-              </Button>
+              </s-button>
             </s-stack>
           </s-stack>
         </Form>
@@ -1102,8 +1107,8 @@ export default function SettingsPage() {
                     <input type="hidden" name="intent" value="toggle-addon" />
                     <input type="hidden" name="addon_key" value={addon.key} />
                     <input type="hidden" name="addon_status" value={addon.status} />
-                    <Button
-                      submit
+                    <s-button
+                      type="submit"
                       variant={addon.status === 'active' ? 'secondary' : 'primary'}
                       disabled={!addon.planAllowed && addon.status !== 'active'}
                     >
@@ -1112,7 +1117,7 @@ export default function SettingsPage() {
                         : addon.planAllowed
                           ? 'Enable add-on'
                           : 'Upgrade required'}
-                    </Button>
+                    </s-button>
                   </Form>
                 </s-grid>
               </s-box>
@@ -1147,24 +1152,24 @@ export default function SettingsPage() {
             <Form method="post">
               <input type="hidden" name="intent" value="wipe-merchant-data" />
               <s-stack gap="base">
-                <TextField
+                <s-text-field
                   label={`Type "${MERCHANT_RESET_CONFIRM_PHRASE}" to confirm`}
                   name="wipe_confirmation"
                   value={wipeConfirmation}
-                  onChange={setWipeConfirmation}
-                  autoComplete="off"
-                  helpText="This protects against accidental data deletion."
+                  onInput={(event) => setWipeConfirmation(fieldValue(event))}
+                  autocomplete="off"
+                  details="This protects against accidental data deletion."
                 />
                 <s-stack direction="inline">
-                  <Button
-                    submit
+                  <s-button
+                    type="submit"
                     tone="critical"
                     variant="primary"
                     loading={busy}
                     disabled={wipeConfirmation.trim() !== MERCHANT_RESET_CONFIRM_PHRASE}
                   >
                     Delete all store data
-                  </Button>
+                  </s-button>
                 </s-stack>
               </s-stack>
             </Form>

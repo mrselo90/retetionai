@@ -1,16 +1,6 @@
 import type { LoaderFunctionArgs } from 'react-router';
 import { redirect, useLoaderData } from 'react-router';
 import { AppProvider } from '@shopify/shopify-app-react-router/react';
-import {
-  AppProvider as PolarisAppProvider,
-  BlockStack,
-  Button,
-  Card,
-  InlineStack,
-  Page,
-  Text,
-} from '@shopify/polaris';
-import enPolarisTranslations from '@shopify/polaris/locales/en.json';
 
 const APP_STORE_URL = 'https://apps.shopify.com/recete';
 
@@ -36,43 +26,32 @@ export default function Index() {
 
   return (
     <AppProvider embedded={false}>
-      <PolarisAppProvider i18n={enPolarisTranslations}>
-        <Page narrowWidth title="Recete for Shopify">
-          <BlockStack gap="400">
-            <Card padding="500">
-              <BlockStack gap="400">
-                <Text as="p" variant="bodyMd">
-                  Recete sends your customers helpful WhatsApp messages after their order is
-                  delivered and answers their questions about your products.
-                </Text>
-                <InlineStack gap="300" wrap>
-                  <Button variant="primary" url={APP_STORE_URL} target="_blank">
-                    Install from the Shopify App Store
-                  </Button>
-                  <Button url={adminAppUrl} target="_top">
-                    Already installed? Open in Shopify admin
-                  </Button>
-                </InlineStack>
-              </BlockStack>
-            </Card>
-            <Card padding="500">
-              <BlockStack gap="200">
-                <Text as="h2" variant="headingSm">
-                  Not on Shopify?
-                </Text>
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  Recete also works without Shopify.
-                </Text>
-                <InlineStack>
-                  <Button variant="plain" url="https://recete.co.uk">
-                    Go to recete.co.uk
-                  </Button>
-                </InlineStack>
-              </BlockStack>
-            </Card>
-          </BlockStack>
-        </Page>
-      </PolarisAppProvider>
+      <s-page heading="Recete for Shopify" inlineSize="small">
+        <s-stack gap="base">
+          <s-section>
+            <s-stack gap="base">
+              <s-paragraph>
+                Recete sends your customers helpful WhatsApp messages after their order is
+                delivered and answers their questions about your products.
+              </s-paragraph>
+              <s-stack direction="inline" gap="small-100">
+                <s-button variant="primary" href={APP_STORE_URL} target="_blank">
+                  Install from the Shopify App Store
+                </s-button>
+                <s-button href={adminAppUrl} target="_top">
+                  Already installed? Open in Shopify admin
+                </s-button>
+              </s-stack>
+            </s-stack>
+          </s-section>
+          <s-section heading="Not on Shopify?">
+            <s-stack gap="small-200">
+              <s-paragraph color="subdued">Recete also works without Shopify.</s-paragraph>
+              <s-link href="https://recete.co.uk">Go to recete.co.uk</s-link>
+            </s-stack>
+          </s-section>
+        </s-stack>
+      </s-page>
     </AppProvider>
   );
 }

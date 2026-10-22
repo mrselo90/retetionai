@@ -3,8 +3,6 @@ import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from 're
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { useEffect, useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { ChatIcon } from '@shopify/polaris-icons';
-import { Button, TextField } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import { useActionToast } from '../lib/appBridge';
 import { AppPage } from '../components/shell-ui';
@@ -211,31 +209,30 @@ export default function ConversationDetailPage() {
             </s-section>
 
             {/* ── Reply form ────────────────────────────────────────────── */}
-            {/* The composer stays Polaris React: React 18 can't drive a controlled s-text-area. */}
             <s-section heading="Send a reply">
               <Form method="post">
                 <input type="hidden" name="intent" value="reply" />
                 <s-stack gap="small">
-                  <TextField
+                  <s-text-area
                     label="Message"
                     name="text"
-                    multiline={4}
+                    rows={4}
                     value={replyText}
-                    onChange={setReplyText}
-                    autoComplete="off"
+                    onInput={(event) => setReplyText(event.currentTarget.value)}
+                    autocomplete="off"
                     placeholder="Type your WhatsApp message…"
-                    helpText="Sends directly to the buyer via WhatsApp."
+                    details="Sends directly to the buyer via WhatsApp."
                   />
                   <s-stack direction="inline">
-                    <Button
-                      submit
+                    <s-button
+                      type="submit"
                       variant="primary"
-                      icon={ChatIcon as never}
+                      icon="chat"
                       loading={busy}
                       disabled={!replyText.trim()}
                     >
                       Send reply
-                    </Button>
+                    </s-button>
                   </s-stack>
                 </s-stack>
               </Form>
@@ -339,17 +336,16 @@ function OwnershipButton({
     <Form method="post">
       <input type="hidden" name="intent" value="status" />
       <input type="hidden" name="status" value={next} />
-      {/* Polaris Button so `submit` posts this react-router Form natively. */}
+      {/* The intent travels in the hidden inputs, not as the button's submitter value. */}
       <s-stack gap="small-500">
-        <Button
-          submit
+        <s-button
+          type="submit"
           variant={isActive ? 'secondary' : 'tertiary'}
           disabled={isActive}
-          fullWidth
-          textAlign="left"
+          inlineSize="fill"
         >
           {label}
-        </Button>
+        </s-button>
         <s-text color="subdued">{description}</s-text>
       </s-stack>
     </Form>

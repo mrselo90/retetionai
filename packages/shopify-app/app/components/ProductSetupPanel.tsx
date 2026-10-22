@@ -1,22 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentProps, type ComponentRef, type ReactNode } from 'react';
 import { useFetcher, useSubmit } from 'react-router';
-import { DeleteIcon, ImageIcon } from '@shopify/polaris-icons';
-import {
-  Badge,
-  Banner,
-  BlockStack,
-  Box,
-  Button,
-  Card,
-  Checkbox,
-  Collapsible,
-  InlineGrid,
-  InlineStack,
-  ProgressBar,
-  Text,
-  TextField,
-  Thumbnail,
-} from '@shopify/polaris';
 import type { ProductStepOutcome } from '../platform.server';
 import {
   buildKnowledgeSummary,
@@ -95,8 +78,8 @@ export function ProductSetupPanel({
       : lifecycle.key === 'processing'
         ? 'In progress'
         : 'Needs attention';
-  const statusTone: 'success' | 'info' | 'attention' =
-    lifecycle.key === 'ready' ? 'success' : lifecycle.key === 'processing' ? 'info' : 'attention';
+  const statusTone: 'success' | 'info' | 'warning' =
+    lifecycle.key === 'ready' ? 'success' : lifecycle.key === 'processing' ? 'info' : 'warning';
 
   useEffect(() => {
     setKnowledgeOpen(false);
@@ -200,422 +183,414 @@ export function ProductSetupPanel({
     : 'This product is fully prepared for customer replies.';
   const runningMessage = 'We’re applying updates. This usually takes a few seconds.';
 
-  const content = (
-    <BlockStack gap="500">
-      <Box
-        paddingBlockStart="200"
-        paddingBlockEnd="400"
-        borderBlockEndWidth="025"
-        borderColor="border"
-      >
-        {/* Title, back link and "Edit in Shopify" live in the admin title bar
-            (the route's s-page); this keeps the image and the status. */}
-        <InlineStack align="space-between" blockAlign="center" wrap>
-          <InlineStack gap="200" blockAlign="center" wrap>
-            <Thumbnail
-              source={row.shopify.featuredImageUrl || ImageIcon}
+  const knowledgeId = `knowledge-${row.shopify.id}`;
+  const previewId = `preview-${row.shopify.id}`;
+
+  return (
+    <s-stack gap="large">
+      {/* Title, back link and "Edit in Shopify" live in the admin title bar
+          (the route's s-page); this keeps the image and the status. */}
+      <s-stack gap="base">
+        <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="center">
+          <s-stack direction="inline" gap="small-200" alignItems="center">
+            <s-thumbnail
+              src={row.shopify.featuredImageUrl || undefined}
               alt={row.shopify.title}
               size="small"
             />
-            <Text as="p" variant="bodySm" tone="subdued">
-              {lifecycle.message}
-            </Text>
-          </InlineStack>
-          <Badge tone={statusTone}>{statusLabel}</Badge>
-        </InlineStack>
-      </Box>
+            <s-text color="subdued">{lifecycle.message}</s-text>
+          </s-stack>
+          <s-badge tone={statusTone}>{statusLabel}</s-badge>
+        </s-grid>
+        <s-divider />
+      </s-stack>
 
       {processRunning ? (
-        <Banner tone="info" title="Updating">
-          <Text as="p" variant="bodyMd">
-            {runningMessage}
-          </Text>
-        </Banner>
+        <s-banner tone="info" heading="Updating">
+          <s-paragraph>{runningMessage}</s-paragraph>
+        </s-banner>
       ) : null}
 
       {actionError && !processRunning ? (
-        <Banner tone="critical" title="Action failed">
-          <Text as="p" variant="bodyMd">
-            {actionError}
-          </Text>
-        </Banner>
+        <s-banner tone="critical" heading="Action failed">
+          <s-paragraph>{actionError}</s-paragraph>
+        </s-banner>
       ) : null}
 
-      <Card padding="500">
-        <BlockStack gap="400">
-          <BlockStack gap="300">
-            <InlineStack align="space-between" blockAlign="center" gap="200" wrap>
-              <BlockStack gap="050">
-                <Text as="h2" variant="headingMd">
-                  Customer instructions
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
+      <s-section>
+        <s-stack gap="large">
+          <s-stack gap="base">
+            <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="center">
+              <s-stack gap="small-300">
+                <s-heading>Customer instructions</s-heading>
+                <s-paragraph color="subdued">
                   What customers should do after delivery: first use or setup, care, what to avoid.
-                </Text>
-              </BlockStack>
-              <Button onClick={requestAiDraft} loading={isDrafting} disabled={processRunning}>
+                </s-paragraph>
+              </s-stack>
+              <s-button onClick={requestAiDraft} loading={isDrafting} disabled={processRunning}>
                 {draft.usage_instructions.trim() ? 'Rewrite with AI' : 'Write it for me'}
-              </Button>
-            </InlineStack>
+              </s-button>
+            </s-grid>
             {aiDrafted ? (
-              <Banner tone="info">
-                <p>
+              <s-banner tone="info">
+                <s-paragraph>
                   Drafted from this product&apos;s description. Check it says what you would tell a
                   customer, then save.
-                </p>
-              </Banner>
+                </s-paragraph>
+              </s-banner>
             ) : null}
             {draftError ? (
-              <Banner tone="warning">
-                <p>{draftError}</p>
-              </Banner>
+              <s-banner tone="warning">
+                <s-paragraph>{draftError}</s-paragraph>
+              </s-banner>
             ) : null}
 
-            <TextField
+            <s-text-area
               label="Customer instructions"
               name="usage_instructions"
               value={draft.usage_instructions}
-              onChange={(value) => onChangeDraft('usage_instructions', value)}
-              multiline={6}
-              autoComplete="off"
-              helpText="Optional but recommended. Write the guidance Recete should send to customers after delivery."
+              onInput={(event) => onChangeDraft('usage_instructions', event.currentTarget.value)}
+              rows={6}
+              autocomplete="off"
+              details="Optional but recommended. Write the guidance Recete should send to customers after delivery."
             />
 
-            <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">
-              <TextField
+            <s-grid gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))" gap="base">
+              <s-text-area
                 label="Warnings and important notes"
                 name="prevention_tips"
                 value={draft.prevention_tips}
-                onChange={(value) => onChangeDraft('prevention_tips', value)}
-                multiline={3}
-                autoComplete="off"
+                onInput={(event) => onChangeDraft('prevention_tips', event.currentTarget.value)}
+                rows={3}
+                autocomplete="off"
               />
-              <TextField
+              <s-text-area
                 label="Key product summary"
                 name="recipe_summary"
                 value={draft.recipe_summary}
-                onChange={(value) => onChangeDraft('recipe_summary', value)}
-                multiline={3}
-                autoComplete="off"
+                onInput={(event) => onChangeDraft('recipe_summary', event.currentTarget.value)}
+                rows={3}
+                autocomplete="off"
               />
-            </InlineGrid>
-          </BlockStack>
+            </s-grid>
+          </s-stack>
 
-          <BlockStack gap="300">
-            <Text as="h2" variant="headingMd">
-              Enhancement
-            </Text>
-            <Text as="p" variant="bodySm" tone="subdued">
-              Refine AI answers with extra sources and keep language coverage healthy.
-            </Text>
+          <s-stack gap="base">
+            <s-stack gap="small-300">
+              <s-heading>Enhancement</s-heading>
+              <s-paragraph color="subdued">
+                Refine AI answers with extra sources and keep language coverage healthy.
+              </s-paragraph>
+            </s-stack>
 
-            <TextField
+            <s-url-field
               label="Extra source URL"
-              autoComplete="off"
+              autocomplete="off"
               value={workflowUrl}
-              onChange={onWorkflowUrlChange}
+              onInput={(event) => onWorkflowUrlChange(event.currentTarget.value)}
               placeholder="https://example.com/product-faq"
-              helpText="Optional. Add a page with FAQs or usage details to improve answer quality."
+              details="Optional. Add a page with FAQs or usage details to improve answer quality."
             />
 
-            <BlockStack gap="100">
-              <InlineStack gap="200" wrap>
-                {canSubmitStep ? (
-                  <>
-                    <Button
-                      variant="primary"
-                      loading={isSavingSetup || isRunningAiAction}
-                      disabled={!canSubmitStep}
-                      onClick={handlePrimarySaveAndUpdate}
-                    >
-                      Save & Update AI
-                    </Button>
-                    <Button variant="secondary" disabled={!canSubmitSave} onClick={submitSaveDraft}>
-                      Save Draft
-                    </Button>
-                  </>
-                ) : null}
-              </InlineStack>
-              {canSubmitStep ? (
-                <Text as="p" variant="bodyXs" tone="subdued">
-                  <strong>Save &amp; Update AI</strong> saves changes and regenerates AI knowledge.{' '}
-                  <strong>Save Draft</strong> saves your work without regenerating AI.
-                </Text>
-              ) : null}
-            </BlockStack>
-          </BlockStack>
-        </BlockStack>
-      </Card>
-
-      <BlockStack gap="400">
-        <Card padding="500">
-          <BlockStack gap="300">
-            <InlineStack align="space-between" blockAlign="center" wrap>
-              <BlockStack gap="050">
-                <Text as="h2" variant="headingMd">
-                  Setup completeness: {setupScore}%
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  {readySummary}
-                </Text>
-              </BlockStack>
-            </InlineStack>
-            <ProgressBar
-              progress={setupScore}
-              tone={knowledge.missingInfo.length ? 'highlight' : 'success'}
-            />
-
-            {/* Mini checklist showing what's done vs missing */}
-            <BlockStack gap="100">
-              <ChecklistRow done={hasGuidance} label="Customer instructions added" />
-              <ChecklistRow done={hasAiKnowledge} label="AI knowledge generated" />
-              {row.languageWorkflowEnabled ? (
-                <ChecklistRow
-                  done={languagesDone}
-                  label={
-                    row.languageCoverage >= 100
-                      ? 'All reply languages ready'
-                      : `Language coverage (${row.readyLanguageCount}/${row.requiredLanguageCount} ready)`
-                  }
-                />
-              ) : null}
-            </BlockStack>
-          </BlockStack>
-        </Card>
-
-        <Card padding="400">
-          <BlockStack gap="200">
-            <InlineStack align="space-between" blockAlign="center">
-              <Text as="h3" variant="headingSm">
-                AI knowledge
-              </Text>
-              <Button
-                variant="tertiary"
-                onClick={() => setKnowledgeOpen((current) => !current)}
-                ariaExpanded={knowledgeOpen}
-              >
-                {knowledgeOpen ? 'Hide' : 'Review'}
-              </Button>
-            </InlineStack>
-            <Text as="p" variant="bodySm" tone="subdued">
-              This is the information Recete uses to answer customer questions.
-            </Text>
-            <Collapsible open={knowledgeOpen} id={`knowledge-${row.shopify.id}`}>
-              <BlockStack gap="200">
-                <InfoMiniCard title="How Recete should answer" body={knowledge.howToUse} />
-                <InfoListCard
-                  title="Key product details"
-                  items={knowledge.keyDetails}
-                  empty="No key details yet."
-                />
-                <InfoListCard
-                  title="Warnings"
-                  items={knowledge.warnings}
-                  empty="No warnings saved yet."
-                />
-                <InfoListCard
-                  title="Common customer questions"
-                  items={knowledge.commonQuestions}
-                  empty="No common question patterns yet."
-                />
-                <StepOutcomeLine
-                  title="Latest update"
-                  outcome={
-                    stepOutcomes?.collect_sources ||
-                    stepOutcomes?.generate_ai_knowledge ||
-                    stepOutcomes?.map_product
-                  }
-                />
-              </BlockStack>
-            </Collapsible>
-          </BlockStack>
-        </Card>
-
-        <Card padding="400">
-          <BlockStack gap="200">
-            <InlineStack align="space-between" blockAlign="center">
-              <Text as="h3" variant="headingSm">
-                Preview answer
-              </Text>
-              <Button
-                variant="tertiary"
-                onClick={() => setPreviewOpen((current) => !current)}
-                ariaExpanded={previewOpen}
-              >
-                {previewOpen ? 'Hide' : 'Open'}
-              </Button>
-            </InlineStack>
-            <Text as="p" variant="bodySm" tone="subdued">
-              Ask a sample question and see how Recete responds.
-            </Text>
-            <Collapsible open={previewOpen} id={`preview-${row.shopify.id}`}>
-              <BlockStack gap="200">
-                <TextField
-                  label="Sample question"
-                  autoComplete="off"
-                  value={previewQuestion}
-                  onChange={onPreviewQuestionChange}
-                />
-                <InlineStack>
-                  <Button
-                    variant="secondary"
-                    loading={isPreviewingAnswer}
-                    disabled={!row.localProduct || processRunning}
-                    onClick={submitPreviewAnswer}
+            {canSubmitStep ? (
+              <s-stack gap="small-300">
+                <s-stack direction="inline" gap="small-200">
+                  <s-button
+                    variant="primary"
+                    loading={isSavingSetup || isRunningAiAction}
+                    disabled={!canSubmitStep}
+                    onClick={handlePrimarySaveAndUpdate}
                   >
-                    Regenerate answer
-                  </Button>
-                </InlineStack>
-                <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    {previewAnswer || 'Generate a preview to inspect the response.'}
-                  </Text>
-                </Box>
-              </BlockStack>
-            </Collapsible>
-          </BlockStack>
-        </Card>
-      </BlockStack>
+                    Save & Update AI
+                  </s-button>
+                  <s-button variant="secondary" disabled={!canSubmitSave} onClick={submitSaveDraft}>
+                    Save Draft
+                  </s-button>
+                </s-stack>
+                <s-paragraph color="subdued">
+                  <s-text type="strong">Save &amp; Update AI</s-text> saves changes and regenerates
+                  AI knowledge. <s-text type="strong">Save Draft</s-text> saves your work without
+                  regenerating AI.
+                </s-paragraph>
+              </s-stack>
+            ) : null}
+          </s-stack>
+        </s-stack>
+      </s-section>
+
+      <s-section>
+        <s-stack gap="base">
+          <s-stack gap="small-300">
+            <s-heading>Setup completeness: {setupScore}%</s-heading>
+            <s-paragraph color="subdued">{readySummary}</s-paragraph>
+          </s-stack>
+          <s-progress
+            value={setupScore}
+            max={100}
+            tone={knowledge.missingInfo.length ? 'info' : 'success'}
+            accessibilityLabel={`Setup completeness: ${setupScore}%`}
+          />
+
+          {/* Mini checklist showing what's done vs missing */}
+          <s-stack gap="small-300">
+            <ChecklistRow done={hasGuidance} label="Customer instructions added" />
+            <ChecklistRow done={hasAiKnowledge} label="AI knowledge generated" />
+            {row.languageWorkflowEnabled ? (
+              <ChecklistRow
+                done={languagesDone}
+                label={
+                  row.languageCoverage >= 100
+                    ? 'All reply languages ready'
+                    : `Language coverage (${row.readyLanguageCount}/${row.requiredLanguageCount} ready)`
+                }
+              />
+            ) : null}
+          </s-stack>
+        </s-stack>
+      </s-section>
+
+      <s-section>
+        <s-stack gap="small">
+          <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="center">
+            <s-heading>AI knowledge</s-heading>
+            <DisclosureButton
+              open={knowledgeOpen}
+              controls={knowledgeId}
+              onToggle={() => setKnowledgeOpen((current) => !current)}
+            >
+              {knowledgeOpen ? 'Hide' : 'Review'}
+            </DisclosureButton>
+          </s-grid>
+          <s-paragraph color="subdued">
+            This is the information Recete uses to answer customer questions.
+          </s-paragraph>
+          <div id={knowledgeId} hidden={!knowledgeOpen}>
+            <s-stack gap="small">
+              <InfoMiniCard title="How Recete should answer" body={knowledge.howToUse} />
+              <InfoListCard
+                title="Key product details"
+                items={knowledge.keyDetails}
+                empty="No key details yet."
+              />
+              <InfoListCard
+                title="Warnings"
+                items={knowledge.warnings}
+                empty="No warnings saved yet."
+              />
+              <InfoListCard
+                title="Common customer questions"
+                items={knowledge.commonQuestions}
+                empty="No common question patterns yet."
+              />
+              <StepOutcomeLine
+                title="Latest update"
+                outcome={
+                  stepOutcomes?.collect_sources ||
+                  stepOutcomes?.generate_ai_knowledge ||
+                  stepOutcomes?.map_product
+                }
+              />
+            </s-stack>
+          </div>
+        </s-stack>
+      </s-section>
+
+      <s-section>
+        <s-stack gap="small">
+          <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="center">
+            <s-heading>Preview answer</s-heading>
+            <DisclosureButton
+              open={previewOpen}
+              controls={previewId}
+              onToggle={() => setPreviewOpen((current) => !current)}
+            >
+              {previewOpen ? 'Hide' : 'Open'}
+            </DisclosureButton>
+          </s-grid>
+          <s-paragraph color="subdued">
+            Ask a sample question and see how Recete responds.
+          </s-paragraph>
+          <div id={previewId} hidden={!previewOpen}>
+            <s-stack gap="small">
+              <s-text-field
+                label="Sample question"
+                autocomplete="off"
+                value={previewQuestion}
+                onInput={(event) => onPreviewQuestionChange(event.currentTarget.value)}
+              />
+              <s-stack direction="inline">
+                <s-button
+                  variant="secondary"
+                  loading={isPreviewingAnswer}
+                  disabled={!row.localProduct || processRunning}
+                  onClick={submitPreviewAnswer}
+                >
+                  Regenerate answer
+                </s-button>
+              </s-stack>
+              <s-box padding="small" background="subdued" borderRadius="base">
+                <s-paragraph color="subdued">
+                  {previewAnswer || 'Generate a preview to inspect the response.'}
+                </s-paragraph>
+              </s-box>
+            </s-stack>
+          </div>
+        </s-stack>
+      </s-section>
 
       {setupComplete && row.localProduct && (
-        <BlockStack gap="200">
-          <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-            <BlockStack gap="150">
-              <InlineStack align="space-between" blockAlign="center" wrap gap="200">
-                <BlockStack gap="050">
-                  <Text as="p" variant="bodySm" fontWeight="semibold" tone="critical">
-                    Danger zone
-                  </Text>
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Remove only if you want to delete this product&apos;s Recete setup and AI
-                    knowledge.
-                  </Text>
-                </BlockStack>
-                <Button
-                  size="slim"
-                  variant="secondary"
-                  tone="critical"
-                  onClick={() => setShowDangerZone((current) => !current)}
-                >
-                  {showDangerZone ? 'Hide' : 'Open'}
-                </Button>
-              </InlineStack>
-            </BlockStack>
-          </Box>
+        <s-stack gap="small">
+          <s-box padding="small" background="subdued" borderRadius="base">
+            <s-grid gridTemplateColumns="1fr auto" gap="small" alignItems="center">
+              <s-stack gap="small-300">
+                <s-text type="strong" tone="critical">
+                  Danger zone
+                </s-text>
+                <s-paragraph color="subdued">
+                  Remove only if you want to delete this product&apos;s Recete setup and AI
+                  knowledge.
+                </s-paragraph>
+              </s-stack>
+              <s-button
+                variant="secondary"
+                tone="critical"
+                onClick={() => setShowDangerZone((current) => !current)}
+              >
+                {showDangerZone ? 'Hide' : 'Open'}
+              </s-button>
+            </s-grid>
+          </s-box>
 
           {showDangerZone && (
-            <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-              <BlockStack gap="200">
-                <Text as="h3" variant="headingSm">
-                  Danger zone
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
+            <s-box padding="small" background="subdued" borderRadius="base">
+              <s-stack gap="small">
+                <s-heading>Danger zone</s-heading>
+                <s-paragraph color="subdued">
                   Clears all Recete setup for this product — instructions, AI knowledge, and
                   language data. Your Shopify product stays untouched. You can set it up again from
                   scratch.
-                </Text>
-                <Checkbox
+                </s-paragraph>
+                <s-checkbox
                   label="I understand this removes the saved setup for this product."
                   checked={confirmDelete}
-                  onChange={setConfirmDelete}
+                  onChange={(event) => setConfirmDelete(event.currentTarget.checked)}
                 />
-                <InlineStack>
+                <s-stack direction="inline">
                   <InlineActionForm
                     productId={row.localProduct.id}
                     shopifyProductId={row.shopify.id}
                     intent="delete"
                     label="Reset product setup"
-                    icon={DeleteIcon}
+                    icon="delete"
                     destructive
                     disabled={!confirmDelete || isSavingSetup || isRunningAiAction}
                     loading={isDeletingLocalSetup}
                     variant="secondary"
                   />
-                </InlineStack>
-              </BlockStack>
-            </Box>
+                </s-stack>
+              </s-stack>
+            </s-box>
           )}
-        </BlockStack>
+        </s-stack>
       )}
-    </BlockStack>
+    </s-stack>
   );
-
-  return content;
 }
 
+/**
+ * Disclosure toggle (the documented replacement for Polaris React's
+ * Collapsible): s-button has no aria-expanded/aria-controls props, so they are
+ * set on the host element.
+ */
+function DisclosureButton({
+  open,
+  controls,
+  onToggle,
+  children,
+}: {
+  open: boolean;
+  controls: string;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  const button = useRef<ComponentRef<'s-button'>>(null);
+  useEffect(() => {
+    button.current?.setAttribute('aria-expanded', String(open));
+    button.current?.setAttribute('aria-controls', controls);
+  }, [open, controls]);
+  return (
+    <s-button ref={button} variant="tertiary" onClick={onToggle}>
+      {children}
+    </s-button>
+  );
+}
 
 function ChecklistRow({ done, label }: { done: boolean; label: string }) {
   return (
-    <InlineStack gap="200" blockAlign="center">
-      <Text as="span" variant="bodySm" tone={done ? 'success' : 'subdued'}>
-        {done ? '✓' : '○'}
-      </Text>
-      <Text as="span" variant="bodySm" tone={done ? 'subdued' : 'base'}>
-        {label}
-      </Text>
-    </InlineStack>
+    <s-stack direction="inline" gap="small-200" alignItems="center">
+      <s-icon
+        type={done ? 'check-circle' : 'circle'}
+        tone={done ? 'success' : undefined}
+        color={done ? undefined : 'subdued'}
+      />
+      <s-text color={done ? 'subdued' : 'base'}>{label}</s-text>
+    </s-stack>
   );
 }
 
 function InfoMiniCard({ title, body }: { title: string; body: string }) {
   return (
-    <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-      <BlockStack gap="100">
-        <Text as="p" variant="bodySm" fontWeight="medium">
-          {title}
-        </Text>
-        <Text as="p" variant="bodySm" tone="subdued">
-          {body}
-        </Text>
-      </BlockStack>
-    </Box>
+    <s-box padding="small" background="subdued" borderRadius="base">
+      <s-stack gap="small-300">
+        <s-text type="strong">{title}</s-text>
+        <s-paragraph color="subdued">{body}</s-paragraph>
+      </s-stack>
+    </s-box>
   );
 }
 
 function InfoListCard({ title, items, empty }: { title: string; items: string[]; empty: string }) {
   return (
-    <Box padding="200" background="bg-surface-secondary" borderRadius="200">
-      <BlockStack gap="100">
-        <Text as="p" variant="bodySm" fontWeight="medium">
-          {title}
-        </Text>
+    <s-box padding="small" background="subdued" borderRadius="base">
+      <s-stack gap="small-300">
+        <s-text type="strong">{title}</s-text>
         {items.length > 0 ? (
-          <BlockStack gap="050">
+          <s-stack gap="small-400">
             {items.map((item, index) => (
-              <Text key={`${title}-${index}-${item}`} as="p" variant="bodySm" tone="subdued">
+              <s-paragraph key={`${title}-${index}-${item}`} color="subdued">
                 {item}
-              </Text>
+              </s-paragraph>
             ))}
-          </BlockStack>
+          </s-stack>
         ) : (
-          <Text as="p" variant="bodySm" tone="subdued">
-            {empty}
-          </Text>
+          <s-paragraph color="subdued">{empty}</s-paragraph>
         )}
-      </BlockStack>
-    </Box>
+      </s-stack>
+    </s-box>
   );
 }
 
 function StepOutcomeLine({ title, outcome }: { title: string; outcome?: StepOutcomeState }) {
   if (!outcome) return null;
 
-  return (
-    <Text as="p" variant="bodySm" tone={outcome.status === 'error' ? 'critical' : 'subdued'}>
-      {[
-        `${title}:`,
-        outcome.status,
-        outcome.updatedAt
-          ? new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit' }).format(
-              new Date(outcome.updatedAt)
-            )
-          : '',
-        formatOutcomeDelta(outcome.delta),
-        outcome.error || outcome.message || '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-    </Text>
+  const text = [
+    `${title}:`,
+    outcome.status,
+    outcome.updatedAt
+      ? new Intl.DateTimeFormat('en', { hour: '2-digit', minute: '2-digit' }).format(
+          new Date(outcome.updatedAt)
+        )
+      : '',
+    formatOutcomeDelta(outcome.delta),
+    outcome.error || outcome.message || '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return outcome.status === 'error' ? (
+    <s-paragraph tone="critical">{text}</s-paragraph>
+  ) : (
+    <s-paragraph color="subdued">{text}</s-paragraph>
   );
 }
 
@@ -639,7 +614,7 @@ function InlineActionForm({
   productName?: string;
   intent: string;
   label: string;
-  icon?: unknown;
+  icon?: ComponentProps<'s-button'>['icon'];
   hasContent?: boolean;
   destructive?: boolean;
   enrichmentUrl?: string;
@@ -665,8 +640,8 @@ function InlineActionForm({
   }
 
   return (
-    <Button
-      icon={icon as never}
+    <s-button
+      icon={icon}
       variant={variant}
       tone={destructive ? 'critical' : undefined}
       disabled={disabled || loading}
@@ -674,7 +649,6 @@ function InlineActionForm({
       onClick={submitAction}
     >
       {label}
-    </Button>
+    </s-button>
   );
 }
-

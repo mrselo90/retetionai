@@ -10,7 +10,6 @@ import {
 import { useMemo, useRef, useState } from 'react';
 import { SaveBar } from '@shopify/app-bridge-react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { Button, Select, TextField } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import {
   extractPlatformErrorMessage,
@@ -38,6 +37,11 @@ const LANGUAGE_OPTIONS = [
   { label: 'German', value: 'de' },
   { label: 'Greek', value: 'el' },
 ] as const;
+
+/** The current value of an s-* field, read from its input/change event. */
+function fieldValue(event: Event) {
+  return (event.currentTarget as HTMLInputElement).value;
+}
 
 function appendToken(template: string, token: string) {
   if (!template.trim()) return token;
@@ -236,32 +240,37 @@ export default function MessagingSetupPage() {
             </s-banner>
 
             <s-grid gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))" gap="base">
-              <TextField
+              <s-text-field
                 label="Bot name"
                 name="bot_name"
                 value={botName}
-                onChange={setBotName}
-                helpText="Shown to customers as the assistant signature."
-                autoComplete="off"
+                onInput={(event) => setBotName(fieldValue(event))}
+                details="Shown to customers as the assistant signature."
+                autocomplete="off"
               />
-              <Select
+              <s-select
                 label="Default language"
                 name="default_language"
                 value={defaultLanguage}
-                options={LANGUAGE_OPTIONS.map((opt) => ({ label: opt.label, value: opt.value }))}
-                onChange={setDefaultLanguage}
-                helpText="Primary language Recete uses when replying."
-              />
+                onChange={(event) => setDefaultLanguage(fieldValue(event))}
+                details="Primary language Recete uses when replying."
+              >
+                {LANGUAGE_OPTIONS.map((opt) => (
+                  <s-option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </s-option>
+                ))}
+              </s-select>
             </s-grid>
 
-            <TextField
+            <s-text-area
               label="Welcome message"
               name="welcome_template"
               value={welcomeTemplate}
-              onChange={setWelcomeTemplate}
-              multiline={5}
-              autoComplete="off"
-              helpText="Sent on the day delivery is confirmed. Use the tokens below to insert order details."
+              onInput={(event) => setWelcomeTemplate(fieldValue(event))}
+              rows={5}
+              autocomplete="off"
+              details="Sent on the day delivery is confirmed. Use the tokens below to insert order details."
               placeholder='Hi {{customer_first_name}}, your order "{{order_number}}" with {{product_names}} should have arrived. Need help using it?'
             />
 
@@ -292,9 +301,9 @@ export default function MessagingSetupPage() {
               <s-button disabled={busy || undefined} onClick={() => navigate('/app')}>
                 Cancel
               </s-button>
-              <Button submit variant="primary" loading={busy}>
+              <s-button type="submit" variant="primary" loading={busy}>
                 Save and continue
-              </Button>
+              </s-button>
             </s-stack>
 
             <s-paragraph color="subdued">
