@@ -3,7 +3,7 @@
  * Tests for signup, login, and authentication flows
  */
 
-import { test, expect } from './setup';
+import { test, expect, hasBackend, testUser, BACKEND_SKIP_REASON } from './setup';
 
 test.describe('Authentication Flow', () => {
   test('should display login page', async ({ page }) => {
@@ -16,11 +16,12 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should login with valid credentials', async ({ page, baseURL }) => {
+    test.skip(!hasBackend, BACKEND_SKIP_REASON);
     await page.goto('/login');
     
     // Fill login form
-    await page.fill('input[type="email"]', 'test@example.com');
-    await page.fill('input[type="password"]', 'Test123!');
+    await page.fill('input[type="email"]', testUser.email);
+    await page.fill('input[type="password"]', testUser.password);
     await page.click('button[type="submit"]');
     
     // Wait for redirect to dashboard
@@ -31,9 +32,10 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should show error for invalid credentials', async ({ page }) => {
+    test.skip(!hasBackend, BACKEND_SKIP_REASON);
     await page.goto('/login');
     
-    await page.fill('input[type="email"]', 'test@example.com');
+    await page.fill('input[type="email"]', testUser.email);
     await page.fill('input[type="password"]', 'WrongPassword');
     await page.click('button[type="submit"]');
     
@@ -50,6 +52,7 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should signup new merchant', async ({ page }) => {
+    test.skip(!hasBackend, BACKEND_SKIP_REASON);
     await page.goto('/signup');
     
     // Fill signup form

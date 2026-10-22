@@ -102,6 +102,17 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     steps:
       - uses: actions/checkout@v4
       
@@ -122,13 +133,21 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
       
+      # Without the SUPABASE_* and E2E_TEST_* secrets only the signed-out tests
+      # run and the rest are skipped (packages/web/e2e/setup.ts). The web app
+      # refuses to start without public Supabase values, so placeholders stand
+      # in; nothing calls them in the signed-out tests.
       - name: Run E2E tests
-        run: pnpm test:e2e
+        run: pnpm test:e2e --project=chromium
         env:
           NODE_ENV: test
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'http://localhost:54321' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'e2e-placeholder' }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
           REDIS_URL: redis://localhost:6379
           OPENAI_API_KEY: test-key
           ENCRYPTION_KEY: test-encryption-key-32-chars!!
