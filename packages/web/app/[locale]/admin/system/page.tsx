@@ -22,7 +22,6 @@ interface QueueStats {
   completed: number;
   failed: number;
   delayed: number;
-  paused: number;
 }
 
 interface SystemHealth {

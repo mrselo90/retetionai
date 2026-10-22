@@ -17,6 +17,10 @@ let redisClient: Redis | null = null;
 export function getRedisClient(): Redis {
   if (!redisClient) {
     redisClient = new Redis(redisUrl, {
+      // ioredis 6 speaks RESP3 by default, which changes the reply shapes of
+      // some commands. BullMQ and our own calls share this client, so keep the
+      // RESP2 wire protocol they were written against.
+      protocol: 2,
       maxRetriesPerRequest: null, // Required for BullMQ
       enableReadyCheck: true,
       retryStrategy: (times: number) => {
