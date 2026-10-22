@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 
 /*
@@ -50,6 +50,13 @@ export interface PageAction {
  * draw them inside the iframe. `s-page` has no subtitle, so it opens the content.
  * Children can still be Polaris React while routes migrate.
  */
+/**
+ * A shell-level banner (the setup trail) that every AppPage shows first, inside
+ * its s-page, so it lines up with the page content instead of spanning the
+ * iframe above it.
+ */
+export const PageBannerContext = createContext<ReactNode>(null);
+
 export function AppPage({
   heading,
   subtitle,
@@ -68,6 +75,7 @@ export function AppPage({
   children: ReactNode;
 }) {
   const navigate = useNavigate();
+  const shellBanner = useContext(PageBannerContext);
   const run = (action: PageAction) => {
     if (action.onAction) action.onAction();
     else if (action.url) navigate(action.url);
@@ -110,6 +118,7 @@ export function AppPage({
         </s-button>
       ))}
       <s-stack gap="large">
+        {shellBanner}
         {typeof subtitle === 'string' ? <s-paragraph color="subdued">{subtitle}</s-paragraph> : subtitle}
         {children}
       </s-stack>

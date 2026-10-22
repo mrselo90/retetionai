@@ -704,6 +704,8 @@ export default function SettingsPage() {
                 label="Bot name"
                 name="bot_name"
                 value={formState.bot_name}
+                placeholder="Recete"
+                details="Leave empty to use Recete."
                 onInput={(event) => {
                   const value = fieldValue(event);
                   setFormState((current) => ({ ...current, bot_name: value }));
