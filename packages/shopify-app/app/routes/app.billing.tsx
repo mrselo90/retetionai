@@ -6,20 +6,17 @@ import { SectionCard, ShellPage } from '../components/shell-ui';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 
 const STARTER_MONTHLY_PLAN = 'starter-monthly';
-const STARTER_YEARLY_PLAN = 'starter-yearly';
 const GROWTH_MONTHLY_PLAN = 'growth-monthly';
-const GROWTH_YEARLY_PLAN = 'growth-yearly';
 const PRO_MONTHLY_PLAN = 'pro-monthly';
-const PRO_YEARLY_PLAN = 'pro-yearly';
 
-const ALL_PLAN_KEYS = [
-  STARTER_MONTHLY_PLAN,
-  STARTER_YEARLY_PLAN,
-  GROWTH_MONTHLY_PLAN,
-  GROWTH_YEARLY_PLAN,
-  PRO_MONTHLY_PLAN,
-  PRO_YEARLY_PLAN,
-] as const;
+// Yearly plans are only named in types on this page.
+type PlanKey =
+  | typeof STARTER_MONTHLY_PLAN
+  | 'starter-yearly'
+  | typeof GROWTH_MONTHLY_PLAN
+  | 'growth-yearly'
+  | typeof PRO_MONTHLY_PLAN
+  | 'pro-yearly';
 
 function getStoreHandle(shop: string) {
   return shop.replace(/\.myshopify\.com$/i, '');
@@ -35,7 +32,7 @@ const PLAN_TIERS: ReadonlyArray<{
   tier: string;
   monthly: string;
   yearly: string;
-  planKey: (typeof ALL_PLAN_KEYS)[number];
+  planKey: PlanKey;
   recommended?: boolean;
   audience: string;
   yearlySavings: string;
@@ -140,7 +137,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       hasActivePayment: false,
       hasDeclinedSubscription: false,
       managedPricingUrl: null as string | null,
-      requestedPlan: null as (typeof ALL_PLAN_KEYS)[number] | null,
+      requestedPlan: null as PlanKey | null,
       subscriptions: [] as Array<{ id: string; name: string; status: string; lineItems: number }>,
       error: extractBillingErrorMessage(err),
     };

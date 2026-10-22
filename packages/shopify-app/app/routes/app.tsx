@@ -143,10 +143,15 @@ function AppShell() {
   // The listeners below outlive the render that created them, so they read the
   // fetcher through a ref. Reading `fetcher.state` from the closure saw the
   // first render's "idle" forever and fired a new load on every tick.
+  // The refs are refreshed in an effect, not during render (React's rules for
+  // refs). It is declared before the effects that call load(), so it runs first
+  // in every commit and they always see this render's values.
   const fetcherRef = useRef(fetcher);
-  fetcherRef.current = fetcher;
   const locationSearchRef = useRef(location.search);
-  locationSearchRef.current = location.search;
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+    locationSearchRef.current = location.search;
+  });
 
   const load = useCallback(() => {
     if (fetcherRef.current.state === 'idle') {
