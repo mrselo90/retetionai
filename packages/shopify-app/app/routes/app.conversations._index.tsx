@@ -1,7 +1,6 @@
 import type { HeadersFunction, LoaderFunctionArgs } from 'react-router';
 import { useLoaderData, useNavigate } from 'react-router';
 import { boundary } from '@shopify/shopify-app-react-router/server';
-import { ChatIcon, PersonIcon } from '@shopify/polaris-icons';
 import {
   Avatar,
   Badge,
@@ -11,14 +10,13 @@ import {
   InlineGrid,
   InlineStack,
   Layout,
-  Page,
   ResourceItem,
   ResourceList,
   Text,
 } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import { extractPlatformErrorMessage, fetchMerchantConversations } from '../platform.server';
-import { MetricCard } from '../components/shell-ui';
+import { AppPage, MetricCard } from '../components/shell-ui';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
@@ -84,21 +82,13 @@ export default function ConversationsPage() {
   const firstHuman = sorted.find((c) => c.conversationStatus === 'human');
 
   return (
-    <Page
-      title="Conversations"
+    <AppPage
+      heading="Conversations"
       subtitle="Buyer threads and escalations."
       primaryAction={
         firstHuman
-          ? {
-              content: `Handle next (${humanCount})`,
-              onAction: () => navigate(`/app/conversations/${firstHuman.id}`),
-              icon: ChatIcon as never,
-            }
-          : {
-              content: 'View customers',
-              onAction: () => navigate('/app/customers'),
-              icon: PersonIcon as never,
-            }
+          ? { content: `Handle next (${humanCount})`, url: `/app/conversations/${firstHuman.id}` }
+          : { content: 'View customers', url: '/app/customers' }
       }
     >
       <Layout>
@@ -208,7 +198,7 @@ export default function ConversationsPage() {
           </BlockStack>
         </Layout.Section>
       </Layout>
-    </Page>
+    </AppPage>
   );
 }
 

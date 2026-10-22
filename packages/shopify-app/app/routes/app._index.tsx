@@ -28,6 +28,7 @@ import { getSetupProgress, REQUIRED_STEP_INFO, type SetupStepKey } from '../lib/
 import type { ShopifyMerchantOverview } from '../platform.server';
 import { extractPlatformErrorMessage, triggerTestOrderFlow } from '../platform.server';
 import { useAppBootstrapData } from './app';
+import { useActionToast, useReviewRequest } from '../lib/appBridge';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 
 type SetupStepStatus = 'done' | 'in_progress' | 'not_started';
@@ -147,6 +148,7 @@ function SetupOverview({
   merchantName: string;
   justSavedMessaging?: boolean;
 }) {
+  const location = useLocation();
   const progress = getSetupProgress(data, billingApproved, whatsapp);
   const fetcher = useFetcher<{
     ok?: boolean;
@@ -231,6 +233,18 @@ function SetupOverview({
 
   const nextRequiredStep = requiredSteps.find((step) => step.status !== 'done') ?? null;
 
+  // Back from the welcome-message step: a toast for a saved step, the banner
+  // below for setup completion, and that moment is when we ask for a review.
+  useActionToast(
+    justSavedMessaging && !setupComplete
+      ? nextRequiredStep
+        ? `Welcome message saved. Next: ${nextRequiredStep.title.toLowerCase()}.`
+        : 'Welcome message saved.'
+      : null,
+    justSavedMessaging ? location.key : null
+  );
+  useReviewRequest(Boolean(justSavedMessaging && setupComplete));
+
   const personalizedHeading = merchantName.trim()
     ? `Let's get Recete ready, ${merchantName.trim().split(/\s+/)[0]}`
     : "Let's get Recete ready";
@@ -247,7 +261,7 @@ function SetupOverview({
       // action; a header button to the same place only doubled it.
       primaryAction={
         setupComplete
-          ? { content: 'Open dashboard', url: '/app/dashboard', icon: ViewIcon }
+          ? { content: 'Open dashboard', url: '/app/dashboard' }
           : undefined
       }
     >
@@ -263,23 +277,13 @@ function SetupOverview({
       ) : null}
 
       {/* ── Save feedback, after returning from the welcome-message step ── */}
-      {justSavedMessaging ? (
-        setupComplete ? (
-          <Banner tone="success">
-            <Text as="p" variant="bodyMd" fontWeight="semibold">
-              🎉 Setup complete — Recete is live! Your customers will now receive a WhatsApp message
-              after delivery.
-            </Text>
-          </Banner>
-        ) : (
-          <Banner tone="success">
-            <Text as="p" variant="bodyMd">
-              {nextRequiredStep
-                ? `Welcome message saved. Next: ${nextRequiredStep.title.toLowerCase()}.`
-                : 'Welcome message saved.'}
-            </Text>
-          </Banner>
-        )
+      {justSavedMessaging && setupComplete ? (
+        <Banner tone="success">
+          <Text as="p" variant="bodyMd" fontWeight="semibold">
+            🎉 Setup complete — Recete is live! Your customers will now receive a WhatsApp message
+            after delivery.
+          </Text>
+        </Banner>
       ) : null}
 
       {/* ── Hero progress card ──────────────────────────────────────────── */}
@@ -449,6 +453,13 @@ function TestWhatsAppForm({
   const [phone, setPhone] = useState('');
   const testOrderResult = fetcher.data?.intent === 'runTestOrder' ? fetcher.data : null;
   const testOrderBusy = fetcher.state !== 'idle';
+  useActionToast(
+    testOrderResult?.ok
+      ? 'Test order sent. The message should arrive on that phone within a minute or two.'
+      : null,
+    fetcher.data,
+    { duration: 6000 }
+  );
 
   return (
     <BlockStack gap="200">
@@ -456,13 +467,7 @@ function TestWhatsAppForm({
         Enter a phone number other than your linked WhatsApp. It gets the message a customer
         receives after delivery, sent from your number. Reply to it to see Recete answer.
       </Text>
-      {testOrderResult?.ok ? (
-        <Banner tone="success">
-          <Text as="p" variant="bodySm">
-            Test order sent. The message should arrive on that phone within a minute or two.
-          </Text>
-        </Banner>
-      ) : testOrderResult?.error ? (
+      {testOrderResult?.error ? (
         <Banner tone="critical">
           <Text as="p" variant="bodySm">
             {testOrderResult.error}

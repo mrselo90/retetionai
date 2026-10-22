@@ -123,15 +123,14 @@ export default function CustomersPage() {
       ? {
           content: highRiskCount > 0 ? 'Review at-risk customers' : 'Open conversations',
           url: '/app/conversations',
-          icon: ChatIcon,
         }
       : !hasBilling
-        ? { content: 'Activate plan', url: '/app/billing', icon: ChatIcon }
+        ? { content: 'Activate plan', url: '/app/billing' }
         : !hasProducts
-          ? { content: 'Add products', url: '/app/products', icon: PersonIcon }
+          ? { content: 'Add products', url: '/app/products' }
           : !hasMessagingConfigured
-            ? { content: 'Configure messaging', url: '/app/setup/messaging', icon: ChatIcon }
-            : { content: 'Check order flow', url: '/app/integrations#orders-flow', icon: ChatIcon };
+            ? { content: 'Configure messaging', url: '/app/setup/messaging' }
+            : { content: 'Check order flow', url: '/app/integrations#orders-flow' };
 
   const setupDependencies: SetupDependencyItem[] = [
     {

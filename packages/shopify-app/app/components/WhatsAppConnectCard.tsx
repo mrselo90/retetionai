@@ -6,6 +6,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
+import { useAppBridge } from '@shopify/app-bridge-react';
 import {
   Badge,
   Banner,
@@ -55,7 +56,7 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
   const poller = useFetcher<LoaderResult>();
   const actor = useFetcher<ActionResult>();
   const [status, setStatus] = useState<WhatsAppConnectionStatus | null>(initial);
-  const [justLinked, setJustLinked] = useState(false);
+  const shopify = useAppBridge();
   const pairingRef = useRef(false);
   const [confirmUnlink, setConfirmUnlink] = useState(false);
 
@@ -84,9 +85,11 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
   useEffect(() => {
     if (status?.status === 'connected' && pairingRef.current) {
       pairingRef.current = false;
-      setJustLinked(true);
+      shopify.toast.show('WhatsApp linked. Recete will now message your customers from this number.', {
+        duration: 6000,
+      });
     }
-  }, [status?.status]);
+  }, [status?.status, shopify]);
 
   if (!status) {
     return (
@@ -101,7 +104,6 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
   const busy = actor.state !== 'idle';
   const submit = (intent: 'connect' | 'disconnect') => {
     pairingRef.current = intent === 'connect';
-    setJustLinked(false);
     actor.submit({ intent }, { method: 'post', action: '/app/whatsapp' });
   };
   const connected = status.status === 'connected';
@@ -147,11 +149,6 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
           ) : null}
         </InlineStack>
 
-        {justLinked ? (
-          <Banner tone="success" onDismiss={() => setJustLinked(false)}>
-            <p>WhatsApp linked. Recete will now message your customers from this number.</p>
-          </Banner>
-        ) : null}
         {actionError ? (
           <Banner tone="critical">
             <p>{actionError}</p>

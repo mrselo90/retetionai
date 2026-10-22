@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from 'react-router';
-import { Form, useActionData, useLoaderData, useNavigate, useNavigation } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { useEffect, useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { ChatIcon } from '@shopify/polaris-icons';
@@ -13,7 +13,6 @@ import {
   Card,
   InlineStack,
   Layout,
-  Page,
   Spinner,
   SkeletonBodyText,
   SkeletonDisplayText,
@@ -22,6 +21,8 @@ import {
   TextField,
 } from '@shopify/polaris';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
+import { useActionToast } from '../lib/appBridge';
+import { AppPage } from '../components/shell-ui';
 import {
   extractPlatformErrorMessage,
   fetchMerchantConversationDetail,
@@ -89,7 +90,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 export default function ConversationDetailPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const navigate = useNavigate();
+  useActionToast(actionData?.message, actionData);
   const navigation = useNavigation();
   const conversation = data.conversation;
   const busy = navigation.state !== 'idle';
@@ -127,11 +128,18 @@ export default function ConversationDetailPage() {
   };
 
   return (
-    <Page
-      backAction={{ content: 'Conversations', onAction: () => navigate('/app/conversations') }}
-      title={conversation.userName || 'Buyer'}
-      subtitle={conversation.phone}
-      titleMetadata={statusBadge(conversation.conversationStatus)}
+    <AppPage
+      backAction={{ content: 'Conversations', url: '/app/conversations' }}
+      heading={conversation.userName || 'Buyer'}
+      // s-page has no title-metadata slot, so status sits with the phone number.
+      subtitle={
+        <InlineStack gap="200" blockAlign="center">
+          {statusBadge(conversation.conversationStatus)}
+          <Text as="span" tone="subdued">
+            {conversation.phone}
+          </Text>
+        </InlineStack>
+      }
     >
       {busy ? (
         <Box paddingBlockEnd="400">
@@ -169,14 +177,6 @@ export default function ConversationDetailPage() {
               <Banner title="Action failed" tone="critical">
                 <Text as="p" variant="bodyMd">
                   {actionData.error}
-                </Text>
-              </Banner>
-            ) : null}
-
-            {actionData?.message ? (
-              <Banner tone="success">
-                <Text as="p" variant="bodyMd">
-                  {actionData.message}
                 </Text>
               </Banner>
             ) : null}
@@ -363,7 +363,7 @@ export default function ConversationDetailPage() {
           </BlockStack>
         </Layout.Section>
       </Layout>
-    </Page>
+    </AppPage>
   );
 }
 

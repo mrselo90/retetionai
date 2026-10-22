@@ -3,7 +3,6 @@ import { useLoaderData } from 'react-router';
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { ChartVerticalIcon, ChatIcon, SettingsIcon } from '@shopify/polaris-icons';
 import { Banner, BlockStack, Card, InlineGrid, Layout, Page, Text } from '@shopify/polaris';
-import { useNavigate } from 'react-router';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import { shellSetupProgress, useAppBootstrapData } from './app';
 import {
@@ -14,6 +13,7 @@ import {
 import {
   ActionCard,
   DetailRows,
+  AppPage,
   MetricCard,
   SectionCard,
   SetupDependencyList,
@@ -61,7 +61,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function AnalyticsPage() {
   const { bootstrapData: shellBootstrap } = useAppBootstrapData();
   const data = useLoaderData<typeof loader>();
-  const navigate = useNavigate();
 
   // A platform outage zeroes the overview, which getSetupProgress reads as
   // "onboarding incomplete" — without this, a fully onboarded merchant would
@@ -213,8 +212,8 @@ export default function AnalyticsPage() {
   ];
 
   return (
-    <Page
-      title="Analytics"
+    <AppPage
+      heading="Analytics"
       subtitle={
         analyticsState === 'onboarding_incomplete'
           ? 'This section unlocks after setup milestones are complete.'
@@ -223,13 +222,7 @@ export default function AnalyticsPage() {
             : 'Performance insights for post-purchase conversations and retention.'
       }
       primaryAction={
-        primaryAction
-          ? {
-              content: primaryAction.content,
-              onAction: primaryAction.url ? () => navigate(primaryAction.url!) : undefined,
-              icon: primaryAction.icon as never,
-            }
-          : undefined
+        primaryAction ? { content: primaryAction.content, url: primaryAction.url } : undefined
       }
     >
       <Layout>
@@ -466,7 +459,7 @@ export default function AnalyticsPage() {
           </BlockStack>
         </Layout.Section>
       </Layout>
-    </Page>
+    </AppPage>
   );
 }
 

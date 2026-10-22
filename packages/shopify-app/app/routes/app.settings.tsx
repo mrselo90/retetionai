@@ -45,6 +45,7 @@ import { SectionCard, StatusBadge } from '../components/shell-ui';
 import { getPlanSnapshotByDomain } from '../services/planService.server';
 import { GROWTH_MONTHLY_PLAN } from '../services/planDefinitions';
 import { persistMessagingSetup } from '../lib/persistMessagingSetup';
+import { useActionToast } from '../lib/appBridge';
 
 function getStoreHandle(shop: string) {
   return shop.replace(/\.myshopify\.com$/i, '');
@@ -146,13 +147,6 @@ function parseGuardrailDrafts(raw: string, fallback: MerchantGuardrail[]): Merch
   } catch {
     return fallback;
   }
-}
-
-function formatSavedAt(value: string) {
-  return new Intl.DateTimeFormat('en', {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(value));
 }
 
 function normalizeCoreFormState(
@@ -435,7 +429,6 @@ export default function SettingsPage() {
   // Collapsed by default: a store adjusting a setting should not scroll past
   // an irreversible delete form to get there.
   const [showDataDeletion, setShowDataDeletion] = useState(false);
-  const [lastCoreSettingsSavedAt, setLastCoreSettingsSavedAt] = useState<string | null>(null);
 
   const loaderState = useMemo(
     () =>
@@ -503,18 +496,27 @@ export default function SettingsPage() {
 
   const showCoreSuccess = actionData?.ok && actionData.intent === 'save-core' && actionData.message;
   const showCoreError = !actionData?.ok && actionData?.intent === 'save-core' && actionData.error;
-  const showGuardrailSuccess =
-    actionData?.ok && actionData.intent === 'save-guardrails' && actionData.message;
   const showGuardrailError =
     !actionData?.ok && actionData?.intent === 'save-guardrails' && actionData.error;
   const showAddonSuccess =
     actionData?.ok && actionData.intent === 'toggle-addon' && actionData.message;
   const showAddonError =
     !actionData?.ok && actionData?.intent === 'toggle-addon' && actionData.error;
-  const showWipeSuccess =
-    actionData?.ok && actionData.intent === 'wipe-merchant-data' && actionData.message;
   const showWipeError =
     !actionData?.ok && actionData?.intent === 'wipe-merchant-data' && actionData.error;
+  // Confirmations go to an admin toast; a Banner stays only where Shopify
+  // approval is still pending (confirmationUrl) or for errors.
+  const toastMessage =
+    actionData?.ok && actionData.message && !actionData.confirmationUrl
+      ? actionData.intent === 'save-core'
+        ? 'Settings saved'
+        : actionData.intent === 'save-guardrails'
+          ? actionData.message || 'Custom guardrail added.'
+          : actionData.message
+      : null;
+  useActionToast(toastMessage, actionData, {
+    duration: actionData?.intent === 'wipe-merchant-data' ? 8000 : undefined,
+  });
   const welcomeTemplatePreview = useMemo(
     () => buildWelcomeTemplatePreview(formState.whatsapp_welcome_template, formState.bot_name),
     [formState.bot_name, formState.whatsapp_welcome_template]
@@ -532,7 +534,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (showCoreSuccess) {
-      setLastCoreSettingsSavedAt(new Date().toISOString());
       setFormState((current) => {
         const normalized = normalizeCoreFormState(current, data.plan.planType);
         setSavedCoreStateJson(JSON.stringify(normalized));
@@ -606,31 +607,11 @@ export default function SettingsPage() {
           </Layout.Section>
         ) : null}
 
-        {showCoreSuccess && lastCoreSettingsSavedAt ? (
-          <Layout.Section>
-            <Banner tone="success" title="Core settings saved">
-              <Text as="p" variant="bodyMd">
-                {`${actionData?.message} Saved at ${formatSavedAt(lastCoreSettingsSavedAt)}.`}
-              </Text>
-            </Banner>
-          </Layout.Section>
-        ) : null}
-
         {showCoreError ? (
           <Layout.Section>
             <Banner tone="critical" title="Could not save core settings">
               <Text as="p" variant="bodyMd">
                 {actionData?.error || 'Settings action failed.'}
-              </Text>
-            </Banner>
-          </Layout.Section>
-        ) : null}
-
-        {showGuardrailSuccess ? (
-          <Layout.Section>
-            <Banner tone="success" title="Guardrail updated">
-              <Text as="p" variant="bodyMd">
-                {actionData?.message || 'Custom guardrail added.'}
               </Text>
             </Banner>
           </Layout.Section>
@@ -646,7 +627,7 @@ export default function SettingsPage() {
           </Layout.Section>
         ) : null}
 
-        {showAddonSuccess ? (
+        {showAddonSuccess && actionData?.confirmationUrl ? (
           <Layout.Section>
             <Banner tone="success" title="Add-on updated">
               <Text as="p" variant="bodyMd">
@@ -668,16 +649,6 @@ export default function SettingsPage() {
             <Banner tone="critical" title="Could not update add-on">
               <Text as="p" variant="bodyMd">
                 {actionData?.error || 'Settings action failed.'}
-              </Text>
-            </Banner>
-          </Layout.Section>
-        ) : null}
-
-        {showWipeSuccess ? (
-          <Layout.Section>
-            <Banner tone="success" title="Store data deleted">
-              <Text as="p" variant="bodyMd">
-                {actionData?.message}
               </Text>
             </Banner>
           </Layout.Section>
@@ -707,6 +678,7 @@ export default function SettingsPage() {
         ) : null}
 
         {actionData?.message &&
+        actionData.confirmationUrl &&
         !['save-core', 'save-guardrails', 'toggle-addon', 'wipe-merchant-data'].includes(
           actionData.intent || ''
         ) ? (
@@ -715,13 +687,11 @@ export default function SettingsPage() {
               <Text as="p" variant="bodyMd">
                 {actionData.message}
               </Text>
-              {actionData.confirmationUrl ? (
-                <Box paddingBlockStart="300">
-                  <Button url={actionData.confirmationUrl} target="_top" variant="primary">
-                    Approve add-on in Shopify
-                  </Button>
-                </Box>
-              ) : null}
+              <Box paddingBlockStart="300">
+                <Button url={actionData.confirmationUrl} target="_top" variant="primary">
+                  Approve add-on in Shopify
+                </Button>
+              </Box>
             </Banner>
           </Layout.Section>
         ) : null}
