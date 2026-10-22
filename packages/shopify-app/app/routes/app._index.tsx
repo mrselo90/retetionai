@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs, HeadersFunction } from 'react-router';
-import { useFetcher, useLocation } from 'react-router';
+import { useFetcher, useLocation, useNavigate } from 'react-router';
 import { useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import {
@@ -14,12 +14,10 @@ import {
   Badge,
   Banner,
   BlockStack,
-  Box,
   Button,
   Card,
   InlineGrid,
   InlineStack,
-  ProgressBar,
   Text,
   TextField,
 } from '@shopify/polaris';
@@ -223,8 +221,6 @@ function SetupOverview({
   const setupComplete = progress.setupComplete;
   const completedRequired = progress.completedCount;
   const totalRequired = progress.totalSteps;
-  const percentComplete =
-    totalRequired === 0 ? 0 : Math.round((completedRequired / totalRequired) * 100);
 
   // Time-left estimate: only counts incomplete REQUIRED steps.
   const minutesLeft = requiredSteps
@@ -286,67 +282,39 @@ function SetupOverview({
         </Banner>
       ) : null}
 
-      {/* ── Hero progress card ──────────────────────────────────────────── */}
-      <Card padding="500" roundedAbove="sm">
-        <BlockStack gap="400">
-          <InlineStack align="space-between" blockAlign="center" wrap>
-            <BlockStack gap="100">
-              <Text as="h2" variant="headingLg">
-                {setupComplete ? '🎉 Recete is live' : personalizedHeading}
-              </Text>
-              <Text as="p" variant="bodyMd" tone="subdued">
-                {setupComplete
-                  ? 'Ready to send your first customer message.'
-                  : `${completedRequired} of ${totalRequired} done · ~${minutesLeft} min left`}
-              </Text>
-            </BlockStack>
-            <Badge tone={setupComplete ? 'success' : 'attention'}>
-              {setupComplete ? 'Ready to go live' : 'In progress'}
-            </Badge>
-          </InlineStack>
+      {/* Until the required steps are done this is Shopify's Setup guide pattern
+          (App Home composition); afterwards the live summary card. */}
+      {setupComplete ? (
+        <Card padding="500" roundedAbove="sm">
+          <BlockStack gap="400">
+            <InlineStack align="space-between" blockAlign="center" wrap>
+              <BlockStack gap="100">
+                <Text as="h2" variant="headingLg">
+                  🎉 Recete is live
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Ready to send your first customer message.
+                </Text>
+              </BlockStack>
+              <Badge tone="success">Ready to go live</Badge>
+            </InlineStack>
 
-          <ProgressBar progress={percentComplete} tone="primary" size="medium" />
-
-          {setupComplete ? (
             <InlineStack gap="200">
               <Button url="/app/dashboard" variant="primary" icon={ViewIcon}>
                 Open dashboard
               </Button>
               <Button url="/app/setup/messaging">Preview welcome message</Button>
             </InlineStack>
-          ) : nextRequiredStep ? (
-            <InlineStack gap="200">
-              <Button url={nextRequiredStep.to} variant="primary" icon={nextRequiredStep.icon}>
-                {`Continue: ${nextRequiredStep.title}`}
-              </Button>
-            </InlineStack>
-          ) : null}
-        </BlockStack>
-      </Card>
-
-      {/* ── Required steps ──────────────────────────────────────────────── */}
-      <Card padding="500" roundedAbove="sm">
-        <BlockStack gap="300">
-          <InlineStack align="space-between" blockAlign="center" wrap>
-            <Text as="h2" variant="headingMd">
-              Setup
-            </Text>
-            <Text as="p" variant="bodySm" tone="subdued">
-              {`${completedRequired}/${totalRequired} completed`}
-            </Text>
-          </InlineStack>
-
-          <BlockStack gap="300">
-            {requiredSteps.map((step) => (
-              <SetupStepCard
-                key={step.id}
-                step={step}
-                stepNumber={requiredSteps.indexOf(step) + 1}
-              />
-            ))}
           </BlockStack>
-        </BlockStack>
-      </Card>
+        </Card>
+      ) : (
+        <SetupGuide
+          heading={personalizedHeading}
+          steps={requiredSteps}
+          completed={completedRequired}
+          minutesLeft={minutesLeft}
+        />
+      )}
 
       {/* Once WhatsApp is linked a store can try the real message at any point
           of setup; the optional "Run a test order" step covers it otherwise. */}
@@ -391,44 +359,107 @@ function SetupOverview({
   );
 }
 
-function SetupStepCard({ step, stepNumber }: { step: SetupStep; stepNumber: number }) {
-  const done = step.status === 'done';
+/**
+ * Shopify's Setup guide composition (App Home patterns): progress, then one
+ * collapsible row per required step. Status comes from the store's data, not a
+ * checkbox the merchant ticks, so each row shows a status icon instead.
+ */
+function SetupGuide({
+  heading,
+  steps,
+  completed,
+  minutesLeft,
+}: {
+  heading: string;
+  steps: SetupStep[];
+  completed: number;
+  minutesLeft: number;
+}) {
+  const navigate = useNavigate();
+  const nextId = steps.find((step) => step.status !== 'done')?.id ?? null;
+  const [guideOpen, setGuideOpen] = useState(true);
+  const [openStep, setOpenStep] = useState<SetupStepKey | null>(nextId);
+
   return (
-    <Card padding="400" roundedAbove="sm" background={done ? 'bg-surface-success' : undefined}>
-      <InlineGrid columns={{ xs: 1, md: 'auto 1fr auto' }} gap="300" alignItems="center">
-        <Box minWidth="32px">
-          <Text as="p" variant="headingMd" tone={done ? 'success' : 'subdued'}>
-            {done ? '✓' : stepNumber}
-          </Text>
-        </Box>
-        <BlockStack gap="100">
-          <InlineStack gap="200" blockAlign="center" wrap>
-            <Text as="h3" variant="headingSm">
-              {step.title}
-            </Text>
-            <Badge tone={statusTone(step.status)}>
-              {step.status === 'done' ? 'Done' : step.status === 'in_progress' ? 'Next' : 'Up next'}
-            </Badge>
-            <Text as="span" variant="bodySm" tone="subdued">
-              {`~${step.estimateMinutes} min`}
-            </Text>
-          </InlineStack>
-          <Text as="p" variant="bodySm" tone="subdued">
-            {step.description}
-          </Text>
-        </BlockStack>
-        <Box>
-          <Button
-            url={step.to}
-            variant={step.status === 'in_progress' ? 'primary' : 'tertiary'}
-            icon={step.icon}
-            disabled={done}
-          >
-            {done ? 'Done' : step.status === 'in_progress' ? 'Start' : 'Open'}
-          </Button>
-        </Box>
-      </InlineGrid>
-    </Card>
+    <s-section>
+      <s-grid gap="base">
+        <s-grid gap="small-200">
+          <s-grid gridTemplateColumns="1fr auto" gap="small-300" alignItems="center">
+            <s-heading>{heading}</s-heading>
+            <s-button
+              accessibilityLabel={guideOpen ? 'Collapse setup guide' : 'Expand setup guide'}
+              variant="tertiary"
+              tone="neutral"
+              icon={guideOpen ? 'chevron-up' : 'chevron-down'}
+              onClick={() => setGuideOpen((value) => !value)}
+            />
+          </s-grid>
+          <s-paragraph>Complete these steps to start helping customers after delivery.</s-paragraph>
+          <s-paragraph color="subdued">
+            {`${completed} out of ${steps.length} steps completed · ~${minutesLeft} min left`}
+          </s-paragraph>
+          <s-progress value={completed} max={steps.length} accessibilityLabel="Setup progress" />
+        </s-grid>
+
+        <s-box
+          borderRadius="base"
+          border="base"
+          background="base"
+          display={guideOpen ? 'auto' : 'none'}
+        >
+          {steps.map((step, index) => {
+            const done = step.status === 'done';
+            const expanded = openStep === step.id;
+            const toggle = () => setOpenStep(expanded ? null : step.id);
+            return (
+              <s-box key={step.id}>
+                {index > 0 ? <s-divider /> : null}
+                <s-grid
+                  gridTemplateColumns="auto 1fr auto"
+                  gap="base"
+                  padding="small"
+                  alignItems="center"
+                >
+                  <s-icon
+                    type={done ? 'check-circle-filled' : 'circle-dashed'}
+                    tone={done ? 'success' : 'auto'}
+                  />
+                  <s-clickable onClick={toggle} accessibilityLabel={`${step.title} details`}>
+                    <s-text type={step.id === nextId ? 'strong' : 'generic'}>{step.title}</s-text>
+                  </s-clickable>
+                  <s-button
+                    accessibilityLabel={`Toggle ${step.title} details`}
+                    variant="tertiary"
+                    icon={expanded ? 'chevron-up' : 'chevron-down'}
+                    onClick={toggle}
+                  />
+                </s-grid>
+                <s-box padding="small" paddingBlockStart="none" display={expanded ? 'auto' : 'none'}>
+                  <s-box padding="base" background="subdued" borderRadius="base">
+                    <s-grid gap="small-300">
+                      <s-paragraph>{step.description}</s-paragraph>
+                      <s-paragraph color="subdued">
+                        {done ? 'Done' : `About ${step.estimateMinutes} min`}
+                      </s-paragraph>
+                      {done ? null : (
+                        <s-stack direction="inline">
+                          <s-button
+                            variant={step.id === nextId ? 'primary' : 'secondary'}
+                            onClick={() => navigate(step.to)}
+                          >
+                            {step.id === nextId ? 'Start' : 'Open'}
+                          </s-button>
+                        </s-stack>
+                      )}
+                    </s-grid>
+                  </s-box>
+                </s-box>
+              </s-box>
+            );
+          })}
+        </s-box>
+      </s-grid>
+    </s-section>
   );
 }
 
@@ -577,12 +608,6 @@ function OptionalStepCard({
       </BlockStack>
     </Card>
   );
-}
-
-function statusTone(status: SetupStepStatus): 'success' | 'attention' | 'info' {
-  if (status === 'done') return 'success';
-  if (status === 'in_progress') return 'attention';
-  return 'info';
 }
 
 export const headers: HeadersFunction = (headersArgs) => {
