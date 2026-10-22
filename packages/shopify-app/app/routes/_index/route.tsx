@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from 'react-router';
 import { redirect, useLoaderData } from 'react-router';
-import { AppProvider } from '@shopify/shopify-app-react-router/react';
+import { POLARIS_URL } from '../../lib/polaris';
 
 const APP_STORE_URL = 'https://apps.shopify.com/recete';
 
@@ -25,7 +25,10 @@ export default function Index() {
   const { adminAppUrl } = useLoaderData<typeof loader>();
 
   return (
-    <AppProvider embedded={false}>
+    <>
+      {/* No AppProvider outside the admin (embedded-only since
+          shopify-app-react-router 2): load Polaris here. */}
+      <script src={POLARIS_URL} />
       <s-page heading="Recete for Shopify" inlineSize="small">
         <s-stack gap="base">
           <s-section>
@@ -52,6 +55,6 @@ export default function Index() {
           </s-section>
         </s-stack>
       </s-page>
-    </AppProvider>
+    </>
   );
 }
