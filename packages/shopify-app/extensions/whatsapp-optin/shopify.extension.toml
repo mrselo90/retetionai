@@ -1,0 +1,20 @@
+# WhatsApp opt-in on the Thank you page.
+#
+# Checkout's consent components only support SMS, so this block asks the app
+# (app/routes/public.whatsapp-optin.tsx) to record WhatsApp marketing consent in
+# Shopify. Merchants place it with the checkout and accounts editor.
+api_version = "2026-10"
+
+[[extensions]]
+name = "WhatsApp opt-in"
+handle = "whatsapp-optin"
+type = "ui_extension"
+
+[[extensions.targeting]]
+module = "./src/ThankYou.jsx"
+target = "purchase.thank-you.block.render"
+
+[extensions.capabilities]
+# Calls the app's own backend with the checkout session token. Needs the
+# "network access in checkout UI extensions" approval in the Partner Dashboard.
+network_access = true

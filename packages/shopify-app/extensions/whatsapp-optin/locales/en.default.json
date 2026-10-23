@@ -1,0 +1,8 @@
+{
+  "heading": "Product tips on WhatsApp",
+  "label": "Send me tips about my order on WhatsApp",
+  "details": "We'll message the phone number on this order with how-to-use tips and answers to your questions. Reply STOP anytime to unsubscribe.",
+  "subscribedHeading": "You're subscribed to WhatsApp tips",
+  "subscribedBody": "We'll message you on WhatsApp once your order arrives. Reply STOP anytime to unsubscribe.",
+  "error": "We couldn't save that. Please try again."
+}

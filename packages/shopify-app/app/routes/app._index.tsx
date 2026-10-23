@@ -319,6 +319,7 @@ function SetupOverview({
                 firstProduct={step.id === 'orders' ? firstProduct : undefined}
               />
             ))}
+            <WhatsAppOptInCard />
           </s-grid>
         </SectionCard>
       ) : null}
@@ -570,6 +571,36 @@ function OptionalStepCard({
             onClick={() => navigate(step.to)}
           >
             Open step
+          </s-button>
+        </s-stack>
+      </s-stack>
+    </s-box>
+  );
+}
+
+/**
+ * Recete only messages customers who opted in to WhatsApp. The Thank you page
+ * block (extensions/whatsapp-optin) is where most of them can say yes; its
+ * placement lives in the checkout editor, which this opens. Not tracked as a
+ * step: the app can't see where the merchant placed the block.
+ */
+function WhatsAppOptInCard() {
+  return (
+    <s-box padding="base" border="base" borderRadius="base">
+      <s-stack gap="small-200">
+        <s-heading>Collect WhatsApp opt-ins</s-heading>
+        <s-paragraph color="subdued">
+          Recete only messages customers who agreed to WhatsApp messages. Add the WhatsApp opt-in block to your
+          Thank you page so customers can say yes right after they order.
+        </s-paragraph>
+        <s-stack direction="inline">
+          <s-button
+            variant="tertiary"
+            icon="external"
+            href="shopify://admin/settings/checkout/editor?page=thank-you&context=apps"
+            target="_top"
+          >
+            Open checkout editor
           </s-button>
         </s-stack>
       </s-stack>

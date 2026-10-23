@@ -1,2 +1,4 @@
 packages:
   - 'packages/*'
+  # Shopify app extensions build with their own dependencies.
+  - 'packages/shopify-app/extensions/*'
