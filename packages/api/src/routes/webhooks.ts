@@ -5,7 +5,13 @@
 
 import { Hono } from 'hono';
 import { findShopifyIntegration } from '../lib/shopifyIntegrationLookup.js';
-import { getSupabaseServiceClient, logger, unlinkWhatsAppBestEffort } from '@recete/shared';
+import {
+  getShopifyAccessToken,
+  getSupabaseServiceClient,
+  logger,
+  unlinkWhatsAppBestEffort,
+} from '@recete/shared';
+import { syncShopifyWhatsAppConsent } from '../lib/whatsappConsent.js';
 import { verifyShopifyHmac } from '../lib/shopify.js';
 import { addCommerceEventJob } from '../queues.js';
 import {
@@ -181,6 +187,33 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
       } catch (err) {
         logger.error({ err, shop }, 'Error processing Shopify app_subscription webhook');
         return c.json({ error: 'Failed to process app subscription update' }, 500);
+      }
+    }
+
+    // WhatsApp marketing consent changed in Shopify (merchant edit, another app,
+    // the thank-you page opt-in). Re-read it rather than trusting the payload
+    // shape, and apply it to the customers we know.
+    if (topic === 'customers_whats_app_marketing_consent/update') {
+      const customerId = body?.customer_id ?? body?.id ?? body?.customer?.id;
+      if (!customerId) {
+        return c.json({ error: 'Missing customer id' }, 400);
+      }
+      try {
+        const credentials = await getShopifyAccessToken(integration);
+        const result = await syncShopifyWhatsAppConsent({
+          merchantId: integration.merchant_id,
+          shop: credentials.shop,
+          accessToken: credentials.accessToken,
+          shopifyCustomerId: String(customerId),
+        });
+        return c.json({ message: 'WhatsApp consent synced', ...result }, 200);
+      } catch (err) {
+        logger.error(
+          { err: err instanceof Error ? err.message : String(err), shop },
+          'Failed to sync WhatsApp consent from Shopify'
+        );
+        // 5xx so Shopify retries.
+        return c.json({ error: 'Failed to sync WhatsApp consent' }, 500);
       }
     }
 

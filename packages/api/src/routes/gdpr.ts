@@ -418,8 +418,13 @@ gdpr.put(
       // Update consent
       const { error: updateError } = await supabase
         .from('users')
+        // This route speaks granted/revoked; messaging reads opt_in/opt_out.
+        // Writing granted/revoked as-is blocked an opt-in and didn't count as
+        // an opt-out.
         .update({
-          consent_status: consent_status,
+          consent_status:
+            consent_status === 'granted' ? 'opt_in' : consent_status === 'revoked' ? 'opt_out' : 'pending',
+          consent_source: 'merchant_manual',
           consent_updated_at: new Date().toISOString(),
         })
         .eq('id', userId);
