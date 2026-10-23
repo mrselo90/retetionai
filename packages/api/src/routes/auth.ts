@@ -9,7 +9,6 @@ import { getAuthClient } from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validation.js';
 import { signupSchema, loginSchema, SignupInput, LoginInput } from '../schemas/auth.js';
-import { captureException, setUserContext } from '../lib/sentry.js';
 import { logger } from '@recete/shared';
 
 const auth = new Hono();
@@ -140,9 +139,6 @@ auth.post('/signup', validateBody(signupSchema), async (c) => {
     }, 201);
   } catch (error) {
     logger.error(error instanceof Error ? error : new Error(String(error)), 'Signup error');
-    captureException(error instanceof Error ? error : new Error(String(error)), {
-      endpoint: '/api/auth/signup',
-    });
     return c.json({
       error: 'Internal server error',
     }, 500);
@@ -228,9 +224,6 @@ auth.post('/login', validateBody(loginSchema), async (c) => {
       }, 404);
     }
 
-    // Set user context for Sentry
-    setUserContext(data.user.id, data.user.email || undefined, finalMerchant.id);
-
     return c.json({
       message: 'Login successful',
       session: {
@@ -245,9 +238,6 @@ auth.post('/login', validateBody(loginSchema), async (c) => {
     });
   } catch (error) {
     logger.error(error instanceof Error ? error : new Error(String(error)), 'Login error');
-    captureException(error instanceof Error ? error : new Error(String(error)), {
-      endpoint: '/api/auth/login',
-    });
     return c.json({
       error: 'Internal server error',
     }, 500);

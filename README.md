@@ -207,7 +207,7 @@ pnpm test:e2e
 - **Hosting**: DigitalOcean Droplet (167.172.60.234)
 - **Database**: Supabase Cloud
 - **Cache/Queue**: Upstash Redis
-- **Monitoring**: Sentry (in progress)
+- **Monitoring**: New Relic
 - **Logging**: Pino (in progress)
 
 ---
@@ -219,7 +219,6 @@ pnpm test:e2e
 - CORS configuration
 - Security headers
 - GDPR compliance
-- Error tracking (Sentry)
 
 ### Phase 2: Testing & Quality (Week 2-4) ⏳
 - Test infrastructure

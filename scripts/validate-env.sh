@@ -24,7 +24,6 @@ OPTIONAL_VARS=(
   "WHATSAPP_ACCESS_TOKEN"
   "WHATSAPP_PHONE_NUMBER_ID"
   "WHATSAPP_VERIFY_TOKEN"
-  "SENTRY_DSN"
   "SHOPIFY_API_KEY"
   "SHOPIFY_API_SECRET"
   "NEW_RELIC_LICENSE_KEY"
@@ -91,7 +90,6 @@ if [ $WARNINGS -gt 0 ]; then
   echo ""
   echo "💡 Note: Optional variables enable additional features:"
   echo "   - WhatsApp: Required for WhatsApp Business API integration"
-  echo "   - Sentry: Required for error tracking and monitoring"
   echo "   - Shopify: Required for Shopify app installation"
   echo "   - New Relic: Required for APM and performance monitoring"
   exit 0
