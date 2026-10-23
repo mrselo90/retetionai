@@ -40,13 +40,6 @@ read -p "Shopify API Key: " SHOPIFY_API_KEY
 read -p "Shopify API Secret: " SHOPIFY_API_SECRET
 echo ""
 
-# Sentry (Optional)
-echo -e "${YELLOW}🔍 Sentry Configuration (Optional - Enter to skip)${NC}"
-read -p "Sentry DSN: " SENTRY_DSN
-read -p "Sentry Org: " SENTRY_ORG
-read -p "Sentry Project: " SENTRY_PROJECT
-echo ""
-
 # Frontend URL
 echo -e "${YELLOW}🌐 Frontend URL${NC}"
 read -p "Frontend URL (https://your-app.vercel.app): " FRONTEND_URL
@@ -89,12 +82,6 @@ NEXT_PUBLIC_SHOPIFY_API_KEY=$SHOPIFY_API_KEY
 # PostHog (EU cloud) — inlined at build time
 NEXT_PUBLIC_POSTHOG_KEY=$POSTHOG_PROJECT_TOKEN
 
-# Sentry
-SENTRY_DSN=$SENTRY_DSN
-SENTRY_ORG=$SENTRY_ORG
-SENTRY_PROJECT=$SENTRY_PROJECT
-SENTRY_AUTH_TOKEN=<your-sentry-auth-token>
-
 # Next.js
 NEXT_TELEMETRY_DISABLED=1
 EOF
@@ -119,10 +106,6 @@ VERCEL_TOKEN=<get-from-vercel-dashboard>
 VERCEL_ORG_ID=<get-from-vercel-dashboard>
 VERCEL_PROJECT_ID=<get-from-vercel-dashboard>
 VERCEL_DOMAIN=<your-app.vercel.app>
-
-# Sentry
-SENTRY_ORG=$SENTRY_ORG
-SENTRY_AUTH_TOKEN=<get-from-sentry-dashboard>
 
 # Slack (Optional)
 SLACK_WEBHOOK=<your-slack-webhook-url>
@@ -157,9 +140,6 @@ NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
 NEXT_PUBLIC_API_URL=$API_URL
 NEXT_PUBLIC_SHOPIFY_API_KEY=$SHOPIFY_API_KEY
-
-# Sentry
-SENTRY_DSN=$SENTRY_DSN
 EOF
 
 # Quick Reference

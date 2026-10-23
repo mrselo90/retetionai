@@ -14,5 +14,5 @@ export const config = {
   // matches no route — every event 404s instead of reaching PostHog. Static
   // assets under it happen to survive via the `.*\..*` extension escape, so the
   // library loads and only the ingestion silently fails.
-  matcher: ['/((?!api|_next|monitoring|api-backend|rc-relay|.*\\..*).*)'],
+  matcher: ['/((?!api|_next|api-backend|rc-relay|.*\\..*).*)'],
 };

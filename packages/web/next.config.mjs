@@ -9,10 +9,6 @@ const nextConfig = {
     // Performance optimizations
     compress: true, // Enable gzip compression
     poweredByHeader: false, // Remove X-Powered-By header for security
-    // Sentry 11 loads this at runtime for its diagnostics-channel integrations
-    // and it must not be bundled. withSentryConfig would mark it external; this
-    // app doesn't use withSentryConfig, so mark it here.
-    serverExternalPackages: ['@sentry/server-runtime-injection'],
 
     // Compiler optimizations
     compiler: {
@@ -49,10 +45,6 @@ const nextConfig = {
             destination: `${apiUrl.replace(/\/$/, '')}/api/integrations/shopify/oauth/callback`,
         };
 
-        const monitoringRewrite = {
-            source: "/monitoring/:path*",
-            destination: `${apiUrl.replace(/\/$/, '')}/monitoring/:path*`,
-        };
 
         // Always proxy /api-backend/* to API so browser requests (dev uses this path) get through
         const apiBackendRewrite = {
@@ -81,7 +73,7 @@ const nextConfig = {
             },
         ];
 
-        return [oauthRewrite, monitoringRewrite, apiBackendRewrite, ...posthogRewrites];
+        return [oauthRewrite, apiBackendRewrite, ...posthogRewrites];
     },
 
     // Required by the PostHog proxy above: without it Next's trailing-slash
