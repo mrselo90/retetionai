@@ -21,6 +21,8 @@ export default tseslint.config(
       "public/_dev/**",
       "app/public/build/**",
       "extensions/*/dist/**",
+      // Checkout UI extensions use Preact and their own typecheck (extensions/*/package.json).
+      "extensions/**",
       ".shopify/**",
       ".react-router/**",
       "**/*.yml",

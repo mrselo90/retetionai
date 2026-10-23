@@ -1,0 +1,9 @@
+// What `shopify app dev` generates: types the `shopify` global for the target.
+
+import '@shopify/ui-extensions';
+
+//@ts-ignore
+declare module './src/ThankYou.jsx' {
+  const shopify: import('@shopify/ui-extensions/purchase.thank-you.block.render').Api;
+  const globalThis: { shopify: typeof shopify };
+}
