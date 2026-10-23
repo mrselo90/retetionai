@@ -1,10 +1,15 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from 'react-router';
-import { useActionData, useLoaderData, useNavigate, useNavigation } from 'react-router';
+import { useActionData, useLoaderData, useNavigation, useSubmit } from 'react-router';
 import { useMemo, useState } from 'react';
+import { SaveBar } from '@shopify/app-bridge-react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import type { ProductStepOutcome } from '../platform.server';
 import { AppPage } from '../components/shell-ui';
-import { ProductSetupPanel } from '../components/ProductSetupPanel';
+import {
+  ProductSetupAside,
+  ProductSetupMain,
+  buildSaveSetupForm,
+} from '../components/ProductSetupPanel';
 import { useActionToast, useEditProductInShopify } from '../lib/appBridge';
 import { handleProductAction } from '../lib/productActions.server';
 import { loadProductWorkspace } from '../lib/productWorkspace.server';
@@ -34,7 +39,7 @@ export default function ProductDetailPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const navigate = useNavigate();
+  const submit = useSubmit();
   const editInShopify = useEditProductInShopify();
   useActionToast(actionData?.ok && actionData.message ? actionData.message : null, actionData);
 
@@ -93,6 +98,8 @@ export default function ProductDetailPage() {
       if (actionData.ok && actionData.intent === 'save-setup' && actionData.savedDraft) {
         setSavedDraft(actionData.savedDraft);
         setDraft(actionData.savedDraft);
+        // The extra source was read during the save; it isn't stored.
+        setWorkflowUrl('');
       }
       if (actionData.ok && actionData.intent === 'delete') {
         setDraft(emptyDraft());
@@ -121,10 +128,30 @@ export default function ProductDetailPage() {
   }
 
   const initialDraft = savedDraft || draftFromInstruction(row.instruction);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(initialDraft);
+  const draftDirty = JSON.stringify(draft) !== JSON.stringify(initialDraft);
+  // An extra source URL counts as a change: it's only read when saving.
+  const dirty = draftDirty || Boolean(workflowUrl.trim());
   const submitting = navigation.state === 'submitting';
   const currentIntent = String(navigation.formData?.get('intent') || '');
+  const isSavingSetup = submitting && currentIntent === 'save-setup';
+  const isRunningAiAction = submitting && currentIntent === 'embeddings';
+  const isDeletingLocalSetup = submitting && currentIntent === 'delete';
+  const processRunning = isSavingSetup || isRunningAiAction || isDeletingLocalSetup;
   const isManualSource = !data.catalogProducts.some((product) => product.id === row.shopify.id);
+  const actionError =
+    actionData && !actionData.ok && actionData.selectedProductId === row.shopify.id
+      ? actionData.error || null
+      : null;
+
+  function save() {
+    if (!row || processRunning) return;
+    submit(buildSaveSetupForm(row, draft, workflowUrl), { method: 'post' });
+  }
+
+  function discard() {
+    setDraft(initialDraft);
+    setWorkflowUrl('');
+  }
 
   return (
     <AppPage
@@ -135,36 +162,47 @@ export default function ProductDetailPage() {
           ? undefined
           : [{ content: 'Edit in Shopify', onAction: () => editInShopify(row.shopify.id) }]
       }
-    >
-      <s-stack gap="base">
-        {data.dataUnavailable ? (
-          <s-banner tone="warning" heading="Couldn't reach Recete">
-            <s-paragraph>Some product data may be stale. Refresh in a moment.</s-paragraph>
-          </s-banner>
-        ) : null}
-        <ProductSetupPanel
+      showShellBanner={false}
+      aside={
+        <ProductSetupAside
           row={row}
           draft={draft}
           dirty={dirty}
-          workflowUrl={workflowUrl}
-          actionError={
-            actionData && !actionData.ok && actionData.selectedProductId === row.shopify.id
-              ? actionData.error || null
-              : null
-          }
-          previewQuestion={previewQuestion}
-          previewAnswer={previewAnswer}
-          onPreviewQuestionChange={setPreviewQuestion}
+          actionError={actionError}
           stepOutcomes={stepOutcomes}
-          isSavingSetup={submitting && currentIntent === 'save-setup'}
-          isRunningAiAction={submitting && currentIntent === 'embeddings'}
-          isDeletingLocalSetup={submitting && currentIntent === 'delete'}
-          isPreviewingAnswer={submitting && currentIntent === 'preview-answer'}
-          onChangeDraft={(field, value) => setDraft((current) => ({ ...current, [field]: value }))}
-          onWorkflowUrlChange={setWorkflowUrl}
-          onBackToProducts={() => navigate('/app/products')}
+          processRunning={processRunning}
+          isRunningAiAction={isRunningAiAction}
         />
-      </s-stack>
+      }
+    >
+      {/* Shopify's save bar, as on Settings: saving also rebuilds the AI answers. */}
+      <SaveBar id="product-setup-save-bar" open={dirty}>
+        <button variant="primary" onClick={save} loading={isSavingSetup ? '' : undefined}>
+          Save
+        </button>
+        <button onClick={discard} disabled={processRunning}>
+          Discard
+        </button>
+      </SaveBar>
+      {data.dataUnavailable ? (
+        <s-banner tone="warning" heading="Couldn't reach Recete">
+          <s-paragraph>Some product data may be stale. Refresh in a moment.</s-paragraph>
+        </s-banner>
+      ) : null}
+      <ProductSetupMain
+        row={row}
+        draft={draft}
+        workflowUrl={workflowUrl}
+        actionError={actionError}
+        previewQuestion={previewQuestion}
+        previewAnswer={previewAnswer}
+        onPreviewQuestionChange={setPreviewQuestion}
+        processRunning={processRunning}
+        isDeletingLocalSetup={isDeletingLocalSetup}
+        isPreviewingAnswer={submitting && currentIntent === 'preview-answer'}
+        onChangeDraft={(field, value) => setDraft((current) => ({ ...current, [field]: value }))}
+        onWorkflowUrlChange={setWorkflowUrl}
+      />
     </AppPage>
   );
 }
