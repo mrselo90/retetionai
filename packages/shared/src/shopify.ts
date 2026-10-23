@@ -72,6 +72,21 @@ export function buildShopifyProductFallbackContent(product: ShopifyProduct): str
 }
 
 /**
+ * Shopify Admin API version for every direct GraphQL call made by the API,
+ * workers and this package. The embedded app (packages/shopify-app) has its own
+ * constant in app/lib/shopifyApiVersion.ts; keep the two on the same version.
+ * Shopify supports each version for about a year: check the schedule at
+ * https://shopify.dev/docs/api/usage/versioning when updating.
+ */
+export const SHOPIFY_ADMIN_API_VERSION = '2026-10';
+
+/** Admin GraphQL endpoint for a shop domain (with or without protocol). */
+export function shopifyAdminGraphqlUrl(shop: string): string {
+  const cleanShop = shop.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  return `https://${cleanShop}/admin/api/${SHOPIFY_ADMIN_API_VERSION}/graphql.json`;
+}
+
+/**
  * Fetch a single product from Shopify by handle via GraphQL
  */
 export async function fetchShopifyProductByHandle(
@@ -79,8 +94,7 @@ export async function fetchShopifyProductByHandle(
   accessToken: string,
   handle: string
 ): Promise<ShopifyProduct | null> {
-  const cleanShop = shop.replace(/^https?:\/\//, '').replace(/\/$/, '');
-  const url = `https://${cleanShop}/admin/api/2026-01/graphql.json`;
+  const url = shopifyAdminGraphqlUrl(shop);
 
   const query = `
     query getProductByHandle($search: String!) {

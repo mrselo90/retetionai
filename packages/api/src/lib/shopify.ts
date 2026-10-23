@@ -9,6 +9,7 @@ import {
   ShopifyProduct,
   ShopifyProductVariant,
   fetchShopifyProductByHandle as sharedFetchByHandle,
+  shopifyAdminGraphqlUrl,
 } from '@recete/shared';
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
@@ -169,9 +170,7 @@ export async function fetchShopifyProducts(
   first: number = 50,
   after?: string
 ): Promise<{ products: ShopifyProduct[]; hasNextPage: boolean; endCursor?: string }> {
-  // Ensure shop domain is clean
-  const cleanShop = shop.replace(/^https?:\/\//, '').replace(/\/$/, '');
-  const url = `https://${cleanShop}/admin/api/2026-01/graphql.json`;
+  const url = shopifyAdminGraphqlUrl(shop);
 
   const query = `
     query getProducts($first: Int!, $after: String) {
@@ -312,8 +311,7 @@ export async function fetchShopifyLiveProductQuotes(
   accessToken: string,
   productIds: string[]
 ): Promise<ShopifyLiveProductQuote[]> {
-  const cleanShop = shop.replace(/^https?:\/\//, '').replace(/\/$/, '');
-  const url = `https://${cleanShop}/admin/api/2026-01/graphql.json`;
+  const url = shopifyAdminGraphqlUrl(shop);
   const gids = [...new Set(productIds.map((id) => String(id).trim()).filter(Boolean))].map((id) =>
     id.startsWith('gid://') ? id : `gid://shopify/Product/${id}`
   );

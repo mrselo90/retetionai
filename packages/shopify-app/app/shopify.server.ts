@@ -20,11 +20,12 @@ import {
 } from "./services/planDefinitions";
 import { syncShopAfterAuth } from "./services/billingUsage.server";
 import { POLARIS_URL } from "./lib/polaris";
+import { SHOPIFY_API_VERSION } from "./lib/shopifyApiVersion";
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
-  apiVersion: ApiVersion.January26,
+  apiVersion: SHOPIFY_API_VERSION,
   scopes: process.env.SCOPES?.split(","),
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
@@ -144,7 +145,7 @@ export {
   PRO_MONTHLY_PLAN,
   PRO_YEARLY_PLAN,
 };
-export const apiVersion = ApiVersion.January26;
+export const apiVersion = SHOPIFY_API_VERSION;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const authenticate = shopify.authenticate;
 export const unauthenticated = shopify.unauthenticated;

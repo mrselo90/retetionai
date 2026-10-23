@@ -9,8 +9,8 @@ import {
   type PlanKey,
 } from './planDefinitions';
 import { ensureShop, getPlanSnapshotByDomain, syncShopBillingState } from './planService.server';
+import { SHOPIFY_API_VERSION } from "../lib/shopifyApiVersion";
 
-const SHOPIFY_ADMIN_API_VERSION = '2026-01';
 const INTERNAL_EVENT_TYPE_CHAT = 'BILLABLE_CHAT';
 const INTERNAL_EVENT_TYPE_PHOTO = 'PHOTO_ANALYSIS';
 
@@ -183,7 +183,7 @@ async function createUsageRecord(params: {
   idempotencyKey: string;
 }) {
   const response = await fetch(
-    `https://${params.shopDomain}/admin/api/${SHOPIFY_ADMIN_API_VERSION}/graphql.json`,
+    `https://${params.shopDomain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
     {
       method: 'POST',
       headers: {
