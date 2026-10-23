@@ -13,7 +13,23 @@ Sentry.init({
   tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
   
   // Filter out health checks
-  ignoreTransactions: ['GET /health', 'GET /api/health'],
+  // ignoreSpans works with Sentry 11's default span streaming; ignoreTransactions no longer does.
+  ignoreSpans: ['GET /health', 'GET /api/health'],
+  // Sentry 11 collects request/response bodies, cookies, database query data,
+  // AI inputs/outputs and queue job arguments by default. Ours carry customer
+  // phone numbers and WhatsApp messages, so keep to what v10 sent: request
+  // headers (sensitive ones denied, the rest redacted in beforeSend) and query
+  // strings, nothing else.
+  dataCollection: {
+    userInfo: false,
+    cookies: false,
+    httpHeaders: { request: { deny: ['authorization', 'x-api-key', 'cookie'] }, response: false },
+    httpBodies: [],
+    databaseQueryData: false,
+    genAI: { inputs: false, outputs: false },
+    queues: false,
+    stackFrameVariables: false,
+  },
   
   // Filter out sensitive data
   beforeSend(event, hint) {
