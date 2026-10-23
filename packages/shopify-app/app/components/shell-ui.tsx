@@ -64,6 +64,8 @@ export function AppPage({
   secondaryActions,
   backAction,
   inlineSize = 'base',
+  aside,
+  showShellBanner = true,
   children,
 }: {
   heading: string;
@@ -72,6 +74,10 @@ export function AppPage({
   secondaryActions?: PageAction[];
   backAction?: { content: string; url: string };
   inlineSize?: 'small' | 'base' | 'large';
+  /** Sidebar content (s-page's aside slot): status and summaries next to a form. */
+  aside?: ReactNode;
+  /** Detail pages turn the setup trail off: it repeats on every record otherwise. */
+  showShellBanner?: boolean;
   children: ReactNode;
 }) {
   const navigate = useNavigate();
@@ -118,10 +124,15 @@ export function AppPage({
         </s-button>
       ))}
       <s-stack gap="large">
-        {shellBanner}
+        {showShellBanner ? shellBanner : null}
         {typeof subtitle === 'string' ? <s-paragraph color="subdued">{subtitle}</s-paragraph> : subtitle}
         {children}
       </s-stack>
+      {aside ? (
+        <s-stack slot="aside" gap="base">
+          {aside}
+        </s-stack>
+      ) : null}
     </s-page>
   );
 }
