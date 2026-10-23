@@ -150,14 +150,14 @@ importers:
         version: 6.19.3(prisma@6.19.3)(typescript@5.9.3)
       '@react-router/dev':
         specifier: ^7.18.4
-        version: 7.18.4(@react-router/serve@7.18.4)(@types/node@22.20.5)(react-router@7.18.4)(typescript@5.9.3)(vite@8.3.5)
+        version: 7.18.4(@types/node@22.20.5)(react-router@7.18.4)(typescript@5.9.3)(vite@8.3.5)
+      '@react-router/express':
+        specifier: ^7.18.4
+        version: 7.18.4(express@4.22.3)(react-router@7.18.4)(typescript@5.9.3)
       '@react-router/fs-routes':
         specifier: ^7.18.4
         version: 7.18.4(@react-router/dev@7.18.4)(typescript@5.9.3)
       '@react-router/node':
-        specifier: ^7.18.4
-        version: 7.18.4(react-router@7.18.4)(typescript@5.9.3)
-      '@react-router/serve':
         specifier: ^7.18.4
         version: 7.18.4(react-router@7.18.4)(typescript@5.9.3)
       '@shopify/app-bridge-react':
@@ -169,9 +169,18 @@ importers:
       '@shopify/shopify-app-session-storage-prisma':
         specifier: ^11.0.1
         version: 11.0.1(@prisma/client@6.19.3)(@shopify/shopify-api@15.0.1)(@shopify/shopify-app-session-storage@7.0.1)(prisma@6.19.3)
+      compression:
+        specifier: ^1.8.2
+        version: 1.8.2
+      express:
+        specifier: ^4.22.3
+        version: 4.22.3
       isbot:
         specifier: ^5.2.2
         version: 5.2.2
+      morgan:
+        specifier: ^1.12.1
+        version: 1.12.1
       prisma:
         specifier: ^6.19.3
         version: 6.19.3(typescript@5.9.3)
@@ -244,10 +253,10 @@ importers:
         version: 8.72.0(eslint@9.39.5)(typescript@5.9.3)
       vite:
         specifier: ^8.3.5
-        version: 8.3.5(@types/node@22.20.5)(tsx@4.23.15)
+        version: 8.3.5(@types/node@22.20.5)
       vitest:
         specifier: ^5.0.5
-        version: 5.0.5(@types/node@22.20.5)(@vitest/coverage-v8@5.0.5)(vite@8.3.5)
+        version: 5.0.5(@types/node@22.20.5)(vite@8.3.5)
 
   packages/shopify-app/extensions/whatsapp-optin:
     dependencies:
@@ -934,6 +943,7 @@ packages:
     cpu: [ppc64]
     os: [aix]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/android-arm64@0.25.12:
@@ -960,6 +970,7 @@ packages:
     cpu: [arm64]
     os: [android]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/android-arm@0.25.12:
@@ -986,6 +997,7 @@ packages:
     cpu: [arm]
     os: [android]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/android-x64@0.25.12:
@@ -1012,6 +1024,7 @@ packages:
     cpu: [x64]
     os: [android]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/darwin-arm64@0.25.12:
@@ -1038,6 +1051,7 @@ packages:
     cpu: [arm64]
     os: [darwin]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/darwin-x64@0.25.12:
@@ -1064,6 +1078,7 @@ packages:
     cpu: [x64]
     os: [darwin]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/freebsd-arm64@0.25.12:
@@ -1090,6 +1105,7 @@ packages:
     cpu: [arm64]
     os: [freebsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/freebsd-x64@0.25.12:
@@ -1116,6 +1132,7 @@ packages:
     cpu: [x64]
     os: [freebsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-arm64@0.25.12:
@@ -1142,6 +1159,7 @@ packages:
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-arm@0.25.12:
@@ -1168,6 +1186,7 @@ packages:
     cpu: [arm]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-ia32@0.25.12:
@@ -1194,6 +1213,7 @@ packages:
     cpu: [ia32]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-loong64@0.25.12:
@@ -1220,6 +1240,7 @@ packages:
     cpu: [loong64]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-mips64el@0.25.12:
@@ -1246,6 +1267,7 @@ packages:
     cpu: [mips64el]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-ppc64@0.25.12:
@@ -1272,6 +1294,7 @@ packages:
     cpu: [ppc64]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-riscv64@0.25.12:
@@ -1298,6 +1321,7 @@ packages:
     cpu: [riscv64]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-s390x@0.25.12:
@@ -1324,6 +1348,7 @@ packages:
     cpu: [s390x]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/linux-x64@0.25.12:
@@ -1350,6 +1375,7 @@ packages:
     cpu: [x64]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/netbsd-arm64@0.25.12:
@@ -1376,6 +1402,7 @@ packages:
     cpu: [arm64]
     os: [netbsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/netbsd-x64@0.25.12:
@@ -1402,6 +1429,7 @@ packages:
     cpu: [x64]
     os: [netbsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/openbsd-arm64@0.25.12:
@@ -1428,6 +1456,7 @@ packages:
     cpu: [arm64]
     os: [openbsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/openbsd-x64@0.25.12:
@@ -1454,6 +1483,7 @@ packages:
     cpu: [x64]
     os: [openbsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/openharmony-arm64@0.25.12:
@@ -1480,6 +1510,7 @@ packages:
     cpu: [arm64]
     os: [openharmony]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/sunos-x64@0.25.12:
@@ -1506,6 +1537,7 @@ packages:
     cpu: [x64]
     os: [sunos]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/win32-arm64@0.25.12:
@@ -1532,6 +1564,7 @@ packages:
     cpu: [arm64]
     os: [win32]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/win32-ia32@0.25.12:
@@ -1558,6 +1591,7 @@ packages:
     cpu: [ia32]
     os: [win32]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@esbuild/win32-x64@0.25.12:
@@ -1584,6 +1618,7 @@ packages:
     cpu: [x64]
     os: [win32]
     requiresBuild: true
+    dev: true
     optional: true
 
   /@eslint-community/eslint-utils@4.10.1(eslint@9.39.5):
@@ -4627,7 +4662,7 @@ packages:
     resolution: {integrity: sha512-JtyZR+mqgBibTo8xea3B6ZRmzZiM/YeVBtUkas6zMuXjAlfIFIW2FgqeM9eLyvEaYX66vr6DJMK+4U6LV0KhNw==}
     dev: false
 
-  /@react-router/dev@7.18.4(@react-router/serve@7.18.4)(@types/node@22.20.5)(react-router@7.18.4)(typescript@5.9.3)(vite@8.3.5):
+  /@react-router/dev@7.18.4(@types/node@22.20.5)(react-router@7.18.4)(typescript@5.9.3)(vite@8.3.5):
     resolution: {integrity: sha512-4sxQa18Znjz1zw1MGK7f97zXjK4NVcNgESvWPPEYScRFAHJWq6Q3/oejDPfYjKWLygsX1yF9jboxbGLw+V9f+g==}
     engines: {node: '>=20.0.0'}
     hasBin: true
@@ -4659,7 +4694,6 @@ packages:
       '@babel/traverse': 7.29.10
       '@babel/types': 7.29.8
       '@react-router/node': 7.18.4(react-router@7.18.4)(typescript@5.9.3)
-      '@react-router/serve': 7.18.4(react-router@7.18.4)(typescript@5.9.3)
       '@remix-run/node-fetch-server': 0.13.3
       arg: 5.0.2
       babel-dead-code-elimination: 1.0.12
@@ -4681,7 +4715,7 @@ packages:
       tinyglobby: 0.2.17
       typescript: 5.9.3
       valibot: 1.5.0(typescript@5.9.3)
-      vite: 8.3.5(@types/node@22.20.5)(tsx@4.23.15)
+      vite: 8.3.5(@types/node@22.20.5)
       vite-node: 3.2.4(@types/node@22.20.5)
     transitivePeerDependencies:
       - '@types/node'
@@ -4726,7 +4760,7 @@ packages:
       typescript:
         optional: true
     dependencies:
-      '@react-router/dev': 7.18.4(@react-router/serve@7.18.4)(@types/node@22.20.5)(react-router@7.18.4)(typescript@5.9.3)(vite@8.3.5)
+      '@react-router/dev': 7.18.4(@types/node@22.20.5)(react-router@7.18.4)(typescript@5.9.3)(vite@8.3.5)
       minimatch: 9.0.9
       typescript: 5.9.3
     dev: false
@@ -4744,27 +4778,6 @@ packages:
       '@mjackson/node-fetch-server': 0.2.0
       react-router: 7.18.4(react-dom@19.3.1)(react@19.3.1)
       typescript: 5.9.3
-    dev: false
-
-  /@react-router/serve@7.18.4(react-router@7.18.4)(typescript@5.9.3):
-    resolution: {integrity: sha512-MbSgKv0k3kwqV4DPK8XzZeYpBkxu9wsK/o2JQgCgk6GCUqARD9RhA1mOQPBkR88TUwpJ7Sj3+VPTamA6qmdiVA==}
-    engines: {node: '>=20.0.0'}
-    hasBin: true
-    peerDependencies:
-      react-router: 7.18.4
-    dependencies:
-      '@mjackson/node-fetch-server': 0.2.0
-      '@react-router/express': 7.18.4(express@4.22.3)(react-router@7.18.4)(typescript@5.9.3)
-      '@react-router/node': 7.18.4(react-router@7.18.4)(typescript@5.9.3)
-      compression: 1.8.2
-      express: 4.22.3
-      get-port: 5.1.1
-      morgan: 1.12.1
-      react-router: 7.18.4(react-dom@19.3.1)(react@19.3.1)
-      source-map-support: 0.5.21
-    transitivePeerDependencies:
-      - supports-color
-      - typescript
     dev: false
 
   /@reduxjs/toolkit@2.13.0(react-redux@9.3.0)(react@19.3.1):
@@ -6140,7 +6153,7 @@ packages:
       '@vitest/spy': 5.0.5
       estree-walker: 3.0.3
       magic-string: 1.4.3
-      vite: 8.3.5(@types/node@22.20.5)(tsx@4.23.15)
+      vite: 8.3.5(@types/node@22.20.5)
     dev: true
 
   /@vitest/pretty-format@5.0.5:
@@ -7659,6 +7672,7 @@ packages:
       '@esbuild/win32-arm64': 0.28.2
       '@esbuild/win32-ia32': 0.28.2
       '@esbuild/win32-x64': 0.28.2
+    dev: true
 
   /escalade@3.2.0:
     resolution: {integrity: sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==}
@@ -8430,11 +8444,6 @@ packages:
   /get-nonce@1.0.1:
     resolution: {integrity: sha512-FJhYRoDaiatfEkUK8HKlicmu/3SGFD51q3itKDGoSTysQJBnfOcxU5GxnhE1E6soB76MbT0MBtnKJuXyAx+96Q==}
     engines: {node: '>=6'}
-    dev: false
-
-  /get-port@5.1.1:
-    resolution: {integrity: sha512-g/Q1aTSDOxFpchXC4i8ZWvxA1lnPqx/JHqcpIw0/LX9T8x/GBbi6YnlN5nhaKIFkT8oFsscUKgDJYxfwfS6QsQ==}
-    engines: {node: '>=8'}
     dev: false
 
   /get-proto@1.0.1:
@@ -11407,13 +11416,6 @@ packages:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
 
-  /source-map-support@0.5.21:
-    resolution: {integrity: sha512-uBHU3L3czsIyYXKX88fdrGovxdSCoTGDRZ6SYXtSRxLZUzHg5P/66Ht6uoUlHu9EZod+inXhKo3qQgwXUT/y1w==}
-    dependencies:
-      buffer-from: 1.1.2
-      source-map: 0.6.1
-    dev: false
-
   /source-map@0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
@@ -11847,6 +11849,7 @@ packages:
       esbuild: 0.28.2
     optionalDependencies:
       fsevents: 2.3.3
+    dev: true
 
   /type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
@@ -12191,7 +12194,7 @@ packages:
       debug: 4.4.3
       globrex: 0.1.2
       tsconfck: 3.1.6(typescript@5.9.3)
-      vite: 8.3.5(@types/node@22.20.5)(tsx@4.23.15)
+      vite: 8.3.5(@types/node@22.20.5)
     transitivePeerDependencies:
       - supports-color
       - typescript
@@ -12248,6 +12251,58 @@ packages:
       fsevents: 2.3.3
     dev: false
 
+  /vite@8.3.5(@types/node@22.20.5):
+    resolution: {integrity: sha512-z1YpjieJ9g0ebTmQpLBv/oq9E3F9EIlOe+7LahW8SrE3LTiG3udBRUXQOlYXP9b+IC2q2phHeVxj9xGlw34OEQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': ^20.19.0 || >=22.12.0
+      '@vitejs/devtools': ^0.7.1 || ^0.8.0
+      esbuild: ^0.27.0 || ^0.28.0
+      jiti: '>=1.21.0'
+      less: ^4.0.0
+      sass: ^1.70.0
+      sass-embedded: ^1.70.0
+      stylus: '>=0.54.8'
+      sugarss: ^5.0.0
+      terser: ^5.16.0
+      tsx: ^4.8.1
+      yaml: ^2.4.2
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      '@vitejs/devtools':
+        optional: true
+      esbuild:
+        optional: true
+      jiti:
+        optional: true
+      less:
+        optional: true
+      sass:
+        optional: true
+      sass-embedded:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+      tsx:
+        optional: true
+      yaml:
+        optional: true
+    dependencies:
+      '@types/node': 22.20.5
+      lightningcss: 1.33.0
+      picomatch: 4.0.7
+      postcss: 8.5.31
+      rolldown: 1.2.15
+      tinyglobby: 0.2.17
+    optionalDependencies:
+      fsevents: 2.3.3
+
   /vite@8.3.5(@types/node@22.20.5)(tsx@4.23.15):
     resolution: {integrity: sha512-z1YpjieJ9g0ebTmQpLBv/oq9E3F9EIlOe+7LahW8SrE3LTiG3udBRUXQOlYXP9b+IC2q2phHeVxj9xGlw34OEQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -12300,6 +12355,7 @@ packages:
       tsx: 4.23.15
     optionalDependencies:
       fsevents: 2.3.3
+    dev: true
 
   /vitest@5.0.5(@opentelemetry/api@1.10.0)(@types/node@22.20.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(vite@8.3.5):
     resolution: {integrity: sha512-cPODOMF8YnkiiYtDdHo6n4wWmBrOBBbOIYH2d33M4l3CdNn72h+qMmO6uXffUN6A5AZFXNND/d+krS9mgkXRfg==}
@@ -12420,6 +12476,66 @@ packages:
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
       vite: 8.3.5(@types/node@22.20.5)(tsx@4.23.15)
+      why-is-node-running: 3.2.1
+    transitivePeerDependencies:
+      - msw
+    dev: true
+
+  /vitest@5.0.5(@types/node@22.20.5)(vite@8.3.5):
+    resolution: {integrity: sha512-cPODOMF8YnkiiYtDdHo6n4wWmBrOBBbOIYH2d33M4l3CdNn72h+qMmO6uXffUN6A5AZFXNND/d+krS9mgkXRfg==}
+    engines: {node: ^22.12.0 || ^24.0.0 || >=26.0.0}
+    hasBin: true
+    peerDependencies:
+      '@edge-runtime/vm': '*'
+      '@opentelemetry/api': ^1.9.0
+      '@types/node': ^22.0.0 || >=24.0.0
+      '@vitest/browser-playwright': 5.0.5
+      '@vitest/browser-preview': 5.0.5
+      '@vitest/browser-webdriverio': ^5.0.0-beta.5 || >=5.0.0
+      '@vitest/coverage-istanbul': 5.0.5
+      '@vitest/coverage-v8': 5.0.5
+      '@vitest/ui': 5.0.5
+      happy-dom: '*'
+      jsdom: '*'
+      vite: ^6.4.0 || ^7.0.0 || ^8.0.0
+    peerDependenciesMeta:
+      '@edge-runtime/vm':
+        optional: true
+      '@opentelemetry/api':
+        optional: true
+      '@types/node':
+        optional: true
+      '@vitest/browser-playwright':
+        optional: true
+      '@vitest/browser-preview':
+        optional: true
+      '@vitest/browser-webdriverio':
+        optional: true
+      '@vitest/coverage-istanbul':
+        optional: true
+      '@vitest/coverage-v8':
+        optional: true
+      '@vitest/ui':
+        optional: true
+      happy-dom:
+        optional: true
+      jsdom:
+        optional: true
+    dependencies:
+      '@types/chai': 5.2.3
+      '@types/node': 22.20.5
+      '@vitest/mocker': 5.0.5(vite@8.3.5)
+      chai: 6.3.0
+      es-module-lexer: 2.3.2
+      expect-type: 1.4.0
+      magic-string: 1.4.3
+      obug: 3.0.0
+      picomatch: 4.0.7
+      std-env: 4.3.0
+      tinybench: 6.2.2
+      tinyexec: 1.3.1
+      tinyglobby: 0.2.17
+      vite: 8.3.5(@types/node@22.20.5)
       why-is-node-running: 3.2.1
     transitivePeerDependencies:
       - msw
