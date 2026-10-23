@@ -4,6 +4,7 @@
 # (app/routes/public.whatsapp-optin.tsx) to record WhatsApp marketing consent in
 # Shopify. Merchants place it with the checkout and accounts editor.
 api_version = "2026-10"
+uid = "36cee1de-bc7c-3470-e602-b8df22311a3a76d89ca1"
 
 [[extensions]]
 name = "WhatsApp opt-in"
