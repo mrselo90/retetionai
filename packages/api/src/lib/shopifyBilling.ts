@@ -3,7 +3,7 @@
  * Handles subscription charges and billing for Shopify apps using GraphQL API
  */
 
-import { getSupabaseServiceClient, logger } from '@recete/shared';
+import { getSupabaseServiceClient, logger, shopifyAdminGraphqlUrl } from '@recete/shared';
 import type { SubscriptionPlan } from './billing.js';
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
@@ -40,7 +40,7 @@ async function shopifyGraphQL(
   variables: any = {},
   attempt = 0,
 ): Promise<any> {
-  const url = `https://${shop}/admin/api/2026-01/graphql.json`;
+  const url = shopifyAdminGraphqlUrl(shop);
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -210,12 +210,17 @@ export async function getShopifyRecurringCharge(
 } | null> {
   try {
     const gid = `gid://shopify/AppSubscription/${chargeId}`;
+    // The Admin API has no root `appSubscription` field (the old query failed
+    // validation on every version, so add-on confirmation never saw an active
+    // charge); subscriptions are read through `node`. AppSubscription has no
+    // updatedAt, so that stays empty.
     const query = `
       query appSubscription($id: ID!) {
-        appSubscription(id: $id) {
-          status
-          createdAt
-          updatedAt
+        node(id: $id) {
+          ... on AppSubscription {
+            status
+            createdAt
+          }
         }
       }
     `;
@@ -223,18 +228,19 @@ export async function getShopifyRecurringCharge(
     const response = await shopifyGraphQL(shop, accessToken, query, { id: gid });
     const data = response.data as any;
     const errors = response.errors as any;
+    const subscription = data?.node;
 
-    if (errors || !data?.appSubscription) {
+    if (errors || !subscription?.status) {
       logger.error({ shop, chargeId, errors }, 'Failed to get Shopify AppSubscription via GraphQL');
       return null;
     }
 
-    const normalizedStatus = (data.appSubscription.status || '').toLowerCase();
+    const normalizedStatus = (subscription.status || '').toLowerCase();
 
     return {
       status: normalizedStatus as 'pending' | 'accepted' | 'active' | 'declined' | 'expired' | 'cancelled',
-      createdAt: data.appSubscription.createdAt || '',
-      updatedAt: data.appSubscription.updatedAt || '',
+      createdAt: subscription.createdAt || '',
+      updatedAt: '',
     };
   } catch (error) {
     logger.error({ error, shop, chargeId }, 'Error getting Shopify recurring charge');

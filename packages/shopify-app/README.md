@@ -40,7 +40,7 @@ This package is phase 1 of the Shopify shell migration.
 Current status:
 - official Shopify app scaffold is installed
 - monorepo package shape is aligned
-- API version is pinned to `2026-01`
+- API version is pinned to `2026-10` (`app/lib/shopifyApiVersion.ts`; API and workers: `SHOPIFY_ADMIN_API_VERSION` in `@recete/shared`)
 - scopes and mandatory compliance topics are declared
 
 Next phase:
