@@ -60,6 +60,9 @@ export default function BotInfoPage() {
   }, [t]);
 
   useEffect(() => {
+    // False positive: loadBotInfo sets state only after awaiting the session, never
+    // synchronously, but the rule does not see past await.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadBotInfo();
   }, [loadBotInfo]);
 

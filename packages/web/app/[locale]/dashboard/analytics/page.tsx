@@ -69,7 +69,6 @@ export default function AnalyticsPage() {
   }));
 
   const loadAnalytics = useCallback(async () => {
-    setLoadError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -85,6 +84,7 @@ export default function AnalyticsPage() {
         authenticatedRequest<{ roi: ROIData }>('/api/analytics/roi', session.access_token).catch(() => null),
         authenticatedRequest<PreventionData>('/api/analytics/return-prevention', session.access_token).catch(() => null),
       ]);
+      setLoadError(null);
       setAnalytics(analyticsRes);
       if (roiRes) setRoi(roiRes.roi);
       if (preventionRes) setPrevention(preventionRes);
@@ -100,6 +100,9 @@ export default function AnalyticsPage() {
   }, [dateRange.startDate, dateRange.endDate, t]);
 
   useEffect(() => {
+    // Every setState in loadAnalytics runs after its first await, so nothing here updates
+    // state synchronously; the rule does not follow the await, hence the disable.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadAnalytics();
   }, [loadAnalytics]);
 
@@ -149,7 +152,7 @@ export default function AnalyticsPage() {
           title={t('loadError.title')}
           body={loadError}
           action={
-            <Button variant="primary" onClick={() => { setLoading(true); void loadAnalytics(); }}>
+            <Button variant="primary" onClick={() => { setLoading(true); setLoadError(null); void loadAnalytics(); }}>
               {t('loadError.retry')}
             </Button>
           }

@@ -13,7 +13,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from '@/i18n/routing';
 import { supabase } from '@/lib/supabase';
 import { authenticatedRequest } from '@/lib/api';
@@ -69,50 +69,53 @@ export default function ConversationsLayout({ children }: { children: React.Reac
     return match?.[1];
   }, [pathname]);
 
-  const loadConversations = useCallback(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        window.location.href = '/login';
-        return;
-      }
-
-      const response = await authenticatedRequest<{ conversations: ApiConversation[] }>(
-        '/api/conversations',
-        session.access_token,
-      );
-      setConversations(response.conversations);
-      setListedAt(Date.now());
-
-      const humanCount = response.conversations.filter((c) => c.conversationStatus === 'human').length;
-      document.title = humanCount > 0 ? `(${humanCount}) ${t('title')}` : t('title');
-
-      // Only announce a genuinely new escalation, and never on the first load —
-      // otherwise opening the inbox with three waiting threads fires a toast
-      // telling you three arrived just now.
-      if (prevHumanCount.current !== null && humanCount > prevHumanCount.current) {
-        toast.error(
-          t('needsAttentionToast.title'),
-          t('needsAttentionToast.message', { count: humanCount - prevHumanCount.current }),
-        );
-      }
-      prevHumanCount.current = humanCount;
-    } catch (err) {
-      if (getErrorStatus(err) === 401) {
-        toast.error(t('toasts.sessionExpired.title'), t('toasts.sessionExpired.message'));
-        window.location.href = '/login';
-        return;
-      }
-      // A failed background refresh leaves the last good list on screen.
-      if (prevHumanCount.current === null) {
-        toast.error(t('toasts.loadError.title'), t('toasts.loadError.message'));
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
-
   useEffect(() => {
+    // Declared inside the effect rather than as a useCallback: the effect is its
+    // only caller (first load, poll, tab refocus), and every state update in it
+    // follows an await, so nothing is set synchronously while the effect runs.
+    const loadConversations = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          window.location.href = '/login';
+          return;
+        }
+
+        const response = await authenticatedRequest<{ conversations: ApiConversation[] }>(
+          '/api/conversations',
+          session.access_token,
+        );
+        setConversations(response.conversations);
+        setListedAt(Date.now());
+
+        const humanCount = response.conversations.filter((c) => c.conversationStatus === 'human').length;
+        document.title = humanCount > 0 ? `(${humanCount}) ${t('title')}` : t('title');
+
+        // Only announce a genuinely new escalation, and never on the first load —
+        // otherwise opening the inbox with three waiting threads fires a toast
+        // telling you three arrived just now.
+        if (prevHumanCount.current !== null && humanCount > prevHumanCount.current) {
+          toast.error(
+            t('needsAttentionToast.title'),
+            t('needsAttentionToast.message', { count: humanCount - prevHumanCount.current }),
+          );
+        }
+        prevHumanCount.current = humanCount;
+      } catch (err) {
+        if (getErrorStatus(err) === 401) {
+          toast.error(t('toasts.sessionExpired.title'), t('toasts.sessionExpired.message'));
+          window.location.href = '/login';
+          return;
+        }
+        // A failed background refresh leaves the last good list on screen.
+        if (prevHumanCount.current === null) {
+          toast.error(t('toasts.loadError.title'), t('toasts.loadError.message'));
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
     void loadConversations();
 
     let interval: ReturnType<typeof setInterval> | null = null;
@@ -137,7 +140,7 @@ export default function ConversationsLayout({ children }: { children: React.Reac
       stop();
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [loadConversations]);
+  }, [t]);
 
   const relativeTime = (iso: string | null | undefined): string => {
     if (!iso) return '–';

@@ -72,6 +72,9 @@ export function WhatsAppConnectCard() {
   }, [t]);
 
   useEffect(() => {
+    // False positive: load sets state only after awaiting the access token, never
+    // synchronously, but the rule does not see past await.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 

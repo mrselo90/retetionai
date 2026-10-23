@@ -52,15 +52,23 @@ export function WhatsAppConnectCard({ initial }: { initial: WhatsAppConnectionSt
   const unlinkingRef = useRef(false);
 
   // The page loader revalidates after navigation and focus; take its answer.
-  useEffect(() => {
+  // Poll and connect/disconnect results update it too. Each source is applied
+  // during render when it changes, latest change wins.
+  const [seenInitial, setSeenInitial] = useState(initial);
+  if (initial !== seenInitial) {
+    setSeenInitial(initial);
     if (initial) setStatus(initial);
-  }, [initial]);
-  useEffect(() => {
+  }
+  const [seenPoll, setSeenPoll] = useState(poller.data);
+  if (poller.data !== seenPoll) {
+    setSeenPoll(poller.data);
     if (poller.data?.ok) setStatus(poller.data.status);
-  }, [poller.data]);
-  useEffect(() => {
+  }
+  const [seenAction, setSeenAction] = useState(actor.data);
+  if (actor.data !== seenAction) {
+    setSeenAction(actor.data);
     if (actor.data?.ok) setStatus(actor.data.status);
-  }, [actor.data]);
+  }
   useEffect(() => {
     if (!unlinkingRef.current || actor.state !== 'idle' || !actor.data) return;
     unlinkingRef.current = false;

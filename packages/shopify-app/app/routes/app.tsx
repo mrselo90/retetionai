@@ -188,11 +188,10 @@ function AppShell() {
     return () => window.clearInterval(interval);
   }, [bootstrapPending, load]);
 
-  useEffect(() => {
-    if (fetcher.data && !hasLoadedOnce) {
-      setHasLoadedOnce(true);
-    }
-  }, [fetcher.data, hasLoadedOnce]);
+  // Adjusted during render: flips once, the first time bootstrap data arrives.
+  if (fetcher.data && !hasLoadedOnce) {
+    setHasLoadedOnce(true);
+  }
 
   const bootstrapData = fetcher.data ?? null;
   const bootstrapError =

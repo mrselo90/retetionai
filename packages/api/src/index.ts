@@ -2,6 +2,7 @@ import './loadEnv.js';
 
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
+import { timingSafeEqual } from 'crypto';
 import { swaggerUI } from '@hono/swagger-ui';
 import { getSupabaseClient, getRedisClient } from '@recete/shared';
 import authRoutes from './routes/auth.js';
@@ -63,6 +64,9 @@ const app = new Hono();
 
 // Logger middleware (apply first to capture all requests)
 app.use('/*', loggerMiddleware);
+
+// Request metrics (Prometheus registry in lib/metrics.ts, served at /metrics)
+app.use('/*', metricsMiddleware);
 
 // HTTPS enforcement (in production, before other middleware)
 if (process.env.NODE_ENV === 'production') {
@@ -275,6 +279,20 @@ app.get('/api/config/platform-contact', async (c) => {
 });
 
 // Health check endpoint
+// Prometheus metrics: request counts and latency plus the AI pipeline counters
+// (crisis checks, fallbacks, handoffs...). Internal: needs the service secret
+// as a bearer token; without it the route doesn't exist.
+app.get('/metrics', async (c) => {
+  const expected = process.env.INTERNAL_SERVICE_SECRET?.trim() || '';
+  const provided = (c.req.header('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  const matches =
+    expected.length > 0 &&
+    provided.length === expected.length &&
+    timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
+  if (!matches) return c.notFound();
+  return c.body(await register.metrics(), 200, { 'Content-Type': register.contentType });
+});
+
 app.get('/', (c) => {
   return c.json({
     message: 'Recete API',

@@ -132,7 +132,7 @@ export default function AdminDashboardPage() {
             <div className="r-alert r-alert-info">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 <p style={{ margin: 0, fontSize: 'var(--r-text-base-plus)' }}>
-                    Platform admin dashboards are Polaris-standardized for operations, while merchant-facing screens remain the primary UX priority.
+                    Platform admin dashboards are built for operations, while merchant-facing screens remain the primary UX priority.
                 </p>
             </div>
         </div>

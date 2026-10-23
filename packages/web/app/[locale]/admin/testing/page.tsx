@@ -251,87 +251,92 @@ export default function AdminTestingPage() {
     const [replyResult, setReplyResult] = useState<ReplyResult | null>(null);
     const [scenarioCatalog, setScenarioCatalog] = useState<ShopifyScenarioDefinition[]>([]);
     const [selectedScenarioIds, setSelectedScenarioIds] = useState<string[]>([]);
-    const [scenariosLoading, setScenariosLoading] = useState(false);
+    const [scenariosLoading, setScenariosLoading] = useState(true);
     const [runningScenarios, setRunningScenarios] = useState(false);
     const [scenarioRunResult, setScenarioRunResult] = useState<ShopifyScenarioRunResponse | null>(null);
 
-    const fetchMerchants = async () => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-
-            const response = await authenticatedRequest<{ merchants: MerchantOption[] }>(
-                '/api/admin/merchants',
-                session.access_token,
-            );
-            setMerchants(response.merchants || []);
-            if (!selectedMerchantId && response.merchants?.length) {
-                setSelectedMerchantId(response.merchants[0].id);
-            }
-        } catch (err) {
-            setError(getErrorMessage(err, 'Failed to load merchants'));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchScenarioCatalog = async () => {
-        setScenariosLoading(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-
-            const response = await authenticatedRequest<{ scenarios: ShopifyScenarioDefinition[] }>(
-                '/api/admin/test-kit/shopify-scenarios',
-                session.access_token,
-            );
-            const scenarios = response.scenarios || [];
-            setScenarioCatalog(scenarios);
-            setSelectedScenarioIds(scenarios.map((scenario) => scenario.id));
-        } catch (err) {
-            setError(getErrorMessage(err, 'Failed to load Shopify scenarios'));
-        } finally {
-            setScenariosLoading(false);
-        }
-    };
-
-    const fetchMerchantData = async (merchantId: string) => {
-        if (!merchantId) {
-            setMerchantData(null);
-            setSelectedProductIds([]);
-            return;
-        }
-
-        setMerchantLoading(true);
-        setOrderResult(null);
-        setReplyResult(null);
-        setScenarioRunResult(null);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-
-            const response = await authenticatedRequest<MerchantTestKitData>(
-                `/api/admin/merchants/${merchantId}/test-kit`,
-                session.access_token,
-            );
-            setMerchantData(response);
-            setSelectedProductIds(response.products.slice(0, 2).map((product) => product.id));
-        } catch (err) {
-            setError(getErrorMessage(err, 'Failed to load merchant test data'));
-        } finally {
-            setMerchantLoading(false);
-        }
-    };
-
+    // Both loaders live inside the mount effect and only set state after their first await.
+    // The scenario catalogue is only fetched here, so scenariosLoading starts out true.
     useEffect(() => {
+        const fetchMerchants = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+
+                const response = await authenticatedRequest<{ merchants: MerchantOption[] }>(
+                    '/api/admin/merchants',
+                    session.access_token,
+                );
+                setMerchants(response.merchants || []);
+                // No merchant can be selected yet: the page shows its skeleton until this load ends.
+                if (response.merchants?.length) {
+                    setSelectedMerchantId(response.merchants[0].id);
+                    // Selecting a merchant starts its test-kit load (see the effect below).
+                    setMerchantLoading(true);
+                }
+            } catch (err) {
+                setError(getErrorMessage(err, 'Failed to load merchants'));
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        const fetchScenarioCatalog = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+
+                const response = await authenticatedRequest<{ scenarios: ShopifyScenarioDefinition[] }>(
+                    '/api/admin/test-kit/shopify-scenarios',
+                    session.access_token,
+                );
+                const scenarios = response.scenarios || [];
+                setScenarioCatalog(scenarios);
+                setSelectedScenarioIds(scenarios.map((scenario) => scenario.id));
+            } catch (err) {
+                setError(getErrorMessage(err, 'Failed to load Shopify scenarios'));
+            } finally {
+                setScenariosLoading(false);
+            }
+        };
+
         void fetchMerchants();
         void fetchScenarioCatalog();
     }, []);
 
-    useEffect(() => {
-        if (selectedMerchantId) {
-            void fetchMerchantData(selectedMerchantId);
+    /** Changes the merchant and resets its per-merchant state; the effect below then loads its test kit. */
+    const selectMerchant = (merchantId: string) => {
+        setSelectedMerchantId(merchantId);
+        if (merchantId) {
+            setMerchantLoading(true);
+            setOrderResult(null);
+            setReplyResult(null);
+            setScenarioRunResult(null);
         }
+    };
+
+    useEffect(() => {
+        if (!selectedMerchantId) return;
+
+        const fetchMerchantData = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+
+                const response = await authenticatedRequest<MerchantTestKitData>(
+                    `/api/admin/merchants/${selectedMerchantId}/test-kit`,
+                    session.access_token,
+                );
+                setMerchantData(response);
+                setSelectedProductIds(response.products.slice(0, 2).map((product) => product.id));
+            } catch (err) {
+                setError(getErrorMessage(err, 'Failed to load merchant test data'));
+            } finally {
+                setMerchantLoading(false);
+            }
+        };
+
+        void fetchMerchantData();
     }, [selectedMerchantId]);
 
     const toggleProduct = (productId: string, checked: boolean) => {
@@ -520,7 +525,7 @@ export default function AdminTestingPage() {
                     <Select
                         label="Merchant"
                         value={selectedMerchantId}
-                        onChange={(event) => setSelectedMerchantId(event.target.value)}
+                        onChange={(event) => selectMerchant(event.target.value)}
                     >
                         {merchantOptions.map((option) => (
                             <option key={option.value || 'none'} value={option.value}>

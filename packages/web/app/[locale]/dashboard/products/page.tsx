@@ -142,11 +142,17 @@ export default function ProductsPage() {
     return t('knowledge.coverage.weak');
   };
 
-  // scoreFilter belongs here too: without it, switching chips while on page 3
-  // leaves you on page 3 of a list that may now be one page long.
-  useEffect(() => {
+  // Any filter or sort change goes back to page 1. scoreFilter belongs here too:
+  // without it, switching chips while on page 3 leaves you on page 3 of a list
+  // that may now be one page long. Adjusted during render (React's "store the
+  // previous value" pattern) rather than in an effect, so the stale page is never
+  // committed.
+  const pageResetKey = JSON.stringify([searchQuery, statusFilter, scoreFilter, sortBy]);
+  const [lastPageResetKey, setLastPageResetKey] = useState(pageResetKey);
+  if (lastPageResetKey !== pageResetKey) {
+    setLastPageResetKey(pageResetKey);
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, scoreFilter, sortBy]);
+  }
 
   useEffect(() => {
     loadProducts();
@@ -156,6 +162,9 @@ export default function ProductsPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const saved = window.localStorage.getItem('productsViewMode');
+    // Read after mount on purpose: the server render has no localStorage, so
+    // seeding useState from it would cause a hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved === 'grid' || saved === 'list') setViewMode(saved);
   }, []);
 
@@ -165,6 +174,9 @@ export default function ProductsPage() {
     if (!raw) return;
     try {
       const parsed = JSON.parse(raw) as ProductsSavedView[];
+      // Read after mount on purpose: the server render has no localStorage, so
+      // seeding useState from it would cause a hydration mismatch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (Array.isArray(parsed)) setSavedViews(parsed);
     } catch {
       // ignore malformed local data
@@ -176,26 +188,29 @@ export default function ProductsPage() {
     window.localStorage.setItem('productsSavedViews', JSON.stringify(savedViews));
   }, [savedViews]);
 
-  useEffect(() => {
-    if (activeSavedViewId === 'all') return;
+  // A saved view stays active only while the filters still match it; once they
+  // diverge (or the view is gone) fall back to "all". Adjusted during render: the
+  // condition is a pure function of current state and turns false right after
+  // the update, so this settles in one extra pass without committing.
+  if (activeSavedViewId !== 'all') {
     const active = savedViews.find((v) => v.id === activeSavedViewId);
-    if (!active) {
-      setActiveSavedViewId('all');
-      return;
-    }
     const matchesActive =
+      active !== undefined &&
       active.searchQuery === searchQuery &&
       active.statusFilter === statusFilter &&
       active.sortBy === sortBy;
     if (!matchesActive) {
       setActiveSavedViewId('all');
     }
-  }, [activeSavedViewId, savedViews, searchQuery, statusFilter, sortBy]);
+  }
 
-  useEffect(() => {
-    // Remove selections that no longer exist after reload/delete.
+  // Remove selections that no longer exist after reload/delete, whenever the
+  // product list changes. Adjusted during render against the previous list.
+  const [selectionProducts, setSelectionProducts] = useState(products);
+  if (selectionProducts !== products) {
+    setSelectionProducts(products);
     setSelectedProductIds((prev) => prev.filter((id) => products.some((p) => p.id === id)));
-  }, [products]);
+  }
 
   const getProductStatus = (product: ProductWithChunks): ProductStatusFilter => {
     if (!product.raw_text) return 'not_scraped';

@@ -538,12 +538,13 @@ export default function SettingsPage() {
     });
   }, [actionData, data.plan.planType, showCoreSuccess]);
 
-  useEffect(() => {
-    if (!dirty && savedCoreStateJson !== loaderStateJson) {
-      setSavedCoreStateJson(loaderStateJson);
-      setFormState(loaderState);
-    }
-  }, [dirty, loaderState, loaderStateJson, savedCoreStateJson]);
+  // While the form is clean, follow the loader (revalidation after a save or
+  // elsewhere). Adjusted during render; it settles in one pass because the
+  // form then equals the saved state again.
+  if (!dirty && savedCoreStateJson !== loaderStateJson) {
+    setSavedCoreStateJson(loaderStateJson);
+    setFormState(loaderState);
+  }
 
   if (navigation.state === 'loading') {
     return (

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import { useActionToast } from '../lib/appBridge';
@@ -83,11 +83,14 @@ export default function ConversationDetailPage() {
     conversation.status === 'open' ||
     conversation.returnPreventionAttempt?.outcome === 'escalated';
 
-  useEffect(() => {
+  // Clear the reply box once per sent reply (adjusted during render).
+  const [handledAction, setHandledAction] = useState(actionData);
+  if (actionData !== handledAction) {
+    setHandledAction(actionData);
     if (actionData?.ok && actionData.message?.includes('Reply sent')) {
       setReplyText('');
     }
-  }, [actionData]);
+  }
 
   if (navigation.state === 'loading') {
     return (

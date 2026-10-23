@@ -14,21 +14,18 @@ import { incrementApiCallCount } from '../lib/usageTracking.js';
 export async function metricsMiddleware(c: Context, next: Next) {
   const startTime = Date.now();
   const method = c.req.method;
-  const path = c.req.path;
-  
-  // Normalize route path (remove IDs, etc.)
-  const route = normalizeRoute(path);
-  
+
   try {
     await next();
-    
+
     const duration = (Date.now() - startTime) / 1000; // Convert to seconds
     const statusCode = c.res.status;
-    
+    const route = routeLabel(c);
+
     // Record metrics
     httpRequestDuration.observe({ method, route, status_code: statusCode }, duration);
     httpRequestTotal.inc({ method, route, status_code: statusCode });
-    
+
     // Track errors (4xx, 5xx)
     if (statusCode >= 400) {
       const errorType = statusCode >= 500 ? 'server_error' : 'client_error';
@@ -39,36 +36,27 @@ export async function metricsMiddleware(c: Context, next: Next) {
   } catch (error) {
     const duration = (Date.now() - startTime) / 1000;
     const statusCode = c.res.status || 500;
-    
+    const route = routeLabel(c);
+
     // Record error metrics
     httpRequestDuration.observe({ method, route, status_code: statusCode }, duration);
     httpRequestTotal.inc({ method, route, status_code: statusCode });
-    httpRequestErrors.inc({ 
-      method, 
-      route, 
-      error_type: error instanceof Error ? error.name : 'unknown_error' 
+    httpRequestErrors.inc({
+      method,
+      route,
+      error_type: error instanceof Error ? error.name : 'unknown_error'
     });
-    
+
     throw error;
   }
 }
 
 /**
- * Normalize route path for metrics
- * Replaces UUIDs and IDs with placeholders
+ * The matched route pattern (`/api/products/:id`), read after the handler ran.
+ * Raw paths would add a label value per URL, and scanners alone send thousands
+ * of distinct ones; requests no route matched share `unmatched`.
  */
-function normalizeRoute(path: string): string {
-  // Replace UUIDs
-  let normalized = path.replace(
-    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
-    ':id'
-  );
-  
-  // Replace numeric IDs
-  normalized = normalized.replace(/\/\d+/g, '/:id');
-  
-  // Replace hash-like strings (API keys, etc.)
-  normalized = normalized.replace(/\/[a-zA-Z0-9]{32,}/g, '/:hash');
-  
-  return normalized;
+function routeLabel(c: Context): string {
+  const pattern = c.req.routePath;
+  return pattern && pattern !== '/*' ? pattern : 'unmatched';
 }

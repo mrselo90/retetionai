@@ -143,6 +143,9 @@ export default function ConversationThreadPage() {
 
   useEffect(() => {
     if (!conversationId) return;
+    // False positive: loadConversation sets state only after awaiting the session, never
+    // synchronously, but the rule does not see past await.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadConversation({ isInitial: true });
 
     let interval: ReturnType<typeof setInterval> | null = null;

@@ -151,13 +151,20 @@ export default function ProductsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput, data.query]);
 
-  useEffect(() => {
-    if (!actionData?.ok) return;
-    if (actionData.intent === 'bulk-draft' || actionData.intent === 'bulk-prepare') setSelectedIds([]);
-    if (actionData.intent === 'create') {
-      shopify.modal.hide(MANUAL_SOURCE_MODAL_ID);
-      setManualSourceDraft({ name: '', url: '', enrichmentUrl: '' });
+  // Apply each new action result once, during render: clear the selection
+  // after a bulk run, empty the manual-source form after it was created.
+  const [handledAction, setHandledAction] = useState(actionData);
+  if (actionData !== handledAction) {
+    setHandledAction(actionData);
+    if (actionData?.ok) {
+      if (actionData.intent === 'bulk-draft' || actionData.intent === 'bulk-prepare') setSelectedIds([]);
+      if (actionData.intent === 'create') setManualSourceDraft({ name: '', url: '', enrichmentUrl: '' });
     }
+  }
+
+  // Closing the modal is an App Bridge call, so it stays an effect.
+  useEffect(() => {
+    if (actionData?.ok && actionData.intent === 'create') shopify.modal.hide(MANUAL_SOURCE_MODAL_ID);
   }, [actionData, shopify]);
 
   const pageIds = data.items.map((item) => item.id);
