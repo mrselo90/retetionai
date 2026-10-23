@@ -9,6 +9,10 @@ const nextConfig = {
     // Performance optimizations
     compress: true, // Enable gzip compression
     poweredByHeader: false, // Remove X-Powered-By header for security
+    // Sentry 11 loads this at runtime for its diagnostics-channel integrations
+    // and it must not be bundled. withSentryConfig would mark it external; this
+    // app doesn't use withSentryConfig, so mark it here.
+    serverExternalPackages: ['@sentry/server-runtime-injection'],
 
     // Compiler optimizations
     compiler: {

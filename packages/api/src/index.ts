@@ -1,12 +1,14 @@
 import './loadEnv.js';
 
-import { initSentry } from './lib/sentry.js';
+import { initSentry, captureException } from './lib/sentry.js';
 
 // Initialize Sentry before anything else
 initSentry();
 
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
+import { timingSafeEqual } from 'crypto';
 import { swaggerUI } from '@hono/swagger-ui';
 import { getSupabaseClient, getRedisClient } from '@recete/shared';
 import authRoutes from './routes/auth.js';
@@ -280,6 +282,34 @@ app.get('/api/config/platform-contact', async (c) => {
 });
 
 // Health check endpoint
+// Unhandled route errors. Hono's default handler only logged them, so
+// nothing outside the auth routes ever reached Sentry. Same responses as
+// before: HTTPExceptions keep theirs, anything else is a plain-text 500.
+app.onError((err, c) => {
+  if (err instanceof HTTPException) {
+    if (err.status >= 500) captureException(err, { request: { method: c.req.method, route: c.req.routePath } });
+    return err.getResponse();
+  }
+  captureException(err instanceof Error ? err : new Error(String(err)), {
+    request: { method: c.req.method, route: c.req.routePath },
+  });
+  console.error(err);
+  return c.text('Internal Server Error', 500);
+});
+
+// Deliberately throws, to check that unhandled errors reach Sentry after a
+// deploy. Needs the internal service secret; without it the route doesn't exist.
+app.post('/internal/sentry-test', (c) => {
+  const expected = process.env.INTERNAL_SERVICE_SECRET?.trim() || '';
+  const provided = c.req.header('X-Internal-Secret')?.trim() || '';
+  const matches =
+    expected.length > 0 &&
+    provided.length === expected.length &&
+    timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
+  if (!matches) return c.notFound();
+  throw new Error(`Sentry test error from the API (${new Date().toISOString()})`);
+});
+
 app.get('/', (c) => {
   return c.json({
     message: 'Recete API',

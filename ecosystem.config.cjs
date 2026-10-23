@@ -28,6 +28,14 @@ const internalServiceSecret =
   rootEnv.PLATFORM_INTERNAL_SECRET ||
   '';
 
+// Sentry. The API reads SENTRY_DSN from this .env itself (loadEnv). Next.js only
+// reads packages/web/.env, so web gets its DSN here: SENTRY_WEB_DSN for a
+// separate Sentry project, else the API's SENTRY_DSN.
+const sentryWebEnv = {
+  SENTRY_DSN: process.env.SENTRY_WEB_DSN || rootEnv.SENTRY_WEB_DSN || process.env.SENTRY_DSN || rootEnv.SENTRY_DSN || '',
+  SENTRY_ENVIRONMENT: process.env.SENTRY_ENVIRONMENT || rootEnv.SENTRY_ENVIRONMENT || 'production',
+};
+
 const nrLicenseKey =
   process.env.NEW_RELIC_LICENSE_KEY ||
   rootEnv.NEW_RELIC_LICENSE_KEY ||
@@ -123,6 +131,9 @@ module.exports = {
         PORT: 3001,
         INTERNAL_API_URL: 'http://127.0.0.1:3002',
         NEXT_PUBLIC_API_URL: 'https://recete.co.uk',
+        // For app/api/internal/sentry-test (deploy check of error reporting).
+        INTERNAL_SERVICE_SECRET: internalServiceSecret,
+        ...sentryWebEnv,
       },
       instances: 1,
       exec_mode: 'fork',
