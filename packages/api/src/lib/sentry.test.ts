@@ -67,7 +67,6 @@ describe('Sentry Module', () => {
             initSentry();
             expect(Sentry.init).toHaveBeenCalledWith(expect.objectContaining({
                 tracesSampleRate: 0.1,
-                profilesSampleRate: 0.1,
             }));
         });
     });
