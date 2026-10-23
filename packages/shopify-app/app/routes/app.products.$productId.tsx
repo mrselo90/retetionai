@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from 'react-router';
 import { useActionData, useLoaderData, useNavigate, useNavigation } from 'react-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import type { ProductStepOutcome } from '../platform.server';
 import { AppPage } from '../components/shell-ui';
@@ -60,41 +60,50 @@ export default function ProductDetailPage() {
     Partial<Record<ProductStepOutcome['step'], StepOutcomeState>>
   >({});
 
-  // Navigating between products reuses this component: start each one fresh.
-  useEffect(() => {
-    setDraft(draftFromInstruction(row?.instruction));
-    setSavedDraft(null);
-    setWorkflowUrl('');
-    setPreviewQuestion('How do I use this product?');
-    setPreviewAnswer('');
-    setStepOutcomes({});
+  // Both adjusted during render, in this order: a different product resets the
+  // local state, then an action result (new, or for the product just switched
+  // to) is applied to it. No result counts as handled at first, so one present
+  // on mount is applied too.
+  const [handled, setHandled] = useState<{
+    productId: string;
+    actionData: typeof actionData;
+  }>({ productId: data.productId, actionData: undefined });
+  if (handled.productId !== data.productId || handled.actionData !== actionData) {
+    setHandled({ productId: data.productId, actionData });
+
+    // Navigating between products reuses this component: start each one fresh.
     // Only on a different product; row.instruction changes after every save.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.productId]);
-
-  useEffect(() => {
-    if (!actionData || actionData.selectedProductId !== data.productId) return;
-
-    if (actionData.stepOutcomes?.length) {
-      setStepOutcomes((current) => {
-        const next = { ...current };
-        for (const outcome of actionData.stepOutcomes || []) next[outcome.step] = outcome;
-        return next;
-      });
-    }
-    if (actionData.ok && actionData.intent === 'save-setup' && actionData.savedDraft) {
-      setSavedDraft(actionData.savedDraft);
-      setDraft(actionData.savedDraft);
-    }
-    if (actionData.ok && actionData.intent === 'delete') {
-      setDraft(emptyDraft());
+    if (handled.productId !== data.productId) {
+      setDraft(draftFromInstruction(row?.instruction));
       setSavedDraft(null);
+      setWorkflowUrl('');
+      setPreviewQuestion('How do I use this product?');
+      setPreviewAnswer('');
+      setStepOutcomes({});
     }
-    if (actionData.ok && actionData.intent === 'preview-answer') {
-      setPreviewQuestion((current) => actionData.previewQuestion || current);
-      setPreviewAnswer(actionData.previewAnswer || '');
+
+    if (actionData && actionData.selectedProductId === data.productId) {
+      if (actionData.stepOutcomes?.length) {
+        setStepOutcomes((current) => {
+          const next = { ...current };
+          for (const outcome of actionData.stepOutcomes || []) next[outcome.step] = outcome;
+          return next;
+        });
+      }
+      if (actionData.ok && actionData.intent === 'save-setup' && actionData.savedDraft) {
+        setSavedDraft(actionData.savedDraft);
+        setDraft(actionData.savedDraft);
+      }
+      if (actionData.ok && actionData.intent === 'delete') {
+        setDraft(emptyDraft());
+        setSavedDraft(null);
+      }
+      if (actionData.ok && actionData.intent === 'preview-answer') {
+        setPreviewQuestion((current) => actionData.previewQuestion || current);
+        setPreviewAnswer(actionData.previewAnswer || '');
+      }
     }
-  }, [actionData, data.productId]);
+  }
 
   if (!row) {
     return (

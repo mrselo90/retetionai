@@ -72,10 +72,6 @@ export default tseslint.config(
     },
     rules: {
       "react/no-unknown-property": ["error", { ignore: ["variant"] }],
-      // React Hooks v7 turns this on as an error. Several effects here sync
-      // state from action results (save bar, product drafts); rewriting them is
-      // its own change, so it warns for now, as in packages/web.
-      "react-hooks/set-state-in-effect": "warn",
     },
   },
 

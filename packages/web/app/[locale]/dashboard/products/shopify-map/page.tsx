@@ -134,6 +134,9 @@ export default function ShopifyMapPage() {
   }, [t]);
 
   useEffect(() => {
+    // Every setState in loadData runs after its first await, so nothing here updates
+    // state synchronously; the rule does not follow the await, hence the disable.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadData();
   }, [loadData]);
 

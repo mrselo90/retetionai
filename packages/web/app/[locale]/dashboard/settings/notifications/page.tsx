@@ -56,6 +56,9 @@ export default function NotificationsPage() {
   }, [t]);
 
   useEffect(() => {
+    // False positive: loadData sets state only after awaiting the session, never
+    // synchronously, but the rule does not see past await.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadData();
   }, [loadData]);
 

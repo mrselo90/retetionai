@@ -173,7 +173,8 @@ export default function SystemHealthPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // Starts true: the initial health load is already in flight when the page mounts.
+  const [isRefreshing, setIsRefreshing] = useState(true);
   const [aiSettings, setAiSettings] = useState<PlatformAiSettings | null>(null);
   const [savingAiSettings, setSavingAiSettings] = useState(false);
   const [selectedLlmModel, setSelectedLlmModel] = useState('gpt-4o-mini');
@@ -203,8 +204,8 @@ export default function SystemHealthPage() {
   const [ragSuiteMode, setRagSuiteMode] = useState<'rag_only' | 'rag_and_answer'>('rag_and_answer');
   const [ragSuiteExcludedProductIds, setRagSuiteExcludedProductIds] = useState<string[]>([]);
 
-  const fetchHealth = async () => {
-    setIsRefreshing(true);
+  /** Loads health and AI settings; only sets state after its first await. */
+  const loadHealth = async () => {
     try {
       const {
         data: { session },
@@ -250,6 +251,12 @@ export default function SystemHealthPage() {
       setLoading(false);
       setIsRefreshing(false);
     }
+  };
+
+  /** Manual and interval refresh: flags the refresh, then reloads. */
+  const fetchHealth = () => {
+    setIsRefreshing(true);
+    return loadHealth();
   };
 
   const parseCommaList = (value: string, fallback: string[]) => {
@@ -518,7 +525,10 @@ export default function SystemHealthPage() {
   };
 
   useEffect(() => {
-    fetchHealth();
+    // Initial load. isRefreshing already starts true, so nothing is set synchronously here; the
+    // rule cannot see that loadHealth only sets state after an await.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadHealth();
     // Auto refresh every 30 seconds
     const interval = setInterval(fetchHealth, 30000);
     return () => clearInterval(interval);

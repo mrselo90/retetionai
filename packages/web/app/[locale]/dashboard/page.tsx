@@ -183,6 +183,9 @@ export default function DashboardPage() {
   }, [t]);
 
   useEffect(() => {
+    // Every setState in loadDashboard runs after its first await, so nothing here updates
+    // state synchronously; the rule does not follow the await, hence the disable.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadDashboard();
   }, [loadDashboard]);
 

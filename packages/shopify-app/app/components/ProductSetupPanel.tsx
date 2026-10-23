@@ -81,15 +81,30 @@ export function ProductSetupPanel({
   const statusTone: 'success' | 'info' | 'warning' =
     lifecycle.key === 'ready' ? 'success' : lifecycle.key === 'processing' ? 'info' : 'warning';
 
-  useEffect(() => {
-    setKnowledgeOpen(false);
-    setPreviewOpen(false);
-    setShowDangerZone(false);
-    setConfirmDelete(false);
-    setAiDrafted(false);
-  }, [row.shopify.id]);
+  // Adjusted during render rather than in an effect: a different product
+  // starts with everything collapsed, and a new AI draft for this product
+  // shows the "drafted" banner (also when coming back to the drafted product).
+  const [seenDraft, setSeenDraft] = useState({
+    productId: row.shopify.id,
+    data: draftFetcher.data,
+  });
+  if (seenDraft.productId !== row.shopify.id || seenDraft.data !== draftFetcher.data) {
+    setSeenDraft({ productId: row.shopify.id, data: draftFetcher.data });
+    if (seenDraft.productId !== row.shopify.id) {
+      setKnowledgeOpen(false);
+      setPreviewOpen(false);
+      setShowDangerZone(false);
+      setConfirmDelete(false);
+      setAiDrafted(false);
+    }
+    const result = draftFetcher.data;
+    if (result?.ok && result.draft && result.selectedProductId === row.shopify.id) {
+      setAiDrafted(true);
+    }
+  }
 
-  // Fill the form with the AI draft; the merchant reviews it and saves.
+  // Fill the form with the AI draft; the merchant reviews it and saves. This
+  // stays an effect: it updates the parent's state.
   useEffect(() => {
     const result = draftFetcher.data;
     if (!result?.ok || !result.draft || result.selectedProductId !== row.shopify.id) return;
@@ -97,7 +112,6 @@ export function ProductSetupPanel({
     if (result.draft.prevention_tips)
       onChangeDraft('prevention_tips', result.draft.prevention_tips);
     if (result.draft.recipe_summary) onChangeDraft('recipe_summary', result.draft.recipe_summary);
-    setAiDrafted(true);
     // onChangeDraft is recreated by the parent on every render.
   }, [draftFetcher.data, row.shopify.id]);
 

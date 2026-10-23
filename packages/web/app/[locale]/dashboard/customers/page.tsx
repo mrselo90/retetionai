@@ -95,6 +95,9 @@ export default function CustomersPage() {
   }, [page, segment, deferredSearch, t]);
 
   useEffect(() => {
+    // Every setState in loadCustomers runs after its first await, so nothing here updates
+    // state synchronously; the rule does not follow the await, hence the disable.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadCustomers();
   }, [loadCustomers]);
 

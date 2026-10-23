@@ -63,20 +63,8 @@ export default function AdminMerchantsPage() {
     const [aiUsageModalMerchant, setAiUsageModalMerchant] = useState<Merchant | null>(null);
     const [aiUsageDetail, setAiUsageDetail] = useState<MerchantAiUsageDetailResponse | null>(null);
     const [aiUsageDetailLoading, setAiUsageDetailLoading] = useState(false);
-
-    const fetchMerchants = async () => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-
-            const data = await authenticatedRequest<{ merchants: Merchant[]; ai_window?: string }>(`/api/admin/merchants?ai_window=${aiWindow}`, session.access_token);
-            setMerchants(data.merchants || []);
-        } catch (err) {
-            setError(getErrorMessage(err, 'Failed to fetch merchants'));
-        } finally {
-            setLoading(false);
-        }
-    };
+    /** Bumped to refetch the merchant list for the current AI window. */
+    const [merchantsReloadKey, setMerchantsReloadKey] = useState(0);
 
     const handleSetLimit = async (merchantId: string, currentLimit: number) => {
         const amountStr = prompt(`Enter new Capped Amount for merchant (Current: $${currentLimit})`, currentLimit.toString());
@@ -96,7 +84,7 @@ export default function AdminMerchantsPage() {
                 body: JSON.stringify({ merchantId, cappedAmount: amount })
             });
             toast.success(`Capped amount requested to $${amount}`);
-            await fetchMerchants();
+            setMerchantsReloadKey((key) => key + 1);
         } catch (err) {
             toast.error(getErrorMessage(err, 'Failed to update limit'));
         }
@@ -143,9 +131,24 @@ export default function AdminMerchantsPage() {
         }
     };
 
+    // Loads on mount, when the AI window changes and after a limit update; state is only set after the first await.
     useEffect(() => {
-        fetchMerchants();
-    }, [aiWindow]);
+        const fetchMerchants = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+
+                const data = await authenticatedRequest<{ merchants: Merchant[]; ai_window?: string }>(`/api/admin/merchants?ai_window=${aiWindow}`, session.access_token);
+                setMerchants(data.merchants || []);
+            } catch (err) {
+                setError(getErrorMessage(err, 'Failed to fetch merchants'));
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        void fetchMerchants();
+    }, [aiWindow, merchantsReloadKey]);
 
     if (loading) {
         return (
