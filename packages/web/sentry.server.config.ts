@@ -4,10 +4,11 @@
  */
 
 import * as Sentry from '@sentry/nextjs';
+import { sentryDsn, sentryEnvironment } from './lib/sentryDsn';
 
 Sentry.init({
-  dsn: process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN,
-  environment: process.env.NODE_ENV || 'development',
+  dsn: sentryDsn(),
+  environment: sentryEnvironment(),
   
   // Adjust this value in production
   tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,

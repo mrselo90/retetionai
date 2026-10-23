@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as Sentry from '@sentry/node';
 import {
+    isUsableSentryDsn,
     initSentry,
     captureException,
     captureMessage,
@@ -129,5 +130,26 @@ describe('Sentry Module', () => {
                 data: { from: 'a', to: 'b' },
             });
         });
+    });
+});
+
+describe('isUsableSentryDsn', () => {
+    it('accepts a real DSN', () => {
+        expect(isUsableSentryDsn('https://abc123@o4500000000000000.ingest.de.sentry.io/4500000000000001')).toBe(true);
+    });
+
+    it('rejects empty values and placeholders left in .env', () => {
+        expect(isUsableSentryDsn(undefined)).toBe(false);
+        expect(isUsableSentryDsn('  ')).toBe(false);
+        expect(isUsableSentryDsn('your_sentry_dsn_here')).toBe(false);
+        expect(isUsableSentryDsn('https://your-sentry-dsn-here')).toBe(false);
+        expect(isUsableSentryDsn('https://sentry.io/123')).toBe(false);
+    });
+
+    it('does not initialise Sentry for a placeholder', () => {
+        vi.mocked(Sentry.init).mockClear();
+        process.env.SENTRY_DSN = 'your_sentry_dsn_here';
+        initSentry();
+        expect(Sentry.init).not.toHaveBeenCalled();
     });
 });

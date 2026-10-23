@@ -7,17 +7,38 @@ import * as Sentry from '@sentry/node';
 /**
  * Initialize Sentry for backend
  */
+/**
+ * A real DSN is a URL with the project's public key and id
+ * (https://<key>@<host>/<project>). Anything else - empty, or a placeholder
+ * like `your_sentry_dsn_here` left in .env - would make the SDK log
+ * "Invalid Sentry Dsn" on every event, so it counts as not configured.
+ */
+export function isUsableSentryDsn(dsn: string | undefined): dsn is string {
+  if (!dsn?.trim()) return false;
+  try {
+    const url = new URL(dsn.trim());
+    return /^https?:$/.test(url.protocol) && Boolean(url.username) && /^\/\d+$/.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
 export function initSentry() {
   const dsn = process.env.SENTRY_DSN;
-  const environment = process.env.NODE_ENV || 'development';
+  const environment = process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development';
 
-  if (!dsn) {
-    console.warn('Sentry DSN not configured. Error tracking disabled.');
+  const dsnIsSet = Boolean(dsn?.trim());
+  if (!isUsableSentryDsn(dsn)) {
+    console.warn(
+      dsnIsSet
+        ? 'Sentry DSN is not a valid DSN (placeholder?). Error tracking disabled.'
+        : 'Sentry DSN not configured. Error tracking disabled.'
+    );
     return;
   }
 
   Sentry.init({
-    dsn,
+    dsn: dsn.trim(),
     environment,
     integrations: [],
 
