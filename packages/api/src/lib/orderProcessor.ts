@@ -12,6 +12,11 @@ import { scheduleMessage } from '../queues.js';
 import { normalizeAndHashPhone } from './phoneLookup.js';
 import { sendDeliveryTemplate } from './deliveryTemplateService.js';
 import { invalidateMerchantOverviewCache } from './cache.js';
+import {
+  applyConsentDecision,
+  shopifyConsentDecisionForOrder,
+  type ConsentDecision,
+} from './whatsappConsent.js';
 
 /**
  * Process normalized event and upsert order/user
@@ -118,13 +123,11 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
       // Update user name and consent when provided (sync from Shopify)
       const updatePayload: {
         name?: string;
-        consent_status?: string;
         phone_lookup_hash?: string;
         email?: string | null;
         shopify_customer_id?: string | null;
       } = {};
       if (event.customer.name) updatePayload.name = event.customer.name;
-      if (event.consent_status) updatePayload.consent_status = event.consent_status;
       if (event.customer.email) updatePayload.email = event.customer.email;
       if (event.customer.shopify_customer_id)
         updatePayload.shopify_customer_id = event.customer.shopify_customer_id;
@@ -143,7 +146,8 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
           name: event.customer.name || null,
           email: event.customer.email || null,
           shopify_customer_id: event.customer.shopify_customer_id || null,
-          consent_status: event.consent_status || 'pending',
+          // Consent is applied below, from its source, like for existing users.
+          consent_status: 'pending',
         })
         .select('id')
         .single();
@@ -157,6 +161,15 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
   } else {
     // No phone provided - cannot create user
     throw new Error('Phone number is required to process event');
+  }
+
+  // Step 1b: WhatsApp consent. Shopify orders read the customer's WhatsApp
+  // marketing consent for this number; imports carry their own value. Either
+  // way decideConsentUpdate() keeps an opt-out unless a newer opt-in arrives,
+  // so an order no longer undoes a STOP reply.
+  const consentDecision = await consentDecisionForEvent(event);
+  if (consentDecision) {
+    await applyConsentDecision(serviceClient, userId, event.merchant_id, consentDecision);
   }
 
   // Step 2: Upsert order (by merchant_id + external_order_id)
@@ -346,4 +359,20 @@ export async function processExternalEvents(limit: number = 100): Promise<{
   }
 
   return { processed, errors };
+}
+
+async function consentDecisionForEvent(event: NormalizedEvent): Promise<ConsentDecision | null> {
+  if (event.source === 'shopify') {
+    if (!event.customer?.shopify_customer_id || !event.customer.phone) return null;
+    return shopifyConsentDecisionForOrder({
+      merchantId: event.merchant_id,
+      shopifyCustomerId: event.customer.shopify_customer_id,
+      phone: event.customer.phone,
+    });
+  }
+  const status = event.consent_status;
+  if (status === 'opt_in' || status === 'opt_out' || status === 'pending') {
+    return { status, source: 'import', updatedAt: event.occurred_at || null };
+  }
+  return null;
 }

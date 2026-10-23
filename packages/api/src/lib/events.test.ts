@@ -6,52 +6,23 @@ describe('normalizeShopifyEvent', () => {
   const merchantId = 'test_merchant_id';
   const integrationId = 'test_integration_id';
 
-  it('should normalize email_marketing_consent to opt_in', () => {
+  it('does not derive WhatsApp consent from email or SMS marketing consent', () => {
     const shopifyEvent = {
       id: 123456789,
+      name: '#1001',
+      created_at: '2026-10-01T10:00:00Z',
       customer: {
-        id: 987654321,
-        email_marketing_consent: {
-          state: 'subscribed',
-        },
+        id: 42,
+        phone: '+447700900123',
+        email_marketing_consent: { state: 'subscribed' },
+        sms_marketing_consent: { state: 'subscribed' },
       },
     };
 
     const result = normalizeShopifyEvent(merchantId, integrationId, shopifyEvent, 'orders/create');
-    expect(result).not.toBeNull();
-    expect(result?.consent_status).toBe('opt_in');
-  });
-
-  it('should normalize sms_marketing_consent to opt_in', () => {
-    const shopifyEvent = {
-      id: 123456789,
-      customer: {
-        id: 987654321,
-        sms_marketing_consent: {
-          state: 'subscribed',
-        },
-      },
-    };
-
-    const result = normalizeShopifyEvent(merchantId, integrationId, shopifyEvent, 'orders/create');
-    expect(result).not.toBeNull();
-    expect(result?.consent_status).toBe('opt_in');
-  });
-
-  it('should normalize not_subscribed to opt_out', () => {
-    const shopifyEvent = {
-      id: 123456789,
-      customer: {
-        id: 987654321,
-        email_marketing_consent: {
-          state: 'not_subscribed',
-        },
-      },
-    };
-
-    const result = normalizeShopifyEvent(merchantId, integrationId, shopifyEvent, 'orders/create');
-    expect(result).not.toBeNull();
-    expect(result?.consent_status).toBe('opt_out');
+    // WhatsApp consent is read from Shopify when the event is processed
+    // (lib/whatsappConsent.ts), not inferred from other channels.
+    expect(result?.consent_status).toBeUndefined();
   });
 
   it('should normalize orders/updated with fulfilled status to order_delivered', () => {

@@ -9,6 +9,7 @@
  */
 
 import { getSupabaseServiceClient, logger } from '@recete/shared';
+import { pushWhatsAppOptOutToShopify } from './whatsappConsent.js';
 
 type ServiceClient = ReturnType<typeof getSupabaseServiceClient>;
 
@@ -60,7 +61,11 @@ export async function recordCustomerOptOut(
 ): Promise<{ ok: boolean }> {
   const { error: consentError } = await client
     .from('users')
-    .update({ consent_status: 'opt_out' })
+    .update({
+      consent_status: 'opt_out',
+      consent_source: 'whatsapp_reply',
+      consent_updated_at: new Date().toISOString(),
+    })
     .eq('id', input.userId)
     .eq('merchant_id', input.merchantId);
 
@@ -81,6 +86,9 @@ export async function recordCustomerOptOut(
     logger.warn({ tasksError, ...input }, '[opt-out] Could not cancel pending tasks');
   }
 
+  // Shopify too, so the merchant sees it and the next order doesn't read an old
+  // SUBSCRIBED back (needs write_customers; skipped with a warning without it).
+  void pushWhatsAppOptOutToShopify({ merchantId: input.merchantId, userId: input.userId });
   logger.info(input, '[opt-out] Customer opted out of WhatsApp messages');
   return { ok: true };
 }

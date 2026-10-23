@@ -138,19 +138,9 @@ export function normalizeShopifyEvent(
       }
     }
 
-    // Extract marketing consent (GDPR/KVKK): Shopify customer.email_marketing_consent / sms_marketing_consent
-    let consent_status: 'opt_in' | 'opt_out' | 'pending' = 'pending';
-    const customer = order.customer;
-    if (customer) {
-      const buyerAcceptsMarketing = customer.buyer_accepts_marketing === true;
-      const emailState = (customer.email_marketing_consent?.state || '').toLowerCase();
-      const smsState = (customer.sms_marketing_consent?.state || '').toLowerCase();
-      if (buyerAcceptsMarketing || emailState === 'subscribed' || smsState === 'subscribed') {
-        consent_status = 'opt_in';
-      } else if (emailState === 'not_subscribed' || smsState === 'not_subscribed') {
-        consent_status = 'opt_out';
-      }
-    }
+    // WhatsApp consent isn't derived from the order: email/SMS marketing consent
+    // doesn't cover WhatsApp. processNormalizedEvent reads the customer's
+    // WhatsApp marketing consent from Shopify instead (lib/whatsappConsent.ts).
 
     // Extract line items
     const items = (order.line_items || []).map((item: any) => ({
@@ -187,7 +177,6 @@ export function normalizeShopifyEvent(
         delivered_at: deliveredAt,
       },
       items: items.length > 0 ? items : undefined,
-      consent_status,
       customer_locale: customerLocale,
     };
   } catch (error) {
