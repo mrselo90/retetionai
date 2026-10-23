@@ -29,20 +29,31 @@ function Extension() {
   const [state, setState] = useState('loading');
 
   useEffect(() => {
+    // The block hides itself whenever it can't offer the opt-in; these logs are
+    // the only way to tell why from the buyer's browser console.
     if (!orderId || !checkoutToken) {
+      console.info('[recete whatsapp-optin] hidden: missing', {orderId: Boolean(orderId), checkoutToken: Boolean(checkoutToken)});
       setState('hidden');
       return;
     }
     let cancelled = false;
+    const slow = setTimeout(() => console.warn('[recete whatsapp-optin] status check still pending after 10s'), 10000);
     call('GET', {orderId, checkoutToken})
+      .finally(() => clearTimeout(slow))
       .then(({ok, body}) => {
         if (cancelled) return;
-        if (!ok || !body.eligible) setState('hidden');
-        else setState(body.subscribed ? 'subscribed' : 'ready');
+        if (!ok || !body.eligible) {
+          console.info('[recete whatsapp-optin] hidden:', ok ? body.reason : 'request refused');
+          setState('hidden');
+        } else setState(body.subscribed ? 'subscribed' : 'ready');
       })
-      .catch(() => !cancelled && setState('hidden'));
+      .catch((error) => {
+        console.warn('[recete whatsapp-optin] hidden: status check failed', String(error && error.message ? error.message : error));
+        if (!cancelled) setState('hidden');
+      });
     return () => {
       cancelled = true;
+      clearTimeout(slow);
     };
   }, [orderId, checkoutToken]);
 
