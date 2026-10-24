@@ -155,6 +155,11 @@ model BulkDraftJob {
   shopDomain   String
   status       BulkDraftStatus @default(RUNNING)
   limitReached Boolean         @default(false)
+  // The shell process running the job, and until when. Several processes serve
+  // the shell (PM2 cluster); only the lease holder runs it, and a job whose
+  // lease lapsed (process stopped or reloaded) is taken over.
+  leaseOwner   String?
+  leaseUntil   DateTime?
   finishedAt   DateTime?
   // When the merchant dismissed the result; until then it is shown again.
   seenAt       DateTime?

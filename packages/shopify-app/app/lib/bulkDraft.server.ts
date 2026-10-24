@@ -8,10 +8,12 @@
  * process works through the items, BULK_DRAFT_CONCURRENCY at a time, and the
  * Products page polls /app/products/bulk-draft-status.
  *
- * A restart loses the runner, not the job: the next status read finds the job
- * RUNNING with no runner in this process, puts interrupted items back to
- * PENDING and resumes. Retrying an item is safe: persistProductSetup links the
- * existing Recete product for a Shopify product before it creates one.
+ * A restart loses the runner, not the job. The process running a job holds a
+ * lease on it; on shutdown it finishes the items in hand and releases the job,
+ * and a job whose lease lapsed (crash) is resumed by any shell process's
+ * recovery scan or status read, interrupted items first. Retrying an item is
+ * safe: persistProductSetup links the existing Recete product for a Shopify
+ * product before it creates one.
  *
  * "Update AI" (kind PREPARE) runs the same way: each item rebuilds one product's
  * AI knowledge. Products without a saved setup are recorded as skipped up front.
@@ -19,6 +21,7 @@
  * The runner calls the platform API as the job's shop. That shop came from the
  * verified Shopify session that created the job, never from client input.
  */
+import { randomUUID } from 'node:crypto';
 import prisma from '../db.server';
 import {
   draftMerchantProductInstructions,
@@ -183,7 +186,15 @@ function platformStepsForShop(shopDomain: string): BulkDraftSteps {
   };
 }
 
-const activeRunners = new Set<string>();
+// Several shell processes serve the app (PM2 cluster, reloaded one at a time on
+// deploy). A job runs in the process holding its lease, renewed while it runs.
+const RUNNER_ID = `${process.pid}-${randomUUID().slice(0, 8)}`;
+const LEASE_MS = 30_000;
+const LEASE_RENEW_MS = 10_000;
+const RECOVERY_SCAN_MS = 20_000;
+
+const runningJobs = new Map<string, Promise<void>>();
+let stopping = false;
 
 async function claimNextItem(jobId: string) {
   for (;;) {
@@ -200,20 +211,50 @@ async function claimNextItem(jobId: string) {
   }
 }
 
-async function runJob(jobId: string) {
-  if (activeRunners.has(jobId)) return;
-  activeRunners.add(jobId);
+/** Takes the job's lease if it is free, lapsed or already ours. */
+async function acquireLease(jobId: string) {
+  const now = new Date();
+  const taken = await prisma.bulkDraftJob.updateMany({
+    where: {
+      id: jobId,
+      status: 'RUNNING',
+      OR: [{ leaseUntil: null }, { leaseUntil: { lt: now } }, { leaseOwner: RUNNER_ID }],
+    },
+    data: { leaseOwner: RUNNER_ID, leaseUntil: new Date(now.getTime() + LEASE_MS) },
+  });
+  return taken.count === 1;
+}
+
+function runJob(jobId: string) {
+  if (stopping || runningJobs.has(jobId)) return;
+  const run = runJobWithLease(jobId).finally(() => runningJobs.delete(jobId));
+  runningJobs.set(jobId, run);
+}
+
+async function runJobWithLease(jobId: string) {
+  let renew: ReturnType<typeof setInterval> | undefined;
   try {
+    if (!(await acquireLease(jobId))) return;
+    renew = setInterval(() => {
+      void prisma.bulkDraftJob
+        .updateMany({
+          where: { id: jobId, leaseOwner: RUNNER_ID },
+          data: { leaseUntil: new Date(Date.now() + LEASE_MS) },
+        })
+        .catch(() => undefined);
+    }, LEASE_RENEW_MS);
+
     const job = await prisma.bulkDraftJob.findUnique({ where: { id: jobId } });
     if (!job || job.status !== 'RUNNING') return;
-    // Items an earlier runner was working on when the process stopped.
+    // Items the previous lease holder was working on when it stopped.
     await prisma.bulkDraftItem.updateMany({ where: { jobId, status: 'RUNNING' }, data: { status: 'PENDING' } });
 
     const jobSteps = platformStepsForShop(job.shopDomain);
     let limitReached = false;
     await runPool(
       BULK_DRAFT_CONCURRENCY,
-      async () => (limitReached ? null : claimNextItem(jobId)),
+      // Shutting down: finish the items in hand, take no new ones.
+      async () => (limitReached || stopping ? null : claimNextItem(jobId)),
       async (item) => {
         const outcome =
           job.kind === 'PREPARE'
@@ -227,6 +268,15 @@ async function runJob(jobId: string) {
       }
     );
 
+    const unfinished = await prisma.bulkDraftItem.count({ where: { jobId, status: 'PENDING' } });
+    if (stopping && !limitReached && unfinished > 0) {
+      // Hand the job over: another process takes it on its next scan.
+      await prisma.bulkDraftJob.updateMany({
+        where: { id: jobId, leaseOwner: RUNNER_ID },
+        data: { leaseOwner: null, leaseUntil: null },
+      });
+      return;
+    }
     if (limitReached) {
       await prisma.bulkDraftItem.updateMany({
         where: { jobId, status: 'PENDING' },
@@ -235,14 +285,51 @@ async function runJob(jobId: string) {
     }
     await prisma.bulkDraftJob.update({
       where: { id: jobId },
-      data: { status: 'DONE', finishedAt: new Date(), limitReached },
+      data: { status: 'DONE', finishedAt: new Date(), limitReached, leaseOwner: null, leaseUntil: null },
     });
   } catch (error) {
-    // Left RUNNING: the next status read resumes it.
+    // Left RUNNING: when the lease lapses, a recovery scan resumes it.
     console.error('[bulk-draft] job stopped', jobId, error instanceof Error ? error.message : error);
   } finally {
-    activeRunners.delete(jobId);
+    if (renew) clearInterval(renew);
   }
+}
+
+/** Resumes running jobs whose lease lapsed (their process stopped). */
+async function resumeOrphanedJobs() {
+  if (stopping) return;
+  const orphaned = await prisma.bulkDraftJob.findMany({
+    where: { status: 'RUNNING', OR: [{ leaseUntil: null }, { leaseUntil: { lt: new Date() } }] },
+    select: { id: true },
+  });
+  orphaned.forEach((job) => runJob(job.id));
+}
+
+let recoveryTimer: ReturnType<typeof setInterval> | undefined;
+
+/**
+ * Started once by the server entry: picks up jobs whose process stopped, also
+ * when no one has the app open to poll them.
+ */
+export function startBulkJobRecovery() {
+  if (recoveryTimer) return;
+  const scan = () =>
+    resumeOrphanedJobs().catch((error: unknown) => {
+      console.warn('[bulk-draft] recovery scan failed', error instanceof Error ? error.message : error);
+    });
+  void scan();
+  recoveryTimer = setInterval(scan, RECOVERY_SCAN_MS);
+  recoveryTimer.unref();
+}
+
+/**
+ * Process shutdown (PM2 reload or stop): take no new items, finish the ones
+ * in hand and hand unfinished jobs over. Bounded by the process kill timeout.
+ */
+export async function drainBulkJobs() {
+  stopping = true;
+  if (recoveryTimer) clearInterval(recoveryTimer);
+  await Promise.all(runningJobs.values());
 }
 
 export type StartBulkJobResult =
@@ -270,7 +357,7 @@ async function startJob(input: {
   const plan = await getPlanSnapshotByDomain(input.shopDomain);
   const running = await prisma.bulkDraftJob.findFirst({ where: { shopId: plan.shopId, status: 'RUNNING' } });
   if (running) {
-    void runJob(running.id);
+    runJob(running.id);
     return { ok: true, jobId: running.id, queued: 0, remaining: 0, alreadyRunning: true };
   }
 
@@ -306,7 +393,7 @@ async function startJob(input: {
       },
     },
   });
-  void runJob(job.id);
+  runJob(job.id);
   return { ok: true, jobId: job.id, queued: targets.length, remaining: requested.size - targets.length, alreadyRunning: false };
 }
 
@@ -361,7 +448,8 @@ export async function getBulkDraftStatus(shopDomain: string): Promise<BulkDraftS
     include: { items: { select: { shopifyProductId: true, title: true, status: true, error: true }, orderBy: { position: 'asc' } } },
   });
   if (!job) return null;
-  if (job.status === 'RUNNING' && !activeRunners.has(job.id)) void runJob(job.id);
+  // Picks the job up here if its lease lapsed; runJob is a no-op otherwise.
+  if (job.status === 'RUNNING' && (!job.leaseUntil || job.leaseUntil < new Date())) runJob(job.id);
 
   const items = job.items;
   const inProgress = items.filter((item) => item.status === 'PENDING' || item.status === 'RUNNING');

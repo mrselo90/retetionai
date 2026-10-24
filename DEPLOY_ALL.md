@@ -43,7 +43,7 @@ If the project folder has a different name (e.g. `retention-agent-ai`), use that
 | 2    | `pnpm install`                                                                                                                |
 | 3    | Run DB migration: `psql $DATABASE_URL -f supabase/migrations/010_performance_indexes.sql` (skipped if `DATABASE_URL` not set) |
 | 4    | `pnpm build` (shared → api, web, workers)                                                                                     |
-| 5    | `pm2 startOrRestart ecosystem.config.cjs --update-env`                                                                        |
+| 5    | `pm2 startOrReload ecosystem.config.cjs --update-env`                                                                        |
 | 6    | List PM2 processes                                                                                                            |
 | 7    | Curl API (3002) and Web (3001), Redis ping                                                                                    |
 
@@ -60,7 +60,7 @@ pnpm install
 # Optional: run migration if you have DATABASE_URL in .env
 # psql "$DATABASE_URL" -f supabase/migrations/010_performance_indexes.sql
 pnpm build
-pm2 startOrRestart ecosystem.config.cjs --update-env
+pm2 startOrReload ecosystem.config.cjs --update-env
 pm2 list
 ```
 
@@ -74,7 +74,7 @@ From project root on the server:
 cd /root/retetionai
 pnpm install
 pnpm build
-pm2 startOrRestart ecosystem.config.cjs --update-env
+pm2 startOrReload ecosystem.config.cjs --update-env
 pm2 save      # ONE-TIME only, see warning below
 pm2 startup   # follow the command it prints to enable on reboot
 ```
@@ -128,7 +128,7 @@ Nginx should proxy your domain to 3001 (and e.g. `/api` to 3002). See `docs/depl
 | `./deploy.sh` not found     | Ensure you’re in the repo that contains `deploy.sh` (e.g. `cd /root/retetionai`).                               |
 | `DATABASE_URL` not set      | Migration step is skipped. Set it in `.env` or run the `psql ... 010_performance_indexes.sql` command manually. |
 | Build fails                 | Run `pnpm build` in the project root and read the error; fix deps or code, then redeploy.                       |
-| PM2 app not online          | `pm2 logs api` or `pm2 logs web`; fix env or code, then `pm2 startOrRestart ecosystem.config.cjs --update-env`. |
+| PM2 app not online          | `pm2 logs api` or `pm2 logs web`; fix env or code, then `pm2 startOrReload ecosystem.config.cjs --update-env`. |
 | Site still old after deploy | Hard refresh (Ctrl+Shift+R). If using a CDN/cache, purge cache.                                                 |
 
 ---

@@ -5,6 +5,19 @@ import { createReadableStreamFromReadable } from "@react-router/node";
 import { type EntryContext } from "react-router";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
+import { drainBulkJobs, startBulkJobRecovery } from "./lib/bulkDraft.server";
+
+// Background jobs (lib/bulkDraft.server.ts): resume any a stopped process left.
+startBulkJobRecovery();
+
+/**
+ * Called by server.mjs when the process is asked to stop (PM2 reload or stop),
+ * after it stopped taking requests: lets background work finish its current
+ * step and hand the rest to another process.
+ */
+export async function drainBackgroundWork() {
+  await drainBulkJobs();
+}
 
 export const streamTimeout = 5000;
 
