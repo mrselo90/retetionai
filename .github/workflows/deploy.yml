@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    # Docs and notes don't change what runs; deploying them restarts every
+    # service for nothing and drops requests in flight.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
