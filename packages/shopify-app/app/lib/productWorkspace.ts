@@ -11,6 +11,7 @@ import type {
   ProductStepOutcome,
   ShopifyCatalogProduct,
 } from '../platform.server';
+import type { BulkDraftStatus } from './bulkDraft.server';
 
 export type MappingDraft = {
   usage_instructions: string;
@@ -557,5 +558,51 @@ export function paginateRows<T>(
     pageCount,
     hasPrevious: current > 1,
     hasNext: current < pageCount,
+  };
+}
+
+/** What the Products page and the finish toast say about a bulk job. */
+export function describeBulkJob(job: BulkDraftStatus) {
+  const products = (count: number) => `${count} product${count === 1 ? '' : 's'}`;
+  const list = (titles: string[]) =>
+    `${titles.slice(0, 5).join(', ')}${titles.length > 5 ? ` and ${titles.length - 5} more` : ''}`;
+  const failedTitles = job.failed.map((item) => item.title);
+  const needLook = job.failed.length + job.skipped;
+  const toastSuffix = needLook ? ` · ${needLook} need a look` : '';
+
+  if (job.kind === 'prepare') {
+    return {
+      progressLabel: `Updating AI… (${job.finished} of ${job.total})`,
+      runningHeading: `Updating AI answers: ${job.finished} of ${job.total} done`,
+      runningBody:
+        'Recete is refreshing what it knows about these products. You can leave this page; you’ll get a notice here in the app when it’s done.',
+      rowBadge: 'Updating AI…',
+      doneHeading: job.saved ? `AI answers updated for ${products(job.saved)}` : 'No AI answers could be updated',
+      doneBody: job.saved
+        ? 'Recete now answers customers from these products’ current setup.'
+        : 'Try again in a moment.',
+      failedLine: failedTitles.length
+        ? `Couldn't update: ${list(failedTitles)}. Open them and use "Update AI answers" to retry.`
+        : '',
+      skippedLine: job.skipped ? `Not set up yet: ${list(job.skippedTitles)}. Open them and save a setup first.` : '',
+      toast: job.saved ? `AI answers updated for ${products(job.saved)}${toastSuffix}` : 'AI update finished, but nothing could be updated',
+    };
+  }
+
+  return {
+    progressLabel: `Drafting… (${job.finished} of ${job.total})`,
+    runningHeading: `Drafting instructions: ${job.finished} of ${job.total} done`,
+    runningBody:
+      'Recete is writing instructions from your product descriptions. You can leave this page; you’ll get a notice here in the app when the drafts are ready to review.',
+    rowBadge: 'Drafting…',
+    doneHeading: job.saved ? `Drafts ready for ${products(job.saved)}` : 'No instructions could be drafted',
+    doneBody: job.saved
+      ? 'Open a product to review or edit what it says. Recete already uses these instructions to answer customers.'
+      : 'Try again in a moment, or open a product to write a few words yourself.',
+    failedLine: failedTitles.length ? `Couldn't draft: ${list(failedTitles)}. Open them to write a few words.` : '',
+    skippedLine: job.limitReached
+      ? `Your plan's product limit was reached, so ${products(job.skipped)} ${job.skipped === 1 ? 'was' : 'were'} not set up. Upgrade to set up more.`
+      : '',
+    toast: job.saved ? `Drafts ready for ${products(job.saved)}${toastSuffix}` : 'Drafting finished, but no instructions could be drafted',
   };
 }

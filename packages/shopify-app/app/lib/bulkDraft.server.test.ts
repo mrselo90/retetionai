@@ -13,7 +13,13 @@ vi.mock('./productSetup.server', () => ({
     error instanceof Error && error.message ? error.message : fallback,
 }));
 
-import { createSerialQueue, processBulkDraftItem, runPool, type BulkDraftSteps } from './bulkDraft.server';
+import {
+  createSerialQueue,
+  processBulkDraftItem,
+  processBulkPrepareItem,
+  runPool,
+  type BulkDraftSteps,
+} from './bulkDraft.server';
 
 const item = {
   shopifyProductId: 'gid://shopify/Product/1',
@@ -62,6 +68,22 @@ describe('processBulkDraftItem', () => {
   it('keeps the saved instructions when preparing AI answers fails', async () => {
     const outcome = await processBulkDraftItem(item, steps({ prepare: async () => { throw new Error('502'); } }));
     expect(outcome).toEqual({ status: 'SAVED' });
+  });
+});
+
+describe('processBulkPrepareItem', () => {
+  it('updates AI answers for a set-up product', async () => {
+    const prepare = vi.fn(async () => ({}));
+    expect(await processBulkPrepareItem('p1', prepare)).toEqual({ status: 'SAVED' });
+    expect(prepare).toHaveBeenCalledWith('p1');
+  });
+
+  it('skips a product without a saved setup and reports a failed update', async () => {
+    expect(await processBulkPrepareItem(null, vi.fn())).toMatchObject({ status: 'SKIPPED' });
+    expect(await processBulkPrepareItem('p1', async () => { throw new Error('Embedding failed'); })).toEqual({
+      status: 'FAILED',
+      error: 'Embedding failed',
+    });
   });
 });
 

@@ -1,5 +1,5 @@
 /**
- * "Draft all with AI" as a background job.
+ * "Draft all with AI" and "Update AI" as background jobs.
  *
  * It used to run inside the form request: draft, save and prepare AI knowledge
  * for each product, one after another. Past 60 seconds nginx answered 504 while
@@ -13,11 +13,18 @@
  * PENDING and resumes. Retrying an item is safe: persistProductSetup links the
  * existing Recete product for a Shopify product before it creates one.
  *
+ * "Update AI" (kind PREPARE) runs the same way: each item rebuilds one product's
+ * AI knowledge. Products without a saved setup are recorded as skipped up front.
+ *
  * The runner calls the platform API as the job's shop. That shop came from the
  * verified Shopify session that created the job, never from client input.
  */
 import prisma from '../db.server';
-import { draftMerchantProductInstructions, prepareMerchantProductKnowledge } from '../platform.server';
+import {
+  draftMerchantProductInstructions,
+  fetchMerchantMappingData,
+  prepareMerchantProductKnowledge,
+} from '../platform.server';
 import { getPlanSnapshotByDomain } from '../services/planService.server';
 import { fetchFullShopifyCatalog } from './productCatalog.server';
 import { getActionErrorMessage, persistProductSetup } from './productSetup.server';
@@ -27,6 +34,7 @@ import { normalizeShopDomain, setVerifiedShopDomain } from './verifiedShop.serve
 export const BULK_DRAFT_CONCURRENCY = 4;
 const LIMIT_REACHED_PREFIX = 'Product limit reached';
 const LIMIT_REACHED_NOTE = 'Your plan’s product limit was reached.';
+const NOT_SET_UP_NOTE = 'No saved setup yet.';
 
 export interface BulkDraftItemInput {
   shopifyProductId: string;
@@ -90,6 +98,20 @@ export async function processBulkDraftItem(
     });
   }
   return { status: 'SAVED' };
+}
+
+/** "Update AI": rebuild one product's AI knowledge. Never throws. */
+export async function processBulkPrepareItem(
+  recipeProductId: string | null,
+  prepare: BulkDraftSteps['prepare']
+): Promise<BulkDraftItemOutcome> {
+  if (!recipeProductId) return { status: 'SKIPPED', error: NOT_SET_UP_NOTE };
+  try {
+    await prepare(recipeProductId);
+    return { status: 'SAVED' };
+  } catch (error) {
+    return { status: 'FAILED', error: await getActionErrorMessage(error, 'Could not update AI answers.') };
+  }
 }
 
 /** Runs `work` on up to `concurrency` tasks at a time until `next` returns null. */
@@ -193,7 +215,10 @@ async function runJob(jobId: string) {
       BULK_DRAFT_CONCURRENCY,
       async () => (limitReached ? null : claimNextItem(jobId)),
       async (item) => {
-        const outcome = await processBulkDraftItem(item, jobSteps);
+        const outcome =
+          job.kind === 'PREPARE'
+            ? await processBulkPrepareItem(item.recipeProductId, jobSteps.prepare)
+            : await processBulkDraftItem(item, jobSteps);
         if (outcome.limitReached) limitReached = true;
         await prisma.bulkDraftItem.update({
           where: { id: item.id },
@@ -220,17 +245,27 @@ async function runJob(jobId: string) {
   }
 }
 
-export type StartBulkDraftResult =
+export type StartBulkJobResult =
   | { ok: true; jobId: string; queued: number; remaining: number; alreadyRunning: boolean }
   | { ok: false; error: string };
 
-export async function startBulkDraft(input: {
+type CatalogProduct = Awaited<ReturnType<typeof fetchFullShopifyCatalog>>['products'][number];
+
+/**
+ * One job per shop at a time: a second click (or the other bulk action) while
+ * one runs returns the running job.
+ */
+async function startJob(input: {
   request: Request;
   shopDomain: string;
   shopifyProductIds: string[];
-}): Promise<StartBulkDraftResult> {
+  kind: 'DRAFT' | 'PREPARE';
+  emptyError: string;
+  /** Recete product per Shopify product, for PREPARE. */
+  recipeProductIds?: (request: Request) => Promise<Map<string, string>>;
+}): Promise<StartBulkJobResult> {
   const requested = new Set(input.shopifyProductIds);
-  if (!requested.size) return { ok: false, error: 'No products need instructions.' };
+  if (!requested.size) return { ok: false, error: input.emptyError };
 
   const plan = await getPlanSnapshotByDomain(input.shopDomain);
   const running = await prisma.bulkDraftJob.findFirst({ where: { shopId: plan.shopId, status: 'RUNNING' } });
@@ -240,25 +275,34 @@ export async function startBulkDraft(input: {
   }
 
   const catalog = await fetchFullShopifyCatalog(input.request);
-  const targets = catalog.products.filter((product) => requested.has(product.id)).slice(0, BULK_DRAFT_LIMIT);
-  if (!targets.length) return { ok: false, error: 'No products need instructions.' };
+  const targets: CatalogProduct[] = catalog.products
+    .filter((product) => requested.has(product.id))
+    .slice(0, BULK_DRAFT_LIMIT);
+  if (!targets.length) return { ok: false, error: input.emptyError };
+  const recipeIds = input.recipeProductIds ? await input.recipeProductIds(input.request) : null;
 
   // Only the latest job is kept.
   await prisma.bulkDraftJob.deleteMany({ where: { shopId: plan.shopId } });
   const job = await prisma.bulkDraftJob.create({
     data: {
+      kind: input.kind,
       shopId: plan.shopId,
       shopDomain: normalizeShopDomain(input.shopDomain),
       items: {
-        create: targets.map((product, position) => ({
-          position,
-          shopifyProductId: product.id,
-          title: product.title,
-          handle: product.handle,
-          descriptionHtml: product.descriptionHtml || '',
-          productType: product.productType || null,
-          vendor: product.vendor || null,
-        })),
+        create: targets.map((product, position) => {
+          const recipeProductId = recipeIds?.get(product.id) ?? null;
+          return {
+            position,
+            shopifyProductId: product.id,
+            title: product.title,
+            handle: product.handle,
+            descriptionHtml: product.descriptionHtml || '',
+            productType: product.productType || null,
+            vendor: product.vendor || null,
+            recipeProductId,
+            ...(recipeIds && !recipeProductId ? { status: 'SKIPPED' as const, error: NOT_SET_UP_NOTE } : {}),
+          };
+        }),
       },
     },
   });
@@ -266,16 +310,40 @@ export async function startBulkDraft(input: {
   return { ok: true, jobId: job.id, queued: targets.length, remaining: requested.size - targets.length, alreadyRunning: false };
 }
 
+export function startBulkDraft(input: { request: Request; shopDomain: string; shopifyProductIds: string[] }) {
+  return startJob({ ...input, kind: 'DRAFT', emptyError: 'No products need instructions.' });
+}
+
+export function startBulkPrepare(input: { request: Request; shopDomain: string; shopifyProductIds: string[] }) {
+  return startJob({
+    ...input,
+    kind: 'PREPARE',
+    emptyError: 'Select at least one product.',
+    recipeProductIds: async (request) => {
+      const mapping = await fetchMerchantMappingData(request);
+      return new Map(
+        (mapping.localProducts || [])
+          .filter((product) => product.external_id)
+          .map((product) => [String(product.external_id), product.id])
+      );
+    },
+  });
+}
+
 export interface BulkDraftStatus {
   jobId: string;
+  /** draft: "Draft all with AI"; prepare: "Update AI". */
+  kind: 'draft' | 'prepare';
   running: boolean;
   total: number;
   finished: number;
   saved: number;
   failed: Array<{ title: string; error: string | null }>;
   skipped: number;
+  /** Titles of skipped products (for "Update AI": not set up yet). */
+  skippedTitles: string[];
   limitReached: boolean;
-  /** Shopify product ids still waiting or being drafted. */
+  /** Shopify product ids still waiting or being worked on. */
   inProgressIds: string[];
 }
 
@@ -299,12 +367,14 @@ export async function getBulkDraftStatus(shopDomain: string): Promise<BulkDraftS
   const inProgress = items.filter((item) => item.status === 'PENDING' || item.status === 'RUNNING');
   return {
     jobId: job.id,
+    kind: job.kind === 'PREPARE' ? 'prepare' : 'draft',
     running: job.status === 'RUNNING',
     total: items.length,
     finished: items.length - inProgress.length,
     saved: items.filter((item) => item.status === 'SAVED').length,
     failed: items.filter((item) => item.status === 'FAILED').map((item) => ({ title: item.title, error: item.error })),
     skipped: items.filter((item) => item.status === 'SKIPPED').length,
+    skippedTitles: items.filter((item) => item.status === 'SKIPPED').map((item) => item.title),
     limitReached: job.limitReached,
     inProgressIds: inProgress.map((item) => item.shopifyProductId),
   };

@@ -21,6 +21,7 @@ import { handleProductAction } from '../lib/productActions.server';
 import { loadProductWorkspace } from '../lib/productWorkspace.server';
 import {
   BULK_DRAFT_LIMIT,
+  describeBulkJob,
   PRODUCT_TABS,
   PRODUCT_TAB_LABELS,
   buildWorkspaceRows,
@@ -133,7 +134,10 @@ export default function ProductsPage() {
   const currentIntent = String(navigation.formData?.get('intent') || '');
   const isStartingBulkDraft = busy && currentIntent === 'bulk-draft';
   const bulkDraftRunning = Boolean(bulkDraft?.running);
-  const draftingIds = new Set(bulkDraft?.running ? bulkDraft.inProgressIds : []);
+  const bulkJobText = bulkDraft ? describeBulkJob(bulkDraft) : null;
+  // Rows the running job has not finished yet, per job kind.
+  const draftingIds = new Set(bulkDraft?.running && bulkDraft.kind === 'draft' ? bulkDraft.inProgressIds : []);
+  const updatingIds = new Set(bulkDraft?.running && bulkDraft.kind === 'prepare' ? bulkDraft.inProgressIds : []);
   const isBulkPreparing = busy && currentIntent === 'bulk-prepare';
 
   function updateView(next: { tab?: ProductTab; q?: string; page?: number }) {
@@ -164,7 +168,7 @@ export default function ProductsPage() {
     setHandledAction(actionData);
     if (actionData?.ok) {
       if (actionData.intent === 'bulk-draft' || actionData.intent === 'bulk-prepare') setSelectedIds([]);
-      if (actionData.intent === 'bulk-draft') refreshBulkDraft();
+      if (actionData.intent === 'bulk-draft' || actionData.intent === 'bulk-prepare') refreshBulkDraft();
       if (actionData.intent === 'create') setManualSourceDraft({ name: '', url: '', enrichmentUrl: '' });
     }
   }
@@ -239,9 +243,9 @@ export default function ProductsPage() {
           : `All ${data.totals.all} products are ready.`
       }
       primaryAction={
-        bulkDraftRunning && bulkDraft
+        bulkDraftRunning && bulkJobText
           ? {
-              content: `Drafting… (${bulkDraft.finished} of ${bulkDraft.total})`,
+              content: bulkJobText.progressLabel,
               onAction: () => undefined,
               loading: true,
               disabled: true,
@@ -274,40 +278,18 @@ export default function ProductsPage() {
         </s-banner>
       ) : null}
 
-      {bulkDraft?.running ? (
-        <s-banner tone="info" heading={`Drafting instructions: ${bulkDraft.finished} of ${bulkDraft.total} done`}>
-          <s-paragraph>
-            Recete is writing instructions from your product descriptions. You can leave this page; you&apos;ll
-            get a notice here in the app when the drafts are ready to review.
-          </s-paragraph>
+      {bulkDraft?.running && bulkJobText ? (
+        <s-banner tone="info" heading={bulkJobText.runningHeading}>
+          <s-paragraph>{bulkJobText.runningBody}</s-paragraph>
         </s-banner>
-      ) : bulkDraft ? (
+      ) : bulkDraft && bulkJobText ? (
         <s-banner
           tone={bulkDraft.saved ? (bulkDraft.failed.length || bulkDraft.skipped ? 'warning' : 'success') : 'critical'}
-          heading={
-            bulkDraft.saved
-              ? `Drafts ready for ${bulkDraft.saved} product${bulkDraft.saved === 1 ? '' : 's'}`
-              : 'No instructions could be drafted'
-          }
+          heading={bulkJobText.doneHeading}
         >
-          <s-paragraph>
-            {bulkDraft.saved
-              ? 'Open a product to review or edit what it says. Recete already uses these instructions to answer customers.'
-              : 'Try again in a moment, or open a product to write a few words yourself.'}
-          </s-paragraph>
-          {bulkDraft.failed.length ? (
-            <s-paragraph>
-              {`Couldn't draft: ${bulkDraft.failed
-                .slice(0, 5)
-                .map((item) => item.title)
-                .join(', ')}${bulkDraft.failed.length > 5 ? ` and ${bulkDraft.failed.length - 5} more` : ''}. Open them to write a few words.`}
-            </s-paragraph>
-          ) : null}
-          {bulkDraft.limitReached ? (
-            <s-paragraph>
-              {`Your plan's product limit was reached, so ${bulkDraft.skipped} product${bulkDraft.skipped === 1 ? ' was' : 's were'} not set up. Upgrade to set up more.`}
-            </s-paragraph>
-          ) : null}
+          <s-paragraph>{bulkJobText.doneBody}</s-paragraph>
+          {bulkJobText.failedLine ? <s-paragraph>{bulkJobText.failedLine}</s-paragraph> : null}
+          {bulkJobText.skippedLine ? <s-paragraph>{bulkJobText.skippedLine}</s-paragraph> : null}
           <s-button
             slot="secondary-actions"
             loading={dismissFetcher.state !== 'idle' || undefined}
@@ -379,7 +361,7 @@ export default function ProductsPage() {
                     {`Draft with AI (${selectedNeedingGuidance.length})`}
                   </s-button>
                   <s-button
-                    disabled={busy || undefined}
+                    disabled={busy || bulkDraftRunning || undefined}
                     loading={isBulkPreparing || undefined}
                     onClick={() => submitBulk('bulk-prepare', selectedIds)}
                   >
@@ -443,13 +425,17 @@ export default function ProductsPage() {
                     </s-stack>
                   </s-table-cell>
                   <s-table-cell>
-                    <s-badge tone={item.statusTone}>{item.statusLabel}</s-badge>
+                    {updatingIds.has(item.id) ? (
+                      <s-badge tone="info">{bulkJobText?.rowBadge}</s-badge>
+                    ) : (
+                      <s-badge tone={item.statusTone}>{item.statusLabel}</s-badge>
+                    )}
                   </s-table-cell>
                   <s-table-cell>
                     {item.hasGuidance ? (
                       <s-badge tone="success">Added</s-badge>
                     ) : draftingIds.has(item.id) ? (
-                      <s-badge tone="info">Drafting…</s-badge>
+                      <s-badge tone="info">{bulkJobText?.rowBadge}</s-badge>
                     ) : (
                       <s-badge tone="warning">Missing</s-badge>
                     )}

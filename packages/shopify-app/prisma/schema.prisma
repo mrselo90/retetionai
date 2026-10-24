@@ -144,11 +144,12 @@ model UsageEventReceipt {
   @@schema("shopify")
 }
 
-// "Draft all with AI" runs in the background (app/lib/bulkDraft.server.ts):
-// the page polls this job instead of waiting on one long request. Only the
-// latest job per shop is kept.
+// "Draft all with AI" and "Update AI" run in the background
+// (app/lib/bulkDraft.server.ts): the page polls this job instead of waiting on
+// one long request. Only the latest job per shop is kept.
 model BulkDraftJob {
   id           String          @id @default(cuid())
+  kind         BulkJobKind     @default(DRAFT)
   shopId       String
   shop         Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
   shopDomain   String
@@ -177,11 +178,20 @@ model BulkDraftItem {
   descriptionHtml  String
   productType      String?
   vendor           String?
+  // The Recete product, for "Update AI" items.
+  recipeProductId  String?
   status           BulkDraftItemStatus @default(PENDING)
   error            String?
   updatedAt        DateTime            @updatedAt
 
   @@index([jobId, status])
+  @@schema("shopify")
+}
+
+enum BulkJobKind {
+  DRAFT
+  PREPARE
+
   @@schema("shopify")
 }
 

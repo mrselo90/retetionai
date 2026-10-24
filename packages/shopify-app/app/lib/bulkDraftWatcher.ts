@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useFetcher, useLocation, useNavigate } from 'react-router';
 import { useAppBridge } from '@shopify/app-bridge-react';
 import type { BulkDraftStatus } from './bulkDraft.server';
+import { describeBulkJob } from './productWorkspace';
 
 const POLL_MS = 3_000;
 
 /**
- * Follows the shop's "Draft all with AI" job from the app shell, so the
+ * Follows the shop's bulk job ("Draft all with AI", "Update AI") from the app shell, so the
  * merchant can move around the app while it runs and still hears when it is
  * done: a toast with a Review action on whatever page they are on. Polls only
  * while a job runs; otherwise it reads once per navigation and on focus.
@@ -53,18 +54,12 @@ export function useBulkDraftWatcher() {
     }
     if (watchedRunning.current !== status.jobId) return;
     watchedRunning.current = null;
-    const failed = status.failed.length + status.skipped;
-    shopify.toast.show(
-      status.saved
-        ? `Drafts ready for ${status.saved} product${status.saved === 1 ? '' : 's'}${failed ? ` · ${failed} need a look` : ''}`
-        : 'Drafting finished, but no instructions could be drafted',
-      {
-        isError: !status.saved,
-        duration: 8_000,
-        action: 'Review',
-        onAction: () => navigate('/app/products'),
-      }
-    );
+    shopify.toast.show(describeBulkJob(status).toast, {
+      isError: !status.saved,
+      duration: 8_000,
+      action: 'Review',
+      onAction: () => navigate('/app/products'),
+    });
   }, [status, shopify, navigate]);
 
   return { bulkDraft: status, refreshBulkDraft: refresh };
