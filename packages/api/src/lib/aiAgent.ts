@@ -30,6 +30,8 @@ import { isAddonActive, logReturnPreventionAttempt, hasPendingPreventionAttempt,
 import {
   buildUnsupportedLanguageNotice,
   detectLanguage,
+  detectLanguageDetailed,
+  normalizeSupportedLanguage,
   getLocalizedHandoffResponse,
   getLocalizedEscalationResponse,
   resolveMerchantReplyLanguage,
@@ -218,22 +220,45 @@ function buildKnownProductsRecoveryResponse(
   lang: SupportedLanguage,
   products: OrderProductMeta[],
 ): string {
-  const names = products.map((item) => item.name).filter(Boolean).slice(0, 6);
-  if (lang === 'tr') {
-    return `Siparisinizdeki urunleri bu sohbette hatirliyorum: ${names.join(', ')}. Isterseniz hepsi icin birlikte kullanim sirasi verebilirim.`;
+  const names = products.map((item) => item.name).filter(Boolean).slice(0, 6).join(', ');
+  switch (lang) {
+    case 'tr':
+      return `Siparişinizdeki ürünleri bu sohbette hatırlıyorum: ${names}. İsterseniz hepsi için birlikte bir kullanım sırası verebilirim.`;
+    case 'hu':
+      return `A rendelésében szereplő termékeket ebben a beszélgetésben is látom: ${names}. Ha szeretné, mindegyikhez közös használati sorrendet adhatok.`;
+    case 'de':
+      return `Die Produkte aus Ihrer Bestellung habe ich in diesem Chat noch vor mir: ${names}. Auf Wunsch gebe ich Ihnen eine gemeinsame Anwendungsreihenfolge für alle.`;
+    case 'el':
+      return `Έχω ακόμη τα προϊόντα της παραγγελίας σας σε αυτή τη συζήτηση: ${names}. Αν θέλετε, μπορώ να σας δώσω μια κοινή σειρά χρήσης για όλα.`;
+    default:
+      return `I still have your order products in this chat: ${names}. I can give one combined routine for all of them right away.`;
   }
-  return `I still have your order products in this chat: ${names.join(', ')}. I can give one combined routine for all of them right away.`;
 }
 
+/**
+ * Asks which order product the customer means. 'unknown': the message names a
+ * product code that isn't in the order. 'uncertain': it is close to more than
+ * one order product.
+ */
 function buildUnknownProductSafeFallback(
   lang: SupportedLanguage,
   products: OrderProductMeta[],
+  reason: 'unknown' | 'uncertain' = 'unknown',
 ): string {
   const lines = products.slice(0, 8).map((item, idx) => `${idx + 1}. ${item.name}`).join('\n');
-  if (lang === 'tr') {
-    return `Bu ürün için yeterli bilgiye sahip degilim. Siparisinizdeki urunler:\n${lines}\n\nBir urun numarasi (1,2,3) yazabilir ya da "hepsi" diyebilirsiniz.`;
+  const unknown = reason === 'unknown';
+  switch (lang) {
+    case 'tr':
+      return `${unknown ? 'Bu ürünle ilgili elimde yeterli bilgi yok.' : 'Hangi ürünü sorduğunuzdan emin olamadım.'} Siparişinizdeki ürünler:\n${lines}\n\nÜrünün numarasını (1, 2, 3) yazabilir ya da "hepsi" diyebilirsiniz.`;
+    case 'hu':
+      return `${unknown ? 'Erről a termékről nincs elég információm.' : 'Nem vagyok biztos benne, melyik termékre gondol.'} A rendelésében szereplő termékek:\n${lines}\n\nÍrja meg a termék számát (1, 2, 3), vagy írja, hogy „mindegyik”.`;
+    case 'de':
+      return `${unknown ? 'Zu diesem Produkt liegen mir nicht genug Informationen vor.' : 'Ich bin nicht sicher, welches Produkt Sie meinen.'} Produkte in Ihrer Bestellung:\n${lines}\n\nAntworten Sie mit der Produktnummer (1, 2, 3) oder schreiben Sie „alle“.`;
+    case 'el':
+      return `${unknown ? 'Δεν έχω αρκετές πληροφορίες για αυτό το προϊόν.' : 'Δεν είναι σαφές για ποιο προϊόν ρωτάτε.'} Προϊόντα στην παραγγελία σας:\n${lines}\n\nΑπαντήστε με τον αριθμό του προϊόντος (1, 2, 3) ή γράψτε «όλα».`;
+    default:
+      return `${unknown ? 'I do not have enough info about this product.' : 'I am not sure which product you mean.'} Products in your order:\n${lines}\n\nReply with a product number (1,2,3) or say "all of them".`;
   }
-  return `I do not have enough info about this product. Products in your order:\n${lines}\n\nReply with a product number (1,2,3) or say "all of them".`;
 }
 
 function buildStructuredStatePromptContext(state: ConversationStructuredState): string {
@@ -461,7 +486,6 @@ function resolveMentionedOrderProduct(input: {
   }
 
   const msgNorm = normalizeForMatch(message);
-  const msgTokens = new Set(tokenizeForMatch(message));
   if (!msgNorm) return {};
 
   let exact: OrderProductMeta | null = null;
@@ -488,15 +512,20 @@ function resolveMentionedOrderProduct(input: {
     if (best.score >= 0.9 && (!second || best.score - second.score >= 0.08)) {
       return { productId: best.product.id, reason: 'token_focus' };
     }
-    if (best.score >= 0.75) {
+    // With one product in the order there is nothing to choose between.
+    if (best.score >= 0.75 && orderProducts.length > 1) {
       return { uncertain: true, reason: 'token_focus' };
     }
   }
 
-  const unknownTokenHint =
-    /\b[a-z0-9]+-[a-z0-9]+\b/i.test(message) ||
-    /\b(product|urun|ürün)\b/i.test(message);
-  if (msgTokens.size > 0 || unknownTokenHint) {
+  // An unknown reference is a product code that matches nothing in the order
+  // ("Deneme-1", "X-999": letters and digits joined by a hyphen). This used to
+  // fire for any message with a 3+ letter word, so every question that didn't
+  // spell out a product name ("Serumu nasıl kullanmalıyım?") got the "products
+  // in your order, reply with a number" fallback instead of an answer.
+  const productCodePattern = /(?<![a-z0-9])(?=[a-z0-9-]*[a-z])(?=[a-z0-9-]*\d)[a-z0-9]+-[a-z0-9]+(?![a-z0-9])/;
+  // normalizeForMatch drops hyphens, so match on the lowercased message.
+  if (productCodePattern.test(message.toLowerCase())) {
     return { unknownReference: true, reason: 'token_focus' };
   }
 
@@ -556,7 +585,7 @@ function looksLikeProductSelectionPrompt(text: string): boolean {
 
 function isAllProductsContinuationReply(text: string): boolean {
   const trimmed = text.trim().toLowerCase();
-  return /^(for all of them|all of them|all|all products|all my products|everything|everything i bought|all together|for everything|hepsi|hepsini|hepsi icin|hepsi için|tum urunler|tüm ürünler|tamami|tamamı)$/i.test(
+  return /^(for all of them|all of them|all|all products|all my products|everything|everything i bought|all together|for everything|hepsi|hepsini|hepsi icin|hepsi için|tum urunler|tüm ürünler|tamami|tamamı|mindegyik|mindet|mind|az összes|összes|alle|alle produkte|όλα)[.!]?$/i.test(
     trimmed,
   );
 }
@@ -878,9 +907,9 @@ export function detectPostDeliveryFollowUpSignal(
       plannerQueryOverride: buildUsageGuidanceRetrievalQuery(lang),
       promptHint:
         lang === 'tr'
-          ? 'Kullanici "hepsi" diyerek onceki urun secim sorusuna cevap verdi. Bunu tum siparis urunleri olarak yorumla ve dogrudan kisa bir rutin ver. Gereksiz netlestirme sorma.'
+          ? 'Kullanıcı "hepsi" diyerek önceki ürün seçimi sorusunu yanıtladı. Bunu siparişteki tüm ürünler olarak yorumla ve doğrudan kısa bir rutin ver. Gereksiz netleştirme sorma.'
           : lang === 'hu'
-            ? 'A felhasznalo "mindegyik" valaszt adott az elozo termekvalasztasi kerdesre. Ertelmezd ezt ugy, hogy a rendeles osszes termeke szerepeljen, es adj kozvetlen rovid rutint.'
+            ? 'A felhasználó „mindegyik” választ adott az előző termékválasztási kérdésre. Értelmezd úgy, hogy a rendelés összes terméke szerepeljen, és adj közvetlenül egy rövid rutint.'
             : 'The user answered with an all-products continuation reply. Interpret this as using all order products and provide a direct short routine without unnecessary clarification.',
     };
   }
@@ -1042,21 +1071,82 @@ function listToLine(items: string[]): string {
   return items.map((item) => `- ${item}`).join('\n');
 }
 
+type RoutineTexts = {
+  empty: string;
+  forWife: string;
+  forHusband: string;
+  introFormal: string;
+  introCasual: string;
+  skipped: string;
+  orderOnly: string;
+  morning: string;
+  evening: string;
+  sensitive: string;
+  notCompatible: string;
+};
+
+// The intro follows the "for whom" prefix, so it continues that sentence.
+const ROUTINE_TEXTS: Partial<Record<SupportedLanguage, RoutineTexts>> & { en: RoutineTexts } = {
+  en: {
+    empty: 'I could not clearly map your products to a routine format. Safe baseline: cleanser + moisturizer. Share exact product names and I can build a sharper morning/evening routine.',
+    forWife: 'For your wife, ',
+    forHusband: 'For your husband, ',
+    introFormal: 'here is a practical routine using the compatible products in your order.',
+    introCasual: 'here is a practical routine using your compatible products.',
+    skipped: 'Skipped from routine:',
+    orderOnly: 'Just the order:',
+    morning: 'Morning:',
+    evening: 'Evening:',
+    sensitive: 'If your skin feels sensitive, reduce frequency.',
+    notCompatible: 'Not routine-compatible',
+  },
+  tr: {
+    empty: 'Siparişinizdeki ürünleri bir rutine net olarak yerleştiremedim. En güvenli başlangıç temizleme + nemlendirme adımıdır; ürün adlarını paylaşırsanız daha net bir sabah/akşam rutini oluşturabilirim.',
+    forWife: 'Eşiniz için ',
+    forHusband: 'Eşiniz için ',
+    introFormal: 'siparişinizdeki uyumlu ürünlerle pratik bir rutin hazırladım.',
+    introCasual: 'uyumlu ürünlerinizle pratik bir rutin hazırladım.',
+    skipped: 'Rutin dışında bıraktığım ürünler:',
+    orderOnly: 'Yalnızca uygulama sırası:',
+    morning: 'Sabah:',
+    evening: 'Akşam:',
+    sensitive: 'Cildinizde hassasiyet olursa kullanım sıklığını azaltın.',
+    notCompatible: 'Rutinle uyumlu değil',
+  },
+  hu: {
+    empty: 'A rendelésében szereplő termékeket nem tudtam egyértelműen rutinba rendezni. A legbiztonságosabb kiindulás: arctisztító + hidratáló. Ha megírja a pontos termékneveket, pontosabb reggeli/esti rutint állítok össze.',
+    forWife: 'A feleségének: ',
+    forHusband: 'A férjének: ',
+    introFormal: 'gyakorlati rutint állítottam össze a rendelésében szereplő, egymással használható termékekből.',
+    introCasual: 'gyakorlati rutint állítottam össze az egymással használható termékeiből.',
+    skipped: 'A rutinból kihagyott termékek:',
+    orderOnly: 'Csak a sorrend:',
+    morning: 'Reggel:',
+    evening: 'Este:',
+    sensitive: 'Ha a bőre érzékenyen reagál, ritkábban használja.',
+    notCompatible: 'Nem illik a rutinba',
+  },
+};
+
+function routineTexts(lang: SupportedLanguage): RoutineTexts {
+  return ROUTINE_TEXTS[lang] || ROUTINE_TEXTS.en;
+}
+
+function capitalizeFirst(text: string): string {
+  return text ? text.charAt(0).toLocaleUpperCase() + text.slice(1) : text;
+}
+
 function buildBestEffortRoutineResponse(
   lang: SupportedLanguage,
   classifications: RoutineProductClassification[],
   persona: PersonaSettings,
   state: ConversationFlowState,
 ): string {
+  const t = routineTexts(lang);
   const buckets = bucketRoutineProducts(classifications);
   const usableProducts = [...buckets.morning, ...buckets.anytime, ...buckets.evening];
 
-  if (usableProducts.length === 0) {
-    if (lang === 'tr') {
-      return 'Siparisinizde rutin formatina uygun urunleri net ayiramadim. En guvenli baslangic olarak temizleme + nemlendirme adimi uygulayin; urun adlarini paylasirsaniz daha net bir sabah/aksam rutin olusturabilirim.';
-    }
-    return 'I could not clearly map your products to a routine format. Safe baseline: cleanser + moisturizer. Share exact product names and I can build a sharper morning/evening routine.';
-  }
+  if (usableProducts.length === 0) return t.empty;
 
   const morningItems = [...buckets.anytime, ...buckets.morning];
   const eveningItems = [...buckets.anytime, ...buckets.evening];
@@ -1067,51 +1157,25 @@ function buildBestEffortRoutineResponse(
   const orderOnly = state.routine_format_preference === 'step_order';
 
   const introTarget =
-    state.for_whom === 'wife' ? (lang === 'tr' ? 'Esiniz icin ' : 'For your wife, ')
-      : state.for_whom === 'husband' ? (lang === 'tr' ? 'Esiniz icin ' : 'For your husband, ')
-        : '';
-
-  if (lang === 'tr') {
-    const intro = persona?.tone === 'formal'
-      ? `${introTarget}siparisinizdeki uyumlu urunlere gore pratik bir rutin hazirladim.`
-      : `${introTarget}uyumlu urunlerinizle pratik bir rutin hazirladim.`;
-    const excludedNote = buckets.excluded.length > 0
-      ? `\n\nRutin disinda biraktigim urunler:\n${listToLine(buckets.excluded)}`
-      : '';
-    if (orderOnly) {
-      const ordered = [...(includeMorning ? morningItems : []), ...(includeEvening ? eveningItems : [])];
-      const deduped = [...new Set(ordered)];
-      const steps = deduped.map((item, idx) => `${idx + 1}. ${item}`).join('\n');
-      return `${intro}\n\nSadece uygulama sirasi:\n${steps}${excludedNote}`.trim();
-    }
-    const body = [
-      intro,
-      includeMorning ? `\nSabah:\n${listToLine(morningItems)}` : '',
-      includeEvening ? `\nAksam:\n${listToLine(eveningItems)}` : '',
-      excludedNote,
-      concise ? '' : '\n\nCiltte hassasiyet olursa kullanim sikligini azaltin.',
-    ].join('');
-    return body.trim();
-  }
-
+    state.for_whom === 'wife' ? t.forWife : state.for_whom === 'husband' ? t.forHusband : '';
+  const introBody = persona?.tone === 'formal' ? t.introFormal : t.introCasual;
+  const intro = introTarget ? `${introTarget}${introBody}` : capitalizeFirst(introBody);
   const excludedNote = buckets.excluded.length > 0
-    ? `\n\nSkipped from routine:\n${listToLine(buckets.excluded)}`
+    ? `\n\n${t.skipped}\n${listToLine(buckets.excluded)}`
     : '';
-  const intro = persona?.tone === 'formal'
-    ? `${introTarget}Here is a practical routine using the compatible products in your order.`
-    : `${introTarget}Here is a practical routine using your compatible products.`;
+
   if (orderOnly) {
     const ordered = [...(includeMorning ? morningItems : []), ...(includeEvening ? eveningItems : [])];
     const deduped = [...new Set(ordered)];
     const steps = deduped.map((item, idx) => `${idx + 1}. ${item}`).join('\n');
-    return `${intro}\n\nJust the order:\n${steps}${excludedNote}`.trim();
+    return `${intro}\n\n${t.orderOnly}\n${steps}${excludedNote}`.trim();
   }
   const body = [
     intro,
-    includeMorning ? `\n\nMorning:\n${listToLine(morningItems)}` : '',
-    includeEvening ? `\n\nEvening:\n${listToLine(eveningItems)}` : '',
+    includeMorning ? `\n\n${t.morning}\n${listToLine(morningItems)}` : '',
+    includeEvening ? `\n\n${t.evening}\n${listToLine(eveningItems)}` : '',
     excludedNote,
-    concise ? '' : '\n\nIf your skin feels sensitive, reduce frequency.',
+    concise ? '' : `\n\n${t.sensitive}`,
   ].join('');
   return body.trim();
 }
@@ -1119,13 +1183,9 @@ function buildBestEffortRoutineResponse(
 function buildRoutineExclusionNote(lang: SupportedLanguage, classifications: RoutineProductClassification[]): string {
   const excluded = classifications.filter((item) => item.slot === 'exclude');
   if (excluded.length === 0) return '';
-  if (lang === 'tr') {
-    return `\n\nRutin disinda biraktigim urunler:\n${excluded
-      .map((item) => `- ${item.name}: ${item.exclusionReason || 'Rutinle uyumlu degil'}`)
-      .join('\n')}`;
-  }
-  return `\n\nSkipped from routine:\n${excluded
-    .map((item) => `- ${item.name}: ${item.exclusionReason || 'Not routine-compatible'}`)
+  const t = routineTexts(lang);
+  return `\n\n${t.skipped}\n${excluded
+    .map((item) => `- ${item.name}: ${item.exclusionReason || t.notCompatible}`)
     .join('\n')}`;
 }
 
@@ -1136,7 +1196,7 @@ function validateRoutineAnswerQuality(answer: string, includedProducts: RoutineP
   const reasons: string[] = [];
   const normalized = normalizeForMatch(answer);
   const hasStructuredSections =
-    /(morning|evening|sabah|aksam)/i.test(answer) ||
+    /(morning|evening|sabah|ak[sş]am|reggel|este)/i.test(answer) ||
     /^(\s*[-*]\s+.+|\s*\d+[.)]\s+.+)$/m.test(answer);
   if (!hasStructuredSections) reasons.push('missing_structure');
 
@@ -1169,6 +1229,37 @@ function looksLikeEvidenceClarificationAnswer(answer: string): boolean {
 /**
  * Classify message intent
  */
+/**
+ * The customer's language for this message. A short or ambiguous message
+ * ("tamam", "ok", "alcohol?") says little on its own and was read as English,
+ * which put an unsupported-language notice in front of the reply. Without a
+ * confident reading, the customer's recent messages decide, then the
+ * conversation's language, then the merchant's only reply language.
+ */
+export function resolveMessageLanguage(input: {
+  message: string;
+  history: ConversationMessage[];
+  conversationLanguage?: string | null;
+  enabledLanguages?: string[] | null;
+}): SupportedLanguage {
+  const own = detectLanguageDetailed(input.message);
+  if (own.confident) return own.language;
+
+  const recentCustomerText = input.history
+    .filter((item) => item.role === 'user' && item.content?.trim())
+    .slice(-3)
+    .map((item) => item.content)
+    .join(' ');
+  if (recentCustomerText) {
+    const withContext = detectLanguageDetailed(`${recentCustomerText} ${input.message}`);
+    if (withContext.confident) return withContext.language;
+  }
+  if (input.conversationLanguage) return normalizeSupportedLanguage(input.conversationLanguage);
+  const enabled = [...new Set((input.enabledLanguages || []).map((lang) => normalizeSupportedLanguage(lang)))];
+  if (enabled.length === 1) return enabled[0];
+  return own.language;
+}
+
 /** How much of the conversation the intent classifier sees. */
 const INTENT_HISTORY_MESSAGES = 6;
 const INTENT_HISTORY_CHARS = 300;
@@ -1292,8 +1383,14 @@ export async function generateAIResponse(
     ? (guardrailSettings.custom_guardrails as CustomGuardrail[])
     : [];
   const persona = (personaSettings || merchant?.persona_settings || {}) as PersonaSettings;
-  const userLang = detectLanguage(message);
   const languageSettings = await new ShopSettingsService().getOrCreate(merchantId, message);
+  let structuredState = await getConversationStructuredState(conversationId);
+  const userLang = resolveMessageLanguage({
+    message,
+    history: conversationHistory,
+    conversationLanguage: structuredState.language_preference,
+    enabledLanguages: languageSettings.enabled_langs,
+  });
   const replyLanguageDecision = resolveMerchantReplyLanguage(userLang, languageSettings.enabled_langs);
   const responseLang = replyLanguageDecision.responseLanguage;
   const memorySettings = await getConversationMemorySettings();
@@ -1307,7 +1404,6 @@ export async function generateAIResponse(
       'Full conversation mode required explicit truncation for model context window',
     );
   }
-  let structuredState = await getConversationStructuredState(conversationId);
   const effectiveOrderId = orderId || structuredState.order_id || undefined;
   const persistStructuredState = async (patch: Partial<ConversationStructuredState>) => {
     try {
@@ -1553,7 +1649,7 @@ export async function generateAIResponse(
           plannerQueryOverride: buildUsageGuidanceRetrievalQuery(responseLang),
           promptHint:
             responseLang === 'tr'
-              ? 'Kullanici amaci rutin olusturmak. Uygun tum siparis urunleri ile direkt sabah/aksam rutin ver, gereksiz netlestirme sorma.'
+              ? 'Kullanıcının amacı rutin oluşturmak. Siparişteki uygun tüm ürünlerle doğrudan sabah/akşam rutini ver, gereksiz netleştirme sorma.'
               : 'User goal is routine-building. Use compatible products and provide a direct morning/evening routine.',
         };
     if (intent !== 'question') intent = 'question';
@@ -1575,7 +1671,7 @@ export async function generateAIResponse(
       plannerQueryOverride: buildUsageGuidanceRetrievalQuery(responseLang),
       promptHint:
         responseLang === 'tr'
-          ? 'Kisa baglamsal cevap, onceki urun secim sorusunun devami. Tum uygun urunleri kullanip dogrudan rutin ver.'
+          ? 'Kısa bağlamsal cevap, önceki ürün seçimi sorusunun devamı. Uygun tüm ürünleri kullanıp doğrudan rutin ver.'
           : 'Short contextual continuation of prior product-selection question. Use all compatible products and provide routine directly.',
     };
     intent = 'question';
@@ -1727,7 +1823,7 @@ export async function generateAIResponse(
           pilotGenerationMode = 'fallback';
           pilotFallbackReason = 'product_selection_uncertain';
           const clarificationResponse = finalizeConfiguredResponse({
-            response: buildUnknownProductSafeFallback(responseLang, resolvedOrderProducts),
+            response: buildUnknownProductSafeFallback(responseLang, resolvedOrderProducts, 'uncertain'),
             persona,
             responseLang,
             replyLanguageDecision: {
@@ -2025,9 +2121,9 @@ export async function generateAIResponse(
       const fallbackAnswer = stickyOrderProducts.length > 0
         ? buildKnownProductsRecoveryResponse(responseLang, stickyOrderProducts)
         : responseLang === 'tr'
-          ? 'Sorunu güvenilir şekilde yanitlamak icin yeterli urun bilgisine simdi erisemiyorum. Siparis numaranizi paylasir misiniz?'
+          ? 'Sorunuzu güvenilir şekilde yanıtlamak için gereken ürün bilgisine şu anda erişemiyorum. Sipariş numaranızı paylaşır mısınız?'
           : responseLang === 'hu'
-            ? 'Most nem erek el eleg megbizhato termekinformaciot a valaszhoz. Megirna a rendelesszamat?'
+            ? 'Most nem érek el elég megbízható termékinformációt a válaszhoz. Megírná a rendelésszámát?'
             : responseLang === 'de'
               ? 'Ich kann im Moment nicht zuverlässig genug auf Produktinformationen zugreifen, um sicher zu antworten. Können Sie mir Ihre Bestellnummer senden?'
               : responseLang === 'el'

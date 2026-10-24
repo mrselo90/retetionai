@@ -267,4 +267,17 @@ describe('product awareness and strict product resolution', () => {
     expect(response.response).toContain('I do not have enough info about this product');
     expect(lastGroundedCall).toBeNull();
   });
+
+  it('answers a question that names no product from all order products', async () => {
+    // Any 3+ letter word used to count as an unknown product reference.
+    const response = await generateAIResponse('Can I use it twice a day?', 'merchant-1', 'user-1', 'conv-pr-5', 'order-1', []);
+
+    expect(lastGroundedCall.productIds).toEqual(['p1', 'p2', 'p3']);
+    expect(response.response).not.toContain('I do not have enough info');
+  });
+
+  it('does not read a dosage range as a product code', async () => {
+    await generateAIResponse('Should I apply 2-3 drops of the serum?', 'merchant-1', 'user-1', 'conv-pr-6', 'order-1', []);
+    expect(lastGroundedCall).not.toBeNull();
+  });
 });

@@ -21,51 +21,95 @@ export function normalizeSupportedLanguage(lang?: string | null): SupportedLangu
   return 'en';
 }
 
+// Frequent words per language, matched as whole words. Short customer messages
+// often have no language-specific letters ("Hamileyim, bu serumu kullanabilir
+// miyim?", "Van benne illatanyag?"), and these are what identify them.
+const LANGUAGE_WORDS: Record<Exclude<SupportedLanguage, 'el'>, string[]> = {
+  tr: [
+    'bu', 've', 'bir', 'ne', 'mi', 'mı', 'mu', 'mü', 'de', 'da', 'ile', 'için', 'icin', 'ama', 'çok', 'cok', 'daha',
+    'nasıl', 'nasil', 'neden', 'nerede', 'zaman', 'kaç', 'kac', 'var', 'yok', 'olur', 'olabilir', 'evet', 'hayır', 'hayir',
+    'tamam', 'merhaba', 'teşekkür', 'tesekkur', 'teşekkürler', 'tesekkurler', 'sağol', 'sagol', 'lütfen', 'lutfen', 'yardım', 'yardim',
+    'ürün', 'urun', 'ürünü', 'urunu', 'sipariş', 'siparis', 'siparişim', 'siparisim', 'kargo', 'kargom', 'iade', 'gelir', 'geldi',
+    'gün', 'gun', 'günde', 'gunde', 'sabah', 'akşam', 'aksam', 'gece', 'cilt', 'cildim', 'yüz', 'yuz', 'yüzüm', 'yuzum', 'krem', 'kremi',
+    'serum', 'serumu', 'kullan', 'kullanım', 'kullanim', 'kullanabilir', 'kullanmalıyım', 'kullanmaliyim', 'sürebilir', 'surebilir',
+    'hamile', 'hamileyim', 'bana', 'benim', 'sizin', 'misiniz', 'musunuz', 'miyim', 'mıyım', 'sence',
+  ],
+  hu: [
+    'az', 'egy', 'és', 'van', 'nincs', 'benne', 'hogy', 'hogyan', 'mi', 'mit', 'mikor', 'meddig', 'miért', 'miert',
+    'igen', 'nem', 'köszönöm', 'koszonom', 'kérem', 'kerem', 'szia', 'rendben', 'értem', 'ertem', 'termék', 'termek', 'krém', 'krem',
+    'krémet', 'bőr', 'bőrre', 'borre', 'arc', 'arcra', 'használni', 'hasznalni', 'használjam', 'hasznaljam', 'használhatom',
+    'szeretném', 'tudnám', 'kell', 'lehet', 'után', 'utan', 'reggel', 'este', 'illatanyag', 'rendelés', 'rendelésem', 'csomag',
+    'visszaküldés', 'ezt', 'ez', 'milyen', 'melyik', 'mennyi', 'ideig', 'hányszor', 'hanyszor', 'naponta', 'köszi', 'koszi',
+    'szabad', 'terhes', 'várandós', 'bőröm', 'borom', 'kérdés', 'kerdes', 'segítség', 'segitseg',
+  ],
+  en: [
+    'the', 'is', 'it', 'an', 'and', 'or', 'i', 'you', 'my', 'me', 'can', 'do', 'does', 'how', 'what', 'when', 'where', 'why',
+    'this', 'that', 'with', 'for', 'to', 'of', 'use', 'skin', 'will', 'should', 'please', 'thanks', 'thank', 'hi', 'hello',
+    'order', 'product', 'cream', 'face', 'night', 'morning', 'safe', 'pregnant', 'are', 'have', 'any', 'about',
+  ],
+  de: [
+    'und', 'oder', 'ist', 'das', 'der', 'die', 'ein', 'eine', 'ich', 'sie', 'wie', 'warum', 'wann', 'kann', 'bitte', 'danke',
+    'hallo', 'produkt', 'anwendung', 'bestellung', 'hilfe', 'rückgabe', 'haut', 'creme', 'nicht', 'mit', 'für', 'fur',
+  ],
+};
+const WORD_SETS = Object.fromEntries(
+  Object.entries(LANGUAGE_WORDS).map(([lang, words]) => [lang, new Set(words)]),
+) as Record<Exclude<SupportedLanguage, 'el'>, Set<string>>;
+
+export interface LanguageDetection {
+  language: SupportedLanguage;
+  /**
+   * false when the text gave no clear signal (very short, numbers only, or a
+   * tie). Callers with context (earlier messages, the conversation's language)
+   * should prefer it over this guess.
+   */
+  confident: boolean;
+}
+
 /**
- * Detect language from text using character patterns and common words.
- * Fast heuristic — no external API call.
+ * Detects the language from letters, frequent words and Turkish suffixes.
+ * Fast heuristic, no external call.
+ *
+ * The previous version matched keywords with an ASCII-only \b, so words
+ * starting or ending with ü, ş, ö ... ("ürün", "köszönöm") never matched, and a
+ * message without language-specific letters fell through to English.
  */
+export function detectLanguageDetailed(text: string): LanguageDetection {
+  // Plain lowercase: the Turkish locale would turn an English "I" into "ı".
+  const lower = String(text || '').replace(/İ/g, 'i').toLowerCase();
+  if (/[α-ωάέίόύήώϊϋΐΰ]/.test(lower)) return { language: 'el', confident: true };
+
+  const score: Record<Exclude<SupportedLanguage, 'el'>, number> = { tr: 0, hu: 0, en: 0, de: 0 };
+  // Letters: ş ğ ı are Turkish only; ő ű Hungarian only; ä ß German only.
+  if (/[şğı]/.test(lower)) score.tr += 3;
+  if (/[őű]/.test(lower)) score.hu += 3;
+  if (/[äß]/.test(lower)) score.de += 3;
+  if (/[áéíóú]/.test(lower)) score.hu += 1;
+  // sz, gy, zs: Hungarian digraphs, rare in Turkish and English.
+  if (/sz|gy|zs/.test(lower)) score.hu += 1.5;
+  if (/[çöü]/.test(lower)) {
+    score.tr += 1;
+    score.hu += 0.5;
+    score.de += 0.5;
+  }
+  // Turkish verb endings and question particles, also when typed without Turkish letters.
+  if (/\p{L}(iyor|ıyor|uyor|üyor|yorum|abilir|ebilir|malıyım|meliyim|maliyim)(?!\p{L})/u.test(lower)) score.tr += 2;
+  if (/(?<!\p{L})(mi|mı|mu|mü|miyim|mıyım|misiniz|musunuz)(?!\p{L})/u.test(lower)) score.tr += 1;
+
+  for (const word of lower.match(/\p{L}+/gu) || []) {
+    for (const lang of Object.keys(WORD_SETS) as Array<keyof typeof WORD_SETS>) {
+      if (WORD_SETS[lang].has(word)) score[lang] += 1;
+    }
+  }
+
+  const ranked = (Object.entries(score) as Array<[keyof typeof score, number]>).sort((a, b) => b[1] - a[1]);
+  const [best, second] = ranked;
+  if (best[1] === 0) return { language: 'en', confident: false };
+  return { language: best[0], confident: best[1] >= 2 && best[1] - second[1] >= 1 };
+}
+
 export function detectLanguage(text: string): SupportedLanguage {
-  const lower = text.toLowerCase();
-
-  const greekPatterns = [
-    /[α-ωάέίόύήώϊϋΐΰ]/,
-    /\b(και|για|χρήση|προϊόν|οδηγίες|πελάτης|παραγγελία|βοήθεια)\b/,
-  ];
-  for (const pattern of greekPatterns) {
-    if (pattern.test(lower)) return 'el';
-  }
-
-  // Hungarian indicators (unique characters and common words)
-  const huPatterns = [
-    /[őűŐŰ]/, // Hungarian-specific characters
-    /\b(igen|nem|köszönöm|szia|kérem|rendben|értem|visszaküldés|termék|hogyan|miért|szeretném|tudnám)\b/,
-  ];
-  for (const pattern of huPatterns) {
-    if (pattern.test(lower)) return 'hu';
-  }
-
-  // Turkish indicators (unique characters and common words)
-  const trPatterns = [
-    /[şŞğĞıİçÇöÖüÜ]/, // Turkish-specific characters
-    /\b(merhaba|teşekkür|evet|hayır|nasıl|neden|ürün|kullanım|sipariş|iade|lütfen|yardım|kaç|günde|sence)\b/,
-  ];
-  for (const pattern of trPatterns) {
-    if (pattern.test(lower)) return 'tr';
-  }
-
-  // German indicators
-  // NOTE: We intentionally do this after Turkish because "ö/ü" also appear in Turkish.
-  const germanPatterns = [
-    /[äß]/,
-    /\b(und|oder|produkt|anwendung|kunden|bestellung|hilfe|bitte|danke|rückgabe|wie|warum|hallo)\b/,
-  ];
-  for (const pattern of germanPatterns) {
-    if (pattern.test(lower)) return 'de';
-  }
-
-  // Default to English
-  return 'en';
+  return detectLanguageDetailed(text).language;
 }
 
 export function resolveMerchantReplyLanguage(
