@@ -1169,7 +1169,33 @@ function looksLikeEvidenceClarificationAnswer(answer: string): boolean {
 /**
  * Classify message intent
  */
-export async function classifyIntent(message: string, merchantId?: string): Promise<Intent> {
+/** How much of the conversation the intent classifier sees. */
+const INTENT_HISTORY_MESSAGES = 6;
+const INTENT_HISTORY_CHARS = 300;
+
+/**
+ * The latest message alone hides what short follow-ups are about: "peki akşam
+ * da kullanabilir miyim?" after a usage answer read as chat and was answered
+ * without product evidence. The classifier now sees the recent turns too.
+ */
+export function buildIntentClassifierInput(message: string, history: ConversationMessage[] = []): string {
+  const recent = history
+    .filter((item) => item?.content?.trim())
+    .slice(-INTENT_HISTORY_MESSAGES)
+    .map((item) => {
+      const speaker = item.role === 'user' ? 'Customer' : 'Assistant';
+      const text = item.content.trim().replace(/\s+/g, ' ');
+      return `${speaker}: ${text.length > INTENT_HISTORY_CHARS ? `${text.slice(0, INTENT_HISTORY_CHARS)}…` : text}`;
+    });
+  if (recent.length === 0) return message;
+  return `Recent conversation:\n${recent.join('\n')}\n\nLatest customer message:\n${message}`;
+}
+
+export async function classifyIntent(
+  message: string,
+  merchantId?: string,
+  history: ConversationMessage[] = [],
+): Promise<Intent> {
   try {
     const openai = getOpenAIClient();
     const model = await getDefaultLlmModel();
@@ -1179,7 +1205,8 @@ export async function classifyIntent(message: string, merchantId?: string): Prom
         {
           role: 'system',
           content: `You are an intent classifier for a multilingual customer service chatbot.
-Classify the user's message into one of these categories regardless of the language used:
+Classify the LATEST customer message into one of these categories regardless of the language used.
+When recent conversation is given, use it to understand short follow-ups: a follow-up about a product (e.g. "and at night?", "peki hassas ciltte?", "ya terlersem?") is a question, even if it has no question words.
 - question: User is asking about product usage, features, or how to use something
 - complaint: User is reporting a problem, issue, or dissatisfaction (shipping, packaging, general issues)
 - return_intent: User wants to return the product, says they didn't like it, it doesn't work, wants a refund, or expresses dissatisfaction signaling a potential return. Examples include but are not limited to:
@@ -1193,7 +1220,7 @@ Respond with ONLY the category name.`,
         },
         {
           role: 'user',
-          content: message,
+          content: buildIntentClassifierInput(message, history),
         },
       ],
       temperature: 0.1, // Low temperature for consistent classification
@@ -1239,9 +1266,17 @@ export async function generateAIResponse(
   userId: string,
   conversationId: string,
   orderId?: string,
-  conversationHistory: ConversationMessage[] = [],
+  rawConversationHistory: ConversationMessage[] = [],
   personaSettings?: any
 ): Promise<AIResponse> {
+  // The inbound processor stores the customer's message before loading the
+  // history, so the history usually ends with this very message. Every model
+  // call below adds the message itself, so it was seen twice.
+  const lastHistoryItem = rawConversationHistory[rawConversationHistory.length - 1];
+  const conversationHistory =
+    lastHistoryItem?.role === 'user' && lastHistoryItem.content?.trim() === message.trim()
+      ? rawConversationHistory.slice(0, -1)
+      : rawConversationHistory;
   const openai = getOpenAIClient();
   const llmModel = await getDefaultLlmModel();
 
@@ -1480,7 +1515,7 @@ export async function generateAIResponse(
   }
 
   // Step 2: Classify intent
-  let intent = await classifyIntent(message, merchantId);
+  let intent = await classifyIntent(message, merchantId, stateHistory);
   let postDeliveryFollowUp = detectPostDeliveryFollowUpSignal(message, stateHistory);
   if (postDeliveryFollowUp.detected && postDeliveryFollowUp.promoteIntentToQuestion && intent === 'chat') {
     intent = 'question';
@@ -2089,10 +2124,18 @@ export async function generateAIResponse(
     } catch { /* non-critical */ }
   }
 
-  // Step 3: Get RAG context for return prevention flows.
+  // Step 3: Product evidence for the non-question flows. Complaints are often
+  // about the product ("cildimi kuruttu") and its instructions are what helps;
+  // chat in an order's conversation can be about that order's products. These
+  // used to reach the model with no evidence at all. Plain chat without an
+  // order (greetings) skips retrieval.
   let ragContext = '';
   let factsEvidenceText = '';
-  if (intent === 'return_intent' && returnPreventionActive) {
+  const loadsProductEvidence =
+    (intent === 'return_intent' && returnPreventionActive)
+    || intent === 'complaint'
+    || (intent === 'chat' && Boolean(effectiveOrderId));
+  if (loadsProductEvidence) {
     try {
       const ragQuery = postDeliveryFollowUp.ragQueryOverride || message;
       let orderProductIds: string[] | undefined;
@@ -2271,7 +2314,7 @@ export async function generateAIResponse(
     const response = await openai.chat.completions.create({
       model: llmModel,
       messages,
-      temperature: persona.temperature || 0.7,
+      temperature: typeof persona.temperature === 'number' ? persona.temperature : 0.4,
       max_tokens: 500,
     });
     void trackAiUsageEvent({
@@ -2464,7 +2507,9 @@ function buildSystemPrompt(
 - If you don't have information, admit it clearly and suggest alternatives
 - Be concise but complete - explain things step by step when needed
 - Show empathy and understanding in complaints
-- Never make up facts or product details\n\n`;
+- Never make up facts or product details
+- Never state order status, shipping or delivery times, tracking details, refunds or store policies unless they appear in the information below; if asked, say you don't have that information and that the store's team can help
+- You are not a medical professional: do not diagnose conditions or recommend medicines. For medical conditions, pregnancy, medications or allergic reactions, share only what the product information says and suggest consulting a doctor or pharmacist\n\n`;
 
   // Merchant-defined bot info (brand guidelines, boundaries, recipe overview)
   if (botInfo && Object.keys(botInfo).length > 0) {
@@ -2562,10 +2607,14 @@ function buildSystemPrompt(
     prompt += `--- PRODUCT INFORMATION (Use this to answer) ---\n${ragContext}\n\n`;
     prompt +=
       'IMPORTANT: If structured product facts are present, treat them as highest-priority source of truth. ' +
-      'Use retrieved text chunks as supporting evidence/details.\n' +
-      'IMPORTANT: Base your answer ONLY on the information above. ' +
-      'If the answer is not in the context, clearly say "I don\'t have specific information about that" and offer to help in another way.\n\n';
-  } else if (intent === 'question' || intent === 'return_intent') {
+      'Use retrieved text chunks as supporting evidence/details.\n';
+    prompt +=
+      intent === 'chat'
+        ? 'IMPORTANT: Use the information above only when the customer\'s message is about the product. ' +
+          'For greetings or thanks, reply naturally without listing product details.\n\n'
+        : 'IMPORTANT: Base product details ONLY on the information above. ' +
+          'If the answer is not in the context, clearly say "I don\'t have specific information about that" and offer to help in another way.\n\n';
+  } else if (intent === 'question' || intent === 'return_intent' || intent === 'complaint') {
     prompt +=
       '--- NO PRODUCT INFORMATION AVAILABLE ---\n' +
       'The product information is not in the knowledge base yet. ' +

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { generateGroundedProductAnswer } from './groundedAnswer';
+import { answerHasUnsupportedGuarantee, generateGroundedProductAnswer } from './groundedAnswer';
 import { __setOpenAIClientForTests } from './openaiClient';
 
 vi.mock('@recete/shared', () => ({
@@ -218,5 +218,25 @@ describe('generateGroundedProductAnswer', () => {
 
     expect(result.answer).toBe('Cevap burada.');
     expect(result.langDetected).toBe('tr');
+  });
+});
+
+describe('answerHasUnsupportedGuarantee', () => {
+  it.each([
+    'Garanti veremeyiz ama çoğu kullanıcı 2 haftada fark görür.',
+    'Kesin sonuç kişiden kişiye değişir.',
+    'We can\'t guarantee results, but most people see a difference in 4 weeks.',
+    'Kesinlikle günde iki kez kullanmayın.',
+  ])('keeps an honest answer: %s', (answer) => {
+    expect(answerHasUnsupportedGuarantee(answer)).toBe(false);
+  });
+
+  it.each([
+    'This is completely safe and guaranteed to work for everyone.',
+    'Ürünümüz tamamen güvenlidir.',
+    'Sonucu garanti ederiz.',
+    'Teljesen biztonságos mindenkinek.',
+  ])('catches an affirmative guarantee: %s', (answer) => {
+    expect(answerHasUnsupportedGuarantee(answer)).toBe(true);
   });
 });

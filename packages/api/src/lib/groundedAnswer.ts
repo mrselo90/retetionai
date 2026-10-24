@@ -110,8 +110,15 @@ function hasUsableGroundingEvidence(grounding: {
   return Boolean(grounding.context?.trim()) && grounding.citedProducts.length > 0;
 }
 
-function answerHasUnsupportedGuarantee(answer: string): boolean {
-  return /\b(guarantee|guaranteed|definitely safe|completely safe|tamamen güvenli|kesin|garanti|biztosan biztonságos)\b/i.test(answer);
+/**
+ * Affirmative safety or result guarantees the evidence can't back. Bare
+ * "garanti", "kesin" or "guarantee" also matched honest answers ("garanti
+ * veremeyiz", "kesin sonuç kişiden kişiye değişir", "we can't guarantee") and
+ * replaced them with a no-evidence message. Prefix match, so Turkish suffixes
+ * count ("tamamen güvenlidir").
+ */
+export function answerHasUnsupportedGuarantee(answer: string): boolean {
+  return /(?<![\p{L}\p{N}])(guaranteed to|we guarantee|i guarantee|100% safe|completely safe|totally safe|definitely safe|garantilidir|garanti ederiz|garanti ediyoruz|garanti ederim|tamamen güvenli|kesinlikle güvenli|%100 güvenli|teljesen biztonságos|biztosan biztonságos|garantáljuk)/iu.test(answer);
 }
 
 async function loadMerchantPresentation(
@@ -208,7 +215,6 @@ export async function generateGroundedProductAnswer(
         retrievalUsedFallback: grounding.retrievalUsedFallback,
         retrievalFallbackLanguage: grounding.retrievalFallbackLanguage,
         ...groundingTelemetry(grounding),
-      ...groundingTelemetry(grounding),
       },
       'grounded_answer_clarification_due_to_insufficient_evidence',
     );
@@ -306,7 +312,7 @@ export async function generateGroundedProductAnswer(
 
   const completion = await client.chat.completions.create({
     model,
-    temperature: persona?.temperature || 0.2,
+    temperature: typeof persona?.temperature === 'number' ? persona.temperature : 0.2,
     max_tokens: MAX_RESPONSE_TOKENS,
     messages,
   });
