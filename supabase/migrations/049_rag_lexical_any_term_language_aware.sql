@@ -15,6 +15,11 @@
 -- Same function signature: the app needs no change for this part.
 -- Measured by packages/api/evals/retrieval (pnpm --filter @recete/api eval:retrieval).
 
+-- Adding a stored column rewrites the table, which rebuilds its ivfflat index
+-- (lists = 100 needs ~61 MB; production's maintenance_work_mem is 32 MB).
+-- Raised for this transaction only.
+set local maintenance_work_mem = '256MB';
+
 create or replace function public.rag_text_search_config(p_language_code text)
 returns regconfig
 language sql
