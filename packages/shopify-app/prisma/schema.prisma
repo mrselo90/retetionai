@@ -75,6 +75,7 @@ model Shop {
   products          Product[]
   webhookReceipts   WebhookReceipt[]
   usageEventReceipts UsageEventReceipt[]
+  bulkDraftJobs     BulkDraftJob[]
 
   @@schema("shopify")
 }
@@ -140,5 +141,63 @@ model UsageEventReceipt {
   updatedAt          DateTime  @updatedAt
 
   @@unique([shopId, eventType, externalEventId])
+  @@schema("shopify")
+}
+
+// "Draft all with AI" runs in the background (app/lib/bulkDraft.server.ts):
+// the page polls this job instead of waiting on one long request. Only the
+// latest job per shop is kept.
+model BulkDraftJob {
+  id           String          @id @default(cuid())
+  shopId       String
+  shop         Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopDomain   String
+  status       BulkDraftStatus @default(RUNNING)
+  limitReached Boolean         @default(false)
+  finishedAt   DateTime?
+  // When the merchant dismissed the result; until then it is shown again.
+  seenAt       DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  items        BulkDraftItem[]
+
+  @@index([shopId, createdAt])
+  @@schema("shopify")
+}
+
+model BulkDraftItem {
+  id               String              @id @default(cuid())
+  jobId            String
+  job              BulkDraftJob        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  // Catalog order; items are worked through in this order.
+  position         Int
+  shopifyProductId String
+  title            String
+  handle           String
+  descriptionHtml  String
+  productType      String?
+  vendor           String?
+  status           BulkDraftItemStatus @default(PENDING)
+  error            String?
+  updatedAt        DateTime            @updatedAt
+
+  @@index([jobId, status])
+  @@schema("shopify")
+}
+
+enum BulkDraftStatus {
+  RUNNING
+  DONE
+
+  @@schema("shopify")
+}
+
+enum BulkDraftItemStatus {
+  PENDING
+  RUNNING
+  SAVED
+  FAILED
+  SKIPPED
+
   @@schema("shopify")
 }
