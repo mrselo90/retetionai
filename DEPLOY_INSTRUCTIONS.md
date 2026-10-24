@@ -41,7 +41,7 @@ Your Frontend is hosted directly on this DigitalOcean server (Port 3001, PM2 nam
 Always reload from `ecosystem.config.cjs`, from the repository root:
 
 ```bash
-pm2 startOrRestart ecosystem.config.cjs --update-env
+pm2 startOrReload ecosystem.config.cjs --update-env
 ```
 
 Two reasons, both of which have bitten us:

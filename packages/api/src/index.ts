@@ -353,7 +353,22 @@ const rawPort = Number(process.env.PORT) || 3002;
 const port = rawPort === 3000 ? 3002 : rawPort;
 logger.info({ port }, '🚀 Recete API server starting');
 
-serve({
+const server = serve({
   fetch: app.fetch,
   port,
 });
+
+// PM2 runs the API as a cluster and reloads it one process at a time on deploy:
+// it starts the new process, waits until it listens, then sends SIGINT to the
+// old one. Stop taking connections and let requests in flight finish (an AI
+// reply can take several seconds), then exit. PM2's kill_timeout
+// (ecosystem.config.cjs) bounds how long this may take.
+let shuttingDown = false;
+function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logger.info({ signal }, 'API shutting down: finishing requests in flight');
+  server.close(() => process.exit(0));
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

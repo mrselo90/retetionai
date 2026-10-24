@@ -77,7 +77,7 @@ psql $DATABASE_URL -f supabase/migrations/010_performance_indexes.sql
 pnpm build
 
 # Restart services
-pm2 startOrRestart ecosystem.config.cjs --update-env
+pm2 startOrReload ecosystem.config.cjs --update-env
 
 # Check status
 pm2 list
@@ -205,7 +205,7 @@ git log --oneline  # Find the commit before 5e755db
 git reset --hard <PREVIOUS_COMMIT>
 pnpm install
 pnpm build
-pm2 startOrRestart ecosystem.config.cjs --update-env
+pm2 startOrReload ecosystem.config.cjs --update-env
 ```
 
 ## Support Files

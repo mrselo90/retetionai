@@ -74,10 +74,22 @@ const waWorkerApps =
       ]
     : [];
 
+// The HTTP services run as PM2 clusters of two processes, so a deploy can
+// `pm2 startOrReload` them one process at a time without dropping requests:
+// PM2 starts the new process, waits until it listens (listen_timeout), then
+// sends SIGINT to the old one, which stops taking connections and finishes what
+// it has (each service handles SIGINT) within kill_timeout.
+const clusterReload = (killTimeoutMs) => ({
+  instances: 2,
+  exec_mode: 'cluster',
+  listen_timeout: 30000,
+  kill_timeout: killTimeoutMs,
+});
+
 /**
  * PM2 ecosystem config for production.
- * Run from repo root: pm2 startOrRestart ecosystem.config.cjs --update-env
- * (startOrRestart, not start — `start` errors on apps that are already running)
+ * Run from repo root: pm2 startOrReload ecosystem.config.cjs --update-env
+ * (startOrReload, not start — `start` errors on apps that are already running)
  * Nginx:
  * - recete.co.uk -> Web (3001)
  * - api.recete.co.uk -> API (3002)
@@ -88,9 +100,8 @@ module.exports = {
     {
       name: 'api',
       cwd: './packages/api',
-      script: 'dist/index.js',
-      interpreter: 'node',
-      node_args: '-r newrelic',
+      // Loads New Relic, then dist/index.js (see start.cjs for why not -r).
+      script: 'start.cjs',
       env: {
         PORT: 3002,
         NODE_ENV: 'production',
@@ -108,15 +119,17 @@ module.exports = {
         NEW_RELIC_APP_NAME: 'recete-api',
         ...nrEnv,
       },
-      instances: 1,
-      exec_mode: 'fork',
+      // An AI reply can take several seconds.
+      ...clusterReload(30000),
       autorestart: true,
       watch: false,
     },
     {
       name: 'web',
       cwd: './packages/web',
-      script: '/usr/bin/pnpm',
+      // `next start` itself: a cluster process must be the server, not pnpm.
+      // Next closes its server and finishes requests on SIGINT.
+      script: 'node_modules/next/dist/bin/next',
       args: 'start',
       env: {
         NODE_ENV: 'production',
@@ -124,16 +137,16 @@ module.exports = {
         INTERNAL_API_URL: 'http://127.0.0.1:3002',
         NEXT_PUBLIC_API_URL: 'https://recete.co.uk',
       },
-      instances: 1,
-      exec_mode: 'fork',
+      ...clusterReload(15000),
       autorestart: true,
       watch: false,
     },
     {
       name: 'shopify-shell',
       cwd: './packages/shopify-app',
-      script: '/usr/bin/pnpm',
-      args: 'start',
+      // What `pnpm start` runs; a cluster process must be the server itself.
+      script: 'server.mjs',
+      args: './build/server/index.js',
       env: {
         NODE_ENV: 'production',
         PORT: 3003,
@@ -145,8 +158,8 @@ module.exports = {
         API_URL: 'https://api.recete.co.uk',
         FRONTEND_URL: 'https://recete.co.uk',
       },
-      instances: 1,
-      exec_mode: 'fork',
+      // Also lets background product jobs finish their current step.
+      ...clusterReload(30000),
       autorestart: true,
       watch: false,
     },
@@ -162,8 +175,11 @@ module.exports = {
         NEW_RELIC_APP_NAME: 'recete-workers',
         ...nrEnv,
       },
+      // One process (queue consumers and schedulers); a reload restarts it.
+      // On SIGINT it closes the queue workers, which finish their active jobs.
       instances: 1,
       exec_mode: 'fork',
+      kill_timeout: 30000,
       autorestart: true,
       watch: false,
     },
