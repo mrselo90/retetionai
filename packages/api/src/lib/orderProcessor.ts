@@ -7,7 +7,8 @@ import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { decryptPhone, encryptPhone } from './encryption.js';
 import type { NormalizedEvent } from './events.js';
 import { generateIdempotencyKey, normalizePhone } from './events.js';
-import { scheduleOrderMessages } from './messageScheduler.js';
+import { cancelOrderMessages, scheduleOrderMessages } from './messageScheduler.js';
+import { nextOrderStatus, queueDeliveryFallback } from './deliveryTiming.js';
 import { scheduleMessage } from '../queues.js';
 import { normalizeAndHashPhone } from './phoneLookup.js';
 import { sendDeliveryTemplate } from './deliveryTemplateService.js';
@@ -175,7 +176,7 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
   // Step 2: Upsert order (by merchant_id + external_order_id)
   const { data: existingOrder } = await serviceClient
     .from('orders')
-    .select('id')
+    .select('id, status')
     .eq('merchant_id', event.merchant_id)
     .eq('external_order_id', event.external_order_id)
     .single();
@@ -186,13 +187,17 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
   // Map event order status to order status
   const statusMap: Record<string, string> = {
     order_created: 'created',
+    order_shipped: 'shipped',
     order_delivered: 'delivered',
     order_cancelled: 'cancelled',
     order_returned: 'returned',
     order_updated: event.order?.status || 'created',
   };
 
-  const orderStatus = statusMap[event.event_type] || 'created';
+  // Late or repeated events never move an order back (deliveryTiming.ts).
+  const previousStatus: string | null = existingOrder?.status ?? null;
+  const orderStatus = nextOrderStatus(previousStatus, statusMap[event.event_type] || 'created');
+  const becameDelivered = orderStatus === 'delivered' && previousStatus !== 'delivered';
 
   if (existingOrder) {
     // Update existing order
@@ -203,7 +208,7 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
       user_id: userId, // Update user_id in case it changed
     };
 
-    if (event.order?.delivered_at) {
+    if (becameDelivered && event.order?.delivered_at) {
       updateData.delivery_date = new Date(event.order.delivered_at);
     }
 
@@ -230,8 +235,27 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
     created = true;
   }
 
-  // Schedule post-delivery messages only when user has marketing consent (GDPR/KVKK)
-  if (orderStatus === 'delivered' && event.order?.delivered_at) {
+  // Shipped (Shopify): if the carrier never reports delivery, assume it later.
+  if (orderStatus === 'shipped' && previousStatus !== 'shipped' && event.source === 'shopify') {
+    try {
+      await queueDeliveryFallback(event);
+    } catch (error) {
+      logger.error({ error, orderId }, 'Failed to queue the delivery fallback');
+    }
+  }
+
+  // Cancelled: drop any messages already scheduled for it.
+  if (orderStatus === 'cancelled' && previousStatus !== 'cancelled') {
+    try {
+      await cancelOrderMessages(orderId, event.merchant_id);
+    } catch (error) {
+      logger.error({ error, orderId }, 'Failed to cancel messages for a cancelled order');
+    }
+  }
+
+  // Schedule post-delivery messages only when user has marketing consent (GDPR/KVKK),
+  // once, when the order becomes delivered.
+  if (becameDelivered && event.order?.delivered_at) {
     const { data: user } = await serviceClient
       .from('users')
       .select('consent_status')
@@ -243,7 +267,10 @@ export async function processNormalizedEvent(event: NormalizedEvent): Promise<{
       try {
         const deliveryDate = new Date(event.order.delivered_at);
         await scheduleOrderMessages(orderId, event.merchant_id, deliveryDate);
-        logger.info({ orderId }, 'Scheduled post-delivery messages for order');
+        logger.info(
+          { orderId, deliverySource: event.order?.delivery_source ?? 'event' },
+          'Scheduled post-delivery messages for order'
+        );
       } catch (error) {
         logger.error({ error, orderId }, 'Failed to schedule post-delivery messages');
         // Don't fail the order processing if message scheduling fails

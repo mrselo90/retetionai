@@ -19,6 +19,16 @@ api_version = "2026-10"
   topics = [ "orders/fulfilled" ]
   uri = "/webhooks/orders/fulfilled"
 
+  # Shipped is not delivered: post-delivery messages start when a carrier (or
+  # the merchant) reports delivery, or after a fallback (api lib/deliveryTiming.ts).
+  [[webhooks.subscriptions]]
+  topics = [ "fulfillment_events/create" ]
+  uri = "/webhooks/fulfillment_events/create"
+
+  [[webhooks.subscriptions]]
+  topics = [ "orders/cancelled" ]
+  uri = "/webhooks/orders/cancelled"
+
   [[webhooks.subscriptions]]
   topics = [ "customers_whats_app_marketing_consent/update" ]
   uri = "/webhooks/customers_whats_app_marketing_consent/update"

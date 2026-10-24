@@ -21,7 +21,11 @@ export interface NormalizedEvent {
   order?: {
     status: string;
     created_at?: string;
+    /** Handed to the carrier (orders/fulfilled). */
+    shipped_at?: string;
     delivered_at?: string;
+    /** carrier: a delivered fulfillment event; estimated: no carrier report by the fallback (deliveryTiming.ts). */
+    delivery_source?: 'carrier' | 'estimated';
   };
   items?: Array<{
     external_product_id?: string;
@@ -65,23 +69,25 @@ export function normalizeShopifyEvent(
       return null;
     }
 
-    // Map topic to event type
+    // Map topic to event type. orders/fulfilled means handed to the carrier,
+    // not delivered: delivery comes from a fulfillment event or the fallback
+    // (deliveryTiming.ts).
     const eventTypeMap: Record<string, string> = {
       'orders/create': 'order_created',
-      'orders/fulfilled': 'order_delivered',
+      'orders/fulfilled': 'order_shipped',
       'orders/updated': 'order_updated',
       'orders/cancelled': 'order_cancelled',
     };
 
     let eventType = eventTypeMap[topic] || 'order_updated';
 
-    // orders/updated: treat as order_delivered when order is fulfilled (GDPR-aware trigger)
+    // orders/updated: a fulfilled order has shipped
     if (topic === 'orders/updated') {
       const fulfillmentStatus = (order.fulfillment_status || '').toLowerCase();
       const hasFulfillments = Array.isArray(order.fulfillments) && order.fulfillments.length > 0;
       const fulfilledSuccess = hasFulfillments && order.fulfillments.some((f: any) => (f.status || '').toString() === 'success');
       if (fulfillmentStatus === 'fulfilled' || fulfilledSuccess) {
-        eventType = 'order_delivered';
+        eventType = 'order_shipped';
       }
     }
 
@@ -127,15 +133,11 @@ export function normalizeShopifyEvent(
       customerName = `${firstName} ${lastName}`.trim() || undefined;
     }
 
-    // Extract delivery date (from fulfillments)
-    let deliveredAt: string | undefined;
-    if (eventType === 'order_delivered' && order.fulfillments && order.fulfillments.length > 0) {
-      const fulfilled = order.fulfillments.find((f: any) => (f.status || '').toString() === 'success');
-      if (fulfilled?.updated_at) {
-        deliveredAt = fulfilled.updated_at;
-      } else if (order.updated_at) {
-        deliveredAt = order.updated_at;
-      }
+    // When it was handed to the carrier (from fulfillments)
+    let shippedAt: string | undefined;
+    if (eventType === 'order_shipped') {
+      const fulfilled = (order.fulfillments || []).find((f: any) => (f.status || '').toString() === 'success');
+      shippedAt = fulfilled?.created_at || fulfilled?.updated_at || order.updated_at || undefined;
     }
 
     // WhatsApp consent isn't derived from the order: email/SMS marketing consent
@@ -174,7 +176,7 @@ export function normalizeShopifyEvent(
       order: {
         status: order.financial_status || order.fulfillment_status || 'unknown',
         created_at: order.created_at,
-        delivered_at: deliveredAt,
+        shipped_at: shippedAt,
       },
       items: items.length > 0 ? items : undefined,
       customer_locale: customerLocale,
