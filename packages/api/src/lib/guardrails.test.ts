@@ -178,3 +178,66 @@ describe('getSafeResponse', () => {
     expect(response).toContain('sağlık');
   });
 });
+
+describe('medical guardrail precision', () => {
+  // Ordinary skincare questions used to be blocked outright because they
+  // contained a single medical word (tedavi, ilaç, doktor, belirti, treatment).
+  const userMessagesThatReachTheBot = [
+    'Akne tedavisi için uygun mu?',
+    'İlaç kullanıyorum, bu serumu da kullanabilir miyim?',
+    'Doktorum bu kremi önerdi, günde kaç kez sürmeliyim?',
+    'Cildimde tahriş belirtisi var, kullanmaya devam edeyim mi?',
+    'Teşhis aldım, rozasea için uygun mu?',
+    'Is this a good treatment for dark spots?',
+    'I am on medication, can I still use the retinol?',
+    'I was diagnosed with eczema, is this cleanser ok?',
+    'My dermatologist told me to use a gentle cleanser',
+    'Kezelés után használhatom a krémet?',
+    'Szedek gyógyszert, használhatom ezt a krémet?',
+  ];
+  const userMessagesThatAreBlocked = [
+    'Hangi ilacı kullanmalıyım?',
+    'Bana teşhis koyabilir misiniz?',
+    'Can you diagnose my rash?',
+    'What medication should I take for eczema?',
+    'Milyen gyógyszert szedjek?',
+  ];
+
+  it.each(userMessagesThatReachTheBot)('lets through: %s', (message) => {
+    expect(checkUserMessageGuardrailsWithoutCrisis(message).safe).toBe(true);
+  });
+
+  it.each(userMessagesThatAreBlocked)('blocks: %s', (message) => {
+    const result = checkUserMessageGuardrailsWithoutCrisis(message);
+    expect(result.safe).toBe(false);
+    expect(result.reason).toBe('medical_advice');
+  });
+
+  // Referring to a doctor is the safe answer; the old keyword list replaced it
+  // with a generic refusal. "112" also matched prices and volumes.
+  const answersThatAreKept = [
+    'Hamilelikte kullanmadan önce doktorunuza danışın.',
+    'İlaç kullanıyorsanız kullanmadan önce eczacınıza danışın.',
+    'If you are pregnant, please consult your doctor before use.',
+    'This serum is formulated for acne-prone skin; it is not a medical treatment.',
+    'Terhesség esetén konzultáljon orvosával.',
+    'Ürünün fiyatı 112 TL ve 30 ml.',
+  ];
+  const answersThatAreBlocked = [
+    'Take this medicine without consulting a doctor',
+    'You probably have rosacea, so use this twice a day.',
+    'Antibiyotik kullanın, birkaç günde geçer.',
+    'Cildinizde mantar enfeksiyonu olabilir.',
+    'Antibiotikumot szedjen egy hétig.',
+  ];
+
+  it.each(answersThatAreKept)('keeps answer: %s', (answer) => {
+    expect(checkAIResponseGuardrails(answer).safe).toBe(true);
+  });
+
+  it.each(answersThatAreBlocked)('blocks answer: %s', (answer) => {
+    const result = checkAIResponseGuardrails(answer);
+    expect(result.safe).toBe(false);
+    expect(result.reason).toBe('medical_advice');
+  });
+});

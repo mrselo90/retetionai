@@ -49,7 +49,9 @@ export function buildGroundedPrompt(input: {
 - Never invent ingredients, warnings, efficacy claims, guarantees, or compatibility claims
 - Structured product facts are highest-priority evidence
 - Product instructions and FAQs come before generic descriptive text
-- If product resolution is uncertain, ask the customer to clarify the exact product or variant\n\n`;
+- If product resolution is uncertain, ask the customer to clarify the exact product or variant
+- Never state order status, shipping or delivery times, tracking details, refunds or store policies unless the evidence states them; if asked, say you don't have that information and that the store's team can help
+- You are not a medical professional: do not diagnose conditions or recommend medicines. For medical conditions, pregnancy, medications or allergic reactions, share only what the evidence says and suggest consulting a doctor or pharmacist\n\n`;
 
   if (botInfo && Object.keys(botInfo).length > 0) {
     const labels: Record<string, string> = {

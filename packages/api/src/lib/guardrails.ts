@@ -216,53 +216,61 @@ const HUMAN_HANDOFF_PHRASES = [
 ];
 
 /**
- * Medical advice keywords
- * These should block medical advice responses
+ * Customer messages that ask for a diagnosis or a medicine.
+ *
+ * This used to be a list of single medical words ('tedavi', 'ilaç', 'doktor',
+ * 'hasta', 'belirti', 'treatment', 'heal' ...), which blocked ordinary
+ * skincare questions outright ("akne tedavisi için uygun mu?", "ilaç
+ * kullanıyorum, bunu da kullanabilir miyim?", "tahriş belirtisi"). Those now
+ * reach the bot, whose prompt says it is not a doctor: it answers from the
+ * product information and refers to a doctor or pharmacist. Only explicit asks
+ * for a diagnosis or a medicine are blocked here.
  */
-const MEDICAL_ADVICE_KEYWORDS = [
-  // Turkish
-  'tedavi',
-  'ilaç',
-  'hastane',
-  'doktor',
-  'doktora git',
-  'tedavi et',
-  'nasıl iyileşir',
-  'iyileştir',
-  'tıbbi',
+const USER_MEDICAL_REQUEST_PHRASES = [
+  // Turkish ("teşhis aldım" or "ilaç kullanıyorum" are not requests)
+  'teşhis koy',
+  'tanı koy',
+  'hangi ilac',
+  'hangi ilaç',
+  'ilaç öner',
+  'ilaç yaz',
   'tıbbi tavsiye',
-  'teşhis',
-  'hastalık',
-  'hasta',
-  'semptom',
-  'belirti',
-  // English
-  'treatment',
-  'medicine',
-  'medication',
-  'hospital',
-  'doctor',
-  'see a doctor',
-  'cure',
-  'heal',
-  'medical',
+  'tıbbi tedavi',
+  // English ("I was diagnosed with ..." is not a request)
+  'can you diagnose',
+  'diagnose my',
+  'what medication',
+  'which medication',
+  'what medicine',
+  'which medicine',
+  'prescribe me',
   'medical advice',
-  'diagnosis',
-  'diagnose',
-  'disease',
-  'sick',
-  'symptom',
+  'medical treatment',
   // Hungarian
-  'kezelés',
-  'gyógyszer',
-  'orvos',
-  'orvoshoz',
-  'tünet',
-  'diagnózis',
-  'betegség',
-  'beteg',
-  'gyógyít',
+  'diagnosztizál',
+  'milyen gyógyszer',
+  'melyik gyógyszer',
   'orvosi tanács',
+  'orvosi kezelés',
+  'írjon fel',
+];
+
+/** Phrase at a word start; any suffix may follow ("hangi ilacı", "milyen gyógyszert"). */
+function containsPhrasePrefix(text: string, phrase: string): boolean {
+  return new RegExp(`(?<!\\p{L})${escapeRegex(phrase)}`, 'iu').test(text);
+}
+
+/**
+ * Bot answers that recommend a medicine or state a diagnosis. Referring the
+ * customer to a doctor ("hamilelikte kullanmadan önce doktorunuza danışın") is
+ * the safe answer and must not trip this, which the old keyword list did.
+ */
+const AI_RESPONSE_MEDICAL_PATTERNS: RegExp[] = [
+  /\b(take|start|use)\s+(this|a|an|the|some)?\s*(medicine|medication|antibiotics?|cortisone|steroids?)\b/iu,
+  /\byou\s+(have|might have|probably have|likely have)\s+(eczema|psoriasis|rosacea|dermatitis|an? (fungal |bacterial )?infection)\b/iu,
+  /(?<![\p{L}])(ilaç|antibiyotik|kortizon)\p{L}*\s+(alın|alabilirsiniz|kullanın|kullanabilirsiniz|başlayın)(?![\p{L}])/iu,
+  /(?<![\p{L}])(cildinizde|sizde)\s+(\p{L}+\s+)?(egzama|sedef|rozasea|dermatit|enfeksiyon|mantar)\p{L}*\s+(var|olabilir)(?![\p{L}])/iu,
+  /(?<![\p{L}])(gyógyszert|antibiotikumot)\s+(szedjen|vegyen be|használjon)(?![\p{L}])/iu,
 ];
 
 const AI_RESPONSE_HIGH_SEVERITY_CUES = [
@@ -274,7 +282,6 @@ const AI_RESPONSE_HIGH_SEVERITY_CUES = [
   'kendimi öldüreceğim',
   'intihar',
   'call emergency',
-  '112',
   'ambulance',
 ];
 
@@ -299,8 +306,12 @@ function containsCrisisKeywords(text: string): boolean {
  * Check if message requests medical advice
  */
 function requestsMedicalAdvice(text: string): boolean {
-  const lowerText = text.toLowerCase();
-  return MEDICAL_ADVICE_KEYWORDS.some((keyword) => containsKeywordByBoundary(lowerText, keyword.toLowerCase()));
+  const lowerText = text.toLocaleLowerCase('tr-TR');
+  return USER_MEDICAL_REQUEST_PHRASES.some((phrase) => containsPhrasePrefix(lowerText, phrase));
+}
+
+function recommendsMedicalTreatment(text: string): boolean {
+  return AI_RESPONSE_MEDICAL_PATTERNS.some((pattern) => pattern.test(text));
 }
 
 function containsAiResponseHighSeverityCue(text: string): boolean {
@@ -568,7 +579,7 @@ export function checkAIResponseGuardrails(
   }
 
   // 2. System: medical advice in AI response
-  if (requestsMedicalAdvice(aiResponse)) {
+  if (recommendsMedicalTreatment(aiResponse)) {
     return {
       safe: false,
       reason: 'medical_advice',
