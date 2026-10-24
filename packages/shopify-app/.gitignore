@@ -24,6 +24,8 @@ database.sqlite
 
 
 /extensions/*/dist
+# Written by `shopify app build`
+/extensions/*/manifest.json
 
 # Ignore shopify files created during app dev
 .shopify/*
