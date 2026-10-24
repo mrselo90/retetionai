@@ -3,7 +3,6 @@ import {
   deleteMerchantProduct,
   draftMerchantProductInstructions,
   enrichMerchantProductFromUrl,
-  fetchMerchantMappingData,
   generateMerchantProductEmbeddings,
   previewMerchantProductAnswer,
   prepareMerchantProductKnowledge,
@@ -11,7 +10,7 @@ import {
   scrapeMerchantProduct,
 } from '../platform.server';
 import { authenticateEmbeddedAdmin } from './embeddedAuth.server';
-import { dismissBulkDraft, startBulkDraft } from './bulkDraft.server';
+import { dismissBulkDraft, startBulkDraft, startBulkPrepare } from './bulkDraft.server';
 import { getActionErrorMessage, persistProductSetup } from './productSetup.server';
 import { type ActionResult, type StepOutcomeState } from './productWorkspace';
 
@@ -322,7 +321,7 @@ export async function handleProductAction(request: Request): Promise<ActionResul
           ok: true,
           intent,
           message: started.alreadyRunning
-            ? 'Recete is already drafting instructions for your products.'
+            ? 'Recete is already working on your products. Try again when it finishes.'
             : `Drafting instructions for ${started.queued} product${started.queued === 1 ? '' : 's'}. You can leave this page; Recete keeps going.${
                 started.remaining > 0 ? ` ${started.remaining} more left — run it again when this finishes.` : ''
               }`,
@@ -333,61 +332,27 @@ export async function handleProductAction(request: Request): Promise<ActionResul
         return { ok: true, intent } satisfies ActionResult;
       }
       case 'bulk-prepare': {
-        const shopifyProductIds = String(formData.get('shopifyProductIds') || '')
-          .split(',')
-          .map((value) => value.trim())
-          .filter(Boolean);
-
-        if (!shopifyProductIds.length) {
-          return {
-            ok: false,
-            intent,
-            error: 'Select at least one product.',
-          } satisfies ActionResult;
+        // "Update AI": rebuild AI knowledge for the selected products, as a
+        // background job the page follows (bulkDraft.server.ts).
+        const started = await startBulkPrepare({
+          request,
+          shopDomain: session.shop,
+          shopifyProductIds: String(formData.get('shopifyProductIds') || '')
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean),
+        });
+        if (!started.ok) {
+          return { ok: false, intent, error: started.error } satisfies ActionResult;
         }
-
-        const mappingData = await fetchMerchantMappingData(request);
-        const localByExternalId = new Map(
-          (mappingData.localProducts || [])
-            .filter((product) => product.external_id)
-            .map((product) => [String(product.external_id), product])
-        );
-
-        let processed = 0;
-        let skipped = 0;
-
-        for (const externalId of shopifyProductIds) {
-          const localProduct = localByExternalId.get(externalId);
-          if (!localProduct?.id) {
-            skipped += 1;
-            continue;
-          }
-          try {
-            await prepareMerchantProductKnowledge(request, localProduct.id);
-            processed += 1;
-          } catch {
-            skipped += 1;
-          }
-        }
-
-        if (!processed) {
-          return {
-            ok: false,
-            intent,
-            error:
-              'No selected products had a saved setup yet. Open each product once and click Save draft, then retry bulk update.',
-          } satisfies ActionResult;
-        }
-
-        const message =
-          skipped > 0
-            ? `AI update started for ${processed} products. ${skipped} products were skipped.`
-            : `AI update started for ${processed} products.`;
-
         return {
           ok: true,
           intent,
-          message,
+          message: started.alreadyRunning
+            ? 'Recete is already working on your products. Try again when it finishes.'
+            : `Updating AI answers for ${started.queued} product${started.queued === 1 ? '' : 's'}. You can leave this page; Recete keeps going.${
+                started.remaining > 0 ? ` ${started.remaining} more left — run it again when this finishes.` : ''
+              }`,
         } satisfies ActionResult;
       }
       case 'delete': {

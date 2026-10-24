@@ -7,6 +7,7 @@ import type {
 import {
   buildWorkspaceRows,
   countWorkspaceRows,
+  describeBulkJob,
   filterWorkspaceRows,
   paginateRows,
   parseProductTab,
@@ -110,5 +111,41 @@ describe('filters and paging', () => {
     expect(parseProductTab('ready')).toBe('ready');
     expect(parseProductTab('archived')).toBe('all');
     expect(parseProductTab(null)).toBe('all');
+  });
+});
+
+describe('describeBulkJob', () => {
+  const job = {
+    jobId: 'j1',
+    kind: 'draft' as const,
+    running: false,
+    total: 8,
+    finished: 8,
+    saved: 5,
+    failed: [{ title: 'Serum', error: 'AI unavailable' }],
+    skipped: 2,
+    skippedTitles: ['Mask', 'Toner'],
+    limitReached: true,
+    inProgressIds: [],
+  };
+
+  it('describes a finished draft job', () => {
+    const text = describeBulkJob(job);
+    expect(text.doneHeading).toBe('Drafts ready for 5 products');
+    expect(text.failedLine).toBe("Couldn't draft: Serum. Open them to write a few words.");
+    expect(text.skippedLine).toContain('product limit was reached, so 2 products were not set up');
+    expect(text.toast).toBe('Drafts ready for 5 products · 3 need a look');
+  });
+
+  it('describes an Update AI job, naming products not set up yet', () => {
+    const text = describeBulkJob({ ...job, kind: 'prepare', limitReached: false, running: true, finished: 3 });
+    expect(text.progressLabel).toBe('Updating AI… (3 of 8)');
+    expect(text.runningHeading).toBe('Updating AI answers: 3 of 8 done');
+    expect(text.skippedLine).toBe('Not set up yet: Mask, Toner. Open them and save a setup first.');
+    expect(text.toast).toBe('AI answers updated for 5 products · 3 need a look');
+  });
+
+  it('says so when nothing was done', () => {
+    expect(describeBulkJob({ ...job, kind: 'prepare', saved: 0 }).doneHeading).toBe('No AI answers could be updated');
   });
 });
