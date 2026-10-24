@@ -32,6 +32,7 @@ import { UnifiedRetrievalService } from '../lib/unifiedRetrieval.js';
 import { generateGroundedProductAnswer } from '../lib/groundedAnswer.js';
 import { getRedisClient } from '@recete/shared';
 import { Queue } from 'bullmq';
+import { DENSE_SIMILARITY_FLOOR } from '../lib/ragRetrievalPolicy.js';
 
 const test = new Hono();
 
@@ -311,7 +312,7 @@ test.post('/rag', async (c) => {
       userLang: typeof body?.user_lang === 'string' ? body.user_lang : 'tr',
       productIds,
       topK,
-      similarityThreshold: 0.7,
+      similarityThreshold: DENSE_SIMILARITY_FLOOR,
     });
 
     const count = ragResult.results.length;
@@ -391,7 +392,7 @@ test.post('/rag/answer', async (c) => {
       retrievalQuery: ragQuery,
       productIds,
       topK,
-      similarityThreshold: 0.6,
+      similarityThreshold: DENSE_SIMILARITY_FLOOR,
       conversationHistory,
     });
     const ragResult = await new UnifiedRetrievalService().retrieve({
@@ -400,7 +401,7 @@ test.post('/rag/answer', async (c) => {
       userLang: typeof body?.user_lang === 'string' ? body.user_lang : detectLanguage(query),
       productIds,
       topK,
-      similarityThreshold: 0.6,
+      similarityThreshold: DENSE_SIMILARITY_FLOOR,
     });
 
     const chunkContextText = formatRAGResultsForLLM(ragResult.results);

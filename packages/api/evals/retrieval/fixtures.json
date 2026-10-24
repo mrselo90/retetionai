@@ -1,0 +1,107 @@
+{
+  "description": "Retrieval eval set: fictional cosmetics products written the way merchants describe them, plus customer questions with the evidence that must be retrieved. A case passes when a top-K chunk from the expected product contains at least one of expect.anyOf (case- and accent-insensitive). scope 'product' = the product is known (post-purchase, order-scoped); 'none' = no product context, retrieval must find the product itself. Cases with expect: null are off-catalogue and only reported.",
+  "products": [
+    {
+      "key": "tr-niacinamide",
+      "lang": "tr",
+      "name": "Lumea %10 Niasinamid + %1 Çinko Serum 30 ml",
+      "description": "Lumea %10 Niasinamid + %1 Çinko Serum, gözenek görünümünü azaltmak ve sebum dengesini desteklemek için geliştirilmiş hafif dokulu bir yüz serumudur. Karma ve yağlı ciltler için uygundur, hassas ciltlerde de kullanılabilir. Parfüm ve alkol içermez. Dermatolojik olarak test edilmiştir.\n\nİçindekiler (INCI): Aqua, Niacinamide, Pentylene Glycol, Zinc PCA, Dimethyl Isosorbide, Tamarindus Indica Seed Gum, Xanthan Gum, Isoceteth-20, Ethoxydiglycol, Phenoxyethanol, Chlorphenesin.\n\nÜrün 30 ml cam damlalıklı şişede sunulur. Açıldıktan sonra 12 ay içinde kullanılmalıdır. Serin ve kuru yerde, doğrudan güneş ışığından uzakta saklayın.",
+      "usage_instructions": "Sabah ve akşam, temizlenmiş cilde nemlendiriciden önce 2-3 damla uygulayın. Yüzün tamamına parmak uçlarıyla nazikçe yayın. Sabah kullanımında üzerine mutlaka güneş koruyucu sürün. İlk iki hafta günde bir kez başlayıp cilt alıştıkça günde iki kez kullanabilirsiniz.",
+      "prevention_tips": "Göz çevresine uygulamayın. C vitamini serumu ile aynı anda değil, farklı zamanlarda kullanın. Kızarıklık veya batma olursa kullanımı bırakın. Haricen kullanılır."
+    },
+    {
+      "key": "tr-spf50",
+      "lang": "tr",
+      "name": "Solaris SPF 50+ Hassas Ciltler İçin Güneş Kremi 50 ml",
+      "description": "Solaris SPF 50+ Güneş Kremi, UVA ve UVB ışınlarına karşı çok yüksek koruma sağlayan, beyaz iz bırakmayan akışkan bir güneş kremidir. Hassas ve alerjiye yatkın ciltler için formüle edilmiştir. Suya dayanıklıdır, makyaj altına uygundur.\n\nİçindekiler (INCI): Aqua, Homosalate, Ethylhexyl Salicylate, Butyl Methoxydibenzoylmethane, Octocrylene, Glycerin, Silica, Tocopherol, Panthenol, Allantoin.\n\n50 ml tüp. Bebeklerde ve 3 yaş altı çocuklarda kullanım için uygun değildir.",
+      "usage_instructions": "Güneşe çıkmadan 20 dakika önce yüz ve boyuna bolca uygulayın. Koruma için her 2 saatte bir ve yüzme, terleme veya havlu ile kurulandıktan sonra yeniden sürün. Makyaj yapacaksanız krem tamamen emildikten sonra makyaja geçin.",
+      "prevention_tips": "Gözle temasından kaçının, temas halinde bol su ile yıkayın. Güneş kremi kullansanız bile öğle saatlerinde uzun süre güneşte kalmayın. 3 yaş altı çocuklarda kullanmayın."
+    },
+    {
+      "key": "tr-vitc",
+      "lang": "tr",
+      "name": "Lumea %15 C Vitamini Aydınlatıcı Serum 30 ml",
+      "description": "Lumea %15 C Vitamini Serum, cilt tonunu eşitlemeye ve donuk görünümü azaltmaya yardımcı olan aydınlatıcı bir serumdur. Ferulik asit ve E vitamini ile desteklenmiştir. Normal ve kuru ciltler için önerilir.\n\nİçindekiler (INCI): Aqua, Ascorbic Acid, Propylene Glycol, Ferulic Acid, Tocopherol, Sodium Hyaluronate, Citric Acid.\n\nIşığa duyarlıdır; kahverengi şişede, buzdolabında saklanması önerilir. Rengi koyu turuncuya dönerse kullanmayın.",
+      "usage_instructions": "Sabahları temiz cilde 3-4 damla uygulayın, ardından nemlendirici ve güneş koruyucu sürün. Akşamları retinol veya niasinamid ürünleri ile aynı rutinde kullanmayın.",
+      "prevention_tips": "İlk kullanımda hafif karıncalanma olabilir. Kesik veya tahriş olmuş cilde uygulamayın."
+    },
+    {
+      "key": "en-retinol",
+      "lang": "en",
+      "name": "Nocturne 0.3% Retinol Night Cream 50 ml",
+      "description": "Nocturne 0.3% Retinol Night Cream is an overnight treatment cream that helps smooth the look of fine lines and uneven texture. Encapsulated retinol is released gradually to limit irritation, and ceramides support the skin barrier. Suitable for normal, combination and dry skin. Fragrance free.\n\nIngredients (INCI): Aqua, Caprylic/Capric Triglyceride, Glycerin, Retinol, Ceramide NP, Ceramide AP, Squalane, Bisabolol, Tocopherol, Phenoxyethanol.\n\n50 ml airless pump. Use within 6 months of opening.",
+      "usage_instructions": "Use in the evening only. Start two to three nights a week for the first two weeks, then increase to every other night, and nightly if your skin tolerates it. Apply a pea-sized amount to clean, dry skin after serums. Always use SPF 30 or higher during the day while using this product.",
+      "prevention_tips": "Do not use during pregnancy or while breastfeeding. Avoid the eye area and the corners of the nose and mouth. Do not combine with AHA or BHA exfoliants on the same night. Mild dryness or flaking in the first weeks is normal; reduce frequency if it persists."
+    },
+    {
+      "key": "en-cleanser",
+      "lang": "en",
+      "name": "Pure Calm Gentle Foaming Cleanser 150 ml",
+      "description": "Pure Calm Gentle Foaming Cleanser removes makeup, sunscreen and excess oil without stripping the skin. A low-pH, sulfate-free formula with oat extract and panthenol. Suitable for all skin types, including sensitive and acne-prone skin.\n\nIngredients (INCI): Aqua, Cocamidopropyl Betaine, Sodium Lauroyl Methyl Isethionate, Glycerin, Avena Sativa Kernel Extract, Panthenol, Allantoin, Citric Acid.\n\n150 ml pump bottle.",
+      "usage_instructions": "Use morning and evening. Pump one to two times into wet hands, work into a lather and massage onto damp face for 30 seconds. Rinse with lukewarm water and pat dry. For heavy makeup, cleanse twice.",
+      "prevention_tips": "Avoid direct contact with eyes. Stop use if irritation occurs."
+    },
+    {
+      "key": "hu-hyaluron",
+      "lang": "hu",
+      "name": "Aqua Vita Hialuronsavas Hidratáló Krém 50 ml",
+      "description": "Az Aqua Vita Hialuronsavas Hidratáló Krém háromféle molekulatömegű hialuronsavval hidratálja a bőrt egész nap. Könnyű, gyorsan beszívódó állag, nem zsíros. Normál, száraz és dehidratált bőrre ajánlott. Illatanyagmentes.\n\nÖsszetevők (INCI): Aqua, Glycerin, Sodium Hyaluronate, Hydrolyzed Hyaluronic Acid, Squalane, Niacinamide, Panthenol, Shea Butter, Phenoxyethanol.\n\n50 ml tégely. Felbontás után 12 hónapig használható.",
+      "usage_instructions": "Reggel és este vigye fel a megtisztított arcbőrre és nyakra, a szérum után. Reggel utána használjon fényvédőt. Kis mennyiség elegendő az egész archoz.",
+      "prevention_tips": "Kerülje a szemmel való érintkezést. Bőrirritáció esetén hagyja abba a használatát."
+    }
+  ],
+  "cases": [
+    { "id": "tr-nia-usage", "lang": "tr", "scope": "product", "product": "tr-niacinamide", "question": "Bu ürünü nasıl kullanmalıyım?", "expect": { "anyOf": ["2-3 damla", "nemlendiriciden önce"] } },
+    { "id": "tr-nia-freq", "lang": "tr", "scope": "product", "product": "tr-niacinamide", "question": "Günde kaç kez kullanmalıyım?", "expect": { "anyOf": ["günde bir kez", "günde iki kez", "Sabah ve akşam"] } },
+    { "id": "tr-nia-sensitive", "lang": "tr", "scope": "product", "product": "tr-niacinamide", "question": "Hassas cilt için uygun mu?", "expect": { "anyOf": ["hassas ciltlerde de kullanılabilir"] } },
+    { "id": "tr-nia-ingredients", "lang": "tr", "scope": "product", "product": "tr-niacinamide", "question": "İçeriğinde neler var?", "expect": { "anyOf": ["Zinc PCA", "INCI"] } },
+    { "id": "tr-nia-vitc", "lang": "tr", "scope": "product", "product": "tr-niacinamide", "question": "C vitamini serumuyla birlikte kullanabilir miyim?", "expect": { "anyOf": ["C vitamini serumu ile aynı anda değil"] } },
+    { "id": "tr-nia-eyes", "lang": "tr", "scope": "product", "product": "tr-niacinamide", "question": "Göz altıma sürebilir miyim?", "expect": { "anyOf": ["Göz çevresine uygulamayın"] } },
+    { "id": "tr-nia-storage", "lang": "tr", "scope": "product", "product": "tr-niacinamide", "question": "Açtıktan sonra ne kadar süre dayanır?", "expect": { "anyOf": ["12 ay"] } },
+    { "id": "tr-nia-colloquial", "lang": "tr", "scope": "product", "product": "tr-niacinamide", "question": "yüzüm kızardı yanıyo ne yapayım", "expect": { "anyOf": ["Kızarıklık veya batma olursa kullanımı bırakın"] } },
+    { "id": "tr-nia-alcohol", "lang": "tr", "scope": "product", "product": "tr-niacinamide", "question": "Alkol var mı içinde?", "expect": { "anyOf": ["Parfüm ve alkol içermez"] } },
+    { "id": "tr-spf-reapply", "lang": "tr", "scope": "product", "product": "tr-spf50", "question": "Gün içinde tekrar sürmem gerekiyor mu?", "expect": { "anyOf": ["her 2 saatte bir"] } },
+    { "id": "tr-spf-makeup", "lang": "tr", "scope": "product", "product": "tr-spf50", "question": "Makyajın altına sürebilir miyim?", "expect": { "anyOf": ["makyaj altına uygundur", "makyaja geçin"] } },
+    { "id": "tr-spf-child", "lang": "tr", "scope": "product", "product": "tr-spf50", "question": "2 yaşındaki çocuğuma sürebilir miyim?", "expect": { "anyOf": ["3 yaş altı"] } },
+    { "id": "tr-spf-water", "lang": "tr", "scope": "product", "product": "tr-spf50", "question": "Denize girince akar mı?", "expect": { "anyOf": ["Suya dayanıklıdır", "yüzme"] } },
+    { "id": "tr-spf-when", "lang": "tr", "scope": "product", "product": "tr-spf50", "question": "Güneşe çıkmadan ne kadar önce sürmeliyim?", "expect": { "anyOf": ["20 dakika önce"] } },
+    { "id": "tr-spf-white", "lang": "tr", "scope": "product", "product": "tr-spf50", "question": "Beyazlık yapar mı?", "expect": { "anyOf": ["beyaz iz bırakmayan"] } },
+    { "id": "tr-vitc-storage", "lang": "tr", "scope": "product", "product": "tr-vitc", "question": "Nerede saklamalıyım?", "expect": { "anyOf": ["buzdolabında"] } },
+    { "id": "tr-vitc-color", "lang": "tr", "scope": "product", "product": "tr-vitc", "question": "Serumun rengi koyulaştı, bozuldu mu?", "expect": { "anyOf": ["koyu turuncuya"] } },
+    { "id": "tr-vitc-tingle", "lang": "tr", "scope": "product", "product": "tr-vitc", "question": "Sürünce biraz karıncalanıyor normal mi?", "expect": { "anyOf": ["karıncalanma"] } },
+    { "id": "tr-vitc-when", "lang": "tr", "scope": "product", "product": "tr-vitc", "question": "Akşam mı sabah mı kullanılır?", "expect": { "anyOf": ["Sabahları temiz cilde"] } },
+    { "id": "en-ret-pregnancy", "lang": "en", "scope": "product", "product": "en-retinol", "question": "Is it safe during pregnancy?", "expect": { "anyOf": ["Do not use during pregnancy"] } },
+    { "id": "en-ret-usage", "lang": "en", "scope": "product", "product": "en-retinol", "question": "How do I use this product?", "expect": { "anyOf": ["pea-sized amount", "evening only"] } },
+    { "id": "en-ret-freq", "lang": "en", "scope": "product", "product": "en-retinol", "question": "How often should I use it when starting out?", "expect": { "anyOf": ["two to three nights a week"] } },
+    { "id": "en-ret-flaking", "lang": "en", "scope": "product", "product": "en-retinol", "question": "My skin is peeling a bit, is that normal?", "expect": { "anyOf": ["flaking in the first weeks is normal"] } },
+    { "id": "en-ret-aha", "lang": "en", "scope": "product", "product": "en-retinol", "question": "Can I use my glycolic acid toner with it?", "expect": { "anyOf": ["AHA or BHA"] } },
+    { "id": "en-ret-spf", "lang": "en", "scope": "product", "product": "en-retinol", "question": "Do I need sunscreen while using this?", "expect": { "anyOf": ["SPF 30 or higher"] } },
+    { "id": "en-ret-ceramide", "lang": "en", "scope": "product", "product": "en-retinol", "question": "Does it contain ceramides?", "expect": { "anyOf": ["Ceramide NP", "ceramides support"] } },
+    { "id": "en-cln-sensitive", "lang": "en", "scope": "product", "product": "en-cleanser", "question": "Is this ok for acne prone skin?", "expect": { "anyOf": ["acne-prone"] } },
+    { "id": "en-cln-makeup", "lang": "en", "scope": "product", "product": "en-cleanser", "question": "Does it take off makeup?", "expect": { "anyOf": ["removes makeup", "heavy makeup"] } },
+    { "id": "en-cln-sulfate", "lang": "en", "scope": "product", "product": "en-cleanser", "question": "Is it sulfate free?", "expect": { "anyOf": ["sulfate-free"] } },
+    { "id": "en-cln-how", "lang": "en", "scope": "product", "product": "en-cleanser", "question": "how many pumps do i use", "expect": { "anyOf": ["one to two times"] } },
+    { "id": "hu-hya-how", "lang": "hu", "scope": "product", "product": "hu-hyaluron", "question": "Hogyan kell használni?", "expect": { "anyOf": ["Reggel és este", "szérum után"] } },
+    { "id": "hu-hya-skin", "lang": "hu", "scope": "product", "product": "hu-hyaluron", "question": "Száraz bőrre jó?", "expect": { "anyOf": ["száraz és dehidratált"] } },
+    { "id": "hu-hya-fragrance", "lang": "hu", "scope": "product", "product": "hu-hyaluron", "question": "Van benne illatanyag?", "expect": { "anyOf": ["Illatanyagmentes"] } },
+    { "id": "hu-hya-shelf", "lang": "hu", "scope": "product", "product": "hu-hyaluron", "question": "Meddig használható felbontás után?", "expect": { "anyOf": ["12 hónapig"] } },
+    { "id": "hu-hya-eyes", "lang": "hu", "scope": "product", "product": "hu-hyaluron", "question": "Mi van, ha a szemembe kerül?", "expect": { "anyOf": ["szemmel való érintkezést"] } },
+
+    { "id": "tr-none-nia-usage", "lang": "tr", "scope": "none", "product": "tr-niacinamide", "question": "Niasinamid serumunuzu nasıl kullanmalıyım?", "expect": { "anyOf": ["2-3 damla", "nemlendiriciden önce"] } },
+    { "id": "tr-none-zinc", "lang": "tr", "scope": "none", "product": "tr-niacinamide", "question": "Çinko içeren serumunuz yağlı cilde uygun mu?", "expect": { "anyOf": ["yağlı ciltler için uygundur"] } },
+    { "id": "tr-none-spf-child", "lang": "tr", "scope": "none", "product": "tr-spf50", "question": "Güneş kreminizi bebeğime sürebilir miyim?", "expect": { "anyOf": ["3 yaş altı", "Bebeklerde"] } },
+    { "id": "tr-none-spf-reapply", "lang": "tr", "scope": "none", "product": "tr-spf50", "question": "SPF 50 kremi gün içinde kaç kez yenilemek gerekir?", "expect": { "anyOf": ["her 2 saatte bir"] } },
+    { "id": "tr-none-vitc-fridge", "lang": "tr", "scope": "none", "product": "tr-vitc", "question": "C vitamini serumu buzdolabında mı saklanmalı?", "expect": { "anyOf": ["buzdolabında"] } },
+    { "id": "tr-none-ferulic", "lang": "tr", "scope": "none", "product": "tr-vitc", "question": "ferulik asit hangi üründe var", "expect": { "anyOf": ["Ferulik asit", "Ferulic Acid"] } },
+    { "id": "en-none-ret-preg", "lang": "en", "scope": "none", "product": "en-retinol", "question": "Can I use the retinol cream while pregnant?", "expect": { "anyOf": ["Do not use during pregnancy"] } },
+    { "id": "en-none-ret-start", "lang": "en", "scope": "none", "product": "en-retinol", "question": "I just bought the night cream, how should I start?", "expect": { "anyOf": ["two to three nights a week", "evening only"] } },
+    { "id": "en-none-cln-oat", "lang": "en", "scope": "none", "product": "en-cleanser", "question": "Which cleanser has oat extract?", "expect": { "anyOf": ["oat extract", "Avena Sativa"] } },
+    { "id": "en-none-cln-eyes", "lang": "en", "scope": "none", "product": "en-cleanser", "question": "the face wash got in my eyes", "expect": { "anyOf": ["Avoid direct contact with eyes"] } },
+    { "id": "hu-none-hya-how", "lang": "hu", "scope": "none", "product": "hu-hyaluron", "question": "Hogyan használjam a hialuronsavas krémet?", "expect": { "anyOf": ["Reggel és este", "szérum után"] } },
+
+    { "id": "tr-off-shipping", "lang": "tr", "scope": "none", "product": null, "question": "Kargom ne zaman gelir?", "expect": null },
+    { "id": "tr-off-return", "lang": "tr", "scope": "none", "product": null, "question": "İade nasıl yapabilirim?", "expect": null },
+    { "id": "en-off-discount", "lang": "en", "scope": "none", "product": null, "question": "Do you have a discount code?", "expect": null },
+    { "id": "en-off-phone", "lang": "en", "scope": "none", "product": null, "question": "Is this compatible with iPhone 15?", "expect": null }
+  ]
+}
