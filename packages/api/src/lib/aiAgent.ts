@@ -57,8 +57,10 @@ import {
   routineQualityRegeneratedCount,
 } from './metrics.js';
 import { captureAssistantPilotDiagnostic } from './assistantPilotDiagnostics.js';
+import { formatOrderStatusEvidence, getOrderStatusSnapshot } from './orderStatus.js';
+import { toWhatsAppText } from './whatsappFormat.js';
 
-export type Intent = 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent';
+export type Intent = 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent' | 'order_status';
 
 export interface AIResponse {
   intent: Intent;
@@ -636,7 +638,7 @@ function finalizeConfiguredResponse(input: {
   responseLang: SupportedLanguage;
   replyLanguageDecision: { usedFallback: boolean; supportedLanguages: SupportedLanguage[] };
 }): string {
-  const withFallback = applyLanguageFallbackNotice(input.response, {
+  const withFallback = applyLanguageFallbackNotice(toWhatsAppText(input.response), {
     usedFallback: input.replyLanguageDecision.usedFallback,
     responseLanguage: input.responseLang,
     supportedLanguages: input.replyLanguageDecision.supportedLanguages,
@@ -1299,7 +1301,8 @@ export async function classifyIntent(
 Classify the LATEST customer message into one of these categories regardless of the language used.
 When recent conversation is given, use it to understand short follow-ups: a follow-up about a product (e.g. "and at night?", "peki hassas ciltte?", "ya terlersem?") is a question, even if it has no question words.
 - question: User is asking about product usage, features, or how to use something
-- complaint: User is reporting a problem, issue, or dissatisfaction (shipping, packaging, general issues)
+- order_status: User asks where their order or package is, whether it has shipped or been delivered, when it will arrive, why it has not arrived yet, or for tracking details (e.g. "siparişim nerede", "kargom ne zaman gelir", "kargom hâlâ gelmedi", "where is my order", "hol a csomagom"). A problem with a delivered order (damaged, wrong or missing item) is a complaint instead
+- complaint: User is reporting a problem, issue, or dissatisfaction (packaging, damaged or wrong items, general issues)
 - return_intent: User wants to return the product, says they didn't like it, it doesn't work, wants a refund, or expresses dissatisfaction signaling a potential return. Examples include but are not limited to:
   Turkish: "iade", "beğenmedim", "çalışmıyor", "geri göndermek istiyorum"
   English: "return", "refund", "doesn't work", "send it back"
@@ -1335,7 +1338,8 @@ Respond with ONLY the category name.`,
       intent === 'complaint' ||
       intent === 'chat' ||
       intent === 'opt_out' ||
-      intent === 'return_intent'
+      intent === 'return_intent' ||
+      intent === 'order_status'
     ) {
       return intent;
     }
@@ -2365,6 +2369,22 @@ export async function generateAIResponse(
     }
   }
 
+  // Order status questions: the conversation's own order, read live from the
+  // store (orderStatus.ts). Without it the model is told it can't see it.
+  let orderStatusContext = '';
+  if (intent === 'order_status' && effectiveOrderId) {
+    try {
+      const snapshot = await getOrderStatusSnapshot({ merchantId, orderId: effectiveOrderId });
+      if (snapshot) orderStatusContext = formatOrderStatusEvidence(snapshot);
+      logger.info(
+        { merchantId, conversationId, orderId: effectiveOrderId, orderStatus: snapshot?.state ?? null, source: snapshot?.source ?? null },
+        'AI response order status trace',
+      );
+    } catch (error) {
+      logger.error({ error, merchantId, conversationId }, 'Order status lookup failed');
+    }
+  }
+
   // Step 4: Build system prompt (persona + bot info + RAG context)
   const systemPrompt = buildSystemPrompt(
     merchantName,
@@ -2375,6 +2395,7 @@ export async function generateAIResponse(
     responseLang,
     replyLanguageDecision.usedFallback ? userLang : undefined,
     replyLanguageDecision.supportedLanguages,
+    orderStatusContext,
   );
   const runtimeHint = postDeliveryFollowUp.promptHint;
   const structuredStatePrompt = buildStructuredStatePromptContext(structuredState);
@@ -2592,6 +2613,7 @@ function buildSystemPrompt(
   responseLang: SupportedLanguage = 'en',
   requestedLang?: SupportedLanguage,
   supportedLanguages: SupportedLanguage[] = ['en'],
+  orderStatusContext = '',
 ): string {
   const botName = persona?.bot_name || 'Recete Asistan';
 
@@ -2695,6 +2717,18 @@ function buildSystemPrompt(
         '- Share usage tips from product instructions\n' +
         '- Do NOT accept the return or give return instructions\n' +
         '- If they insist, offer to connect with a team member\n\n';
+      break;
+    case 'order_status':
+      prompt +=
+        'USER INTENT: The user asks about their order, shipping or delivery.\n' +
+        (orderStatusContext
+          ? '- Answer ONLY from the ORDER STATUS below; never add dates, places or steps it does not contain\n' +
+            '- Give the tracking link or number when there is one, so they can follow the shipment\n' +
+            '- Give a delivery date only if the carrier estimate is listed, and call it an estimate\n' +
+            '- If it is delayed, has a delivery problem or a failed attempt, apologise and offer to connect them with the store\'s team\n' +
+            '- If the source says shipping details are not available, say what is known and that the store\'s team can share the details\n\n' +
+            `--- ORDER STATUS (the customer's own order) ---\n${orderStatusContext}\n---\n\n`
+          : '- You cannot see this order\'s shipping status here. Say so briefly and that the store\'s team can help; never guess a status, date or tracking number\n\n');
       break;
   }
 

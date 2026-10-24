@@ -17,13 +17,9 @@
  * decideConsentUpdate() makes newer decisions win and never lets "unknown"
  * overwrite a known answer.
  */
-import {
-  getShopifyAccessToken,
-  getSupabaseServiceClient,
-  logger,
-  shopifyAdminGraphqlUrl,
-} from '@recete/shared';
+import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { normalizePhone } from './events.js';
+import { shopifyCredentialsForMerchant, shopifyGraphql } from './shopifyIntegrationLookup.js';
 import { decryptPhone } from './encryption.js';
 
 export type ConsentStatus = 'opt_in' | 'opt_out' | 'pending';
@@ -113,17 +109,6 @@ interface ShopifyWhatsAppConsent {
   updatedAt: string | null;
 }
 
-async function shopifyGraphql<T>(shop: string, accessToken: string, query: string, variables: Record<string, unknown>) {
-  const response = await fetch(shopifyAdminGraphqlUrl(shop), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': accessToken },
-    body: JSON.stringify({ query, variables }),
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (!response.ok) throw new Error(`Shopify GraphQL ${response.status}`);
-  return (await response.json()) as { data?: T; errors?: Array<{ message: string; extensions?: { code?: string } }> };
-}
-
 export function toCustomerGid(customerId: string | number): string {
   const raw = String(customerId).trim();
   return raw.startsWith('gid://') ? raw : `gid://shopify/Customer/${raw}`;
@@ -189,20 +174,6 @@ export function decisionForPhone(consent: ShopifyWhatsAppConsent | null, phone: 
 }
 
 type ServiceClient = ReturnType<typeof getSupabaseServiceClient>;
-
-async function shopifyCredentialsForMerchant(client: ServiceClient, merchantId: string) {
-  const { data: integration } = await client
-    .from('integrations')
-    .select('id, auth_data')
-    .eq('merchant_id', merchantId)
-    .eq('provider', 'shopify')
-    .eq('status', 'active')
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!integration) return null;
-  return getShopifyAccessToken(integration);
-}
 
 /**
  * The Shopify WhatsApp consent decision for an order's customer and the phone
