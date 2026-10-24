@@ -9,6 +9,7 @@ import { requireActiveSubscription } from '../middleware/billingMiddleware.js';
 import { formatRAGResultsForLLM, getOrderProductContext } from '../lib/rag.js';
 import { getCachedRAGQuery, setCachedRAGQuery } from '../lib/cache.js';
 import { UnifiedRetrievalService } from '../lib/unifiedRetrieval.js';
+import { DENSE_SIMILARITY_FLOOR } from '../lib/ragRetrievalPolicy.js';
 
 const rag = new Hono();
 
@@ -33,7 +34,7 @@ rag.post('/query', async (c) => {
     user_lang,
     productIds,
     topK = 5,
-    similarityThreshold = 0.7,
+    similarityThreshold = DENSE_SIMILARITY_FLOOR,
     format = 'json', // 'json' or 'text' (for LLM)
   } = body;
 
@@ -172,13 +173,12 @@ rag.post('/test', async (c) => {
   }
 
   try {
-    // Query with lower threshold for testing
     const result = await new UnifiedRetrievalService().retrieve({
       merchantId,
       question: query,
       userLang: typeof user_lang === 'string' && user_lang.trim() ? user_lang : 'en',
       topK,
-      similarityThreshold: 0.5,
+      similarityThreshold: DENSE_SIMILARITY_FLOOR,
     });
 
     // Format for LLM

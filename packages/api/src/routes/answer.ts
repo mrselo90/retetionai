@@ -5,6 +5,7 @@ import { detectLanguage } from '../lib/i18n.js';
 import { getSupabaseServiceClient } from '@recete/shared';
 import { generateGroundedProductAnswer } from '../lib/groundedAnswer.js';
 import { getMerchantBotInfo } from '../lib/botInfo.js';
+import { DENSE_SIMILARITY_FLOOR } from '../lib/ragRetrievalPolicy.js';
 
 const answer = new Hono();
 answer.use('/*', authMiddleware);
@@ -45,7 +46,7 @@ answer.post('/', async (c) => {
       productIds: productIds.length > 0 ? productIds : undefined,
       instructionScope: 'facts_products',
       topK: 8,
-      similarityThreshold: 0.6,
+      similarityThreshold: DENSE_SIMILARITY_FLOOR,
     });
 
     return c.json({

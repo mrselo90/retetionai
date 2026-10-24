@@ -1,5 +1,17 @@
 export type CosmeticRagProfile = 'ingredients' | 'usage' | 'warnings' | 'specs' | 'default';
 
+/**
+ * Minimum cosine similarity for a dense (vector) match, applied in SQL.
+ *
+ * Calibrated on text-embedding-3-small with packages/api/evals/retrieval: a
+ * customer question and the chunk that answers it typically score 0.30-0.56,
+ * so the previous per-profile thresholds (0.55-0.65) dropped almost every real
+ * match (15% of questions found their evidence; 96% at 0.30). Below 0.30,
+ * off-catalogue questions (shipping, returns, discounts) start pulling in
+ * unrelated product text as evidence. Rerun the eval before changing this.
+ */
+export const DENSE_SIMILARITY_FLOOR = 0.3;
+
 export interface RetrievalPolicy {
   profile: CosmeticRagProfile;
   topK: number;
@@ -33,7 +45,7 @@ export function getCosmeticRagPolicy(query: string): RetrievalPolicy {
     return {
       profile: 'ingredients',
       topK: 4,
-      similarityThreshold: 0.62,
+      similarityThreshold: DENSE_SIMILARITY_FLOOR,
       preferredSectionTypes: getPreferredSectionsForProfile('ingredients'),
     };
   }
@@ -42,7 +54,7 @@ export function getCosmeticRagPolicy(query: string): RetrievalPolicy {
     return {
       profile: 'usage',
       topK: 5,
-      similarityThreshold: 0.58,
+      similarityThreshold: DENSE_SIMILARITY_FLOOR,
       preferredSectionTypes: getPreferredSectionsForProfile('usage'),
     };
   }
@@ -51,7 +63,7 @@ export function getCosmeticRagPolicy(query: string): RetrievalPolicy {
     return {
       profile: 'warnings',
       topK: 5,
-      similarityThreshold: 0.55,
+      similarityThreshold: DENSE_SIMILARITY_FLOOR,
       preferredSectionTypes: getPreferredSectionsForProfile('warnings'),
     };
   }
@@ -60,7 +72,7 @@ export function getCosmeticRagPolicy(query: string): RetrievalPolicy {
     return {
       profile: 'specs',
       topK: 3,
-      similarityThreshold: 0.65,
+      similarityThreshold: DENSE_SIMILARITY_FLOOR,
       preferredSectionTypes: getPreferredSectionsForProfile('specs'),
     };
   }
@@ -68,7 +80,7 @@ export function getCosmeticRagPolicy(query: string): RetrievalPolicy {
   return {
     profile: 'default',
     topK: 5,
-    similarityThreshold: 0.6,
+    similarityThreshold: DENSE_SIMILARITY_FLOOR,
     preferredSectionTypes: undefined,
   };
 }

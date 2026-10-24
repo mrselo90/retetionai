@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getCosmeticRagPolicy } from './ragRetrievalPolicy.js';
+import { DENSE_SIMILARITY_FLOOR, getCosmeticRagPolicy } from './ragRetrievalPolicy.js';
 
 describe('getCosmeticRagPolicy', () => {
   it('classifies usage questions with usage-first sections', () => {
@@ -7,7 +7,7 @@ describe('getCosmeticRagPolicy', () => {
 
     expect(policy.profile).toBe('usage');
     expect(policy.preferredSectionTypes).toEqual(['usage', 'faq', 'warnings', 'general']);
-    expect(policy.similarityThreshold).toBe(0.58);
+    expect(policy.similarityThreshold).toBe(DENSE_SIMILARITY_FLOOR);
   });
 
   it('classifies ingredient questions with ingredient-first sections', () => {

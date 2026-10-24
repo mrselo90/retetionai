@@ -20,7 +20,7 @@ function chunkSection(doc: ChunkDoc, maxChunkSize = 1000, overlap = 150): Array<
   return chunkText(doc.text, maxChunkSize, overlap).map((chunk) => ({ ...doc, chunk }));
 }
 
-function buildSectionedChunkDocs(row: {
+export function buildSectionedChunkDocs(row: {
   product_id: string;
   lang: string;
   title?: string | null;
