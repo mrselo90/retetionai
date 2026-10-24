@@ -5,11 +5,13 @@ import {
   useActionData,
   useLoaderData,
   useNavigate,
+  useFetcher,
   useNavigation,
+  useRevalidator,
   useSearchParams,
   useSubmit,
 } from 'react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { useAppBridge } from '@shopify/app-bridge-react';
 import { AppPage } from '../components/shell-ui';
@@ -118,7 +120,9 @@ export default function ProductsPage() {
   const submit = useSubmit();
   const shopify = useAppBridge();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { bootstrapData: shellBootstrap } = useAppBootstrapData();
+  const { bootstrapData: shellBootstrap, bulkDraft, refreshBulkDraft } = useAppBootstrapData();
+  const revalidator = useRevalidator();
+  const dismissFetcher = useFetcher();
   useActionToast(actionData?.ok && actionData.message ? actionData.message : null, actionData);
 
   const [searchInput, setSearchInput] = useState(data.query);
@@ -127,7 +131,9 @@ export default function ProductsPage() {
 
   const busy = navigation.state === 'submitting';
   const currentIntent = String(navigation.formData?.get('intent') || '');
-  const isBulkDrafting = busy && currentIntent === 'bulk-draft';
+  const isStartingBulkDraft = busy && currentIntent === 'bulk-draft';
+  const bulkDraftRunning = Boolean(bulkDraft?.running);
+  const draftingIds = new Set(bulkDraft?.running ? bulkDraft.inProgressIds : []);
   const isBulkPreparing = busy && currentIntent === 'bulk-prepare';
 
   function updateView(next: { tab?: ProductTab; q?: string; page?: number }) {
@@ -158,9 +164,33 @@ export default function ProductsPage() {
     setHandledAction(actionData);
     if (actionData?.ok) {
       if (actionData.intent === 'bulk-draft' || actionData.intent === 'bulk-prepare') setSelectedIds([]);
+      if (actionData.intent === 'bulk-draft') refreshBulkDraft();
       if (actionData.intent === 'create') setManualSourceDraft({ name: '', url: '', enrichmentUrl: '' });
     }
   }
+
+  // Drafts land in the background: reload the rows as they do (at most every
+  // 8s while running) and once more when the job finishes.
+  const rowsRefreshed = useRef({ finished: 0, at: 0 });
+  const wasRunning = useRef(false);
+  useEffect(() => {
+    if (!bulkDraft) return;
+    const justFinished = wasRunning.current && !bulkDraft.running;
+    wasRunning.current = bulkDraft.running;
+    const last = rowsRefreshed.current;
+    const progressed = bulkDraft.running && bulkDraft.finished > last.finished && Date.now() - last.at > 8_000;
+    if ((justFinished || progressed) && revalidator.state === 'idle') {
+      rowsRefreshed.current = { finished: bulkDraft.finished, at: Date.now() };
+      revalidator.revalidate();
+    }
+  }, [bulkDraft, revalidator]);
+
+  function dismissBulkDraftResult(jobId: string) {
+    dismissFetcher.submit({ intent: 'bulk-draft-dismiss', jobId }, { method: 'post' });
+  }
+  useEffect(() => {
+    if (dismissFetcher.state === 'idle' && dismissFetcher.data) refreshBulkDraft();
+  }, [dismissFetcher.state, dismissFetcher.data, refreshBulkDraft]);
 
   // Closing the modal is an App Bridge call, so it stays an effect.
   useEffect(() => {
@@ -209,14 +239,21 @@ export default function ProductsPage() {
           : `All ${data.totals.all} products are ready.`
       }
       primaryAction={
-        data.needsGuidanceIds.length > 0
+        bulkDraftRunning && bulkDraft
           ? {
-              content: `Draft all with AI (${Math.min(data.needsGuidanceIds.length, BULK_DRAFT_LIMIT)})`,
-              onAction: () => submitBulk('bulk-draft', data.needsGuidanceIds),
-              loading: isBulkDrafting || undefined,
-              disabled: busy || undefined,
+              content: `Drafting… (${bulkDraft.finished} of ${bulkDraft.total})`,
+              onAction: () => undefined,
+              loading: true,
+              disabled: true,
             }
-          : undefined
+          : data.needsGuidanceIds.length > 0
+            ? {
+                content: `Draft all with AI (${Math.min(data.needsGuidanceIds.length, BULK_DRAFT_LIMIT)})`,
+                onAction: () => submitBulk('bulk-draft', data.needsGuidanceIds),
+                loading: isStartingBulkDraft || undefined,
+                disabled: busy || undefined,
+              }
+            : undefined
       }
       secondaryActions={[{ content: 'Add manual source', onAction: () => shopify.modal.show(MANUAL_SOURCE_MODAL_ID) }]}
     >
@@ -237,11 +274,47 @@ export default function ProductsPage() {
         </s-banner>
       ) : null}
 
-      {isBulkDrafting ? (
-        <s-banner tone="info" heading="Drafting instructions">
+      {bulkDraft?.running ? (
+        <s-banner tone="info" heading={`Drafting instructions: ${bulkDraft.finished} of ${bulkDraft.total} done`}>
           <s-paragraph>
-            Drafting from your product descriptions. This can take a minute — keep this page open.
+            Recete is writing instructions from your product descriptions. You can leave this page; you&apos;ll
+            get a notice here in the app when the drafts are ready to review.
           </s-paragraph>
+        </s-banner>
+      ) : bulkDraft ? (
+        <s-banner
+          tone={bulkDraft.saved ? (bulkDraft.failed.length || bulkDraft.skipped ? 'warning' : 'success') : 'critical'}
+          heading={
+            bulkDraft.saved
+              ? `Drafts ready for ${bulkDraft.saved} product${bulkDraft.saved === 1 ? '' : 's'}`
+              : 'No instructions could be drafted'
+          }
+        >
+          <s-paragraph>
+            {bulkDraft.saved
+              ? 'Open a product to review or edit what it says. Recete already uses these instructions to answer customers.'
+              : 'Try again in a moment, or open a product to write a few words yourself.'}
+          </s-paragraph>
+          {bulkDraft.failed.length ? (
+            <s-paragraph>
+              {`Couldn't draft: ${bulkDraft.failed
+                .slice(0, 5)
+                .map((item) => item.title)
+                .join(', ')}${bulkDraft.failed.length > 5 ? ` and ${bulkDraft.failed.length - 5} more` : ''}. Open them to write a few words.`}
+            </s-paragraph>
+          ) : null}
+          {bulkDraft.limitReached ? (
+            <s-paragraph>
+              {`Your plan's product limit was reached, so ${bulkDraft.skipped} product${bulkDraft.skipped === 1 ? ' was' : 's were'} not set up. Upgrade to set up more.`}
+            </s-paragraph>
+          ) : null}
+          <s-button
+            slot="secondary-actions"
+            loading={dismissFetcher.state !== 'idle' || undefined}
+            onClick={() => dismissBulkDraftResult(bulkDraft.jobId)}
+          >
+            Dismiss
+          </s-button>
         </s-banner>
       ) : null}
 
@@ -298,8 +371,8 @@ export default function ProductsPage() {
                 <s-text>{`${selectedIds.length} selected`}</s-text>
                 <s-stack direction="inline" gap="small-200">
                   <s-button
-                    disabled={!selectedNeedingGuidance.length || busy || undefined}
-                    loading={isBulkDrafting || undefined}
+                    disabled={!selectedNeedingGuidance.length || busy || bulkDraftRunning || undefined}
+                    loading={isStartingBulkDraft || undefined}
                     accessibilityLabel="Draft instructions with AI for selected products without instructions"
                     onClick={() => submitBulk('bulk-draft', selectedNeedingGuidance)}
                   >
@@ -375,6 +448,8 @@ export default function ProductsPage() {
                   <s-table-cell>
                     {item.hasGuidance ? (
                       <s-badge tone="success">Added</s-badge>
+                    ) : draftingIds.has(item.id) ? (
+                      <s-badge tone="info">Drafting…</s-badge>
                     ) : (
                       <s-badge tone="warning">Missing</s-badge>
                     )}

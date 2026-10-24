@@ -39,9 +39,9 @@ export type ActionResult = {
   draft?: { usage_instructions: string; prevention_tips: string; recipe_summary: string };
 };
 
-// Products drafted per "Draft all with AI" click. Each needs an AI call and a
-// few platform writes; this keeps one request well inside timeouts.
-export const BULK_DRAFT_LIMIT = 30;
+// Products drafted per "Draft all with AI" click. It runs as a background job
+// (bulkDraft.server.ts), so this bounds AI cost per click, not request time.
+export const BULK_DRAFT_LIMIT = 50;
 
 export type SetupState = 'needs_setup' | 'needs_ai_answers' | 'ready';
 export type JourneyStep = 'guidance' | 'improve' | 'ready';

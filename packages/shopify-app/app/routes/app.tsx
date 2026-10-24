@@ -16,6 +16,8 @@ import {
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { AppProvider } from '@shopify/shopify-app-react-router/react';
 import { useAdminLoadingBar } from '../lib/appBridge';
+import { useBulkDraftWatcher } from '../lib/bulkDraftWatcher';
+import type { BulkDraftStatus } from '../lib/bulkDraft.server';
 import { POLARIS_URL } from '../lib/polaris';
 import { PageBannerContext } from '../components/shell-ui';
 import { EmbeddedSessionTokenBoundary } from '../components/EmbeddedSessionTokenBoundary';
@@ -101,6 +103,9 @@ export type AppBootstrapContext = {
   bootstrapData: AppBootstrapData | null;
   bootstrapError: string | null;
   shellLoading: boolean;
+  /** The "Draft all with AI" job, followed on every page (lib/bulkDraftWatcher.ts). */
+  bulkDraft: BulkDraftStatus | null;
+  refreshBulkDraft: () => void;
 };
 
 export function useAppBootstrapData() {
@@ -139,6 +144,7 @@ function AppShell() {
 
   const fetcher = useFetcher<AppBootstrapData>();
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const { bulkDraft, refreshBulkDraft } = useBulkDraftWatcher();
 
   // The listeners below outlive the render that created them, so they read the
   // fetcher through a ref. Reading `fetcher.state` from the closure saw the
@@ -272,7 +278,9 @@ function AppShell() {
               bootstrapData,
               bootstrapError,
               shellLoading,
-            }}
+              bulkDraft,
+              refreshBulkDraft,
+            } satisfies AppBootstrapContext}
           />
         </PageBannerContext.Provider>
       )}

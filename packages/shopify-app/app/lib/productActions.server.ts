@@ -9,27 +9,11 @@ import {
   prepareMerchantProductKnowledge,
   resetMerchantProductKnowledge,
   scrapeMerchantProduct,
-  updateMerchantProductInstruction,
 } from '../platform.server';
-import {
-  canCreateRecipe,
-  getPlanSnapshotByDomain,
-  registerRecipeProduct,
-} from '../services/planService.server';
 import { authenticateEmbeddedAdmin } from './embeddedAuth.server';
-import { fetchFullShopifyCatalog } from './productCatalog.server';
-import { BULK_DRAFT_LIMIT, type ActionResult, type StepOutcomeState } from './productWorkspace';
-
-function stripHtmlForRag(html?: string) {
-  if (!html) return undefined;
-  return (
-    html
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim() || undefined
-  );
-}
-
+import { dismissBulkDraft, startBulkDraft } from './bulkDraft.server';
+import { getActionErrorMessage, persistProductSetup } from './productSetup.server';
+import { type ActionResult, type StepOutcomeState } from './productWorkspace';
 
 function normalizeOptionalUrl(value: string) {
   const trimmed = value.trim();
@@ -38,150 +22,6 @@ function normalizeOptionalUrl(value: string) {
   if (trimmed.startsWith('//')) return `https:${trimmed}`;
   return `https://${trimmed}`;
 }
-
-async function getActionErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Response) {
-    try {
-      const payload = await error.clone().json();
-      if (payload && typeof payload === 'object') {
-        if ('details' in payload && typeof payload.details === 'string' && payload.details.trim()) {
-          return payload.details;
-        }
-        if ('error' in payload && typeof payload.error === 'string' && payload.error.trim()) {
-          return payload.error;
-        }
-      }
-    } catch {
-      // Ignore parse failures and fall through to generic handling.
-    }
-    return fallback;
-  }
-
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
-  return fallback;
-}
-
-
-async function persistProductSetup({
-  request,
-  shopDomain,
-  selectedProductId,
-  title,
-  handle,
-  externalId,
-  descriptionHtml,
-  usageInstructions,
-  recipeSummary,
-  preventionTips,
-  videoUrl,
-  existingProductId,
-}: {
-  request: Request;
-  shopDomain: string;
-  selectedProductId: string;
-  title: string;
-  handle: string;
-  externalId: string;
-  descriptionHtml: string;
-  usageInstructions: string;
-  recipeSummary: string;
-  preventionTips: string;
-  videoUrl: string;
-  existingProductId: string;
-}) {
-  if (!selectedProductId || !title || !handle || !externalId) {
-    return {
-      ok: false,
-      selectedProductId,
-      error: 'Missing Shopify product context.',
-    } satisfies ActionResult;
-  }
-
-  let productId = existingProductId;
-  if (!productId) {
-    // Defensive resolution: if UI context misses existingProductId for the same
-    // Shopify product, recover it from merchant mappings so we don't consume
-    // plan capacity as if this were a brand-new setup.
-    //
-    // A transient failure here used to be swallowed (.catch(() => null)) and
-    // treated identically to "genuinely no mapping exists" - exactly the
-    // brand-new-setup case this comment says it exists to prevent. That let a
-    // flaky lookup silently create a duplicate product record and burn plan
-    // quota for a product that was already linked. Fail the action instead of
-    // guessing when we can't tell the two cases apart.
-    let mappingData: Awaited<ReturnType<typeof fetchMerchantMappingData>>;
-    try {
-      mappingData = await fetchMerchantMappingData(request);
-    } catch (err) {
-      return {
-        ok: false,
-        selectedProductId,
-        error: `Could not verify whether this product is already set up: ${await getActionErrorMessage(err, 'lookup failed')}. Please try again.`,
-      } satisfies ActionResult;
-    }
-    const mappedProduct = mappingData?.localProducts?.find(
-      (product) => String(product.external_id || '').trim() === externalId
-    );
-    if (mappedProduct?.id) {
-      productId = mappedProduct.id;
-    }
-  }
-
-  if (!productId) {
-    const plan = await getPlanSnapshotByDomain(shopDomain);
-    const recipeCapacity = await canCreateRecipe(plan.shopId);
-
-    if (!recipeCapacity.allowed) {
-      return {
-        ok: false,
-        selectedProductId,
-        error:
-          'Product limit reached for the current plan. Upgrade before creating more product setups.',
-      } satisfies ActionResult;
-    }
-
-    const createResponse = (await createMerchantProduct(request, {
-      name: title,
-      url: `https://${shopDomain}/products/${handle}`,
-      external_id: externalId,
-      raw_text: stripHtmlForRag(descriptionHtml),
-    })) as { product?: { id?: string } };
-    productId = createResponse.product?.id || '';
-  }
-
-  if (!productId) {
-    return {
-      ok: false,
-      selectedProductId,
-      error: 'Failed to create the linked Recete product record.',
-    } satisfies ActionResult;
-  }
-
-  const plan = await getPlanSnapshotByDomain(shopDomain);
-  await registerRecipeProduct(plan.shopId, externalId, title);
-  await updateMerchantProductInstruction(request, productId, {
-    usage_instructions: usageInstructions,
-    recipe_summary: recipeSummary || undefined,
-    prevention_tips: preventionTips || undefined,
-    video_url: videoUrl || undefined,
-  });
-
-  return {
-    ok: true,
-    productId,
-    selectedProductId,
-    savedDraft: {
-      usage_instructions: usageInstructions,
-      recipe_summary: recipeSummary,
-      prevention_tips: preventionTips,
-      video_url: videoUrl,
-    },
-  } satisfies ActionResult;
-}
-
 
 /**
  * Every Products form intent (list: bulk-draft, bulk-prepare, create; product
@@ -465,110 +305,32 @@ export async function handleProductAction(request: Request): Promise<ActionResul
       case 'bulk-draft': {
         // "Draft all with AI": draft guidance for every product that has none,
         // save it, and start the AI knowledge step, so setup is a review
-        // instead of writing a dozen texts by hand.
-        const requestedIds = new Set(
-          String(formData.get('shopifyProductIds') || '')
+        // instead of writing a dozen texts by hand. Runs as a background job
+        // the page follows (bulkDraft.server.ts).
+        const started = await startBulkDraft({
+          request,
+          shopDomain: session.shop,
+          shopifyProductIds: String(formData.get('shopifyProductIds') || '')
             .split(',')
             .map((value) => value.trim())
-            .filter(Boolean)
-        );
-        if (!requestedIds.size) {
-          return {
-            ok: false,
-            intent,
-            error: 'No products need instructions.',
-          } satisfies ActionResult;
-        }
-
-        const catalog = await fetchFullShopifyCatalog(request);
-        const targets = catalog.products
-          .filter((product) => requestedIds.has(product.id))
-          .slice(0, BULK_DRAFT_LIMIT);
-
-        let saved = 0;
-        let failed = 0;
-        let limitReached = false;
-        for (let i = 0; i < targets.length && !limitReached; i += 10) {
-          const chunk = targets.slice(i, i + 10);
-          let drafts: Awaited<ReturnType<typeof draftMerchantProductInstructions>>['drafts'] = [];
-          try {
-            ({ drafts } = await draftMerchantProductInstructions(
-              request,
-              chunk.map((product) => ({
-                key: product.id,
-                title: product.title,
-                description: product.descriptionHtml || '',
-                productType: product.productType || undefined,
-                vendor: product.vendor || undefined,
-              }))
-            ));
-          } catch (error) {
-            console.warn('[bulk-draft] draft request failed', error);
-            failed += chunk.length;
-            continue;
-          }
-          const byKey = new Map(drafts.map((draft) => [draft.key, draft]));
-          for (const product of chunk) {
-            const draft = byKey.get(product.id);
-            if (!draft) {
-              failed += 1;
-              continue;
-            }
-            const result = await persistProductSetup({
-              request,
-              shopDomain: session.shop,
-              selectedProductId: product.id,
-              title: product.title,
-              handle: product.handle,
-              externalId: product.id,
-              descriptionHtml: product.descriptionHtml || '',
-              usageInstructions: draft.usage_instructions,
-              recipeSummary: draft.recipe_summary,
-              preventionTips: draft.prevention_tips,
-              videoUrl: '',
-              existingProductId: '',
-            }).catch(async (error) => ({
-              ok: false as const,
-              error: await getActionErrorMessage(error, 'save failed'),
-            }));
-            if (!result.ok) {
-              if (String(result.error || '').startsWith('Product limit reached')) {
-                limitReached = true;
-                break;
-              }
-              failed += 1;
-              continue;
-            }
-            saved += 1;
-            if (result.productId) {
-              await prepareMerchantProductKnowledge(request, result.productId).catch((error) => {
-                console.warn('[bulk-draft] prepare knowledge failed', error);
-              });
-            }
-          }
-        }
-
-        const remaining = requestedIds.size - targets.length;
-        const notes = [
-          failed ? `${failed} could not be drafted; open them to write a few words.` : '',
-          limitReached ? 'Your plan’s product limit was reached; upgrade to set up more.' : '',
-          remaining > 0 ? `${remaining} more left — run it again to continue.` : '',
-        ].filter(Boolean);
-        if (!saved) {
-          return {
-            ok: false,
-            intent,
-            error: notes.join(' ') || 'No instructions could be drafted. Try again in a moment.',
-          } satisfies ActionResult;
+            .filter(Boolean),
+        });
+        if (!started.ok) {
+          return { ok: false, intent, error: started.error } satisfies ActionResult;
         }
         return {
           ok: true,
           intent,
-          message: [
-            `Recete drafted and saved instructions for ${saved} product${saved === 1 ? '' : 's'}. Open any product to review or edit what it says.`,
-            ...notes,
-          ].join(' '),
+          message: started.alreadyRunning
+            ? 'Recete is already drafting instructions for your products.'
+            : `Drafting instructions for ${started.queued} product${started.queued === 1 ? '' : 's'}. You can leave this page; Recete keeps going.${
+                started.remaining > 0 ? ` ${started.remaining} more left — run it again when this finishes.` : ''
+              }`,
         } satisfies ActionResult;
+      }
+      case 'bulk-draft-dismiss': {
+        await dismissBulkDraft(session.shop, String(formData.get('jobId') || ''));
+        return { ok: true, intent } satisfies ActionResult;
       }
       case 'bulk-prepare': {
         const shopifyProductIds = String(formData.get('shopifyProductIds') || '')
