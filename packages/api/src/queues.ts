@@ -134,14 +134,16 @@ export async function addAnalyticsEvent(data: AnalyticsJobData) {
 }
 
 /**
- * Add a commerce event processing job
+ * Add a commerce event processing job (processed after `delayMs` when given)
  */
-export async function addCommerceEventJob(data: CommerceEventJobData) {
+export async function addCommerceEventJob(data: CommerceEventJobData, options: { delayMs?: number } = {}) {
   return await getCommerceEventsQueue().add(
     `commerce-event-${data.externalEventId}`,
     data,
     {
       jobId: data.externalEventId,
+      // A later check, e.g. the delivery fallback (deliveryTiming.ts).
+      ...(options.delayMs ? { delay: options.delayMs } : {}),
       attempts: 5,
       backoff: {
         type: 'exponential',

@@ -154,7 +154,8 @@ describe('getOrderStatusSnapshot', () => {
     expect(snapshot).toMatchObject({ orderName: '#1001', state: 'out_for_delivery', source: 'shopify' });
   });
 
-  it('falls back to the stored order when Shopify fails, reading fulfilled as shipped', async () => {
+  it('falls back to the stored order when Shopify fails', async () => {
+    orderRow = { external_order_id: '#1001', status: 'shipped', created_at: '2026-10-20T09:00:00Z' };
     shopifyGraphql.mockRejectedValue(new Error('Shopify GraphQL 503'));
     const snapshot = await getOrderStatusSnapshot({ merchantId: 'm1', orderId: 'o1' });
     expect(snapshot).toMatchObject({ state: 'shipped', source: 'stored', tracking: [] });

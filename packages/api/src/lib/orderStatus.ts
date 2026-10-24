@@ -152,8 +152,9 @@ export function shopifyOrderNameQuery(orderName: string): string {
   return `name:${JSON.stringify(orderName)}`;
 }
 
-// The stored status comes from webhooks: orders/fulfilled is recorded as
-// 'delivered', but fulfilled means handed to the carrier, so it reads as shipped.
+// The stored status comes from webhooks: 'shipped' on orders/fulfilled,
+// 'delivered' from a carrier's delivered event or the delivery fallback
+// (deliveryTiming.ts).
 function snapshotFromStoredOrder(row: {
   external_order_id: string;
   status: string | null;
@@ -163,7 +164,10 @@ function snapshotFromStoredOrder(row: {
   return {
     orderName: row.external_order_id,
     placedAt: row.created_at,
-    state: status === 'cancelled' ? 'cancelled' : status === 'returned' ? 'returned' : status === 'delivered' ? 'shipped' : 'unknown',
+    state:
+      status === 'cancelled' || status === 'returned' || status === 'shipped' || status === 'delivered'
+        ? status
+        : 'unknown',
     partial: false,
     shippedAt: null,
     estimatedDeliveryAt: null,

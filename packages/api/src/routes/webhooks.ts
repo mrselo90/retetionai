@@ -20,6 +20,7 @@ import {
   type NormalizedEvent,
 } from '../lib/events.js';
 import { handleShopifyBillingWebhook } from '../lib/shopifyBilling.js';
+import { handleFulfillmentEventWebhook } from '../lib/deliveryTiming.js';
 import * as crypto from 'crypto';
 import { webhookRateLimitMiddleware } from '../middleware/rateLimit.js';
 
@@ -214,6 +215,23 @@ webhooks.post('/commerce/shopify', webhookRateLimitMiddleware, async (c) => {
         );
         // 5xx so Shopify retries.
         return c.json({ error: 'Failed to sync WhatsApp consent' }, 500);
+      }
+    }
+
+    // A carrier (or the merchant) reported shipment progress. 'delivered'
+    // starts the post-delivery flow (lib/deliveryTiming.ts); other statuses
+    // are acknowledged and ignored.
+    if (topic === 'fulfillment_events/create') {
+      try {
+        const { result } = await handleFulfillmentEventWebhook({ integration, body });
+        return c.json({ message: 'Fulfillment event processed', result }, 200);
+      } catch (err) {
+        logger.error(
+          { err: err instanceof Error ? err.message : String(err), shop },
+          'Failed to process fulfillment event'
+        );
+        // 5xx so Shopify retries.
+        return c.json({ error: 'Failed to process fulfillment event' }, 500);
       }
     }
 

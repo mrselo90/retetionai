@@ -25,7 +25,7 @@ describe('normalizeShopifyEvent', () => {
     expect(result?.consent_status).toBeUndefined();
   });
 
-  it('should normalize orders/updated with fulfilled status to order_delivered', () => {
+  it('should normalize orders/updated with fulfilled status to order_shipped', () => {
     const shopifyEvent = {
       id: 123456789,
       fulfillment_status: 'fulfilled',
@@ -34,22 +34,31 @@ describe('normalizeShopifyEvent', () => {
 
     const result = normalizeShopifyEvent(merchantId, integrationId, shopifyEvent, 'orders/updated');
     expect(result).not.toBeNull();
-    expect(result?.event_type).toBe('order_delivered');
+    // Fulfilled means handed to the carrier; delivery comes later (deliveryTiming.ts).
+    expect(result?.event_type).toBe('order_shipped');
   });
 
-  it('should normalize orders/updated with successful fulfillment to order_delivered', () => {
+  it('should normalize orders/updated with successful fulfillment to order_shipped, with when it shipped', () => {
     const shopifyEvent = {
       id: 123456789,
       fulfillment_status: 'partial', // status might not be 'fulfilled' yet on top level
       fulfillments: [
-        { status: 'success', updated_at: '2023-01-01T12:00:00Z' }
+        { status: 'success', created_at: '2023-01-01T11:00:00Z', updated_at: '2023-01-01T12:00:00Z' }
       ],
       updated_at: '2023-01-01T12:00:00Z',
     };
 
     const result = normalizeShopifyEvent(merchantId, integrationId, shopifyEvent, 'orders/updated');
     expect(result).not.toBeNull();
-    expect(result?.event_type).toBe('order_delivered');
+    expect(result?.event_type).toBe('order_shipped');
+    expect(result?.order).toMatchObject({ shipped_at: '2023-01-01T11:00:00Z' });
+    expect(result?.order?.delivered_at).toBeUndefined();
+  });
+
+  it('should normalize orders/fulfilled to order_shipped and orders/cancelled to order_cancelled', () => {
+    const order = { id: 1, name: '#1001', updated_at: '2023-01-01T12:00:00Z' };
+    expect(normalizeShopifyEvent(merchantId, integrationId, order, 'orders/fulfilled')?.event_type).toBe('order_shipped');
+    expect(normalizeShopifyEvent(merchantId, integrationId, order, 'orders/cancelled')?.event_type).toBe('order_cancelled');
   });
 
   it('should keep orders/updated as order_updated if not fulfilled', () => {
