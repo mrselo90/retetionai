@@ -74,6 +74,21 @@ const waWorkerApps =
       ]
     : [];
 
+// The build each browser-facing app runs from: a folder per deploy, named in a
+// pointer file by scripts/deploy/build-release.sh. Read when PM2 loads this
+// config, so a reload starts the new processes on the new build while the old
+// ones finish on theirs. Without a pointer (before the first such deploy) the
+// default folder.
+const buildPointer = (file, fallback) => {
+  try {
+    return fs.readFileSync(path.join(__dirname, file), 'utf8').trim() || fallback;
+  } catch {
+    return fallback;
+  }
+};
+const webDistDir = buildPointer('packages/web/.next-current', '.next');
+const shellBuildDir = buildPointer('packages/shopify-app/.build-current', 'build');
+
 // The HTTP services run as PM2 clusters of two processes, so a deploy can
 // `pm2 startOrReload` them one process at a time without dropping requests:
 // PM2 starts the new process, waits until it listens (listen_timeout), then
@@ -136,6 +151,7 @@ module.exports = {
         PORT: 3001,
         INTERNAL_API_URL: 'http://127.0.0.1:3002',
         NEXT_PUBLIC_API_URL: 'https://recete.co.uk',
+        NEXT_DIST_DIR: webDistDir,
       },
       ...clusterReload(15000),
       autorestart: true,
@@ -146,7 +162,7 @@ module.exports = {
       cwd: './packages/shopify-app',
       // What `pnpm start` runs; a cluster process must be the server itself.
       script: 'server.mjs',
-      args: './build/server/index.js',
+      args: `./${shellBuildDir}/server/index.js`,
       env: {
         NODE_ENV: 'production',
         PORT: 3003,
