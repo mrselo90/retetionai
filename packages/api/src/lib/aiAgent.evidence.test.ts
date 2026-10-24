@@ -74,6 +74,21 @@ vi.mock('./rag', () => ({
   formatRAGResultsForLLM: vi.fn(() => ''),
 }));
 vi.mock('./groundedAnswer', () => ({ generateGroundedProductAnswer: vi.fn() }));
+const getOrderStatusSnapshot = vi.fn(async () => ({
+  orderName: '#1001',
+  placedAt: '2026-10-20T09:00:00Z',
+  state: 'in_transit',
+  partial: false,
+  shippedAt: '2026-10-22T08:00:00Z',
+  estimatedDeliveryAt: null,
+  deliveredAt: null,
+  tracking: [{ company: 'Carrier B', number: 'TEST-2', url: 'https://track.example.test/TEST-2' }],
+  source: 'shopify',
+}));
+vi.mock('./orderStatus', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./orderStatus')>()),
+  getOrderStatusSnapshot: (...args: unknown[]) => getOrderStatusSnapshot(...(args as [])),
+}));
 vi.mock('./unifiedRetrieval', () => ({
   // A class: Vitest 5 can't call an arrow-function mock implementation with `new`.
   UnifiedRetrievalService: class {
@@ -220,5 +235,36 @@ describe('resolveMessageLanguage', () => {
   it('falls back to the conversation language, then the only enabled language', () => {
     expect(resolveMessageLanguage({ message: 'SPF 50', history: [], conversationLanguage: 'hu' })).toBe('hu');
     expect(resolveMessageLanguage({ message: 'SPF 50', history: [], enabledLanguages: ['tr'] })).toBe('tr');
+  });
+});
+
+describe('generateAIResponse order status', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    modelCalls.length = 0;
+    classifierLabel = 'order_status';
+    structuredOrderId = 'order-1';
+  });
+
+  it('answers from the conversation’s own order status, without product retrieval', async () => {
+    const response = await generateAIResponse('Kargom nerede?', 'merchant-1', 'user-1', 'conversation-1', 'order-1', []);
+
+    expect(response.intent).toBe('order_status');
+    expect(getOrderStatusSnapshot).toHaveBeenCalledWith({ merchantId: 'merchant-1', orderId: 'order-1' });
+    expect(retrieve).not.toHaveBeenCalled();
+    const system = replyCall()!.system;
+    expect(system).toContain('ORDER STATUS (the customer\'s own order)');
+    expect(system).toContain('Status: In transit with the carrier');
+    expect(system).toContain('tracking link https://track.example.test/TEST-2');
+  });
+
+  it('tells the model it cannot see the status without an order', async () => {
+    structuredOrderId = null;
+    await generateAIResponse('where is my order?', 'merchant-1', 'user-1', 'conversation-1', undefined, []);
+
+    expect(getOrderStatusSnapshot).not.toHaveBeenCalled();
+    const system = replyCall()!.system;
+    expect(system).not.toContain('ORDER STATUS');
+    expect(system).toContain('You cannot see this order\'s shipping status here');
   });
 });

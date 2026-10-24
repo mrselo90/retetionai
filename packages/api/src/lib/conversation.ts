@@ -17,7 +17,7 @@ export interface ConversationMessage {
 export interface ConversationState {
   userId: string;
   orderId?: string;
-  currentIntent?: 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent';
+  currentIntent?: 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent' | 'order_status';
   lastMessageAt: string;
   messageCount: number;
 }
@@ -28,7 +28,7 @@ export interface ConversationStructuredState {
   known_order_products: Array<{ id: string; name?: string }>;
   selected_products: 'all' | string[];
   current_goal?: string;
-  current_intent?: 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent';
+  current_intent?: 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent' | 'order_status';
   last_question_type?: string;
   language_preference?: string;
   unresolved_clarification_need?: boolean;
@@ -384,7 +384,7 @@ export async function updateConversationStructuredState(
  */
 export async function updateConversationState(
   conversationId: string,
-  intent?: 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent'
+  intent?: 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent' | 'order_status'
 ): Promise<void> {
   const serviceClient = getSupabaseServiceClient();
 

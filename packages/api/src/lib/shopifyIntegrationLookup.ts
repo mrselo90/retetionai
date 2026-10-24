@@ -1,4 +1,4 @@
-import { getSupabaseServiceClient } from '@recete/shared';
+import { getShopifyAccessToken, getSupabaseServiceClient, shopifyAdminGraphqlUrl } from '@recete/shared';
 
 type ServiceClient = ReturnType<typeof getSupabaseServiceClient>;
 
@@ -65,4 +65,36 @@ export async function findShopifyIntegration(
 
   const row = (data?.[0] ?? null) as ShopifyIntegrationRow | null;
   return { integration: row, error: null };
+}
+
+/** Shop and a fresh Admin API token for the merchant's active Shopify integration, or null without one. */
+export async function shopifyCredentialsForMerchant(client: ServiceClient, merchantId: string) {
+  const { data: integration } = await client
+    .from('integrations')
+    .select('id, auth_data')
+    .eq('merchant_id', merchantId)
+    .eq('provider', 'shopify')
+    .eq('status', 'active')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!integration) return null;
+  return getShopifyAccessToken(integration);
+}
+
+export async function shopifyGraphql<T>(
+  shop: string,
+  accessToken: string,
+  query: string,
+  variables: Record<string, unknown>,
+  timeoutMs = 15_000,
+) {
+  const response = await fetch(shopifyAdminGraphqlUrl(shop), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': accessToken },
+    body: JSON.stringify({ query, variables }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!response.ok) throw new Error(`Shopify GraphQL ${response.status}`);
+  return (await response.json()) as { data?: T; errors?: Array<{ message: string; extensions?: { code?: string } }> };
 }

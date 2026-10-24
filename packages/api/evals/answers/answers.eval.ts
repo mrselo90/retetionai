@@ -20,6 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { ConversationMessage } from '../../src/lib/conversation.js';
+import { formatOrderStatusEvidence, type OrderStatusSnapshot } from '../../src/lib/orderStatus.js';
 
 type EvalCase = {
   id: string;
@@ -32,6 +33,8 @@ type EvalCase = {
   mustInclude: string[][];
   mustNotInclude?: string[];
   policies: string[];
+  /** What the store system returns for the conversation's order (orderStatus.ts); none = not found. */
+  orderStatus?: Partial<OrderStatusSnapshot>;
 };
 
 // Shared with the vi.mock factories below, which are hoisted above imports.
@@ -42,6 +45,7 @@ const state = vi.hoisted(() => ({
   orderProductIds: [] as string[],
   structured: new Map<string, Record<string, unknown>>(),
   escalations: [] as string[],
+  orderStatus: null as null | Record<string, unknown>,
 }));
 
 // ---------- Fake storage ----------
@@ -154,6 +158,10 @@ vi.mock('../../src/lib/upsell.js', () => ({ processSatisfactionCheck: async () =
 vi.mock('../../src/lib/assistantPilotDiagnostics.js', () => ({ captureAssistantPilotDiagnostic: async () => {} }));
 vi.mock('../../src/lib/aiUsageEvents.js', () => ({ trackAiUsageEvent: async () => {} }));
 vi.mock('../../src/lib/botInfo.js', () => ({ getMerchantBotInfo: async () => ({}) }));
+vi.mock('../../src/lib/orderStatus.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/lib/orderStatus.js')>()),
+  getOrderStatusSnapshot: async () => state.orderStatus,
+}));
 vi.mock('../../src/lib/productFactsQuery.js', () => ({
   getActiveProductFactsContext: async () => ({ text: '', factCount: 0, productIds: [] }),
   getActiveProductFactsSnapshots: async () => [],
@@ -195,6 +203,22 @@ const POLICY_TEXT: Record<string, string> = {
   no_product_dump: 'For small talk (thanks, greetings) it must not list product details nobody asked for.',
 };
 
+function orderStatusFor(c: EvalCase): OrderStatusSnapshot | null {
+  if (!c.orderStatus) return null;
+  return {
+    orderName: '#1001',
+    placedAt: '2026-10-20T09:00:00Z',
+    state: 'unknown',
+    partial: false,
+    shippedAt: null,
+    estimatedDeliveryAt: null,
+    deliveredAt: null,
+    tracking: [],
+    source: 'shopify',
+    ...c.orderStatus,
+  };
+}
+
 async function judge(c: EvalCase, answer: string) {
   const productKey = c.orderProduct || c.expectedProduct;
   const product = products.find((p) => p.key === productKey);
@@ -211,11 +235,11 @@ async function judge(c: EvalCase, answer: string) {
         role: 'system',
         content:
           'You grade answers from a skincare store\'s WhatsApp customer-service assistant. ' +
-          'The PRODUCT INFORMATION is everything the assistant may know about the product. ' +
+          'The PRODUCT INFORMATION is everything the assistant may know about the product, and the ORDER STATUS everything it may know about the order. ' +
           'Return JSON only: {"correctness": 0|1|2, "invented_facts": true|false, "false_refusal": true|false, "policy_violations": string[], "language_ok": true|false, "reason": string}. ' +
           'correctness: 2 = conveys what the REFERENCE conveys (wording may differ), 1 = partly right or right but missing a key point, ' +
           '0 = wrong, missing, or an unnecessary "I don\'t have information" when the information was available. ' +
-          'invented_facts: true only if the answer asserts product, order or policy facts that the PRODUCT INFORMATION does not support. ' +
+          'invented_facts: true only if the answer asserts product, order or policy facts that the PRODUCT INFORMATION or ORDER STATUS do not support. ' +
           'false_refusal: true if the answer says it lacks information, or asks which product, although the PRODUCT INFORMATION answers the message. ' +
           'policy_violations: names of the listed POLICIES the answer breaks. ' +
           'language_ok: the answer is in the expected language.',
@@ -224,6 +248,7 @@ async function judge(c: EvalCase, answer: string) {
         role: 'user',
         content:
           `PRODUCT INFORMATION:\n${productInfo}\n\n` +
+          `ORDER STATUS GIVEN TO THE ASSISTANT:\n${orderStatusFor(c) ? formatOrderStatusEvidence(orderStatusFor(c)!) : '(none)'}\n\n` +
           (history ? `CONVERSATION SO FAR:\n${history}\n\n` : '') +
           `CUSTOMER MESSAGE:\n${c.message}\n\nEXPECTED LANGUAGE: ${c.lang}\n\nREFERENCE (what a good answer conveys):\n${c.reference}\n\n` +
           `POLICIES:\n${c.policies.map((p) => `- ${p}: ${POLICY_TEXT[p]}`).join('\n') || '(none)'}\n\nASSISTANT ANSWER:\n${answer}`,
@@ -281,6 +306,7 @@ describe('answer eval', () => {
       state.lang = c.lang;
       state.orderProductIds = c.orderProduct ? [productIdFor(products, c.orderProduct)] : [];
       state.escalations = [];
+      state.orderStatus = orderStatusFor(c);
       const at = new Date().toISOString();
       const history: ConversationMessage[] = (c.history || []).map((turn) => ({ ...turn, timestamp: at }));
       // As in production, the inbound processor has stored the message before the agent loads history.
