@@ -4,6 +4,8 @@ node_modules
 
 # Next.js
 .next
+# Per-deploy builds and their pointer (scripts/deploy/build-release.sh)
+/.next-*
 out
 
 # Build

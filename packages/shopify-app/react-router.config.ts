@@ -14,5 +14,8 @@ const appHost = (() => {
 })();
 
 export default {
+  // Production deploys build into a folder per commit and run from it
+  // (scripts/deploy/build-release.sh); everywhere else this is build/.
+  buildDirectory: process.env.SHELL_BUILD_DIR || "build",
   allowedActionOrigins: [...new Set(["shop.recete.co.uk", ...(appHost ? [appHost] : [])])],
 } satisfies Config;

@@ -82,8 +82,11 @@ jobs:
             pnpm --filter @recete/shopify-app prisma db push
             echo "✔ prisma step done"
             
+            # Web and shell build into a new folder per commit, so the processes
+            # still serving keep their files until the reload below
+            # (scripts/deploy/build-release.sh).
             echo "🔨 Building the application..."
-            pnpm build
+            scripts/deploy/build-release.sh
 
             # WhatsApp linked-device worker (Go). Never fails the deploy: a
             # broken Go build keeps the previous binary running rather than
@@ -160,14 +163,18 @@ jobs:
               set +e
               git reset --hard "$DEPLOYED_SHA"
               pnpm install
-              if pnpm build; then
+              # The previous commit's build folders are normally still there
+              # (kept by prune-releases.sh), so this mostly just points back. A
+              # commit from before per-deploy builds has no script: build in place.
+              if [ -x scripts/deploy/build-release.sh ]; then BUILD=scripts/deploy/build-release.sh; else BUILD="pnpm build"; fi
+              if $BUILD; then
                 pm2 startOrReload ecosystem.config.cjs --update-env </dev/null >/dev/null 2>&1
                 echo "🔙 Rolled back to $DEPLOYED_SHA and reloaded"
               else
                 echo "🚨 Rollback BUILD FAILED. The tree is back on $DEPLOYED_SHA but"
-                echo "   .next is not rebuilt, so the services are still serving the"
+                echo "   its build is not in place, so the services are still serving the"
                 echo "   bad build. Fix by hand, from /root/retetionai:"
-                echo "   pnpm install && pnpm build && pm2 startOrReload ecosystem.config.cjs --update-env"
+                echo "   pnpm install && scripts/deploy/build-release.sh && pm2 startOrReload ecosystem.config.cjs --update-env"
               fi
               set -e
               exit 1
@@ -183,6 +190,10 @@ jobs:
             fi
 
             echo "✅ Deployment completed successfully! Health check passed."
+
+            # Old build folders, once the new build is live and healthy. Never
+            # fails the deploy.
+            scripts/deploy/prune-releases.sh || echo "⚠️  pruning old builds failed"
 
             # Explicit success. Every step above is guarded by script_stop's
             # `set -e`, so reaching this line means they all passed — but the run

@@ -6,6 +6,10 @@ const withNextIntl = createNextIntlPlugin();
 const nextConfig = {
     reactStrictMode: true,
 
+    // Production deploys build into a folder per commit and run from it
+    // (scripts/deploy/build-release.sh); everywhere else this is .next.
+    distDir: process.env.NEXT_DIST_DIR || '.next',
+
     // Performance optimizations
     compress: true, // Enable gzip compression
     poweredByHeader: false, // Remove X-Powered-By header for security
