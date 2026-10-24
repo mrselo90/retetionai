@@ -117,7 +117,7 @@ vi.mock('@recete/shared', () => ({
   ]),
 }));
 
-import { buildIntentClassifierInput, generateAIResponse } from './aiAgent';
+import { buildIntentClassifierInput, generateAIResponse, resolveMessageLanguage } from './aiAgent';
 
 const at = new Date().toISOString();
 const replyCall = () => modelCalls.find((call) => call.system.includes('IMPORTANT RULES'));
@@ -202,5 +202,23 @@ describe('generateAIResponse evidence for non-question intents', () => {
 
     expect(retrieve).not.toHaveBeenCalled();
     expect(replyCall()!.system).not.toContain('PRODUCT INFORMATION');
+  });
+});
+
+describe('resolveMessageLanguage', () => {
+  const user = (content: string) => ({ role: 'user' as const, content, timestamp: at });
+
+  it('uses the message when it is clear', () => {
+    expect(resolveMessageLanguage({ message: 'Hogyan használjam?', history: [], conversationLanguage: 'tr' })).toBe('hu');
+  });
+
+  it('reads an unclear message with the customer’s earlier messages', () => {
+    const history = [user('Serumu nasıl kullanmalıyım?'), { role: 'assistant' as const, content: 'Sabah 2-3 damla.', timestamp: at }];
+    expect(resolveMessageLanguage({ message: 'ok', history })).toBe('tr');
+  });
+
+  it('falls back to the conversation language, then the only enabled language', () => {
+    expect(resolveMessageLanguage({ message: 'SPF 50', history: [], conversationLanguage: 'hu' })).toBe('hu');
+    expect(resolveMessageLanguage({ message: 'SPF 50', history: [], enabledLanguages: ['tr'] })).toBe('tr');
   });
 });

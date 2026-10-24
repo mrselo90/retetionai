@@ -33,6 +33,8 @@ vi.mock('./guardrails', () => ({
 
 vi.mock('./i18n', () => ({
   detectLanguage: vi.fn(() => 'en'),
+  detectLanguageDetailed: vi.fn(() => ({ language: 'en', confident: true })),
+  normalizeSupportedLanguage: vi.fn((lang: string) => lang),
   resolveMerchantReplyLanguage: vi.fn(() => ({
     responseLanguage: 'en',
     usedFallback: false,
