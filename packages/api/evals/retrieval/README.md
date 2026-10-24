@@ -11,9 +11,10 @@ OPENAI_API_KEY=... pnpm --filter @recete/api eval:retrieval
 ```
 
 Needs Docker. Embeddings (`text-embedding-3-small`, as in production) are cached
-in `tmp/rag-eval-embeddings.json`, so reruns are free; set `RAG_EVAL_EMBED_CMD`
-to a command that reads a JSON array of texts on stdin and prints a JSON array of
-vectors to embed somewhere else (e.g. on the server that holds the key).
+in `tmp/rag-eval-embeddings.json`, so reruns are free. Without a local key, set
+`RAG_EVAL_PROXY_CMD` to a command that starts `evals/lib/openaiProxy.mjs` where
+the key lives (e.g. over ssh); the local index and the model client are shared
+with the answer eval in `evals/lib`.
 `RAG_EVAL_THRESHOLD` overrides the dense similarity floor for the "current" run.
 
 - `fixtures.json`: fictional cosmetics products (TR, EN, HU) and questions. A

@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "eval:retrieval": "LOG_LEVEL=warn SUPABASE_URL=http://eval.invalid SUPABASE_ANON_KEY=eval SUPABASE_SERVICE_ROLE_KEY=eval tsx evals/retrieval/run.ts"
+    "eval:retrieval": "LOG_LEVEL=warn SUPABASE_URL=http://eval.invalid SUPABASE_ANON_KEY=eval SUPABASE_SERVICE_ROLE_KEY=eval tsx evals/retrieval/run.ts",
+    "eval:answers": "vitest run --config evals/answers/vitest.config.ts --disable-console-intercept"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.5",
