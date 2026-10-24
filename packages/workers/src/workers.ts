@@ -4,7 +4,13 @@
  */
 
 import { DelayedError, Worker, WorkerOptions } from 'bullmq';
-import { getRedisClient, getShopifyAccessToken, getSupabaseServiceClient, logger } from '@recete/shared';
+import {
+  getRedisClient,
+  getShopifyAccessToken,
+  getSupabaseServiceClient,
+  logger,
+  withFirstContactAiDisclosure,
+} from '@recete/shared';
 import { trackWorkerJob } from './lib/nrEvents.js';
 import {
   buildShopifyProductFallbackContent,
@@ -367,6 +373,8 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
       let welcomeProductNames: string[] = [];
       let welcomeOrderNumber: string | null = null;
       let welcomeCustomerFirstName: string | null = null;
+      // The language the message is written in, for the AI note below.
+      let messageLanguage: string | null = null;
 
       if (!message) {
         // Determine merchant language from persona_settings.default_language (fallback: 'tr')
@@ -377,6 +385,7 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           .single();
         const personaSettings = (merchantRow?.persona_settings as any) || {};
         const lang: WorkerLang = personaSettings?.default_language || 'tr';
+        messageLanguage = lang;
         const tpl = WORKER_TEMPLATES[lang] || WORKER_TEMPLATES.tr;
         const customWelcomeTemplate =
           typeof personaSettings?.whatsapp_welcome_template === 'string' &&
@@ -496,6 +505,23 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           message = tpl[type] || tpl.welcome;
         }
       }
+
+      // The assistant's first message to a customer says it is an AI
+      // (@recete/shared aiDisclosure.ts). A message given in the job carries no
+      // language; the merchant's default is the best guess.
+      if (!messageLanguage) {
+        const { data: merchantRow } = await serviceClient
+          .from('merchants')
+          .select('persona_settings')
+          .eq('id', merchantId)
+          .maybeSingle();
+        messageLanguage = (merchantRow?.persona_settings as any)?.default_language || 'tr';
+      }
+      message = await withFirstContactAiDisclosure(serviceClient, {
+        userId,
+        message,
+        language: messageLanguage,
+      });
 
       // The Twilio-only branch that sent the welcome as an approved Content
       // template outside the 24-hour window went with Twilio (2026-09-24).

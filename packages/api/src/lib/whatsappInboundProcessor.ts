@@ -1,4 +1,5 @@
-import { getSupabaseServiceClient, logger } from '@recete/shared';
+import { getSupabaseServiceClient, logger, withFirstContactAiDisclosure } from '@recete/shared';
+import { detectLanguage } from './i18n.js';
 import {
   addMessageToConversation,
   findUserByPhone,
@@ -198,6 +199,10 @@ export async function processWhatsAppInboundEvent(
 
     const orderId = latestOrder?.id as string | undefined;
     const conversationId = await getOrCreateConversation(user.userId, orderId, merchantId);
+    // The assistant's first message to this customer says it is an AI
+    // (@recete/shared aiDisclosure.ts), in the reply's language.
+    const firstContactText = (text: string) =>
+      withFirstContactAiDisclosure(serviceClient, { userId: user.userId, message: text, language: detectLanguage(text) });
 
     await addMessageToConversation(conversationId, 'user', userMessageForConversation);
 
@@ -270,7 +275,7 @@ export async function processWhatsAppInboundEvent(
           { visionError, conversationId, merchantId, inboundEventId: inbound.id },
           'AI vision generation failed'
         );
-        const fallbackText = buildAiFallbackMessage(userMessageForConversation);
+        const fallbackText = await firstContactText(buildAiFallbackMessage(userMessageForConversation));
         const fallbackSend = await sendTrackedWhatsAppMessage({
           merchantId,
           inboundEventId: inbound.id,
@@ -299,6 +304,7 @@ export async function processWhatsAppInboundEvent(
         return { result: 'failed_image_ai_and_fallback' };
       }
 
+      visionReply = await firstContactText(visionReply);
       const primarySend = await sendTrackedWhatsAppMessage({
         merchantId,
         inboundEventId: inbound.id,
@@ -353,7 +359,7 @@ export async function processWhatsAppInboundEvent(
         { llmError, conversationId, merchantId, inboundEventId: inbound.id },
         'LLM generation failed'
       );
-      const fallbackText = buildAiFallbackMessage(messageText);
+      const fallbackText = await firstContactText(buildAiFallbackMessage(messageText));
       const fallbackSend = await sendTrackedWhatsAppMessage({
         merchantId,
         inboundEventId: inbound.id,
@@ -390,13 +396,14 @@ export async function processWhatsAppInboundEvent(
     }
 
     await updateConversationState(conversationId, aiResponse.intent);
+    const replyText = await firstContactText(aiResponse.response);
     const primarySend = await sendTrackedWhatsAppMessage({
       merchantId,
       inboundEventId: inbound.id,
       conversationId,
       userId: user.userId,
       to: phone,
-      text: aiResponse.response,
+      text: replyText,
       previewUrl: false,
       messageKind: 'ai_primary',
       credentials,
@@ -409,7 +416,7 @@ export async function processWhatsAppInboundEvent(
       return { result: 'failed_ai_send' };
     }
 
-    await addMessageToConversation(conversationId, 'assistant', aiResponse.response);
+    await addMessageToConversation(conversationId, 'assistant', replyText);
 
     // The reply above confirms the opt-out; this makes it stick, so nothing
     // already scheduled for the customer goes out afterwards.

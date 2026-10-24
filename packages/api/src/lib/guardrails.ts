@@ -213,6 +213,18 @@ const HUMAN_HANDOFF_PHRASES = [
   'nem robot',
   'nem bot',
   'hívjon vissza',
+  // German (the AI note suggests "Kundenservice")
+  'kundenservice',
+  'kundendienst',
+  'mit einem menschen',
+  'echten menschen',
+  'mitarbeiter sprechen',
+  'kein bot',
+  // Greek (the AI note suggests "εξυπηρέτηση πελατών")
+  'εξυπηρέτηση πελατών',
+  'εκπρόσωπο',
+  'με άνθρωπο',
+  'πραγματικό άνθρωπο',
 ];
 
 /**
