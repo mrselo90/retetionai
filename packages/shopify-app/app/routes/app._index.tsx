@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { boundary } from '@shopify/shopify-app-react-router/server';
 import { SectionCard, ShellPage } from '../components/shell-ui';
 import { getSetupProgress, REQUIRED_STEP_INFO, type SetupStepKey } from '../lib/setupProgress';
+import type { BulkDraftStatus } from '../lib/bulkDraft.server';
 import type { ShopifyMerchantOverview } from '../platform.server';
 import { extractPlatformErrorMessage, triggerTestOrderFlow } from '../platform.server';
 import { useAppBootstrapData } from './app';
@@ -22,6 +23,8 @@ type SetupStep = {
   icon: StepIcon;
   status: SetupStepStatus;
   estimateMinutes: number;
+  /** Recete is doing this step itself (lib/autoSetup.server.ts): no Start button. */
+  automatic?: boolean;
 };
 
 // Per-step time estimates (minutes). Used for "X minutes left" hint.
@@ -73,7 +76,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Index() {
-  const { bootstrapData, bootstrapError, shellLoading } = useAppBootstrapData();
+  const { bootstrapData, bootstrapError, shellLoading, bulkDraft } = useAppBootstrapData();
   const location = useLocation();
   const data = bootstrapData?.overview;
 
@@ -104,6 +107,7 @@ export default function Index() {
       whatsapp={bootstrapData?.whatsapp}
       merchantName={bootstrapData?.merchantName || ''}
       justSavedMessaging={justSavedMessaging}
+      bulkDraft={bulkDraft}
     />
   );
 }
@@ -121,9 +125,11 @@ function SetupOverview({
   merchantName,
   justSavedMessaging,
   storePending,
+  bulkDraft,
 }: {
   data: ShopifyMerchantOverview;
   storePending?: boolean;
+  bulkDraft?: BulkDraftStatus | null;
   billingApproved?: boolean;
   whatsapp?: { enabled: boolean; connected: boolean } | null;
   merchantName: string;
@@ -141,6 +147,21 @@ function SetupOverview({
   const firstProduct = data.products?.[0] ?? null;
 
   const productCountLabel = progress.productCount > 0 ? progress.productCount : 'your';
+  // After the plan is approved Recete drafts the products and fills in the
+  // welcome message itself (lib/autoSetup.server.ts); before that it says so.
+  const draftingProducts = Boolean(bulkDraft?.running && bulkDraft.kind === 'draft');
+  const productsAutomatic = draftingProducts || (!progress.hasBilling && !progress.hasProducts);
+  const messagingAutomatic = !progress.hasBilling && !progress.hasMessagingConfigured;
+  const productsDescription = draftingProducts
+    ? `Recete is writing usage instructions for your products: ${bulkDraft!.finished} of ${bulkDraft!.total} done. You can link WhatsApp meanwhile.`
+    : productsAutomatic
+      ? 'Recete writes usage instructions for your first 50 products once you pick a plan. You can review and edit them on the Products page.'
+      : `Add usage instructions for ${productCountLabel} products so Recete can answer customer questions.`;
+  const messagingDescription = messagingAutomatic
+    ? "Recete uses your store's name and language once you pick a plan, and the welcome message lists the usage notes of what the customer ordered. You can change it any time."
+    : progress.hasMessagingConfigured
+      ? 'Bot name, language and the message customers receive after delivery. You can change them any time.'
+      : 'Pick a bot name, language, and the message customers receive after delivery.';
 
   const requiredSteps: SetupStep[] = [
     {
@@ -170,20 +191,22 @@ function SetupOverview({
     {
       id: 'products',
       title: REQUIRED_STEP_INFO.products.title,
-      description: `Add usage instructions for ${productCountLabel} products so Recete can answer customer questions.`,
+      description: productsDescription,
       to: REQUIRED_STEP_INFO.products.path,
       icon: 'catalog-product' as const,
       status: statusFor(progress.hasProducts, progress.nextStep === 'products'),
-      estimateMinutes: STEP_ESTIMATES.products,
+      estimateMinutes: productsAutomatic ? 0 : STEP_ESTIMATES.products,
+      automatic: productsAutomatic,
     },
     {
       id: 'messaging',
       title: REQUIRED_STEP_INFO.messaging.title,
-      description: 'Pick a bot name, language, and the message customers receive after delivery.',
+      description: messagingDescription,
       to: REQUIRED_STEP_INFO.messaging.path,
       icon: 'settings' as const,
       status: statusFor(progress.hasMessagingConfigured, progress.nextStep === 'messaging'),
-      estimateMinutes: STEP_ESTIMATES.messaging,
+      estimateMinutes: messagingAutomatic ? 0 : STEP_ESTIMATES.messaging,
+      automatic: messagingAutomatic,
     },
   ];
 
@@ -344,7 +367,8 @@ function SetupGuide({
   minutesLeft: number;
 }) {
   const navigate = useNavigate();
-  const nextId = steps.find((step) => step.status !== 'done')?.id ?? null;
+  // The next step the merchant has to do; Recete's own steps are skipped.
+  const nextId = steps.find((step) => step.status !== 'done' && !step.automatic)?.id ?? null;
   const [guideOpen, setGuideOpen] = useState(true);
   const [openStep, setOpenStep] = useState<SetupStepKey | null>(nextId);
 
@@ -362,7 +386,10 @@ function SetupGuide({
               onClick={() => setGuideOpen((value) => !value)}
             />
           </s-grid>
-          <s-paragraph>Complete these steps to start helping customers after delivery.</s-paragraph>
+          <s-paragraph>
+            Pick a plan and link WhatsApp. Recete prepares your products and welcome message by
+            itself.
+          </s-paragraph>
           <s-paragraph color="subdued">
             {`${completed} out of ${steps.length} steps completed · ~${minutesLeft} min left`}
           </s-paragraph>
@@ -411,9 +438,17 @@ function SetupGuide({
                     <s-grid gap="small-300">
                       <s-paragraph>{step.description}</s-paragraph>
                       <s-paragraph color="subdued">
-                        {done ? 'Done' : `About ${step.estimateMinutes} min`}
+                        {done
+                          ? 'Done'
+                          : step.automatic
+                            ? 'Recete does this for you'
+                            : `About ${step.estimateMinutes} min`}
                       </s-paragraph>
-                      {done ? null : (
+                      {done && step.id === 'messaging' ? (
+                        <s-stack direction="inline">
+                          <s-button onClick={() => navigate(step.to)}>Review</s-button>
+                        </s-stack>
+                      ) : done || step.automatic ? null : (
                         <s-stack direction="inline">
                           <s-button
                             variant={step.id === nextId ? 'primary' : 'secondary'}

@@ -19,6 +19,8 @@ export type MessagingSetupInput = {
   aiVisionEnabled?: boolean | null;
   notificationPhone?: string | null;
   welcomeTemplate?: string | null;
+  /** The welcome and check-in messages' language. */
+  defaultLanguage?: string | null;
   messageSendMode?: 'always' | 'all_products_required' | null;
   enabledLangs?: string[] | null; // null → leave unchanged
 };
@@ -106,6 +108,12 @@ export async function persistMessagingSetup(
     } else {
       delete nextPersonaSettings.whatsapp_welcome_template;
     }
+  }
+
+  // The scheduled messages read this; it was never saved before, so every
+  // welcome went out in the workers' Turkish fallback.
+  if (input.defaultLanguage) {
+    nextPersonaSettings.default_language = input.defaultLanguage;
   }
 
   // Message send mode

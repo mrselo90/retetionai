@@ -24,8 +24,8 @@ export const REQUIRED_STEP_INFO: Record<
 > = {
   billing: { title: 'Pick a plan', path: '/app/billing' },
   whatsapp: { title: 'Connect WhatsApp', path: '/app/integrations' },
-  products: { title: 'Add product instructions', path: '/app/products' },
-  messaging: { title: 'Set up welcome message', path: '/app/setup/messaging' },
+  products: { title: 'Product instructions', path: '/app/products' },
+  messaging: { title: 'Welcome message', path: '/app/setup/messaging' },
 };
 
 // Optional steps: shown in a separate "Polish your setup" section. Don't gate dashboard access.

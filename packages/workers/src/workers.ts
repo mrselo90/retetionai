@@ -8,6 +8,8 @@ import {
   getRedisClient,
   getShopifyAccessToken,
   getSupabaseServiceClient,
+  pickMessageLanguage,
+  type MessageLanguage,
   logger,
   withFirstContactAiDisclosure,
 } from '@recete/shared';
@@ -36,7 +38,7 @@ type CommerceEventJobData = {
 const COMMERCE_EVENTS_QUEUE = 'commerce-events';
 
 // Lightweight inline i18n for worker templates (mirrors api/src/lib/i18n.ts)
-type WorkerLang = 'tr' | 'en' | 'hu';
+type WorkerLang = MessageLanguage;
 const WORKER_TEMPLATES: Record<WorkerLang, Record<string, string>> = {
   tr: {
     welcome: 'Merhaba! Siparişiniz için teşekkür ederiz. Size nasıl yardımcı olabilirim?',
@@ -46,6 +48,8 @@ const WORKER_TEMPLATES: Record<WorkerLang, Record<string, string>> = {
     welcome_with_instructions:
       'Merhaba! Siparişiniz için teşekkür ederiz. Satın aldığınız ürünler için kullanım bilgileri:\n\n',
     welcome_instructions_cta: '\n\nUygulama konusunda sorunuz var mı?',
+    product: 'Ürün',
+    summary: 'Özet',
   },
   en: {
     welcome: 'Hello! Thank you for your order. How can I help you?',
@@ -55,6 +59,8 @@ const WORKER_TEMPLATES: Record<WorkerLang, Record<string, string>> = {
     welcome_with_instructions:
       'Hello! Thank you for your order. Here are the usage instructions for your products:\n\n',
     welcome_instructions_cta: '\n\nDo you have any questions about usage?',
+    product: 'Product',
+    summary: 'Summary',
   },
   hu: {
     welcome: 'Üdvözöljük! Köszönjük a rendelését. Miben segíthetek?',
@@ -64,8 +70,49 @@ const WORKER_TEMPLATES: Record<WorkerLang, Record<string, string>> = {
     welcome_with_instructions:
       'Üdvözöljük! Köszönjük a rendelését. Íme a megvásárolt termékek használati útmutatója:\n\n',
     welcome_instructions_cta: '\n\nVan kérdése a használattal kapcsolatban?',
+    product: 'Termék',
+    summary: 'Összefoglaló',
+  },
+  de: {
+    welcome: 'Hallo! Vielen Dank für Ihre Bestellung. Wie kann ich Ihnen helfen?',
+    checkin_t3: 'Hallo! Wie kommen Sie mit Ihrem Produkt zurecht? Haben Sie Fragen?',
+    checkin_t14: 'Hallo! Sind Sie mit Ihrem Produkt zufrieden? Wir haben neue Produkte für Sie!',
+    upsell: 'Möchten Sie unsere Sonderangebote entdecken?',
+    welcome_with_instructions:
+      'Hallo! Vielen Dank für Ihre Bestellung. Hier sind die Anwendungshinweise für Ihre Produkte:\n\n',
+    welcome_instructions_cta: '\n\nHaben Sie Fragen zur Anwendung?',
+    product: 'Produkt',
+    summary: 'Zusammenfassung',
+  },
+  el: {
+    welcome: 'Γεια σας! Ευχαριστούμε για την παραγγελία σας. Πώς μπορώ να σας βοηθήσω;',
+    checkin_t3: 'Γεια σας! Πώς σας φαίνεται το προϊόν; Έχετε κάποια ερώτηση;',
+    checkin_t14: 'Γεια σας! Είστε ικανοποιημένοι με το προϊόν σας; Έχουμε νέα προϊόντα ειδικά για εσάς!',
+    upsell: 'Θα θέλατε να ανακαλύψετε τις ειδικές προσφορές μας;',
+    welcome_with_instructions:
+      'Γεια σας! Ευχαριστούμε για την παραγγελία σας. Ακολουθούν οι οδηγίες χρήσης για τα προϊόντα σας:\n\n',
+    welcome_instructions_cta: '\n\nΈχετε κάποια ερώτηση για τη χρήση;',
+    product: 'Προϊόν',
+    summary: 'Σύνοψη',
   },
 };
+
+/** pickMessageLanguage (@recete/shared) for a merchant. */
+async function getMessageLanguage(
+  serviceClient: ReturnType<typeof getSupabaseServiceClient>,
+  merchantId: string,
+  personaSettings: Record<string, unknown>
+): Promise<WorkerLang> {
+  if (typeof personaSettings?.default_language === 'string') {
+    return pickMessageLanguage(personaSettings.default_language, null);
+  }
+  const { data } = await serviceClient
+    .from('shop_settings')
+    .select('enabled_langs')
+    .eq('shop_id', merchantId)
+    .maybeSingle();
+  return pickMessageLanguage(null, (data as { enabled_langs?: unknown } | null)?.enabled_langs);
+}
 
 function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.map((v) => (typeof v === 'string' ? v.trim() : '')).filter(Boolean))];
@@ -384,7 +431,7 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           .eq('id', merchantId)
           .single();
         const personaSettings = (merchantRow?.persona_settings as any) || {};
-        const lang: WorkerLang = personaSettings?.default_language || 'tr';
+        const lang = await getMessageLanguage(serviceClient, merchantId, personaSettings);
         messageLanguage = lang;
         const tpl = WORKER_TEMPLATES[lang] || WORKER_TEMPLATES.tr;
         const customWelcomeTemplate =
@@ -466,7 +513,7 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           } else if (instructions.length > 0) {
             const parts = instructions.map(
               (row: ProductInstructionRow) =>
-                `**${row.product_name ?? (lang === 'hu' ? 'Termék' : 'Ürün')}**\n${row.usage_instructions}${row.recipe_summary ? `\n${lang === 'hu' ? 'Összefoglaló' : 'Özet'}: ${row.recipe_summary}` : ''}`
+                `**${row.product_name ?? tpl.product}**\n${row.usage_instructions}${row.recipe_summary ? `\n${tpl.summary}: ${row.recipe_summary}` : ''}`
             );
             message =
               tpl.welcome_with_instructions + parts.join('\n\n') + tpl.welcome_instructions_cta;
@@ -515,7 +562,11 @@ export const scheduledMessagesWorker = new Worker<ScheduledMessageJobData>(
           .select('persona_settings')
           .eq('id', merchantId)
           .maybeSingle();
-        messageLanguage = (merchantRow?.persona_settings as any)?.default_language || 'tr';
+        messageLanguage = await getMessageLanguage(
+          serviceClient,
+          merchantId,
+          (merchantRow?.persona_settings as any) || {}
+        );
       }
       message = await withFirstContactAiDisclosure(serviceClient, {
         userId,

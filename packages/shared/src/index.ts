@@ -15,3 +15,4 @@ export * from './whatsappWorker.js';
 export * from './safeFetch.js';
 export * from './shopifyToken.js';
 export * from './aiDisclosure.js';
+export * from './messageLanguage.js';
