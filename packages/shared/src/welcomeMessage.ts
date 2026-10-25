@@ -122,9 +122,15 @@ export function buildBuiltInWelcome(language: MessageLanguage, instructions: Wel
       tpl.welcome_instructions_cta
     );
   }
-  const lines = instructions
-    .slice(0, MULTI_PRODUCT_LIMIT)
-    .map((row) => `• **${row.product_name ?? tpl.product}**: ${productLine(row)}`);
+  const shown = instructions.slice(0, MULTI_PRODUCT_LIMIT);
+  const notes = shown.map(productLine);
+  // Products with nothing specific in their descriptions get the same plain
+  // line ("Snowboard from the Collection line."); repeating it says nothing,
+  // so those products are listed by name only.
+  const lines = shown.map((row, i) => {
+    const name = `• **${row.product_name ?? tpl.product}**`;
+    return notes.indexOf(notes[i]) === notes.lastIndexOf(notes[i]) ? `${name}: ${notes[i]}` : name;
+  });
   const hidden = instructions.length - MULTI_PRODUCT_LIMIT;
   if (hidden > 0) lines.push(tpl.more_products.replace('{n}', String(hidden)));
   return tpl.welcome_multi + lines.join('\n') + tpl.welcome_multi_cta;

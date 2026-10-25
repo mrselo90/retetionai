@@ -28,6 +28,17 @@ describe('buildBuiltInWelcome', () => {
     expect(buildBuiltInWelcome('tr', [serum, cream])).toContain('her şeyi bana sorabilirsiniz');
   });
 
+  it('lists products that would share a line by name only', () => {
+    const board = (name: string) => ({
+      product_name: name,
+      usage_instructions: 'Wax the base.',
+      recipe_summary: 'Snowboard from the Collection line.',
+    });
+    expect(buildBuiltInWelcome('en', [board('Liquid'), board('Oxygen'), serum])).toContain(
+      '• **Liquid**\n• **Oxygen**\n• **Serum A**: Night use'
+    );
+  });
+
   it('lists five products and counts the rest', () => {
     const many = Array.from({ length: 7 }, (_, i) => ({ product_name: `P${i}`, usage_instructions: 'Use daily.' }));
     const text = buildBuiltInWelcome('hu', many);
