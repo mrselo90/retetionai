@@ -19,6 +19,7 @@ export const SCHEDULED_MESSAGE_TEMPLATES: Record<MessageLanguage, Record<string,
     welcome_multi: 'Merhaba! Siparişiniz için teşekkür ederiz. Ürünleriniz için kısa birer not:\n\n',
     welcome_multi_cta: '\n\nKullanımlarıyla ilgili her şeyi bana sorabilirsiniz, ayrıntıları hemen ileteyim.',
     more_products: '…ve {n} ürün daha',
+    welcome_names_only: 'Merhaba! Siparişiniz için teşekkür ederiz:\n\n',
   },
   en: {
     welcome: 'Hello! Thank you for your order. How can I help you?',
@@ -33,6 +34,7 @@ export const SCHEDULED_MESSAGE_TEMPLATES: Record<MessageLanguage, Record<string,
     welcome_multi: 'Hello! Thank you for your order. A short note on each of your products:\n\n',
     welcome_multi_cta: '\n\nYou can ask me anything about using them, and I\'ll send you the details.',
     more_products: '…and {n} more',
+    welcome_names_only: 'Hello! Thank you for your order:\n\n',
   },
   hu: {
     welcome: 'Üdvözöljük! Köszönjük a rendelését. Miben segíthetek?',
@@ -47,6 +49,7 @@ export const SCHEDULED_MESSAGE_TEMPLATES: Record<MessageLanguage, Record<string,
     welcome_multi: 'Üdvözöljük! Köszönjük a rendelését. Röviden a termékeiről:\n\n',
     welcome_multi_cta: '\n\nBármit kérdezhet a használatukról, és elküldöm a részleteket.',
     more_products: '…és még {n} termék',
+    welcome_names_only: 'Üdvözöljük! Köszönjük a rendelését:\n\n',
   },
   de: {
     welcome: 'Hallo! Vielen Dank für Ihre Bestellung. Wie kann ich Ihnen helfen?',
@@ -61,6 +64,7 @@ export const SCHEDULED_MESSAGE_TEMPLATES: Record<MessageLanguage, Record<string,
     welcome_multi: 'Hallo! Vielen Dank für Ihre Bestellung. Ein kurzer Hinweis zu jedem Ihrer Produkte:\n\n',
     welcome_multi_cta: '\n\nSie können mich alles zur Anwendung fragen, ich schicke Ihnen gern die Details.',
     more_products: '…und {n} weitere',
+    welcome_names_only: 'Hallo! Vielen Dank für Ihre Bestellung:\n\n',
   },
   el: {
     welcome: 'Γεια σας! Ευχαριστούμε για την παραγγελία σας. Πώς μπορώ να σας βοηθήσω;',
@@ -75,6 +79,7 @@ export const SCHEDULED_MESSAGE_TEMPLATES: Record<MessageLanguage, Record<string,
     welcome_multi: 'Γεια σας! Ευχαριστούμε για την παραγγελία σας. Μια σύντομη σημείωση για κάθε προϊόν:\n\n',
     welcome_multi_cta: '\n\nΜπορείτε να με ρωτήσετε ό,τι θέλετε για τη χρήση τους και θα σας στείλω λεπτομέρειες.',
     more_products: '…και {n} ακόμη',
+    welcome_names_only: 'Γεια σας! Ευχαριστούμε για την παραγγελία σας:\n\n',
   },
 };
 
@@ -127,11 +132,14 @@ export function buildBuiltInWelcome(language: MessageLanguage, instructions: Wel
   // Products with nothing specific in their descriptions get the same plain
   // line ("Snowboard from the Collection line."); repeating it says nothing,
   // so those products are listed by name only.
+  const unique = notes.map((note) => notes.indexOf(note) === notes.lastIndexOf(note));
   const lines = shown.map((row, i) => {
     const name = `• **${row.product_name ?? tpl.product}**`;
-    return notes.indexOf(notes[i]) === notes.lastIndexOf(notes[i]) ? `${name}: ${notes[i]}` : name;
+    return unique[i] ? `${name}: ${notes[i]}` : name;
   });
   const hidden = instructions.length - MULTI_PRODUCT_LIMIT;
   if (hidden > 0) lines.push(tpl.more_products.replace('{n}', String(hidden)));
-  return tpl.welcome_multi + lines.join('\n') + tpl.welcome_multi_cta;
+  // Not "a short note on each" when no product has one.
+  const intro = unique.some(Boolean) ? tpl.welcome_multi : tpl.welcome_names_only;
+  return intro + lines.join('\n') + tpl.welcome_multi_cta;
 }
