@@ -16,6 +16,9 @@ export const SCHEDULED_MESSAGE_TEMPLATES: Record<MessageLanguage, Record<string,
     welcome_instructions_cta: '\n\nUygulama konusunda sorunuz var mı?',
     product: 'Ürün',
     summary: 'Özet',
+    welcome_multi: 'Merhaba! Siparişiniz için teşekkür ederiz. Ürünleriniz için kısa birer not:\n\n',
+    welcome_multi_cta: '\n\nKullanımlarıyla ilgili her şeyi bana sorabilirsiniz, ayrıntıları hemen ileteyim.',
+    more_products: '…ve {n} ürün daha',
   },
   en: {
     welcome: 'Hello! Thank you for your order. How can I help you?',
@@ -27,6 +30,9 @@ export const SCHEDULED_MESSAGE_TEMPLATES: Record<MessageLanguage, Record<string,
     welcome_instructions_cta: '\n\nDo you have any questions about usage?',
     product: 'Product',
     summary: 'Summary',
+    welcome_multi: 'Hello! Thank you for your order. A short note on each of your products:\n\n',
+    welcome_multi_cta: '\n\nYou can ask me anything about using them, and I\'ll send you the details.',
+    more_products: '…and {n} more',
   },
   hu: {
     welcome: 'Üdvözöljük! Köszönjük a rendelését. Miben segíthetek?',
@@ -38,6 +44,9 @@ export const SCHEDULED_MESSAGE_TEMPLATES: Record<MessageLanguage, Record<string,
     welcome_instructions_cta: '\n\nVan kérdése a használattal kapcsolatban?',
     product: 'Termék',
     summary: 'Összefoglaló',
+    welcome_multi: 'Üdvözöljük! Köszönjük a rendelését. Röviden a termékeiről:\n\n',
+    welcome_multi_cta: '\n\nBármit kérdezhet a használatukról, és elküldöm a részleteket.',
+    more_products: '…és még {n} termék',
   },
   de: {
     welcome: 'Hallo! Vielen Dank für Ihre Bestellung. Wie kann ich Ihnen helfen?',
@@ -49,6 +58,9 @@ export const SCHEDULED_MESSAGE_TEMPLATES: Record<MessageLanguage, Record<string,
     welcome_instructions_cta: '\n\nHaben Sie Fragen zur Anwendung?',
     product: 'Produkt',
     summary: 'Zusammenfassung',
+    welcome_multi: 'Hallo! Vielen Dank für Ihre Bestellung. Ein kurzer Hinweis zu jedem Ihrer Produkte:\n\n',
+    welcome_multi_cta: '\n\nSie können mich alles zur Anwendung fragen, ich schicke Ihnen gern die Details.',
+    more_products: '…und {n} weitere',
   },
   el: {
     welcome: 'Γεια σας! Ευχαριστούμε για την παραγγελία σας. Πώς μπορώ να σας βοηθήσω;',
@@ -60,6 +72,9 @@ export const SCHEDULED_MESSAGE_TEMPLATES: Record<MessageLanguage, Record<string,
     welcome_instructions_cta: '\n\nΈχετε κάποια ερώτηση για τη χρήση;',
     product: 'Προϊόν',
     summary: 'Σύνοψη',
+    welcome_multi: 'Γεια σας! Ευχαριστούμε για την παραγγελία σας. Μια σύντομη σημείωση για κάθε προϊόν:\n\n',
+    welcome_multi_cta: '\n\nΜπορείτε να με ρωτήσετε ό,τι θέλετε για τη χρήση τους και θα σας στείλω λεπτομέρειες.',
+    more_products: '…και {n} ακόμη',
   },
 };
 
@@ -69,16 +84,39 @@ export interface WelcomeInstruction {
   recipe_summary?: string | null;
 }
 
+const MULTI_PRODUCT_LIMIT = 5;
+const NOTE_MAX_CHARS = 140;
+
+/** The first sentence of a usage note, cut at a word near NOTE_MAX_CHARS. */
+export function shortUsageNote(text: string): string {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  const first = flat.split(/(?<=[.!?])\s/u)[0] || flat;
+  if (first.length <= NOTE_MAX_CHARS) return first;
+  const cut = first.slice(0, NOTE_MAX_CHARS);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), NOTE_MAX_CHARS / 2)).replace(/[\s,;:]+$/u, '')}…`;
+}
+
 /**
- * The built-in welcome: the ordered products' usage notes, or a short thank
- * you when none of them has any.
+ * The built-in welcome. One product: its usage notes. Several: one short line
+ * each (the first sentence of its notes) and an invitation to ask, since the
+ * full notes of every item made a long first WhatsApp message; the assistant
+ * answers the questions from the same notes. No notes at all: a short thank you.
  */
 export function buildBuiltInWelcome(language: MessageLanguage, instructions: WelcomeInstruction[]): string {
   const tpl = SCHEDULED_MESSAGE_TEMPLATES[language] || SCHEDULED_MESSAGE_TEMPLATES.tr;
   if (instructions.length === 0) return tpl.welcome;
-  const parts = instructions.map(
-    (row) =>
-      `**${row.product_name ?? tpl.product}**\n${row.usage_instructions}${row.recipe_summary ? `\n${tpl.summary}: ${row.recipe_summary}` : ''}`
-  );
-  return tpl.welcome_with_instructions + parts.join('\n\n') + tpl.welcome_instructions_cta;
+  if (instructions.length === 1) {
+    const [row] = instructions;
+    return (
+      tpl.welcome_with_instructions +
+      `**${row.product_name ?? tpl.product}**\n${row.usage_instructions}${row.recipe_summary ? `\n${tpl.summary}: ${row.recipe_summary}` : ''}` +
+      tpl.welcome_instructions_cta
+    );
+  }
+  const lines = instructions
+    .slice(0, MULTI_PRODUCT_LIMIT)
+    .map((row) => `• **${row.product_name ?? tpl.product}**: ${shortUsageNote(row.usage_instructions)}`);
+  const hidden = instructions.length - MULTI_PRODUCT_LIMIT;
+  if (hidden > 0) lines.push(tpl.more_products.replace('{n}', String(hidden)));
+  return tpl.welcome_multi + lines.join('\n') + tpl.welcome_multi_cta;
 }
