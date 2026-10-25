@@ -7,6 +7,7 @@ import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth.js';
 import { getSupabaseServiceClient } from '@recete/shared';
 import { getCache, setCache } from '../lib/cache.js';
+import { getMerchantImpact, normalizeImpactDays } from '../lib/merchantImpact.js';
 
 const analytics = new Hono();
 
@@ -265,7 +266,7 @@ analytics.get('/roi', async (c) => {
     // Saved returns: conversations that started with complaint and are now resolved
     const { data: allConversations } = await serviceClient
       .from('conversations')
-      .select('id, history, current_state, conversation_status')
+      .select('id, user_id, history, current_state, conversation_status')
       .in('user_id', userIds);
 
     let totalMessageCount = 0;
@@ -335,6 +336,25 @@ analytics.get('/roi', async (c) => {
     return c.json({
       error: 'Internal server error',
     }, 500);
+  }
+});
+
+/**
+ * Impact panel: what Recete did over the last 7, 30 or 90 days, as counts.
+ * GET /api/analytics/impact?days=30
+ */
+analytics.get('/impact', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const days = normalizeImpactDays(c.req.query('days'));
+    const cacheKey = `${merchantId}:${days}`;
+    const cached = await getCache<any>('analytics_impact', cacheKey);
+    if (cached) return c.json({ impact: cached });
+    const impact = await getMerchantImpact(merchantId, days);
+    await setCache('analytics_impact', cacheKey, impact, 300);
+    return c.json({ impact });
+  } catch (error) {
+    return c.json({ error: 'Internal server error' }, 500);
   }
 });
 

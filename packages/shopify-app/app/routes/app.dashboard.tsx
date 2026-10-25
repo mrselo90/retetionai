@@ -5,8 +5,10 @@ import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import { shellSetupProgress, useAppBootstrapData } from './app';
 import { fetchMerchantConversations } from '../platform.server';
 import {
+  fetchMerchantImpact,
   fetchMerchantOverviewFromRequest,
   settle,
+  type MerchantImpact,
   type ShopifyMerchantOverview,
 } from '../platform.server';
 import { AppPage, MetricCard, MetricGrid, SectionCard } from '../components/shell-ui';
@@ -30,23 +32,87 @@ const EMPTY_OVERVIEW: ShopifyMerchantOverview = {
   recentOrders: [],
 };
 
+const IMPACT_WINDOWS = [7, 30, 90];
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
-  const [overviewResult, conversationsResult] = await Promise.all([
+  const requestedDays = Number(new URL(request.url).searchParams.get('days'));
+  const days = IMPACT_WINDOWS.includes(requestedDays) ? requestedDays : 30;
+  const [overviewResult, conversationsResult, impact] = await Promise.all([
     settle(fetchMerchantOverviewFromRequest(request), EMPTY_OVERVIEW),
     fetchMerchantConversations(request).catch(() => ({ conversations: [] })),
+    fetchMerchantImpact(request, days).catch(() => null),
   ]);
 
   return {
     overview: overviewResult.value,
     overviewUnavailable: !overviewResult.ok,
     conversations: conversationsResult.conversations || [],
+    days,
+    impact,
   };
 };
 
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+function impactTiles(impact: MerchantImpact) {
+  const { replies, returns, consent, reorders, postPurchase } = impact;
+  const checkins = Object.entries(postPurchase.byType)
+    .filter(([type]) => type.startsWith('checkin'))
+    .reduce((sum, [, n]) => sum + n, 0);
+  const welcome = postPurchase.byType.welcome || 0;
+  return [
+    {
+      label: 'Questions answered by AI',
+      value: replies.answeredByAi,
+      hint: [
+        plural(replies.customerMessages, 'customer message'),
+        replies.read > 0 ? `${replies.read} answers read` : null,
+        replies.fallbacks > 0 ? `${replies.fallbacks} left for your team` : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    },
+    {
+      label: 'Handed to your team',
+      value: impact.handoffs,
+      hint: 'Conversations the AI passed to you.',
+    },
+    {
+      label: 'Post-purchase messages',
+      value: postPurchase.sent,
+      hint:
+        postPurchase.sent > 0
+          ? `${welcome} welcome · ${plural(checkins, 'check-in')}`
+          : 'Sent after delivery to opted-in customers.',
+    },
+    {
+      label: 'Return requests',
+      value: returns.requests,
+      hint: `${returns.handedToTeam} handed to your team · ${returns.laterReturned} returned`,
+    },
+    {
+      label: 'New opt-ins',
+      value: consent.optIns,
+      hint: `${consent.optOuts} opted out`,
+    },
+    {
+      label: 'Ordered again after a message',
+      value: reorders.afterMessage,
+      hint: `Of ${plural(reorders.repeatBuyers, 'customer')} who ordered again.`,
+    },
+  ];
+}
+
 export default function DashboardPage() {
   const { bootstrapData: shellBootstrap } = useAppBootstrapData();
-  const { overview: data, overviewUnavailable, conversations } = useLoaderData<typeof loader>();
+  const {
+    overview: data,
+    overviewUnavailable,
+    conversations,
+    days,
+    impact,
+  } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
   const progress = shellSetupProgress(data, shellBootstrap);
@@ -160,6 +226,41 @@ export default function DashboardPage() {
           }
         />
       </MetricGrid>
+
+      {/* ── Impact ──────────────────────────────────────────────────── */}
+      <SectionCard
+        title="Impact"
+        subtitle={`What Recete did in the last ${days} days. These are counts, not proof that Recete caused them: there is no comparison group yet.`}
+      >
+        <s-stack gap="base">
+          <s-stack direction="inline" gap="small-200">
+            {IMPACT_WINDOWS.map((window) => (
+              <s-button
+                key={window}
+                variant={window === days ? 'primary' : 'secondary'}
+                onClick={() => navigate(`?days=${window}`)}
+              >
+                {`${window} days`}
+              </s-button>
+            ))}
+          </s-stack>
+          {impact ? (
+            <s-grid gridTemplateColumns="repeat(auto-fit, minmax(200px, 1fr))" gap="base">
+              {impactTiles(impact).map((tile) => (
+                <s-box key={tile.label} padding="base" borderRadius="base" background="subdued">
+                  <s-stack gap="small-300">
+                    <s-text color="subdued">{tile.label}</s-text>
+                    <s-heading>{tile.value}</s-heading>
+                    <s-text color="subdued">{tile.hint}</s-text>
+                  </s-stack>
+                </s-box>
+              ))}
+            </s-grid>
+          ) : (
+            <s-paragraph color="subdued">Impact numbers couldn&apos;t load. Refresh in a moment.</s-paragraph>
+          )}
+        </s-stack>
+      </SectionCard>
 
       {/* ── Conversation queue ──────────────────────────────────────── */}
       {conversations.length > 0 ? (
