@@ -140,6 +140,10 @@ export interface ShopifyMerchantOverview {
       whatsapp_sender_mode?: 'merchant_own' | 'corporate';
       whatsapp_welcome_template?: string;
       onboarding_settings_configured_at?: string;
+      /** The welcome and check-in messages' language (workers.ts). */
+      default_language?: string;
+      /** When auto-setup ran (lib/autoSetup.server.ts). */
+      auto_setup_at?: string;
     };
   };
   integrations: Array<{
@@ -183,6 +187,10 @@ export interface MerchantSettingsRecord {
       whatsapp_sender_mode?: 'merchant_own' | 'corporate';
       whatsapp_welcome_template?: string;
       onboarding_settings_configured_at?: string;
+      /** The welcome and check-in messages' language (workers.ts). */
+      default_language?: string;
+      /** When auto-setup ran (lib/autoSetup.server.ts). */
+      auto_setup_at?: string;
     };
   };
 }

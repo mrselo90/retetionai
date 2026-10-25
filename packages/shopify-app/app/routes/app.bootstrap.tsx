@@ -2,6 +2,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 
 import { authenticateEmbeddedAdmin } from '../lib/embeddedAuth.server';
 import { isBillingReady } from '../lib/billingStatus';
+import { runAutoSetupIfDue } from '../lib/autoSetup.server';
 import {
   fetchMerchantOverviewFromRequest,
   fetchWhatsAppConnection,
@@ -68,7 +69,7 @@ function buildPendingOverview(shop: string) {
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const requestUrl = new URL(request.url);
-  const { billing, session } = await authenticateEmbeddedAdmin(request);
+  const { admin, billing, session } = await authenticateEmbeddedAdmin(request);
   // Any active subscription counts. Plans are sold through Shopify Managed
   // Pricing, whose subscription names ("Growth", ...) never matched the
   // "growth-monthly" keys this filtered on, and development stores only get
@@ -77,10 +78,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const billingState = await billing.check({ isTest: true });
 
   try {
-    const overview = await fetchMerchantOverviewFromRequest(request);
+    let overview = await fetchMerchantOverviewFromRequest(request);
     const shop = requestUrl.searchParams.get('shop') || overview.shop;
     const billingApproved =
       billingState.hasActivePayment || isBillingReady(overview.merchant.subscription_status);
+
+    // Once the plan is approved, Recete fills in the steps it can do itself.
+    const autoSetupStarted = await runAutoSetupIfDue({
+      request,
+      shop: session.shop,
+      overview,
+      billingApproved,
+      graphql: (query) => admin.graphql(query),
+    });
+    if (autoSetupStarted) overview = await fetchMerchantOverviewFromRequest(request);
 
     const activeSubscription = billingState.appSubscriptions.find(
       (s) => String(s.status).toUpperCase() === 'ACTIVE'
@@ -97,6 +108,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       billingApproved,
       activePlanName,
       whatsapp: await loadSetupWhatsApp(request),
+      autoSetupStarted,
     });
   } catch (error) {
     // Attempt install-sync repair when the platform doesn't know about this shop yet.

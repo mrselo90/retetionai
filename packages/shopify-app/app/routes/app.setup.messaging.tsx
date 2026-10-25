@@ -103,7 +103,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const persona = settingsResult.value.merchant.persona_settings || {};
   const enabledLangs = multiLangResult.value.settings?.enabled_langs || ['en'];
-  const defaultLanguage = enabledLangs[0] || 'en';
+  const defaultLanguage = persona.default_language || enabledLangs[0] || 'en';
 
   return {
     botName: persona.bot_name || '',
@@ -128,6 +128,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const result = await persistMessagingSetup(request, session.shop, {
       botName,
       welcomeTemplate,
+      defaultLanguage: defaultLanguage || 'en',
       enabledLangs: await withDefaultLanguage(request, defaultLanguage || 'en'),
     });
 

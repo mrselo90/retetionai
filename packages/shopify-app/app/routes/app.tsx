@@ -97,6 +97,8 @@ export type AppBootstrapData = {
   // Set by /app/bootstrap while the platform is still provisioning a fresh install.
   pending?: boolean;
   whatsapp?: { enabled: boolean; connected: boolean } | null;
+  /** This load started auto-setup (lib/autoSetup.server.ts). */
+  autoSetupStarted?: boolean;
 };
 
 export type AppBootstrapContext = {
@@ -200,6 +202,13 @@ function AppShell() {
   }
 
   const bootstrapData = fetcher.data ?? null;
+
+  // Auto-setup may have started the product drafts; the watcher only polls a
+  // job it knows about.
+  const autoSetupStarted = Boolean(bootstrapData?.autoSetupStarted);
+  useEffect(() => {
+    if (autoSetupStarted) refreshBulkDraft();
+  }, [autoSetupStarted, refreshBulkDraft]);
   const bootstrapError =
     fetcher.state === 'idle' && hasLoadedOnce && !fetcher.data
       ? 'Bootstrap returned empty data'
