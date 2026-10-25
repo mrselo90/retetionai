@@ -1,5 +1,5 @@
 import { getSupabaseServiceClient, logger, withFirstContactAiDisclosure } from '@recete/shared';
-import { detectLanguage } from './i18n.js';
+import { detectLanguage, type SupportedLanguage } from './i18n.js';
 import {
   addMessageToConversation,
   findUserByPhone,
@@ -61,18 +61,31 @@ async function setInboundStatus(
   await serviceClient.from('whatsapp_inbound_events').update(payload).eq('id', inboundEventId);
 }
 
-function buildUnknownUserMessage(input: string): string {
-  const hasTurkishChars = /[çğışöüÇĞİŞÖÜ]/i.test(input);
-  return hasTurkishChars
-    ? 'Merhaba! Size nasıl yardımcı olabilirim? Lütfen sipariş numaranızı paylaşın.'
-    : 'Hello! How can I help you? Please share your order number.';
+// Fixed replies, in the language of the customer's message. They used to look
+// for Turkish letters only, so a Hungarian "Köszönöm" got a Turkish reply and
+// everything else English.
+const UNKNOWN_SENDER_REPLY: Record<SupportedLanguage, string> = {
+  tr: 'Merhaba! Size nasıl yardımcı olabilirim? Lütfen sipariş numaranızı paylaşın.',
+  en: 'Hello! How can I help you? Please share your order number.',
+  hu: 'Üdvözöljük! Miben segíthetünk? Kérjük, adja meg a rendelésszámát.',
+  de: 'Hallo! Wie können wir Ihnen helfen? Bitte teilen Sie uns Ihre Bestellnummer mit.',
+  el: 'Γεια σας! Πώς μπορούμε να σας βοηθήσουμε; Παρακαλούμε στείλτε μας τον αριθμό της παραγγελίας σας.',
+};
+
+const AI_UNAVAILABLE_REPLY: Record<SupportedLanguage, string> = {
+  tr: 'Şu an size yardımcı olamıyorum. Lütfen kısa süre sonra tekrar deneyin.',
+  en: 'I am unable to assist you at the moment. Please try again shortly.',
+  hu: 'Jelenleg nem tudok segíteni. Kérjük, próbálja újra egy kicsit később.',
+  de: 'Ich kann Ihnen gerade nicht weiterhelfen. Bitte versuchen Sie es in Kürze erneut.',
+  el: 'Αυτή τη στιγμή δεν μπορώ να σας βοηθήσω. Παρακαλούμε δοκιμάστε ξανά σε λίγο.',
+};
+
+export function buildUnknownUserMessage(input: string): string {
+  return UNKNOWN_SENDER_REPLY[detectLanguage(input)] ?? UNKNOWN_SENDER_REPLY.en;
 }
 
-function buildAiFallbackMessage(input: string): string {
-  const hasTurkishChars = /[çğışöüÇĞİŞÖÜ]/i.test(input);
-  return hasTurkishChars
-    ? 'Şu an size yardımcı olamıyorum. Lütfen kısa süre sonra tekrar deneyin.'
-    : 'I am unable to assist you at the moment. Please try again shortly.';
+export function buildAiFallbackMessage(input: string): string {
+  return AI_UNAVAILABLE_REPLY[detectLanguage(input)] ?? AI_UNAVAILABLE_REPLY.en;
 }
 
 function buildInboundConversationMessage(inbound: InboundEventRow, fallbackText: string) {
