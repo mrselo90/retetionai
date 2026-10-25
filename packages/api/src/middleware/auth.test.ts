@@ -157,9 +157,12 @@ describe('Auth Middleware', () => {
     expect(mockNext).toHaveBeenCalled();
   });
 
-  it('supports internal-secret auth on internal merchant route via shop domain lookup', async () => {
+  it.each([
+    '/api/integrations/shopify/merchant-overview',
+    '/api/analytics/impact',
+  ])('supports internal-secret auth on internal merchant route %s via shop domain lookup', async (path) => {
     process.env.INTERNAL_SERVICE_SECRET = 'secret-123';
-    mockContext.req.path = '/api/integrations/shopify/merchant-overview';
+    mockContext.req.path = path;
     mockSupabase.limit.mockResolvedValueOnce({
       data: [{ merchant_id: 'merchant-shop' }],
       error: null,

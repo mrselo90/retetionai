@@ -276,7 +276,7 @@ async function buildMerchantOverviewResponse(
         .from('users')
         .select('*', { count: 'exact', head: true })
         .eq('merchant_id', merchantId)
-        .eq('consent_status', 'active'),
+        .eq('consent_status', 'opt_in'),
       serviceClient
         .from('products')
         .select('*', { count: 'exact', head: true })
