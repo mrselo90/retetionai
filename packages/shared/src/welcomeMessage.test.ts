@@ -18,9 +18,10 @@ describe('buildBuiltInWelcome', () => {
   });
 
   it('gives several products one short line each and an invitation to ask', () => {
+    // The key summary when there is one, else the first sentence of the notes.
     expect(buildBuiltInWelcome('en', [serum, cream])).toBe(
       'Hello! Thank you for your order. A short note on each of your products:\n\n' +
-        '• **Serum A**: Two drops at night on clean skin.\n' +
+        '• **Serum A**: Night use\n' +
         '• **Cream B**: Apply in the morning.' +
         "\n\nYou can ask me anything about using them, and I'll send you the details."
     );

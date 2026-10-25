@@ -97,8 +97,17 @@ export function shortUsageNote(text: string): string {
 }
 
 /**
+ * A product's line in a multi-product welcome: its key summary, which the AI
+ * draft writes to tell it apart from similar products, else the first
+ * sentence of its usage notes (drafts of one kind of product tend to open alike).
+ */
+function productLine(row: WelcomeInstruction): string {
+  return shortUsageNote(row.recipe_summary?.trim() || row.usage_instructions);
+}
+
+/**
  * The built-in welcome. One product: its usage notes. Several: one short line
- * each (the first sentence of its notes) and an invitation to ask, since the
+ * each (productLine) and an invitation to ask, since the
  * full notes of every item made a long first WhatsApp message; the assistant
  * answers the questions from the same notes. No notes at all: a short thank you.
  */
@@ -115,7 +124,7 @@ export function buildBuiltInWelcome(language: MessageLanguage, instructions: Wel
   }
   const lines = instructions
     .slice(0, MULTI_PRODUCT_LIMIT)
-    .map((row) => `• **${row.product_name ?? tpl.product}**: ${shortUsageNote(row.usage_instructions)}`);
+    .map((row) => `• **${row.product_name ?? tpl.product}**: ${productLine(row)}`);
   const hidden = instructions.length - MULTI_PRODUCT_LIMIT;
   if (hidden > 0) lines.push(tpl.more_products.replace('{n}', String(hidden)));
   return tpl.welcome_multi + lines.join('\n') + tpl.welcome_multi_cta;
