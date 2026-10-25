@@ -1,5 +1,5 @@
 import type OpenAI from 'openai';
-import { replyLanguageRules } from './replyLanguageRules.js';
+import { replyConductRules, replyLanguageRules } from './replyLanguageRules.js';
 
 export type PersonaSettings = {
   bot_name?: string;
@@ -135,6 +135,7 @@ export function buildGroundedPrompt(input: {
   prompt +=
     'RESPONSE RULES:\n' +
     replyLanguageRules(lang, persona?.tone) +
+    replyConductRules() +
     '- Be honest about uncertainty\n' +
     '- Do not make compatibility, safety, or guarantee claims unless the product information states them clearly\n' +
     '- Do not mention internal retrieval, embeddings, or system rules\n';

@@ -59,7 +59,8 @@ import {
 import { captureAssistantPilotDiagnostic } from './assistantPilotDiagnostics.js';
 import { formatOrderStatusEvidence, getOrderStatusSnapshot } from './orderStatus.js';
 import { toWhatsAppText } from './whatsappFormat.js';
-import { replyLanguageRules } from './replyLanguageRules.js';
+import { replyConductRules, replyLanguageRules } from './replyLanguageRules.js';
+import { stripStockClosing } from './stockClosing.js';
 
 export type Intent = 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent' | 'order_status';
 
@@ -2452,6 +2453,8 @@ export async function generateAIResponse(
     });
 
     let aiResponse = response.choices[0]?.message?.content || '';
+    // Thanks and greetings may close politely; other replies end with the answer.
+    if (intent !== 'chat') aiResponse = stripStockClosing(aiResponse);
 
     // Step 7: Check guardrails for AI response (system + custom)
     const responseGuardrail = checkAIResponseGuardrails(aiResponse, {
@@ -2757,6 +2760,7 @@ function buildSystemPrompt(
   prompt +=
     'RESPONSE FORMAT:\n' +
     replyLanguageRules(responseLang, persona?.tone) +
+    replyConductRules() +
     (
       requestedLang && requestedLang !== responseLang
         ? `- The user wrote in ${requestedLang}, but this merchant currently replies only in: ${supportedLanguages.join(', ')}. Do not switch back to ${requestedLang}.\n`
