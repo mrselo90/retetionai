@@ -142,9 +142,35 @@ function listStr(values: string[], lang: SupportedLanguage): string {
   return values.join(', ');
 }
 
+/**
+ * The name for a sentence: without the descriptive tail ("… – Leke ve
+ * Kızarıklık Karşıtı Cilt Bakım Serumu") and the size at the end, which a
+ * volume answer used to repeat ("… Serum 30 ml termék kiszerelése 30 ML").
+ */
+export function shortProductName(name: string): string {
+  const short = name
+    .split(/\s+[–—|-]\s+/)[0]
+    .replace(/\s+\d+(?:[.,]\d+)?\s?(?:ml|g|oz)$/i, '')
+    .trim();
+  return short || name;
+}
+
+/**
+ * Hungarian "the" + name at the start of a sentence: "Az" before a vowel,
+ * "A" otherwise (the templates said "A(z)").
+ */
+export function huTheName(name: string): string {
+  return `${/^[aáeéiíoóöőuúüű]/i.test(name.trim()) ? 'Az' : 'A'} ${name}`;
+}
+
+function formatVolume(value: unknown, unit: unknown): string {
+  const u = String(unit || '').trim();
+  return `${value} ${/^(ml|g|oz|kg|l)$/i.test(u) ? u.toLowerCase() : u}`;
+}
+
 function noInfo(lang: SupportedLanguage, productName: string, topic: string): string {
   if (lang === 'tr') return `${productName} için ${topic} bilgisi elimde net olarak yok. Ambalaj üzerindeki ürün bilgisini kontrol etmenizi öneririm.`;
-  if (lang === 'hu') return `A(z) ${productName} termékhez nem látok egyértelmű ${topic} információt. Kérem, ellenőrizze a csomagoláson szereplő adatokat.`;
+  if (lang === 'hu') return `${huTheName(productName)} termékhez nem látok egyértelmű ${topic} információt. Kérem, ellenőrizze a csomagoláson szereplő adatokat.`;
   if (lang === 'de') return `Ich sehe für ${productName} keine eindeutigen Informationen zu ${topic}. Bitte prüfen Sie die Angaben auf der Produktverpackung.`;
   if (lang === 'el') return `Δεν βλέπω σαφείς πληροφορίες για ${topic} σχετικά με το ${productName}. Παρακαλώ ελέγξτε τις πληροφορίες πάνω στη συσκευασία.`;
   return `I don't have clear ${topic} information for ${productName}. Please check the product packaging details.`;
@@ -214,7 +240,7 @@ function usageAnswer(lang: SupportedLanguage, productName: string, usageSteps: s
     : '';
 
   if (lang === 'tr') return `${productName} için bulduğum kullanım bilgisi şöyle. ${stepsPart}${freqPart}`.trim();
-  if (lang === 'hu') return `A(z) ${productName} termékhez ezt a használati információt találtam. ${stepsPart}${freqPart}`.trim();
+  if (lang === 'hu') return `${huTheName(productName)} termékhez ezt a használati információt találtam. ${stepsPart}${freqPart}`.trim();
   if (lang === 'de') return `Für ${productName} habe ich folgende Anwendungsinformationen gefunden. ${stepsPart}${freqPart}`.trim();
   if (lang === 'el') return `Για το ${productName} βρήκα τις εξής πληροφορίες χρήσης. ${stepsPart}${freqPart}`.trim();
   return `For ${productName}, this is the usage information I found. ${stepsPart}${freqPart}`.trim();
@@ -222,7 +248,7 @@ function usageAnswer(lang: SupportedLanguage, productName: string, usageSteps: s
 
 function usageFrequencyFirstAnswer(lang: SupportedLanguage, productName: string, frequency: string): string {
   if (lang === 'tr') return `${productName} için gördüğüm kullanım sıklığı: ${frequency}.`;
-  if (lang === 'hu') return `A(z) ${productName} terméknél látott használati gyakoriság: ${frequency}.`;
+  if (lang === 'hu') return `${huTheName(productName)} terméknél látott használati gyakoriság: ${frequency}.`;
   if (lang === 'de') return `Die Anwendungshäufigkeit, die ich für ${productName} sehe, ist: ${frequency}.`;
   if (lang === 'el') return `Η συχνότητα χρήσης που βλέπω για το ${productName} είναι: ${frequency}.`;
   return `The usage frequency I can see for ${productName} is: ${frequency}.`;
@@ -246,7 +272,7 @@ function warningsSnippetForUsage(lang: SupportedLanguage, warnings: string[], ma
 function warningsAnswer(lang: SupportedLanguage, productName: string, warnings: string[]): string {
   const list = warnings.slice(0, 5);
   if (lang === 'tr') return `${productName} için gördüğüm uyarılar: ${list.join(' ; ')}.`;
-  if (lang === 'hu') return `A(z) ${productName} terméknél ezeket a figyelmeztetéseket látom: ${list.join(' ; ')}.`;
+  if (lang === 'hu') return `${huTheName(productName)} terméknél ezeket a figyelmeztetéseket látom: ${list.join(' ; ')}.`;
   if (lang === 'de') return `Diese Warnhinweise sehe ich für ${productName}: ${list.join(' ; ')}.`;
   if (lang === 'el') return `Αυτές τις προειδοποιήσεις βλέπω για το ${productName}: ${list.join(' ; ')}.`;
   return `Warnings I can see for ${productName}: ${list.join(' ; ')}.`;
@@ -286,14 +312,14 @@ function warningActionHint(lang: SupportedLanguage, subtype: WarningSubtype): st
 function ingredientPresenceAnswer(lang: SupportedLanguage, productName: string, target: string, present: boolean): string {
   if (present) {
     if (lang === 'tr') return `${productName} için gördüğüm içeriklerde ${target} yer alıyor.`;
-    if (lang === 'hu') return `A(z) ${productName} termék összetevői között látom ezt: ${target}.`;
+    if (lang === 'hu') return `${huTheName(productName)} termék összetevői között látom ezt: ${target}.`;
     if (lang === 'de') return `Ich sehe ${target} in den Angaben zu ${productName}.`;
     if (lang === 'el') return `Βλέπω το ${target} να αναφέρεται για το ${productName}.`;
     return `I can see ${target} listed for ${productName}.`;
   }
 
   if (lang === 'tr') return `${productName} için gördüğüm içerik ve aktif içerik listesinde ${target} yer almıyor.`;
-  if (lang === 'hu') return `A(z) ${productName} terméknél az általam látott összetevő- és hatóanyaglistában nem szerepel ez: ${target}.`;
+  if (lang === 'hu') return `${huTheName(productName)} terméknél az általam látott összetevő- és hatóanyaglistában nem szerepel ez: ${target}.`;
   if (lang === 'de') return `Ich sehe ${target} nicht in der Zutaten- oder Wirkstoffliste, die ich für ${productName} habe.`;
   if (lang === 'el') return `Δεν βλέπω το ${target} στη λίστα συστατικών ή δραστικών συστατικών που έχω για το ${productName}.`;
   return `I do not see ${target} in the ingredients or active ingredients I have for ${productName}.`;
@@ -318,22 +344,23 @@ export function planStructuredFactAnswer(
 
   const facts: any = snap.facts || {};
   const identity = facts.product_identity || {};
-  const productName = identity.title || snap.productName || 'Product';
+  const productName = shortProductName(identity.title || snap.productName || 'Product');
   const caps = lengthCaps(options?.responseLength);
   const quotes = options?.includeEvidenceQuote === false ? [] : pickEvidenceQuotes(snap, queryType, 1);
 
   if (queryType === 'volume') {
     if (identity.volume_value != null && identity.volume_unit) {
+      const volume = formatVolume(identity.volume_value, identity.volume_unit);
       const answer =
         lang === 'tr'
-          ? `${productName} ürününün hacmi ${identity.volume_value} ${identity.volume_unit} olarak görünüyor.`
+          ? `${productName} ürününün hacmi ${volume}.`
           : lang === 'hu'
-            ? `A(z) ${productName} termék kiszerelése ${identity.volume_value} ${identity.volume_unit}.`
+            ? `${huTheName(productName)} kiszerelése ${volume}.`
             : lang === 'de'
-              ? `${productName} scheint ${identity.volume_value} ${identity.volume_unit} zu enthalten.`
+              ? `${productName} enthält ${volume}.`
               : lang === 'el'
-                ? `Το ${productName} φαίνεται να είναι ${identity.volume_value} ${identity.volume_unit}.`
-            : `${productName} appears to be ${identity.volume_value} ${identity.volume_unit}.`;
+                ? `Το ${productName} είναι ${volume}.`
+                : `${productName} comes in ${volume}.`;
       return {
         answer: answer + evidenceSuffix(lang, quotes),
         queryType,
@@ -360,7 +387,7 @@ export function planStructuredFactAnswer(
         lang === 'tr'
           ? `${productName} için gördüğüm içerikler: ${listStr(ingredients.slice(0, caps.listMax), lang)}.`
           : lang === 'hu'
-            ? `A(z) ${productName} termék összetevői között ezeket látom: ${listStr(ingredients.slice(0, caps.listMax), lang)}.`
+            ? `${huTheName(productName)} termék összetevői között ezeket látom: ${listStr(ingredients.slice(0, caps.listMax), lang)}.`
             : lang === 'de'
               ? `Für ${productName} sehe ich diese Inhaltsstoffe: ${listStr(ingredients.slice(0, caps.listMax), lang)}.`
               : lang === 'el'
@@ -378,7 +405,7 @@ export function planStructuredFactAnswer(
         lang === 'tr'
           ? `${productName} için aktif içerikler olarak şunlar görünüyor: ${listStr(active.slice(0, caps.listMax), lang)}.`
           : lang === 'hu'
-            ? `A(z) ${productName} terméknél a feltüntetett hatóanyagok: ${listStr(active.slice(0, caps.listMax), lang)}.`
+            ? `${huTheName(productName)} terméknél a feltüntetett hatóanyagok: ${listStr(active.slice(0, caps.listMax), lang)}.`
             : lang === 'de'
               ? `Die aufgeführten Wirkstoffe für ${productName} sind: ${listStr(active.slice(0, caps.listMax), lang)}.`
               : lang === 'el'
@@ -426,7 +453,7 @@ export function planStructuredFactAnswer(
         lang === 'tr'
           ? `${productName} için uygun cilt tipleri arasında şunlar görünüyor: ${listStr(skinTypes, lang)}.`
           : lang === 'hu'
-            ? `A(z) ${productName} terméknél ezek a bőrtípusok szerepelnek: ${listStr(skinTypes, lang)}.`
+            ? `${huTheName(productName)} terméknél ezek a bőrtípusok szerepelnek: ${listStr(skinTypes, lang)}.`
             : lang === 'de'
               ? `Für ${productName} werden diese Hauttypen als passend aufgeführt: ${listStr(skinTypes, lang)}.`
               : lang === 'el'

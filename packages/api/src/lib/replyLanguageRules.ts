@@ -54,3 +54,22 @@ export function replyLanguageRules(language: string, tone?: string | null): stri
     .map((line) => `${line}\n`)
     .join('');
 }
+
+/**
+ * Prompt lines for how replies end and how reactions are handled, shared by
+ * the same two prompts.
+ *
+ * Almost every answer ended with a stock offer of more help ("szívesen
+ * segítek", "başka sorunuz olursa"), which reads as boilerplate when it comes
+ * after every message. And a customer reporting stinging was told the product
+ * "generally doesn't cause irritation" (not in the product information), or
+ * only "I don't have information".
+ */
+export function replyConductRules(): string {
+  return [
+    '- End when the answer is complete. Do not add a stock offer of more help ("let me know if you have any other questions", "szívesen segítek", "başka sorunuz olursa"); a short polite close is fine only when the customer is thanking you or saying goodbye.',
+    '- If the customer reports a reaction (stinging, burning, redness, itching, rash): never say it is normal or that the product does not cause it, unless the product information says exactly that. Share the product\'s own warnings, and the safe step: if it is strong or does not settle quickly, stop using it and rinse with lukewarm water; if it persists or gets worse, see a doctor or pharmacist.',
+  ]
+    .map((line) => `${line}\n`)
+    .join('');
+}

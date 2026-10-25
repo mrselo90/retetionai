@@ -178,6 +178,10 @@ const only = process.env.EVAL_CASES?.split(',').map((id) => id.trim());
 const selectedCases = only ? cases.filter((c) => only.includes(c.id)) : cases;
 
 const index = new LocalIndex('recete-answer-eval');
+const volumeFromName = (name: string) => {
+  const match = name.match(/(\d+(?:[.,]\d+)?)\s?(ml|g)\b/i);
+  return match ? { volume_value: Number(match[1].replace(',', '.')), volume_unit: match[2].toUpperCase() } : {};
+};
 const sentences = (text?: string | null) =>
   String(text || '')
     .split(/(?<=[.!?])\s+/)
@@ -242,14 +246,16 @@ async function judge(c: EvalCase, answer: string) {
         content:
           'You grade answers from a skincare store\'s WhatsApp customer-service assistant. ' +
           'The PRODUCT INFORMATION is everything the assistant may know about the product, and the ORDER STATUS everything it may know about the order. ' +
-          'Return JSON only: {"correctness": 0|1|2, "invented_facts": true|false, "false_refusal": true|false, "policy_violations": string[], "language_ok": true|false, "foreign_words": string[], "address_form": "formal"|"informal"|"mixed"|"none", "reason": string}. ' +
+          'Return JSON only: {"correctness": 0|1|2, "invented_facts": true|false, "false_refusal": true|false, "policy_violations": string[], "language_ok": true|false, "foreign_words": string[], "address_form": "formal"|"informal"|"mixed"|"none", "generic_closing": true|false, "reason": string}. ' +
           'correctness: 2 = conveys what the REFERENCE conveys (wording may differ), 1 = partly right or right but missing a key point, ' +
           '0 = wrong, missing, or an unnecessary "I don\'t have information" when the information was available. ' +
           'invented_facts: true only if the answer asserts product, order or policy facts that the PRODUCT INFORMATION or ORDER STATUS do not support. ' +
+          'General safety steps the assistant is told to give for a reported reaction (stop using it if it is strong or does not settle, rinse with water, see a doctor or pharmacist if it persists) are not invented facts. ' +
           'false_refusal: true if the answer says it lacks information, or asks which product, although the PRODUCT INFORMATION answers the message. ' +
           'policy_violations: names of the listed POLICIES the answer breaks. ' +
           'language_ok: the answer is in the expected language. ' +
           'foreign_words: words or phrases in the answer that are not in the expected language, ignoring product names, brand names and ingredient names; [] if none. ' +
+          'generic_closing: true if the answer ends with a stock offer of further help ("let me know if you have any other questions", "szívesen segítek", "başka sorunuz olursa") rather than ending with the answer itself. ' +
           'address_form: how the answer addresses the customer: "formal" (e.g. Turkish siz, Hungarian Ön/magázás, German Sie, Greek εσείς), "informal" (sen, tegezés, du, εσύ), "mixed" (both), or "none" (no direct address, or English).',
       },
       {
@@ -271,6 +277,7 @@ async function judge(c: EvalCase, answer: string) {
     language_ok: boolean;
     foreign_words?: string[];
     address_form?: 'formal' | 'informal' | 'mixed' | 'none';
+    generic_closing?: boolean;
     reason: string;
   };
 }
@@ -307,7 +314,7 @@ beforeAll(async () => {
       is_active: true,
       detected_language: p.lang,
       facts_json: {
-        product_identity: { title: p.name },
+        product_identity: { title: p.name, ...volumeFromName(p.name) },
         benefits: sentences(p.description).slice(0, 2),
         usage_steps: sentences(p.usage_instructions),
         warnings: sentences(p.prevention_tips),
@@ -368,7 +375,7 @@ describe('answer eval', () => {
       const internalTerms = INTERNAL_TERMS.filter((term) => normalized.includes(normalize(term)));
       const verdict = answer ? await judge(c, answer) : null;
       results.push({ id: c.id, lang: c.lang, group: c.id.startsWith('x-') ? 'cross-language' : c.id.startsWith('b-') ? 'behaviour' : c.orderProduct ? 'order' : 'no order', intent, answer, error, latencyMs, includeOk, forbidden, clarified, escalations: [...state.escalations], internalTerms, verdict });
-      console.log(`${c.id.padEnd(26)} ${String(verdict?.correctness ?? 'ERR')} ${verdict?.invented_facts ? 'INVENTED ' : ''}${verdict?.false_refusal ? 'false-refusal ' : ''}${verdict?.policy_violations?.length ? `POLICY:${verdict.policy_violations.join('/')} ` : ''}${includeOk ? '' : 'missing-facts '}${forbidden.length ? `forbidden:${forbidden.join('/')} ` : ''}${clarified ? 'clarified ' : ''}${internalTerms.length ? `internal:${internalTerms.join('/')} ` : ''}${verdict?.foreign_words?.length ? `foreign:${verdict.foreign_words.join('/')} ` : ''}${verdict?.address_form === 'informal' || verdict?.address_form === 'mixed' ? `address:${verdict.address_form} ` : ''}(${intent || error}, ${(latencyMs / 1000).toFixed(1)}s)`);
+      console.log(`${c.id.padEnd(26)} ${String(verdict?.correctness ?? 'ERR')} ${verdict?.invented_facts ? 'INVENTED ' : ''}${verdict?.false_refusal ? 'false-refusal ' : ''}${verdict?.policy_violations?.length ? `POLICY:${verdict.policy_violations.join('/')} ` : ''}${includeOk ? '' : 'missing-facts '}${forbidden.length ? `forbidden:${forbidden.join('/')} ` : ''}${clarified ? 'clarified ' : ''}${internalTerms.length ? `internal:${internalTerms.join('/')} ` : ''}${verdict?.foreign_words?.length ? `foreign:${verdict.foreign_words.join('/')} ` : ''}${verdict?.address_form === 'informal' || verdict?.address_form === 'mixed' ? `address:${verdict.address_form} ` : ''}${intent !== 'chat' && verdict?.generic_closing ? 'stock-closing ' : ''}(${intent || error}, ${(latencyMs / 1000).toFixed(1)}s)`);
     }
 
     const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : '-');
@@ -392,6 +399,8 @@ describe('answer eval', () => {
           (r) => r.lang !== 'en' && (r.verdict!.address_form === 'informal' || r.verdict!.address_form === 'mixed')
         ).length,
         'internal terms': rows.filter((r) => r.internalTerms.length).length,
+        // Thanks and greetings may close politely; answers should end with the answer.
+        'stock closing lines': judged.filter((r) => r.intent !== 'chat' && r.verdict!.generic_closing).length,
         errors: rows.filter((r) => r.error).length,
         'mean latency (s)': (rows.reduce((s, r) => s + r.latencyMs, 0) / (rows.length || 1) / 1000).toFixed(1),
       };

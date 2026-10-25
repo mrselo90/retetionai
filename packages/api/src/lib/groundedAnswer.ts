@@ -1,3 +1,4 @@
+import { stripStockClosing } from './stockClosing.js';
 import {
   getSupabaseServiceClient,
   logger,
@@ -340,7 +341,7 @@ export async function generateGroundedProductAnswer(
     },
   });
 
-  const rawAnswer = completion.choices[0]?.message?.content?.trim() || '';
+  const rawAnswer = stripStockClosing(completion.choices[0]?.message?.content?.trim() || '');
   const answer = applyLanguageFallbackNotice(
     rawAnswer && !answerHasUnsupportedGuarantee(rawAnswer)
       ? rawAnswer

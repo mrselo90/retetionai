@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planStructuredFactAnswer, detectFactQueryType } from './productFactsPlanner';
+import { planStructuredFactAnswer, detectFactQueryType, huTheName, shortProductName } from './productFactsPlanner';
 
 describe('planStructuredFactAnswer', () => {
   const snapshot = {
@@ -66,6 +66,36 @@ describe('frequency questions without a frequency fact', () => {
       evidence: [],
     };
     expect(planStructuredFactAnswer('Günde kaç kez kullanmalıyım?', 'tr', [snapshot as any])).toBeNull();
+  });
+});
+
+describe('names in fixed fact answers', () => {
+  it('drops the descriptive tail and the size from the name', () => {
+    expect(shortProductName('Maruderm %10 Azelaik Asit Solüsyon Serum – Leke ve Kızarıklık Karşıtı Cilt Bakım Serumu 30 ML')).toBe(
+      'Maruderm %10 Azelaik Asit Solüsyon Serum',
+    );
+    expect(shortProductName('Lumea %10 Niasinamid + %1 Çinko Serum 30 ml')).toBe('Lumea %10 Niasinamid + %1 Çinko Serum');
+    expect(shortProductName('Gift Card')).toBe('Gift Card');
+  });
+
+  it('uses the right Hungarian article', () => {
+    expect(huTheName('Lumea Serum')).toBe('A Lumea Serum');
+    expect(huTheName('Aqua Vita Krém')).toBe('Az Aqua Vita Krém');
+    expect(huTheName('Ölmez Krém')).toBe('Az Ölmez Krém');
+  });
+
+  it('answers a volume question in one natural sentence', () => {
+    const snapshot = {
+      id: 'f1',
+      productId: 'p1',
+      productName: 'Lumea %10 Niasinamid + %1 Çinko Serum 30 ml',
+      detectedLanguage: 'tr',
+      facts: { product_identity: { title: 'Lumea %10 Niasinamid + %1 Çinko Serum 30 ml', volume_value: 30, volume_unit: 'ML' } },
+      evidence: [],
+    };
+    expect(planStructuredFactAnswer('Hány ml van benne?', 'hu', [snapshot as any])?.answer).toBe(
+      'A Lumea %10 Niasinamid + %1 Çinko Serum kiszerelése 30 ml.',
+    );
   });
 });
 
