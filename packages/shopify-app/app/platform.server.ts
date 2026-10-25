@@ -921,6 +921,33 @@ export async function fetchMerchantConversations(request: Request) {
   };
 }
 
+/** Mirrors MerchantImpact in packages/api/src/lib/merchantImpact.ts. */
+export interface MerchantImpact {
+  days: number;
+  since: string;
+  replies: {
+    customerMessages: number;
+    answeredByAi: number;
+    fallbacks: number;
+    byTeam: number;
+    delivered: number;
+    read: number;
+  };
+  handoffs: number;
+  postPurchase: { sent: number; byType: Record<string, number> };
+  returns: { requests: number; handedToTeam: number; laterReturned: number };
+  consent: { optIns: number; optOuts: number };
+  reorders: { repeatBuyers: number; afterMessage: number };
+}
+
+export async function fetchMerchantImpact(request: Request, days: number) {
+  const payload = (await internalMerchantRequest(
+    request,
+    `/api/analytics/impact?days=${days}`
+  )) as { impact: MerchantImpact };
+  return payload.impact;
+}
+
 export async function fetchMerchantConversationDetail(request: Request, conversationId: string) {
   return (await internalMerchantRequest(
     request,
