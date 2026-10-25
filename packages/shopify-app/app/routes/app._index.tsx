@@ -156,7 +156,9 @@ function SetupOverview({
     ? `Recete is writing usage instructions for your products: ${bulkDraft!.finished} of ${bulkDraft!.total} done. You can link WhatsApp meanwhile.`
     : productsAutomatic
       ? 'Recete writes usage instructions for your first 50 products once you pick a plan. You can review and edit them on the Products page.'
-      : `Add usage instructions for ${productCountLabel} products so Recete can answer customer questions.`;
+      : progress.hasProducts
+        ? `Usage instructions for ${productCountLabel} products, so Recete can answer customer questions. You can review and edit them on the Products page.`
+        : `Add usage instructions for ${productCountLabel} products so Recete can answer customer questions.`;
   const messagingDescription = messagingAutomatic
     ? "Recete uses your store's name and language once you pick a plan, and the welcome message lists the usage notes of what the customer ordered. You can change it any time."
     : progress.hasMessagingConfigured
@@ -227,7 +229,6 @@ function SetupOverview({
 
   const setupComplete = progress.setupComplete;
   const completedRequired = progress.completedCount;
-  const totalRequired = progress.totalSteps;
 
   // Time-left estimate: only counts incomplete REQUIRED steps.
   const minutesLeft = requiredSteps
@@ -258,7 +259,7 @@ function SetupOverview({
       subtitle={
         setupComplete
           ? 'Setup is complete. You can now run daily operations.'
-          : `${totalRequired === 4 ? 'Four' : 'Three'} quick steps to start helping customers after delivery.`
+          : 'A few minutes to start helping customers after delivery.'
       }
       // During setup the progress card's "Continue: <step>" is the one call to
       // action; a header button to the same place only doubled it.
@@ -444,7 +445,7 @@ function SetupGuide({
                             ? 'Recete does this for you'
                             : `About ${step.estimateMinutes} min`}
                       </s-paragraph>
-                      {done && step.id === 'messaging' ? (
+                      {done && (step.id === 'messaging' || step.id === 'products') ? (
                         <s-stack direction="inline">
                           <s-button onClick={() => navigate(step.to)}>Review</s-button>
                         </s-stack>
