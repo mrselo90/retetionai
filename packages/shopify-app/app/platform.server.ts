@@ -625,6 +625,17 @@ export async function fetchMerchantSettings(request: Request) {
   return (await internalMerchantRequest(request, '/api/merchants/me')) as MerchantSettingsRecord;
 }
 
+/** The built-in welcome per language, for the welcome step's preview. */
+export interface WelcomePreview {
+  builtIn: Record<string, string>;
+  aiNote: Record<string, string>;
+  sampleProducts: string[];
+}
+
+export async function fetchWelcomePreview(request: Request) {
+  return (await internalMerchantRequest(request, '/api/merchants/me/welcome-preview')) as WelcomePreview;
+}
+
 export async function updateMerchantSettings(
   request: Request,
   payload: {

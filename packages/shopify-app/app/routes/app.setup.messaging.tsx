@@ -15,6 +15,7 @@ import {
   extractPlatformErrorMessage,
   fetchMerchantSettings,
   fetchMerchantMultiLangSettings,
+  fetchWelcomePreview,
   settle,
   type MerchantSettingsRecord,
 } from '../platform.server';
@@ -49,11 +50,9 @@ function appendToken(template: string, token: string) {
   return `${template}${needsSpace ? '' : ' '}${token}`;
 }
 
+/** A custom welcome template with sample order details filled in. */
 function buildPreview(template: string, botName: string) {
-  const base =
-    template.trim() ||
-    'Hi {{customer_first_name}}, your order "{{order_number}}" with {{product_names}} should have arrived. Need help using it? — {{bot_name}}';
-  return base
+  return template
     .replace(/\{\{\s*customer_first_name\s*\}\}/gi, 'Ayse')
     .replace(/\{\{\s*order_number\s*\}\}/gi, '1212')
     .replace(/\{\{\s*product_names\s*\}\}/gi, 'Serum A and Cream B')
@@ -87,7 +86,7 @@ async function withDefaultLanguage(request: Request, defaultLanguage: string) {
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateEmbeddedAdmin(request);
-  const [settingsResult, multiLangResult] = await Promise.all([
+  const [settingsResult, multiLangResult, welcomePreview] = await Promise.all([
     settle<MerchantSettingsRecord>(fetchMerchantSettings(request), {
       merchant: { id: '', name: '' },
     }),
@@ -99,6 +98,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         multi_lang_rag_enabled: true,
       },
     }),
+    fetchWelcomePreview(request).catch(() => null),
   ]);
 
   const persona = settingsResult.value.merchant.persona_settings || {};
@@ -109,6 +109,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     botName: persona.bot_name || '',
     defaultLanguage,
     welcomeTemplate: persona.whatsapp_welcome_template || '',
+    welcomePreview,
     // Blank fields on a genuinely fresh merchant look identical to blank
     // fields because the platform call failed - this tells the page which
     // one actually happened so it can warn rather than silently show blanks.
@@ -172,7 +173,22 @@ export default function MessagingSetupPage() {
     setWelcomeTemplate(initial.welcomeTemplate);
   };
 
-  const preview = useMemo(() => buildPreview(welcomeTemplate, botName), [welcomeTemplate, botName]);
+  // An empty template sends Recete's built-in welcome (workers.ts), so that is
+  // what the preview shows; both get the AI note a customer's first message has.
+  const usesBuiltIn = !welcomeTemplate.trim();
+  const preview = useMemo(() => {
+    const welcome = data.welcomePreview;
+    if (usesBuiltIn) return welcome?.builtIn[defaultLanguage] ?? null;
+    const custom = buildPreview(welcomeTemplate, botName);
+    const note = welcome?.aiNote[defaultLanguage];
+    return note ? `${custom}\n\n${note}` : custom;
+  }, [usesBuiltIn, data.welcomePreview, defaultLanguage, welcomeTemplate, botName]);
+  const samples = data.welcomePreview?.sampleProducts || [];
+  const previewCaption = usesBuiltIn
+    ? samples.length > 0
+      ? `Recete's built-in message, sent when this field is empty. It lists the usage notes of what the customer ordered; shown here with ${samples.join(' and ')}.`
+      : "Recete's built-in message, sent when this field is empty. Once your products have usage instructions, it lists the ones the customer ordered."
+    : 'Your message with sample order details. The AI note is added to a customer\'s first message.';
 
   return (
     <AppPage
@@ -271,8 +287,8 @@ export default function MessagingSetupPage() {
               onInput={(event) => setWelcomeTemplate(fieldValue(event))}
               rows={5}
               autocomplete="off"
-              details="Sent on the day delivery is confirmed. Use the tokens below to insert order details."
-              placeholder='Hi {{customer_first_name}}, your order "{{order_number}}" with {{product_names}} should have arrived. Need help using it?'
+              details="Sent on the day delivery is confirmed. Leave it empty to send Recete's built-in message, or write your own with the tokens below."
+              placeholder="Empty: Recete's built-in message (see the preview)"
             />
 
             <s-stack gap="small">
@@ -294,7 +310,23 @@ export default function MessagingSetupPage() {
             <s-box padding="base" background="subdued" borderRadius="base">
               <s-stack gap="small-200">
                 <s-text type="strong">Preview</s-text>
-                <s-paragraph>{preview}</s-paragraph>
+                <s-text color="subdued">{previewCaption}</s-text>
+                {preview ? (
+                  preview
+                    .split(/\n{2,}/)
+                    .map((block, index) => (
+                      <s-paragraph key={index}>
+                        {block.split('\n').map((line, lineIndex) => (
+                          <span key={lineIndex}>
+                            {lineIndex > 0 ? <br /> : null}
+                            {line.replace(/\*\*(.+?)\*\*/g, '$1')}
+                          </span>
+                        ))}
+                      </s-paragraph>
+                    ))
+                ) : (
+                  <s-paragraph color="subdued">The preview couldn&apos;t load.</s-paragraph>
+                )}
               </s-stack>
             </s-box>
 
