@@ -39,6 +39,14 @@ describe('buildBuiltInWelcome', () => {
     );
   });
 
+  it('thanks plainly when no product has a line of its own', () => {
+    const board = (name: string) => ({ product_name: name, usage_instructions: 'Wax the base.', recipe_summary: 'Snowboard.' });
+    expect(buildBuiltInWelcome('en', [board('Liquid'), board('Oxygen')])).toBe(
+      'Hello! Thank you for your order:\n\n• **Liquid**\n• **Oxygen**' +
+        "\n\nYou can ask me anything about using them, and I'll send you the details."
+    );
+  });
+
   it('lists five products and counts the rest', () => {
     const many = Array.from({ length: 7 }, (_, i) => ({ product_name: `P${i}`, usage_instructions: 'Use daily.' }));
     const text = buildBuiltInWelcome('hu', many);
