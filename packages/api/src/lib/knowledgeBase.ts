@@ -3,6 +3,7 @@
  * Handles product content chunking and embedding storage
  */
 
+import { wordRegex } from './textMatch.js';
 import { getSupabaseServiceClient, logger } from '@recete/shared';
 import { chunkText, generateEmbeddingsBatch, type TextChunk } from './embeddings.js';
 import crypto from 'node:crypto';
@@ -55,9 +56,9 @@ function inferSectionType(chunkText: string): string {
   if (sectionMatch?.[1]) return sectionMatch[1].toLowerCase();
 
   const lower = chunkText.toLowerCase();
-  if (/\b(ingredients|inci|összetev|hatóanyag|içerik)\b/.test(lower)) return 'ingredients';
-  if (/\b(usage|how to use|directions|kullanım|használat|alkalmaz)\b/.test(lower)) return 'usage';
-  if (/\b(warning|caution|uyarı|dikkat|figyelmezt)\b/.test(lower)) return 'warnings';
+  if (wordRegex('ingredients|inci|összetev\\p{L}*|hatóanyag\\p{L}*|içerik\\p{L}*').test(lower)) return 'ingredients';
+  if (wordRegex('usage|how to use|directions|kullanım\\p{L}*|használat\\p{L}*|alkalmaz\\p{L}*').test(lower)) return 'usage';
+  if (wordRegex('warning\\p{L}*|caution|uyarı\\p{L}*|dikkat|figyelmezt\\p{L}*').test(lower)) return 'warnings';
   if (/\b(spf|ph|\bml\b|\bg\b|volume)\b/.test(lower)) return 'specs';
   return 'general';
 }

@@ -1,3 +1,4 @@
+import { wordRegex } from './textMatch.js';
 import type { SupportedLanguage } from './i18n.js';
 import type { ProductFactSnapshot } from './productFactsQuery.js';
 
@@ -73,7 +74,7 @@ function extractIngredientPresenceTarget(query: string): string | null {
     if (candidate) {
       return candidate
         .replace(/^(a|an|the|bu|ez|this)\s+/i, '')
-        .replace(/\b(product|ürün|termék)\b/gi, '')
+        .replace(wordRegex('product|ürün|termék', 'gi'), '')
         .trim();
     }
   }
@@ -81,31 +82,48 @@ function extractIngredientPresenceTarget(query: string): string | null {
   return null;
 }
 
-function detectFactQueryType(query: string): DetectedFactQuery | null {
+// Question kinds the structured facts can answer directly. Stems end in \p{L}*.
+const VOLUME_QUERY = wordRegex('ml|gram|grams|gramm|oz|volume|kaç ml|hány ml|\\d+\\s?g');
+const ACTIVE_INGREDIENTS_QUERY = wordRegex(
+  'active ingredients|hatóanyag\\p{L}*|aktif içerik\\p{L}*|wirkstoff\\p{L}*|ενεργ[άο]\\s+συστατικ\\p{L}*'
+);
+const INGREDIENTS_QUERY = wordRegex(
+  'ingredients|inci|összetev\\p{L}*|içerik\\p{L}*|i̇çerik\\p{L}*|parfüm|fragrance|illatanyag\\p{L}*|inhaltsstoff\\p{L}*|zutat\\p{L}*|συστατικ\\p{L}*|άρωμα'
+);
+const USAGE_QUERY = wordRegex(
+  'how to use|directions|usage|nasıl kullan\\p{L}*|kullanım\\p{L}*|használat\\p{L}*|alkalmaz\\p{L}*|ne sıklıkla|kaç kez|milyen gyakran|how often|frequency|anwendung|verwenden|wie anwenden|χρήση|πώς.*χρησιμοποι\\p{L}*|συχνότητα'
+);
+const WARNINGS_QUERY = wordRegex(
+  'warning\\p{L}*|caution|uyarı\\p{L}*|dikkat|figyelmezt\\p{L}*|avoid contact|göz(e)? kaç\\p{L}*|szem(ébe|be) kerül\\p{L}*|allergy|alerji\\p{L}*|allergia|warnung|vorsicht|auge\\p{L}*|allergie|προειδοπ\\p{L}*|προσοχή|μάτι\\p{L}*|αλλεργ\\p{L}*'
+);
+const SKIN_TYPE_QUERY = wordRegex(
+  'skin|cilt\\p{L}*|bőr\\p{L}*|suitable|uygun|megfelelő|sensitive|sensitive skin|érzékeny|haut|hauttyp|geeignet|empfindlich|δέρμα\\p{L}*|τύπο\\s+δέρματος|κατάλληλ\\p{L}*'
+);
+const FREQUENCY_QUERY = wordRegex(
+  'kaç kez|ne sıklıkla|günde|how often|frequency|twice daily|daily|hányszor|milyen gyakran|naponta|wie oft|häufigkeit|taglich|täglich|πόσο συχνά|συχνότητα|καθημεριν\\p{L}*'
+);
+const HOW_START = /^(?:nasıl|nasil|how|hogyan|wie|πώς)(?![\p{L}\p{N}_])/iu;
+const HOW_QUERY = wordRegex(
+  'nasıl kullan\\p{L}*|how to use|directions|használat\\p{L}*|alkalmaz\\p{L}*|anwendung|verwenden|χρήση|εφαρμο\\p{L}*'
+);
+
+export function detectFactQueryType(query: string): DetectedFactQuery | null {
   const q = query.toLowerCase();
   const containsTarget = extractIngredientPresenceTarget(query);
   if (containsTarget) return { queryType: 'ingredient_presence', containsTarget };
-  if (/\b(ml|gram|g |oz|volume|kaç ml|hány ml)\b/i.test(q)) return { queryType: 'volume' };
-  if (/\b(active ingredients|hatóanyag|aktif içerik|wirkstoff|ενεργ[άο]\s+συστατικ)\b/i.test(q)) return { queryType: 'active_ingredients' };
-  if (/\b(ingredients|inci|összetev|içerik|i̇çerik|parfüm|fragrance|illatanyag|inhaltsstoff|zutat|συστατικ|άρωμα)\b/i.test(q)) return { queryType: 'ingredients' };
-  if (/\b(how to use|directions|usage|nasıl kullan|kullanım|használat|alkalmaz|ne sıklıkla|kaç kez|milyen gyakran|how often|frequency|anwendung|verwenden|wie anwenden|χρήση|πώς.*χρησιμοποι|συχνότητα)\b/i.test(q)) {
-    return { queryType: 'usage' };
-  }
-  if (/\b(warning|caution|uyarı|dikkat|figyelmezt|avoid contact|göz(e)? kaç|szem(ébe|be) kerül|allergy|alerji|allergia|warnung|vorsicht|auge|allergie|προειδοπ|προσοχή|μάτι|αλλεργ)\b/i.test(q)) {
-    return { queryType: 'warnings' };
-  }
-  if (/\b(skin|cilt|bőr|suitable|uygun|megfelelő|sensitive|sensitive skin|érzékeny|haut|hauttyp|geeignet|empfindlich|δέρμα|τύπο\s+δέρματος|κατάλληλ)\b/i.test(q)) return { queryType: 'skin_type' };
+  if (VOLUME_QUERY.test(q)) return { queryType: 'volume' };
+  if (ACTIVE_INGREDIENTS_QUERY.test(q)) return { queryType: 'active_ingredients' };
+  if (INGREDIENTS_QUERY.test(q)) return { queryType: 'ingredients' };
+  if (USAGE_QUERY.test(q)) return { queryType: 'usage' };
+  if (WARNINGS_QUERY.test(q)) return { queryType: 'warnings' };
+  if (SKIN_TYPE_QUERY.test(q)) return { queryType: 'skin_type' };
   return null;
 }
 
 function detectUsageSubtype(query: string): UsageSubtype {
   const q = query.toLowerCase();
-  if (/\b(kaç kez|ne sıklıkla|günde|how often|frequency|twice daily|daily|hányszor|milyen gyakran|naponta|wie oft|häufigkeit|taglich|täglich|πόσο συχνά|συχνότητα|καθημεριν)\b/i.test(q)) {
-    return 'frequency';
-  }
-  if (/^(nasıl|nasil|how|hogyan|wie|πώς)\b/i.test(q) || /\b(nasıl kullan|how to use|directions|használat|alkalmaz|anwendung|verwenden|χρήση|εφαρμο)\b/i.test(q)) {
-    return 'how';
-  }
+  if (FREQUENCY_QUERY.test(q)) return 'frequency';
+  if (HOW_START.test(q) || HOW_QUERY.test(q)) return 'how';
   return 'general';
 }
 

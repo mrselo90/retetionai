@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planStructuredFactAnswer } from './productFactsPlanner';
+import { planStructuredFactAnswer, detectFactQueryType } from './productFactsPlanner';
 
 describe('planStructuredFactAnswer', () => {
   const snapshot = {
@@ -35,3 +35,23 @@ describe('planStructuredFactAnswer', () => {
     expect(planned?.answer).toContain('do not see retinol');
   });
 });
+
+describe('detectFactQueryType with non-English words', () => {
+  // \\b only knows ASCII letters: "terhesség alatt" used to match "g " as grams,
+  // and words starting with é, ö or a Greek letter never matched (textMatch.ts).
+  it.each([
+    ['Használhatom terhesség alatt?', null],
+    ['Bu ürünü hamileyken kullanabilir miyim?', null],
+    ['Hány ml?', 'volume'],
+    ['50 g mı?', 'volume'],
+    ['Milyen összetevők vannak benne?', 'ingredients'],
+    ['Ποια είναι τα συστατικά;', 'ingredients'],
+    ['Érzékeny bőrre is jó?', 'skin_type'],
+    ['Van benne figyelmeztetés?', 'warnings'],
+    ['Nasıl kullanılır?', 'usage'],
+    ['Is it suitable for oily skin?', 'skin_type'],
+  ])('%s → %s', (query, expected) => {
+    expect(detectFactQueryType(query)?.queryType ?? null).toBe(expected);
+  });
+});
+
