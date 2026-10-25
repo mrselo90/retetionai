@@ -124,8 +124,10 @@ vi.mock('./productFactsQuery', () => ({
 }));
 vi.mock('./groundingAssembler', () => ({ buildGroundedEvidenceContext: vi.fn(() => '') }));
 vi.mock('./unifiedRetrieval', () => ({
-  UnifiedRetrievalService: vi.fn().mockImplementation(() => ({
-    retrieve: vi.fn(async () => ({
+  // A class: Vitest 5 can't call an arrow-function mock implementation with
+  // `new`, so this threw, the agent swallowed it and skipped retrieval.
+  UnifiedRetrievalService: class {
+    retrieve = vi.fn(async () => ({
       query: '',
       results: [],
       totalResults: 0,
@@ -133,8 +135,8 @@ vi.mock('./unifiedRetrieval', () => ({
       effectiveLanguage: 'en',
       usedFallback: false,
       fallbackLanguage: null,
-    })),
-  })),
+    }));
+  },
 }));
 vi.mock('@recete/shared', () => ({
   getSupabaseServiceClient: vi.fn(() => ({

@@ -1,3 +1,4 @@
+import { detectLanguageDetailed } from '../i18n.js';
 import crypto from 'node:crypto';
 import type { ProductI18nSnapshot } from './types.js';
 
@@ -92,43 +93,16 @@ export function normalizeLangCode(lang?: string | null): string {
   return v.slice(0, 8) || 'en';
 }
 
+/**
+ * The language a product's source text is written in. Uses the same scoring
+ * detector as customer messages (i18n.detectLanguageDetailed): this one had
+ * its own word lists matched with \b, which only knows ASCII letters, so the
+ * Greek list never matched and Hungarian text with ö/ü but no ő/ű read as
+ * Turkish. Falls back when the text gives no clear signal.
+ */
 export function detectSourceLanguageFromText(text: string, fallback = 'en'): string {
   const source = String(text || '').trim();
   if (!source) return normalizeLangCode(fallback);
-
-  const lower = source.toLowerCase();
-
-  const greekPatterns = [
-    /[α-ωάέίόύήώϊϋΐΰ]/i,
-    /\b(και|για|χρήση|προϊόν|οδηγίες|πελάτης|παραγγελία|βοήθεια)\b/i,
-  ];
-  for (const pattern of greekPatterns) {
-    if (pattern.test(lower)) return 'el';
-  }
-
-  const hungarianPatterns = [
-    /[őűŐŰ]/,
-    /\b(igen|nem|köszönöm|szia|kérem|rendben|értem|visszaküldés|termék|hogyan|miért|szeretném|tudnám)\b/i,
-  ];
-  for (const pattern of hungarianPatterns) {
-    if (pattern.test(lower)) return 'hu';
-  }
-
-  const turkishPatterns = [
-    /[şŞğĞıİçÇöÖüÜ]/,
-    /\b(merhaba|teşekkür|evet|hayır|nasıl|neden|ürün|kullanım|sipariş|iade|lütfen|yardım)\b/i,
-  ];
-  for (const pattern of turkishPatterns) {
-    if (pattern.test(lower)) return 'tr';
-  }
-
-  const germanPatterns = [
-    /[äöüßÄÖÜ]/,
-    /\b(und|oder|produkt|anwendung|kunden|bestellung|hilfe|bitte|danke|rückgabe)\b/i,
-  ];
-  for (const pattern of germanPatterns) {
-    if (pattern.test(lower)) return 'de';
-  }
-
-  return normalizeLangCode(fallback);
+  const detected = detectLanguageDetailed(source);
+  return detected.confident ? detected.language : normalizeLangCode(fallback);
 }
