@@ -4,7 +4,14 @@
  */
 
 import { Hono } from 'hono';
-import { getSupabaseServiceClient, logger } from '@recete/shared';
+import {
+  appendAiDisclosure,
+  aiDisclosureFor,
+  buildBuiltInWelcome,
+  getSupabaseServiceClient,
+  logger,
+  MESSAGE_LANGUAGES,
+} from '@recete/shared';
 import { authMiddleware } from '../middleware/auth.js';
 import { getMerchantBotInfo, setMerchantBotInfoKey } from '../lib/botInfo.js';
 import { SYSTEM_GUARDRAILS, type CustomGuardrail } from '../lib/guardrails.js';
@@ -404,6 +411,45 @@ merchants.delete('/me/data-reset', async (c) => {
   } catch (error) {
     logger.error({ error }, 'Merchant data reset failed');
     return c.json({ error: 'Failed to reset merchant data' }, 500);
+  }
+});
+
+/**
+ * The built-in welcome, per language, for the Shopify app's welcome step
+ * preview. A store that leaves its welcome template empty sends this, with the
+ * ordered products' usage notes; the preview uses two of its own products.
+ * GET /api/merchants/me/welcome-preview
+ */
+merchants.get('/me/welcome-preview', async (c) => {
+  try {
+    const merchantId = c.get('merchantId') as string;
+    const serviceClient = getSupabaseServiceClient();
+    const { data, error } = await serviceClient
+      .from('product_instructions')
+      .select('usage_instructions, recipe_summary, products!inner(name)')
+      .eq('merchant_id', merchantId)
+      .not('usage_instructions', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(2);
+    if (error) throw error;
+
+    const sample = (data || [])
+      .filter((row: any) => String(row.usage_instructions || '').trim())
+      .map((row: any) => ({
+        product_name: row.products?.name ?? null,
+        usage_instructions: row.usage_instructions,
+        recipe_summary: row.recipe_summary ?? null,
+      }));
+    const builtIn: Record<string, string> = {};
+    const aiNote: Record<string, string> = {};
+    for (const language of MESSAGE_LANGUAGES) {
+      builtIn[language] = appendAiDisclosure(buildBuiltInWelcome(language, sample), language);
+      aiNote[language] = aiDisclosureFor(language);
+    }
+    return c.json({ builtIn, aiNote, sampleProducts: sample.map((row) => row.product_name).filter(Boolean) });
+  } catch (error) {
+    logger.error({ error }, 'welcome preview failed');
+    return c.json({ error: 'Internal server error' }, 500);
   }
 });
 

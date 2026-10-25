@@ -16,3 +16,4 @@ export * from './safeFetch.js';
 export * from './shopifyToken.js';
 export * from './aiDisclosure.js';
 export * from './messageLanguage.js';
+export * from './welcomeMessage.js';
