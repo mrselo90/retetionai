@@ -186,7 +186,7 @@ export default function MessagingSetupPage() {
   const samples = data.welcomePreview?.sampleProducts || [];
   const previewCaption = usesBuiltIn
     ? samples.length > 0
-      ? `Recete's built-in message, sent when this field is empty. It lists the usage notes of what the customer ordered; shown here with ${samples.join(' and ')}.`
+      ? `Recete's built-in message, sent when this field is empty. For one product it gives the usage notes; for several, a short line each and an invitation to ask. Shown here with ${samples.join(' and ')}.`
       : "Recete's built-in message, sent when this field is empty. Once your products have usage instructions, it lists the ones the customer ordered."
     : 'Your message with sample order details. The AI note is added to a customer\'s first message.';
 
