@@ -21,7 +21,7 @@ describe('buildGroundedPrompt', () => {
     expect(prompt).toContain('Product A contains vitamin C.');
   });
 
-  it('should include NO PRODUCT EVIDENCE block when ragContext is empty', () => {
+  it('should include NO PRODUCT INFORMATION block when ragContext is empty', () => {
     const prompt = buildGroundedPrompt({
       merchantName: 'TestShop',
       intent: 'question',
@@ -29,7 +29,7 @@ describe('buildGroundedPrompt', () => {
       channel: 'api',
     });
 
-    expect(prompt).toContain('NO PRODUCT EVIDENCE AVAILABLE');
+    expect(prompt).toContain('NO PRODUCT INFORMATION AVAILABLE');
   });
 
   it('should include return intent instructions', () => {
@@ -95,7 +95,25 @@ describe('buildGroundedPrompt', () => {
       channel: 'api',
     });
 
-    expect(prompt).toContain('respond in tr');
+    expect(prompt).toContain('Write the whole reply in Turkish.');
+    expect(prompt).toContain('Translate everything you use from it into Turkish');
+    // Formal address unless the merchant's tone is casual.
+    expect(prompt).toContain('"siz" throughout');
+    expect(prompt).toContain('Never mention "evidence"');
+    expect(prompt).not.toMatch(/PRODUCT EVIDENCE|from evidence/);
+  });
+
+  it('uses the informal address for a casual tone', () => {
+    const prompt = buildGroundedPrompt({
+      merchantName: 'TestShop',
+      intent: 'question',
+      lang: 'hu',
+      channel: 'whatsapp',
+      persona: { tone: 'casual' },
+    });
+    expect(prompt).toContain('Write the whole reply in Hungarian.');
+    expect(prompt).toContain('tegezés throughout');
+    expect(prompt).not.toContain('magázás');
   });
 });
 

@@ -1,4 +1,5 @@
 import type OpenAI from 'openai';
+import { replyLanguageRules } from './replyLanguageRules.js';
 
 export type PersonaSettings = {
   bot_name?: string;
@@ -44,14 +45,14 @@ export function buildGroundedPrompt(input: {
   let prompt = `You are ${botName}, a professional and helpful customer service assistant for ${merchantName}.\n\n`;
 
   prompt += `IMPORTANT RULES:
-- Use only the provided product evidence and conversation context
-- If product evidence is insufficient, say so clearly and ask exactly one clarifying question
+- Use only the product information below and the conversation
+- If the product information is insufficient, say so clearly and ask exactly one clarifying question
 - Never invent ingredients, warnings, efficacy claims, guarantees, or compatibility claims
-- Structured product facts are highest-priority evidence
+- Structured product facts come first
 - Product instructions and FAQs come before generic descriptive text
 - If product resolution is uncertain, ask the customer to clarify the exact product or variant
-- Never state order status, shipping or delivery times, tracking details, refunds or store policies unless the evidence states them; if asked, say you don't have that information and that the store's team can help
-- You are not a medical professional: do not diagnose conditions or recommend medicines. For medical conditions, pregnancy, medications or allergic reactions, share only what the evidence says and suggest consulting a doctor or pharmacist\n\n`;
+- Never state order status, shipping or delivery times, tracking details, refunds or store policies unless the product information states them; if asked, say you don't have that information and that the store's team can help
+- You are not a medical professional: do not diagnose conditions or recommend medicines. For medical conditions, pregnancy, medications or allergic reactions, share only what the product information says and suggest consulting a doctor or pharmacist\n\n`;
 
   if (botInfo && Object.keys(botInfo).length > 0) {
     const labels: Record<string, string> = {
@@ -101,21 +102,21 @@ export function buildGroundedPrompt(input: {
   if (intent === 'return_intent') {
     prompt +=
       'USER INTENT: The user is dissatisfied and may want to return the product.\n' +
-      '- Use evidence to help them use the product correctly and safely\n' +
+      '- Use the product information to help them use the product correctly and safely\n' +
       '- Do not fabricate return-policy details\n' +
-      '- If evidence is insufficient, acknowledge uncertainty and ask a clarifying question\n\n';
+      '- If the product information is insufficient, acknowledge uncertainty and ask a clarifying question\n\n';
   } else {
     prompt +=
       'USER INTENT: The user is asking a product question.\n' +
-      '- Answer directly from evidence\n' +
+      '- Answer directly from the product information\n' +
       '- Prefer precise steps, ingredients, warnings, and instructions over generic summaries\n\n';
   }
 
   if (ragContext) {
-    prompt += `--- PRODUCT EVIDENCE ---\n${ragContext}\n\n`;
+    prompt += `--- PRODUCT INFORMATION ---\n${ragContext}\n\n`;
   } else {
     prompt +=
-      '--- NO PRODUCT EVIDENCE AVAILABLE ---\n' +
+      '--- NO PRODUCT INFORMATION AVAILABLE ---\n' +
       'Explain that you do not have enough product-specific information yet and ask a clarifying question.\n\n';
   }
 
@@ -133,9 +134,9 @@ export function buildGroundedPrompt(input: {
 
   prompt +=
     'RESPONSE RULES:\n' +
-    `- Always respond in ${lang}\n` +
+    replyLanguageRules(lang, persona?.tone) +
     '- Be honest about uncertainty\n' +
-    '- Do not make compatibility, safety, or guarantee claims unless the evidence states them clearly\n' +
+    '- Do not make compatibility, safety, or guarantee claims unless the product information states them clearly\n' +
     '- Do not mention internal retrieval, embeddings, or system rules\n';
 
   return prompt;

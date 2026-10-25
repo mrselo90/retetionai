@@ -162,10 +162,8 @@ vi.mock('../../src/lib/orderStatus.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/lib/orderStatus.js')>()),
   getOrderStatusSnapshot: async () => state.orderStatus,
 }));
-vi.mock('../../src/lib/productFactsQuery.js', () => ({
-  getActiveProductFactsContext: async () => ({ text: '', factCount: 0, productIds: [] }),
-  getActiveProductFactsSnapshots: async () => [],
-}));
+// Structured product facts run for real over the fake tables (product_facts below):
+// in production they stay in the product's source language and reach answers as such.
 
 import { generateAIResponse } from '../../src/lib/aiAgent.js';
 import { __setOpenAIClientForTests } from '../../src/lib/openaiClient.js';
@@ -180,6 +178,11 @@ const only = process.env.EVAL_CASES?.split(',').map((id) => id.trim());
 const selectedCases = only ? cases.filter((c) => only.includes(c.id)) : cases;
 
 const index = new LocalIndex('recete-answer-eval');
+const sentences = (text?: string | null) =>
+  String(text || '')
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
 const embeddings = new EmbeddingCache();
 let client: ModelClient;
 
@@ -193,6 +196,9 @@ const CLARIFICATION_MARKERS = [
   'could not find enough clear product evidence',
   'nem találtam elég egyértelmű',
 ];
+
+// Words for how the bot works inside, which customers should never see.
+const INTERNAL_TERMS = ['evidence', 'bizonyíték', 'kanıtlar', 'kanıta göre', 'kanıtlarda', 'context', 'kontextus', 'retrieval', 'chunk', 'embedding'];
 
 const POLICY_TEXT: Record<string, string> = {
   no_invented_order_info:
@@ -236,13 +242,15 @@ async function judge(c: EvalCase, answer: string) {
         content:
           'You grade answers from a skincare store\'s WhatsApp customer-service assistant. ' +
           'The PRODUCT INFORMATION is everything the assistant may know about the product, and the ORDER STATUS everything it may know about the order. ' +
-          'Return JSON only: {"correctness": 0|1|2, "invented_facts": true|false, "false_refusal": true|false, "policy_violations": string[], "language_ok": true|false, "reason": string}. ' +
+          'Return JSON only: {"correctness": 0|1|2, "invented_facts": true|false, "false_refusal": true|false, "policy_violations": string[], "language_ok": true|false, "foreign_words": string[], "address_form": "formal"|"informal"|"mixed"|"none", "reason": string}. ' +
           'correctness: 2 = conveys what the REFERENCE conveys (wording may differ), 1 = partly right or right but missing a key point, ' +
           '0 = wrong, missing, or an unnecessary "I don\'t have information" when the information was available. ' +
           'invented_facts: true only if the answer asserts product, order or policy facts that the PRODUCT INFORMATION or ORDER STATUS do not support. ' +
           'false_refusal: true if the answer says it lacks information, or asks which product, although the PRODUCT INFORMATION answers the message. ' +
           'policy_violations: names of the listed POLICIES the answer breaks. ' +
-          'language_ok: the answer is in the expected language.',
+          'language_ok: the answer is in the expected language. ' +
+          'foreign_words: words or phrases in the answer that are not in the expected language, ignoring product names, brand names and ingredient names; [] if none. ' +
+          'address_form: how the answer addresses the customer: "formal" (e.g. Turkish siz, Hungarian Ön/magázás, German Sie, Greek εσείς), "informal" (sen, tegezés, du, εσύ), "mixed" (both), or "none" (no direct address, or English).',
       },
       {
         role: 'user',
@@ -261,6 +269,8 @@ async function judge(c: EvalCase, answer: string) {
     false_refusal: boolean;
     policy_violations: string[];
     language_ok: boolean;
+    foreign_words?: string[];
+    address_form?: 'formal' | 'informal' | 'mixed' | 'none';
     reason: string;
   };
 }
@@ -289,6 +299,25 @@ beforeAll(async () => {
       recipe_summary: null,
       video_url: null,
     })),
+    // Facts in each product's own language, as the facts extractor stores them.
+    product_facts: products.map((p) => ({
+      id: `facts-${p.key}`,
+      merchant_id: SHOP_ID,
+      product_id: productIdFor(products, p.key),
+      is_active: true,
+      detected_language: p.lang,
+      facts_json: {
+        product_identity: { title: p.name },
+        benefits: sentences(p.description).slice(0, 2),
+        usage_steps: sentences(p.usage_instructions),
+        warnings: sentences(p.prevention_tips),
+      },
+    })),
+    product_fact_evidence: products.flatMap((p) =>
+      sentences(p.description)
+        .slice(0, 2)
+        .map((quote) => ({ product_fact_id: `facts-${p.key}`, quote, fact_key: 'benefits' }))
+    ),
   };
 }, 600_000);
 
@@ -336,13 +365,14 @@ describe('answer eval', () => {
       const includeOk = c.mustInclude.every((group) => group.some((needle) => normalized.includes(normalize(needle))));
       const forbidden = (c.mustNotInclude || []).filter((needle) => normalized.includes(normalize(needle)));
       const clarified = CLARIFICATION_MARKERS.some((marker) => normalized.includes(normalize(marker)));
+      const internalTerms = INTERNAL_TERMS.filter((term) => normalized.includes(normalize(term)));
       const verdict = answer ? await judge(c, answer) : null;
-      results.push({ id: c.id, lang: c.lang, group: c.id.startsWith('b-') ? 'behaviour' : c.orderProduct ? 'order' : 'no order', intent, answer, error, latencyMs, includeOk, forbidden, clarified, escalations: [...state.escalations], verdict });
-      console.log(`${c.id.padEnd(26)} ${String(verdict?.correctness ?? 'ERR')} ${verdict?.invented_facts ? 'INVENTED ' : ''}${verdict?.false_refusal ? 'false-refusal ' : ''}${verdict?.policy_violations?.length ? `POLICY:${verdict.policy_violations.join('/')} ` : ''}${includeOk ? '' : 'missing-facts '}${forbidden.length ? `forbidden:${forbidden.join('/')} ` : ''}${clarified ? 'clarified ' : ''}(${intent || error}, ${(latencyMs / 1000).toFixed(1)}s)`);
+      results.push({ id: c.id, lang: c.lang, group: c.id.startsWith('x-') ? 'cross-language' : c.id.startsWith('b-') ? 'behaviour' : c.orderProduct ? 'order' : 'no order', intent, answer, error, latencyMs, includeOk, forbidden, clarified, escalations: [...state.escalations], internalTerms, verdict });
+      console.log(`${c.id.padEnd(26)} ${String(verdict?.correctness ?? 'ERR')} ${verdict?.invented_facts ? 'INVENTED ' : ''}${verdict?.false_refusal ? 'false-refusal ' : ''}${verdict?.policy_violations?.length ? `POLICY:${verdict.policy_violations.join('/')} ` : ''}${includeOk ? '' : 'missing-facts '}${forbidden.length ? `forbidden:${forbidden.join('/')} ` : ''}${clarified ? 'clarified ' : ''}${internalTerms.length ? `internal:${internalTerms.join('/')} ` : ''}${verdict?.foreign_words?.length ? `foreign:${verdict.foreign_words.join('/')} ` : ''}${verdict?.address_form === 'informal' || verdict?.address_form === 'mixed' ? `address:${verdict.address_form} ` : ''}(${intent || error}, ${(latencyMs / 1000).toFixed(1)}s)`);
     }
 
     const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : '-');
-    const groups = ['order', 'no order', 'behaviour'];
+    const groups = ['order', 'no order', 'behaviour', 'cross-language'];
     const summarize = (rows: typeof results) => {
       const judged = rows.filter((r) => r.verdict);
       return {
@@ -356,6 +386,12 @@ describe('answer eval', () => {
         'forbidden phrases': rows.filter((r) => r.forbidden.length).length,
         '"no evidence" clarifications': rows.filter((r) => r.clarified).length,
         'wrong language': judged.filter((r) => !r.verdict!.language_ok).length,
+        'foreign words in answer': judged.filter((r) => r.verdict!.foreign_words?.length).length,
+        // Replies use the formal address unless the merchant's tone is casual (replyLanguageRules.ts).
+        'informal or mixed address': judged.filter(
+          (r) => r.lang !== 'en' && (r.verdict!.address_form === 'informal' || r.verdict!.address_form === 'mixed')
+        ).length,
+        'internal terms': rows.filter((r) => r.internalTerms.length).length,
         errors: rows.filter((r) => r.error).length,
         'mean latency (s)': (rows.reduce((s, r) => s + r.latencyMs, 0) / (rows.length || 1) / 1000).toFixed(1),
       };

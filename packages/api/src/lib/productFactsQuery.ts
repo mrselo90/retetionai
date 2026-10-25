@@ -76,7 +76,8 @@ function formatFactSnapshot(productName: string, row: ProductFactRow, evidence: 
     .slice(0, 6)
     .map((e) => `- ${e.quote}${e.fact_key ? ` (${e.fact_key})` : ''}`);
   if (evidenceLines.length) {
-    lines.push(block('EVIDENCE_QUOTES', evidenceLines));
+    // Not "EVIDENCE": answers repeated the label ("bizonyíték").
+    lines.push(block('QUOTES_FROM_PRODUCT_PAGE', evidenceLines));
   }
 
   return [`[PRODUCT_FACTS:${productName}]`, ...lines.filter(Boolean)].join('\n');
