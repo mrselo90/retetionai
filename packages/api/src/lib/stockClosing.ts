@@ -10,8 +10,9 @@
  * stays, since that is part of the answer.
  */
 const STOCK_OFFER = [
-  /^(eğer\s+)?(başka|herhangi)\b.*\b(soru\p{L}*|konuda|yardımcı)\b/iu,
-  /^ha\s+(bármilyen|további|más|egyéb)\b.*\b(kérdés\p{L}*|segít\p{L}*|jelezze|keressen)/iu,
+  // No \b next to non-ASCII letters: in JavaScript \b only knows [A-Za-z0-9_].
+  /^(eğer\s+)?(başka|herhangi)\s.*(soru|konuda|yardımcı)/iu,
+  /^ha\s+(bármilyen|további|más|egyéb)\s.*(kérdés|segít|jelezze|keressen)/iu,
   /^(if you have any|let me know|feel free|is there anything else|do you have any other)\b.*\b(questions?|help|assist\p{L}*|anything else)\b/iu,
   /^(wenn|falls)\s+sie\s+(weitere|noch|andere)\s+fragen\b/iu,
   /^(αν|εάν)\s+έχετε\s+(άλλες|περισσότερες)\s+(ερωτήσεις|απορίες)/iu,

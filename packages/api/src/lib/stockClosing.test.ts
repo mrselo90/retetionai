@@ -6,6 +6,7 @@ describe('stripStockClosing', () => {
     ['Göz çevresine uygulamayın. Başka bir sorunuz olursa yardımcı olmaktan memnuniyet duyarım.', 'Göz çevresine uygulamayın.'],
     ['Buzdolabında saklayın. Başka bir konuda yardımcı olabilir miyim?', 'Buzdolabında saklayın.'],
     ['Alkol içermez. Eğer başka bir konuda yardımcı olmamı isterseniz, lütfen bana bildirin.', 'Alkol içermez.'],
+    ['Sabah kullanın. Herhangi bir şeyde yardımcı olabilirim.', 'Sabah kullanın.'],
     ['Illatanyagmentes. Ha bármilyen további kérdése van, kérem, jelezze! 😊', 'Illatanyagmentes.'],
     ['Apply at night. Let me know if you have any other questions.', 'Apply at night.'],
     ['Täglich anwenden. Wenn Sie weitere Fragen haben, helfe ich gerne.', 'Täglich anwenden.'],
