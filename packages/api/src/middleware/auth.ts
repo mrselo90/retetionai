@@ -197,6 +197,8 @@ const INTERNAL_MERCHANT_PATHS: Array<string | RegExp> = [
   '/api/integrations/whatsapp/status',
   '/api/integrations/whatsapp/connect',
   '/api/integrations/whatsapp/disconnect',
+  // The Impact section on the Shopify app's Dashboard.
+  '/api/analytics/impact',
 ];
 
 function isInternalProductPath(path: string): boolean {
