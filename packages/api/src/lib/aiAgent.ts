@@ -59,6 +59,7 @@ import {
 import { captureAssistantPilotDiagnostic } from './assistantPilotDiagnostics.js';
 import { formatOrderStatusEvidence, getOrderStatusSnapshot } from './orderStatus.js';
 import { toWhatsAppText } from './whatsappFormat.js';
+import { replyLanguageRules } from './replyLanguageRules.js';
 
 export type Intent = 'question' | 'complaint' | 'chat' | 'opt_out' | 'return_intent' | 'order_status';
 
@@ -2755,7 +2756,7 @@ function buildSystemPrompt(
 
   prompt +=
     'RESPONSE FORMAT:\n' +
-    `- Always respond in ${responseLang}\n` +
+    replyLanguageRules(responseLang, persona?.tone) +
     (
       requestedLang && requestedLang !== responseLang
         ? `- The user wrote in ${requestedLang}, but this merchant currently replies only in: ${supportedLanguages.join(', ')}. Do not switch back to ${requestedLang}.\n`

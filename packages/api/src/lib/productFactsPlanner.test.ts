@@ -55,3 +55,17 @@ describe('detectFactQueryType with non-English words', () => {
   });
 });
 
+describe('frequency questions without a frequency fact', () => {
+  it('go to the model instead of a fixed "no clear frequency" answer', () => {
+    const snapshot = {
+      id: 'f1',
+      productId: 'p1',
+      productName: 'Test Serum',
+      detectedLanguage: 'tr',
+      facts: { product_identity: { title: 'Test Serum' }, usage_steps: ['İlk iki hafta günde bir kez kullanın.'] },
+      evidence: [],
+    };
+    expect(planStructuredFactAnswer('Günde kaç kez kullanmalıyım?', 'tr', [snapshot as any])).toBeNull();
+  });
+});
+

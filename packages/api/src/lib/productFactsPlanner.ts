@@ -220,27 +220,12 @@ function usageAnswer(lang: SupportedLanguage, productName: string, usageSteps: s
   return `For ${productName}, this is the usage information I found. ${stepsPart}${freqPart}`.trim();
 }
 
-function usageFrequencyFirstAnswer(
-  lang: SupportedLanguage,
-  productName: string,
-  frequency?: string | null,
-  usageSteps: string[] = []
-): string {
-  if (frequency) {
-    if (lang === 'tr') return `${productName} için gördüğüm kullanım sıklığı: ${frequency}.`;
-    if (lang === 'hu') return `A(z) ${productName} terméknél látott használati gyakoriság: ${frequency}.`;
-    if (lang === 'de') return `Die Anwendungshäufigkeit, die ich für ${productName} sehe, ist: ${frequency}.`;
-    if (lang === 'el') return `Η συχνότητα χρήσης που βλέπω για το ${productName} είναι: ${frequency}.`;
-    return `The usage frequency I can see for ${productName} is: ${frequency}.`;
-  }
-  if (usageSteps.length > 0) {
-    if (lang === 'tr') return `${productName} için net bir sıklık bilgisi görmüyorum, ancak kullanım adımlarını paylaşabilirim.`;
-    if (lang === 'hu') return `A(z) ${productName} terméknél nem látok egyértelmű gyakoriságot, de a használati lépéseket meg tudom osztani.`;
-    if (lang === 'de') return `Ich sehe für ${productName} keine klare Häufigkeit, kann aber die Anwendungsschritte teilen.`;
-    if (lang === 'el') return `Δεν βλέπω σαφή συχνότητα για το ${productName}, αλλά μπορώ να μοιραστώ τα βήματα χρήσης.`;
-    return `I don't see a clear frequency for ${productName}, but I can share the usage steps.`;
-  }
-  return noInfo(lang, productName, lang === 'tr' ? 'kullanım sıklığı' : lang === 'hu' ? 'használati gyakoriság' : lang === 'de' ? 'Anwendungshäufigkeit' : lang === 'el' ? 'συχνότητα χρήσης' : 'usage frequency');
+function usageFrequencyFirstAnswer(lang: SupportedLanguage, productName: string, frequency: string): string {
+  if (lang === 'tr') return `${productName} için gördüğüm kullanım sıklığı: ${frequency}.`;
+  if (lang === 'hu') return `A(z) ${productName} terméknél látott használati gyakoriság: ${frequency}.`;
+  if (lang === 'de') return `Die Anwendungshäufigkeit, die ich für ${productName} sehe, ist: ${frequency}.`;
+  if (lang === 'el') return `Η συχνότητα χρήσης που βλέπω για το ${productName} είναι: ${frequency}.`;
+  return `The usage frequency I can see for ${productName} is: ${frequency}.`;
 }
 
 function onboardingUsageLooksRequested(query: string): boolean {
@@ -460,10 +445,15 @@ export function planStructuredFactAnswer(
     const shouldIncludeWarningsSnippet = onboardingUsageLooksRequested(query);
     const warningSnippet = shouldIncludeWarningsSnippet ? warningsSnippetForUsage(lang, warnings, Math.min(2, caps.listMax)) : '';
     const usedFactKeys = ['usage_steps', ...(frequency ? ['frequency'] : []), ...(shouldIncludeWarningsSnippet && warnings.length > 0 ? ['warnings'] : [])];
+    // A frequency question without a frequency fact goes to the model: the
+    // usage steps or instructions usually say it ("once a day for two weeks,
+    // then twice"). The fixed "I don't see a clear frequency" answer used to
+    // win here, because the steps counted as a used fact.
+    if (usageSubtype === 'frequency' && !frequency) return null;
     if (usageSteps.length > 0 || frequency) {
       const baseAnswer =
         usageSubtype === 'frequency'
-          ? usageFrequencyFirstAnswer(lang, productName, frequency, usageSteps.slice(0, caps.usageStepsMax))
+          ? usageFrequencyFirstAnswer(lang, productName, frequency!)
           : usageAnswer(lang, productName, usageSteps.slice(0, caps.usageStepsMax), frequency);
       return {
         answer: (baseAnswer + warningSnippet).trim() + evidenceSuffix(lang, quotes),

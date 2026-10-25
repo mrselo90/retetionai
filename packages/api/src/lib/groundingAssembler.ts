@@ -215,7 +215,10 @@ export async function assembleGroundingEvidence(
   const planned = factsSnapshots.length > 0
     ? planStructuredFactAnswer(plannerQuery, input.responseLang || input.userLang, factsSnapshots, {
         responseLength: input.responseLength,
-        includeEvidenceQuote: true,
+        // No "Source note: '…'" after the answer: the quote is in the product's
+        // source language (a Turkish quote in a Hungarian answer) and talks
+        // about sources, which replies don't.
+        includeEvidenceQuote: false,
       })
     : null;
 
